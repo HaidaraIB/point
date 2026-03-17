@@ -1,0 +1,43 @@
+rules_version = '2';
+// قواعد Firestore لمشروع point
+// التطبيق يستخدم تسجيل دخول مخصص (email/password في Firestore) وليس Firebase Auth،
+// لذلك request.auth يكون null. القواعد التالية تسمح بالقراءة/الكتابة للمجموعات المستخدمة.
+// للإنتاج: يُفضّل تفعيل Firebase Authentication ثم تقييد الوصول حسب request.auth.uid
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // الموظفون - تسجيل الدخول والبيانات
+    match /employees/{docId} {
+      allow read, write: if true;
+    }
+
+    // العملاء
+    match /clients/{docId} {
+      allow read, write: if true;
+    }
+
+    // المحتوى
+    match /contents/{docId} {
+      allow read, write: if true;
+    }
+
+    // المهام
+    match /tasks/{docId} {
+      allow read, write: if true;
+    }
+
+    // المحادثات والرسائل (مجموعة فرعية)
+    match /chats/{chatId} {
+      allow read, write: if true;
+      match /messages/{messageId} {
+        allow read, write: if true;
+      }
+    }
+
+    // الإشعارات
+    match /notifications/{docId} {
+      allow read, write: if true;
+    }
+  }
+}

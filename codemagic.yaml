@@ -1,0 +1,163 @@
+workflows:
+  ios-workflow:
+    name: iOS Workflow
+    max_build_duration: 120
+    instance_type: mac_mini_m1
+    integrations:
+      app_store_connect: Point
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.point.agency
+      groups:
+        - ios_config # BASE_URL, API_KEY, GOOGLE_SERVICE_INFO_PLIST, SUPABASE_*, FIREBASE_IOS_*, etc.
+      vars:
+        APP_ID: "com.point.agency"
+        APP_STORE_ID: "6758578493" # تأكد أن التطبيق في App Store Connect يستخدم Bundle ID: com.point.agency
+        BUNDLE_ID: "com.point.agency"
+        XCODE_WORKSPACE: "ios/Runner.xcworkspace"
+        XCODE_SCHEME: "Runner"
+        FLUTTER_BUILD_MODE: "release"
+        FLUTTER_BUILD_NAME: "1.0.0"
+        FLUTTER_BUILD_NUMBER: "1"
+    scripts:
+      - name: Get Flutter dependencies
+        script: |
+          flutter pub get
+      - name: Install CocoaPods dependencies
+        script: |
+          cd ios && pod install
+      - name: Create .env file for production
+        script: |
+          if [ -n "$ENV_FILE_CONTENT" ]; then
+            echo "$ENV_FILE_CONTENT" > .env
+            echo "✅ Created .env from ENV_FILE_CONTENT (ios_config)"
+          else
+            : > .env
+            for key in SUPABASE_URL SUPABASE_ANON_KEY SUPABASE_STORAGE_BASE_URL FIREBASE_PROJECT_ID \
+              FIREBASE_WEB_API_KEY FIREBASE_WEB_APP_ID FIREBASE_WEB_PROJECT_ID FIREBASE_WEB_STORAGE_BUCKET FIREBASE_WEB_AUTH_DOMAIN FIREBASE_WEB_MEASUREMENT_ID FIREBASE_WEB_MESSAGING_SENDER_ID FIREBASE_WEB_VAPID_KEY \
+              FIREBASE_ANDROID_API_KEY FIREBASE_ANDROID_APP_ID FIREBASE_ANDROID_PROJECT_ID FIREBASE_ANDROID_STORAGE_BUCKET FIREBASE_ANDROID_MESSAGING_SENDER_ID \
+              FIREBASE_IOS_API_KEY FIREBASE_IOS_APP_ID FIREBASE_IOS_PROJECT_ID FIREBASE_IOS_STORAGE_BUCKET FIREBASE_IOS_MESSAGING_SENDER_ID FIREBASE_IOS_BUNDLE_ID \
+              FIREBASE_SERVICE_ACCOUNT_JSON; do
+              val="${!key}"
+              [ -n "$val" ] && echo "${key}=${val}" >> .env
+            done
+            echo "✅ Created .env from ios_config environment variables"
+          fi
+          echo "--- .env (keys only) ---"
+          sed 's/=.*/=***/' .env
+      - name: Create GoogleService-Info.plist for Firebase
+        script: |
+          PLIST_PATH="ios/Runner/GoogleService-Info.plist"
+          if [ -n "$GOOGLE_SERVICE_INFO_PLIST" ]; then
+            echo "$GOOGLE_SERVICE_INFO_PLIST" > "$PLIST_PATH"
+            echo "✅ Wrote GoogleService-Info.plist from GOOGLE_SERVICE_INFO_PLIST"
+          else
+            echo "⚠️ GOOGLE_SERVICE_INFO_PLIST is empty. Using repo file if present."
+            if [ ! -f "$PLIST_PATH" ] || ! grep -q "GOOGLE_APP_ID" "$PLIST_PATH" 2>/dev/null; then
+              echo "❌ No valid GoogleService-Info.plist found. Set GOOGLE_SERVICE_INFO_PLIST in Codemagic (Environment variables → ios_config)."
+              exit 1
+            fi
+          fi
+          if [ -f "$PLIST_PATH" ]; then
+            if grep -q "BUNDLE_ID" "$PLIST_PATH" && grep -q "GOOGLE_APP_ID" "$PLIST_PATH"; then
+              echo "✅ GoogleService-Info.plist validated (BUNDLE_ID and GOOGLE_APP_ID present)"
+            else
+              echo "❌ GoogleService-Info.plist invalid: missing BUNDLE_ID or GOOGLE_APP_ID"
+              exit 1
+            fi
+          fi
+      - name: Set up code signing settings on Xcode project
+        script: |
+          xcode-project use-profiles
+      - name: Create ExportOptions.plist with installed profile name (Push-capable only)
+        script: |
+          cd "$CM_BUILD_DIR"
+          PROFILE_NAME=""
+          PREFERRED_NAME="Point"
+          echo "=== Looking for com.point.agency profile WITH Push Notifications (aps-environment) ==="
+          for f in ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision; do
+            [ -f "$f" ] || continue
+            security cms -D -i "$f" > /tmp/profile_decoded.plist 2>/dev/null
+            APPID=$(plutil -extract Entitlements.application-identifier raw /tmp/profile_decoded.plist 2>/dev/null)
+            if echo "$APPID" | grep -q "com.point.agency"; then
+              APS=$(plutil -extract Entitlements.aps-environment raw /tmp/profile_decoded.plist 2>/dev/null || true)
+              if [ -z "$APS" ]; then
+                NAME=$(plutil -extract Name raw /tmp/profile_decoded.plist 2>/dev/null)
+                echo "  ⏭️  Skipping '$NAME' (no aps-environment / Push Notifications)"
+                continue
+              fi
+              NAME=$(plutil -extract Name raw /tmp/profile_decoded.plist 2>/dev/null)
+              if [ "$NAME" = "$PREFERRED_NAME" ]; then
+                PROFILE_NAME="$NAME"
+                echo "  ✅ Found preferred: $PROFILE_NAME"
+                break
+              fi
+              [ -z "$PROFILE_NAME" ] && PROFILE_NAME="$NAME"
+            fi
+          done
+          if [ -z "$PROFILE_NAME" ]; then
+            echo "❌ No provisioning profile for com.point.agency WITH Push Notifications (aps-environment)."
+            echo "   Fix: In Apple Developer → Profiles, edit your App Store profile and ensure Push Notifications is enabled for the App ID, then regenerate the profile. Or use a profile named '$PREFERRED_NAME' that has Push."
+            ls -la ~/Library/MobileDevice/Provisioning\ Profiles/ 2>/dev/null || true
+            exit 1
+          fi
+          echo "✅ Using provisioning profile: $PROFILE_NAME"
+          echo '<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"><plist version="1.0"><dict/></plist>' > /tmp/ExportOptions.plist
+          /usr/libexec/PlistBuddy /tmp/ExportOptions.plist -c "Add :method string app-store" -c "Add :signingStyle string manual" -c "Add :signingCertificate string Apple Distribution" -c "Add :teamID string L588TH2TC3" -c "Add :provisioningProfiles dict" -c "Add :provisioningProfiles:com.point.agency string \"$PROFILE_NAME\""
+          echo "✅ ExportOptions.plist created at /tmp/ExportOptions.plist"
+      - name: Flutter build ipa
+        script: |
+          cd "$CM_BUILD_DIR"
+          flutter build ipa \
+            --release \
+            --export-options-plist /tmp/ExportOptions.plist \
+            --build-name="${FLUTTER_BUILD_NAME}" \
+            --build-number="${FLUTTER_BUILD_NUMBER}" || true
+          if [ ! -d build/ios/ipa ] || [ -z "$(ls -A build/ios/ipa 2>/dev/null)" ]; then
+            echo "=== Flutter export failed, running xcodebuild -exportArchive manually ==="
+            mkdir -p build/ios/ipa
+            xcodebuild -exportArchive \
+              -archivePath build/ios/archive/Runner.xcarchive \
+              -exportPath build/ios/ipa \
+              -exportOptionsPlist /tmp/ExportOptions.plist
+          fi
+          echo "=== After build: looking for IPA ==="
+          ls -la build/ios/ipa/ 2>/dev/null || true
+          find . -name "*.ipa" -type f 2>/dev/null || true
+      - name: Copy IPA to export directory for artifacts
+        script: |
+          cd "$CM_BUILD_DIR"
+          ROOT="${CM_BUILD_DIR:-.}"
+          mkdir -p "$CM_EXPORT_DIR"
+          IPA_PATH=$(find "$ROOT" -name "*.ipa" -type f 2>/dev/null | head -1)
+          if [ -n "$IPA_PATH" ]; then
+            cp "$IPA_PATH" "$CM_EXPORT_DIR/"
+            echo "✅ IPA copied to $CM_EXPORT_DIR: $IPA_PATH"
+            ls -la "$CM_EXPORT_DIR"
+          else
+            echo "⚠️ No .ipa found under $ROOT"
+            echo "pwd=$(pwd) CM_BUILD_DIR=$CM_BUILD_DIR"
+            ls -la build/ios/ 2>/dev/null || true
+            find "$ROOT" -type d -name "ipa" 2>/dev/null || true
+          fi
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - flutter_drive.log
+    publishing:
+      email:
+        recipients:
+          - hassan.alsaadi8@gmail.com
+        notify:
+          success: true
+          failure: true
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        beta_groups:
+          - Internal Testers
+        submit_to_app_store: false

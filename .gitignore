@@ -1,0 +1,71 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Secrets - never commit
+.env
+.env.old
+.env.new
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+web/firebase-messaging-sw.js
+firebase-adminsdk.json
+# Web: يُنشأ من .env عبر node scripts/generate-firebase-sw.js
+
+# Backup / old config (لا تتبع نسخ احتياطية)
+**/google-services.old.json
+**/google-services.new.json
+**/GoogleService-Info.old.plist
+**/GoogleService-Info.new.plist
+firebase-messaging-sw.old.js
+firebase-messaging-sw.new.js
+*.old.json
+
+# Supabase CLI temp (ملفات مؤقتة من Supabase CLI)
+supabase/.temp/
+
+# Flutter / Dart analysis output
+analyze_output.txt
+*.analyze_output.txt
