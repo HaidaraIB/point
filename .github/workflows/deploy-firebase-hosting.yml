@@ -17,8 +17,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Generate firebase-messaging-sw.js
-        run: node scripts/generate-firebase-sw.js
 
       - uses: subosito/flutter-action@v2
         with:
