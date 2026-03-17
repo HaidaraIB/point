@@ -114,6 +114,7 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
 
     if (model == null) {
       final success = await controller.addClient(
+        password: passwordController.text,
         ClientModel(
           id: '${Random().nextInt(100000)}',
           name: nameController.text,
@@ -122,7 +123,6 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
           description: descController.text,
           status: 'active',
           createdAt: DateTime.now(),
-          password: passwordController.text,
           startAt: startAt,
           endAt: endAt,
         ),
@@ -133,13 +133,11 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
         Get.back();
       }
     } else {
-      final newPassword = passwordController.text.trim();
       final success = await controller.updateClient(
         model.copyWith(
           name: nameController.text,
           email: emailController.text,
           createdAt: DateTime.now(),
-          password: newPassword.isEmpty ? model.password : newPassword,
           image: controller.uploadedFilesPaths.lastOrNull,
           startAt: startAt,
           endAt: endAt,

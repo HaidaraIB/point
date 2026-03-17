@@ -12,7 +12,6 @@ import 'package:point/Models/ContentModel.dart';
 import 'package:point/Models/EmployeeModel.dart';
 import 'package:point/Models/NotificationModel.dart';
 import 'package:point/Models/TaskModel.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/NotificationService.dart';
@@ -47,6 +46,7 @@ class HomeController extends GetxController {
 
   // RxList<TaskModel> allTasks = <TaskModel>[].obs;
   RxList<TaskModel> tasksSearched = <TaskModel>[].obs;
+
   /// قائمة المهام المنتهية لصفحة سجل المهام
   RxList<TaskModel> tasksHistory = <TaskModel>[].obs;
 
@@ -65,10 +65,14 @@ class HomeController extends GetxController {
 
     // إن وُجد فلتر حالة محددة (إحدى الحالات الجارية) نطبّقها
     if (selectedStatus.value.isNotEmpty) {
-      baseList = baseList
-          .where((t) =>
-              t.status.toLowerCase() == selectedStatus.value.toLowerCase())
-          .toList();
+      baseList =
+          baseList
+              .where(
+                (t) =>
+                    t.status.toLowerCase() ==
+                    selectedStatus.value.toLowerCase(),
+              )
+              .toList();
     }
 
     // إن لم يُختر أي فلتر آخر نعرض النتيجة فوراً
@@ -88,33 +92,35 @@ class HomeController extends GetxController {
       executorId = matchUser?.id;
     }
 
-    tasksSearched.assignAll(baseList.where((task) {
-      final title = (task.title).toLowerCase();
-      final assigned = (task.assignedTo).toLowerCase();
-      final priority = (task.priority).toLowerCase();
+    tasksSearched.assignAll(
+      baseList.where((task) {
+        final title = (task.title).toLowerCase();
+        final assigned = (task.assignedTo).toLowerCase();
+        final priority = (task.priority).toLowerCase();
 
-      final matchSearch =
-          searchText.isEmpty
-              ? true
-              : (title.contains(searchText) ||
-                  employees.any(
-                    (u) =>
-                        u.name!.toLowerCase().contains(searchText) &&
-                        u.id == task.assignedTo,
-                  ));
+        final matchSearch =
+            searchText.isEmpty
+                ? true
+                : (title.contains(searchText) ||
+                    employees.any(
+                      (u) =>
+                          u.name!.toLowerCase().contains(searchText) &&
+                          u.id == task.assignedTo,
+                    ));
 
-      final matchPriority =
-          selectedPriority.value.isEmpty
-              ? true
-              : priority == selectedPriority.value.toLowerCase();
+        final matchPriority =
+            selectedPriority.value.isEmpty
+                ? true
+                : priority == selectedPriority.value.toLowerCase();
 
-      final matchExecutor =
-          selectedExecutor.value.isEmpty
-              ? true
-              : assigned == executorId?.toLowerCase();
+        final matchExecutor =
+            selectedExecutor.value.isEmpty
+                ? true
+                : assigned == executorId?.toLowerCase();
 
-      return matchSearch && matchPriority && matchExecutor;
-    }).toList());
+        return matchSearch && matchPriority && matchExecutor;
+      }).toList(),
+    );
   }
 
   void filterTasksHistory() {
@@ -125,10 +131,14 @@ class HomeController extends GetxController {
 
     if (selectedStatus.value.isNotEmpty &&
         StorageKeys.statusListEnded.contains(selectedStatus.value)) {
-      baseList = baseList
-          .where((t) =>
-              t.status.toLowerCase() == selectedStatus.value.toLowerCase())
-          .toList();
+      baseList =
+          baseList
+              .where(
+                (t) =>
+                    t.status.toLowerCase() ==
+                    selectedStatus.value.toLowerCase(),
+              )
+              .toList();
     }
 
     if (searchText.isEmpty &&
@@ -146,33 +156,35 @@ class HomeController extends GetxController {
       executorId = matchUser?.id;
     }
 
-    tasksHistory.assignAll(baseList.where((task) {
-      final title = (task.title).toLowerCase();
-      final assigned = (task.assignedTo).toLowerCase();
-      final priority = (task.priority).toLowerCase();
+    tasksHistory.assignAll(
+      baseList.where((task) {
+        final title = (task.title).toLowerCase();
+        final assigned = (task.assignedTo).toLowerCase();
+        final priority = (task.priority).toLowerCase();
 
-      final matchSearch =
-          searchText.isEmpty
-              ? true
-              : (title.contains(searchText) ||
-                  employees.any(
-                    (u) =>
-                        u.name!.toLowerCase().contains(searchText) &&
-                        u.id == task.assignedTo,
-                  ));
+        final matchSearch =
+            searchText.isEmpty
+                ? true
+                : (title.contains(searchText) ||
+                    employees.any(
+                      (u) =>
+                          u.name!.toLowerCase().contains(searchText) &&
+                          u.id == task.assignedTo,
+                    ));
 
-      final matchPriority =
-          selectedPriority.value.isEmpty
-              ? true
-              : priority == selectedPriority.value.toLowerCase();
+        final matchPriority =
+            selectedPriority.value.isEmpty
+                ? true
+                : priority == selectedPriority.value.toLowerCase();
 
-      final matchExecutor =
-          selectedExecutor.value.isEmpty
-              ? true
-              : assigned == executorId?.toLowerCase();
+        final matchExecutor =
+            selectedExecutor.value.isEmpty
+                ? true
+                : assigned == executorId?.toLowerCase();
 
-      return matchSearch && matchPriority && matchExecutor;
-    }).toList());
+        return matchSearch && matchPriority && matchExecutor;
+      }).toList(),
+    );
   }
 
   fetchEmployees() {
@@ -187,9 +199,15 @@ class HomeController extends GetxController {
     update();
   }
 
-  Future<bool> addEmployee(EmployeeModel employee) async {
+  Future<bool> addEmployee(
+    EmployeeModel employee, {
+    required String password,
+  }) async {
     isLoading.value = true;
-    final result = await _service.addEmployee(employee);
+    final result = await _service.createEmployeeWithAuth(
+      employee: employee,
+      password: password,
+    );
     if (result && (employee.role == 'admin' || employee.role == 'supervisor')) {
       await addToGroups(employee.id!);
     }
@@ -209,9 +227,21 @@ class HomeController extends GetxController {
     }
   }
 
-  Future<bool> updateEmployee(EmployeeModel employee) async {
+  Future<bool> updateEmployee(
+    EmployeeModel employee, {
+    String? newPassword,
+  }) async {
     isLoading.value = true;
-    final result = await _service.updateEmployee(employee);
+    // نحتاج النسخة القديمة للمقارنة وتمريرها للـ service
+    final existing = employees.firstWhereOrNull((e) => e.id == employee.id);
+    final result =
+        existing == null
+            ? await _service.updateEmployee(employee)
+            : await _service.updateEmployeeWithAuth(
+              existing: existing,
+              updated: employee,
+              newPassword: newPassword,
+            );
     if (result && (employee.role == 'admin' || employee.role == 'supervisor')) {
       await addToGroups(employee.id!);
     }
@@ -230,16 +260,27 @@ class HomeController extends GetxController {
     return employees.firstWhereOrNull((a) => a.id == id);
   }
 
-  Future<bool> addClient(ClientModel client) async {
+  Future<bool> addClient(ClientModel client, {required String password}) async {
     isLoading.value = true;
-    final result = await _service.addClient(client);
+    final result = await _service.createClientWithAuth(
+      client: client,
+      password: password,
+    );
     isLoading.value = false;
     return result;
   }
 
-  Future<bool> updateClient(ClientModel client) async {
+  Future<bool> updateClient(ClientModel client, {String? newPassword}) async {
     isLoading.value = true;
-    final result = await _service.updateClient(client);
+    final existing = clients.firstWhereOrNull((c) => c.id == client.id);
+    final result =
+        existing == null
+            ? await _service.updateClient(client)
+            : await _service.updateClientWithAuth(
+              existing: existing,
+              updated: client,
+              newPassword: newPassword,
+            );
     isLoading.value = false;
     return result;
   }
@@ -300,20 +341,24 @@ class HomeController extends GetxController {
       byUserName: emp?.name ?? 'نظام',
       timestamp: DateTime.now(),
     );
-    final taskWithTimeline = task.copyWith(
-      timelineEvents: [createdEvent],
-    );
+    final taskWithTimeline = task.copyWith(timelineEvents: [createdEvent]);
     final result = await _service.addTask(taskWithTimeline);
     isLoading.value = false;
     if (result && task.assignedTo.trim().isNotEmpty) {
-      unawaited(NotificationService.notifyEmployeeAssignedToTask(
-        employeeId: task.assignedTo,
-        taskTitle: task.title,
-      ));
-      unawaited(NotificationService.notifyManagersNewTaskInDepartment(
-        taskTitle: task.title,
-        departmentNameAr: NotificationService.departmentNameFromTaskType(task.type),
-      ));
+      unawaited(
+        NotificationService.notifyEmployeeAssignedToTask(
+          employeeId: task.assignedTo,
+          taskTitle: task.title,
+        ),
+      );
+      unawaited(
+        NotificationService.notifyManagersNewTaskInDepartment(
+          taskTitle: task.title,
+          departmentNameAr: NotificationService.departmentNameFromTaskType(
+            task.type,
+          ),
+        ),
+      );
     }
     return result;
   }
@@ -337,10 +382,15 @@ class HomeController extends GetxController {
     return result;
   }
 
-  Future<void> _triggerTaskNotifications(TaskModel oldTask, TaskModel newTask) async {
+  Future<void> _triggerTaskNotifications(
+    TaskModel oldTask,
+    TaskModel newTask,
+  ) async {
     final emp = currentemployee.value;
     final assigneeId = newTask.assignedTo.trim();
-    final assigneeName = employees.firstWhereOrNull((e) => e.id == assigneeId)?.name ?? assigneeId;
+    final assigneeName =
+        employees.firstWhereOrNull((e) => e.id == assigneeId)?.name ??
+        assigneeId;
     final isUpdateByAssignee = emp?.id == assigneeId;
 
     if (oldTask.status != newTask.status) {
@@ -365,13 +415,15 @@ class HomeController extends GetxController {
           );
         }
       }
-      if (newTask.status == StorageKeys.status_rejected && assigneeId.isNotEmpty) {
+      if (newTask.status == StorageKeys.status_rejected &&
+          assigneeId.isNotEmpty) {
         await NotificationService.notifyEmployeeTaskRejected(
           employeeId: assigneeId,
           taskTitle: newTask.title,
         );
       }
-      if (newTask.status == StorageKeys.status_edit_requested && assigneeId.isNotEmpty) {
+      if (newTask.status == StorageKeys.status_edit_requested &&
+          assigneeId.isNotEmpty) {
         await NotificationService.notifyEmployeeEditRequestedByManagement(
           employeeId: assigneeId,
           taskTitle: newTask.title,
@@ -451,19 +503,30 @@ class HomeController extends GetxController {
     String? fieldKey,
   }) {
     if (_valuesEqual(oldVal, newVal)) return;
-    events.add(TaskTimelineEvent(
-      type: 'field_changed',
-      label: label,
-      oldValue: _formatTimelineValue(oldVal).isEmpty ? null : _formatTimelineValue(oldVal),
-      newValue: _formatTimelineValue(newVal).isEmpty ? null : _formatTimelineValue(newVal),
-      byUserId: userId,
-      byUserName: userName,
-      timestamp: now,
-      fieldKey: fieldKey,
-    ));
+    events.add(
+      TaskTimelineEvent(
+        type: 'field_changed',
+        label: label,
+        oldValue:
+            _formatTimelineValue(oldVal).isEmpty
+                ? null
+                : _formatTimelineValue(oldVal),
+        newValue:
+            _formatTimelineValue(newVal).isEmpty
+                ? null
+                : _formatTimelineValue(newVal),
+        byUserId: userId,
+        byUserName: userName,
+        timestamp: now,
+        fieldKey: fieldKey,
+      ),
+    );
   }
 
-  List<TaskTimelineEvent> _buildTimelineEvents(TaskModel oldTask, TaskModel newTask) {
+  List<TaskTimelineEvent> _buildTimelineEvents(
+    TaskModel oldTask,
+    TaskModel newTask,
+  ) {
     final emp = currentemployee.value;
     final userId = emp?.id ?? '';
     final userName = emp?.name ?? 'نظام';
@@ -472,186 +535,698 @@ class HomeController extends GetxController {
 
     // --- الحقول الأساسية للمهمة ---
     if (oldTask.assignedTo != newTask.assignedTo) {
-      final oldName = employees.firstWhereOrNull((e) => e.id == oldTask.assignedTo)?.name ?? oldTask.assignedTo;
-      final newName = employees.firstWhereOrNull((e) => e.id == newTask.assignedTo)?.name ?? newTask.assignedTo;
-      events.add(TaskTimelineEvent(
-        type: 'executor_changed',
-        label: 'تم تغيير المنفذ',
-        oldValue: oldName,
-        newValue: newName,
-        byUserId: userId,
-        byUserName: userName,
-        timestamp: now,
-      ));
+      final oldName =
+          employees.firstWhereOrNull((e) => e.id == oldTask.assignedTo)?.name ??
+          oldTask.assignedTo;
+      final newName =
+          employees.firstWhereOrNull((e) => e.id == newTask.assignedTo)?.name ??
+          newTask.assignedTo;
+      events.add(
+        TaskTimelineEvent(
+          type: 'executor_changed',
+          label: 'تم تغيير المنفذ',
+          oldValue: oldName,
+          newValue: newName,
+          byUserId: userId,
+          byUserName: userName,
+          timestamp: now,
+        ),
+      );
     }
-    _addIfChanged(events, 'تم تغيير العنوان', oldTask.title, newTask.title, userId, userName, now, fieldKey: 'title');
-    _addIfChanged(events, 'تم تغيير الوصف', oldTask.description, newTask.description, userId, userName, now, fieldKey: 'description');
+    _addIfChanged(
+      events,
+      'تم تغيير العنوان',
+      oldTask.title,
+      newTask.title,
+      userId,
+      userName,
+      now,
+      fieldKey: 'title',
+    );
+    _addIfChanged(
+      events,
+      'تم تغيير الوصف',
+      oldTask.description,
+      newTask.description,
+      userId,
+      userName,
+      now,
+      fieldKey: 'description',
+    );
     if (oldTask.progress != newTask.progress) {
-      final oldP = oldTask.progress != null ? '${(oldTask.progress! * 100).round()}%' : '';
-      final newP = newTask.progress != null ? '${(newTask.progress! * 100).round()}%' : '';
-      _addIfChanged(events, 'تم تغيير التقدم', oldP, newP, userId, userName, now, fieldKey: 'progress');
+      final oldP =
+          oldTask.progress != null
+              ? '${(oldTask.progress! * 100).round()}%'
+              : '';
+      final newP =
+          newTask.progress != null
+              ? '${(newTask.progress! * 100).round()}%'
+              : '';
+      _addIfChanged(
+        events,
+        'تم تغيير التقدم',
+        oldP,
+        newP,
+        userId,
+        userName,
+        now,
+        fieldKey: 'progress',
+      );
     }
-    _addIfChanged(events, 'تم تغيير اسم العميل', oldTask.clientName, newTask.clientName, userId, userName, now, fieldKey: 'clientName');
-    _addIfChanged(events, 'تم تغيير نص الإجراء', oldTask.actionText, newTask.actionText, userId, userName, now, fieldKey: 'actionText');
-    _addIfChanged(events, 'تم تغيير النوع', oldTask.type, newTask.type, userId, userName, now, fieldKey: 'type');
+    _addIfChanged(
+      events,
+      'تم تغيير اسم العميل',
+      oldTask.clientName,
+      newTask.clientName,
+      userId,
+      userName,
+      now,
+      fieldKey: 'clientName',
+    );
+    _addIfChanged(
+      events,
+      'تم تغيير نص الإجراء',
+      oldTask.actionText,
+      newTask.actionText,
+      userId,
+      userName,
+      now,
+      fieldKey: 'actionText',
+    );
+    _addIfChanged(
+      events,
+      'تم تغيير النوع',
+      oldTask.type,
+      newTask.type,
+      userId,
+      userName,
+      now,
+      fieldKey: 'type',
+    );
     if (oldTask.fromDate != newTask.fromDate) {
-      events.add(TaskTimelineEvent(
-        type: 'from_date_changed',
-        label: 'تم تغيير تاريخ البداية',
-        oldValue: _formatTimelineValue(oldTask.fromDate),
-        newValue: _formatTimelineValue(newTask.fromDate),
-        byUserId: userId,
-        byUserName: userName,
-        timestamp: now,
-      ));
+      events.add(
+        TaskTimelineEvent(
+          type: 'from_date_changed',
+          label: 'تم تغيير تاريخ البداية',
+          oldValue: _formatTimelineValue(oldTask.fromDate),
+          newValue: _formatTimelineValue(newTask.fromDate),
+          byUserId: userId,
+          byUserName: userName,
+          timestamp: now,
+        ),
+      );
     }
     if (oldTask.toDate != newTask.toDate) {
-      events.add(TaskTimelineEvent(
-        type: 'to_date_changed',
-        label: 'تم تغيير تاريخ النهاية',
-        oldValue: _formatTimelineValue(oldTask.toDate),
-        newValue: _formatTimelineValue(newTask.toDate),
-        byUserId: userId,
-        byUserName: userName,
-        timestamp: now,
-      ));
+      events.add(
+        TaskTimelineEvent(
+          type: 'to_date_changed',
+          label: 'تم تغيير تاريخ النهاية',
+          oldValue: _formatTimelineValue(oldTask.toDate),
+          newValue: _formatTimelineValue(newTask.toDate),
+          byUserId: userId,
+          byUserName: userName,
+          timestamp: now,
+        ),
+      );
     }
     if (oldTask.priority != newTask.priority) {
-      events.add(TaskTimelineEvent(
-        type: 'priority_changed',
-        label: 'تم تغيير الأولوية',
-        oldValue: oldTask.priority,
-        newValue: newTask.priority,
-        byUserId: userId,
-        byUserName: userName,
-        timestamp: now,
-      ));
+      events.add(
+        TaskTimelineEvent(
+          type: 'priority_changed',
+          label: 'تم تغيير الأولوية',
+          oldValue: oldTask.priority,
+          newValue: newTask.priority,
+          byUserId: userId,
+          byUserName: userName,
+          timestamp: now,
+        ),
+      );
     }
     if (oldTask.status != newTask.status) {
-      events.add(TaskTimelineEvent(
-        type: 'status_changed',
-        label: 'تم تغيير الحالة',
-        oldValue: oldTask.status,
-        newValue: newTask.status,
-        byUserId: userId,
-        byUserName: userName,
-        timestamp: now,
-      ));
+      events.add(
+        TaskTimelineEvent(
+          type: 'status_changed',
+          label: 'تم تغيير الحالة',
+          oldValue: oldTask.status,
+          newValue: newTask.status,
+          byUserId: userId,
+          byUserName: userName,
+          timestamp: now,
+        ),
+      );
     }
     if (newTask.notes.length > oldTask.notes.length) {
       final newNote = newTask.notes.isNotEmpty ? newTask.notes.last.note : '';
-      final snippet = newNote.length > _timelineValueMaxLength
-          ? '${newNote.substring(0, _timelineValueMaxLength)}...'
-          : newNote;
-      events.add(TaskTimelineEvent(
-        type: 'note_added',
-        label: 'تم إضافة ملاحظة',
-        newValue: snippet.isEmpty ? null : snippet,
-        byUserId: userId,
-        byUserName: userName,
-        timestamp: now,
-      ));
+      final snippet =
+          newNote.length > _timelineValueMaxLength
+              ? '${newNote.substring(0, _timelineValueMaxLength)}...'
+              : newNote;
+      events.add(
+        TaskTimelineEvent(
+          type: 'note_added',
+          label: 'تم إضافة ملاحظة',
+          newValue: snippet.isEmpty ? null : snippet,
+          byUserId: userId,
+          byUserName: userName,
+          timestamp: now,
+        ),
+      );
     }
     if (newTask.files.length > oldTask.files.length) {
-      final lastFile = newTask.files.isNotEmpty ? newTask.files.last.toString() : '';
-      events.add(TaskTimelineEvent(
-        type: 'attachment_added',
-        label: 'تم إضافة مرفق',
-        newValue: lastFile.isEmpty ? null : lastFile,
-        byUserId: userId,
-        byUserName: userName,
-        timestamp: now,
-      ));
+      final lastFile =
+          newTask.files.isNotEmpty ? newTask.files.last.toString() : '';
+      events.add(
+        TaskTimelineEvent(
+          type: 'attachment_added',
+          label: 'تم إضافة مرفق',
+          newValue: lastFile.isEmpty ? null : lastFile,
+          byUserId: userId,
+          byUserName: userName,
+          timestamp: now,
+        ),
+      );
     }
 
     // --- DesignTaskModel ---
     final oldD = oldTask.designDetails;
     final newD = newTask.designDetails;
     if (oldD != null || newD != null) {
-      _addIfChanged(events, 'تم تغيير نوع المهمة (التصميم)', oldD?.taskType, newD?.taskType, userId, userName, now, fieldKey: 'designDetails.taskType');
-      _addIfChanged(events, 'تم تغيير المنصة (التصميم)', oldD?.platform, newD?.platform, userId, userName, now, fieldKey: 'designDetails.platform');
-      _addIfChanged(events, 'تم تغيير نوع التصميم', oldD?.designType, newD?.designType, userId, userName, now, fieldKey: 'designDetails.designType');
-      _addIfChanged(events, 'تم تغيير عدد التصاميم (التصميم)', oldD?.designCount, newD?.designCount, userId, userName, now, fieldKey: 'designDetails.designCount');
-      _addIfChanged(events, 'تم تغيير القياسات (التصميم)', oldD?.designsDimensions, newD?.designsDimensions, userId, userName, now, fieldKey: 'designDetails.designsDimensions');
+      _addIfChanged(
+        events,
+        'تم تغيير نوع المهمة (التصميم)',
+        oldD?.taskType,
+        newD?.taskType,
+        userId,
+        userName,
+        now,
+        fieldKey: 'designDetails.taskType',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير المنصة (التصميم)',
+        oldD?.platform,
+        newD?.platform,
+        userId,
+        userName,
+        now,
+        fieldKey: 'designDetails.platform',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير نوع التصميم',
+        oldD?.designType,
+        newD?.designType,
+        userId,
+        userName,
+        now,
+        fieldKey: 'designDetails.designType',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير عدد التصاميم (التصميم)',
+        oldD?.designCount,
+        newD?.designCount,
+        userId,
+        userName,
+        now,
+        fieldKey: 'designDetails.designCount',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير القياسات (التصميم)',
+        oldD?.designsDimensions,
+        newD?.designsDimensions,
+        userId,
+        userName,
+        now,
+        fieldKey: 'designDetails.designsDimensions',
+      );
     }
 
     // --- ContentWriteModel ---
     final oldCw = oldTask.contentWriteModel;
     final newCw = newTask.contentWriteModel;
     if (oldCw != null || newCw != null) {
-      _addIfChanged(events, 'تم تغيير المنصة (المحتوى)', oldCw?.platform, newCw?.platform, userId, userName, now, fieldKey: 'contentWriteModel.platform');
-      _addIfChanged(events, 'تم تغيير نوع المحتوى', oldCw?.contenttype, newCw?.contenttype, userId, userName, now, fieldKey: 'contentWriteModel.contenttype');
-      _addIfChanged(events, 'تم تغيير عدد التصاميم (المحتوى)', oldCw?.designCount, newCw?.designCount, userId, userName, now, fieldKey: 'contentWriteModel.designCount');
-      _addIfChanged(events, 'تم تغيير القياسات (المحتوى)', oldCw?.designsDimensions, newCw?.designsDimensions, userId, userName, now, fieldKey: 'contentWriteModel.designsDimensions');
+      _addIfChanged(
+        events,
+        'تم تغيير المنصة (المحتوى)',
+        oldCw?.platform,
+        newCw?.platform,
+        userId,
+        userName,
+        now,
+        fieldKey: 'contentWriteModel.platform',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير نوع المحتوى',
+        oldCw?.contenttype,
+        newCw?.contenttype,
+        userId,
+        userName,
+        now,
+        fieldKey: 'contentWriteModel.contenttype',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير عدد التصاميم (المحتوى)',
+        oldCw?.designCount,
+        newCw?.designCount,
+        userId,
+        userName,
+        now,
+        fieldKey: 'contentWriteModel.designCount',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير القياسات (المحتوى)',
+        oldCw?.designsDimensions,
+        newCw?.designsDimensions,
+        userId,
+        userName,
+        now,
+        fieldKey: 'contentWriteModel.designsDimensions',
+      );
     }
 
     // --- PhotographyModel ---
     final oldPh = oldTask.photoGrapghyModel;
     final newPh = newTask.photoGrapghyModel;
     if (oldPh != null || newPh != null) {
-      _addIfChanged(events, 'تم تغيير نوع التصوير', oldPh?.shootingtype, newPh?.shootingtype, userId, userName, now, fieldKey: 'photoGrapghyModel.shootingtype');
-      _addIfChanged(events, 'تم تغيير المنصة (التصوير)', oldPh?.platform, newPh?.platform, userId, userName, now, fieldKey: 'photoGrapghyModel.platform');
-      _addIfChanged(events, 'تم تغيير موقع التصوير', oldPh?.shootinglocation, newPh?.shootinglocation, userId, userName, now, fieldKey: 'photoGrapghyModel.shootinglocation');
-      _addIfChanged(events, 'تم تغيير عدد التصاميم (التصوير)', oldPh?.designCount, newPh?.designCount, userId, userName, now, fieldKey: 'photoGrapghyModel.designCount');
-      _addIfChanged(events, 'تم تغيير المدة (التصوير)', oldPh?.duration, newPh?.duration, userId, userName, now, fieldKey: 'photoGrapghyModel.duration');
+      _addIfChanged(
+        events,
+        'تم تغيير نوع التصوير',
+        oldPh?.shootingtype,
+        newPh?.shootingtype,
+        userId,
+        userName,
+        now,
+        fieldKey: 'photoGrapghyModel.shootingtype',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير المنصة (التصوير)',
+        oldPh?.platform,
+        newPh?.platform,
+        userId,
+        userName,
+        now,
+        fieldKey: 'photoGrapghyModel.platform',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير موقع التصوير',
+        oldPh?.shootinglocation,
+        newPh?.shootinglocation,
+        userId,
+        userName,
+        now,
+        fieldKey: 'photoGrapghyModel.shootinglocation',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير عدد التصاميم (التصوير)',
+        oldPh?.designCount,
+        newPh?.designCount,
+        userId,
+        userName,
+        now,
+        fieldKey: 'photoGrapghyModel.designCount',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير المدة (التصوير)',
+        oldPh?.duration,
+        newPh?.duration,
+        userId,
+        userName,
+        now,
+        fieldKey: 'photoGrapghyModel.duration',
+      );
     }
 
     // --- MonatageModel ---
     final oldMo = oldTask.monatageModel;
     final newMo = newTask.monatageModel;
     if (oldMo != null || newMo != null) {
-      _addIfChanged(events, 'تم تغيير التصنيف (المونتاج)', oldMo?.category, newMo?.category, userId, userName, now, fieldKey: 'monatageModel.category');
-      _addIfChanged(events, 'تم تغيير المنصة (المونتاج)', oldMo?.platform, newMo?.platform, userId, userName, now, fieldKey: 'monatageModel.platform');
-      _addIfChanged(events, 'تم تغيير الأبعاد (المونتاج)', oldMo?.dimentioans, newMo?.dimentioans, userId, userName, now, fieldKey: 'monatageModel.dimentioans');
-      _addIfChanged(events, 'تم تغيير رابط المرفق (المونتاج)', oldMo?.attachementurl, newMo?.attachementurl, userId, userName, now, fieldKey: 'monatageModel.attachementurl');
-      _addIfChanged(events, 'تم تغيير المدة (المونتاج)', oldMo?.duration, newMo?.duration, userId, userName, now, fieldKey: 'monatageModel.duration');
+      _addIfChanged(
+        events,
+        'تم تغيير التصنيف (المونتاج)',
+        oldMo?.category,
+        newMo?.category,
+        userId,
+        userName,
+        now,
+        fieldKey: 'monatageModel.category',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير المنصة (المونتاج)',
+        oldMo?.platform,
+        newMo?.platform,
+        userId,
+        userName,
+        now,
+        fieldKey: 'monatageModel.platform',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير الأبعاد (المونتاج)',
+        oldMo?.dimentioans,
+        newMo?.dimentioans,
+        userId,
+        userName,
+        now,
+        fieldKey: 'monatageModel.dimentioans',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير رابط المرفق (المونتاج)',
+        oldMo?.attachementurl,
+        newMo?.attachementurl,
+        userId,
+        userName,
+        now,
+        fieldKey: 'monatageModel.attachementurl',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير المدة (المونتاج)',
+        oldMo?.duration,
+        newMo?.duration,
+        userId,
+        userName,
+        now,
+        fieldKey: 'monatageModel.duration',
+      );
     }
 
     // --- PublishModel ---
     final oldPu = oldTask.publishModel;
     final newPu = newTask.publishModel;
     if (oldPu != null || newPu != null) {
-      _addIfChanged(events, 'تم تغيير رابط المحتوى (النشر)', oldPu?.contenturl, newPu?.contenturl, userId, userName, now, fieldKey: 'publishModel.contenturl');
-      _addIfChanged(events, 'تم تغيير المنصة (النشر)', oldPu?.platform, newPu?.platform, userId, userName, now, fieldKey: 'publishModel.platform');
-      _addIfChanged(events, 'تم تغيير التصنيف (النشر)', oldPu?.category, newPu?.category, userId, userName, now, fieldKey: 'publishModel.category');
-      _addIfChanged(events, 'تم تغيير رابط الملف (النشر)', oldPu?.fileurl, newPu?.fileurl, userId, userName, now, fieldKey: 'publishModel.fileurl');
-      _addIfChanged(events, 'تم تغيير القياسات (النشر)', oldPu?.designsDimensions, newPu?.designsDimensions, userId, userName, now, fieldKey: 'publishModel.designsDimensions');
+      _addIfChanged(
+        events,
+        'تم تغيير رابط المحتوى (النشر)',
+        oldPu?.contenturl,
+        newPu?.contenturl,
+        userId,
+        userName,
+        now,
+        fieldKey: 'publishModel.contenturl',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير المنصة (النشر)',
+        oldPu?.platform,
+        newPu?.platform,
+        userId,
+        userName,
+        now,
+        fieldKey: 'publishModel.platform',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير التصنيف (النشر)',
+        oldPu?.category,
+        newPu?.category,
+        userId,
+        userName,
+        now,
+        fieldKey: 'publishModel.category',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير رابط الملف (النشر)',
+        oldPu?.fileurl,
+        newPu?.fileurl,
+        userId,
+        userName,
+        now,
+        fieldKey: 'publishModel.fileurl',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير القياسات (النشر)',
+        oldPu?.designsDimensions,
+        newPu?.designsDimensions,
+        userId,
+        userName,
+        now,
+        fieldKey: 'publishModel.designsDimensions',
+      );
     }
 
     // --- ProgrammingModel ---
     final oldPr = oldTask.programmingModel;
     final newPr = newTask.programmingModel;
     if (oldPr != null || newPr != null) {
-      _addIfChanged(events, 'تم تغيير رابط المحتوى (البرمجة)', oldPr?.contenturl, newPr?.contenturl, userId, userName, now, fieldKey: 'programmingModel.contenturl');
-      _addIfChanged(events, 'تم تغيير التصنيف (البرمجة)', oldPr?.category, newPr?.category, userId, userName, now, fieldKey: 'programmingModel.category');
-      _addIfChanged(events, 'تم تغيير رابط الملف (البرمجة)', oldPr?.fileurl, newPr?.fileurl, userId, userName, now, fieldKey: 'programmingModel.fileurl');
-      _addIfChanged(events, 'تم تغيير القياسات (البرمجة)', oldPr?.designsDimensions, newPr?.designsDimensions, userId, userName, now, fieldKey: 'programmingModel.designsDimensions');
+      _addIfChanged(
+        events,
+        'تم تغيير رابط المحتوى (البرمجة)',
+        oldPr?.contenturl,
+        newPr?.contenturl,
+        userId,
+        userName,
+        now,
+        fieldKey: 'programmingModel.contenturl',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير التصنيف (البرمجة)',
+        oldPr?.category,
+        newPr?.category,
+        userId,
+        userName,
+        now,
+        fieldKey: 'programmingModel.category',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير رابط الملف (البرمجة)',
+        oldPr?.fileurl,
+        newPr?.fileurl,
+        userId,
+        userName,
+        now,
+        fieldKey: 'programmingModel.fileurl',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير القياسات (البرمجة)',
+        oldPr?.designsDimensions,
+        newPr?.designsDimensions,
+        userId,
+        userName,
+        now,
+        fieldKey: 'programmingModel.designsDimensions',
+      );
     }
 
     // --- PromotionModel (كل الحقول) ---
     final oldPromo = oldTask.promotionModel;
     final newPromo = newTask.promotionModel;
     if (oldPromo != null || newPromo != null) {
-      _addIfChanged(events, 'تم تغيير الاسم (الترويج)', oldPromo?.name, newPromo?.name, userId, userName, now, fieldKey: 'promotionModel.name');
-      _addIfChanged(events, 'تم تغيير الهدف (الترويج)', oldPromo?.target, newPromo?.target, userId, userName, now, fieldKey: 'promotionModel.target');
-      _addIfChanged(events, 'تم تغيير اسم الحملة', oldPromo?.campaignName, newPromo?.campaignName, userId, userName, now, fieldKey: 'promotionModel.campaignName');
-      _addIfChanged(events, 'تم تغيير النوع (الترويج)', oldPromo?.type, newPromo?.type, userId, userName, now, fieldKey: 'promotionModel.type');
-      _addIfChanged(events, 'تم تغيير الأولوية (الترويج)', oldPromo?.priority, newPromo?.priority, userId, userName, now, fieldKey: 'promotionModel.priority');
-      _addIfChanged(events, 'تم تغيير الحالة (الترويج)', oldPromo?.status, newPromo?.status, userId, userName, now, fieldKey: 'promotionModel.status');
-      _addIfChanged(events, 'تم تغيير الوصف (الترويج)', oldPromo?.description, newPromo?.description, userId, userName, now, fieldKey: 'promotionModel.description');
-      _addIfChanged(events, 'تم تغيير المنفذ (الترويج)', oldPromo?.executorId, newPromo?.executorId, userId, userName, now, fieldKey: 'promotionModel.executorId');
-      _addIfChanged(events, 'تم تغيير تاريخ البداية (الترويج)', oldPromo?.startDate, newPromo?.startDate, userId, userName, now, fieldKey: 'promotionModel.startDate');
-      _addIfChanged(events, 'تم تغيير تاريخ النهاية (الترويج)', oldPromo?.endDate, newPromo?.endDate, userId, userName, now, fieldKey: 'promotionModel.endDate');
-      _addIfChanged(events, 'تم تغيير المدة (الترويج)', oldPromo?.duration, newPromo?.duration, userId, userName, now, fieldKey: 'promotionModel.duration');
-      _addIfChanged(events, 'تم تغيير العلامات (الترويج)', oldPromo?.tags, newPromo?.tags, userId, userName, now, fieldKey: 'promotionModel.tags');
-      _addIfChanged(events, 'تم تغيير المنصات (الترويج)', oldPromo?.platforms, newPromo?.platforms, userId, userName, now, fieldKey: 'promotionModel.platforms');
-      _addIfChanged(events, 'تم تغيير الاهتمامات', oldPromo?.interests, newPromo?.interests, userId, userName, now, fieldKey: 'promotionModel.interests');
-      _addIfChanged(events, 'تم تغيير المدن', oldPromo?.cities, newPromo?.cities, userId, userName, now, fieldKey: 'promotionModel.cities');
-      _addIfChanged(events, 'تم تغيير الدول', oldPromo?.countries, newPromo?.countries, userId, userName, now, fieldKey: 'promotionModel.countries');
-      _addIfChanged(events, 'تم تغيير التخصصات', oldPromo?.specializations, newPromo?.specializations, userId, userName, now, fieldKey: 'promotionModel.specializations');
-      _addIfChanged(events, 'تم تغيير الفئات العمرية', oldPromo?.ageRanges, newPromo?.ageRanges, userId, userName, now, fieldKey: 'promotionModel.ageRanges');
-      _addIfChanged(events, 'تم تغيير الملاحظات (الترويج)', oldPromo?.notes, newPromo?.notes, userId, userName, now, fieldKey: 'promotionModel.notes');
-      _addIfChanged(events, 'تم تغيير رابط المرفق (الترويج)', oldPromo?.attachementurl, newPromo?.attachementurl, userId, userName, now, fieldKey: 'promotionModel.attachementurl');
+      _addIfChanged(
+        events,
+        'تم تغيير الاسم (الترويج)',
+        oldPromo?.name,
+        newPromo?.name,
+        userId,
+        userName,
+        now,
+        fieldKey: 'promotionModel.name',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير الهدف (الترويج)',
+        oldPromo?.target,
+        newPromo?.target,
+        userId,
+        userName,
+        now,
+        fieldKey: 'promotionModel.target',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير اسم الحملة',
+        oldPromo?.campaignName,
+        newPromo?.campaignName,
+        userId,
+        userName,
+        now,
+        fieldKey: 'promotionModel.campaignName',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير النوع (الترويج)',
+        oldPromo?.type,
+        newPromo?.type,
+        userId,
+        userName,
+        now,
+        fieldKey: 'promotionModel.type',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير الأولوية (الترويج)',
+        oldPromo?.priority,
+        newPromo?.priority,
+        userId,
+        userName,
+        now,
+        fieldKey: 'promotionModel.priority',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير الحالة (الترويج)',
+        oldPromo?.status,
+        newPromo?.status,
+        userId,
+        userName,
+        now,
+        fieldKey: 'promotionModel.status',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير الوصف (الترويج)',
+        oldPromo?.description,
+        newPromo?.description,
+        userId,
+        userName,
+        now,
+        fieldKey: 'promotionModel.description',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير المنفذ (الترويج)',
+        oldPromo?.executorId,
+        newPromo?.executorId,
+        userId,
+        userName,
+        now,
+        fieldKey: 'promotionModel.executorId',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير تاريخ البداية (الترويج)',
+        oldPromo?.startDate,
+        newPromo?.startDate,
+        userId,
+        userName,
+        now,
+        fieldKey: 'promotionModel.startDate',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير تاريخ النهاية (الترويج)',
+        oldPromo?.endDate,
+        newPromo?.endDate,
+        userId,
+        userName,
+        now,
+        fieldKey: 'promotionModel.endDate',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير المدة (الترويج)',
+        oldPromo?.duration,
+        newPromo?.duration,
+        userId,
+        userName,
+        now,
+        fieldKey: 'promotionModel.duration',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير العلامات (الترويج)',
+        oldPromo?.tags,
+        newPromo?.tags,
+        userId,
+        userName,
+        now,
+        fieldKey: 'promotionModel.tags',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير المنصات (الترويج)',
+        oldPromo?.platforms,
+        newPromo?.platforms,
+        userId,
+        userName,
+        now,
+        fieldKey: 'promotionModel.platforms',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير الاهتمامات',
+        oldPromo?.interests,
+        newPromo?.interests,
+        userId,
+        userName,
+        now,
+        fieldKey: 'promotionModel.interests',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير المدن',
+        oldPromo?.cities,
+        newPromo?.cities,
+        userId,
+        userName,
+        now,
+        fieldKey: 'promotionModel.cities',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير الدول',
+        oldPromo?.countries,
+        newPromo?.countries,
+        userId,
+        userName,
+        now,
+        fieldKey: 'promotionModel.countries',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير التخصصات',
+        oldPromo?.specializations,
+        newPromo?.specializations,
+        userId,
+        userName,
+        now,
+        fieldKey: 'promotionModel.specializations',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير الفئات العمرية',
+        oldPromo?.ageRanges,
+        newPromo?.ageRanges,
+        userId,
+        userName,
+        now,
+        fieldKey: 'promotionModel.ageRanges',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير الملاحظات (الترويج)',
+        oldPromo?.notes,
+        newPromo?.notes,
+        userId,
+        userName,
+        now,
+        fieldKey: 'promotionModel.notes',
+      );
+      _addIfChanged(
+        events,
+        'تم تغيير رابط المرفق (الترويج)',
+        oldPromo?.attachementurl,
+        newPromo?.attachementurl,
+        userId,
+        userName,
+        now,
+        fieldKey: 'promotionModel.attachementurl',
+      );
     }
 
     return events;
@@ -748,7 +1323,7 @@ class HomeController extends GetxController {
 
   Future<EmployeeModel?> loginClient(email, pass) async {
     isLoading.value = true;
-    final result = await _service.loginemployee(email, pass);
+    final result = await _service.loginEmployee(email, pass);
     isLoading.value = false;
     return result;
   }
@@ -810,13 +1385,9 @@ class HomeController extends GetxController {
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
         print('User granted permission');
 
-        // 2. الحصول على التوكن (على الويب قد يفشل لغياب OAuth/Service Worker)
-        final vapidKey = kIsWeb
-            ? (dotenv.env['FIREBASE_WEB_VAPID_KEY']?.trim().isNotEmpty == true
-                ? dotenv.env['FIREBASE_WEB_VAPID_KEY']
-                : 'BHG6F1qLC4V-rB_F1gKip91B6uAdxilKNs0Fj_ZtPA9M0vB9i8VBPelvJ9eDcgNfFaQqXGQQY22TksZvkBulre8')
-            : null;
-        String? token = await messaging.getToken(vapidKey: vapidKey);
+        // 2. الحصول على التوكن (على الويب قد يفشل لغياب Service Worker / إعدادات المشروع)
+        // لا نستخدم VAPID — getToken بدون vapidKey
+        String? token = await messaging.getToken();
         if (token != null && currentemployee.value != null) {
           updateEmployee(currentemployee.value!.copyWith(fcmToken: token));
           print("FCM Registration Token: ${kIsWeb ? 'Web' : ''} $token");
@@ -833,6 +1404,7 @@ class HomeController extends GetxController {
       // على الويب: token-subscribe-failed شائع لغياب OAuth/Service Worker
       log('setupFCM: $e');
       if (kIsWeb) debugPrint('FCM on web may need service worker / OAuth: $e');
+      // #endregion
     }
   }
 

@@ -8,12 +8,10 @@ import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
-import 'package:point/Utils/AppConstants.dart';
 import 'package:point/View/Clients/ClientsTable.dart';
 import 'package:point/View/Contents/ContentDialogDetails.dart';
 import 'package:point/View/Home/Shared/MonthlyClientContentChart.dart';
 import 'package:point/View/Home/Shared/ReviewContentShared.dart';
-import 'package:point/View/Shared/CustomHeader.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 import 'package:point/View/Shared/button.dart';
@@ -108,21 +106,6 @@ class Home extends StatelessWidget {
   ) {
     return Column(
       children: [
-        if (!Responsive.isDesktop(context) && !Responsive.isMobile(context))
-          PreferredSize(
-            preferredSize: Size(Get.width, 60),
-            child: Obx(
-              () => HeaderWidget(
-                employee: true,
-                name: controller.currentemployee.value?.name ?? '',
-                role: controller.currentemployee.value?.role ?? '',
-                avatarUrl:
-                    controller.currentemployee.value?.image ??
-                    kDefaultAvatarUrl,
-                notificationCount: 1,
-              ),
-            ),
-          ),
         SizedBox(height: isMobile ? _kMobileSectionSpacing : 20),
         Row(
           children: [

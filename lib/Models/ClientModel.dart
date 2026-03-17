@@ -11,7 +11,7 @@ class ClientModel {
   final String? description; // 👈 الوصف
   final DateTime? startAt; // 👈 بداية
   final DateTime? endAt; // 👈 نهاية
-  final String? password; // 👈 كلمة السر
+  final String? password; // 👈 كلمة السر (اختياري مؤقتاً، سيتم التخلص منه لاحقاً)
   final String? fcmToken; // 👈 توكن الإشعارات
   final String? onesignal; // 👈 توكن الإشعارات
   final DateTime createdAt;
@@ -67,26 +67,29 @@ class ClientModel {
     );
   }
 
+  static DateTime? _parseDateTime(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    if (value is Timestamp) return value.toDate();
+    return null;
+  }
+
   factory ClientModel.fromJson(Map<String, dynamic> json, String docId) {
     return ClientModel(
-      id: json['id'],
-      name: json['name'],
-      email: json['email'],
-      phone: json['phone'],
-      address: json['address'],
-      image: json['image'],
-      status: json['status'],
-      description: json['description'],
-      startAt:
-          json['startAt'] != null
-              ? (json['startAt'] as Timestamp).toDate()
-              : null,
-      endAt:
-          json['endAt'] != null ? (json['endAt'] as Timestamp).toDate() : null,
-      password: json['password'],
-      fcmToken: json['fcmToken'],
-      createdAt: (json['createdAt'] as Timestamp).toDate(),
-      onesignal: json['onesignal'],
+      id: json['id'] as String? ?? docId,
+      name: json['name'] as String?,
+      email: json['email'] as String?,
+      phone: json['phone'] as String?,
+      address: json['address'] as String?,
+      image: json['image'] as String?,
+      status: json['status'] as String?,
+      description: json['description'] as String?,
+      startAt: _parseDateTime(json['startAt']),
+      endAt: _parseDateTime(json['endAt']),
+      password: json['password'] as String?,
+      fcmToken: json['fcmToken'] as String?,
+      createdAt: _parseDateTime(json['createdAt']) ?? DateTime.now(),
+      onesignal: json['onesignal'] as String?,
     );
   }
 
@@ -102,7 +105,7 @@ class ClientModel {
       "description": description,
       "startAt": startAt,
       "endAt": endAt,
-      "password": password,
+      if (password != null) "password": password,
       "fcmToken": fcmToken,
       "createdAt": createdAt,
       'onesignal': onesignal,

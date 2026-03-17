@@ -657,6 +657,7 @@ void showAddEmployeeDialog(BuildContext context, {ClientModel? model}) {
                                       if (model == null) {
                                         controller
                                             .addClient(
+                                              password: passwordController.text,
                                               ClientModel(
                                                 id: '${Random().nextInt(100000)}',
                                                 name: nameController.text,

@@ -1,32 +1,150 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:developer';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:point/Models/ClientModel.dart';
 import 'package:point/Models/ContentModel.dart';
 import 'package:point/Models/EmployeeModel.dart';
 import 'package:point/Models/NotificationModel.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Models/chatMetaData.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:point/Services/EmailNotificationService.dart';
-import 'package:point/Services/googleApis.dart';
-import 'package:http/http.dart' as http;
+import 'package:point/config/app_config.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class FirestoreServices {
-  static String get _fcmProjectId =>
-      dotenv.env['FIREBASE_PROJECT_ID'] ??
-      dotenv.env['FIREBASE_WEB_PROJECT_ID'] ??
-      'point-f33cb';
-  static String get _fcmSendUrl =>
-      'https://fcm.googleapis.com/v1/projects/$_fcmProjectId/messages:send';
+  static Future<void> _sendFcmViaFunction({
+    String? token,
+    String? topic,
+    required String title,
+    required String body,
+    Map<String, String>? data,
+  }) async {
+    final firebaseIdToken =
+        await FirebaseAuth.instance.currentUser?.getIdToken();
+    if (firebaseIdToken == null || firebaseIdToken.isEmpty) {
+      throw StateError('FirebaseAuth session required to send FCM.');
+    }
+
+    final res = await Supabase.instance.client.functions.invoke(
+      'send-fcm',
+      headers: <String, String>{'authorization': 'Bearer $firebaseIdToken'},
+      body: <String, dynamic>{
+        if (token != null) 'token': token,
+        if (topic != null) 'topic': topic,
+        'title': title,
+        'body': body,
+        if (data != null) 'data': data,
+      },
+    );
+
+    if (res.status != 200) {
+      throw StateError('send-fcm failed (${res.status}): ${res.data}');
+    }
+  }
 
   // static get currentUser => '1';
 
   var db = FirebaseFirestore.instance;
   final CollectionReference _employeeCollection = FirebaseFirestore.instance
       .collection("employees");
+
+  Future<UserCredential> _createOrGetAuthUser({
+    required String email,
+    required String password,
+  }) async {
+    final auth = FirebaseAuth.instance;
+    final normalizedEmail = email.trim().toLowerCase();
+    try {
+      // إذا كان المستخدم موجوداً وجربنا تسجيل الدخول بكلمة مرور قديمة أو جديدة
+      return await auth.signInWithEmailAndPassword(
+        email: normalizedEmail,
+        password: password,
+      );
+    } on FirebaseAuthException catch (e, s) {
+      log(
+        '❌ _createOrGetAuthUser signIn FirebaseAuthException code=${e.code}, message=${e.message}',
+      );
+      log('StackTrace: $s');
+      if (e.code == 'user-not-found') {
+        // إنشاء مستخدم جديد في Auth
+        final cred = await auth.createUserWithEmailAndPassword(
+          email: normalizedEmail,
+          password: password,
+        );
+        log('✅ FirebaseAuth user created for $normalizedEmail');
+        return cred;
+      }
+      rethrow;
+    }
+  }
+
+  Future<bool> createEmployeeWithAuth({
+    required EmployeeModel employee,
+    required String password,
+  }) async {
+    final email = employee.email?.trim().toLowerCase();
+    if (email == null || email.isEmpty) {
+      log('❌ createEmployeeWithAuth: email is required');
+      return false;
+    }
+    try {
+      // Add record only; Auth user is created when employee logs in (loginemployee).
+      await _employeeCollection
+          .doc(employee.id)
+          .set(employee.copyWith(password: password).toJson());
+      log("✅ createEmployeeWithAuth: ${employee.name}");
+      return true;
+    } catch (e, s) {
+      log("❌ createEmployeeWithAuth error: $e");
+      log("StackTrace: $s");
+      return false;
+    }
+  }
+
+  Future<bool> updateEmployeeWithAuth({
+    required EmployeeModel existing,
+    required EmployeeModel updated,
+    String? newPassword,
+  }) async {
+    final oldEmail = existing.email?.trim().toLowerCase();
+    final newEmail = updated.email?.trim().toLowerCase();
+    final passwordToUse =
+        newPassword?.trim().isNotEmpty == true
+            ? newPassword!.trim()
+            : existing.password;
+
+    if (newEmail == null || newEmail.isEmpty) {
+      log('❌ updateEmployeeWithAuth: email is required');
+      return false;
+    }
+    if (passwordToUse == null || passwordToUse.isEmpty) {
+      log('❌ updateEmployeeWithAuth: password is required to sync Auth user');
+      return false;
+    }
+
+    try {
+      // أولاً نضمن جلسة لـ FirebaseAuth بنفس البريد الجديد/الحالي
+      await _createOrGetAuthUser(email: newEmail, password: passwordToUse);
+
+      // إذا تغيّر البريد، لا نعبأ كثيراً بالبريد القديم لأننا نستخدم normalize دائماً
+      final toSave = updated.copyWith(
+        password:
+            newPassword?.trim().isNotEmpty == true
+                ? newPassword!.trim()
+                : existing.password,
+      );
+      await _employeeCollection.doc(toSave.id).update(toSave.toJson());
+      log(
+        "✅ updateEmployeeWithAuth: ${toSave.id} (oldEmail=$oldEmail, newEmail=$newEmail)",
+      );
+      return true;
+    } catch (e, s) {
+      log("❌ updateEmployeeWithAuth error: $e");
+      log("StackTrace: $s");
+      return false;
+    }
+  }
 
   // 🟢 إضافة موظف
   Future<bool> addEmployee(EmployeeModel employee) async {
@@ -85,80 +203,136 @@ class FirestoreServices {
     }
   }
 
-  Future<EmployeeModel?> loginemployee(String email, String password) async {
+  Future<EmployeeModel?> loginEmployee(String email, String password) async {
+    final normalizedEmail = email.trim().toLowerCase();
     try {
+      // 1) Query Firestore first by email
       final query =
           await _employeeCollection
-              .where("email", isEqualTo: email)
-              .where("password", isEqualTo: password)
+              .where("email", isEqualTo: normalizedEmail)
               .limit(1)
               .get();
 
-      if (query.docs.isNotEmpty) {
-        final data = query.docs.first.data() as Map<String, dynamic>;
-        return EmployeeModel.fromJson(data);
-      } else {
-        log("❌ loginemployee: invalid email or password");
+      if (query.docs.isEmpty) {
+        log("❌ loginEmployee: no employee record for $normalizedEmail");
         return null;
       }
+
+      final data = query.docs.first.data() as Map<String, dynamic>;
+      final employee = EmployeeModel.fromJson(data);
+
+      // 2) Verify password against stored model
+      final storedPassword = employee.password?.trim();
+      if (storedPassword == null ||
+          storedPassword.isEmpty ||
+          storedPassword != password.trim()) {
+        log("❌ loginEmployee: invalid password for $normalizedEmail");
+        return null;
+      }
+
+      // 3) Sign in or create Auth user (user-not-found → createUser then sign in)
+      await _ensureFirebaseAuthSession(
+        email: normalizedEmail,
+        password: password,
+      );
+
+      return employee;
+    } on FirebaseAuthException catch (e, s) {
+      log(
+        "❌ loginEmployee FirebaseAuthException code=${e.code}, message=${e.message}",
+      );
+      log("StackTrace: $s");
+      return null;
     } catch (e, s) {
-      log("❌ loginemployee error: $e\n$s");
+      log("❌ loginEmployee error: $e\n$s");
       return null;
     }
   }
 
   /// إضافة حساب اختباري point@accountholder.app إن لم يكن موجوداً (للتطوير فقط).
-  /// كلمة المرور من .env (TEST_ACCOUNTHOLDER_PASSWORD) لتجنب تسربها في الكود.
+  /// كلمة المرور تُمرّر عبر `--dart-define` في وضع التطوير فقط.
   static const String _kTestAccountholderEmail = 'point@accountholder.app';
   static const String _kTestAccountholderId = 'accountholder-test';
 
-  String get _testAccountholderPassword =>
-      dotenv.env['TEST_ACCOUNTHOLDER_PASSWORD'] ?? '';
+  String get _testAccountholderPassword => AppConfig.testAccountholderPassword;
 
   Future<void> ensureAccountholderTestUser() async {
-    if (_testAccountholderPassword.isEmpty) {
-      log('⚠️ TEST_ACCOUNTHOLDER_PASSWORD غير معرّف في .env — تخطي إنشاء الحساب الاختباري');
+    // Safety: never auto-create a test user unless explicitly enabled.
+    if (!const bool.fromEnvironment(
+      'ENABLE_TEST_ACCOUNTHOLDER',
+      defaultValue: false,
+    )) {
       return;
     }
-    for (var attempt = 0; attempt < 2; attempt++) {
-      try {
-        final existing = await _employeeCollection
-            .where("email", isEqualTo: _kTestAccountholderEmail)
-            .limit(1)
-            .get();
-        if (existing.docs.isNotEmpty) {
-          log("✅ حساب point@accountholder.app موجود مسبقاً");
-          return;
-        }
-        final employee = EmployeeModel(
-          id: _kTestAccountholderId,
-          name: 'Point Test (Accountholder)',
-          email: _kTestAccountholderEmail,
-          phone: null,
-          role: 'accountholder',
-          department: null,
-          fcmToken: null,
-          onesignal: null,
-          hireDate: null,
-          status: 'active',
-          createdAt: DateTime.now(),
-          password: _testAccountholderPassword,
-          image: null,
-        );
-        await _employeeCollection.doc(employee.id).set(employee.toJson());
-        log("✅ تم إضافة الحساب الاختباري point@accountholder.app إلى قاعدة البيانات");
-        return;
-      } catch (e) {
-        final msg = e.toString();
-        final isIndexBuilding = msg.contains('failed-precondition') ||
-            msg.contains('index') && msg.contains('building');
-        log("❌ ensureAccountholderTestUser: $e");
-        if (isIndexBuilding && attempt == 0) {
-          await Future<void>.delayed(const Duration(seconds: 5));
-          continue;
+    if (_testAccountholderPassword.isEmpty) {
+      log(
+        '⚠️ TEST_ACCOUNTHOLDER_PASSWORD غير معرّف — تخطي إنشاء الحساب الاختباري',
+      );
+      return;
+    }
+    try {
+      final existing =
+          await _employeeCollection
+              .where("email", isEqualTo: _kTestAccountholderEmail)
+              .limit(1)
+              .get();
+      if (existing.docs.isNotEmpty) {
+        log("✅ حساب point@accountholder.app موجود مسبقاً");
+        try {
+          await _ensureFirebaseAuthSession(
+            email: _kTestAccountholderEmail,
+            password: _testAccountholderPassword,
+          );
+        } catch (e, s) {
+          log(
+            '❌ ensureAccountholderTestUser (existing) FirebaseAuth error: $e',
+          );
+          log('StackTrace: $s');
         }
         return;
       }
+      final employee = EmployeeModel(
+        id: _kTestAccountholderId,
+        name: 'Point Test (Accountholder)',
+        email: _kTestAccountholderEmail,
+        phone: null,
+        role: 'accountholder',
+        department: null,
+        fcmToken: null,
+        onesignal: null,
+        hireDate: null,
+        status: 'active',
+        createdAt: DateTime.now(),
+        password: _testAccountholderPassword,
+        image: null,
+      );
+      await _employeeCollection.doc(employee.id).set(employee.toJson());
+      log(
+        "✅ تم إضافة الحساب الاختباري point@accountholder.app إلى قاعدة البيانات",
+      );
+
+      // تأكد من وجود حساب مطابق في FirebaseAuth بنفس البريد وكلمة المرور.
+      try {
+        await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: _kTestAccountholderEmail,
+          password: _testAccountholderPassword,
+        );
+        log(
+          '✅ FirebaseAuth session/creation successful for test accountholder',
+        );
+      } on FirebaseAuthException catch (e, s) {
+        log(
+          '❌ ensureAccountholderTestUser FirebaseAuthException code=${e.code}, message=${e.message}',
+        );
+        log('StackTrace: $s');
+      } catch (e, s) {
+        log('❌ ensureAccountholderTestUser unexpected error: $e');
+        log('StackTrace: $s');
+      }
+      return;
+    } catch (e) {
+      log("❌ ensureAccountholderTestUser: $e");
+      return;
     }
   }
 
@@ -169,10 +343,9 @@ class FirestoreServices {
         return snapshot.docs.where((a) => a['role'] != 'accountholder').map((
           doc,
         ) {
-          return EmployeeModel.fromJson(
-            doc.data() as Map<String, dynamic>,
-            // doc.id,
-          );
+          final raw = doc.data();
+          final map = Map<String, dynamic>.from(raw as Map);
+          return EmployeeModel.fromJson(map);
         }).toList();
       });
     } catch (e, s) {
@@ -185,7 +358,9 @@ class FirestoreServices {
   Stream<EmployeeModel?> streamCurrentemployee(String empid) {
     return _employeeCollection.doc(empid).snapshots().map((snapshot) {
       if (snapshot.exists) {
-        return EmployeeModel.fromJson(snapshot.data()! as Map<String, dynamic>);
+        final raw = snapshot.data();
+        final map = Map<String, dynamic>.from(raw as Map);
+        return EmployeeModel.fromJson(map);
       } else {
         return null;
       }
@@ -194,25 +369,150 @@ class FirestoreServices {
 
   final _clientCollection = FirebaseFirestore.instance.collection("clients");
 
-  Future<ClientModel?> loginClient(String email, String password) async {
+  Future<bool> createClientWithAuth({
+    required ClientModel client,
+    required String password,
+  }) async {
+    final email = client.email?.trim().toLowerCase();
+    if (email == null || email.isEmpty) {
+      log('❌ createClientWithAuth: email is required');
+      return false;
+    }
     try {
+      // Add record only; Auth user is created when client logs in (loginClient).
+      await _clientCollection
+          .doc(client.id)
+          .set(client.copyWith(password: password).toJson());
+      log("✅ createClientWithAuth: ${client.name}");
+      return true;
+    } catch (e, s) {
+      log("❌ createClientWithAuth error: $e");
+      log("StackTrace: $s");
+      return false;
+    }
+  }
+
+  Future<bool> updateClientWithAuth({
+    required ClientModel existing,
+    required ClientModel updated,
+    String? newPassword,
+  }) async {
+    final oldEmail = existing.email?.trim().toLowerCase();
+    final newEmail = updated.email?.trim().toLowerCase();
+    final passwordToUse =
+        newPassword?.trim().isNotEmpty == true
+            ? newPassword!.trim()
+            : existing.password;
+
+    if (newEmail == null || newEmail.isEmpty) {
+      log('❌ updateClientWithAuth: email is required');
+      return false;
+    }
+    if (passwordToUse == null || passwordToUse.isEmpty) {
+      log('❌ updateClientWithAuth: password is required to sync Auth user');
+      return false;
+    }
+
+    try {
+      await _createOrGetAuthUser(email: newEmail, password: passwordToUse);
+      final toSave = updated.copyWith(
+        password:
+            newPassword?.trim().isNotEmpty == true
+                ? newPassword!.trim()
+                : existing.password,
+      );
+      await _clientCollection.doc(toSave.id).update(toSave.toJson());
+      log(
+        "✅ updateClientWithAuth: ${toSave.id} (oldEmail=$oldEmail, newEmail=$newEmail)",
+      );
+      return true;
+    } catch (e, s) {
+      log("❌ updateClientWithAuth error: $e");
+      log("StackTrace: $s");
+      return false;
+    }
+  }
+
+  Future<ClientModel?> loginClient(String email, String password) async {
+    final normalizedEmail = email.trim().toLowerCase();
+    try {
+      // 1) Query Firestore first by email
       final query =
           await _clientCollection
-              .where("email", isEqualTo: email)
-              .where("password", isEqualTo: password)
+              .where("email", isEqualTo: normalizedEmail)
               .limit(1)
               .get();
 
-      if (query.docs.isNotEmpty) {
-        final data = query.docs.first.data();
-        return ClientModel.fromJson(data, data['id']);
-      } else {
-        log("❌ loginClient: invalid email or password");
+      if (query.docs.isEmpty) {
+        log("❌ loginClient: no client record for $normalizedEmail");
         return null;
       }
+
+      final data = query.docs.first.data();
+      final docId = query.docs.first.id;
+      final client = ClientModel.fromJson(data, docId);
+
+      // 2) Verify password against stored model
+      final storedPassword = client.password?.trim();
+      if (storedPassword == null ||
+          storedPassword.isEmpty ||
+          storedPassword != password.trim()) {
+        log("❌ loginClient: invalid password for $normalizedEmail");
+        return null;
+      }
+
+      // 3) Sign in or create Auth user (user-not-found → createUser then sign in)
+      await _ensureFirebaseAuthSession(
+        email: normalizedEmail,
+        password: password,
+      );
+
+      return client;
+    } on FirebaseAuthException catch (e, s) {
+      log(
+        "❌ loginClient FirebaseAuthException code=${e.code}, message=${e.message}",
+      );
+      log("StackTrace: $s");
+      return null;
     } catch (e, s) {
       log("❌ loginClient error: $e\n$s");
       return null;
+    }
+  }
+
+  Future<void> _ensureFirebaseAuthSession({
+    required String email,
+    required String password,
+  }) async {
+    final auth = FirebaseAuth.instance;
+    final normalizedEmail = email.trim().toLowerCase();
+    try {
+      await auth.signInWithEmailAndPassword(
+        email: normalizedEmail,
+        password: password,
+      );
+      log('✅ FirebaseAuth signIn successful for $normalizedEmail');
+    } on FirebaseAuthException catch (e, s) {
+      log(
+        '❌ _ensureFirebaseAuthSession FirebaseAuthException code=${e.code}, message=${e.message}',
+      );
+      log('StackTrace: $s');
+
+      // إذا لم يوجد المستخدم في FirebaseAuth يمكننا إنشاؤه (سياسة التطبيق الحالية).
+      try {
+        await auth.createUserWithEmailAndPassword(
+          email: normalizedEmail,
+          password: password,
+        );
+        log('✅ FirebaseAuth user created for $normalizedEmail');
+        return;
+      } on FirebaseAuthException catch (ce, cs) {
+        log(
+          '❌ createUserWithEmailAndPassword failed for $normalizedEmail code=${ce.code}, message=${ce.message}',
+        );
+        log('StackTrace: $cs');
+        rethrow;
+      }
     }
   }
 
@@ -434,8 +734,9 @@ class FirestoreServices {
             .collection('messages')
             .where('isRead', isEqualTo: false)
             .snapshots()
-            .map((s) =>
-                s.docs.where((d) => d.data()['senderId'] != userId).length);
+            .map(
+              (s) => s.docs.where((d) => d.data()['senderId'] != userId).length,
+            );
         unreadSubs[chatId] = unreadStream.listen(
           (count) {
             counts[chatId] = count;
@@ -467,11 +768,12 @@ class FirestoreServices {
   ) async* {
     while (true) {
       try {
-        await for (final snapshot in FirebaseFirestore.instance
-            .collection('notifications')
-            .where('recipientId', whereIn: [userId, otherId])
-            .orderBy('createdAt', descending: true)
-            .snapshots()) {
+        await for (final snapshot
+            in FirebaseFirestore.instance
+                .collection('notifications')
+                .where('recipientId', whereIn: [userId, otherId])
+                .orderBy('createdAt', descending: true)
+                .snapshots()) {
           yield snapshot.docs
               .map((doc) => NotificationModel.fromJson(doc.data()))
               .toList();
@@ -509,13 +811,17 @@ class FirestoreServices {
 
       // إرسال إيميل حتى عند غياب FCM (من لم يثبت التطبيق أو عطّل الإشعارات يظل يحصل على الإيميل)
       if (email != null && email.isNotEmpty) {
-        unawaited(EmailNotificationService.sendNotification(
-          toEmail: email,
-          title: title,
-          body: body,
-        ));
+        unawaited(
+          EmailNotificationService.sendNotification(
+            toEmail: email,
+            title: title,
+            body: body,
+          ),
+        );
       } else {
-        log("⚠️ Email missing for employee $userId — skipping email notification");
+        log(
+          "⚠️ Email missing for employee $userId — skipping email notification",
+        );
       }
 
       if (token == null || token.isEmpty) {
@@ -523,23 +829,15 @@ class FirestoreServices {
         return;
       }
 
-      await http.post(
-        Uri.parse(_fcmSendUrl),
-        headers: <String, String>{
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${await googleApis().getAcssesToken()}',
+      await _sendFcmViaFunction(
+        token: token,
+        title: title,
+        body: body,
+        data: <String, String>{
+          'type': 'internal',
+          'id': userId,
+          'url': 'https://example.com',
         },
-        body: jsonEncode({
-          "message": {
-            "token": token,
-            "notification": {"title": title, "body": body},
-            "data": {
-              "type": "internal",
-              "id": userId,
-              "url": "https://example.com",
-            },
-          },
-        }),
       );
       addNotification(
         NotificationModel(
@@ -579,13 +877,17 @@ class FirestoreServices {
 
       // إرسال إيميل حتى عند غياب FCM (من لم يثبت التطبيق أو عطّل الإشعارات يظل يحصل على الإيميل)
       if (email != null && email.isNotEmpty) {
-        unawaited(EmailNotificationService.sendNotification(
-          toEmail: email,
-          title: title,
-          body: body,
-        ));
+        unawaited(
+          EmailNotificationService.sendNotification(
+            toEmail: email,
+            title: title,
+            body: body,
+          ),
+        );
       } else {
-        log("⚠️ Email missing for client $userId — skipping email notification");
+        log(
+          "⚠️ Email missing for client $userId — skipping email notification",
+        );
       }
 
       if (token == null || token.isEmpty) {
@@ -593,24 +895,15 @@ class FirestoreServices {
         return;
       }
 
-      // 2. ابعت الرسالة باستخدام FCM API
-      var response = await http.post(
-        Uri.parse(_fcmSendUrl),
-        headers: <String, String>{
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${await googleApis().getAcssesToken()}',
+      await _sendFcmViaFunction(
+        token: token,
+        title: title,
+        body: body,
+        data: <String, String>{
+          'type': 'internal',
+          'id': userId,
+          'url': 'https://example.com',
         },
-        body: jsonEncode({
-          "message": {
-            "token": token,
-            "notification": {"title": title, "body": body},
-            "data": {
-              "type": "internal",
-              "id": userId,
-              "url": "https://example.com",
-            },
-          },
-        }),
       );
       addNotification(
         NotificationModel(
@@ -620,7 +913,7 @@ class FirestoreServices {
           createdAt: DateTime.now(),
         ),
       );
-      log("✅ FCM Response: ${response.body}");
+      log("✅ FCM sent to client: $userId");
     } catch (e) {
       log("❌ FCM Error: $e");
     }
@@ -633,25 +926,12 @@ class FirestoreServices {
     required String scheduledAt,
   }) async {
     try {
-      var response = await http.post(
-        Uri.parse(_fcmSendUrl),
-        headers: <String, String>{
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${await googleApis().getAcssesToken()}',
-        },
-        body: jsonEncode({
-          "message": {
-            "topic": topic,
-            // "scheduledAt": scheduledAt,
-            "notification": {"title": title, "body": body},
-          },
-        }),
-      );
+      await _sendFcmViaFunction(topic: topic, title: title, body: body);
 
       // إرسال إيميل إشعار لجميع المستلمين في الـ topic (بدون انتظار)
       unawaited(_sendEmailForTopic(topic, title, body));
 
-      log("✅ FCM Response: ${response.body}");
+      log("✅ FCM topic sent: $topic");
     } catch (e) {
       log("❌ FCM Error: $e");
     }
@@ -669,9 +949,8 @@ class FirestoreServices {
       int skippedClients = 0;
 
       if (topic == 'employees' || topic == 'all') {
-        final snap = await FirebaseFirestore.instance
-            .collection('employees')
-            .get();
+        final snap =
+            await FirebaseFirestore.instance.collection('employees').get();
         for (final doc in snap.docs) {
           final email = doc.data()['email']?.toString().trim();
           if (email != null && email.isNotEmpty) {
@@ -682,7 +961,8 @@ class FirestoreServices {
         }
       }
       if (topic == 'clients' || topic == 'all') {
-        final snap = await FirebaseFirestore.instance.collection('clients').get();
+        final snap =
+            await FirebaseFirestore.instance.collection('clients').get();
         for (final doc in snap.docs) {
           final email = doc.data()['email']?.toString().trim();
           if (email != null && email.isNotEmpty) {
@@ -694,15 +974,19 @@ class FirestoreServices {
       }
 
       if (skippedEmployees > 0 || skippedClients > 0) {
-        log("⚠️ Topic $topic: skipped email for $skippedEmployees employee(s), $skippedClients client(s) with no email");
+        log(
+          "⚠️ Topic $topic: skipped email for $skippedEmployees employee(s), $skippedClients client(s) with no email",
+        );
       }
 
       for (final email in emails) {
-        unawaited(EmailNotificationService.sendNotification(
-          toEmail: email,
-          title: title,
-          body: body,
-        ));
+        unawaited(
+          EmailNotificationService.sendNotification(
+            toEmail: email,
+            title: title,
+            body: body,
+          ),
+        );
       }
     } catch (e) {
       log("❌ Email for topic error: $e");
@@ -715,14 +999,12 @@ class FirestoreServices {
     if (roles.isEmpty) return [];
     try {
       final list = roles.take(10).toList();
-      final snap = await FirebaseFirestore.instance
-          .collection('employees')
-          .where('role', whereIn: list)
-          .get();
-      return snap.docs
-          .map((d) => d.id)
-          .where((id) => id.isNotEmpty)
-          .toList();
+      final snap =
+          await FirebaseFirestore.instance
+              .collection('employees')
+              .where('role', whereIn: list)
+              .get();
+      return snap.docs.map((d) => d.id).where((id) => id.isNotEmpty).toList();
     } catch (e) {
       log("❌ getEmployeeIdsByRole: $e");
       return [];
@@ -735,14 +1017,12 @@ class FirestoreServices {
   ) async {
     if (department.isEmpty) return [];
     try {
-      final snap = await FirebaseFirestore.instance
-          .collection('employees')
-          .where('department', isEqualTo: department)
-          .get();
-      return snap.docs
-          .map((d) => d.id)
-          .where((id) => id.isNotEmpty)
-          .toList();
+      final snap =
+          await FirebaseFirestore.instance
+              .collection('employees')
+              .where('department', isEqualTo: department)
+              .get();
+      return snap.docs.map((d) => d.id).where((id) => id.isNotEmpty).toList();
     } catch (e) {
       log("❌ getEmployeeIdsByDepartment: $e");
       return [];

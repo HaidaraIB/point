@@ -1,9 +1,9 @@
 import 'dart:developer';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:firebase_core/firebase_core.dart' show Firebase, FirebaseException, FirebaseOptions;
+import 'package:firebase_core/firebase_core.dart'
+    show Firebase, FirebaseException;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:get/get.dart';
 import 'package:point/Bindings/AppBindings.dart';
 import 'package:point/Controller/ClientController.dart';
@@ -16,68 +16,44 @@ import 'package:point/Services/FirebaseStorageService.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/config/app_config.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'firebase_options.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-
-FirebaseOptions _firebaseOptionsFromEnv() {
-  if (kIsWeb) {
-    return FirebaseOptions(
-      apiKey: dotenv.env['FIREBASE_WEB_API_KEY'] ?? '',
-      appId: dotenv.env['FIREBASE_WEB_APP_ID'] ?? '',
-      messagingSenderId: dotenv.env['FIREBASE_WEB_MESSAGING_SENDER_ID'] ?? '',
-      projectId: dotenv.env['FIREBASE_WEB_PROJECT_ID'] ?? '',
-      authDomain: dotenv.env['FIREBASE_WEB_AUTH_DOMAIN'],
-      storageBucket: dotenv.env['FIREBASE_WEB_STORAGE_BUCKET'],
-      measurementId: dotenv.env['FIREBASE_WEB_MEASUREMENT_ID'],
-    );
-  }
-  switch (defaultTargetPlatform) {
-    case TargetPlatform.android:
-      return FirebaseOptions(
-        apiKey: dotenv.env['FIREBASE_ANDROID_API_KEY'] ?? '',
-        appId: dotenv.env['FIREBASE_ANDROID_APP_ID'] ?? '',
-        messagingSenderId: dotenv.env['FIREBASE_ANDROID_MESSAGING_SENDER_ID'] ?? '',
-        projectId: dotenv.env['FIREBASE_ANDROID_PROJECT_ID'] ?? '',
-        storageBucket: dotenv.env['FIREBASE_ANDROID_STORAGE_BUCKET'],
-      );
-    case TargetPlatform.iOS:
-      return FirebaseOptions(
-        apiKey: dotenv.env['FIREBASE_IOS_API_KEY'] ?? '',
-        appId: dotenv.env['FIREBASE_IOS_APP_ID'] ?? '',
-        messagingSenderId: dotenv.env['FIREBASE_IOS_MESSAGING_SENDER_ID'] ?? '',
-        projectId: dotenv.env['FIREBASE_IOS_PROJECT_ID'] ?? '',
-        storageBucket: dotenv.env['FIREBASE_IOS_STORAGE_BUCKET'],
-        iosBundleId: dotenv.env['FIREBASE_IOS_BUNDLE_ID'],
-      );
-    default:
-      throw UnsupportedError(
-        'Firebase options from .env are only configured for web, Android, and iOS.',
-      );
-  }
-}
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await dotenv.load(fileName: '.env');
-
-  final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
+  final supabaseUrl = AppConfig.supabaseUrl;
   final supabaseKey = StorageKeys.supabaseKey;
+  if (supabaseUrl.isEmpty || supabaseKey.isEmpty) {
+    throw StateError(
+      'Supabase config missing. Pass --dart-define=SUPABASE_URL=... and --dart-define=SUPABASE_ANON_KEY=...',
+    );
+  }
   await Supabase.initialize(url: supabaseUrl, anonKey: supabaseKey);
   if (Firebase.apps.isEmpty) {
     try {
-      await Firebase.initializeApp(options: _firebaseOptionsFromEnv());
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
     } on FirebaseException catch (e) {
       if (!e.code.contains('duplicate-app')) rethrow;
     }
   }
-  await FirebaseMessaging.instance.requestPermission();
+  if (!kIsWeb) {
+    await FirebaseMessaging.instance.requestPermission();
+  }
   if (kDebugMode) {
     await FirestoreServices().ensureAccountholderTestUser();
     final storageOk = await FirebaseStorageService.checkConnection();
-    log(storageOk ? '✅ Firebase Storage متصل' : '⚠️ تحقق من إعداد Firebase Storage (.env و Storage rules)');
+    log(
+      storageOk
+          ? '✅ Firebase Storage متصل'
+          : '⚠️ تحقق من إعداد Firebase Storage (.env و Storage rules)',
+    );
   }
   Get.put(HomeController());
   // await html.Notification.requestPermission();
@@ -103,7 +79,7 @@ checkLogin() async {
     final FirebaseMessaging _fcm = FirebaseMessaging.instance;
 
     Get.find<HomeController>()
-        .loginClient(email.toString(), password.toString())
+        .loginClient(email.toString().trim().toLowerCase(), password.toString().trim())
         .then((v) async {
           if (v != null) {
             await onUserLogin(v.id.toString());
@@ -129,13 +105,21 @@ checkLogin() async {
 
               Get.find<HomeController>().listenToClient(v.id!);
               if (v.role == 'supervisor') {
-                WidgetsBinding.instance.addPostFrameCallback((_) => Get.toNamed('/'));
+                WidgetsBinding.instance.addPostFrameCallback(
+                  (_) => Get.toNamed('/'),
+                );
               } else if (v.role == 'admin') {
-                WidgetsBinding.instance.addPostFrameCallback((_) => Get.toNamed('/'));
+                WidgetsBinding.instance.addPostFrameCallback(
+                  (_) => Get.toNamed('/'),
+                );
               } else if (v.role == 'employee') {
-                WidgetsBinding.instance.addPostFrameCallback((_) => Get.toNamed('/employeeDashboard'));
+                WidgetsBinding.instance.addPostFrameCallback(
+                  (_) => Get.toNamed('/employeeDashboard'),
+                );
               } else if (v.role == 'accountholder') {
-                WidgetsBinding.instance.addPostFrameCallback((_) => Get.toNamed('/'));
+                WidgetsBinding.instance.addPostFrameCallback(
+                  (_) => Get.toNamed('/'),
+                );
               } else {}
               try {
                 await Get.find<HomeController>().setupFCM(v.id);
@@ -157,7 +141,9 @@ checkLogin() async {
                     log(v.status.toString());
                     if (v.status == 'active') {
                       Get.find<ClientController>().listenToClient(v.id!);
-                      WidgetsBinding.instance.addPostFrameCallback((_) => Get.offAllNamed('/ClientHome'));
+                      WidgetsBinding.instance.addPostFrameCallback(
+                        (_) => Get.offAllNamed('/ClientHome'),
+                      );
                       if (!kIsWeb) {
                         try {
                           await _fcm.unsubscribeFromTopic('employees');

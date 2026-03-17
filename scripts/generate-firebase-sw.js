@@ -1,5 +1,5 @@
 /**
- * يقرأ .env ويولّد web/firebase-messaging-sw.js من القالب.
+ * يولّد web/firebase-messaging-sw.js من القالب اعتمادًا على lib/firebase_options.dart (بدون .env).
  * التشغيل من جذر المشروع: node scripts/generate-firebase-sw.js
  * يُنصح بتشغيله قبل: flutter build web
  */
@@ -7,41 +7,48 @@ const fs = require('fs');
 const path = require('path');
 
 const root = path.resolve(__dirname, '..');
-const envPath = path.join(root, '.env');
 const templatePath = path.join(root, 'web', 'firebase-messaging-sw.example.js');
 const outputPath = path.join(root, 'web', 'firebase-messaging-sw.js');
+const firebaseOptionsPath = path.join(root, 'lib', 'firebase_options.dart');
 
-function parseEnv(content) {
-  const env = {};
-  const lines = content.split(/\r?\n/);
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eq = trimmed.indexOf('=');
-    if (eq <= 0) continue;
-    let key = trimmed.slice(0, eq).trim();
-    let value = trimmed.slice(eq + 1).trim();
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
-      value = value.slice(1, -1);
-    }
-    env[key] = value;
+function extractWebFirebaseConfig(dartContent) {
+  const blockMatch = dartContent.match(/static const FirebaseOptions web = FirebaseOptions\\(([\\s\\S]*?)\\);/);
+  if (!blockMatch) {
+    throw new Error('Could not find "static const FirebaseOptions web" block in lib/firebase_options.dart');
   }
-  return env;
+  const block = blockMatch[1];
+
+  function readField(name) {
+    const m = block.match(new RegExp(String.raw`${name}\\s*:\\s*'([^']*)'`));
+    return m ? m[1] : '';
+  }
+
+  return {
+    apiKey: readField('apiKey'),
+    authDomain: readField('authDomain'),
+    projectId: readField('projectId'),
+    storageBucket: readField('storageBucket'),
+    messagingSenderId: readField('messagingSenderId'),
+    appId: readField('appId'),
+    measurementId: readField('measurementId'),
+  };
 }
 
-const envContent = fs.existsSync(envPath)
-  ? fs.readFileSync(envPath, 'utf8')
-  : '';
-const env = parseEnv(envContent);
+if (!fs.existsSync(firebaseOptionsPath)) {
+  throw new Error('Missing lib/firebase_options.dart. Run: flutterfire configure');
+}
+
+const dartContent = fs.readFileSync(firebaseOptionsPath, 'utf8');
+const webConfig = extractWebFirebaseConfig(dartContent);
 
 const mapping = {
-  __FIREBASE_WEB_API_KEY__: env.FIREBASE_WEB_API_KEY || '',
-  __FIREBASE_WEB_AUTH_DOMAIN__: env.FIREBASE_WEB_AUTH_DOMAIN || '',
-  __FIREBASE_WEB_PROJECT_ID__: env.FIREBASE_WEB_PROJECT_ID || '',
-  __FIREBASE_WEB_STORAGE_BUCKET__: env.FIREBASE_WEB_STORAGE_BUCKET || '',
-  __FIREBASE_WEB_MESSAGING_SENDER_ID__: env.FIREBASE_WEB_MESSAGING_SENDER_ID || '',
-  __FIREBASE_WEB_APP_ID__: env.FIREBASE_WEB_APP_ID || '',
-  __FIREBASE_WEB_MEASUREMENT_ID__: env.FIREBASE_WEB_MEASUREMENT_ID || '',
+  __FIREBASE_WEB_API_KEY__: webConfig.apiKey || '',
+  __FIREBASE_WEB_AUTH_DOMAIN__: webConfig.authDomain || '',
+  __FIREBASE_WEB_PROJECT_ID__: webConfig.projectId || '',
+  __FIREBASE_WEB_STORAGE_BUCKET__: webConfig.storageBucket || '',
+  __FIREBASE_WEB_MESSAGING_SENDER_ID__: webConfig.messagingSenderId || '',
+  __FIREBASE_WEB_APP_ID__: webConfig.appId || '',
+  __FIREBASE_WEB_MEASUREMENT_ID__: webConfig.measurementId || '',
 };
 
 let template = fs.readFileSync(templatePath, 'utf8');

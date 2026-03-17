@@ -30,25 +30,6 @@ workflows:
       - name: Install CocoaPods dependencies
         script: |
           cd ios && pod install
-      - name: Create .env file for production
-        script: |
-          if [ -n "$ENV_FILE_CONTENT" ]; then
-            echo "$ENV_FILE_CONTENT" > .env
-            echo "✅ Created .env from ENV_FILE_CONTENT (ios_config)"
-          else
-            : > .env
-            for key in SUPABASE_URL SUPABASE_ANON_KEY SUPABASE_STORAGE_BASE_URL FIREBASE_PROJECT_ID \
-              FIREBASE_WEB_API_KEY FIREBASE_WEB_APP_ID FIREBASE_WEB_PROJECT_ID FIREBASE_WEB_STORAGE_BUCKET FIREBASE_WEB_AUTH_DOMAIN FIREBASE_WEB_MEASUREMENT_ID FIREBASE_WEB_MESSAGING_SENDER_ID FIREBASE_WEB_VAPID_KEY \
-              FIREBASE_ANDROID_API_KEY FIREBASE_ANDROID_APP_ID FIREBASE_ANDROID_PROJECT_ID FIREBASE_ANDROID_STORAGE_BUCKET FIREBASE_ANDROID_MESSAGING_SENDER_ID \
-              FIREBASE_IOS_API_KEY FIREBASE_IOS_APP_ID FIREBASE_IOS_PROJECT_ID FIREBASE_IOS_STORAGE_BUCKET FIREBASE_IOS_MESSAGING_SENDER_ID FIREBASE_IOS_BUNDLE_ID \
-              FIREBASE_SERVICE_ACCOUNT_JSON; do
-              val="${!key}"
-              [ -n "$val" ] && echo "${key}=${val}" >> .env
-            done
-            echo "✅ Created .env from ios_config environment variables"
-          fi
-          echo "--- .env (keys only) ---"
-          sed 's/=.*/=***/' .env
       - name: Create GoogleService-Info.plist for Firebase
         script: |
           PLIST_PATH="ios/Runner/GoogleService-Info.plist"
@@ -114,6 +95,9 @@ workflows:
           cd "$CM_BUILD_DIR"
           flutter build ipa \
             --release \
+            --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+            --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" \
+            --dart-define=SUPABASE_STORAGE_BASE_URL="$SUPABASE_STORAGE_BASE_URL" \
             --export-options-plist /tmp/ExportOptions.plist \
             --build-name="${FLUTTER_BUILD_NAME}" \
             --build-number="${FLUTTER_BUILD_NUMBER}" || true

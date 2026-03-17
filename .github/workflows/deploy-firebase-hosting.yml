@@ -13,11 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # إنشاء .env من السر ENV_BASE64 (محتوى .env مشفّر base64)
-      - name: Create .env from secret
-        run: echo "${{ secrets.ENV_BASE64 }}" | base64 -d > .env
-
-      # توليد web/firebase-messaging-sw.js من القالب و .env
+      # توليد web/firebase-messaging-sw.js من القالب و lib/firebase_options.dart (بدون .env)
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -34,7 +30,11 @@ jobs:
         run: flutter pub get
 
       - name: Build web
-        run: flutter build web --release
+        run: >
+          flutter build web --release
+          --dart-define=SUPABASE_URL="${{ secrets.SUPABASE_URL }}"
+          --dart-define=SUPABASE_ANON_KEY="${{ secrets.SUPABASE_ANON_KEY }}"
+          --dart-define=SUPABASE_STORAGE_BASE_URL="${{ secrets.SUPABASE_STORAGE_BASE_URL }}"
 
       - name: Install Firebase CLI
         run: npm install -g firebase-tools

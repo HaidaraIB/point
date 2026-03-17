@@ -597,6 +597,7 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                           if (model == null) {
                                             controller
                                                 .addEmployee(
+                                                  password: passwordController.text,
                                                   EmployeeModel(
                                                     id:
                                                         '${Random().nextInt(100000)}',
@@ -607,8 +608,6 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                                         selectedDepartment,
                                                     status: 'active',
                                                     createdAt: DateTime.now(),
-                                                    password:
-                                                        passwordController.text,
                                                     image:
                                                         controller
                                                                 .uploadedFilesPaths
@@ -630,14 +629,13 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                           } else {
                                             controller
                                                 .updateEmployee(
+                                                  newPassword: passwordController.text,
                                                   model.copyWith(
                                                     name: nameController.text,
                                                     email: emailController.text,
                                                     role: selectedRole,
                                                     department:
                                                         selectedDepartment,
-                                                    password:
-                                                        passwordController.text,
                                                     image:
                                                         controller
                                                                 .uploadedFilesPaths

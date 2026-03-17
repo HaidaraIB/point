@@ -10,7 +10,7 @@ class EmployeeModel {
   final DateTime? hireDate;
   final String? status;
   final DateTime createdAt;
-  final String? password;
+  final String? password; // اختياري مؤقتاً حتى لا نكسر البيانات القديمة
   final String? image; // 👈 تمت إضافة الصورة
 
   EmployeeModel({
@@ -25,7 +25,7 @@ class EmployeeModel {
     this.hireDate,
     required this.status,
     required this.createdAt,
-    required this.password,
+    this.password,
     this.image, // 👈
   });
 
@@ -93,7 +93,7 @@ class EmployeeModel {
       "hireDate": hireDate?.toIso8601String(),
       "status": status,
       "createdAt": createdAt.toIso8601String(),
-      "password": password,
+      if (password != null) "password": password,
       "image": image, // 👈
     };
   }

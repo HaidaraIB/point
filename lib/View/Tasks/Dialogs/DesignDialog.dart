@@ -126,11 +126,12 @@ void designDialog(BuildContext context, {TaskModel? model}) {
                                     value:
                                         executorController.text.isEmpty
                                             ? null
-                                            : controller.employees.firstWhere(
-                                              (a) =>
-                                                  a.id ==
-                                                  executorController.text,
-                                            ),
+                                            : controller.employees
+                                                .firstWhereOrNull(
+                                                  (a) =>
+                                                      a.id ==
+                                                      executorController.text,
+                                                ),
                                     label: 'المنفذ'.tr,
                                     borderRadius: 5,
                                     borderColor: Colors.grey.shade300,
@@ -201,7 +202,7 @@ void designDialog(BuildContext context, {TaskModel? model}) {
                                     value:
                                         clientController.text.isEmpty
                                             ? null
-                                            : controller.clients.firstWhere(
+                                            : controller.clients.firstWhereOrNull(
                                               (a) =>
                                                   a.id == clientController.text,
                                             ),

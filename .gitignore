@@ -48,11 +48,17 @@ app.*.map.json
 .env
 .env.old
 .env.new
+firebase-adminsdk.json
+# Web: يُنشأ عبر node scripts/generate-firebase-sw.js
+web/firebase-messaging-sw.js
+
+# Firebase native config (نستخدم ملفات .example داخل الريبو)
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
-web/firebase-messaging-sw.js
-firebase-adminsdk.json
-# Web: يُنشأ من .env عبر node scripts/generate-firebase-sw.js
+
+# Firebase Functions (تم تعطيلها لتجنب Blaze)
+functions/node_modules/
+functions/package-lock.json
 
 # Backup / old config (لا تتبع نسخ احتياطية)
 **/google-services.old.json
@@ -69,3 +75,5 @@ supabase/.temp/
 # Flutter / Dart analysis output
 analyze_output.txt
 *.analyze_output.txt
+
+.vscode/

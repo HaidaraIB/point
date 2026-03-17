@@ -37,7 +37,7 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
     final m = widget.model;
     nameController = TextEditingController(text: m?.name);
     emailController = TextEditingController(text: m?.email);
-    passwordController = TextEditingController(text: m?.password);
+    passwordController = TextEditingController();
     selectedRole = m?.role ?? "employee";
     selectedDepartment = m?.department ?? "cat1";
     final controller = Get.find<HomeController>();
@@ -61,6 +61,7 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
 
     if (model == null) {
       final success = await controller.addEmployee(
+        password: passwordController.text,
         EmployeeModel(
           id: '${Random().nextInt(100000)}',
           name: nameController.text,
@@ -69,10 +70,10 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
           department: selectedDepartment,
           status: 'active',
           createdAt: DateTime.now(),
-          password: passwordController.text,
-          image: controller.uploadedFilesPaths.isNotEmpty
-              ? controller.uploadedFilesPaths.last
-              : null,
+          image:
+              controller.uploadedFilesPaths.isNotEmpty
+                  ? controller.uploadedFilesPaths.last
+                  : null,
         ),
       );
       if (!mounted) return;
@@ -81,19 +82,16 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
         Get.back();
       }
     } else {
-      final newPassword = passwordController.text.trim().isEmpty
-          ? model.password
-          : passwordController.text;
       final success = await controller.updateEmployee(
         model.copyWith(
           name: nameController.text,
           email: emailController.text,
           role: selectedRole,
           department: selectedDepartment,
-          password: newPassword,
-          image: controller.uploadedFilesPaths.isNotEmpty
-              ? controller.uploadedFilesPaths.last
-              : model.image,
+          image:
+              controller.uploadedFilesPaths.isNotEmpty
+                  ? controller.uploadedFilesPaths.last
+                  : model.image,
         ),
       );
       if (!mounted) return;
@@ -149,21 +147,22 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                         () => CircleAvatar(
                           backgroundColor: Colors.grey.shade200,
                           radius: 50,
-                          child: controller.uploadedFilesPaths.isNotEmpty
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(50),
-                                  child: Image.network(
-                                    controller.uploadedFilesPaths.last,
-                                    width: 100,
-                                    height: 100,
-                                    fit: BoxFit.cover,
+                          child:
+                              controller.uploadedFilesPaths.isNotEmpty
+                                  ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(50),
+                                    child: Image.network(
+                                      controller.uploadedFilesPaths.last,
+                                      width: 100,
+                                      height: 100,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  )
+                                  : Icon(
+                                    Icons.camera_alt,
+                                    size: 50,
+                                    color: AppColors.primary,
                                   ),
-                                )
-                              : Icon(
-                                  Icons.camera_alt,
-                                  size: 50,
-                                  color: AppColors.primary,
-                                ),
                         ),
                       ),
                     ),
@@ -198,9 +197,10 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                   ),
                   const SizedBox(height: 16),
                   InputText(
-                    hintText: widget.model == null
-                        ? '******'.tr
-                        : 'leave_empty_unchanged'.tr,
+                    hintText:
+                        widget.model == null
+                            ? '******'.tr
+                            : 'leave_empty_unchanged'.tr,
                     labelText: 'password'.tr,
                     obscureText: obscurePassword,
                     controller: passwordController,
@@ -230,14 +230,15 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                   ),
                   const SizedBox(height: 16),
                   DynamicDropdown<String>(
-                    items: _roles
-                        .map(
-                          (role) => DropdownMenuItem(
-                            value: role,
-                            child: Text(role),
-                          ),
-                        )
-                        .toList(),
+                    items:
+                        _roles
+                            .map(
+                              (role) => DropdownMenuItem(
+                                value: role,
+                                child: Text(role),
+                              ),
+                            )
+                            .toList(),
                     value: selectedRole,
                     label: 'role'.tr,
                     borderRadius: 8,
@@ -253,14 +254,15 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                   if (selectedRole == 'employee') ...[
                     const SizedBox(height: 16),
                     DynamicDropdown<String>(
-                      items: StorageKeys.departments
-                          .map(
-                            (d) => DropdownMenuItem(
-                              value: d,
-                              child: Text(d.tr),
-                            ),
-                          )
-                          .toList(),
+                      items:
+                          StorageKeys.departments
+                              .map(
+                                (d) => DropdownMenuItem(
+                                  value: d,
+                                  child: Text(d.tr),
+                                ),
+                              )
+                              .toList(),
                       value: selectedDepartment,
                       label: 'القسم'.tr,
                       borderRadius: 8,
@@ -287,23 +289,24 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                           ),
                         ),
                         onPressed: controller.isLoading.value ? null : _submit,
-                        child: controller.isLoading.value
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
+                        child:
+                            controller.isLoading.value
+                                ? const SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                                : Text(
+                                  'تأكيد',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
                                 ),
-                              )
-                            : Text(
-                                'تأكيد',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
                       ),
                     ),
                   ),

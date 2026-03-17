@@ -1,13 +1,11 @@
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:point/config/app_config.dart';
 
 class StorageKeys {
-  /// مفتاح anon من Supabase (يُحمّل من .env)
-  static String get supabaseKey =>
-      dotenv.env['SUPABASE_ANON_KEY'] ?? '';
+  /// مفتاح anon من Supabase (public).
+  static String get supabaseKey => AppConfig.supabaseAnonKey;
 
-  /// رابط التخزين العام (يُحمّل من .env)
-  static String get supabaseStorageBaseUrl =>
-      dotenv.env['SUPABASE_STORAGE_BASE_URL'] ?? '';
+  /// رابط التخزين العام (public).
+  static String get supabaseStorageBaseUrl => AppConfig.supabaseStorageBaseUrl;
   static final List<String> contentsTypeList = [
     "content_image",
     "content_video",
