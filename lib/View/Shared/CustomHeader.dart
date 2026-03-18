@@ -322,7 +322,7 @@ class HeaderWidget extends StatelessWidget {
               hintText: 'search'.tr,
               borderRadius: 25,
               fillColor: Colors.white,
-              prefixicon: Icon(
+              prefixIcon: Icon(
                 CupertinoIcons.search,
                 color: Colors.grey,
                 size: 16,

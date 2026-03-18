@@ -233,7 +233,7 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
           SizedBox(
             width: w,
             child: InputText(
-              ontap: () async {
+              onTap: () async {
                 final picked = await customDatePicker(context);
                 if (picked != null) {
                   setState(() {
@@ -249,7 +249,7 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
               fillColor: Colors.white,
               textInputType: TextInputType.datetime,
               controller: _startDateController,
-              readonly: true,
+              readOnly: true,
               validator: (v) => (v == null || v.isEmpty) ? ' ' : null,
               suffixIcon: Icon(CupertinoIcons.calendar, color: Colors.grey),
               borderRadius: 5,
@@ -259,7 +259,7 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
           SizedBox(
             width: w,
             child: InputText(
-              ontap: () async {
+              onTap: () async {
                 final picked = await customDatePicker(context);
                 if (picked != null) {
                   setState(() {
@@ -275,7 +275,7 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
               fillColor: Colors.white,
               textInputType: TextInputType.datetime,
               controller: _endDateController,
-              readonly: true,
+              readOnly: true,
               validator: (v) => (v == null || v.isEmpty) ? ' ' : null,
               suffixIcon: Icon(CupertinoIcons.calendar, color: Colors.grey),
               borderRadius: 5,

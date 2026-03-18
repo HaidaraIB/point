@@ -205,7 +205,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                       fillColor: Colors.white,
                       textInputType: TextInputType.datetime,
                       controller: publishDateController,
-                      readonly: true,
+                      readOnly: true,
                       validator: (v) => (v == null || v.isEmpty) ? ' ' : null,
                       suffixIcon: Icon(
                         CupertinoIcons.calendar,

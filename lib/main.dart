@@ -6,14 +6,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Bindings/AppBindings.dart';
-import 'package:point/Controller/ClientController.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppTranslations.dart';
 import 'package:point/Routing/AppRouting.dart';
 import 'package:point/Services/FcmServices.dart';
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FirebaseStorageService.dart';
-import 'package:point/Services/FunHelper.dart';
+import 'package:point/Services/AutoLoginService.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/config/app_config.dart';
@@ -61,7 +60,6 @@ void main(List<String> args) async {
     await NotificationService().init();
     //   // html.Notification(title, body: body);
   });
-  await checkLogin();
 
   runApp(App());
 }
@@ -70,103 +68,21 @@ Future<void> onUserLogin(String userId) async {
   // FCM token is updated in HomeController/ClientController setupFCM.
 }
 
-checkLogin() async {
+/// Legacy auto-login entrypoint (kept for compatibility).
+///
+/// This no longer performs navigation directly to avoid double-routing flashes.
+Future<String?> checkLogin() async {
   SharedPreferences pref = await SharedPreferences.getInstance();
   var islogin = await pref.get('isLoggedIn') ?? false;
   var email = await pref.get('email') ?? '';
   var password = await pref.get('password') ?? '';
   if (islogin == true && email != '' && password != '') {
-    final FirebaseMessaging _fcm = FirebaseMessaging.instance;
-
-    Get.find<HomeController>()
-        .loginClient(email.toString().trim().toLowerCase(), password.toString().trim())
-        .then((v) async {
-          if (v != null) {
-            await onUserLogin(v.id.toString());
-
-            log("✅ تم تسجيل دخول الموظف: ${v.email}");
-            log(v.status.toString());
-            if (v.status == 'active') {
-              if (!kIsWeb) {
-                try {
-                  await _fcm.subscribeToTopic('all');
-                  if (v.role == 'supervisor') {
-                    await _fcm.unsubscribeFromTopic('clients');
-                    await _fcm.subscribeToTopic('employees');
-                  } else if (v.role == 'employee') {
-                    await _fcm.unsubscribeFromTopic('clients');
-                    await _fcm.subscribeToTopic('employees');
-                  }
-                } catch (e) {
-                  log('FCM subscribe (employee): $e');
-                }
-              }
-              Get.find<HomeController>().fetchnotification(v.id);
-
-              Get.find<HomeController>().listenToClient(v.id!);
-              if (v.role == 'supervisor') {
-                WidgetsBinding.instance.addPostFrameCallback(
-                  (_) => Get.toNamed('/'),
-                );
-              } else if (v.role == 'admin') {
-                WidgetsBinding.instance.addPostFrameCallback(
-                  (_) => Get.toNamed('/'),
-                );
-              } else if (v.role == 'employee') {
-                WidgetsBinding.instance.addPostFrameCallback(
-                  (_) => Get.toNamed('/employeeDashboard'),
-                );
-              } else if (v.role == 'accountholder') {
-                WidgetsBinding.instance.addPostFrameCallback(
-                  (_) => Get.toNamed('/'),
-                );
-              } else {}
-              try {
-                await Get.find<HomeController>().setupFCM(v.id);
-              } catch (e) {
-                log('FCM setup: $e');
-              }
-            }
-          } else {
-            await Get.find<ClientController>()
-                .loginclient(
-                  email.toString().trim().toLowerCase(),
-                  password.toString().trim(),
-                )
-                .then((v) async {
-                  if (v != null) {
-                    await onUserLogin(v.id.toString());
-
-                    log("✅ تم تسجيل دخول العميل: ${v.email}");
-                    log(v.status.toString());
-                    if (v.status == 'active') {
-                      Get.find<ClientController>().listenToClient(v.id!);
-                      WidgetsBinding.instance.addPostFrameCallback(
-                        (_) => Get.offAllNamed('/ClientHome'),
-                      );
-                      if (!kIsWeb) {
-                        try {
-                          await _fcm.unsubscribeFromTopic('employees');
-                          await _fcm.subscribeToTopic('clients');
-                          await _fcm.subscribeToTopic('all');
-                        } catch (e) {
-                          log('FCM subscribe (client): $e');
-                        }
-                      }
-                    } else {
-                      FunHelper.showsnackbar(
-                        'error'.tr,
-                        'account_not_active_contact_support'.tr,
-                        snackPosition: SnackPosition.TOP,
-                        backgroundColor: Colors.red,
-                        colorText: Colors.white,
-                      );
-                    }
-                  }
-                });
-          }
-        });
+    return await attemptSilentLogin(
+      email: email.toString(),
+      password: password.toString(),
+    );
   }
+  return null;
 }
 
 class App extends StatelessWidget {

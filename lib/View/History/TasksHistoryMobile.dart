@@ -34,9 +34,10 @@ class TasksHistoryMobile extends StatelessWidget {
     return GetBuilder<HomeController>(
       builder: (controller) {
         return Obx(() {
-          final List<TaskModel> tasks = controller.tasksHistory
-              .where((a) => a.type == selectedIndex.toString())
-              .toList();
+          final List<TaskModel> tasks =
+              controller.tasksHistory
+                  .where((a) => a.type == selectedIndex.toString())
+                  .toList();
           final bottomPadding = MediaQuery.of(context).padding.bottom + 32.0;
 
           return CustomScrollView(
@@ -69,28 +70,24 @@ class TasksHistoryMobile extends StatelessWidget {
                 ),
               ),
               SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final cardHeight =
-                        MediaQuery.of(context).size.width / 1.35 + 24;
-                    return SizedBox(
-                      height: cardHeight.clamp(280.0, 400.0),
-                      child: TaskCard(
-                        task: tasks[index],
-                        ontap: () => _openTaskDetails(
-                          context,
-                          selectedIndex,
-                          tasks[index],
-                        ),
-                      ),
-                    );
-                  },
-                  childCount: tasks.length,
-                ),
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final cardHeight =
+                      MediaQuery.of(context).size.width / 1.35 + 24;
+                  return SizedBox(
+                    height: cardHeight.clamp(280.0, 400.0),
+                    child: TaskCard(
+                      task: tasks[index],
+                      onTap:
+                          () => _openTaskDetails(
+                            context,
+                            selectedIndex,
+                            tasks[index],
+                          ),
+                    ),
+                  );
+                }, childCount: tasks.length),
               ),
-              SliverPadding(
-                padding: EdgeInsets.only(bottom: bottomPadding),
-              ),
+              SliverPadding(padding: EdgeInsets.only(bottom: bottomPadding)),
             ],
           );
         });
@@ -110,20 +107,13 @@ class TasksHistoryMobile extends StatelessWidget {
           ),
         ),
         const Spacer(),
-        SizedBox(
-          width: (Get.width * 0.7 / 2) - 25,
+        Expanded(
           child: DynamicDropdown<String>(
-            items: StorageKeys.departments
-                .map(
-                  (v) => DropdownMenuItem(
-                    value: v,
-                    child: Text('$v'.tr),
-                  ),
-                )
-                .toList(),
-            value: StorageKeys.departments.length > selectedIndex
-                ? StorageKeys.departments[selectedIndex]
-                : null,
+            items:
+                StorageKeys.departments
+                    .map((v) => DropdownMenuItem(value: v, child: Text(v.tr)))
+                    .toList(),
+            value: StorageKeys.departments[selectedIndex],
             label: 'اختر القسم '.tr,
             borderRadius: 5,
             borderColor: Colors.grey.shade300,
@@ -200,15 +190,21 @@ class TasksHistoryMobile extends StatelessWidget {
             height: 48,
             width: double.infinity,
             child: Center(
-              child: Text(
-                label,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.grey,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 15,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    softWrap: false,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.grey,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -230,7 +226,7 @@ class TasksHistoryMobile extends StatelessWidget {
               SizedBox(
                 width: (Get.width * 0.7 / 3) - 25,
                 child: InputText(
-                  prefixicon: Icon(CupertinoIcons.search, color: Colors.grey),
+                  prefixIcon: Icon(CupertinoIcons.search, color: Colors.grey),
                   hintText: 'ابحث عن مهمة، عنوان، موظف...',
                   height: 42,
                   fillColor: Colors.white,
@@ -258,12 +254,16 @@ class TasksHistoryMobile extends StatelessWidget {
               _buildDropdown<String>(
                 width: 150,
                 hint: 'الأولوية',
-                value: controller.selectedPriority.value.isEmpty
-                    ? null
-                    : controller.selectedPriority.value,
-                items: StorageKeys.priority
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e.tr)))
-                    .toList(),
+                value:
+                    controller.selectedPriority.value.isEmpty
+                        ? null
+                        : controller.selectedPriority.value,
+                items:
+                    StorageKeys.priority
+                        .map(
+                          (e) => DropdownMenuItem(value: e, child: Text(e.tr)),
+                        )
+                        .toList(),
                 onChanged: (value) {
                   controller.selectedPriority.value = value ?? '';
                   controller.filterTasksHistory();
@@ -275,16 +275,21 @@ class TasksHistoryMobile extends StatelessWidget {
               _buildDropdown<String>(
                 width: 150,
                 hint: 'المنفذ',
-                value: controller.selectedExecutor.value.isEmpty
-                    ? null
-                    : controller.selectedExecutor.value,
-                items: controller.employees
-                    .map((e) => DropdownMenuItem(
-                          value: e.id ?? e.name ?? '',
-                          child: Text(
-                              (e.name ?? '').split(' ').take(2).join(' ')),
-                        ))
-                    .toList(),
+                value:
+                    controller.selectedExecutor.value.isEmpty
+                        ? null
+                        : controller.selectedExecutor.value,
+                items:
+                    controller.employees
+                        .map(
+                          (e) => DropdownMenuItem(
+                            value: e.id ?? e.name ?? '',
+                            child: Text(
+                              (e.name ?? '').split(' ').take(2).join(' '),
+                            ),
+                          ),
+                        )
+                        .toList(),
                 onChanged: (value) {
                   controller.selectedExecutor.value = value ?? '';
                   controller.filterTasksHistory();
@@ -357,11 +362,13 @@ class TasksHistoryMobile extends StatelessWidget {
                 ),
               ),
             ),
-            value: controller.selectedStatus.value.isEmpty ||
-                    !StorageKeys.statusListEnded
-                        .contains(controller.selectedStatus.value)
-                ? null
-                : controller.selectedStatus.value,
+            value:
+                controller.selectedStatus.value.isEmpty ||
+                        !StorageKeys.statusListEnded.contains(
+                          controller.selectedStatus.value,
+                        )
+                    ? null
+                    : controller.selectedStatus.value,
             items: [
               DropdownMenuItem(
                 value: '',

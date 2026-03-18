@@ -79,20 +79,25 @@ class Home extends StatelessWidget {
         return Scaffold(
           body: ResponsiveScaffold(
             body: SingleChildScrollView(
-              child: isMobile
-                  ? SafeArea(
-                      child: Container(
-                        width: double.infinity,
-                        color: AppColors.greyBackground,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: _buildHomeColumn(context, controller, isMobile),
+              child:
+                  isMobile
+                      ? SafeArea(
+                        child: Container(
+                          width: double.infinity,
+                          color: AppColors.greyBackground,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: _buildHomeColumn(
+                              context,
+                              controller,
+                              isMobile,
+                            ),
+                          ),
                         ),
-                      ),
-                    )
-                  : _buildHomeColumn(context, controller, isMobile),
+                      )
+                      : _buildHomeColumn(context, controller, isMobile),
             ),
-            selectedtab: 0,
+            selectedTab: 0,
           ),
         );
       },
@@ -137,32 +142,32 @@ class Home extends StatelessWidget {
                   onpress: () => showaddNotifications(context),
                 ),
               ),
-              SizedBox(width: 12),
-              Expanded(
-                child: MainButton(
-                  width: null,
-                  height: _kMobileMinTouchHeight,
-                  bordersize: 35,
-                  fontcolor: Colors.white,
-                  backgroundcolor: AppColors.primary,
-                  widget: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.email_outlined, color: Colors.white, size: 18),
-                      SizedBox(width: 6),
-                      Text(
-                        'بريد تجريبي',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                  onpress: () => showSendTestEmailDialog(context),
-                ),
-              ),
+              // SizedBox(width: 12),
+              // Expanded(
+              //   child: MainButton(
+              //     width: null,
+              //     height: _kMobileMinTouchHeight,
+              //     bordersize: 35,
+              //     fontcolor: Colors.white,
+              //     backgroundcolor: AppColors.primary,
+              //     widget: Row(
+              //       mainAxisAlignment: MainAxisAlignment.center,
+              //       children: [
+              //         Icon(Icons.email_outlined, color: Colors.white, size: 18),
+              //         SizedBox(width: 6),
+              //         Text(
+              //           'بريد تجريبي',
+              //           style: TextStyle(
+              //             color: Colors.white,
+              //             fontWeight: FontWeight.bold,
+              //             fontSize: 12,
+              //           ),
+              //         ),
+              //       ],
+              //     ),
+              //     onpress: () => showSendTestEmailDialog(context),
+              //   ),
+              // ),
             ] else ...[
               const Spacer(),
               MainButton(
@@ -182,38 +187,35 @@ class Home extends StatelessWidget {
                         fontSize: 13,
                       ),
                     ),
-                    Icon(
-                      Icons.add_circle_outline_rounded,
-                      color: Colors.white,
-                    ),
+                    Icon(Icons.add_circle_outline_rounded, color: Colors.white),
                   ],
                 ),
                 onpress: () => showaddNotifications(context),
               ),
-              SizedBox(width: 12),
-              MainButton(
-                width: 160,
-                height: 45,
-                bordersize: 35,
-                fontcolor: Colors.white,
-                backgroundcolor: AppColors.primary,
-                widget: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.email_outlined, color: Colors.white, size: 20),
-                    SizedBox(width: 8),
-                    Text(
-                      'بريد تجريبي',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-                onpress: () => showSendTestEmailDialog(context),
-              ),
+              // SizedBox(width: 12),
+              // MainButton(
+              //   width: 160,
+              //   height: 45,
+              //   bordersize: 35,
+              //   fontcolor: Colors.white,
+              //   backgroundcolor: AppColors.primary,
+              //   widget: Row(
+              //     mainAxisAlignment: MainAxisAlignment.center,
+              //     children: [
+              //       Icon(Icons.email_outlined, color: Colors.white, size: 20),
+              //       SizedBox(width: 8),
+              //       Text(
+              //         'بريد تجريبي',
+              //         style: TextStyle(
+              //           color: Colors.white,
+              //           fontWeight: FontWeight.bold,
+              //           fontSize: 13,
+              //         ),
+              //       ),
+              //     ],
+              //   ),
+              //   onpress: () => showSendTestEmailDialog(context),
+              // ),
             ],
           ],
         ),
@@ -224,17 +226,8 @@ class Home extends StatelessWidget {
           MonthlyClientContentChart(),
         Responsive.isDesktop(context)
             ? SizedBox(
-                height: 300,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    contentScheduletoday(context),
-                    contentUnderPromotion(context),
-                    tasksUnderProcessing(context),
-                  ],
-                ),
-              )
-            : Column(
+              height: 300,
+              child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   contentScheduletoday(context),
@@ -242,6 +235,15 @@ class Home extends StatelessWidget {
                   tasksUnderProcessing(context),
                 ],
               ),
+            )
+            : Column(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                contentScheduletoday(context),
+                contentUnderPromotion(context),
+                tasksUnderProcessing(context),
+              ],
+            ),
         SizedBox(height: isMobile ? _kMobileSectionSpacing : 25),
       ],
     );
@@ -267,24 +269,30 @@ Widget contentScheduletoday(BuildContext context) {
             Responsive.isDesktop(context)
                 ? (Get.width - 300) / 3
                 : (isMobile ? null : Get.width * 0.8),
-        margin: isMobile ? const EdgeInsets.only(bottom: _kMobileSectionSpacing) : null,
+        margin:
+            isMobile
+                ? const EdgeInsets.only(bottom: _kMobileSectionSpacing)
+                : null,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(isMobile ? _kMobileCardRadius : 16),
-          boxShadow: isMobile
-              ? [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.06),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
+          borderRadius: BorderRadius.circular(
+            isMobile ? _kMobileCardRadius : 16,
+          ),
+          boxShadow:
+              isMobile
+                  ? [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.06),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                  : null,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -295,7 +303,9 @@ Widget contentScheduletoday(BuildContext context) {
                 height: _kMobileAccentBarHeight,
                 decoration: BoxDecoration(
                   color: AppColors.primary,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(_kMobileCardRadius)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(_kMobileCardRadius),
+                  ),
                 ),
               ),
             SizedBox(height: isMobile ? 14 : 10),
@@ -307,7 +317,11 @@ Widget contentScheduletoday(BuildContext context) {
               child: Row(
                 children: [
                   if (isMobile) ...[
-                    Icon(Icons.calendar_today_rounded, size: 20, color: AppColors.primary),
+                    Icon(
+                      Icons.calendar_today_rounded,
+                      size: 20,
+                      color: AppColors.primary,
+                    ),
                     const SizedBox(width: 8),
                   ],
                   Expanded(
@@ -337,266 +351,23 @@ Widget contentScheduletoday(BuildContext context) {
             else
               Expanded(
                 child: _ScrollableHomeList(
-                      itemCount: contents.length,
-                      itemBuilder: (ctx, index) {
-                        final content = contents[index];
-                        return InkWell(
-                          onTap: () {
-                            controller.uploadedFilesPaths.assignAll(content.files ?? []);
-                            showContentDialogDetails(context, task: content);
-                          },
-                          child: Container(
-                            constraints: isMobile ? const BoxConstraints(minHeight: _kMobileMinTouchHeight) : null,
-                            decoration: BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(color: Colors.grey.shade200),
-                              ),
-                            ),
-                            margin: EdgeInsets.symmetric(
-                              horizontal: isMobile ? 8 : 5,
-                              vertical: isMobile ? 6 : 5,
-                            ),
-                            padding: EdgeInsets.symmetric(
-                              horizontal: isMobile ? 8 : 5,
-                              vertical: isMobile ? 10 : 5,
-                            ),
-                            child: Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 24,
-                            backgroundColor: Colors.teal.shade100,
-                            child:
-                                controller.clients
-                                            .firstWhereOrNull(
-                                              (a) => a.id == content.clientId,
-                                            )
-                                            ?.image !=
-                                        null
-                                    ? ClipRRect(
-                                      borderRadius: BorderRadius.circular(25),
-                                      child: Image.network(
-                                        controller.clients
-                                                .firstWhereOrNull(
-                                                  (a) =>
-                                                      a.id == content.clientId,
-                                                )
-                                                ?.image ??
-                                            '',
-                                        fit: BoxFit.cover,
-                                        height: 50,
-                                        width: 50,
-                                        errorBuilder:
-                                            (_, __, ___) => Text(
-                                              controller.clients
-                                                      .firstWhereOrNull(
-                                                        (a) =>
-                                                            a.id ==
-                                                            content.clientId,
-                                                      )
-                                                      ?.name
-                                                      .toString()[0] ??
-                                                  '',
-                                              style: const TextStyle(
-                                                color: Colors.teal,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                      ),
-                                    )
-                                    : Text(
-                                      controller.clients
-                                              .firstWhereOrNull(
-                                                (a) => a.id == content.clientId,
-                                              )
-                                              ?.name
-                                              .toString()[0] ??
-                                          '',
-                                      style: const TextStyle(
-                                        color: Colors.teal,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                          ),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  content.title,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                Text(
-                                  controller.clients
-                                          .firstWhereOrNull(
-                                            (a) => a.id == content.clientId,
-                                          )
-                                          ?.name ??
-                                      '',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      );
-    },
-  );
-}
-
-Widget _buildEmptySection({
-  required IconData icon,
-  required String message,
-  bool compact = false,
-}) {
-  return Padding(
-    padding: compact
-        ? const EdgeInsets.symmetric(vertical: 16, horizontal: 16)
-        : const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(
-          icon,
-          size: compact ? _kMobileEmptyIconSize : 48,
-          color: Colors.grey.shade400,
-        ),
-        SizedBox(height: compact ? 10 : 12),
-        Text(
-          message,
-          style: TextStyle(
-            fontSize: compact ? 13 : 14,
-            color: Colors.grey.shade600,
-            height: 1.3,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ],
-    ),
-  );
-}
-
-Widget contentUnderPromotion(BuildContext context) {
-  final isMobile = Responsive.isMobile(context);
-  return GetBuilder<HomeController>(
-    builder: (controller) {
-      final contents =
-          Get.find<HomeController>().contents.where((a) {
-            return a.promotion == 'under_promotion';
-          }).toList();
-      return Container(
-        height: isMobile ? 300 : 270,
-        constraints: null,
-        width:
-            Responsive.isDesktop(context)
-                ? (Get.width - 300) / 3
-                : (isMobile ? null : Get.width * 0.8),
-        margin: isMobile ? const EdgeInsets.only(bottom: _kMobileSectionSpacing) : null,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(isMobile ? _kMobileCardRadius : 16),
-          boxShadow: isMobile
-              ? [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.06),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.max,
-          children: [
-            if (isMobile)
-              Container(
-                height: _kMobileAccentBarHeight,
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(_kMobileCardRadius)),
-                ),
-              ),
-            SizedBox(height: isMobile ? 14 : 10),
-            Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: isMobile ? _kMobileCardPadding : 10,
-                vertical: isMobile ? 0 : 10,
-              ),
-              child: isMobile
-                  ? Row(
-                      children: [
-                        Icon(Icons.campaign_rounded, size: 20, color: AppColors.primary),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'محتوى قيد الترويج',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    )
-                  : Text(
-                      'محتوى قيد الترويج',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.primary,
-                      ),
-                    ),
-            ),
-            SizedBox(height: isMobile ? 8 : 10),
-            if (contents.isEmpty)
-              Expanded(
-                child: Center(
-                  child: _buildEmptySection(
-                    icon: Icons.campaign_outlined,
-                    message: 'لا يوجد محتوى قيد الترويج',
-                    compact: isMobile,
-                  ),
-                ),
-              )
-            else
-              Expanded(
-                child: _ScrollableHomeList(
                   itemCount: contents.length,
                   itemBuilder: (ctx, index) {
                     final content = contents[index];
                     return InkWell(
                       onTap: () {
-                        controller.uploadedFilesPaths.assignAll(content.files ?? []);
+                        controller.uploadedFilesPaths.assignAll(
+                          content.files ?? [],
+                        );
                         showContentDialogDetails(context, task: content);
                       },
                       child: Container(
-                        constraints: isMobile ? const BoxConstraints(minHeight: _kMobileMinTouchHeight) : null,
+                        constraints:
+                            isMobile
+                                ? const BoxConstraints(
+                                  minHeight: _kMobileMinTouchHeight,
+                                )
+                                : null,
                         decoration: BoxDecoration(
                           border: Border(
                             bottom: BorderSide(color: Colors.grey.shade200),
@@ -628,7 +399,8 @@ Widget contentUnderPromotion(BuildContext context) {
                                           controller.clients
                                                   .firstWhereOrNull(
                                                     (a) =>
-                                                        a.id == content.clientId,
+                                                        a.id ==
+                                                        content.clientId,
                                                   )
                                                   ?.image ??
                                               '',
@@ -656,7 +428,8 @@ Widget contentUnderPromotion(BuildContext context) {
                                       : Text(
                                         controller.clients
                                                 .firstWhereOrNull(
-                                                  (a) => a.id == content.clientId,
+                                                  (a) =>
+                                                      a.id == content.clientId,
                                                 )
                                                 ?.name
                                                 .toString()[0] ??
@@ -702,9 +475,282 @@ Widget contentUnderPromotion(BuildContext context) {
                         ),
                       ),
                     );
-                },
+                  },
+                ),
               ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+Widget _buildEmptySection({
+  required IconData icon,
+  required String message,
+  bool compact = false,
+}) {
+  return Padding(
+    padding:
+        compact
+            ? const EdgeInsets.symmetric(vertical: 16, horizontal: 16)
+            : const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(
+          icon,
+          size: compact ? _kMobileEmptyIconSize : 48,
+          color: Colors.grey.shade400,
+        ),
+        SizedBox(height: compact ? 10 : 12),
+        Text(
+          message,
+          style: TextStyle(
+            fontSize: compact ? 13 : 14,
+            color: Colors.grey.shade600,
+            height: 1.3,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    ),
+  );
+}
+
+Widget contentUnderPromotion(BuildContext context) {
+  final isMobile = Responsive.isMobile(context);
+  return GetBuilder<HomeController>(
+    builder: (controller) {
+      final contents =
+          Get.find<HomeController>().contents.where((a) {
+            return a.promotion == 'under_promotion';
+          }).toList();
+      return Container(
+        height: isMobile ? 300 : 270,
+        constraints: null,
+        width:
+            Responsive.isDesktop(context)
+                ? (Get.width - 300) / 3
+                : (isMobile ? null : Get.width * 0.8),
+        margin:
+            isMobile
+                ? const EdgeInsets.only(bottom: _kMobileSectionSpacing)
+                : null,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(
+            isMobile ? _kMobileCardRadius : 16,
+          ),
+          boxShadow:
+              isMobile
+                  ? [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.06),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                  : null,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.max,
+          children: [
+            if (isMobile)
+              Container(
+                height: _kMobileAccentBarHeight,
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(_kMobileCardRadius),
+                  ),
+                ),
+              ),
+            SizedBox(height: isMobile ? 14 : 10),
+            Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? _kMobileCardPadding : 10,
+                vertical: isMobile ? 0 : 10,
+              ),
+              child:
+                  isMobile
+                      ? Row(
+                        children: [
+                          Icon(
+                            Icons.campaign_rounded,
+                            size: 20,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'محتوى قيد الترويج',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                      : Text(
+                        'محتوى قيد الترويج',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
             ),
+            SizedBox(height: isMobile ? 8 : 10),
+            if (contents.isEmpty)
+              Expanded(
+                child: Center(
+                  child: _buildEmptySection(
+                    icon: Icons.campaign_outlined,
+                    message: 'لا يوجد محتوى قيد الترويج',
+                    compact: isMobile,
+                  ),
+                ),
+              )
+            else
+              Expanded(
+                child: _ScrollableHomeList(
+                  itemCount: contents.length,
+                  itemBuilder: (ctx, index) {
+                    final content = contents[index];
+                    return InkWell(
+                      onTap: () {
+                        controller.uploadedFilesPaths.assignAll(
+                          content.files ?? [],
+                        );
+                        showContentDialogDetails(context, task: content);
+                      },
+                      child: Container(
+                        constraints:
+                            isMobile
+                                ? const BoxConstraints(
+                                  minHeight: _kMobileMinTouchHeight,
+                                )
+                                : null,
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(color: Colors.grey.shade200),
+                          ),
+                        ),
+                        margin: EdgeInsets.symmetric(
+                          horizontal: isMobile ? 8 : 5,
+                          vertical: isMobile ? 6 : 5,
+                        ),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isMobile ? 8 : 5,
+                          vertical: isMobile ? 10 : 5,
+                        ),
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 24,
+                              backgroundColor: Colors.teal.shade100,
+                              child:
+                                  controller.clients
+                                              .firstWhereOrNull(
+                                                (a) => a.id == content.clientId,
+                                              )
+                                              ?.image !=
+                                          null
+                                      ? ClipRRect(
+                                        borderRadius: BorderRadius.circular(25),
+                                        child: Image.network(
+                                          controller.clients
+                                                  .firstWhereOrNull(
+                                                    (a) =>
+                                                        a.id ==
+                                                        content.clientId,
+                                                  )
+                                                  ?.image ??
+                                              '',
+                                          fit: BoxFit.cover,
+                                          height: 50,
+                                          width: 50,
+                                          errorBuilder:
+                                              (_, __, ___) => Text(
+                                                controller.clients
+                                                        .firstWhereOrNull(
+                                                          (a) =>
+                                                              a.id ==
+                                                              content.clientId,
+                                                        )
+                                                        ?.name
+                                                        .toString()[0] ??
+                                                    '',
+                                                style: const TextStyle(
+                                                  color: Colors.teal,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                        ),
+                                      )
+                                      : Text(
+                                        controller.clients
+                                                .firstWhereOrNull(
+                                                  (a) =>
+                                                      a.id == content.clientId,
+                                                )
+                                                ?.name
+                                                .toString()[0] ??
+                                            '',
+                                        style: const TextStyle(
+                                          color: Colors.teal,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                            ),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    content.title,
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Text(
+                                    controller.clients
+                                            .firstWhereOrNull(
+                                              (a) => a.id == content.clientId,
+                                            )
+                                            ?.name ??
+                                        '',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
           ],
         ),
       );
@@ -727,24 +773,30 @@ Widget tasksUnderProcessing(BuildContext context) {
             Responsive.isDesktop(context)
                 ? (Get.width - 300) / 3
                 : (isMobile ? null : Get.width * 0.8),
-        margin: isMobile ? const EdgeInsets.only(bottom: _kMobileSectionSpacing) : null,
+        margin:
+            isMobile
+                ? const EdgeInsets.only(bottom: _kMobileSectionSpacing)
+                : null,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(isMobile ? _kMobileCardRadius : 16),
-          boxShadow: isMobile
-              ? [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.06),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
-                  ),
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
+          borderRadius: BorderRadius.circular(
+            isMobile ? _kMobileCardRadius : 16,
+          ),
+          boxShadow:
+              isMobile
+                  ? [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.06),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                  : null,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -755,7 +807,9 @@ Widget tasksUnderProcessing(BuildContext context) {
                 height: _kMobileAccentBarHeight,
                 decoration: BoxDecoration(
                   color: AppColors.primary,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(_kMobileCardRadius)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(_kMobileCardRadius),
+                  ),
                 ),
               ),
             SizedBox(height: isMobile ? 14 : 10),
@@ -764,31 +818,36 @@ Widget tasksUnderProcessing(BuildContext context) {
                 horizontal: isMobile ? _kMobileCardPadding : 10,
                 vertical: isMobile ? 0 : 10,
               ),
-              child: isMobile
-                  ? Row(
-                      children: [
-                        Icon(Icons.pending_actions_rounded, size: 20, color: AppColors.primary),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'مهام جاري تنفيذها',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.primary,
+              child:
+                  isMobile
+                      ? Row(
+                        children: [
+                          Icon(
+                            Icons.pending_actions_rounded,
+                            size: 20,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'مهام جاري تنفيذها',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primary,
+                              ),
                             ),
                           ),
+                        ],
+                      )
+                      : Text(
+                        'مهام جاري تنفيذها',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
                         ),
-                      ],
-                    )
-                  : Text(
-                      'مهام جاري تنفيذها',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.primary,
                       ),
-                    ),
             ),
             SizedBox(height: isMobile ? 8 : 10),
             if (contents.isEmpty)
@@ -835,7 +894,12 @@ Widget tasksUnderProcessing(BuildContext context) {
                         }
                       },
                       child: Container(
-                        constraints: isMobile ? const BoxConstraints(minHeight: _kMobileMinTouchHeight) : null,
+                        constraints:
+                            isMobile
+                                ? const BoxConstraints(
+                                  minHeight: _kMobileMinTouchHeight,
+                                )
+                                : null,
                         decoration: BoxDecoration(
                           border: Border(
                             bottom: BorderSide(color: Colors.grey.shade200),
@@ -857,7 +921,8 @@ Widget tasksUnderProcessing(BuildContext context) {
                               child:
                                   controller.clients
                                               .firstWhereOrNull(
-                                                (a) => a.id == content.clientName,
+                                                (a) =>
+                                                    a.id == content.clientName,
                                               )
                                               ?.image !=
                                           null
@@ -881,7 +946,8 @@ Widget tasksUnderProcessing(BuildContext context) {
                                                         .firstWhereOrNull(
                                                           (a) =>
                                                               a.id ==
-                                                              content.clientName,
+                                                              content
+                                                                  .clientName,
                                                         )
                                                         ?.name
                                                         .toString()[0] ??
@@ -897,7 +963,8 @@ Widget tasksUnderProcessing(BuildContext context) {
                                         controller.clients
                                                 .firstWhereOrNull(
                                                   (a) =>
-                                                      a.id == content.clientName,
+                                                      a.id ==
+                                                      content.clientName,
                                                 )
                                                 ?.name
                                                 .toString()[0] ??
@@ -1068,7 +1135,7 @@ void showaddNotifications(BuildContext context) {
                               borderColor: Colors.grey.shade300,
                             ),
                             InputText(
-                              ontap: () async {
+                              onTap: () async {
                                 final picked = await customDatePicker(context);
                                 if (picked != null) {
                                   date = picked;
@@ -1083,7 +1150,7 @@ void showaddNotifications(BuildContext context) {
                               fillColor: Colors.white,
                               textInputType: TextInputType.datetime,
                               controller: datectr,
-                              readonly: true,
+                              readOnly: true,
                               validator: (v) {
                                 if (v == null || v.isEmpty) return ' ';
                                 return null;
@@ -1206,7 +1273,9 @@ void showaddNotifications(BuildContext context) {
 void showSendTestEmailDialog(BuildContext context) {
   final toEmailController = TextEditingController();
   final subjectController = TextEditingController(text: 'تجربة إيميل من Point');
-  final bodyController = TextEditingController(text: 'هذه رسالة تجريبية من لوحة التحكم.');
+  final bodyController = TextEditingController(
+    text: 'هذه رسالة تجريبية من لوحة التحكم.',
+  );
   final _key = GlobalKey<FormState>();
   var isLoading = false.obs;
 
@@ -1220,9 +1289,10 @@ void showSendTestEmailDialog(BuildContext context) {
         child: Form(
           key: _key,
           child: SizedBox(
-            width: Responsive.isDesktop(Get.context!)
-                ? Get.width * 0.4
-                : Get.width * 0.9,
+            width:
+                Responsive.isDesktop(Get.context!)
+                    ? Get.width * 0.4
+                    : Get.width * 0.9,
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -1231,12 +1301,18 @@ void showSendTestEmailDialog(BuildContext context) {
                     margin: const EdgeInsets.all(15),
                     decoration: BoxDecoration(
                       color: AppColors.primary,
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(12),
+                      ),
                     ),
                     padding: const EdgeInsets.all(16),
                     child: Row(
                       children: [
-                        const Icon(Icons.email_outlined, color: Colors.white, size: 28),
+                        const Icon(
+                          Icons.email_outlined,
+                          color: Colors.white,
+                          size: 28,
+                        ),
                         const SizedBox(width: 12),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1251,7 +1327,10 @@ void showSendTestEmailDialog(BuildContext context) {
                             ),
                             Text(
                               'أدخل البريد والعنوان والنص',
-                              style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 12),
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.9),
+                                fontSize: 12,
+                              ),
                             ),
                           ],
                         ),
@@ -1318,35 +1397,50 @@ void showSendTestEmailDialog(BuildContext context) {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(24),
                                 ),
-                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 16,
+                                ),
                               ),
-                              onPressed: isLoading.value
-                                  ? null
-                                  : () async {
-                                      if (!_key.currentState!.validate()) return;
-                                      isLoading.value = true;
-                                      await EmailNotificationService.send(
-                                        toEmail: toEmailController.text.trim(),
-                                        subject: subjectController.text.trim(),
-                                        body: bodyController.text.trim(),
-                                      );
-                                      isLoading.value = false;
-                                      if (context.mounted) Navigator.pop(context);
-                                      FunHelper.showsnackbar(
-                                        'success'.tr,
-                                        'تم إرسال البريد التجريبي'.tr,
-                                        snackPosition: SnackPosition.TOP,
-                                        backgroundColor: Colors.green,
-                                        colorText: Colors.white,
-                                      );
-                                    },
-                              child: isLoading.value
-                                  ? const SizedBox(
-                                      height: 22,
-                                      width: 22,
-                                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                                    )
-                                  : Text('إرسال', style: TextStyle(color: Colors.white)),
+                              onPressed:
+                                  isLoading.value
+                                      ? null
+                                      : () async {
+                                        if (!_key.currentState!.validate())
+                                          return;
+                                        isLoading.value = true;
+                                        await EmailNotificationService.send(
+                                          toEmail:
+                                              toEmailController.text.trim(),
+                                          subject:
+                                              subjectController.text.trim(),
+                                          body: bodyController.text.trim(),
+                                        );
+                                        isLoading.value = false;
+                                        if (context.mounted)
+                                          Navigator.pop(context);
+                                        FunHelper.showsnackbar(
+                                          'success'.tr,
+                                          'تم إرسال البريد التجريبي'.tr,
+                                          snackPosition: SnackPosition.TOP,
+                                          backgroundColor: Colors.green,
+                                          colorText: Colors.white,
+                                        );
+                                      },
+                              child:
+                                  isLoading.value
+                                      ? const SizedBox(
+                                        height: 22,
+                                        width: 22,
+                                        child: CircularProgressIndicator(
+                                          color: Colors.white,
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                      : Text(
+                                        'إرسال',
+                                        style: TextStyle(color: Colors.white),
+                                      ),
                             ),
                           ),
                         ),
@@ -1357,7 +1451,10 @@ void showSendTestEmailDialog(BuildContext context) {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(24),
                               ),
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 16,
+                              ),
                             ),
                             onPressed: () => Navigator.pop(context),
                             child: const Text('إلغاء'),

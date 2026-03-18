@@ -31,8 +31,8 @@ class Tasks extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ResponsiveScaffold(
-      selectedtab: 40,
-      subselected: int.parse(subselected['id'].toString()),
+      selectedTab: 40,
+      subSelected: int.parse(subselected['id'].toString()),
       body: GetBuilder<HomeController>(
         builder: (controller) {
           return Responsive(
@@ -135,11 +135,16 @@ class Tasks extends StatelessWidget {
                                               subselected['id'].toString(),
                                         )
                                         .toList();
-                                final isDesktop =
-                                    Responsive.isDesktop(Get.context!);
-                                final boxWidth = isDesktop
-                                    ? null
-                                    : (Get.width / 5 - 30).clamp(88.0, double.infinity);
+                                final isDesktop = Responsive.isDesktop(
+                                  Get.context!,
+                                );
+                                final boxWidth =
+                                    isDesktop
+                                        ? null
+                                        : (Get.width / 5 - 30).clamp(
+                                          88.0,
+                                          double.infinity,
+                                        );
                                 final statRow = Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
@@ -207,9 +212,9 @@ class Tasks extends StatelessWidget {
                                 return isDesktop
                                     ? statRow
                                     : SingleChildScrollView(
-                                        scrollDirection: Axis.horizontal,
-                                        child: statRow,
-                                      );
+                                      scrollDirection: Axis.horizontal,
+                                      child: statRow,
+                                    );
                               }),
 
                               SizedBox(height: 15),
@@ -226,7 +231,7 @@ class Tasks extends StatelessWidget {
                                         SizedBox(
                                           width: (Get.width * 0.7 / 3) - 25,
                                           child: InputText(
-                                            prefixicon: Icon(
+                                            prefixIcon: Icon(
                                               CupertinoIcons.search,
                                               color: Colors.grey,
                                             ),
@@ -539,10 +544,15 @@ class Tasks extends StatelessWidget {
     );
   }
 
-  Widget _buildStatBox(String value, String label, Color color, {double? width}) {
+  Widget _buildStatBox(
+    String value,
+    String label,
+    Color color, {
+    double? width,
+  }) {
     final isDesktop = Responsive.isDesktop(Get.context!);
-    final boxWidth = width ??
-        (isDesktop ? Get.width / 5 - 78 : Get.width / 5 - 30);
+    final boxWidth =
+        width ?? (isDesktop ? Get.width / 5 - 78 : Get.width / 5 - 30);
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -617,7 +627,7 @@ class TasksGridPage extends StatelessWidget {
               itemBuilder: (context, index) {
                 return TaskCard(
                   task: tasks[index],
-                  ontap: () {
+                  onTap: () {
                     switch (selectedIndex) {
                       case 0:
                         showCampaignDetailsDialog(context, task: tasks[index]);

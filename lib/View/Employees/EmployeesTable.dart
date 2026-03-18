@@ -25,7 +25,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
   @override
   Widget build(BuildContext context) {
     return ResponsiveScaffold(
-      selectedtab: 1,
+      selectedTab: 1,
 
       body: GetBuilder<HomeController>(
         builder: (controller) {
@@ -89,7 +89,10 @@ class _EmployeeTableState extends State<EmployeeTable> {
                         SizedBox(height: 10),
                         HorizontalScrollbarTable(
                           child: SizedBox(
-                            width: (Get.width - 270).clamp(1100.0, double.infinity),
+                            width: (Get.width - 270).clamp(
+                              1100.0,
+                              double.infinity,
+                            ),
                             child: Obx(
                               () => DataTable(
                                 dataRowMinHeight: 60,
@@ -297,7 +300,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                                     }
                                                     FunHelper.showConfirmDailog(
                                                       context,
-                                                      ontap: () {
+                                                      onTap: () {
                                                         controller
                                                             .deleteEmployee(
                                                               emp.id ?? '',
@@ -345,7 +348,8 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
   String selectedDepartment = model?.department ?? "cat1";
   List<String> roles = ["supervisor", "admin", "employee"];
   Get.find<HomeController>().uploadedFilesPaths.assignAll(
-      model != null && model.image != null ? [model.image!] : []);
+    model != null && model.image != null ? [model.image!] : [],
+  );
   var _key = GlobalKey<FormState>();
   showDialog(
     barrierDismissible: false,
@@ -378,7 +382,9 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                             padding: EdgeInsets.all(16),
                             child: Row(
                               children: [
-                                SvgPicture.asset('assets/svgs/Check_circle.svg'),
+                                SvgPicture.asset(
+                                  'assets/svgs/Check_circle.svg',
+                                ),
                                 SizedBox(width: 10),
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -597,7 +603,8 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                           if (model == null) {
                                             controller
                                                 .addEmployee(
-                                                  password: passwordController.text,
+                                                  password:
+                                                      passwordController.text,
                                                   EmployeeModel(
                                                     id:
                                                         '${Random().nextInt(100000)}',
@@ -629,7 +636,8 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                           } else {
                                             controller
                                                 .updateEmployee(
-                                                  newPassword: passwordController.text,
+                                                  newPassword:
+                                                      passwordController.text,
                                                   model.copyWith(
                                                     name: nameController.text,
                                                     email: emailController.text,

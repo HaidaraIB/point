@@ -15,9 +15,9 @@ import 'package:point/View/Tasks/Dialogs/PublishDialog.dart';
 
 class TaskCard extends StatelessWidget {
   final TaskModel task;
-  final VoidCallback ontap;
+  final VoidCallback onTap;
 
-  TaskCard({super.key, required this.task, required this.ontap});
+  TaskCard({super.key, required this.task, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -47,273 +47,287 @@ class TaskCard extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // --- العنوان + النقاط الثلاثة ---
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  task.title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              SizedBox(
-                child: PopupMenuButton<int>(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  color: Colors.white,
-                  elevation: 4,
-                  itemBuilder:
-                      (context) => [
-                        PopupMenuItem(
-                          value: 0,
-
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: const [
-                              Icon(
-                                Icons.remove_red_eye_outlined,
-                                color: Colors.green,
-                                size: 20,
-                              ),
-                              Text("عرض"),
-                            ],
-                          ),
-                        ),
-                        PopupMenuItem(
-                          value: 1,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: const [
-                              Icon(
-                                Icons.edit_outlined,
-                                color: Colors.blueAccent,
-                                size: 20,
-                              ),
-                              Text("طلب تعديل"),
-                            ],
-                          ),
-                        ),
-                        PopupMenuItem(
-                          value: 2,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: const [
-                              Icon(
-                                Icons.delete_outline,
-                                color: Colors.red,
-                                size: 20,
-                              ),
-                              Text("حذف"),
-                            ],
-                          ),
-                        ),
-                        PopupMenuItem(
-                          value: 3,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: const [
-                              Icon(
-                                Icons.close_rounded,
-                                color: Colors.red,
-                                size: 20,
-                              ),
-                              Text("رفض"),
-                            ],
-                          ),
-                        ),
-                        PopupMenuItem(
-                          value: 4,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: const [
-                              Icon(Icons.check, color: Colors.green, size: 20),
-                              Text("قبول"),
-                            ],
-                          ),
-                        ),
-                      ],
-                  onSelected: (value) {
-                    if (value == 0) {
-                      ontap();
-                    } else if (value == 1) {
-                      // controller.uploadedFilesPaths.clear();
-
-                      switch (task.type) {
-                        case '0':
-                          showPromotionDialog(context, model: task);
-                          break;
-                        case '1':
-                          designDialog(context, model: task);
-                          break;
-                        case '2':
-                          photoGraphyDialog(context, model: task);
-                          break;
-                        case '3':
-                          contentWriteDiloag(context, model: task);
-                          break;
-                        case '4':
-                          montageDiloag(context, model: task);
-                          break;
-                        case '5':
-                          publishDilaog(context, model: task);
-                          break;
-                        case '6':
-                          programmingDiloag(context, model: task);
-                          break;
-                        default:
-                      }
-                    } else if (value == 2) {
-                      Get.find<HomeController>().deleteTask(task.id!);
-                    } else if (value == 3) {
-                      Get.find<HomeController>().updateTask(
-                        task.copyWith(status: StorageKeys.status_rejected),
-                      );
-                    } else if (value == 4) {
-                      Get.find<HomeController>().updateTask(
-                        task.copyWith(status: StorageKeys.status_approved),
-                      );
-                    }
-                  },
-                  child: const Icon(Icons.more_vert), //
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-
-          // --- الحالة و الأولوية ---
-          Row(
-            children: [
-              _buildstatusTag(
-                task.status,
-                Colors.amber.shade700,
-                Colors.amber.shade50,
-              ),
-              const SizedBox(width: 8),
-              _buildpriortyTag(
-                task.priority,
-                Colors.red.shade700,
-                Colors.red.shade50,
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-
-          // --- الوصف ---
-          Text(
-            task.description,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
-          ),
-          const SizedBox(height: 12),
-
-          // --- التقدم ---
-          Text('التقدم', style: TextStyle(color: Colors.grey.shade600)),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              Expanded(
-                child: LinearProgressIndicator(
-                  value: task.progress ?? 0,
-                  color: Colors.blue,
-                  backgroundColor: Colors.grey.shade200,
-                  minHeight: 6,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '${((task.progress ?? 0) * 100).toInt()}%',
-                style: const TextStyle(fontSize: 12),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 14,
-                    backgroundImage: NetworkImage(
-                      task.assignedImageUrl.isEmpty
-                          ? '${StorageKeys.supabaseStorageBaseUrl}/Avatar.png'
-                          : task.assignedImageUrl,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    Get.find<HomeController>().employees
-                            .firstWhereOrNull(
-                              (emp) => emp.id == task.assignedTo,
-                            )
-                            ?.name ??
-                        '',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Icon(
-                        Icons.calendar_today_outlined,
-                        size: 14,
-                        color: Colors.grey,
+                      Expanded(
+                        child: Text(
+                          task.title,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        FunHelper.formatdate(task.fromDate).toString(),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                          fontWeight: FontWeight.bold,
+                      SizedBox(
+                        child: PopupMenuButton<int>(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          color: Colors.white,
+                          elevation: 4,
+                          itemBuilder:
+                              (context) => [
+                                PopupMenuItem(
+                                  value: 0,
+
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: const [
+                                      Text("عرض"),
+                                      Icon(
+                                        Icons.remove_red_eye_outlined,
+                                        color: Colors.green,
+                                        size: 20,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                PopupMenuItem(
+                                  value: 1,
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: const [
+                                      Text("طلب تعديل"),
+                                      Icon(
+                                        Icons.edit_outlined,
+                                        color: Colors.blueAccent,
+                                        size: 20,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                PopupMenuItem(
+                                  value: 2,
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: const [
+                                      Text("حذف"),
+                                      Icon(
+                                        Icons.delete_outline,
+                                        color: Colors.red,
+                                        size: 20,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                PopupMenuItem(
+                                  value: 3,
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: const [
+                                      Text("رفض"),
+                                      Icon(
+                                        Icons.close_rounded,
+                                        color: Colors.red,
+                                        size: 20,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                PopupMenuItem(
+                                  value: 4,
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: const [
+                                      Text("قبول"),
+                                      Icon(
+                                        Icons.check,
+                                        color: Colors.green,
+                                        size: 20,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                          onSelected: (value) {
+                            if (value == 0) {
+                              onTap();
+                            } else if (value == 1) {
+                              // controller.uploadedFilesPaths.clear();
+
+                              switch (task.type) {
+                                case '0':
+                                  showPromotionDialog(context, model: task);
+                                  break;
+                                case '1':
+                                  designDialog(context, model: task);
+                                  break;
+                                case '2':
+                                  photoGraphyDialog(context, model: task);
+                                  break;
+                                case '3':
+                                  contentWriteDiloag(context, model: task);
+                                  break;
+                                case '4':
+                                  montageDiloag(context, model: task);
+                                  break;
+                                case '5':
+                                  publishDilaog(context, model: task);
+                                  break;
+                                case '6':
+                                  programmingDiloag(context, model: task);
+                                  break;
+                                default:
+                              }
+                            } else if (value == 2) {
+                              Get.find<HomeController>().deleteTask(task.id!);
+                            } else if (value == 3) {
+                              Get.find<HomeController>().updateTask(
+                                task.copyWith(
+                                  status: StorageKeys.status_rejected,
+                                ),
+                              );
+                            } else if (value == 4) {
+                              Get.find<HomeController>().updateTask(
+                                task.copyWith(
+                                  status: StorageKeys.status_approved,
+                                ),
+                              );
+                            }
+                          },
+                          child: const Icon(Icons.more_vert), //
                         ),
                       ),
                     ],
                   ),
-                  Text(
-                    _stilltime(task.toDate).toString(),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color:
-                          _stilltime(task.toDate).toString() == 'الوقت منتهي'
-                              ? Colors.red
-                              : Colors.grey,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
+                  const SizedBox(height: 6),
 
-          Row(
-            children: [
-              OutlinedButton(
-                onPressed: ontap,
-                style: OutlinedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                  // --- الحالة و الأولوية ---
+                  Row(
+                    children: [
+                      _buildstatusTag(
+                        task.status,
+                        Colors.amber.shade700,
+                        Colors.amber.shade50,
+                      ),
+                      const SizedBox(width: 8),
+                      _buildpriortyTag(
+                        task.priority,
+                        Colors.red.shade700,
+                        Colors.red.shade50,
+                      ),
+                    ],
                   ),
-                ),
-                child: Text('عرض التفاصيل'),
-              ),
-            ],
-          ),
+                  const SizedBox(height: 8),
+
+                  // --- الوصف ---
+                  Text(
+                    task.description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // --- التقدم ---
+                  Text('التقدم', style: TextStyle(color: Colors.grey.shade600)),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: LinearProgressIndicator(
+                          value: task.progress ?? 0,
+                          color: Colors.blue,
+                          backgroundColor: Colors.grey.shade200,
+                          minHeight: 6,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${((task.progress ?? 0) * 100).toInt()}%',
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 14,
+                            backgroundImage: NetworkImage(
+                              task.assignedImageUrl.isEmpty
+                                  ? '${StorageKeys.supabaseStorageBaseUrl}/Avatar.png'
+                                  : task.assignedImageUrl,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            Get.find<HomeController>().employees
+                                    .firstWhereOrNull(
+                                      (emp) => emp.id == task.assignedTo,
+                                    )
+                                    ?.name ??
+                                '',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.calendar_today_outlined,
+                                size: 14,
+                                color: Colors.grey,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                FunHelper.formatdate(task.fromDate).toString(),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Text(
+                            _stilltime(task.toDate).toString(),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color:
+                                  _stilltime(task.toDate).toString() ==
+                                          'الوقت منتهي'
+                                      ? Colors.red
+                                      : Colors.grey,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  Row(
+                    children: [
+                      OutlinedButton(
+                        onPressed: onTap,
+                        style: OutlinedButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text('عرض التفاصيل'),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),

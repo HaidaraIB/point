@@ -35,9 +35,10 @@ class TasksMobile extends StatelessWidget {
     return GetBuilder<HomeController>(
       builder: (controller) {
         return Obx(() {
-          final List<TaskModel> tasks = controller.tasksSearched
-              .where((a) => a.type == selectedIndex.toString())
-              .toList();
+          final List<TaskModel> tasks =
+              controller.tasksSearched
+                  .where((a) => a.type == selectedIndex.toString())
+                  .toList();
           final bottomPadding = MediaQuery.of(context).padding.bottom + 32.0;
 
           return CustomScrollView(
@@ -70,25 +71,26 @@ class TasksMobile extends StatelessWidget {
                 ),
               ),
               SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    // TaskCard uses LayoutBuilder and needs bounded height
-                    // (GridView on desktop provides it; SliverList does not).
-                    final cardHeight = MediaQuery.of(context).size.width / 1.35 + 24;
-                    return SizedBox(
-                      height: cardHeight.clamp(280.0, 400.0),
-                      child: TaskCard(
-                        task: tasks[index],
-                        ontap: () => _openTaskDetails(context, selectedIndex, tasks[index]),
-                      ),
-                    );
-                  },
-                  childCount: tasks.length,
-                ),
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  // TaskCard uses LayoutBuilder and needs bounded height
+                  // (GridView on desktop provides it; SliverList does not).
+                  final cardHeight =
+                      MediaQuery.of(context).size.width / 1.35 + 24;
+                  return SizedBox(
+                    height: cardHeight.clamp(280.0, 400.0),
+                    child: TaskCard(
+                      task: tasks[index],
+                      onTap:
+                          () => _openTaskDetails(
+                            context,
+                            selectedIndex,
+                            tasks[index],
+                          ),
+                    ),
+                  );
+                }, childCount: tasks.length),
               ),
-              SliverPadding(
-                padding: EdgeInsets.only(bottom: bottomPadding),
-              ),
+              SliverPadding(padding: EdgeInsets.only(bottom: bottomPadding)),
             ],
           );
         });
@@ -125,10 +127,7 @@ class TasksMobile extends StatelessWidget {
                   fontSize: 13,
                 ),
               ),
-              const Icon(
-                Icons.add_circle_outline_rounded,
-                color: Colors.white,
-              ),
+              const Icon(Icons.add_circle_outline_rounded, color: Colors.white),
             ],
           ),
           onpress: () {
@@ -172,27 +171,44 @@ class TasksMobile extends StatelessWidget {
     final statRow = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _buildStatBox(tasks.length.toString(), 'اجمالي المهام'.tr, Colors.blue, width: boxWidth),
         _buildStatBox(
-          tasks.where((a) => a.status == StorageKeys.status_processing).length.toString(),
+          tasks.length.toString(),
+          'اجمالي المهام'.tr,
+          Colors.blue,
+          width: boxWidth,
+        ),
+        _buildStatBox(
+          tasks
+              .where((a) => a.status == StorageKeys.status_processing)
+              .length
+              .toString(),
           'قيد التنفيذ'.tr,
           Colors.amber,
           width: boxWidth,
         ),
         _buildStatBox(
-          tasks.where((a) => a.status == StorageKeys.status_under_revision).length.toString(),
+          tasks
+              .where((a) => a.status == StorageKeys.status_under_revision)
+              .length
+              .toString(),
           'قيد المراجعة'.tr,
           Colors.blue,
           width: boxWidth,
         ),
         _buildStatBox(
-          tasks.where((a) => a.status == StorageKeys.status_approved).length.toString(),
+          tasks
+              .where((a) => a.status == StorageKeys.status_approved)
+              .length
+              .toString(),
           'مكتملة'.tr,
           Colors.green,
           width: boxWidth,
         ),
         _buildStatBox(
-          tasks.where((a) => a.status == StorageKeys.status_rejected).length.toString(),
+          tasks
+              .where((a) => a.status == StorageKeys.status_rejected)
+              .length
+              .toString(),
           'ملغاة'.tr,
           Colors.red,
           width: boxWidth,
@@ -205,7 +221,12 @@ class TasksMobile extends StatelessWidget {
     );
   }
 
-  Widget _buildStatBox(String value, String label, Color color, {double? width}) {
+  Widget _buildStatBox(
+    String value,
+    String label,
+    Color color, {
+    double? width,
+  }) {
     final boxWidth = width ?? (Get.width / 5 - 30);
     return Container(
       decoration: BoxDecoration(
@@ -266,7 +287,7 @@ class TasksMobile extends StatelessWidget {
               SizedBox(
                 width: (Get.width * 0.7 / 3) - 25,
                 child: InputText(
-                  prefixicon: Icon(CupertinoIcons.search, color: Colors.grey),
+                  prefixIcon: Icon(CupertinoIcons.search, color: Colors.grey),
                   hintText: 'ابحث عن مهمة، عنوان، موظف...',
                   height: 42,
                   fillColor: Colors.white,
@@ -294,12 +315,16 @@ class TasksMobile extends StatelessWidget {
               _buildDropdown<String>(
                 width: 150,
                 hint: 'الأولوية',
-                value: controller.selectedPriority.value.isEmpty
-                    ? null
-                    : controller.selectedPriority.value,
-                items: StorageKeys.priority
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e.tr)))
-                    .toList(),
+                value:
+                    controller.selectedPriority.value.isEmpty
+                        ? null
+                        : controller.selectedPriority.value,
+                items:
+                    StorageKeys.priority
+                        .map(
+                          (e) => DropdownMenuItem(value: e, child: Text(e.tr)),
+                        )
+                        .toList(),
                 onChanged: (value) {
                   controller.selectedPriority.value = value ?? '';
                   controller.filterTasks();
@@ -311,15 +336,21 @@ class TasksMobile extends StatelessWidget {
               _buildDropdown<String>(
                 width: 150,
                 hint: 'المنفذ',
-                value: controller.selectedExecutor.value.isEmpty
-                    ? null
-                    : controller.selectedExecutor.value,
-                items: controller.employees
-                    .map((e) => DropdownMenuItem(
-                          value: e.id ?? e.name ?? '',
-                          child: Text((e.name ?? '').split(' ').take(2).join(' ')),
-                        ))
-                    .toList(),
+                value:
+                    controller.selectedExecutor.value.isEmpty
+                        ? null
+                        : controller.selectedExecutor.value,
+                items:
+                    controller.employees
+                        .map(
+                          (e) => DropdownMenuItem(
+                            value: e.id ?? e.name ?? '',
+                            child: Text(
+                              (e.name ?? '').split(' ').take(2).join(' '),
+                            ),
+                          ),
+                        )
+                        .toList(),
                 onChanged: (value) {
                   controller.selectedExecutor.value = value ?? '';
                   controller.filterTasks();
@@ -391,10 +422,13 @@ class TasksMobile extends StatelessWidget {
                 ),
               ),
             ),
-            value: controller.selectedStatus.value.isEmpty ||
-                    !StorageKeys.statusListOngoing.contains(controller.selectedStatus.value)
-                ? null
-                : controller.selectedStatus.value,
+            value:
+                controller.selectedStatus.value.isEmpty ||
+                        !StorageKeys.statusListOngoing.contains(
+                          controller.selectedStatus.value,
+                        )
+                    ? null
+                    : controller.selectedStatus.value,
             items: [
               DropdownMenuItem(
                 value: '',
@@ -423,7 +457,11 @@ class TasksMobile extends StatelessWidget {
     );
   }
 
-  void _openTaskDetails(BuildContext context, int selectedIndex, TaskModel task) {
+  void _openTaskDetails(
+    BuildContext context,
+    int selectedIndex,
+    TaskModel task,
+  ) {
     switch (selectedIndex) {
       case 0:
         showCampaignDetailsDialog(context, task: task);

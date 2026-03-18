@@ -77,7 +77,7 @@ class FunHelper {
 
   static showConfirmDailog(
     BuildContext context, {
-    required Function() ontap,
+    required Function() onTap,
   }) async {
     return showDialog<String>(
       context: context,
@@ -124,7 +124,7 @@ class FunHelper {
                 bordersize: 5,
                 height: 30,
                 onpress: () {
-                  ontap();
+                  onTap();
                   Get.back();
                 },
               ),

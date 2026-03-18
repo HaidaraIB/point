@@ -12,17 +12,17 @@ import 'package:point/View/Shared/SideMenu.dart';
 class ResponsiveScaffold extends StatelessWidget {
   // final Widget sidebar;
   final Widget body;
-  final int selectedtab;
-  final int? subselected;
+  final int selectedTab;
+  final int? subSelected;
   final String title;
-  final bool? sidemenue;
+  final bool? sideMenu;
   ResponsiveScaffold({
     super.key,
     required this.body,
     this.title = '',
-    this.subselected,
-    this.sidemenue,
-    required this.selectedtab,
+    this.subSelected,
+    this.sideMenu,
+    required this.selectedTab,
   });
 
   @override
@@ -42,11 +42,11 @@ class ResponsiveScaffold extends StatelessWidget {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (sidemenue != false)
+                        if (sideMenu != false)
                           SizedBox(
                             child: CustomSidebar(
-                              selectedtab: selectedtab,
-                              subseletedtab: subselected,
+                              selectedTab: selectedTab,
+                              subSelected: subSelected,
                             ),
                           ),
                         Expanded(
@@ -71,7 +71,11 @@ class ResponsiveScaffold extends StatelessWidget {
                                             ?.role ??
                                         '',
                                     avatarUrl:
-                                        controller.currentemployee.value?.image ?? kDefaultAvatarUrl,
+                                        controller
+                                            .currentemployee
+                                            .value
+                                            ?.image ??
+                                        kDefaultAvatarUrl,
                                     notificationCount: 1,
                                   ),
                                 ),
@@ -107,7 +111,7 @@ class ResponsiveScaffold extends StatelessWidget {
                         child: Row(
                           children: [
                             // Left: Menu / Back (محمي من النوتش بسبب SafeArea)
-                            if (sidemenue != false)
+                            if (sideMenu != false)
                               Builder(
                                 builder:
                                     (context) => Container(
@@ -141,7 +145,8 @@ class ResponsiveScaffold extends StatelessWidget {
                                 builder: (context, constraints) {
                                   return Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       const Text(
@@ -155,24 +160,6 @@ class ResponsiveScaffold extends StatelessWidget {
                                         ),
                                       ),
                                       const SizedBox(height: 4),
-                                      Obx(
-                                        () {
-                                          final name = controller.currentemployee.value?.name?.trim();
-                                          final greeting = name != null && name.isNotEmpty
-                                              ? 'أهلاً بك، $name 👋'
-                                              : 'أهلاً بك 👋';
-                                          return Text(
-                                            greeting,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                              color: Colors.white70,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          );
-                                        },
-                                      ),
                                     ],
                                   );
                                 },
@@ -183,9 +170,15 @@ class ResponsiveScaffold extends StatelessWidget {
                             const SizedBox(width: 8),
                             Obx(
                               () => MobileAppBarProfileWidget(
-                                name: controller.currentemployee.value?.name ?? '',
-                                role: controller.currentemployee.value?.role ?? '',
-                                avatarUrl: controller.currentemployee.value?.image ?? kDefaultAvatarUrl,
+                                name:
+                                    controller.currentemployee.value?.name ??
+                                    '',
+                                role:
+                                    controller.currentemployee.value?.role ??
+                                    '',
+                                avatarUrl:
+                                    controller.currentemployee.value?.image ??
+                                    kDefaultAvatarUrl,
                                 isEmployee: true,
                                 isClient: false,
                               ),
@@ -199,8 +192,8 @@ class ResponsiveScaffold extends StatelessWidget {
 
                 drawer: Drawer(
                   child: CustomSidebar(
-                    selectedtab: selectedtab,
-                    subseletedtab: subselected,
+                    selectedTab: selectedTab,
+                    subSelected: subSelected,
                   ),
                 ),
                 body: body,

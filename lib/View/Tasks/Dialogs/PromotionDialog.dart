@@ -388,7 +388,7 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                     SizedBox(
                                       width: (Get.width * 0.7 / 3) - 25,
                                       child: InputText(
-                                        ontap: () async {
+                                        onTap: () async {
                                           await customDatePicker(context).then((
                                             picked,
                                           ) {
@@ -407,7 +407,7 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                         fillColor: Colors.white,
                                         textInputType: TextInputType.datetime,
                                         controller: startDateController,
-                                        readonly: true,
+                                        readOnly: true,
                                         validator:
                                             (v) =>
                                                 v == null || v.isEmpty
@@ -428,8 +428,8 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                       child: InputText(
                                         labelText: 'endat'.tr,
                                         hintText: '1/10/2026'.tr,
-                                        readonly: true,
-                                        ontap: () async {
+                                        readOnly: true,
+                                        onTap: () async {
                                           await customDatePicker(context).then((
                                             picked,
                                           ) {

@@ -29,8 +29,8 @@ class ContentsTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ResponsiveScaffold(
-      selectedtab: 3,
-      sidemenue:
+      selectedTab: 3,
+      sideMenu:
           Get.find<HomeController>().currentemployee.value?.role != 'employee'
               ? true
               : false,
@@ -145,31 +145,30 @@ class ContentsTable extends StatelessWidget {
                               ),
                           ],
                         ),
-                        Obx(
-                          () {
-                            // Must read observable so Obx can track and rebuild
-                            final clients = controller.clients;
-                            return SizedBox(
-                              width: (Get.width * 0.7 / 2) - 20,
-                              child: DynamicDropdown(
-                                items:
-                                    clients
-                                        .map(
-                                          (v) => DropdownMenuItem(
-                                            value: v,
-                                            child: Text('${v.name}'),
-                                          ),
-                                        )
-                                        .toList(),
-                                value:
-                                    controller.clientController.text.isEmpty
-                                        ? null
-                                        : clients.firstWhere(
-                                          (a) =>
-                                              a.id ==
-                                              controller.clientController.text,
+                        Obx(() {
+                          // Must read observable so Obx can track and rebuild
+                          final clients = controller.clients;
+                          return SizedBox(
+                            width: (Get.width * 0.7 / 2) - 20,
+                            child: DynamicDropdown(
+                              items:
+                                  clients
+                                      .map(
+                                        (v) => DropdownMenuItem(
+                                          value: v,
+                                          child: Text('${v.name}'),
                                         ),
-                                label: 'chooseclient'.tr,
+                                      )
+                                      .toList(),
+                              value:
+                                  controller.clientController.text.isEmpty
+                                      ? null
+                                      : clients.firstWhere(
+                                        (a) =>
+                                            a.id ==
+                                            controller.clientController.text,
+                                      ),
+                              label: 'chooseclient'.tr,
                               borderRadius: 5,
                               borderColor: Colors.grey.shade300,
                               height: 42,
@@ -178,20 +177,21 @@ class ContentsTable extends StatelessWidget {
                                 if (value != null) {
                                   controller.searchedcontents.assignAll(
                                     List.from(
-                                    controller.contents.where(
-                                      (a) =>
-                                          (a.clientId ==
-                                                  (value).id &&
-                                              a.publishDate != null &&
-                                              (a.publishDate!.year >
-                                                      DateTime.now().year ||
-                                                  (a.publishDate!.year ==
-                                                          DateTime.now().year &&
-                                                      a.publishDate!.month >=
-                                                          DateTime.now()
-                                                              .month))),
+                                      controller.contents.where(
+                                        (a) =>
+                                            (a.clientId == (value).id &&
+                                                a.publishDate != null &&
+                                                (a.publishDate!.year >
+                                                        DateTime.now().year ||
+                                                    (a.publishDate!.year ==
+                                                            DateTime.now()
+                                                                .year &&
+                                                        a.publishDate!.month >=
+                                                            DateTime.now()
+                                                                .month))),
+                                      ),
                                     ),
-                                  ));
+                                  );
 
                                   controller.clientController.text =
                                       (value).id ?? '';
@@ -200,932 +200,1023 @@ class ContentsTable extends StatelessWidget {
                                   "Selected client ID: ${controller.clientController.text}",
                                 );
                               },
-                                validator: (v) {
-                                  if (v == null) return ' ';
-                                  return null;
-                                },
-                              ),
-                            );
-                          },
-                        ),
+                              validator: (v) {
+                                if (v == null) return ' ';
+                                return null;
+                              },
+                            ),
+                          );
+                        }),
 
                         SizedBox(height: 10),
-                        GetX<HomeController>(builder: (c) {
-                          final contents = c.searchedcontents.toList();
-                          if (c.clientController.text.isEmpty) {
-                            return Center(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 32),
-                                child: Text(
-                                  'اختر العميل لعرض المحتوى',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    color: AppColors.fontColorGrey,
+                        GetX<HomeController>(
+                          builder: (c) {
+                            final contents = c.searchedcontents.toList();
+                            if (c.clientController.text.isEmpty) {
+                              return Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 32,
+                                  ),
+                                  child: Text(
+                                    'اختر العميل لعرض المحتوى',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      color: AppColors.fontColorGrey,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            );
-                          }
-                          if (contents.isEmpty) {
-                            return Center(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 32),
-                                child: Text(
-                                  'لا توجد بيانات',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    color: AppColors.fontColorGrey,
+                              );
+                            }
+                            if (contents.isEmpty) {
+                              return Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 32,
+                                  ),
+                                  child: Text(
+                                    'لا توجد بيانات',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      color: AppColors.fontColorGrey,
+                                    ),
                                   ),
                                 ),
-                              ),
-                            );
-                          }
-                          return HorizontalScrollbarTable(
-                            child: SizedBox(
-                              width: 2000,
-                              child: DataTable(
-                                dataRowMinHeight : 60,
-                                dataRowMaxHeight : 60,
-                                // headingRowColor: WidgetStateProperty.all(Colors.blue.shade50),
-                                dataRowColor: WidgetStateProperty .all(
-                                  Colors.white,
-                                ),
-                                dividerThickness: 0.5,
-                                columns: [
-                                  DataColumn(
-                                    columnWidth: const FixedColumnWidth(180),
-                                    headingRowAlignment:
-                                        MainAxisAlignment.center,
+                              );
+                            }
+                            return HorizontalScrollbarTable(
+                              child: SizedBox(
+                                width: 2000,
+                                child: DataTable(
+                                  dataRowMinHeight: 60,
+                                  dataRowMaxHeight: 60,
+                                  // headingRowColor: WidgetStateProperty.all(Colors.blue.shade50),
+                                  dataRowColor: WidgetStateProperty.all(
+                                    Colors.white,
+                                  ),
+                                  dividerThickness: 0.5,
+                                  columns: [
+                                    DataColumn(
+                                      columnWidth: const FixedColumnWidth(180),
+                                      headingRowAlignment:
+                                          MainAxisAlignment.center,
 
-                                    label: Text(
-                                      "title".tr,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                        color: AppColors.fontColorGrey,
+                                      label: Text(
+                                        "title".tr,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                          color: AppColors.fontColorGrey,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  DataColumn(
-                                    columnWidth: const FixedColumnWidth(180),
-                                    headingRowAlignment:
-                                        MainAxisAlignment.center,
+                                    DataColumn(
+                                      columnWidth: const FixedColumnWidth(180),
+                                      headingRowAlignment:
+                                          MainAxisAlignment.center,
 
-                                    label: Text(
-                                      "platform".tr,
-                                      style: TextStyle(
-                                        fontSize: 13,
+                                      label: Text(
+                                        "platform".tr,
+                                        style: TextStyle(
+                                          fontSize: 13,
 
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.fontColorGrey,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  DataColumn(
-                                    columnWidth: const FixedColumnWidth(160),
-                                    headingRowAlignment:
-                                        MainAxisAlignment.center,
+                                    DataColumn(
+                                      columnWidth: const FixedColumnWidth(160),
+                                      headingRowAlignment:
+                                          MainAxisAlignment.center,
 
-                                    label: Text(
-                                      "content_type".tr,
-                                      style: TextStyle(
-                                        fontSize: 13,
+                                      label: Text(
+                                        "content_type".tr,
+                                        style: TextStyle(
+                                          fontSize: 13,
 
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.fontColorGrey,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  DataColumn(
-                                    columnWidth: const FixedColumnWidth(180),
-                                    headingRowAlignment:
-                                        MainAxisAlignment.center,
+                                    DataColumn(
+                                      columnWidth: const FixedColumnWidth(180),
+                                      headingRowAlignment:
+                                          MainAxisAlignment.center,
 
-                                    label: Text(
-                                      "content_provider".tr,
-                                      style: TextStyle(
-                                        fontSize: 13,
+                                      label: Text(
+                                        "content_provider".tr,
+                                        style: TextStyle(
+                                          fontSize: 13,
 
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.fontColorGrey,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  DataColumn(
-                                    columnWidth: const FixedColumnWidth(140),
-                                    headingRowAlignment:
-                                        MainAxisAlignment.center,
-                                    label: Text(
-                                      "status".tr,
-                                      style: TextStyle(
-                                        fontSize: 13,
+                                    DataColumn(
+                                      columnWidth: const FixedColumnWidth(140),
+                                      headingRowAlignment:
+                                          MainAxisAlignment.center,
+                                      label: Text(
+                                        "status".tr,
+                                        style: TextStyle(
+                                          fontSize: 13,
 
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.fontColorGrey,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  DataColumn(
-                                    columnWidth: const FixedColumnWidth(140),
-                                    headingRowAlignment:
-                                        MainAxisAlignment.center,
-                                    label: Text(
-                                      "promotion".tr,
-                                      style: TextStyle(
-                                        fontSize: 13,
+                                    DataColumn(
+                                      columnWidth: const FixedColumnWidth(140),
+                                      headingRowAlignment:
+                                          MainAxisAlignment.center,
+                                      label: Text(
+                                        "promotion".tr,
+                                        style: TextStyle(
+                                          fontSize: 13,
 
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.fontColorGrey,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  DataColumn(
-                                    columnWidth: const FixedColumnWidth(180),
-                                    headingRowAlignment:
-                                        MainAxisAlignment.center,
-                                    label: Text(
-                                      "المرفقات".tr,
-                                      style: TextStyle(
-                                        fontSize: 13,
+                                    DataColumn(
+                                      columnWidth: const FixedColumnWidth(180),
+                                      headingRowAlignment:
+                                          MainAxisAlignment.center,
+                                      label: Text(
+                                        "المرفقات".tr,
+                                        style: TextStyle(
+                                          fontSize: 13,
 
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.fontColorGrey,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  DataColumn(
-                                    columnWidth: const FixedColumnWidth(160),
-                                    headingRowAlignment:
-                                        MainAxisAlignment.center,
-                                    label: Text(
-                                      "client_notes".tr,
-                                      style: TextStyle(
-                                        fontSize: 13,
+                                    DataColumn(
+                                      columnWidth: const FixedColumnWidth(160),
+                                      headingRowAlignment:
+                                          MainAxisAlignment.center,
+                                      label: Text(
+                                        "client_notes".tr,
+                                        style: TextStyle(
+                                          fontSize: 13,
 
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.fontColorGrey,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  DataColumn(
-                                    columnWidth: const FixedColumnWidth(160),
-                                    headingRowAlignment:
-                                        MainAxisAlignment.center,
-                                    label: Text(
-                                      "publish_date".tr,
-                                      style: TextStyle(
-                                        fontSize: 13,
+                                    DataColumn(
+                                      columnWidth: const FixedColumnWidth(160),
+                                      headingRowAlignment:
+                                          MainAxisAlignment.center,
+                                      label: Text(
+                                        "publish_date".tr,
+                                        style: TextStyle(
+                                          fontSize: 13,
 
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.fontColorGrey,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  DataColumn(
-                                    columnWidth: const FixedColumnWidth(180),
-                                    headingRowAlignment:
-                                        MainAxisAlignment.center,
-                                    label: Text(
-                                      "client_revisions".tr,
-                                      style: TextStyle(
-                                        fontSize: 13,
+                                    DataColumn(
+                                      columnWidth: const FixedColumnWidth(180),
+                                      headingRowAlignment:
+                                          MainAxisAlignment.center,
+                                      label: Text(
+                                        "client_revisions".tr,
+                                        style: TextStyle(
+                                          fontSize: 13,
 
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.fontColorGrey,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  DataColumn(
-                                    columnWidth: const FixedColumnWidth(160),
-                                    headingRowAlignment:
-                                        MainAxisAlignment.center,
-                                    label: Text(
-                                      "actions".tr,
-                                      style: TextStyle(
-                                        fontSize: 13,
+                                    DataColumn(
+                                      columnWidth: const FixedColumnWidth(160),
+                                      headingRowAlignment:
+                                          MainAxisAlignment.center,
+                                      label: Text(
+                                        "actions".tr,
+                                        style: TextStyle(
+                                          fontSize: 13,
 
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.fontColorGrey,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ],
-                                rows:
-                                    contents.map((emp) {
-                                      return DataRow(
-                                        cells: [
-                                          DataCell(
-                                            Center(
-                                              child: Container(
-                                                constraints: BoxConstraints(
-                                                  maxWidth:
-                                                      math.max((Get.width - 280) / 9, 120),
-                                                ),
-                                                child: Text(
-                                                  emp.title,
-                                                  overflow: TextOverflow.ellipsis,
-                                                  maxLines: 2,
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    color:
-                                                        AppColors.fontColorGrey,
+                                  ],
+                                  rows:
+                                      contents.map((emp) {
+                                        return DataRow(
+                                          cells: [
+                                            DataCell(
+                                              Center(
+                                                child: Container(
+                                                  constraints: BoxConstraints(
+                                                    maxWidth: math.max(
+                                                      (Get.width - 280) / 9,
+                                                      120,
+                                                    ),
+                                                  ),
+                                                  child: Text(
+                                                    emp.title,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    maxLines: 2,
+                                                    style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color:
+                                                          AppColors
+                                                              .fontColorGrey,
+                                                    ),
                                                   ),
                                                 ),
                                               ),
                                             ),
-                                          ),
-                                          DataCell(
-                                            Center(
-                                              child: Container(
-                                                constraints: BoxConstraints(
-                                                  maxWidth:
-                                                      math.max((Get.width - 280) / 9, 120),
+                                            DataCell(
+                                              Center(
+                                                child: Container(
+                                                  constraints: BoxConstraints(
+                                                    maxWidth: math.max(
+                                                      (Get.width - 280) / 9,
+                                                      120,
+                                                    ),
+                                                  ),
+                                                  child: Text(
+                                                    emp.platform.toString(),
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color:
+                                                          AppColors
+                                                              .fontColorGrey,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            DataCell(
+                                              Container(
+                                                alignment: Alignment.center,
+                                                width: 110,
+                                                height: 32,
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      // vertical: 4,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.purple.shade50,
+                                                  borderRadius:
+                                                      BorderRadius.circular(16),
                                                 ),
                                                 child: Text(
-                                                  emp.platform.toString(),
+                                                  emp.contentType.tr,
+                                                  style: TextStyle(
+                                                    color: Colors.purple,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 13,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            DataCell(
+                                              Container(
+                                                alignment: Alignment.center,
+                                                width: 110,
+                                                height: 32,
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      // vertical: 4,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color:
+                                                      Colors.blueGrey.shade100,
+                                                  borderRadius:
+                                                      BorderRadius.circular(16),
+                                                ),
+                                                child: Text(
+                                                  controller
+                                                          .getEmployeeById(
+                                                            emp.executor,
+                                                          )
+                                                          ?.name ??
+                                                      '',
+                                                  textAlign: TextAlign.center,
                                                   overflow:
                                                       TextOverflow.ellipsis,
                                                   style: TextStyle(
+                                                    color: Colors.blueGrey,
                                                     fontWeight: FontWeight.bold,
-                                                    color:
-                                                        AppColors.fontColorGrey,
+                                                    fontSize: 13,
                                                   ),
                                                 ),
                                               ),
                                             ),
-                                          ),
-                                          DataCell(
-                                            Container(
-                                              alignment: Alignment.center,
-                                              width: 110,
-                                              height: 32,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 8,
-                                                    // vertical: 4,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: Colors.purple.shade50,
-                                                borderRadius:
-                                                    BorderRadius.circular(16),
-                                              ),
-                                              child: Text(
-                                                emp.contentType.tr,
-                                                style: TextStyle(
-                                                  color: Colors.purple,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 13,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          DataCell(
-                                            Container(
-                                              alignment: Alignment.center,
-                                              width: 110,
-                                              height: 32,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 8,
-                                                    // vertical: 4,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: Colors.blueGrey.shade100,
-                                                borderRadius:
-                                                    BorderRadius.circular(16),
-                                              ),
-                                              child: Text(
-                                                controller
-                                                        .getEmployeeById(
-                                                          emp.executor,
-                                                        )
-                                                        ?.name ??
-                                                    '',
-                                                textAlign: TextAlign.center,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: TextStyle(
-                                                  color: Colors.blueGrey,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 13,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          DataCell(
-                                            Builder(
-                                              builder: (context) {
-                                                final actionKey = GlobalKey();
-                                                return GestureDetector(
-                                                  key: actionKey,
-                                                  onTap: () {
-                                                    final RenderBox renderBox =
-                                                        actionKey
-                                                                .currentContext!
-                                                                .findRenderObject()
-                                                            as RenderBox;
+                                            DataCell(
+                                              Builder(
+                                                builder: (context) {
+                                                  final actionKey = GlobalKey();
+                                                  return GestureDetector(
+                                                    key: actionKey,
+                                                    onTap: () {
+                                                      final RenderBox
+                                                      renderBox =
+                                                          actionKey
+                                                                  .currentContext!
+                                                                  .findRenderObject()
+                                                              as RenderBox;
 
-                                                    final Offset offset =
-                                                        renderBox.localToGlobal(
-                                                          Offset.zero,
-                                                        );
-                                                    final Size size =
-                                                        renderBox.size;
+                                                      final Offset offset =
+                                                          renderBox
+                                                              .localToGlobal(
+                                                                Offset.zero,
+                                                              );
+                                                      final Size size =
+                                                          renderBox.size;
 
-                                                    showMenu(
-                                                      context: context,
-                                                      position:
-                                                          RelativeRect.fromLTRB(
-                                                            offset.dx,
-                                                            offset.dy +
-                                                                size.height,
-                                                            offset.dx +
-                                                                size.width,
-                                                            0,
-                                                          ),
-                                                      items:
-                                                          StorageKeys.statusList
-                                                              .map((stat) {
-                                                                return PopupMenuItem(
-                                                                  child: Text(
-                                                                    stat.tr,
-                                                                  ),
-                                                                  value: stat,
-                                                                );
-                                                              })
-                                                              .toList(),
-                                                    ).then((value) async {
-                                                      if (value != null) {
-                                                        await controller
-                                                            .updateContent(
-                                                              emp.copyWith(
-                                                                status: value,
-                                                              ),
-                                                            );
-                                                        if (value == StorageKeys.status_published) {
-                                                          final clientName = controller.clients.firstWhereOrNull((c) => c.id == emp.clientId)?.name ?? emp.clientId;
-                                                          await NotificationService.notifyPromotionDeptNewPublishedContent(clientName: clientName, contentTitle: emp.title);
-                                                        }
-                                                        controller
-                                                            .searchedcontents
-                                                            .assignAll(
-                                                          List.from(
-                                                          controller.contents.where(
-                                                            (a) =>
-                                                                a.clientId ==
+                                                      showMenu(
+                                                        context: context,
+                                                        position:
+                                                            RelativeRect.fromLTRB(
+                                                              offset.dx,
+                                                              offset.dy +
+                                                                  size.height,
+                                                              offset.dx +
+                                                                  size.width,
+                                                              0,
+                                                            ),
+                                                        items:
+                                                            StorageKeys
+                                                                .statusList
+                                                                .map((stat) {
+                                                                  return PopupMenuItem(
+                                                                    child: Text(
+                                                                      stat.tr,
+                                                                    ),
+                                                                    value: stat,
+                                                                  );
+                                                                })
+                                                                .toList(),
+                                                      ).then((value) async {
+                                                        if (value != null) {
+                                                          await controller
+                                                              .updateContent(
+                                                                emp.copyWith(
+                                                                  status: value,
+                                                                ),
+                                                              );
+                                                          if (value ==
+                                                              StorageKeys
+                                                                  .status_published) {
+                                                            final clientName =
                                                                 controller
-                                                                    .clientController
-                                                                    .text,
-                                                          ),
-                                                        ));
-                                                      }
-                                                    });
-                                                  },
-                                                  child: Container(
-                                                    alignment: Alignment.center,
-                                                    width: 110,
-                                                    height: 32,
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                          horizontal: 8,
-                                                        ),
-                                                    decoration: BoxDecoration(
-                                                      color: _getStatusbgColor(
-                                                        emp.status,
-                                                      ),
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            16,
-                                                          ),
-                                                    ),
-                                                    child: Text(
-                                                      emp.status.tr,
-                                                      style: TextStyle(
-                                                        color: _getStatusColor(
-                                                          emp.status,
-                                                        ),
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        fontSize: 13,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                );
-                                              },
-                                            ),
-                                          ),
-                                          DataCell(
-                                            Builder(
-                                              builder: (context) {
-                                                final actionKey = GlobalKey();
-                                                return GestureDetector(
-                                                  key: actionKey,
-                                                  onTap: () {
-                                                    if (controller
-                                                                .currentemployee
-                                                                .value
-                                                                ?.role !=
-                                                            'admin' &&
-                                                        controller
-                                                                .currentemployee
-                                                                .value
-                                                                ?.role !=
-                                                            'accountholder' &&
-                                                        controller
-                                                                .currentemployee
-                                                                .value
-                                                                ?.role !=
-                                                            'supervisor' &&
-                                                        controller
-                                                                .currentemployee
-                                                                .value
-                                                                ?.department !=
-                                                            'cat1') {
-                                                      FunHelper.showsnackbar(
-                                                        'error'.tr,
-                                                        '❌ ليس لديك صلاحية لتغيير الترويج.'
-                                                            .tr,
-                                                        snackPosition:
-                                                            SnackPosition
-                                                                .BOTTOM,
-                                                        backgroundColor:
-                                                            Colors.red,
-                                                        colorText: Colors.white,
-                                                      );
-                                                      return;
-                                                    }
-                                                    final RenderBox renderBox =
-                                                        actionKey
-                                                                .currentContext!
-                                                                .findRenderObject()
-                                                            as RenderBox;
-
-                                                    final Offset offset =
-                                                        renderBox.localToGlobal(
-                                                          Offset.zero,
-                                                        );
-                                                    final Size size =
-                                                        renderBox.size;
-
-                                                    showMenu(
-                                                      context: context,
-                                                      position:
-                                                          RelativeRect.fromLTRB(
-                                                            offset.dx,
-                                                            offset.dy +
-                                                                size.height,
-                                                            offset.dx +
-                                                                size.width,
-                                                            0,
-                                                          ),
-                                                      items:
-                                                          StorageKeys.promations
-                                                              .map((stat) {
-                                                                return PopupMenuItem(
-                                                                  child: Text(
-                                                                    stat.tr,
-                                                                  ),
-                                                                  value: stat,
-                                                                );
-                                                              })
-                                                              .toList(),
-                                                    ).then((value) async {
-                                                      if (value != null) {
-                                                        await controller
-                                                            .updateContent(
-                                                              emp.copyWith(
-                                                                promotion:
-                                                                    value,
-                                                              ),
+                                                                    .clients
+                                                                    .firstWhereOrNull(
+                                                                      (c) =>
+                                                                          c.id ==
+                                                                          emp.clientId,
+                                                                    )
+                                                                    ?.name ??
+                                                                emp.clientId;
+                                                            await NotificationService.notifyPromotionDeptNewPublishedContent(
+                                                              clientName:
+                                                                  clientName,
+                                                              contentTitle:
+                                                                  emp.title,
                                                             );
-                                                        if (value == 'under_promotion' || value == 'end_promotion') {
-                                                          final labelAr = value == 'under_promotion' ? 'قيد الترويج' : 'انتهى الترويج';
-                                                          await NotificationService.notifyAdminContentPromotionStatusChanged(contentTitle: emp.title, promotionLabelAr: labelAr);
+                                                          }
+                                                          controller.searchedcontents.assignAll(
+                                                            List.from(
+                                                              controller.contents.where(
+                                                                (a) =>
+                                                                    a.clientId ==
+                                                                    controller
+                                                                        .clientController
+                                                                        .text,
+                                                              ),
+                                                            ),
+                                                          );
                                                         }
-                                                        controller
-                                                            .searchedcontents
-                                                            .assignAll(
-                                                          List.from(
-                                                          controller.contents.where(
-                                                            (a) =>
-                                                                a.clientId ==
-                                                                controller
-                                                                    .clientController
-                                                                    .text,
-                                                          ),
-                                                        ));
-                                                      }
-                                                    });
-                                                  },
-                                                  child: Center(
+                                                      });
+                                                    },
                                                     child: Container(
-                                                      constraints:
-                                                          BoxConstraints(
-                                                            maxWidth:
-                                                                math.max((Get.width - 280) / 9, 120),
+                                                      alignment:
+                                                          Alignment.center,
+                                                      width: 110,
+                                                      height: 32,
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            horizontal: 8,
                                                           ),
+                                                      decoration: BoxDecoration(
+                                                        color:
+                                                            _getStatusbgColor(
+                                                              emp.status,
+                                                            ),
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              16,
+                                                            ),
+                                                      ),
                                                       child: Text(
-                                                        emp.promotion?.tr ??
-                                                            '--',
-                                                        overflow:
-                                                            TextOverflow
-                                                                .ellipsis,
+                                                        emp.status.tr,
                                                         style: TextStyle(
+                                                          color:
+                                                              _getStatusColor(
+                                                                emp.status,
+                                                              ),
                                                           fontWeight:
                                                               FontWeight.bold,
-                                                          color:
-                                                              AppColors
-                                                                  .fontColorGrey,
+                                                          fontSize: 13,
                                                         ),
                                                       ),
                                                     ),
-                                                  ),
-                                                );
-                                              },
-                                            ),
-                                          ),
-                                          DataCell(
-                                            Center(
-                                              child: Container(
-                                                constraints: BoxConstraints(
-                                                  maxWidth:
-                                                      math.max((Get.width - 280) / 9, 120),
-                                                ),
-                                                child: Column(
-                                                  children: [
-                                                    for (var file
-                                                        in emp.files ?? [])
-                                                      InkWell(
-                                                        onTap: () async {
-                                                          if (getFileType(
-                                                                file,
-                                                              ) ==
-                                                              'image') {
-                                                            Get.dialog(
-                                                              AlertDialog(
-                                                                actions: [
-                                                                  MainButton(
-                                                                    icon: false,
-                                                                    title:
-                                                                        'اغلاق'
-                                                                            .tr,
-                                                                    fontcolor:
-                                                                        Colors
-                                                                            .white,
-                                                                    backgroundcolor:
-                                                                        AppColors
-                                                                            .primary,
-                                                                    width: 100,
-                                                                    bordersize:
-                                                                        5,
-                                                                    height: 30,
-                                                                    onpress: () {
-                                                                      Get.back();
-                                                                    },
-                                                                  ),
-                                                                ],
-                                                                content:
-                                                                    Image.network(
-                                                                      file,
-                                                                      fit:
-                                                                          BoxFit
-                                                                              .contain,
-                                                                    ),
-                                                              ),
-                                                            );
-                                                            return;
-                                                          }
-                                                          if (await canLaunchUrl(
-                                                            Uri.parse(file),
-                                                          )) {
-                                                            await launchUrl(
-                                                              Uri.parse(file),
-                                                              mode:
-                                                                  LaunchMode
-                                                                      .externalApplication,
-                                                            );
-                                                          } else {
-                                                            throw 'لا يمكن فتح الرابط $file';
-                                                          }
-                                                        },
-                                                        child: Text(
-                                                          file ?? '--',
-                                                          overflow:
-                                                              TextOverflow
-                                                                  .ellipsis,
-
-                                                          style: TextStyle(
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                            decoration:
-                                                                TextDecoration
-                                                                    .underline,
-                                                            color: Colors.blue,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                  ],
-                                                ),
+                                                  );
+                                                },
                                               ),
                                             ),
-                                          ),
-                                          DataCell(
-                                            Center(
-                                              child: Container(
-                                                constraints: BoxConstraints(
-                                                  maxWidth:
-                                                      math.max((Get.width - 280) / 9, 120),
-                                                ),
-                                                child: Text(
-                                                  emp.clientNotes ?? '--',
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    color:
-                                                        AppColors.fontColorGrey,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          DataCell(
-                                            Center(
-                                              child: Container(
-                                                constraints: BoxConstraints(
-                                                  maxWidth:
-                                                      math.max((Get.width - 280) / 9, 120),
-                                                ),
-                                                child: Text(
-                                                  FunHelper.formatdate(
-                                                        emp.publishDate,
-                                                      ) ??
-                                                      '--',
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    color:
-                                                        AppColors.fontColorGrey,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          DataCell(
-                                            Center(
-                                              child: Container(
-                                                constraints: BoxConstraints(
-                                                  maxWidth:
-                                                      math.max((Get.width - 280) / 9, 120),
-                                                ),
-                                                child: Column(
-                                                  children: [
-                                                    for (var file
-                                                        in emp.clientEdits ??
-                                                            [])
-                                                      InkWell(
-                                                        onTap: () async {
-                                                          if (getFileType(
-                                                                file,
-                                                              ) ==
-                                                              'image') {
-                                                            Get.dialog(
-                                                              AlertDialog(
-                                                                actions: [
-                                                                  MainButton(
-                                                                    icon: false,
-                                                                    title:
-                                                                        'اغلاق'
-                                                                            .tr,
-                                                                    fontcolor:
-                                                                        Colors
-                                                                            .white,
-                                                                    backgroundcolor:
-                                                                        AppColors
-                                                                            .primary,
-                                                                    width: 100,
-                                                                    bordersize:
-                                                                        5,
-                                                                    height: 30,
-                                                                    onpress: () {
-                                                                      Get.back();
-                                                                    },
-                                                                  ),
-                                                                ],
-                                                                content:
-                                                                    Image.network(
-                                                                      file,
-                                                                      fit:
-                                                                          BoxFit
-                                                                              .contain,
-                                                                    ),
-                                                              ),
-                                                            );
-                                                            return;
-                                                          }
-                                                          if (await canLaunchUrl(
-                                                            Uri.parse(file),
-                                                          )) {
-                                                            await launchUrl(
-                                                              Uri.parse(file),
-                                                              mode:
-                                                                  LaunchMode
-                                                                      .externalApplication,
-                                                            );
-                                                          } else {
-                                                            throw 'لا يمكن فتح الرابط $file';
-                                                          }
-                                                        },
-                                                        child: Text(
-                                                          file ?? '--',
-                                                          overflow:
-                                                              TextOverflow
-                                                                  .ellipsis,
-
-                                                          style: TextStyle(
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                            decoration:
-                                                                TextDecoration
-                                                                    .underline,
-                                                            color: Colors.blue,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          DataCell(
-                                            FittedBox(
-                                              fit: BoxFit.scaleDown,
-                                              alignment: Alignment.center,
-                                              child: SizedBox(
-                                                width: 88,
-                                                height: 40,
-                                                child: PopupMenuButton<int>(
-                                                  padding: EdgeInsets.zero,
-                                                  shape: RoundedRectangleBorder(
-                                                    borderRadius:
-                                                        BorderRadius.circular(12),
-                                                  ),
-                                                  color: Colors.white,
-                                                  elevation: 4,
-                                                  itemBuilder:
-                                                      (context) => [
-                                                        PopupMenuItem(
-                                                          value: 0,
-                                                          height: 30,
-
-                                                          child: Container(
-                                                            height: 30,
-                                                            margin:
-                                                                EdgeInsets.all(2),
-                                                            padding:
-                                                                EdgeInsets.symmetric(
-                                                                  vertical: 5,
-                                                                ),
-                                                            decoration: BoxDecoration(
-                                                              borderRadius:
-                                                                  BorderRadius.circular(
-                                                                    5,
-                                                              ),
-                                                              color:
-                                                                  Colors
-                                                                      .grey
-                                                                      .shade200,
-                                                            ),
-                                                            child: Row(
-                                                              mainAxisSize: MainAxisSize.min,
-                                                              children: [
-                                                                Icon(
-                                                                  Icons.edit,
-                                                                  color:
-                                                                      Colors
-                                                                          .green,
-                                                                  size: 18,
-                                                                ),
-                                                                SizedBox(
-                                                                  width: 4,
-                                                                ),
-                                                                Flexible(
-                                                                  child: Text(
-                                                                    "تعديل",
-                                                                    style: TextStyle(
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .bold,
-                                                                      fontSize: 12,
-                                                                    ),
-                                                                    overflow: TextOverflow.ellipsis,
-                                                                  ),
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          ),
-                                                        ),
+                                            DataCell(
+                                              Builder(
+                                                builder: (context) {
+                                                  final actionKey = GlobalKey();
+                                                  return GestureDetector(
+                                                    key: actionKey,
+                                                    onTap: () {
                                                       if (controller
                                                                   .currentemployee
                                                                   .value
-                                                                  ?.role ==
-                                                              'supervisor' ||
+                                                                  ?.role !=
+                                                              'admin' &&
                                                           controller
                                                                   .currentemployee
                                                                   .value
-                                                                  ?.role ==
-                                                              'admin')
-                                                        PopupMenuItem(
-                                                          value: 1,
+                                                                  ?.role !=
+                                                              'accountholder' &&
+                                                          controller
+                                                                  .currentemployee
+                                                                  .value
+                                                                  ?.role !=
+                                                              'supervisor' &&
+                                                          controller
+                                                                  .currentemployee
+                                                                  .value
+                                                                  ?.department !=
+                                                              'cat1') {
+                                                        FunHelper.showsnackbar(
+                                                          'error'.tr,
+                                                          '❌ ليس لديك صلاحية لتغيير الترويج.'
+                                                              .tr,
+                                                          snackPosition:
+                                                              SnackPosition
+                                                                  .BOTTOM,
+                                                          backgroundColor:
+                                                              Colors.red,
+                                                          colorText:
+                                                              Colors.white,
+                                                        );
+                                                        return;
+                                                      }
+                                                      final RenderBox
+                                                      renderBox =
+                                                          actionKey
+                                                                  .currentContext!
+                                                                  .findRenderObject()
+                                                              as RenderBox;
 
-                                                          height: 30,
+                                                      final Offset offset =
+                                                          renderBox
+                                                              .localToGlobal(
+                                                                Offset.zero,
+                                                              );
+                                                      final Size size =
+                                                          renderBox.size;
 
-                                                          child: Container(
-                                                            height: 30,
-                                                            margin:
-                                                                EdgeInsets.all(
-                                                                  2,
-                                                                ),
-                                                            padding:
-                                                                EdgeInsets.symmetric(
-                                                                  vertical: 5,
-                                                                ),
-
-                                                            decoration: BoxDecoration(
-                                                              borderRadius:
-                                                                  BorderRadius.circular(
-                                                                    5,
-                                                                  ),
-                                                              color:
-                                                                  Colors
-                                                                      .grey
-                                                                      .shade200,
+                                                      showMenu(
+                                                        context: context,
+                                                        position:
+                                                            RelativeRect.fromLTRB(
+                                                              offset.dx,
+                                                              offset.dy +
+                                                                  size.height,
+                                                              offset.dx +
+                                                                  size.width,
+                                                              0,
                                                             ),
-                                                            child: Row(
-                                                              mainAxisSize: MainAxisSize.min,
-                                                              children: [
-                                                                Icon(
-                                                                  Icons.delete,
-                                                                  color:
-                                                                      Colors
-                                                                          .red,
-                                                                  size: 18,
+                                                        items:
+                                                            StorageKeys
+                                                                .promations
+                                                                .map((stat) {
+                                                                  return PopupMenuItem(
+                                                                    child: Text(
+                                                                      stat.tr,
+                                                                    ),
+                                                                    value: stat,
+                                                                  );
+                                                                })
+                                                                .toList(),
+                                                      ).then((value) async {
+                                                        if (value != null) {
+                                                          await controller
+                                                              .updateContent(
+                                                                emp.copyWith(
+                                                                  promotion:
+                                                                      value,
                                                                 ),
-                                                                SizedBox(
-                                                                  width: 4,
-                                                                ),
-                                                                Text(
-                                                                  "حذف",
-                                                                  style: TextStyle(
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .bold,
-                                                                    fontSize: 12,
+                                                              );
+                                                          if (value ==
+                                                                  'under_promotion' ||
+                                                              value ==
+                                                                  'end_promotion') {
+                                                            final labelAr =
+                                                                value ==
+                                                                        'under_promotion'
+                                                                    ? 'قيد الترويج'
+                                                                    : 'انتهى الترويج';
+                                                            await NotificationService.notifyAdminContentPromotionStatusChanged(
+                                                              contentTitle:
+                                                                  emp.title,
+                                                              promotionLabelAr:
+                                                                  labelAr,
+                                                            );
+                                                          }
+                                                          controller.searchedcontents.assignAll(
+                                                            List.from(
+                                                              controller.contents.where(
+                                                                (a) =>
+                                                                    a.clientId ==
+                                                                    controller
+                                                                        .clientController
+                                                                        .text,
+                                                              ),
+                                                            ),
+                                                          );
+                                                        }
+                                                      });
+                                                    },
+                                                    child: Center(
+                                                      child: Container(
+                                                        constraints:
+                                                            BoxConstraints(
+                                                              maxWidth: math.max(
+                                                                (Get.width -
+                                                                        280) /
+                                                                    9,
+                                                                120,
+                                                              ),
+                                                            ),
+                                                        child: Text(
+                                                          emp.promotion?.tr ??
+                                                              '--',
+                                                          overflow:
+                                                              TextOverflow
+                                                                  .ellipsis,
+                                                          style: TextStyle(
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            color:
+                                                                AppColors
+                                                                    .fontColorGrey,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                            DataCell(
+                                              Center(
+                                                child: Container(
+                                                  constraints: BoxConstraints(
+                                                    maxWidth: math.max(
+                                                      (Get.width - 280) / 9,
+                                                      120,
+                                                    ),
+                                                  ),
+                                                  child: Column(
+                                                    children: [
+                                                      for (var file
+                                                          in emp.files ?? [])
+                                                        InkWell(
+                                                          onTap: () async {
+                                                            if (getFileType(
+                                                                  file,
+                                                                ) ==
+                                                                'image') {
+                                                              Get.dialog(
+                                                                AlertDialog(
+                                                                  actions: [
+                                                                    MainButton(
+                                                                      icon:
+                                                                          false,
+                                                                      title:
+                                                                          'اغلاق'
+                                                                              .tr,
+                                                                      fontcolor:
+                                                                          Colors
+                                                                              .white,
+                                                                      backgroundcolor:
+                                                                          AppColors
+                                                                              .primary,
+                                                                      width:
+                                                                          100,
+                                                                      bordersize:
+                                                                          5,
+                                                                      height:
+                                                                          30,
+                                                                      onpress: () {
+                                                                        Get.back();
+                                                                      },
+                                                                    ),
+                                                                  ],
+                                                                  content: Image.network(
+                                                                    file,
+                                                                    fit:
+                                                                        BoxFit
+                                                                            .contain,
                                                                   ),
                                                                 ),
-                                                              ],
+                                                              );
+                                                              return;
+                                                            }
+                                                            if (await canLaunchUrl(
+                                                              Uri.parse(file),
+                                                            )) {
+                                                              await launchUrl(
+                                                                Uri.parse(file),
+                                                                mode:
+                                                                    LaunchMode
+                                                                        .externalApplication,
+                                                              );
+                                                            } else {
+                                                              throw 'لا يمكن فتح الرابط $file';
+                                                            }
+                                                          },
+                                                          child: Text(
+                                                            file ?? '--',
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .ellipsis,
+
+                                                            style: TextStyle(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                              decoration:
+                                                                  TextDecoration
+                                                                      .underline,
+                                                              color:
+                                                                  Colors.blue,
                                                             ),
                                                           ),
                                                         ),
                                                     ],
-                                                onSelected: (value) {
-                                                  if (value == 0) {
-                                                    controller
-                                                            .uploadedFilesPaths
-                                                            .assignAll(
-                                                        emp.files ?? []);
-                                                    showAddContentDialog(
-                                                      context,
-                                                      clientId:
-                                                          controller
-                                                              .clientController
-                                                              .text,
-                                                      model: emp,
-                                                    );
-                                                  } else if (value == 1) {
-                                                    FunHelper.showConfirmDailog(
-                                                      context,
-                                                      ontap: () async {
-                                                        await controller
-                                                            .deleteContent(
-                                                              emp.id!,
-                                                            );
-                                                      },
-                                                    );
-                                                  }
-                                                },
-                                                child: Icon(Icons.more_vert),
+                                                  ),
+                                                ),
                                               ),
                                             ),
-                                          ),
-                                          ),
-                                        ],
-                                      );
-                                    }).toList(),
+                                            DataCell(
+                                              Center(
+                                                child: Container(
+                                                  constraints: BoxConstraints(
+                                                    maxWidth: math.max(
+                                                      (Get.width - 280) / 9,
+                                                      120,
+                                                    ),
+                                                  ),
+                                                  child: Text(
+                                                    emp.clientNotes ?? '--',
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color:
+                                                          AppColors
+                                                              .fontColorGrey,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            DataCell(
+                                              Center(
+                                                child: Container(
+                                                  constraints: BoxConstraints(
+                                                    maxWidth: math.max(
+                                                      (Get.width - 280) / 9,
+                                                      120,
+                                                    ),
+                                                  ),
+                                                  child: Text(
+                                                    FunHelper.formatdate(
+                                                          emp.publishDate,
+                                                        ) ??
+                                                        '--',
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color:
+                                                          AppColors
+                                                              .fontColorGrey,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            DataCell(
+                                              Center(
+                                                child: Container(
+                                                  constraints: BoxConstraints(
+                                                    maxWidth: math.max(
+                                                      (Get.width - 280) / 9,
+                                                      120,
+                                                    ),
+                                                  ),
+                                                  child: Column(
+                                                    children: [
+                                                      for (var file
+                                                          in emp.clientEdits ??
+                                                              [])
+                                                        InkWell(
+                                                          onTap: () async {
+                                                            if (getFileType(
+                                                                  file,
+                                                                ) ==
+                                                                'image') {
+                                                              Get.dialog(
+                                                                AlertDialog(
+                                                                  actions: [
+                                                                    MainButton(
+                                                                      icon:
+                                                                          false,
+                                                                      title:
+                                                                          'اغلاق'
+                                                                              .tr,
+                                                                      fontcolor:
+                                                                          Colors
+                                                                              .white,
+                                                                      backgroundcolor:
+                                                                          AppColors
+                                                                              .primary,
+                                                                      width:
+                                                                          100,
+                                                                      bordersize:
+                                                                          5,
+                                                                      height:
+                                                                          30,
+                                                                      onpress: () {
+                                                                        Get.back();
+                                                                      },
+                                                                    ),
+                                                                  ],
+                                                                  content: Image.network(
+                                                                    file,
+                                                                    fit:
+                                                                        BoxFit
+                                                                            .contain,
+                                                                  ),
+                                                                ),
+                                                              );
+                                                              return;
+                                                            }
+                                                            if (await canLaunchUrl(
+                                                              Uri.parse(file),
+                                                            )) {
+                                                              await launchUrl(
+                                                                Uri.parse(file),
+                                                                mode:
+                                                                    LaunchMode
+                                                                        .externalApplication,
+                                                              );
+                                                            } else {
+                                                              throw 'لا يمكن فتح الرابط $file';
+                                                            }
+                                                          },
+                                                          child: Text(
+                                                            file ?? '--',
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .ellipsis,
+
+                                                            style: TextStyle(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                              decoration:
+                                                                  TextDecoration
+                                                                      .underline,
+                                                              color:
+                                                                  Colors.blue,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            DataCell(
+                                              FittedBox(
+                                                fit: BoxFit.scaleDown,
+                                                alignment: Alignment.center,
+                                                child: SizedBox(
+                                                  width: 88,
+                                                  height: 40,
+                                                  child: PopupMenuButton<int>(
+                                                    padding: EdgeInsets.zero,
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            12,
+                                                          ),
+                                                    ),
+                                                    color: Colors.white,
+                                                    elevation: 4,
+                                                    itemBuilder:
+                                                        (context) => [
+                                                          PopupMenuItem(
+                                                            value: 0,
+                                                            height: 30,
+
+                                                            child: Container(
+                                                              height: 30,
+                                                              margin:
+                                                                  EdgeInsets.all(
+                                                                    2,
+                                                                  ),
+                                                              padding:
+                                                                  EdgeInsets.symmetric(
+                                                                    vertical: 5,
+                                                                  ),
+                                                              decoration: BoxDecoration(
+                                                                borderRadius:
+                                                                    BorderRadius.circular(
+                                                                      5,
+                                                                    ),
+                                                                color:
+                                                                    Colors
+                                                                        .grey
+                                                                        .shade200,
+                                                              ),
+                                                              child: Row(
+                                                                mainAxisSize:
+                                                                    MainAxisSize
+                                                                        .min,
+                                                                children: [
+                                                                  Icon(
+                                                                    Icons.edit,
+                                                                    color:
+                                                                        Colors
+                                                                            .green,
+                                                                    size: 18,
+                                                                  ),
+                                                                  SizedBox(
+                                                                    width: 4,
+                                                                  ),
+                                                                  Flexible(
+                                                                    child: Text(
+                                                                      "تعديل",
+                                                                      style: TextStyle(
+                                                                        fontWeight:
+                                                                            FontWeight.bold,
+                                                                        fontSize:
+                                                                            12,
+                                                                      ),
+                                                                      overflow:
+                                                                          TextOverflow
+                                                                              .ellipsis,
+                                                                    ),
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                          ),
+                                                          if (controller
+                                                                      .currentemployee
+                                                                      .value
+                                                                      ?.role ==
+                                                                  'supervisor' ||
+                                                              controller
+                                                                      .currentemployee
+                                                                      .value
+                                                                      ?.role ==
+                                                                  'admin')
+                                                            PopupMenuItem(
+                                                              value: 1,
+
+                                                              height: 30,
+
+                                                              child: Container(
+                                                                height: 30,
+                                                                margin:
+                                                                    EdgeInsets.all(
+                                                                      2,
+                                                                    ),
+                                                                padding:
+                                                                    EdgeInsets.symmetric(
+                                                                      vertical:
+                                                                          5,
+                                                                    ),
+
+                                                                decoration: BoxDecoration(
+                                                                  borderRadius:
+                                                                      BorderRadius.circular(
+                                                                        5,
+                                                                      ),
+                                                                  color:
+                                                                      Colors
+                                                                          .grey
+                                                                          .shade200,
+                                                                ),
+                                                                child: Row(
+                                                                  mainAxisSize:
+                                                                      MainAxisSize
+                                                                          .min,
+                                                                  children: [
+                                                                    Icon(
+                                                                      Icons
+                                                                          .delete,
+                                                                      color:
+                                                                          Colors
+                                                                              .red,
+                                                                      size: 18,
+                                                                    ),
+                                                                    SizedBox(
+                                                                      width: 4,
+                                                                    ),
+                                                                    Text(
+                                                                      "حذف",
+                                                                      style: TextStyle(
+                                                                        fontWeight:
+                                                                            FontWeight.bold,
+                                                                        fontSize:
+                                                                            12,
+                                                                      ),
+                                                                    ),
+                                                                  ],
+                                                                ),
+                                                              ),
+                                                            ),
+                                                        ],
+                                                    onSelected: (value) {
+                                                      if (value == 0) {
+                                                        controller
+                                                            .uploadedFilesPaths
+                                                            .assignAll(
+                                                              emp.files ?? [],
+                                                            );
+                                                        showAddContentDialog(
+                                                          context,
+                                                          clientId:
+                                                              controller
+                                                                  .clientController
+                                                                  .text,
+                                                          model: emp,
+                                                        );
+                                                      } else if (value == 1) {
+                                                        FunHelper.showConfirmDailog(
+                                                          context,
+                                                          onTap: () async {
+                                                            await controller
+                                                                .deleteContent(
+                                                                  emp.id!,
+                                                                );
+                                                          },
+                                                        );
+                                                      }
+                                                    },
+                                                    child: Icon(
+                                                      Icons.more_vert,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      }).toList(),
                                 ),
                               ),
-                          );
-                        }),
+                            );
+                          },
+                        ),
                       ],
                     ),
                   ),
@@ -1139,7 +1230,9 @@ class ContentsTable extends StatelessWidget {
   }
 
   static Widget _buildMobileContent(
-      BuildContext context, HomeController controller) {
+    BuildContext context,
+    HomeController controller,
+  ) {
     return SingleChildScrollView(
       child: Container(
         padding: const EdgeInsets.all(10),
@@ -1197,10 +1290,12 @@ class ContentsTable extends StatelessWidget {
                       return;
                     }
                     controller.uploadedFilesPaths.clear();
-                    Get.to(() => ContentFormMobilePage(
-                          clientId: controller.clientController.text,
-                          model: null,
-                        ));
+                    Get.to(
+                      () => ContentFormMobilePage(
+                        clientId: controller.clientController.text,
+                        model: null,
+                      ),
+                    );
                   },
                 ),
                 if (controller.currentemployee.value?.department == 'cat1' ||
@@ -1224,7 +1319,11 @@ class ContentsTable extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 4),
-                        Icon(Icons.navigate_next, color: Colors.white, size: 20),
+                        Icon(
+                          Icons.navigate_next,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ],
                     ),
                     onpress: () => Get.toNamed('/employeeDashboard'),
@@ -1233,55 +1332,55 @@ class ContentsTable extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            Obx(
-              () {
-                // Must read observable so Obx can track and rebuild
-                final clients = controller.clients;
-                return SizedBox(
-                  width: double.infinity,
-                  child: DynamicDropdown(
-                    items: clients
-                        .map(
-                          (v) => DropdownMenuItem(
-                            value: v,
-                            child: Text('${v.name}'),
-                          ),
-                        )
-                        .toList(),
-                    value: controller.clientController.text.isEmpty
-                        ? null
-                        : clients.firstWhere(
+            Obx(() {
+              // Must read observable so Obx can track and rebuild
+              final clients = controller.clients;
+              return SizedBox(
+                width: double.infinity,
+                child: DynamicDropdown(
+                  items:
+                      clients
+                          .map(
+                            (v) => DropdownMenuItem(
+                              value: v,
+                              child: Text('${v.name}'),
+                            ),
+                          )
+                          .toList(),
+                  value:
+                      controller.clientController.text.isEmpty
+                          ? null
+                          : clients.firstWhere(
                             (a) => a.id == controller.clientController.text,
                           ),
-                    label: 'chooseclient'.tr,
-                    borderRadius: 5,
-                    borderColor: Colors.grey.shade300,
-                    height: 42,
-                    fillColor: Colors.white,
-                    onChanged: (value) {
-                      if (value != null) {
-                        controller.searchedcontents.assignAll(
-                          List.from(
-                            controller.contents.where(
-                              (a) =>
-                                  a.clientId == (value).id &&
-                                  a.publishDate != null &&
-                                  (a.publishDate!.year > DateTime.now().year ||
-                                      (a.publishDate!.year ==
-                                              DateTime.now().year &&
-                                          a.publishDate!.month >=
-                                              DateTime.now().month)),
-                            ),
+                  label: 'chooseclient'.tr,
+                  borderRadius: 5,
+                  borderColor: Colors.grey.shade300,
+                  height: 42,
+                  fillColor: Colors.white,
+                  onChanged: (value) {
+                    if (value != null) {
+                      controller.searchedcontents.assignAll(
+                        List.from(
+                          controller.contents.where(
+                            (a) =>
+                                a.clientId == (value).id &&
+                                a.publishDate != null &&
+                                (a.publishDate!.year > DateTime.now().year ||
+                                    (a.publishDate!.year ==
+                                            DateTime.now().year &&
+                                        a.publishDate!.month >=
+                                            DateTime.now().month)),
                           ),
-                        );
-                        controller.clientController.text = (value).id ?? '';
-                      }
-                    },
-                    validator: (v) => v == null ? ' ' : null,
-                  ),
-                );
-              },
-            ),
+                        ),
+                      );
+                      controller.clientController.text = (value).id ?? '';
+                    }
+                  },
+                  validator: (v) => v == null ? ' ' : null,
+                ),
+              );
+            }),
             const SizedBox(height: 16),
             GetX<HomeController>(
               builder: (c) {
@@ -1323,10 +1422,9 @@ class ContentsTable extends StatelessWidget {
                     return ContentStatusCard(
                       index: i,
                       model: content,
-                      onTap: () => showContentDialogDetails(
-                        context,
-                        task: content,
-                      ),
+                      onTap:
+                          () =>
+                              showContentDialogDetails(context, task: content),
                     );
                   },
                   separatorBuilder: (_, __) => const SizedBox(height: 8),
@@ -1497,7 +1595,7 @@ void showAddContentDialog(
                                 SizedBox(
                                   width: (Get.width * 0.7 / 2) - 30,
                                   child: InputText(
-                                    ontap: () async {
+                                    onTap: () async {
                                       final picked = await customDatePicker(
                                         context,
                                       );
@@ -1514,7 +1612,7 @@ void showAddContentDialog(
                                     fillColor: Colors.white,
                                     textInputType: TextInputType.datetime,
                                     controller: publishDatectr,
-                                    readonly: true,
+                                    readOnly: true,
                                     validator: (v) {
                                       if (v == null || v.isEmpty) return ' ';
                                       return null;
@@ -1637,7 +1735,7 @@ void showAddContentDialog(
                                       },
                                       onChanged: (value) {
                                         platforms.assignAll(value);
-                                                                            },
+                                      },
                                     ),
                                   ),
                                 ),
@@ -1930,23 +2028,38 @@ void showAddContentDialog(
                                               )
                                               .then((v) async {
                                                 if (v) {
-                                                  controller
-                                                      .searchedcontents
-                                                      .assignAll(
+                                                  controller.searchedcontents.assignAll(
                                                     List.from(
-                                                    controller.contents.where(
-                                                      (a) =>
-                                                          a.clientId ==
-                                                          controller
-                                                              .clientController
-                                                              .text,
+                                                      controller.contents.where(
+                                                        (a) =>
+                                                            a.clientId ==
+                                                            controller
+                                                                .clientController
+                                                                .text,
+                                                      ),
                                                     ),
-                                                  ));
+                                                  );
                                                   Get.back();
 
-                                                  await NotificationService.notifyClientContentPendingApproval(clientId: clientId, contentTypeLabel: 'تصميم / فيديو جديد');
-                                                  final clientName = controller.clients.firstWhereOrNull((c) => c.id == clientId)?.name ?? clientId;
-                                                  await NotificationService.notifyManagersContentSubmittedByClient(clientName: clientName, contentTitle: titleController.text);
+                                                  await NotificationService.notifyClientContentPendingApproval(
+                                                    clientId: clientId,
+                                                    contentTypeLabel:
+                                                        'تصميم / فيديو جديد',
+                                                  );
+                                                  final clientName =
+                                                      controller.clients
+                                                          .firstWhereOrNull(
+                                                            (c) =>
+                                                                c.id ==
+                                                                clientId,
+                                                          )
+                                                          ?.name ??
+                                                      clientId;
+                                                  await NotificationService.notifyManagersContentSubmittedByClient(
+                                                    clientName: clientName,
+                                                    contentTitle:
+                                                        titleController.text,
+                                                  );
                                                 }
                                               });
                                         } else {
@@ -1985,21 +2098,24 @@ void showAddContentDialog(
                                               )
                                               .then((v) async {
                                                 if (v) {
-                                                  controller
-                                                      .searchedcontents
-                                                      .assignAll(
+                                                  controller.searchedcontents.assignAll(
                                                     List.from(
-                                                    controller.contents.where(
-                                                      (a) =>
-                                                          a.clientId ==
-                                                          controller
-                                                              .clientController
-                                                              .text,
+                                                      controller.contents.where(
+                                                        (a) =>
+                                                            a.clientId ==
+                                                            controller
+                                                                .clientController
+                                                                .text,
+                                                      ),
                                                     ),
-                                                  ));
+                                                  );
                                                   Get.back();
 
-                                                  await NotificationService.notifyClientContentUpdatedForApproval(clientId: clientId, contentTitle: titleController.text);
+                                                  await NotificationService.notifyClientContentUpdatedForApproval(
+                                                    clientId: clientId,
+                                                    contentTitle:
+                                                        titleController.text,
+                                                  );
                                                 }
                                               });
                                         }

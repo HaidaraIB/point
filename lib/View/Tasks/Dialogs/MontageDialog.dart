@@ -377,7 +377,7 @@ void montageDiloag(BuildContext context, {TaskModel? model}) {
                                 SizedBox(
                                   width: (Get.width * 0.7 / 2) - 25,
                                   child: InputText(
-                                    ontap: () async {
+                                    onTap: () async {
                                       final picked = await customDatePicker(
                                         context,
                                       );
@@ -394,7 +394,7 @@ void montageDiloag(BuildContext context, {TaskModel? model}) {
                                     fillColor: Colors.white,
                                     textInputType: TextInputType.datetime,
                                     controller: startDateController,
-                                    readonly: true,
+                                    readOnly: true,
                                     validator: (v) {
                                       if (v == null || v.isEmpty) return ' ';
                                       return null;
@@ -412,7 +412,7 @@ void montageDiloag(BuildContext context, {TaskModel? model}) {
                                 SizedBox(
                                   width: (Get.width * 0.7 / 2) - 25,
                                   child: InputText(
-                                    ontap: () async {
+                                    onTap: () async {
                                       final picked = await customDatePicker(
                                         context,
                                       );
@@ -429,7 +429,7 @@ void montageDiloag(BuildContext context, {TaskModel? model}) {
                                     fillColor: Colors.white,
                                     textInputType: TextInputType.datetime,
                                     controller: endDateController,
-                                    readonly: true,
+                                    readOnly: true,
                                     validator: (v) {
                                       if (v == null || v.isEmpty) return ' ';
                                       return null;

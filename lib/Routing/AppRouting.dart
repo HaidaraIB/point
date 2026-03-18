@@ -19,6 +19,7 @@ import 'package:point/View/Home/Home.dart';
 import 'package:point/View/Mobile/ClientHome.dart';
 import 'package:point/View/Mobile/CreateUserAccount.dart';
 import 'package:point/View/Mobile/LoginUserAccount.dart';
+import 'package:point/View/Mobile/MobileSplashDecider.dart';
 import 'package:point/View/Statistics/Statistics.dart';
 import 'package:point/View/Tasks/Tasks.dart';
 
@@ -34,9 +35,13 @@ class AuthMiddleware extends GetMiddleware {
 }
 
 class AppRouting {
-  static var initailPage = kIsWeb ? '/auth/login' : '/auth/ChooseUserType';
+  static var initailPage = kIsWeb ? '/auth/login' : '/mobileSplash';
 
   static final routing = [
+    GetPage(
+      name: '/mobileSplash',
+      page: () => const MobileSplashDecider(),
+    ),
     GetPage(
       name: '/ClientHome',
       page: () {

@@ -59,8 +59,8 @@ class History extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ResponsiveScaffold(
-      selectedtab: 7,
-      sidemenue:
+      selectedTab: 7,
+      sideMenu:
           Get.find<HomeController>().currentemployee.value?.role != 'employee'
               ? true
               : false,
@@ -538,9 +538,24 @@ class History extends StatelessWidget {
                                                                 status: value,
                                                               ),
                                                             );
-                                                        if (value == StorageKeys.status_published) {
-                                                          final clientName = controller.clients.firstWhereOrNull((c) => c.id == emp.clientId)?.name ?? emp.clientId;
-                                                          await NotificationService.notifyPromotionDeptNewPublishedContent(clientName: clientName, contentTitle: emp.title);
+                                                        if (value ==
+                                                            StorageKeys
+                                                                .status_published) {
+                                                          final clientName =
+                                                              controller.clients
+                                                                  .firstWhereOrNull(
+                                                                    (c) =>
+                                                                        c.id ==
+                                                                        emp.clientId,
+                                                                  )
+                                                                  ?.name ??
+                                                              emp.clientId;
+                                                          await NotificationService.notifyPromotionDeptNewPublishedContent(
+                                                            clientName:
+                                                                clientName,
+                                                            contentTitle:
+                                                                emp.title,
+                                                          );
                                                         }
                                                         controller
                                                             .searchedcontents
@@ -675,9 +690,21 @@ class History extends StatelessWidget {
                                                                     value,
                                                               ),
                                                             );
-                                                        if (value == 'under_promotion' || value == 'end_promotion') {
-                                                          final labelAr = value == 'under_promotion' ? 'قيد الترويج' : 'انتهى الترويج';
-                                                          await NotificationService.notifyAdminContentPromotionStatusChanged(contentTitle: emp.title, promotionLabelAr: labelAr);
+                                                        if (value ==
+                                                                'under_promotion' ||
+                                                            value ==
+                                                                'end_promotion') {
+                                                          final labelAr =
+                                                              value ==
+                                                                      'under_promotion'
+                                                                  ? 'قيد الترويج'
+                                                                  : 'انتهى الترويج';
+                                                          await NotificationService.notifyAdminContentPromotionStatusChanged(
+                                                            contentTitle:
+                                                                emp.title,
+                                                            promotionLabelAr:
+                                                                labelAr,
+                                                          );
                                                         }
                                                         controller
                                                             .searchedcontents
@@ -1073,7 +1100,7 @@ class History extends StatelessWidget {
                                                   } else if (value == 1) {
                                                     FunHelper.showConfirmDailog(
                                                       context,
-                                                      ontap: () async {
+                                                      onTap: () async {
                                                         await controller
                                                             .deleteContent(
                                                               emp.id!,
@@ -1263,7 +1290,7 @@ void showAddContentDialog(
                                 SizedBox(
                                   width: (Get.width * 0.7 / 2) - 30,
                                   child: InputText(
-                                    ontap: () async {
+                                    onTap: () async {
                                       final picked = await customDatePicker(
                                         context,
                                       );
@@ -1280,7 +1307,7 @@ void showAddContentDialog(
                                     fillColor: Colors.white,
                                     textInputType: TextInputType.datetime,
                                     controller: publishDatectr,
-                                    readonly: true,
+                                    readOnly: true,
                                     validator: (v) {
                                       if (v == null || v.isEmpty) return ' ';
                                       return null;
@@ -1689,9 +1716,25 @@ void showAddContentDialog(
                                                   );
                                                   Get.back();
 
-                                                  await NotificationService.notifyClientContentPendingApproval(clientId: clientId, contentTypeLabel: 'تصميم / فيديو جديد');
-                                                  final clientName = controller.clients.firstWhereOrNull((c) => c.id == clientId)?.name ?? clientId;
-                                                  await NotificationService.notifyManagersContentSubmittedByClient(clientName: clientName, contentTitle: titleController.text);
+                                                  await NotificationService.notifyClientContentPendingApproval(
+                                                    clientId: clientId,
+                                                    contentTypeLabel:
+                                                        'تصميم / فيديو جديد',
+                                                  );
+                                                  final clientName =
+                                                      controller.clients
+                                                          .firstWhereOrNull(
+                                                            (c) =>
+                                                                c.id ==
+                                                                clientId,
+                                                          )
+                                                          ?.name ??
+                                                      clientId;
+                                                  await NotificationService.notifyManagersContentSubmittedByClient(
+                                                    clientName: clientName,
+                                                    contentTitle:
+                                                        titleController.text,
+                                                  );
                                                 }
                                               });
                                         } else {
@@ -1743,7 +1786,11 @@ void showAddContentDialog(
                                                   );
                                                   Get.back();
 
-                                                  await NotificationService.notifyClientContentUpdatedForApproval(clientId: clientId, contentTitle: titleController.text);
+                                                  await NotificationService.notifyClientContentUpdatedForApproval(
+                                                    clientId: clientId,
+                                                    contentTitle:
+                                                        titleController.text,
+                                                  );
                                                 }
                                               });
                                         }

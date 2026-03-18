@@ -9,7 +9,7 @@ class InputText extends StatelessWidget {
   final bool obscureText;
   final bool? enable;
   final Widget? suffixIcon;
-  final Widget? prefixicon;
+  final Widget? prefixIcon;
   final TextEditingController? controller;
   final String? Function(String? val)? validator;
   final String? Function(String? val)? onchange;
@@ -17,21 +17,21 @@ class InputText extends StatelessWidget {
   final Color? borderColor;
   final double? borderRadius;
   final bool? expanded;
-  final bool? readonly;
+  final bool? readOnly;
   final Widget? body;
   final int? maxLength;
   final TextInputType? textInputType;
-  final TextStyle? hintstyle;
-  final TextStyle? texttstyle;
+  final TextStyle? hintStyle;
+  final TextStyle? textStyle;
   final List<TextInputFormatter>? inputFormatters;
   final bool? require;
-  final VoidCallback? ontap;
+  final VoidCallback? onTap;
 
   InputText({
-    Key? key,
+    super.key,
     this.validator,
     required this.hintText,
-    this.prefixicon,
+    this.prefixIcon,
     this.labelText,
     this.onchange,
     this.height,
@@ -43,16 +43,16 @@ class InputText extends StatelessWidget {
     this.borderColor,
     this.body,
     this.textInputType,
-    this.hintstyle,
+    this.hintStyle,
     this.borderRadius,
     this.expanded,
     this.fillColor,
-    this.texttstyle,
+    this.textStyle,
     this.inputFormatters,
     this.require,
-    this.ontap,
-    this.readonly,
-  }) : super(key: key);
+    this.onTap,
+    this.readOnly,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -88,13 +88,13 @@ class InputText extends StatelessWidget {
             onChanged: onchange,
             obscureText: obscureText,
             enabled: enable,
-            readOnly: readonly ?? false,
-            onTap: ontap,
+            readOnly: readOnly ?? false,
+            onTap: onTap,
             keyboardType: textInputType,
             maxLength: maxLength,
             maxLines: expanded == true ? null : 1,
             style:
-                texttstyle ??
+                textStyle ??
                 TextStyle(fontSize: 13, color: AppColors.primaryfontColor),
             inputFormatters: inputFormatters,
 
@@ -102,7 +102,7 @@ class InputText extends StatelessWidget {
             decoration: InputDecoration(
               hintText: hintText,
               hintStyle:
-                  hintstyle ??
+                  hintStyle ??
                   TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
@@ -145,7 +145,7 @@ class InputText extends StatelessWidget {
               ),
 
               suffixIcon: suffixIcon,
-              prefixIcon: prefixicon,
+              prefixIcon: prefixIcon,
               errorStyle: TextStyle(fontSize: 13, height: 1.4),
             ),
           ),

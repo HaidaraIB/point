@@ -367,7 +367,7 @@ void designDialog(BuildContext context, {TaskModel? model}) {
                                 SizedBox(
                                   width: (dialogW / 3 - 25).clamp(60.0, double.infinity),
                                   child: InputText(
-                                    ontap: () async {
+                                    onTap: () async {
                                       final picked = await customDatePicker(
                                         context,
                                       );
@@ -384,7 +384,7 @@ void designDialog(BuildContext context, {TaskModel? model}) {
                                     fillColor: Colors.white,
                                     textInputType: TextInputType.datetime,
                                     controller: startDateController,
-                                    readonly: true,
+                                    readOnly: true,
                                     validator: (v) {
                                       if (v == null || v.isEmpty) return ' ';
                                       return null;
@@ -402,7 +402,7 @@ void designDialog(BuildContext context, {TaskModel? model}) {
                                 SizedBox(
                                   width: (dialogW / 3 - 25).clamp(60.0, double.infinity),
                                   child: InputText(
-                                    ontap: () async {
+                                    onTap: () async {
                                       final picked = await customDatePicker(
                                         context,
                                       );
@@ -419,7 +419,7 @@ void designDialog(BuildContext context, {TaskModel? model}) {
                                     fillColor: Colors.white,
                                     textInputType: TextInputType.datetime,
                                     controller: endDateController,
-                                    readonly: true,
+                                    readOnly: true,
                                     validator: (v) {
                                       if (v == null || v.isEmpty) return ' ';
                                       return null;

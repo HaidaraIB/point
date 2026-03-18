@@ -128,13 +128,25 @@ class _TimelineRow extends StatelessWidget {
               const SizedBox(height: 4),
               Row(
                 children: [
-                  Text(
-                    event.byUserName,
-                    style: TextStyle(fontSize: 11, color: Colors.green.shade700, fontWeight: FontWeight.w500),
+                  Expanded(
+                    child: Text(
+                      event.byUserName,
+                      maxLines: 1,
+                      softWrap: false,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.green.shade700,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Text(
                     FunHelper.formatdate(event.timestamp) ?? '',
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
                   ),
                 ],

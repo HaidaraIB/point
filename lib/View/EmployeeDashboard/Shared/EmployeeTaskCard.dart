@@ -9,9 +9,9 @@ import 'package:point/View/Shared/responsive.dart';
 
 class EmployeeTaskCard extends StatelessWidget {
   final TaskModel task;
-  final VoidCallback ontap;
+  final VoidCallback onTap;
 
-  EmployeeTaskCard({super.key, required this.task, required this.ontap});
+  EmployeeTaskCard({super.key, required this.task, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -308,7 +308,7 @@ class EmployeeTaskCard extends StatelessWidget {
                             vertical: 5,
                           ),
                         ),
-                        onPressed: ontap,
+                        onPressed: onTap,
                         child: Text(
                           Responsive.isDesktop(context)
                               ? "عرض تفاصيل المهمه"

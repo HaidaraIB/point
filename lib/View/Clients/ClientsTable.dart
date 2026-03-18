@@ -20,7 +20,7 @@ class ClientsTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ResponsiveScaffold(
-      selectedtab: 2,
+      selectedTab: 2,
 
       body: GetBuilder<HomeController>(
         builder: (controller) {
@@ -86,7 +86,10 @@ class ClientsTable extends StatelessWidget {
                         SizedBox(height: 10),
                         HorizontalScrollbarTable(
                           child: SizedBox(
-                            width: (Get.width - 270).clamp(1100.0, double.infinity),
+                            width: (Get.width - 270).clamp(
+                              1100.0,
+                              double.infinity,
+                            ),
                             child: Obx(
                               () => DataTable(
                                 dataRowMinHeight: 60,
@@ -275,7 +278,7 @@ class ClientsTable extends StatelessWidget {
                                                   onpress: () {
                                                     FunHelper.showConfirmDailog(
                                                       context,
-                                                      ontap: () async {
+                                                      onTap: () async {
                                                         await controller
                                                             .deleteClient(
                                                               emp.id!,
@@ -300,7 +303,7 @@ class ClientsTable extends StatelessWidget {
                                                   onpress: () {
                                                     FunHelper.showConfirmDailog(
                                                       context,
-                                                      ontap: () async {
+                                                      onTap: () async {
                                                         await controller.updateClient(
                                                           emp.copyWith(
                                                             status:
@@ -355,7 +358,8 @@ void showAddEmployeeDialog(BuildContext context, {ClientModel? model}) {
   DateTime? startAt = model?.startAt;
   DateTime? endAt = model?.endAt;
   Get.find<HomeController>().uploadedFilesPaths.assignAll(
-      model != null && model.image != null ? [model.image!] : []);
+    model != null && model.image != null ? [model.image!] : [],
+  );
   // String selectedRole = model?.role ?? "media_buyer";
   // List<String> roles = ["media_buyer", "designer", "developer", "manager"];
   var _key = GlobalKey<FormState>();
@@ -368,407 +372,423 @@ void showAddEmployeeDialog(BuildContext context, {ClientModel? model}) {
         builder: (context, setState) {
           return Dialog(
             backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
             child: GetBuilder<HomeController>(
               builder: (controller) {
                 return Form(
-              key: _key,
-              child: SizedBox(
-                width: Get.width * 0.5,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Header
-                      Container(
-                        margin: EdgeInsets.all(15),
-                        decoration: BoxDecoration(
-                          color: Color(0xFF5C5589),
-                          borderRadius: BorderRadius.vertical(
-                            top: Radius.circular(12),
-                          ),
-                        ),
-                        padding: EdgeInsets.all(16),
-                        child: Row(
-                          children: [
-                            SvgPicture.asset('assets/svgs/Check_circle.svg'),
-                            SizedBox(width: 10),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'addclient'.tr,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15,
-                                  ),
-                                ),
-                                Text(
-                                  'addclienthint'.tr,
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
+                  key: _key,
+                  child: SizedBox(
+                    width: Get.width * 0.5,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Header
+                          Container(
+                            margin: EdgeInsets.all(15),
+                            decoration: BoxDecoration(
+                              color: Color(0xFF5C5589),
+                              borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(12),
+                              ),
                             ),
-                          ],
-                        ),
-                      ),
-
-                      // Content
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          children: [
-                            Builder(
-                              builder:
-                                  (c) => InkWell(
-                                    onTap: () async {
-                                      await controller.pickoneImage().then((v) {
-                                        if (v.isNotEmpty) {
-                                          controller.uploadFiles(
-                                            filePathOrBytes: v.first.bytes!,
-                                            fileName: v.first.name,
-                                          );
-                                        }
-                                      });
-                                    },
-                                    child: CircleAvatar(
-                                      backgroundColor: Colors.grey.shade200,
-                                      radius: 50,
-                                      child: Obx(
-                                        () =>
-                                            controller
-                                                    .uploadedFilesPaths
-                                                    .isNotEmpty
-                                                ? ClipRRect(
-                                                  borderRadius:
-                                                      BorderRadius.circular(50),
-                                                  child: Image.network(
-                                                    controller
-                                                        .uploadedFilesPaths
-                                                        .last,
-                                                    width: 100,
-                                                    height: 100,
-                                                    fit: BoxFit.cover,
-                                                  ),
-                                                )
-                                                : Icon(
-                                                  Icons.camera_alt,
-                                                  size: 50,
-                                                ),
+                            padding: EdgeInsets.all(16),
+                            child: Row(
+                              children: [
+                                SvgPicture.asset(
+                                  'assets/svgs/Check_circle.svg',
+                                ),
+                                SizedBox(width: 10),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'addclient'.tr,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
                                       ),
                                     ),
-                                  ),
-                            ),
-                            InputText(
-                              labelText: 'name'.tr,
-                              hintText: 'entername'.tr,
-                              height: 42,
-                              fillColor: Colors.white,
-                              controller: nameController,
-
-                              validator: (v) {
-                                if (v == null || v.isEmpty) {
-                                  return ' ';
-                                }
-                                return null;
-                              },
-
-                              borderRadius: 5,
-                              borderColor: Colors.grey.shade300,
-                            ),
-                            InputText(
-                              labelText: 'email'.tr,
-                              hintText: 'example@example.com'.tr,
-                              height: 42,
-                              fillColor: Colors.white,
-                              textInputType: TextInputType.emailAddress,
-                              controller: emailController,
-
-                              validator: (v) {
-                                if (v == null ||
-                                    v.isEmpty ||
-                                    !v.toString().isEmail) {
-                                  return ' ';
-                                }
-                                return null;
-                              },
-
-                              borderRadius: 5,
-                              borderColor: Colors.grey.shade300,
-                            ),
-                            InputText(
-                              hintText: '******'.tr,
-                              labelText: 'password'.tr,
-                              obscureText: obscurePassword,
-                              controller: passwordController,
-                              height: 42,
-                              fillColor: Colors.white,
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  obscurePassword
-                                      ? Icons.visibility_off
-                                      : Icons.visibility,
-                                  color: Colors.grey.shade600,
+                                    Text(
+                                      'addclienthint'.tr,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                onPressed: () {
-                                  obscurePassword = !obscurePassword;
-                                  setState(() {});
-                                },
-                              ),
-                              validator: (v) {
-                                if (v == null || v.isEmpty) {
-                                  return ' ';
-                                }
-                                return validatePasswordStrong(v);
-                              },
-                              borderRadius: 5,
-                              borderColor: Colors.grey.shade300,
+                              ],
                             ),
-                            InputText(
-                              labelText: 'desc'.tr,
-                              hintText: ''.tr,
-                              expanded: true,
-                              height: 42,
-                              fillColor: Colors.white,
-                              textInputType: TextInputType.emailAddress,
-                              controller: desccontroller,
+                          ),
 
-                              validator: (v) {
-                                if (v == null || v.isEmpty) {
-                                  return ' ';
-                                }
-                                return null;
-                              },
+                          // Content
+                          Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              children: [
+                                Builder(
+                                  builder:
+                                      (c) => InkWell(
+                                        onTap: () async {
+                                          await controller.pickoneImage().then((
+                                            v,
+                                          ) {
+                                            if (v.isNotEmpty) {
+                                              controller.uploadFiles(
+                                                filePathOrBytes: v.first.bytes!,
+                                                fileName: v.first.name,
+                                              );
+                                            }
+                                          });
+                                        },
+                                        child: CircleAvatar(
+                                          backgroundColor: Colors.grey.shade200,
+                                          radius: 50,
+                                          child: Obx(
+                                            () =>
+                                                controller
+                                                        .uploadedFilesPaths
+                                                        .isNotEmpty
+                                                    ? ClipRRect(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            50,
+                                                          ),
+                                                      child: Image.network(
+                                                        controller
+                                                            .uploadedFilesPaths
+                                                            .last,
+                                                        width: 100,
+                                                        height: 100,
+                                                        fit: BoxFit.cover,
+                                                      ),
+                                                    )
+                                                    : Icon(
+                                                      Icons.camera_alt,
+                                                      size: 50,
+                                                    ),
+                                          ),
+                                        ),
+                                      ),
+                                ),
+                                InputText(
+                                  labelText: 'name'.tr,
+                                  hintText: 'entername'.tr,
+                                  height: 42,
+                                  fillColor: Colors.white,
+                                  controller: nameController,
 
-                              borderRadius: 5,
-                              borderColor: Colors.grey.shade300,
+                                  validator: (v) {
+                                    if (v == null || v.isEmpty) {
+                                      return ' ';
+                                    }
+                                    return null;
+                                  },
+
+                                  borderRadius: 5,
+                                  borderColor: Colors.grey.shade300,
+                                ),
+                                InputText(
+                                  labelText: 'email'.tr,
+                                  hintText: 'example@example.com'.tr,
+                                  height: 42,
+                                  fillColor: Colors.white,
+                                  textInputType: TextInputType.emailAddress,
+                                  controller: emailController,
+
+                                  validator: (v) {
+                                    if (v == null ||
+                                        v.isEmpty ||
+                                        !v.toString().isEmail) {
+                                      return ' ';
+                                    }
+                                    return null;
+                                  },
+
+                                  borderRadius: 5,
+                                  borderColor: Colors.grey.shade300,
+                                ),
+                                InputText(
+                                  hintText: '******'.tr,
+                                  labelText: 'password'.tr,
+                                  obscureText: obscurePassword,
+                                  controller: passwordController,
+                                  height: 42,
+                                  fillColor: Colors.white,
+                                  suffixIcon: IconButton(
+                                    icon: Icon(
+                                      obscurePassword
+                                          ? Icons.visibility_off
+                                          : Icons.visibility,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                    onPressed: () {
+                                      obscurePassword = !obscurePassword;
+                                      setState(() {});
+                                    },
+                                  ),
+                                  validator: (v) {
+                                    if (v == null || v.isEmpty) {
+                                      return ' ';
+                                    }
+                                    return validatePasswordStrong(v);
+                                  },
+                                  borderRadius: 5,
+                                  borderColor: Colors.grey.shade300,
+                                ),
+                                InputText(
+                                  labelText: 'desc'.tr,
+                                  hintText: ''.tr,
+                                  expanded: true,
+                                  height: 42,
+                                  fillColor: Colors.white,
+                                  textInputType: TextInputType.emailAddress,
+                                  controller: desccontroller,
+
+                                  validator: (v) {
+                                    if (v == null || v.isEmpty) {
+                                      return ' ';
+                                    }
+                                    return null;
+                                  },
+
+                                  borderRadius: 5,
+                                  borderColor: Colors.grey.shade300,
+                                ),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    SizedBox(
+                                      width: Get.width / 4.3,
+                                      child: InputText(
+                                        onTap: () async {
+                                          final picked = await customDatePicker(
+                                            context,
+                                          );
+                                          if (picked != null) {
+                                            startAt = picked;
+                                            startatcontroller.text = DateFormat(
+                                              'dd MM yyyy - hh:mm a',
+                                            ).format(picked.toLocal());
+                                          }
+                                        },
+                                        labelText: 'startat'.tr,
+                                        hintText: '1/10/2025'.tr,
+                                        height: 42,
+                                        fillColor: Colors.white,
+                                        textInputType: TextInputType.datetime,
+                                        controller: startatcontroller,
+                                        readOnly: true,
+                                        // enable: false,
+                                        validator: (v) {
+                                          if (v == null || v.isEmpty) {
+                                            return ' ';
+                                          }
+                                          return null;
+                                        },
+                                        suffixIcon: Icon(
+                                          CupertinoIcons.calendar,
+                                          color: Colors.grey,
+                                        ),
+
+                                        borderRadius: 5,
+                                        borderColor: Colors.grey.shade300,
+                                      ),
+                                    ),
+                                    SizedBox(
+                                      width: Get.width / 4.3,
+
+                                      child: InputText(
+                                        labelText: 'endat'.tr,
+                                        hintText: '1/10/2026'.tr,
+                                        readOnly: true,
+
+                                        onTap: () async {
+                                          final picked = await customDatePicker(
+                                            context,
+                                          );
+                                          if (picked != null) {
+                                            endAt = picked;
+                                            endatcontroller.text = DateFormat(
+                                              'dd MM yyyy - hh:mm a',
+                                            ).format(picked.toLocal());
+                                          }
+                                        },
+                                        height: 42,
+
+                                        fillColor: Colors.white,
+                                        textInputType: TextInputType.datetime,
+                                        controller: endatcontroller,
+                                        // enable: false,
+                                        validator: (v) {
+                                          if (v == null || v.isEmpty) {
+                                            return ' ';
+                                          }
+                                          return null;
+                                        },
+                                        suffixIcon: Icon(
+                                          CupertinoIcons.calendar,
+                                          color: Colors.grey,
+                                        ),
+                                        borderRadius: 5,
+                                        borderColor: Colors.grey.shade300,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
-                            Row(
+                          ),
+
+                          // Actions
+                          Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
-                                SizedBox(
-                                  width: Get.width / 4.3,
-                                  child: InputText(
-                                    ontap: () async {
-                                      final picked = await customDatePicker(
-                                        context,
-                                      );
-                                      if (picked != null) {
-                                        startAt = picked;
-                                        startatcontroller.text = DateFormat(
-                                          'dd MM yyyy - hh:mm a',
-                                        ).format(picked.toLocal());
-                                      }
-                                    },
-                                    labelText: 'startat'.tr,
-                                    hintText: '1/10/2025'.tr,
-                                    height: 42,
-                                    fillColor: Colors.white,
-                                    textInputType: TextInputType.datetime,
-                                    controller: startatcontroller,
-                                    readonly: true,
-                                    // enable: false,
-                                    validator: (v) {
-                                      if (v == null || v.isEmpty) {
-                                        return ' ';
-                                      }
-                                      return null;
-                                    },
-                                    suffixIcon: Icon(
-                                      CupertinoIcons.calendar,
-                                      color: Colors.grey,
-                                    ),
+                                Obx(
+                                  () => SizedBox(
+                                    width: Get.width * 0.5 - 260,
+                                    child: ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Color(0xFF5C5589),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            24,
+                                          ),
+                                        ),
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 48,
+                                          vertical: 20,
+                                        ),
+                                      ),
+                                      onPressed: () {
+                                        if (_key.currentState!.validate()) {
+                                          if (model == null) {
+                                            controller
+                                                .addClient(
+                                                  password:
+                                                      passwordController.text,
+                                                  ClientModel(
+                                                    id:
+                                                        '${Random().nextInt(100000)}',
+                                                    name: nameController.text,
+                                                    email: emailController.text,
+                                                    image:
+                                                        controller
+                                                            .uploadedFilesPaths
+                                                            .lastOrNull,
+                                                    description:
+                                                        desccontroller.text,
+                                                    status: 'active',
+                                                    createdAt: DateTime.now(),
 
-                                    borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
+                                                    password:
+                                                        passwordController.text,
+                                                    startAt: startAt,
+                                                    endAt: endAt,
+                                                  ),
+                                                )
+                                                .then((v) {
+                                                  if (v) {
+                                                    controller
+                                                        .uploadedFilesPaths
+                                                        .clear();
+
+                                                    Get.back();
+                                                  }
+                                                });
+                                          } else {
+                                            // log(
+                                            //   controller
+                                            //       .uploadedFilesPaths
+                                            //       .lastOrNull
+                                            //       .toString(),
+                                            // );
+                                            // return;
+                                            controller
+                                                .updateClient(
+                                                  model.copyWith(
+                                                    name: nameController.text,
+                                                    email: emailController.text,
+                                                    createdAt: DateTime.now(),
+                                                    password:
+                                                        passwordController.text,
+                                                    image:
+                                                        controller
+                                                            .uploadedFilesPaths
+                                                            .lastOrNull,
+
+                                                    startAt: startAt,
+                                                    endAt: endAt,
+                                                    description:
+                                                        desccontroller.text,
+                                                  ),
+                                                )
+                                                .then((v) {
+                                                  if (v) {
+                                                    controller
+                                                        .uploadedFilesPaths
+                                                        .clear();
+
+                                                    Get.back();
+                                                  }
+                                                });
+                                          }
+                                        }
+                                      },
+                                      child:
+                                          controller.isLoading.value
+                                              ? Center(
+                                                child:
+                                                    CircularProgressIndicator(),
+                                              )
+                                              : Text(
+                                                "تأكيد",
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                    ),
                                   ),
                                 ),
                                 SizedBox(
-                                  width: Get.width / 4.3,
-
-                                  child: InputText(
-                                    labelText: 'endat'.tr,
-                                    hintText: '1/10/2026'.tr,
-                                    readonly: true,
-
-                                    ontap: () async {
-                                      final picked = await customDatePicker(
-                                        context,
-                                      );
-                                      if (picked != null) {
-                                        endAt = picked;
-                                        endatcontroller.text = DateFormat(
-                                          'dd MM yyyy - hh:mm a',
-                                        ).format(picked.toLocal());
-                                      }
-                                    },
-                                    height: 42,
-
-                                    fillColor: Colors.white,
-                                    textInputType: TextInputType.datetime,
-                                    controller: endatcontroller,
-                                    // enable: false,
-                                    validator: (v) {
-                                      if (v == null || v.isEmpty) {
-                                        return ' ';
-                                      }
-                                      return null;
-                                    },
-                                    suffixIcon: Icon(
-                                      CupertinoIcons.calendar,
-                                      color: Colors.grey,
+                                  width: 190,
+                                  child: OutlinedButton(
+                                    style: OutlinedButton.styleFrom(
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(24),
+                                      ),
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 32,
+                                        vertical: 20,
+                                      ),
                                     ),
-                                    borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
+                                    onPressed: () {
+                                      controller.uploadedFilesPaths.clear();
+                                      Get.back();
+                                    },
+                                    child: Text("إلغاء"),
                                   ),
                                 ),
                               ],
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-
-                      // Actions
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            Obx(
-                              () => SizedBox(
-                                width: Get.width * 0.5 - 260,
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Color(0xFF5C5589),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(24),
-                                    ),
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 48,
-                                      vertical: 20,
-                                    ),
-                                  ),
-                                  onPressed: () {
-                                    if (_key.currentState!.validate()) {
-                                      if (model == null) {
-                                        controller
-                                            .addClient(
-                                              password: passwordController.text,
-                                              ClientModel(
-                                                id: '${Random().nextInt(100000)}',
-                                                name: nameController.text,
-                                                email: emailController.text,
-                                                image:
-                                                    controller
-                                                        .uploadedFilesPaths
-                                                        .lastOrNull,
-                                                description:
-                                                    desccontroller.text,
-                                                status: 'active',
-                                                createdAt: DateTime.now(),
-
-                                                password:
-                                                    passwordController.text,
-                                                startAt: startAt,
-                                                endAt: endAt,
-                                              ),
-                                            )
-                                            .then((v) {
-                                              if (v) {
-                                                controller.uploadedFilesPaths
-                                                    .clear();
-
-                                                Get.back();
-                                              }
-                                            });
-                                      } else {
-                                        // log(
-                                        //   controller
-                                        //       .uploadedFilesPaths
-                                        //       .lastOrNull
-                                        //       .toString(),
-                                        // );
-                                        // return;
-                                        controller
-                                            .updateClient(
-                                              model.copyWith(
-                                                name: nameController.text,
-                                                email: emailController.text,
-                                                createdAt: DateTime.now(),
-                                                password:
-                                                    passwordController.text,
-                                                image:
-                                                    controller
-                                                        .uploadedFilesPaths
-                                                        .lastOrNull,
-
-                                                startAt: startAt,
-                                                endAt: endAt,
-                                                description:
-                                                    desccontroller.text,
-                                              ),
-                                            )
-                                            .then((v) {
-                                              if (v) {
-                                                controller.uploadedFilesPaths
-                                                    .clear();
-
-                                                Get.back();
-                                              }
-                                            });
-                                      }
-                                    }
-                                  },
-                                  child:
-                                      controller.isLoading.value
-                                          ? Center(
-                                            child: CircularProgressIndicator(),
-                                          )
-                                          : Text(
-                                            "تأكيد",
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                ),
-                              ),
-                            ),
-                            SizedBox(
-                              width: 190,
-                              child: OutlinedButton(
-                                style: OutlinedButton.styleFrom(
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(24),
-                                  ),
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 32,
-                                    vertical: 20,
-                                  ),
-                                ),
-                                onPressed: () {
-                                  controller.uploadedFilesPaths.clear();
-                                  Get.back();
-                                },
-                                child: Text("إلغاء"),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-            );
-          },
-        ),
+                );
+              },
+            ),
+          );
+        },
       );
-    },
-  );
     },
   );
 }

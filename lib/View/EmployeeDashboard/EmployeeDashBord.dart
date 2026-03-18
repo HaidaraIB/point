@@ -210,7 +210,7 @@ class EmployeeDashBord extends StatelessWidget {
                             SizedBox(
                               width: (Get.width * 0.7 / 3) - 25,
                               child: InputText(
-                                prefixicon: Icon(
+                                prefixIcon: Icon(
                                   CupertinoIcons.search,
                                   color: Colors.grey,
                                 ),
@@ -531,7 +531,7 @@ class EmployeeDashBord extends StatelessWidget {
                                 SizedBox(
                                   width: (Get.width * 0.7) - 25,
                                   child: InputText(
-                                    prefixicon: Icon(
+                                    prefixIcon: Icon(
                                       CupertinoIcons.search,
                                       color: Colors.grey,
                                     ),
@@ -782,7 +782,7 @@ class TasksGridPage extends StatelessWidget {
               itemBuilder: (context, index) {
                 return EmployeeTaskCard(
                   task: tasks[index],
-                  ontap: () {
+                  onTap: () {
                     switch (tasks[index].type) {
                       case '0':
                         showCampaignDetailsDialog(context, task: tasks[index]);
@@ -840,7 +840,7 @@ class TasksListPage extends StatelessWidget {
               itemBuilder: (context, index) {
                 return EmployeeTaskCard(
                   task: tasks[index],
-                  ontap: () {
+                  onTap: () {
                     switch (tasks[index].type) {
                       case '0':
                         showCampaignDetailsDialog(context, task: tasks[index]);

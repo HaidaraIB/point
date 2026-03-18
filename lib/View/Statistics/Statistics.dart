@@ -11,7 +11,7 @@ class Statistics extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ResponsiveScaffold(
-      selectedtab: 6,
+      selectedTab: 6,
 
       body: GetBuilder<HomeController>(
         builder: (controller) {
