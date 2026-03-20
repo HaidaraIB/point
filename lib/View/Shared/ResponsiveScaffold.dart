@@ -59,22 +59,13 @@ class ResponsiveScaffold extends StatelessWidget {
                                     employee: true,
 
                                     name:
-                                        controller
-                                            .currentemployee
-                                            .value
-                                            ?.name ??
+                                        controller.effectiveEmployee?.name ??
                                         '',
                                     role:
-                                        controller
-                                            .currentemployee
-                                            .value
-                                            ?.role ??
+                                        controller.effectiveEmployee?.role ??
                                         '',
                                     avatarUrl:
-                                        controller
-                                            .currentemployee
-                                            .value
-                                            ?.image ??
+                                        controller.effectiveEmployee?.image ??
                                         kDefaultAvatarUrl,
                                     notificationCount: 1,
                                   ),
@@ -171,13 +162,11 @@ class ResponsiveScaffold extends StatelessWidget {
                             Obx(
                               () => MobileAppBarProfileWidget(
                                 name:
-                                    controller.currentemployee.value?.name ??
-                                    '',
+                                    controller.effectiveEmployee?.name ?? '',
                                 role:
-                                    controller.currentemployee.value?.role ??
-                                    '',
+                                    controller.effectiveEmployee?.role ?? '',
                                 avatarUrl:
-                                    controller.currentemployee.value?.image ??
+                                    controller.effectiveEmployee?.image ??
                                     kDefaultAvatarUrl,
                                 isEmployee: true,
                                 isClient: false,

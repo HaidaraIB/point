@@ -7,12 +7,91 @@ import 'package:point/Models/ContentModel.dart';
 import 'package:point/Models/EmployeeModel.dart';
 import 'package:point/Models/NotificationModel.dart';
 import 'package:point/Models/TaskModel.dart';
-import 'package:point/Models/chatMetaData.dart';
+import 'package:point/Models/ChatMetaData.dart';
 import 'package:point/Services/EmailNotificationService.dart';
 import 'package:point/config/app_config.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class FirestoreServices {
+  static const Set<String> _globalRolesWithoutDepartment = {
+    'admin',
+    'supervisor',
+  };
+
+  EmployeeModel _normalizeEmployeeDepartmentByRole(EmployeeModel employee) {
+    if (_globalRolesWithoutDepartment.contains(employee.role)) {
+      return employee.copyWith(department: null);
+    }
+    return employee;
+  }
+
+  /// On web, Firebase often returns [invalid-credential] instead of [user-not-found].
+  /// If the Firestore profile has no [authUid] yet, we must still allow first-time
+  /// [createUserWithEmailAndPassword] even when [authStatus] is already `active`
+  /// (common with migrated data or admin-created rows).
+  ///
+  /// If the email is already registered, we catch [email-already-in-use] and retry
+  /// [signInWithEmailAndPassword] once.
+  Future<UserCredential> _signInOrLinkNewAuthUser({
+    required FirebaseAuth auth,
+    required String normalizedEmail,
+    required String password,
+    required bool profileHasAuthUid,
+    required bool authPendingOrNotActive,
+  }) async {
+    try {
+      return await auth.signInWithEmailAndPassword(
+        email: normalizedEmail,
+        password: password,
+      );
+    } on FirebaseAuthException catch (e) {
+      final needsFirstTimeLink = !profileHasAuthUid;
+      final mayTryCreate =
+          e.code == 'user-not-found' ||
+          (e.code == 'invalid-credential' &&
+              (authPendingOrNotActive || needsFirstTimeLink)) ||
+          (e.code == 'wrong-password' &&
+              (authPendingOrNotActive || needsFirstTimeLink));
+
+      if (!mayTryCreate) rethrow;
+
+      try {
+        return await auth.createUserWithEmailAndPassword(
+          email: normalizedEmail,
+          password: password,
+        );
+      } on FirebaseAuthException catch (ce) {
+        if (ce.code == 'email-already-in-use') {
+          return await auth.signInWithEmailAndPassword(
+            email: normalizedEmail,
+            password: password,
+          );
+        }
+        rethrow;
+      }
+    }
+  }
+
+  Future<void> _updateAuthFieldsWithRetry({
+    required DocumentReference docRef,
+    required String uid,
+  }) async {
+    const maxAttempts = 3;
+    for (var attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        await docRef.update({'authUid': uid, 'authStatus': 'active'});
+        return;
+      } catch (e, s) {
+        log(
+          '⚠️ _updateAuthFieldsWithRetry attempt ${attempt + 1}/$maxAttempts failed: $e',
+        );
+        log('StackTrace: $s');
+        if (attempt == maxAttempts - 1) rethrow;
+        await Future<void>.delayed(Duration(milliseconds: 250 * (attempt + 1)));
+      }
+    }
+  }
+
   static Future<void> _sendFcmViaFunction({
     String? token,
     String? topic,
@@ -49,51 +128,74 @@ class FirestoreServices {
   final CollectionReference _employeeCollection = FirebaseFirestore.instance
       .collection("employees");
 
-  Future<UserCredential> _createOrGetAuthUser({
-    required String email,
-    required String password,
+  Future<bool> isEmailUsedInEmployees(
+    String email, {
+    String? excludeEmployeeId,
   }) async {
-    final auth = FirebaseAuth.instance;
     final normalizedEmail = email.trim().toLowerCase();
-    try {
-      // إذا كان المستخدم موجوداً وجربنا تسجيل الدخول بكلمة مرور قديمة أو جديدة
-      return await auth.signInWithEmailAndPassword(
-        email: normalizedEmail,
-        password: password,
-      );
-    } on FirebaseAuthException catch (e, s) {
-      log(
-        '❌ _createOrGetAuthUser signIn FirebaseAuthException code=${e.code}, message=${e.message}',
-      );
-      log('StackTrace: $s');
-      if (e.code == 'user-not-found') {
-        // إنشاء مستخدم جديد في Auth
-        final cred = await auth.createUserWithEmailAndPassword(
-          email: normalizedEmail,
-          password: password,
-        );
-        log('✅ FirebaseAuth user created for $normalizedEmail');
-        return cred;
-      }
-      rethrow;
+    if (normalizedEmail.isEmpty) return false;
+    final snap =
+        await _employeeCollection
+            .where("email", isEqualTo: normalizedEmail)
+            .limit(5)
+            .get();
+    for (final doc in snap.docs) {
+      if (excludeEmployeeId != null && doc.id == excludeEmployeeId) continue;
+      return true;
     }
+    return false;
+  }
+
+  Future<bool> isEmailUsedInClients(
+    String email, {
+    String? excludeClientId,
+  }) async {
+    final normalizedEmail = email.trim().toLowerCase();
+    if (normalizedEmail.isEmpty) return false;
+    final snap =
+        await _clientCollection
+            .where("email", isEqualTo: normalizedEmail)
+            .limit(5)
+            .get();
+    for (final doc in snap.docs) {
+      if (excludeClientId != null && doc.id == excludeClientId) continue;
+      return true;
+    }
+    return false;
+  }
+
+  Future<bool> isEmailUsedAcrossUsers(
+    String email, {
+    String? excludeEmployeeId,
+    String? excludeClientId,
+  }) async {
+    final inEmployees = await isEmailUsedInEmployees(
+      email,
+      excludeEmployeeId: excludeEmployeeId,
+    );
+    if (inEmployees) return true;
+    return await isEmailUsedInClients(email, excludeClientId: excludeClientId);
   }
 
   Future<bool> createEmployeeWithAuth({
     required EmployeeModel employee,
     required String password,
   }) async {
-    final email = employee.email?.trim().toLowerCase();
+    final normalizedEmployee = _normalizeEmployeeDepartmentByRole(employee);
+    final email = normalizedEmployee.email?.trim().toLowerCase();
     if (email == null || email.isEmpty) {
       log('❌ createEmployeeWithAuth: email is required');
       return false;
     }
     try {
-      // Add record only; Auth user is created when employee logs in (loginemployee).
       await _employeeCollection
-          .doc(employee.id)
-          .set(employee.copyWith(password: password).toJson());
-      log("✅ createEmployeeWithAuth: ${employee.name}");
+          .doc(normalizedEmployee.id)
+          .set(
+            normalizedEmployee.copyWith(
+              authStatus: normalizedEmployee.authStatus ?? 'pendingActivation',
+            ).toJson(),
+          );
+      log("✅ createEmployeeWithAuth: ${normalizedEmployee.name}");
       return true;
     } catch (e, s) {
       log("❌ createEmployeeWithAuth error: $e");
@@ -107,37 +209,34 @@ class FirestoreServices {
     required EmployeeModel updated,
     String? newPassword,
   }) async {
-    final oldEmail = existing.email?.trim().toLowerCase();
-    final newEmail = updated.email?.trim().toLowerCase();
-    final passwordToUse =
-        newPassword?.trim().isNotEmpty == true
-            ? newPassword!.trim()
-            : existing.password;
-
-    if (newEmail == null || newEmail.isEmpty) {
-      log('❌ updateEmployeeWithAuth: email is required');
-      return false;
-    }
-    if (passwordToUse == null || passwordToUse.isEmpty) {
-      log('❌ updateEmployeeWithAuth: password is required to sync Auth user');
-      return false;
-    }
-
+    final normalizedUpdated = _normalizeEmployeeDepartmentByRole(updated);
     try {
-      // أولاً نضمن جلسة لـ FirebaseAuth بنفس البريد الجديد/الحالي
-      await _createOrGetAuthUser(email: newEmail, password: passwordToUse);
+      final current = FirebaseAuth.instance.currentUser;
+      final isEditingSelf =
+          current != null &&
+          existing.authUid != null &&
+          existing.authUid == current.uid;
 
-      // إذا تغيّر البريد، لا نعبأ كثيراً بالبريد القديم لأننا نستخدم normalize دائماً
-      final toSave = updated.copyWith(
-        password:
-            newPassword?.trim().isNotEmpty == true
-                ? newPassword!.trim()
-                : existing.password,
+      // البريد وكلمة المرور في Auth يغيّرها صاحب الحساب فقط؛ المسؤول يحدّث بقية الحقول.
+      final merged = normalizedUpdated.copyWith(
+        email: isEditingSelf ? normalizedUpdated.email : existing.email,
+        authUid: existing.authUid ?? normalizedUpdated.authUid,
+        authStatus: existing.authStatus ?? normalizedUpdated.authStatus,
       );
-      await _employeeCollection.doc(toSave.id).update(toSave.toJson());
-      log(
-        "✅ updateEmployeeWithAuth: ${toSave.id} (oldEmail=$oldEmail, newEmail=$newEmail)",
-      );
+      await _employeeCollection.doc(merged.id).update(merged.toJson());
+
+      if (newPassword != null &&
+          newPassword.trim().isNotEmpty &&
+          isEditingSelf) {
+        try {
+          await current.updatePassword(newPassword.trim());
+        } on FirebaseAuthException catch (e) {
+          log(
+            "⚠️ updateEmployeeWithAuth password update skipped: code=${e.code}, message=${e.message}",
+          );
+        }
+      }
+      log("✅ updateEmployeeWithAuth (table-only): ${merged.id}");
       return true;
     } catch (e, s) {
       log("❌ updateEmployeeWithAuth error: $e");
@@ -149,8 +248,11 @@ class FirestoreServices {
   // 🟢 إضافة موظف
   Future<bool> addEmployee(EmployeeModel employee) async {
     try {
-      await _employeeCollection.doc(employee.id).set(employee.toJson());
-      log("✅ تم إضافة الموظف بنجاح: ${employee.name}");
+      final normalizedEmployee = _normalizeEmployeeDepartmentByRole(employee);
+      await _employeeCollection
+          .doc(normalizedEmployee.id)
+          .set(normalizedEmployee.toJson());
+      log("✅ تم إضافة الموظف بنجاح: ${normalizedEmployee.name}");
       return true;
     } catch (e, s) {
       log("❌ خطأ أثناء إضافة الموظف: $e");
@@ -162,9 +264,14 @@ class FirestoreServices {
   // 🟡 تحديث موظف
   Future<bool> updateEmployee(EmployeeModel employee) async {
     try {
-      if (employee.id == null) throw Exception("معرف الموظف (id) مفقود!");
-      await _employeeCollection.doc(employee.id).update(employee.toJson());
-      log("✅ تم تحديث الموظف: ${employee.id}");
+      final normalizedEmployee = _normalizeEmployeeDepartmentByRole(employee);
+      if (normalizedEmployee.id == null) {
+        throw Exception("معرف الموظف (id) مفقود!");
+      }
+      await _employeeCollection
+          .doc(normalizedEmployee.id)
+          .update(normalizedEmployee.toJson());
+      log("✅ تم تحديث الموظف: ${normalizedEmployee.id}");
       return true;
     } catch (e, s) {
       log("❌ خطأ أثناء تحديث الموظف: $e");
@@ -206,7 +313,7 @@ class FirestoreServices {
   Future<EmployeeModel?> loginEmployee(String email, String password) async {
     final normalizedEmail = email.trim().toLowerCase();
     try {
-      // 1) Query Firestore first by email
+      // 1) Fetch profile from Firestore by email.
       final query =
           await _employeeCollection
               .where("email", isEqualTo: normalizedEmail)
@@ -218,24 +325,37 @@ class FirestoreServices {
         return null;
       }
 
-      final data = query.docs.first.data() as Map<String, dynamic>;
-      final employee = EmployeeModel.fromJson(data);
+      final doc = query.docs.first;
+      final data = doc.data() as Map<String, dynamic>;
+      var employee = EmployeeModel.fromJson(data).copyWith(id: doc.id);
 
-      // 2) Verify password against stored model
-      final storedPassword = employee.password?.trim();
-      if (storedPassword == null ||
-          storedPassword.isEmpty ||
-          storedPassword != password.trim()) {
-        log("❌ loginEmployee: invalid password for $normalizedEmail");
+      // 2) Auth-first: sign in, and only allow first-time account activation when pending.
+      final auth = FirebaseAuth.instance;
+      final profileHasAuthUid =
+          employee.authUid != null && employee.authUid!.trim().isNotEmpty;
+      final authPendingOrNotActive =
+          (employee.authStatus ?? 'pendingActivation') != 'active';
+
+      final cred = await _signInOrLinkNewAuthUser(
+        auth: auth,
+        normalizedEmail: normalizedEmail,
+        password: password,
+        profileHasAuthUid: profileHasAuthUid,
+        authPendingOrNotActive: authPendingOrNotActive,
+      );
+
+      final uid = cred.user?.uid;
+      if (uid == null || uid.isEmpty) return null;
+
+      if (employee.authUid != null &&
+          employee.authUid!.isNotEmpty &&
+          employee.authUid != uid) {
+        log("❌ loginEmployee: authUid mismatch for ${employee.id}");
         return null;
       }
 
-      // 3) Sign in or create Auth user (user-not-found → createUser then sign in)
-      await _ensureFirebaseAuthSession(
-        email: normalizedEmail,
-        password: password,
-      );
-
+      await _updateAuthFieldsWithRetry(docRef: doc.reference, uid: uid);
+      employee = employee.copyWith(authUid: uid, authStatus: 'active');
       return employee;
     } on FirebaseAuthException catch (e, s) {
       log(
@@ -278,17 +398,6 @@ class FirestoreServices {
               .get();
       if (existing.docs.isNotEmpty) {
         log("✅ حساب point@accountholder.app موجود مسبقاً");
-        try {
-          await _ensureFirebaseAuthSession(
-            email: _kTestAccountholderEmail,
-            password: _testAccountholderPassword,
-          );
-        } catch (e, s) {
-          log(
-            '❌ ensureAccountholderTestUser (existing) FirebaseAuth error: $e',
-          );
-          log('StackTrace: $s');
-        }
         return;
       }
       final employee = EmployeeModel(
@@ -303,7 +412,7 @@ class FirestoreServices {
         hireDate: null,
         status: 'active',
         createdAt: DateTime.now(),
-        password: _testAccountholderPassword,
+        authStatus: 'active',
         image: null,
       );
       await _employeeCollection.doc(employee.id).set(employee.toJson());
@@ -355,18 +464,6 @@ class FirestoreServices {
     }
   }
 
-  Stream<EmployeeModel?> streamCurrentemployee(String empid) {
-    return _employeeCollection.doc(empid).snapshots().map((snapshot) {
-      if (snapshot.exists) {
-        final raw = snapshot.data();
-        final map = Map<String, dynamic>.from(raw as Map);
-        return EmployeeModel.fromJson(map);
-      } else {
-        return null;
-      }
-    });
-  }
-
   final _clientCollection = FirebaseFirestore.instance.collection("clients");
 
   Future<bool> createClientWithAuth({
@@ -379,10 +476,9 @@ class FirestoreServices {
       return false;
     }
     try {
-      // Add record only; Auth user is created when client logs in (loginClient).
       await _clientCollection
           .doc(client.id)
-          .set(client.copyWith(password: password).toJson());
+          .set(client.copyWith(authStatus: client.authStatus ?? 'pendingActivation').toJson());
       log("✅ createClientWithAuth: ${client.name}");
       return true;
     } catch (e, s) {
@@ -397,34 +493,32 @@ class FirestoreServices {
     required ClientModel updated,
     String? newPassword,
   }) async {
-    final oldEmail = existing.email?.trim().toLowerCase();
-    final newEmail = updated.email?.trim().toLowerCase();
-    final passwordToUse =
-        newPassword?.trim().isNotEmpty == true
-            ? newPassword!.trim()
-            : existing.password;
-
-    if (newEmail == null || newEmail.isEmpty) {
-      log('❌ updateClientWithAuth: email is required');
-      return false;
-    }
-    if (passwordToUse == null || passwordToUse.isEmpty) {
-      log('❌ updateClientWithAuth: password is required to sync Auth user');
-      return false;
-    }
-
     try {
-      await _createOrGetAuthUser(email: newEmail, password: passwordToUse);
-      final toSave = updated.copyWith(
-        password:
-            newPassword?.trim().isNotEmpty == true
-                ? newPassword!.trim()
-                : existing.password,
+      final current = FirebaseAuth.instance.currentUser;
+      final isEditingSelf =
+          current != null &&
+          existing.authUid != null &&
+          existing.authUid == current.uid;
+
+      final merged = updated.copyWith(
+        email: isEditingSelf ? updated.email : existing.email,
+        authUid: existing.authUid ?? updated.authUid,
+        authStatus: existing.authStatus ?? updated.authStatus,
       );
-      await _clientCollection.doc(toSave.id).update(toSave.toJson());
-      log(
-        "✅ updateClientWithAuth: ${toSave.id} (oldEmail=$oldEmail, newEmail=$newEmail)",
-      );
+      await _clientCollection.doc(merged.id).update(merged.toJson());
+
+      if (newPassword != null &&
+          newPassword.trim().isNotEmpty &&
+          isEditingSelf) {
+        try {
+          await current.updatePassword(newPassword.trim());
+        } on FirebaseAuthException catch (e) {
+          log(
+            "⚠️ updateClientWithAuth password update skipped: code=${e.code}, message=${e.message}",
+          );
+        }
+      }
+      log("✅ updateClientWithAuth (table-only): ${merged.id}");
       return true;
     } catch (e, s) {
       log("❌ updateClientWithAuth error: $e");
@@ -436,7 +530,7 @@ class FirestoreServices {
   Future<ClientModel?> loginClient(String email, String password) async {
     final normalizedEmail = email.trim().toLowerCase();
     try {
-      // 1) Query Firestore first by email
+      // 1) Fetch profile from Firestore by email.
       final query =
           await _clientCollection
               .where("email", isEqualTo: normalizedEmail)
@@ -448,25 +542,37 @@ class FirestoreServices {
         return null;
       }
 
-      final data = query.docs.first.data();
-      final docId = query.docs.first.id;
-      final client = ClientModel.fromJson(data, docId);
+      final doc = query.docs.first;
+      final data = doc.data();
+      var client = ClientModel.fromJson(data, doc.id);
 
-      // 2) Verify password against stored model
-      final storedPassword = client.password?.trim();
-      if (storedPassword == null ||
-          storedPassword.isEmpty ||
-          storedPassword != password.trim()) {
-        log("❌ loginClient: invalid password for $normalizedEmail");
+      // 2) Auth-first: sign in, and allow activation by owner on first login.
+      final auth = FirebaseAuth.instance;
+      final profileHasAuthUid =
+          client.authUid != null && client.authUid!.trim().isNotEmpty;
+      final authPendingOrNotActive =
+          (client.authStatus ?? 'pendingActivation') != 'active';
+
+      final cred = await _signInOrLinkNewAuthUser(
+        auth: auth,
+        normalizedEmail: normalizedEmail,
+        password: password,
+        profileHasAuthUid: profileHasAuthUid,
+        authPendingOrNotActive: authPendingOrNotActive,
+      );
+
+      final uid = cred.user?.uid;
+      if (uid == null || uid.isEmpty) return null;
+
+      if (client.authUid != null &&
+          client.authUid!.isNotEmpty &&
+          client.authUid != uid) {
+        log("❌ loginClient: authUid mismatch for ${client.id}");
         return null;
       }
 
-      // 3) Sign in or create Auth user (user-not-found → createUser then sign in)
-      await _ensureFirebaseAuthSession(
-        email: normalizedEmail,
-        password: password,
-      );
-
+      await _updateAuthFieldsWithRetry(docRef: doc.reference, uid: uid);
+      client = client.copyWith(authUid: uid, authStatus: 'active');
       return client;
     } on FirebaseAuthException catch (e, s) {
       log(
@@ -480,50 +586,87 @@ class FirestoreServices {
     }
   }
 
-  Future<void> _ensureFirebaseAuthSession({
-    required String email,
-    required String password,
-  }) async {
-    final auth = FirebaseAuth.instance;
+  Future<void> sendPasswordResetEmail(String email) async {
     final normalizedEmail = email.trim().toLowerCase();
-    try {
-      await auth.signInWithEmailAndPassword(
-        email: normalizedEmail,
-        password: password,
-      );
-      log('✅ FirebaseAuth signIn successful for $normalizedEmail');
-    } on FirebaseAuthException catch (e, s) {
-      log(
-        '❌ _ensureFirebaseAuthSession FirebaseAuthException code=${e.code}, message=${e.message}',
-      );
-      log('StackTrace: $s');
-
-      // إذا لم يوجد المستخدم في FirebaseAuth يمكننا إنشاؤه (سياسة التطبيق الحالية).
-      try {
-        await auth.createUserWithEmailAndPassword(
-          email: normalizedEmail,
-          password: password,
-        );
-        log('✅ FirebaseAuth user created for $normalizedEmail');
-        return;
-      } on FirebaseAuthException catch (ce, cs) {
-        log(
-          '❌ createUserWithEmailAndPassword failed for $normalizedEmail code=${ce.code}, message=${ce.message}',
-        );
-        log('StackTrace: $cs');
-        rethrow;
-      }
+    if (normalizedEmail.isEmpty) {
+      throw FirebaseAuthException(code: 'invalid-email');
     }
+    await FirebaseAuth.instance.sendPasswordResetEmail(email: normalizedEmail);
   }
 
-  Stream<ClientModel?> streamCurrentClient(String clientId) {
-    return _clientCollection.doc(clientId).snapshots().map((snapshot) {
-      if (snapshot.exists) {
-        return ClientModel.fromJson(snapshot.data()!, snapshot.id);
-      } else {
-        return null;
-      }
+  Future<void> changeCurrentUserPassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null || currentUser.email == null) {
+      throw FirebaseAuthException(code: 'user-not-found');
+    }
+    final credential = EmailAuthProvider.credential(
+      email: currentUser.email!.trim().toLowerCase(),
+      password: currentPassword,
+    );
+    await currentUser.reauthenticateWithCredential(credential);
+    await currentUser.updatePassword(newPassword);
+  }
+
+  Future<void> signOut() async {
+    await FirebaseAuth.instance.signOut();
+  }
+
+  Future<EmployeeModel?> getCurrentEmployeeByAuth() async {
+    final current = FirebaseAuth.instance.currentUser;
+    if (current == null) return null;
+    final uid = current.uid;
+    final byUid =
+        await _employeeCollection.where('authUid', isEqualTo: uid).limit(1).get();
+    if (byUid.docs.isNotEmpty) {
+      final doc = byUid.docs.first;
+      return EmployeeModel.fromJson(doc.data() as Map<String, dynamic>).copyWith(
+        id: doc.id,
+      );
+    }
+    final email = current.email?.trim().toLowerCase();
+    if (email == null || email.isEmpty) return null;
+    final byEmail =
+        await _employeeCollection.where('email', isEqualTo: email).limit(1).get();
+    if (byEmail.docs.isEmpty) return null;
+    final doc = byEmail.docs.first;
+    await _employeeCollection.doc(doc.id).update({
+      'authUid': uid,
+      'authStatus': 'active',
     });
+    return EmployeeModel.fromJson(doc.data() as Map<String, dynamic>).copyWith(
+      id: doc.id,
+      authUid: uid,
+      authStatus: 'active',
+    );
+  }
+
+  Future<ClientModel?> getCurrentClientByAuth() async {
+    final current = FirebaseAuth.instance.currentUser;
+    if (current == null) return null;
+    final uid = current.uid;
+    final byUid =
+        await _clientCollection.where('authUid', isEqualTo: uid).limit(1).get();
+    if (byUid.docs.isNotEmpty) {
+      final doc = byUid.docs.first;
+      return ClientModel.fromJson(doc.data(), doc.id);
+    }
+    final email = current.email?.trim().toLowerCase();
+    if (email == null || email.isEmpty) return null;
+    final byEmail =
+        await _clientCollection.where('email', isEqualTo: email).limit(1).get();
+    if (byEmail.docs.isEmpty) return null;
+    final doc = byEmail.docs.first;
+    await _clientCollection.doc(doc.id).update({
+      'authUid': uid,
+      'authStatus': 'active',
+    });
+    return ClientModel.fromJson(doc.data(), doc.id).copyWith(
+      authUid: uid,
+      authStatus: 'active',
+    );
   }
 
   Future<bool> addClient(ClientModel client) async {
@@ -532,7 +675,7 @@ class FirestoreServices {
       return true;
     } catch (e, s) {
       log("❌ addClient error: $e\n$s");
-      return true;
+      return false;
     }
   }
 
@@ -791,6 +934,10 @@ class FirestoreServices {
     required String userId,
     required String title,
     required String body,
+    String? notificationType,
+    String? actionText,
+    String? referenceId,
+    Map<String, String>? emailDetails,
   }) async {
     try {
       // 1. هات بيانات المستخدم من Firestore
@@ -808,14 +955,29 @@ class FirestoreServices {
       final data = doc.data();
       final email = data?['email']?.toString().trim();
       final token = data?['fcmToken']?.toString();
+      final rawRecipientName = data?['name']?.toString().trim();
+      final recipientName =
+          (rawRecipientName != null && rawRecipientName.isNotEmpty)
+              ? rawRecipientName
+              : 'الموظف';
 
       // إرسال إيميل حتى عند غياب FCM (من لم يثبت التطبيق أو عطّل الإشعارات يظل يحصل على الإيميل)
       if (email != null && email.isNotEmpty) {
+        final details = <String, String>{
+          'المستلم': recipientName,
+          'معرف المستلم': userId.trim(),
+          if (emailDetails != null) ...emailDetails,
+        };
         unawaited(
-          EmailNotificationService.sendNotification(
+          EmailNotificationService.sendDetailedNotification(
             toEmail: email,
             title: title,
             body: body,
+            recipientLabel: recipientName,
+            notificationType: notificationType ?? 'إشعار موظف',
+            actionText: actionText,
+            referenceId: referenceId ?? userId.trim(),
+            details: details,
           ),
         );
       } else {
@@ -857,6 +1019,10 @@ class FirestoreServices {
     required String userId,
     required String title,
     required String body,
+    String? notificationType,
+    String? actionText,
+    String? referenceId,
+    Map<String, String>? emailDetails,
   }) async {
     try {
       // 1. هات بيانات المستخدم من Firestore
@@ -874,14 +1040,29 @@ class FirestoreServices {
       final data = doc.data();
       final email = data?['email']?.toString().trim();
       final token = data?['fcmToken']?.toString();
+      final rawRecipientName = data?['name']?.toString().trim();
+      final recipientName =
+          (rawRecipientName != null && rawRecipientName.isNotEmpty)
+              ? rawRecipientName
+              : 'العميل';
 
       // إرسال إيميل حتى عند غياب FCM (من لم يثبت التطبيق أو عطّل الإشعارات يظل يحصل على الإيميل)
       if (email != null && email.isNotEmpty) {
+        final details = <String, String>{
+          'المستلم': recipientName,
+          'معرف المستلم': userId.trim(),
+          if (emailDetails != null) ...emailDetails,
+        };
         unawaited(
-          EmailNotificationService.sendNotification(
+          EmailNotificationService.sendDetailedNotification(
             toEmail: email,
             title: title,
             body: body,
+            recipientLabel: recipientName,
+            notificationType: notificationType ?? 'إشعار عميل',
+            actionText: actionText,
+            referenceId: referenceId ?? userId.trim(),
+            details: details,
           ),
         );
       } else {
@@ -924,12 +1105,30 @@ class FirestoreServices {
     required String title,
     required String body,
     required String scheduledAt,
+    String? notificationType,
+    String? actionText,
+    String? referenceId,
+    Map<String, String>? emailDetails,
   }) async {
     try {
       await _sendFcmViaFunction(topic: topic, title: title, body: body);
 
       // إرسال إيميل إشعار لجميع المستلمين في الـ topic (بدون انتظار)
-      unawaited(_sendEmailForTopic(topic, title, body));
+      unawaited(
+        _sendEmailForTopic(
+          topic,
+          title,
+          body,
+          notificationType: notificationType,
+          actionText: actionText,
+          referenceId: referenceId,
+          emailDetails: <String, String>{
+            'الموضوع': topic,
+            'موعد الإرسال المجدول': scheduledAt,
+            if (emailDetails != null) ...emailDetails,
+          },
+        ),
+      );
 
       log("✅ FCM topic sent: $topic");
     } catch (e) {
@@ -941,8 +1140,12 @@ class FirestoreServices {
   static Future<void> _sendEmailForTopic(
     String topic,
     String title,
-    String body,
-  ) async {
+    String body, {
+    String? notificationType,
+    String? actionText,
+    String? referenceId,
+    Map<String, String>? emailDetails,
+  }) async {
     try {
       final emails = <String>[];
       int skippedEmployees = 0;
@@ -980,11 +1183,20 @@ class FirestoreServices {
       }
 
       for (final email in emails) {
+        final details = <String, String>{
+          'الوجهة': 'إشعار جماعي',
+          'الموضوع': topic,
+          if (emailDetails != null) ...emailDetails,
+        };
         unawaited(
-          EmailNotificationService.sendNotification(
+          EmailNotificationService.sendDetailedNotification(
             toEmail: email,
             title: title,
             body: body,
+            notificationType: notificationType ?? 'إشعار جماعي',
+            actionText: actionText,
+            referenceId: referenceId,
+            details: details,
           ),
         );
       }
@@ -1034,13 +1246,27 @@ class FirestoreServices {
     required List<String> userIds,
     required String title,
     required String body,
+    String? notificationType,
+    String? actionText,
+    String? referenceId,
+    Map<String, String>? emailDetails,
   }) async {
     final seen = <String>{};
     for (final id in userIds) {
       final trimmed = id.trim();
       if (trimmed.isEmpty || seen.contains(trimmed)) continue;
       seen.add(trimmed);
-      unawaited(sendFcm(userId: trimmed, title: title, body: body));
+      unawaited(
+        sendFcm(
+          userId: trimmed,
+          title: title,
+          body: body,
+          notificationType: notificationType,
+          actionText: actionText,
+          referenceId: referenceId,
+          emailDetails: emailDetails,
+        ),
+      );
     }
   }
 }

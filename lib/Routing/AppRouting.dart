@@ -51,7 +51,6 @@ class AppRouting {
 
     GetPage(
       name: '/auth',
-      // middlewares: [AuthMiddleware()],
       page: () {
         return LoginView();
       },
@@ -112,8 +111,7 @@ class AppRouting {
     ),
     GetPage(
       name: '/',
-
-      // middlewares: [AuthMiddleware()],
+      middlewares: [AuthMiddleware()],
       page: () {
         return Home();
       },
@@ -124,21 +122,21 @@ class AppRouting {
           page: () {
             return EmployeeTable();
           },
-          // middlewares: [AuthMiddleware()],
+          middlewares: [AuthMiddleware()],
         ),
         GetPage(
           name: '/clients',
           page: () {
             return ClientsTable();
           },
-          // middlewares: [AuthMiddleware()],
+          middlewares: [AuthMiddleware()],
         ),
         GetPage(
           name: '/content',
           page: () {
             return ContentsTable();
           },
-          // middlewares: [AuthMiddleware()],
+          middlewares: [AuthMiddleware()],
         ),
         GetPage(
           name: '/statistics',
@@ -166,7 +164,7 @@ class AppRouting {
           page: () {
             return Tasks();
           },
-          // middlewares: [AuthMiddleware()],
+          middlewares: [AuthMiddleware()],
         ),
         // GetPage(
         //   name: '/conversation',
@@ -182,7 +180,7 @@ class AppRouting {
       page: () {
         return EmployeeDashBord();
       },
-      // middlewares: [AuthMiddleware()],
+      middlewares: [AuthMiddleware()],
     ),
   ];
 }

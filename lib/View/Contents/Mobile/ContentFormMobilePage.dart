@@ -191,7 +191,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                     height: 48,
                     fillColor: Colors.white,
                     controller: titleController,
-                    validator: (v) => (v == null || v.isEmpty) ? ' ' : null,
+                    validator: (_) => null,
                     borderRadius: 8,
                     borderColor: Colors.grey.shade300,
                   ),
@@ -206,7 +206,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                       textInputType: TextInputType.datetime,
                       controller: publishDateController,
                       readOnly: true,
-                      validator: (v) => (v == null || v.isEmpty) ? ' ' : null,
+                      validator: (_) => null,
                       suffixIcon: Icon(
                         CupertinoIcons.calendar,
                         color: Colors.grey.shade600,
@@ -240,7 +240,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                         executorController.text = value.id ?? '';
                       }
                     },
-                    validator: (v) => v == null ? ' ' : null,
+                    validator: (_) => null,
                   ),
                   const SizedBox(height: 16),
                   DynamicDropdown<String>(
@@ -263,7 +263,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                     onChanged: (value) {
                       if (value != null) contentTypeController.text = value;
                     },
-                    validator: (v) => (v == null || v.isEmpty) ? ' ' : null,
+                    validator: (_) => null,
                   ),
                   const SizedBox(height: 16),
                   Obx(
@@ -277,8 +277,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                       borderColor: Colors.grey.shade300,
                       height: 48,
                       fillColor: Colors.white,
-                      validator: (v) =>
-                          (v == null || v.isEmpty) ? ' ' : null,
+                      validator: (_) => null,
                       onChanged: (value) => platforms.assignAll(value),
                     ),
                   ),
@@ -300,16 +299,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                     height: 48,
                     fillColor: Colors.white,
                     controller: fileController,
-                    validator: (v) {
-                      if (controller.uploadedFilesPaths.isEmpty &&
-                          fileController.text.isEmpty) {
-                        return ' ';
-                      }
-                      if (v != null && v.isNotEmpty && !v.isURL) {
-                        return 'رابط خطأ';
-                      }
-                      return null;
-                    },
+                    validator: (_) => null,
                     borderRadius: 8,
                     borderColor: Colors.grey.shade300,
                   ),

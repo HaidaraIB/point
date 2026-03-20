@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -16,6 +17,7 @@ import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/NotificationService.dart';
 import 'package:point/Services/StorageKeys.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:file_picker/file_picker.dart';
 // import 'package:http/http.dart' as http;
@@ -23,6 +25,7 @@ import 'package:uuid/uuid.dart';
 
 class HomeController extends GetxController {
   final FirestoreServices _service = FirestoreServices();
+  FirestoreServices get service => _service;
   int selectedIndex = 0;
 
   var clientController = TextEditingController();
@@ -203,6 +206,20 @@ class HomeController extends GetxController {
     EmployeeModel employee, {
     required String password,
   }) async {
+    final emailToCheck = (employee.email ?? '').trim().toLowerCase();
+    if (emailToCheck.isNotEmpty) {
+      final emailUsed = await _service.isEmailUsedAcrossUsers(emailToCheck);
+      if (emailUsed) {
+        FunHelper.showsnackbar(
+          'error'.tr,
+          'البريد الإلكتروني مستخدم مسبقاً في حساب موظف أو عميل.',
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return false;
+      }
+    }
     isLoading.value = true;
     final result = await _service.createEmployeeWithAuth(
       employee: employee,
@@ -231,6 +248,23 @@ class HomeController extends GetxController {
     EmployeeModel employee, {
     String? newPassword,
   }) async {
+    final emailToCheck = (employee.email ?? '').trim().toLowerCase();
+    if (emailToCheck.isNotEmpty) {
+      final emailUsed = await _service.isEmailUsedAcrossUsers(
+        emailToCheck,
+        excludeEmployeeId: employee.id,
+      );
+      if (emailUsed) {
+        FunHelper.showsnackbar(
+          'error'.tr,
+          'البريد الإلكتروني مستخدم مسبقاً في حساب موظف أو عميل.',
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return false;
+      }
+    }
     isLoading.value = true;
     // نحتاج النسخة القديمة للمقارنة وتمريرها للـ service
     final existing = employees.firstWhereOrNull((e) => e.id == employee.id);
@@ -261,6 +295,20 @@ class HomeController extends GetxController {
   }
 
   Future<bool> addClient(ClientModel client, {required String password}) async {
+    final emailToCheck = (client.email ?? '').trim().toLowerCase();
+    if (emailToCheck.isNotEmpty) {
+      final emailUsed = await _service.isEmailUsedAcrossUsers(emailToCheck);
+      if (emailUsed) {
+        FunHelper.showsnackbar(
+          'error'.tr,
+          'البريد الإلكتروني مستخدم مسبقاً في حساب موظف أو عميل.',
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return false;
+      }
+    }
     isLoading.value = true;
     final result = await _service.createClientWithAuth(
       client: client,
@@ -271,6 +319,23 @@ class HomeController extends GetxController {
   }
 
   Future<bool> updateClient(ClientModel client, {String? newPassword}) async {
+    final emailToCheck = (client.email ?? '').trim().toLowerCase();
+    if (emailToCheck.isNotEmpty) {
+      final emailUsed = await _service.isEmailUsedAcrossUsers(
+        emailToCheck,
+        excludeClientId: client.id,
+      );
+      if (emailUsed) {
+        FunHelper.showsnackbar(
+          'error'.tr,
+          'البريد الإلكتروني مستخدم مسبقاً في حساب موظف أو عميل.',
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return false;
+      }
+    }
     isLoading.value = true;
     final existing = clients.firstWhereOrNull((c) => c.id == client.id);
     final result =
@@ -492,6 +557,15 @@ class HomeController extends GetxController {
     return a == b;
   }
 
+  double? _normalizeProgressStep(double? value) {
+    if (value == null) return null;
+    const int stepsCount = 5; // 0, 25, 50, 75, 100
+    const int segments = stepsCount - 1;
+    const double stepSize = 1 / segments;
+    final snapped = (value.clamp(0.0, 1.0) / stepSize).round() * stepSize;
+    return snapped.clamp(0.0, 1.0);
+  }
+
   void _addIfChanged(
     List<TaskTimelineEvent> events,
     String label,
@@ -573,14 +647,16 @@ class HomeController extends GetxController {
       now,
       fieldKey: 'description',
     );
-    if (oldTask.progress != newTask.progress) {
+    final normalizedOldProgress = _normalizeProgressStep(oldTask.progress);
+    final normalizedNewProgress = _normalizeProgressStep(newTask.progress);
+    if (normalizedOldProgress != normalizedNewProgress) {
       final oldP =
-          oldTask.progress != null
-              ? '${(oldTask.progress! * 100).round()}%'
+          normalizedOldProgress != null
+              ? '${(normalizedOldProgress * 100).round()}%'
               : '';
       final newP =
-          newTask.progress != null
-              ? '${(newTask.progress! * 100).round()}%'
+          normalizedNewProgress != null
+              ? '${(normalizedNewProgress * 100).round()}%'
               : '';
       _addIfChanged(
         events,
@@ -1324,23 +1400,41 @@ class HomeController extends GetxController {
   Future<EmployeeModel?> loginClient(email, pass) async {
     isLoading.value = true;
     final result = await _service.loginEmployee(email, pass);
+    // يجب تعبئة الجلسة هنا فورًا: AuthMiddleware يعتمد على currentemployee قبل التنقل،
+    // بينما listenToClient يحدّثه فقط عند وصول أول snapshot من Firestore (متأخر عن أول إطار).
+    if (result != null && result.id != null) {
+      currentemployee.value = result;
+      lastKnownEmployee.value = result;
+      _startTotalUnreadStream(result.id!);
+      listenToClient(result.id!);
+      fetchnotification(result.id);
+    }
     isLoading.value = false;
     return result;
   }
 
   final _clientCollection = FirebaseFirestore.instance.collection("employees");
   Rxn<EmployeeModel> currentemployee = Rxn<EmployeeModel>();
+  Rxn<EmployeeModel> lastKnownEmployee = Rxn<EmployeeModel>();
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _employeeDocSub;
+  EmployeeModel? get effectiveEmployee =>
+      currentemployee.value ?? lastKnownEmployee.value;
 
   void listenToClient(String empid) async {
-    _clientCollection.doc(empid).snapshots().listen((snapshot) async {
-      if (snapshot.exists) {
-        currentemployee.value = EmployeeModel.fromJson(snapshot.data()!);
-        _startTotalUnreadStream(empid);
-      } else {
-        currentemployee.value = null;
-        _stopTotalUnreadStream();
-      }
-    });
+    _employeeDocSub?.cancel();
+    _employeeDocSub = _clientCollection.doc(empid).snapshots().listen(
+      (snapshot) async {
+        if (snapshot.exists && snapshot.data() != null) {
+          final employee = EmployeeModel.fromJson(snapshot.data()!);
+          currentemployee.value = employee;
+          lastKnownEmployee.value = employee;
+          _startTotalUnreadStream(empid);
+        }
+      },
+      onError: (e, s) {
+        log('listenToClient stream error for $empid: $e');
+      },
+    );
     fetchContents();
     // fetchnotification(currentemployee.value?.id);
   }
@@ -1496,13 +1590,93 @@ class HomeController extends GetxController {
       filterTasks();
       filterTasksHistory();
     });
+    _restoreEmployeeSessionIfNeeded();
     super.onInit();
   }
 
   @override
   void onClose() {
+    _employeeDocSub?.cancel();
+    _employeeDocSub = null;
     _stopTotalUnreadStream();
     super.onClose();
+  }
+
+  Future<void> _restoreEmployeeSessionIfNeeded() async {
+    // Avoid re-login when already hydrated (normal in-app navigation).
+    if (effectiveEmployee != null) return;
+
+    try {
+      final pref = await SharedPreferences.getInstance();
+      final isLoggedIn = (pref.getBool('isLoggedIn') ?? false) == true;
+      if (!isLoggedIn) return;
+
+      // على الويب تُستعاد جلسة Firebase من IndexedDB بشكل غير متزامن؛
+      // استدعاء getCurrentEmployeeByAuth() مباشرة بعد التحديث غالبًا يجد currentUser == null.
+      if (kIsWeb) {
+        await _waitForFirebaseAuthHydrationOnWeb();
+      }
+
+      final employee = await _service.getCurrentEmployeeByAuth();
+      if (employee == null || employee.id == null) return;
+      if (employee.status != 'active') return;
+
+      // Keep employee state alive after browser refresh/deep-link.
+      currentemployee.value = employee;
+      lastKnownEmployee.value = employee;
+      _startTotalUnreadStream(employee.id!);
+      fetchnotification(employee.id);
+      listenToClient(employee.id!);
+      unawaited(setupFCM(employee.id));
+
+      // بعد التحديث المسار الابتدائي للويب هو /auth/login حتى مع جلسة صالحة.
+      if (kIsWeb) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _maybeNavigateWebToDashboardAfterRestore(employee);
+        });
+      }
+    } catch (e, s) {
+      log('restoreEmployeeSessionIfNeeded error: $e');
+      log('StackTrace: $s');
+    }
+  }
+
+  /// انتظار اكتمال تهيئة Firebase Auth بعد تحديث الصفحة (ويب فقط).
+  Future<void> _waitForFirebaseAuthHydrationOnWeb() async {
+    if (FirebaseAuth.instance.currentUser != null) return;
+    try {
+      await FirebaseAuth.instance
+          .authStateChanges()
+          .first
+          .timeout(const Duration(seconds: 1));
+    } catch (_) {
+      // نكمل بالاستعلام عن currentUser أدناه.
+    }
+    for (var i = 0; i < 80; i++) {
+      if (FirebaseAuth.instance.currentUser != null) return;
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    }
+  }
+
+  void _maybeNavigateWebToDashboardAfterRestore(EmployeeModel employee) {
+    final route = Get.currentRoute;
+    if (route == '/' || route == '/employeeDashboard') return;
+    _offAllNamedToRoleHome(employee);
+  }
+
+  void _offAllNamedToRoleHome(EmployeeModel employee) {
+    final role = employee.role;
+    if (role == 'employee') {
+      Get.offAllNamed('/employeeDashboard');
+    } else {
+      Get.offAllNamed('/');
+    }
+  }
+
+  void clearEmployeeSession() {
+    currentemployee.value = null;
+    lastKnownEmployee.value = null;
+    _stopTotalUnreadStream();
   }
 }
 

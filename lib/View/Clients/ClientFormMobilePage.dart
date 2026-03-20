@@ -1,4 +1,4 @@
-import 'dart:math';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -6,8 +6,10 @@ import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/ClientModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppColors.dart';
-import 'package:point/View/Auth/CreateUserAccount.dart' show validatePasswordStrong;
 import 'package:point/View/Shared/InputText.dart';
+import 'package:point/View/Shared/ReadOnlyAccountEmailField.dart';
+import 'package:point/Utils/PasswordValidator.dart';
+import 'package:uuid/uuid.dart';
 
 /// Mobile-only full-screen add/edit client form.
 /// Opened when showAddEmployeeDialog is called on mobile; desktop keeps the dialog.
@@ -33,13 +35,25 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
   DateTime? endAt;
   bool obscurePassword = true;
 
+  bool get _canEditCredentials {
+    final m = widget.model;
+    if (m == null) return true;
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final au = m.authUid;
+    return uid != null &&
+        uid.isNotEmpty &&
+        au != null &&
+        au.isNotEmpty &&
+        uid == au;
+  }
+
   @override
   void initState() {
     super.initState();
     final m = widget.model;
     nameController = TextEditingController(text: m?.name);
     emailController = TextEditingController(text: m?.email);
-    passwordController = TextEditingController(text: m?.password);
+    passwordController = TextEditingController();
     descController = TextEditingController(text: m?.description);
     startDateController = TextEditingController(text: FunHelper.formatdate(m?.startAt));
     endDateController = TextEditingController(text: FunHelper.formatdate(m?.endAt));
@@ -114,9 +128,12 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
 
     if (model == null) {
       final success = await controller.addClient(
-        password: passwordController.text,
+        password:
+            passwordController.text.trim().isEmpty
+                ? 'TempPass@123'
+                : passwordController.text.trim(),
         ClientModel(
-          id: '${Random().nextInt(100000)}',
+          id: const Uuid().v4(),
           name: nameController.text,
           email: emailController.text,
           image: controller.uploadedFilesPaths.lastOrNull,
@@ -136,13 +153,19 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
       final success = await controller.updateClient(
         model.copyWith(
           name: nameController.text,
-          email: emailController.text,
-          createdAt: DateTime.now(),
+          email:
+              _canEditCredentials
+                  ? emailController.text
+                  : (model.email ?? ''),
           image: controller.uploadedFilesPaths.lastOrNull,
           startAt: startAt,
           endAt: endAt,
           description: descController.text,
         ),
+        newPassword:
+            !_canEditCredentials || passwordController.text.trim().isEmpty
+                ? null
+                : passwordController.text.trim(),
       );
       if (!mounted) return;
       if (success) {
@@ -210,7 +233,7 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
                   InputText(
                     labelText: 'name'.tr,
                     hintText: 'entername'.tr,
@@ -222,43 +245,62 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
                     borderColor: Colors.grey.shade300,
                   ),
                   const SizedBox(height: 16),
-                  InputText(
-                    labelText: 'email'.tr,
-                    hintText: 'example@example.com'.tr,
-                    height: 48,
-                    fillColor: Colors.white,
-                    textInputType: TextInputType.emailAddress,
-                    controller: emailController,
-                    validator: (v) {
-                      if (v == null || v.isEmpty || !v.toString().isEmail) return ' ';
-                      return null;
-                    },
-                    borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
-                  ),
-                  const SizedBox(height: 16),
-                  InputText(
-                    hintText: widget.model != null ? 'leave_empty_unchanged'.tr : '******'.tr,
-                    labelText: 'password'.tr,
-                    obscureText: obscurePassword,
-                    controller: passwordController,
-                    height: 48,
-                    fillColor: Colors.white,
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        obscurePassword ? Icons.visibility_off : Icons.visibility,
-                        color: Colors.grey.shade600,
-                      ),
-                      onPressed: () => setState(() => obscurePassword = !obscurePassword),
+                  if (widget.model == null || _canEditCredentials) ...[
+                    InputText(
+                      labelText: 'email'.tr,
+                      hintText: 'example@example.com'.tr,
+                      height: 48,
+                      fillColor: Colors.white,
+                      textInputType: TextInputType.emailAddress,
+                      controller: emailController,
+                      validator: (v) {
+                        if (v == null || v.isEmpty || !v.toString().isEmail) {
+                          return ' ';
+                        }
+                        return null;
+                      },
+                      borderRadius: 8,
+                      borderColor: Colors.grey.shade300,
                     ),
-                    validator: (v) {
-                      if (widget.model != null && (v == null || v.isEmpty)) return null;
-                      return validatePasswordStrong(v);
-                    },
-                    borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
-                  ),
-                  const SizedBox(height: 16),
+                    const SizedBox(height: 16),
+                    InputText(
+                      hintText:
+                          widget.model == null
+                              ? '******'.tr
+                              : 'leave_empty_unchanged'.tr,
+                      labelText: 'password'.tr,
+                      obscureText: obscurePassword,
+                      controller: passwordController,
+                      height: 48,
+                      fillColor: Colors.white,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          obscurePassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          color: Colors.grey.shade600,
+                        ),
+                        onPressed:
+                            () => setState(() => obscurePassword = !obscurePassword),
+                      ),
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return null;
+                        return validatePasswordStrong(v);
+                      },
+                      borderRadius: 8,
+                      borderColor: Colors.grey.shade300,
+                    ),
+                    const SizedBox(height: 16),
+                  ] else ...[
+                    ReadOnlyAccountEmailField(
+                      email: widget.model?.email ?? '',
+                      height: 48,
+                      borderRadius: 8,
+                      borderColor: Colors.grey.shade300,
+                      fillColor: Colors.white,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   InputText(
                     labelText: 'desc'.tr,
                     hintText: '',

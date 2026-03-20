@@ -20,8 +20,12 @@ class ClientController extends GetxController {
     update();
   }
   final FirestoreServices _service = FirestoreServices();
+  FirestoreServices get service => _service;
   Future<bool> addClient(ClientModel client) async {
-    final exists = clients.any((c) => c.email == client.email);
+    final normalizedEmail = (client.email ?? '').trim().toLowerCase();
+    final exists = clients.any(
+      (c) => (c.email ?? '').trim().toLowerCase() == normalizedEmail,
+    );
     if (exists) {
       FunHelper.showsnackbar(
         'error'.tr,
@@ -33,6 +37,19 @@ class ClientController extends GetxController {
 
       return false;
     }
+    if (normalizedEmail.isNotEmpty) {
+      final crossUsed = await _service.isEmailUsedAcrossUsers(normalizedEmail);
+      if (crossUsed) {
+        FunHelper.showsnackbar(
+          'error'.tr,
+          'البريد الإلكتروني مستخدم مسبقاً في حساب موظف أو عميل.',
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return false;
+      }
+    }
     isLoading.value = true;
     final result = await _service.addClient(client);
     isLoading.value = false;
@@ -40,6 +57,23 @@ class ClientController extends GetxController {
   }
 
   Future<bool> updateClient(ClientModel client) async {
+    final normalizedEmail = (client.email ?? '').trim().toLowerCase();
+    if (normalizedEmail.isNotEmpty) {
+      final crossUsed = await _service.isEmailUsedAcrossUsers(
+        normalizedEmail,
+        excludeClientId: client.id,
+      );
+      if (crossUsed) {
+        FunHelper.showsnackbar(
+          'error'.tr,
+          'البريد الإلكتروني مستخدم مسبقاً في حساب موظف أو عميل.',
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return false;
+      }
+    }
     isLoading.value = true;
     final result = await _service.updateClient(client);
     isLoading.value = false;

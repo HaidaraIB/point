@@ -48,7 +48,6 @@ EmployeeModel getFakeCurrentUser() {
         role: 'cat1',
         status: 'status',
         createdAt: DateTime.now(),
-        password: 'password',
       ); // أو department آخر
 }
 

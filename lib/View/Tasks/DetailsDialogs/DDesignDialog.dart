@@ -13,13 +13,14 @@ void showDesignDetailsDialog(BuildContext context, {required TaskModel task}) {
   Responsive.isMobile(context)
       ? showTaskDetailsMobile(context, task: task)
       : showDialog(
-          context: context,
-          builder: (context) => GenericTaskDetailsDialog(
-            task: task,
-            dialogWidthFraction: 0.7,
-            typeSpecificSection: DesignDetailsSection(task: task),
-          ),
-        );
+        context: context,
+        builder:
+            (context) => GenericTaskDetailsDialog(
+              task: task,
+              dialogWidthFraction: 0.7,
+              typeSpecificSection: DesignDetailsSection(task: task),
+            ),
+      );
 }
 
 /// Type-specific info section for Design task details (web).
@@ -30,105 +31,111 @@ class DesignDetailsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final infoBoxWidth = (Get.width * 0.7 - 550) / 6;
-    final sectionWidth = Get.width * 0.7 - 450;
+    final clientName =
+        Get.find<HomeController>().clients
+            .firstWhereOrNull((emp) => emp.id == task.clientName)
+            ?.name ??
+        task.clientName;
 
-    return Row(
-      children: [
-        Container(
-          height: 110,
-          width: sectionWidth,
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TaskDetailsDialogHelpers.infoBox(
-                'العميل',
-                Get.find<HomeController>().clients
-                        .firstWhereOrNull(
-                          (emp) => emp.id == task.clientName,
-                        )
-                        ?.name ??
-                    '',
-                width: infoBoxWidth,
-                height: 110,
-              ),
-              _divider(),
-              TaskDetailsDialogHelpers.infoBox(
-                'نوع التصميم',
-                task.designDetails!.taskType.tr,
-                width: infoBoxWidth,
-                height: 110,
-              ),
-              _divider(),
-              TaskDetailsDialogHelpers.infoBox(
-                'المنصة',
-                task.designDetails!.platform.toString().tr,
-                width: infoBoxWidth,
-                height: 110,
-              ),
-              _divider(),
-              TaskDetailsDialogHelpers.infoBox(
-                'الاولويه',
-                task.priority.tr,
-                width: infoBoxWidth,
-                height: 110,
-                child: TaskDetailsDialogHelpers.buildTag(task.priority, tr: true),
-              ),
-              SizedBox(height: 25, child: _divider()),
-              TaskDetailsDialogHelpers.infoBox(
-                'عدد التصاميم',
-                '${task.designDetails!.designCount}',
-                width: infoBoxWidth,
-                height: 110,
-              ),
-              _divider(),
-              TaskDetailsDialogHelpers.infoBox(
-                'القياسات',
-                task.designDetails!.designsDimensions ?? '',
-                width: infoBoxWidth,
-                height: 110,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 10),
-        Container(
-          height: 110,
-          width: 380,
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TaskDetailsDialogHelpers.infoBoxDates(
-                'تاريخ البداية',
-                FunHelper.formatdate(task.fromDate),
-                CupertinoIcons.calendar,
-              ),
-              TaskDetailsDialogHelpers.infoBoxDates(
-                'تاريخ النهاية',
-                FunHelper.formatdate(task.toDate),
-                CupertinoIcons.calendar,
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxW = constraints.maxWidth;
+        final cellWidth = TaskDetailsDialogHelpers.gridCellWidth(maxW);
 
-  Widget _divider() {
-    return const SizedBox(
-      height: 35,
-      child: VerticalDivider(color: Colors.grey, thickness: 1),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  TaskDetailsDialogHelpers.infoBox(
+                    'العميل',
+                    clientName,
+                    width: cellWidth,
+                    height: 110,
+                  ),
+                  TaskDetailsDialogHelpers.infoBox(
+                    'نوع المهمة',
+                    task.designDetails!.taskType.tr,
+                    width: cellWidth,
+                    height: 110,
+                  ),
+                  TaskDetailsDialogHelpers.infoBox(
+                    'نوع التصميم',
+                    task.designDetails!.designType.tr,
+                    width: cellWidth,
+                    height: 110,
+                  ),
+                  TaskDetailsDialogHelpers.infoBox(
+                    'المنصة',
+                    task.designDetails!.platform.isEmpty
+                        ? '-'
+                        : task.designDetails!.platform
+                            .map((e) => e.toString().tr)
+                            .join('، '),
+                    width: cellWidth,
+                    height: 110,
+                  ),
+                  TaskDetailsDialogHelpers.infoBox(
+                    'الاولويه',
+                    task.priority.tr,
+                    width: cellWidth,
+                    height: 110,
+                    child: TaskDetailsDialogHelpers.buildTag(
+                      task.priority,
+                      tr: true,
+                    ),
+                  ),
+                  TaskDetailsDialogHelpers.infoBox(
+                    'عدد التصاميم',
+                    '${task.designDetails!.designCount ?? '-'}',
+                    width: cellWidth,
+                    height: 110,
+                  ),
+                  TaskDetailsDialogHelpers.infoBox(
+                    'القياسات',
+                    task.designDetails!.designsDimensions ?? '-',
+                    width: cellWidth,
+                    height: 110,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              constraints: const BoxConstraints(minHeight: 110),
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Wrap(
+                alignment: WrapAlignment.center,
+                runSpacing: 8,
+                children: [
+                  TaskDetailsDialogHelpers.infoBoxDates(
+                    'تاريخ البداية',
+                    FunHelper.formatdate(task.fromDate),
+                    CupertinoIcons.calendar,
+                  ),
+                  TaskDetailsDialogHelpers.infoBoxDates(
+                    'تاريخ النهاية',
+                    FunHelper.formatdate(task.toDate),
+                    CupertinoIcons.calendar,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

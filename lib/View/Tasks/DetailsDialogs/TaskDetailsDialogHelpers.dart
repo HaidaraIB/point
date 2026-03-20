@@ -7,6 +7,18 @@ import 'package:point/Utils/AppColors.dart';
 class TaskDetailsDialogHelpers {
   TaskDetailsDialogHelpers._();
 
+  static double gridCellWidth(
+    double maxWidth, {
+    int columns = 3,
+    double spacing = 12,
+    double min = 140,
+    double max = 260,
+  }) {
+    if (columns <= 0) return min;
+    final raw = (maxWidth - (spacing * (columns - 1))) / columns;
+    return raw.clamp(min, max);
+  }
+
   static Color getPriorityColor(String priority) {
     switch (priority) {
       case 'normal':
@@ -66,12 +78,11 @@ class TaskDetailsDialogHelpers {
   }) {
     return Container(
       width: width,
-      height: height ?? double.infinity,
+      constraints: BoxConstraints(minHeight: height ?? 0),
       padding: const EdgeInsets.all(8),
       decoration: const BoxDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
@@ -80,22 +91,22 @@ class TaskDetailsDialogHelpers {
             style: const TextStyle(fontSize: 12, color: Colors.grey),
           ),
           const SizedBox(height: 10),
-          Expanded(
-            child: Center(
-              child: child ??
-                  Text(
-                    value,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                      color: AppColors.primaryfontColor,
-                    ),
+          child ??
+              Tooltip(
+                message: value,
+                child: Text(
+                  value,
+                  textAlign: TextAlign.center,
+                  softWrap: true,
+                  maxLines: 4,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    color: AppColors.primaryfontColor,
                   ),
-            ),
-          ),
+                ),
+              ),
         ],
       ),
     );
@@ -119,15 +130,23 @@ class TaskDetailsDialogHelpers {
             children: [
               Icon(icon, color: Colors.grey),
               const SizedBox(width: 5),
-              Text(
-                title,
-                style: const TextStyle(fontSize: 14, color: Colors.grey),
+              Expanded(
+                child: Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 10),
           Text(
             value ?? '',
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 12,
@@ -147,7 +166,7 @@ class TaskDetailsDialogHelpers {
   }) {
     return Container(
       width: 200,
-      height: 140,
+      constraints: const BoxConstraints(minHeight: 140),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
@@ -170,15 +189,19 @@ class TaskDetailsDialogHelpers {
                 ),
               ),
               const SizedBox(width: 5),
-              SizedBox(
-                width: 100,
-                child: Text(
-                  title,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                    color: AppColors.primaryfontColor,
+              Expanded(
+                child: Tooltip(
+                  message: title,
+                  child: Text(
+                    title,
+                    softWrap: true,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                      color: AppColors.primaryfontColor,
+                    ),
                   ),
                 ),
               ),
@@ -202,6 +225,67 @@ class TaskDetailsDialogHelpers {
           ),
         ],
       ),
+    );
+  }
+
+  /// Thumbnail tile used in task details dialogs.
+  /// Tapping the thumbnail triggers [onOpen] (same behavior as "تنزيل").
+  static Widget attachmentThumbnail(
+    String url, {
+    required VoidCallback onOpen,
+  }) {
+    final lower = url.toString().toLowerCase();
+    final isImage =
+        lower.endsWith('.jpg') ||
+        lower.endsWith('.jpeg') ||
+        lower.endsWith('.png') ||
+        lower.endsWith('.webp') ||
+        lower.endsWith('.gif');
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double size =
+            constraints.maxWidth < constraints.maxHeight
+                ? constraints.maxWidth
+                : constraints.maxHeight;
+
+        return InkWell(
+          onTap: onOpen,
+          borderRadius: BorderRadius.circular(10),
+          child: Center(
+            child: SizedBox(
+              width: size,
+              height: size,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child:
+                    isImage
+                        ? Image.network(
+                          url,
+                          fit: BoxFit.cover,
+                          errorBuilder:
+                              (_, __, ___) => Container(
+                                color: Colors.blueGrey.shade100,
+                                child: const Icon(
+                                  Icons.link,
+                                  color: Colors.blueGrey,
+                                  size: 24,
+                                ),
+                              ),
+                        )
+                        : Container(
+                          color: Colors.blueGrey.shade100,
+                          child: const Icon(
+                            Icons.link,
+                            color: Colors.blueGrey,
+                            size: 24,
+                          ),
+                        ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

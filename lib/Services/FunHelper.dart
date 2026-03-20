@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -77,37 +78,55 @@ class FunHelper {
 
   static showConfirmDailog(
     BuildContext context, {
-    required Function() onTap,
+    required FutureOr<void> Function() onTap,
+    String title = 'تحذير',
+    String message = 'هل متأكد من اتمام العمليه',
+    String confirmText = 'تأكيد',
+    Color? confirmColor,
+    String? cancelText,
+    Color cancelColor = const Color(0xFF7A8194),
   }) async {
+    final dialogWidth = Get.width > 900 ? 420.0 : Get.width * 0.82;
     return showDialog<String>(
       context: context,
       builder:
           (context) => AlertDialog(
             backgroundColor: Colors.white,
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 24,
+              vertical: 24,
+            ),
+            contentPadding: const EdgeInsets.fromLTRB(28, 24, 28, 12),
+            actionsPadding: const EdgeInsets.fromLTRB(20, 6, 20, 20),
+            actionsAlignment: MainAxisAlignment.center,
+            actionsOverflowAlignment: OverflowBarAlignment.center,
+            actionsOverflowDirection: VerticalDirection.down,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(15),
             ),
-            title: Text(''),
             content: SizedBox(
-              height: 130,
-              width: Get.width / 3,
-
+              width: dialogWidth,
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.info_outline_rounded,
                     color: AppColors.primary,
                     size: 40,
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   Text(
-                    'تحذير',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 28,
+                    ),
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   Text(
-                    'هل متأكد من اتمام العمليه',
-                    style: TextStyle(fontSize: 16),
+                    message,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 16),
                   ),
                 ],
               ),
@@ -116,28 +135,27 @@ class FunHelper {
             actions: [
               MainButton(
                 icon: false,
-                title: 'تأكيد',
+                title: cancelText ?? 'cancel'.tr,
                 fontcolor: Colors.white,
-                // borderColor: AppColors.primary,
-                backgroundcolor: AppColors.primary,
-                width: 100,
+                backgroundcolor: cancelColor,
+                width: 126,
                 bordersize: 5,
-                height: 30,
+                height: 38,
                 onpress: () {
-                  onTap();
                   Get.back();
                 },
               ),
+              const SizedBox(width: 10),
               MainButton(
                 icon: false,
-                title: 'cancel'.tr,
+                title: confirmText,
                 fontcolor: Colors.white,
-                // borderColor: AppColors.primary,
-                backgroundcolor: Colors.red,
-                width: 100,
+                backgroundcolor: confirmColor ?? AppColors.primary,
+                width: 126,
                 bordersize: 5,
-                height: 30,
-                onpress: () {
+                height: 38,
+                onpress: () async {
+                  await Future.sync(onTap);
                   Get.back();
                 },
               ),
@@ -194,18 +212,16 @@ class FunHelper {
     );
   }
 
-  static savelogindata(email, pass) async {
+  static savelogindata(email) async {
     SharedPreferences pref = await SharedPreferences.getInstance();
     await pref.setBool('isLoggedIn', true);
     await pref.setString('email', email);
-    await pref.setString('password', pass);
   }
 
   static removelogindata() async {
     SharedPreferences pref = await SharedPreferences.getInstance();
     await pref.remove('isLoggedIn');
     await pref.remove('email');
-    await pref.remove('password');
   }
 }
 

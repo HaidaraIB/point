@@ -6,7 +6,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Bindings/AppBindings.dart';
-import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppTranslations.dart';
 import 'package:point/Routing/AppRouting.dart';
 import 'package:point/Services/FcmServices.dart';
@@ -54,7 +53,6 @@ void main(List<String> args) async {
           : '⚠️ تحقق من إعداد Firebase Storage (.env و Storage rules)',
     );
   }
-  Get.put(HomeController());
   // await html.Notification.requestPermission();
   FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
     await NotificationService().init();
@@ -75,12 +73,8 @@ Future<String?> checkLogin() async {
   SharedPreferences pref = await SharedPreferences.getInstance();
   var islogin = await pref.get('isLoggedIn') ?? false;
   var email = await pref.get('email') ?? '';
-  var password = await pref.get('password') ?? '';
-  if (islogin == true && email != '' && password != '') {
-    return await attemptSilentLogin(
-      email: email.toString(),
-      password: password.toString(),
-    );
+  if (islogin == true && email != '') {
+    return await attemptSilentLogin();
   }
   return null;
 }

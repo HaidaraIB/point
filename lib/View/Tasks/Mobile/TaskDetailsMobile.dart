@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
@@ -168,6 +170,17 @@ class TaskDetailsMobilePage extends StatelessWidget {
                   ],
                 ),
               ),
+              const SizedBox(height: 12),
+              _buildCard(
+                context,
+                child: _fieldRow(
+                  context,
+                  'نص الإجراء',
+                  task.actionText.isNotEmpty ? task.actionText : '-',
+                ),
+              ),
+              const SizedBox(height: 12),
+              _buildTypeDetailsCard(context),
               if (task.timelineEvents.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 TaskTimelineWidget(events: task.timelineEvents),
@@ -214,6 +227,288 @@ class TaskDetailsMobilePage extends StatelessWidget {
           fontSize: 12,
           fontWeight: FontWeight.w600,
         ),
+      ),
+    );
+  }
+
+  Widget _fieldRow(
+    BuildContext context,
+    String label,
+    String value,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          SelectableText(
+            value,
+            style: TextStyle(
+              fontSize: 13,
+              color: AppColors.primaryfontColor,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTypeDetailsCard(BuildContext context) {
+    String listOrDash(List? list) =>
+        (list == null || list.isEmpty)
+            ? '-'
+            : list.map((e) => e.toString().tr).join('، ');
+    String dateOrDash(DateTime? d) =>
+        d == null ? '-' : (FunHelper.formatdate(d) ?? '-');
+
+    final List<Widget> fields = [];
+
+    switch (task.type) {
+      // 0: Promotion/Campaign
+      case '0':
+        final promo = task.promotionModel;
+        String normalizeDepartmentId(String? value) {
+          final v = value?.trim() ?? '';
+          if (v.isEmpty) return '-';
+          final match = RegExp(r'^c(\d+)$').firstMatch(v);
+          if (match != null) {
+            return 'cat${match.group(1)}';
+          }
+          return v;
+        }
+
+        String displayPromoName(String? value) {
+          final v = value?.trim() ?? '';
+          if (v.isEmpty) return '-';
+          return v.tr;
+        }
+
+        String displayCampaignName(String? value) {
+          final v = value?.trim() ?? '';
+          if (v.isEmpty) return '-';
+          if (v == 'campaignName') return 'campainname'.tr;
+          return v.tr;
+        }
+
+        String displayPromoType(String? value) {
+          final v = value?.trim() ?? '';
+          if (v.isEmpty) return '-';
+          if (v == 'type') return 'promotion'.tr;
+          return v.tr;
+        }
+
+        String displayPromoPriority(String? value) {
+          final v = value?.trim() ?? '';
+          if (v.isEmpty) return '-';
+          if (v == 'priority' || v == 'priortity') return 'priortity'.tr;
+          return v.tr;
+        }
+
+        String displayPromoStatus(String? value) {
+          final v = value?.trim() ?? '';
+          if (v.isEmpty) return '-';
+          if (v == 'status') return 'status'.tr;
+          return v.tr;
+        }
+
+        String displayTarget(String? value) {
+          final v = value?.trim() ?? '';
+          if (v.isEmpty) return '-';
+          return v.tr;
+        }
+
+        fields.add(
+          _fieldRow(context, 'اسم المهمة', displayPromoName(promo?.name)),
+        );
+        fields.add(_fieldRow(context, 'الهدف', displayTarget(promo?.target)));
+        fields.add(
+          _fieldRow(
+            context,
+            'اسم الحملة',
+            displayCampaignName(promo?.campaignName),
+          ),
+        );
+        fields.add(
+          _fieldRow(context, 'نوع المهمة', displayPromoType(promo?.type)),
+        );
+        fields.add(
+          _fieldRow(
+            context,
+            'أولوية المهمة',
+            displayPromoPriority(promo?.priority),
+          ),
+        );
+        fields.add(
+          _fieldRow(
+            context,
+            'حالة المهمة',
+            displayPromoStatus(promo?.status),
+          ),
+        );
+        fields.add(_fieldRow(context, 'وصف المهمة', promo?.description ?? '-'));
+        fields.add(
+          _fieldRow(
+            context,
+            'منفذ المهمة',
+            normalizeDepartmentId(promo?.executorId).tr,
+          ),
+        );
+        fields.add(_fieldRow(context, 'تاريخ البداية', dateOrDash(promo?.startDate)));
+        fields.add(_fieldRow(context, 'تاريخ النهاية', dateOrDash(promo?.endDate)));
+        fields.add(_fieldRow(context, 'المدة', promo?.duration ?? '-'));
+        fields.add(_fieldRow(context, 'العلامات', promo?.tags ?? '-'));
+        fields.add(
+          _fieldRow(context, 'المنصة', listOrDash(promo?.platforms)),
+        );
+        fields.add(_fieldRow(context, 'الاهتمامات', listOrDash(promo?.interests)));
+        fields.add(_fieldRow(context, 'المدن', listOrDash(promo?.cities)));
+        fields.add(_fieldRow(context, 'الدول', listOrDash(promo?.countries)));
+        fields.add(
+          _fieldRow(
+            context,
+            'مجالات الاختصاص',
+            listOrDash(promo?.specializations),
+          ),
+        );
+        fields.add(_fieldRow(context, 'الفئات العمرية', promo?.ageRanges ?? '-'));
+        fields.add(
+          _fieldRow(
+            context,
+            'تفاصيل إضافية (بيانات JSON)',
+            promo?.customDetails == null ? '-' : jsonEncode(promo!.customDetails),
+          ),
+        );
+        fields.add(_fieldRow(context, 'الملاحظات', promo?.notes ?? '-'));
+        fields.add(_fieldRow(context, 'رابط الملفات', promo?.attachementurl ?? '-'));
+        fields.add(
+          _fieldRow(
+            context,
+            'تاريخ الإنشاء',
+            promo == null ? '-' : dateOrDash(promo.createdAt),
+          ),
+        );
+        break;
+
+      // 1: Design
+      case '1':
+        final m = task.designDetails;
+        fields.add(_fieldRow(context, 'نوع المهمة', m?.taskType.tr ?? '-'));
+        fields.add(_fieldRow(context, 'نوع التصميم', m?.designType.tr ?? '-'));
+        fields.add(
+          _fieldRow(
+            context,
+            'المنصة',
+            listOrDash(m?.platform.cast<String>().toList()),
+          ),
+        );
+        fields.add(_fieldRow(context, 'عدد التصاميم', m?.designCount ?? '-'));
+        fields.add(
+          _fieldRow(context, 'القياسات', m?.designsDimensions ?? '-'),
+        );
+        break;
+
+      // 2: Photography
+      case '2':
+        final m = task.photoGrapghyModel;
+        fields.add(_fieldRow(context, 'الهدف', m?.shootingtype.tr ?? '-'));
+        fields.add(
+          _fieldRow(
+            context,
+            'المنصة',
+            listOrDash(m?.platform.cast<String>().toList()),
+          ),
+        );
+        fields.add(_fieldRow(context, 'نوع التصوير', m?.shootinglocation.tr ?? '-'));
+        fields.add(_fieldRow(context, 'عدد الصور او الفيديو', m?.designCount ?? '-'));
+        fields.add(_fieldRow(context, 'المدة', m?.duration ?? '-'));
+        break;
+
+      // 3: ContentWrite
+      case '3':
+        final m = task.contentWriteModel;
+        fields.add(_fieldRow(context, 'نوع المحتوى', m?.contenttype.tr ?? '-'));
+        fields.add(
+          _fieldRow(
+            context,
+            'المنصة',
+            listOrDash(m?.platform.cast<String>().toList()),
+          ),
+        );
+        fields.add(_fieldRow(context, 'عدد الصور', m?.designCount ?? '-'));
+        fields.add(_fieldRow(context, 'القياسات', m?.designsDimensions ?? '-'));
+        break;
+
+      // 4: Montage
+      case '4':
+        final m = task.monatageModel;
+        fields.add(_fieldRow(context, 'التصنيف', m?.category.tr ?? '-'));
+        fields.add(
+          _fieldRow(
+            context,
+            'المنصة',
+            listOrDash(m?.platform.cast<String>().toList()),
+          ),
+        );
+        fields.add(_fieldRow(context, 'المقاسات', m?.dimentioans ?? '-'));
+        fields.add(_fieldRow(context, 'رابط المرفق', m?.attachementurl ?? '-'));
+        fields.add(_fieldRow(context, 'المدة', m?.duration ?? '-'));
+        break;
+
+      // 5: Publish
+      case '5':
+        final m = task.publishModel;
+        fields.add(_fieldRow(context, 'رابط المحتوى', m?.contenturl ?? '-'));
+        fields.add(
+          _fieldRow(
+            context,
+            'المنصة',
+            listOrDash(m?.platform.cast<String>().toList()),
+          ),
+        );
+        fields.add(_fieldRow(context, 'التصنيف', m?.category ?? '-'));
+        fields.add(_fieldRow(context, 'رابط الملفات', m?.fileurl ?? '-'));
+        fields.add(_fieldRow(context, 'القياسات', m?.designsDimensions ?? '-'));
+        break;
+
+      // 6: Programming
+      case '6':
+        final m = task.programmingModel;
+        fields.add(_fieldRow(context, 'رابط المحتوى', m?.contenturl ?? '-'));
+        fields.add(_fieldRow(context, 'التصنيف', m?.category ?? '-'));
+        fields.add(_fieldRow(context, 'رابط الملفات', m?.fileurl ?? '-'));
+        fields.add(_fieldRow(context, 'القياسات', m?.designsDimensions ?? '-'));
+        break;
+
+      default:
+        fields.add(_fieldRow(context, 'تفاصيل القسم', '-'));
+    }
+
+    return _buildCard(
+      context,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'تفاصيل القسم'.tr,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: Colors.grey.shade700,
+            ),
+          ),
+          const SizedBox(height: 10),
+          ...fields,
+        ],
       ),
     );
   }
@@ -326,8 +621,19 @@ class TaskDetailsMobilePage extends StatelessWidget {
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: () {
-                  controller.updateTask(task.copyWith(status: StorageKeys.status_rejected));
-                  Get.back();
+                  FunHelper.showConfirmDailog(
+                    context,
+                    title: 'تأكيد الرفض',
+                    message: 'هل أنت متأكد من رفض هذه المهمة؟',
+                    confirmText: 'رفض',
+                    confirmColor: Colors.red,
+                    onTap: () async {
+                      await controller.updateTask(
+                        task.copyWith(status: StorageKeys.status_rejected),
+                      );
+                      Get.back();
+                    },
+                  );
                 },
                 icon: const Icon(Icons.close_rounded, size: 18),
                 label: const Text('رفض'),
@@ -342,8 +648,19 @@ class TaskDetailsMobilePage extends StatelessWidget {
             Expanded(
               child: FilledButton.icon(
                 onPressed: () {
-                  controller.updateTask(task.copyWith(status: StorageKeys.status_approved));
-                  Get.back();
+                  FunHelper.showConfirmDailog(
+                    context,
+                    title: 'تأكيد القبول',
+                    message: 'هل أنت متأكد من قبول هذه المهمة؟',
+                    confirmText: 'قبول',
+                    confirmColor: Colors.green,
+                    onTap: () async {
+                      await controller.updateTask(
+                        task.copyWith(status: StorageKeys.status_approved),
+                      );
+                      Get.back();
+                    },
+                  );
                 },
                 icon: const Icon(Icons.check_rounded, size: 18),
                 label: const Text('قبول'),
@@ -359,8 +676,17 @@ class TaskDetailsMobilePage extends StatelessWidget {
         const SizedBox(height: 10),
         OutlinedButton.icon(
           onPressed: () {
-            controller.deleteTask(task.id!);
-            Get.back();
+            FunHelper.showConfirmDailog(
+              context,
+              title: 'تأكيد الحذف',
+              message: 'هل أنت متأكد من حذف هذه المهمة؟',
+              confirmText: 'حذف',
+              confirmColor: Colors.red,
+              onTap: () async {
+                await controller.deleteTask(task.id!);
+                Get.back();
+              },
+            );
           },
           icon: const Icon(Icons.delete_outline, size: 18),
           label: const Text('حذف'),

@@ -33,9 +33,11 @@ class GenericTaskFormMobilePage extends StatefulWidget {
 }
 
 class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
+  static const String _otherClientValue = '__other_client__';
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController titleController;
   late final TextEditingController clientController;
+  late final TextEditingController customClientController;
   late final TextEditingController executorController;
   late final TextEditingController priorityController;
   late final TextEditingController startDateController;
@@ -84,6 +86,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
   DateTime? startAt;
   DateTime? endAt;
   late String taskType;
+  bool useCustomClient = false;
 
   @override
   void initState() {
@@ -92,6 +95,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
     taskType = m?.type ?? widget.typeForNew ?? '0';
     titleController = TextEditingController(text: m?.title);
     clientController = TextEditingController(text: m?.clientName);
+    customClientController = TextEditingController();
     executorController = TextEditingController(text: m?.assignedTo);
     priorityController = TextEditingController(text: m?.priority);
     startDateController = TextEditingController(text: FunHelper.formatdate(m?.fromDate));
@@ -157,6 +161,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
   void dispose() {
     titleController.dispose();
     clientController.dispose();
+    customClientController.dispose();
     executorController.dispose();
     priorityController.dispose();
     startDateController.dispose();
@@ -211,18 +216,19 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (startAt == null || endAt == null) {
-      Get.snackbar('تنبيه', 'يرجى اختيار تاريخ البداية والنهاية');
-      return;
-    }
+    final fallbackDate = DateTime.now();
+    final effectiveStartAt = startAt ?? fallbackDate;
+    final effectiveEndAt = endAt ?? effectiveStartAt;
     final controller = Get.find<HomeController>();
+    final resolvedClientName = useCustomClient
+        ? customClientController.text.trim()
+        : clientController.text.trim();
     final model = widget.model;
     final safeEmployees = (controller.employees as List<EmployeeModel>?) ?? <EmployeeModel>[];
     final execImage = safeEmployees.firstWhereOrNull((a) => a.id == executorController.text)?.image ?? '';
 
     if (model == null) {
-      final newTask = _buildNewTask(execImage, controller);
+      final newTask = _buildNewTask(execImage, controller, resolvedClientName);
       if (newTask == null) return;
       await controller.addTask(newTask);
       if (!mounted) return;
@@ -247,10 +253,10 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             title: titleController.text,
             description: notesController.text,
             priority: priorityController.text,
-            fromDate: startAt!,
-            toDate: endAt!,
+            fromDate: effectiveStartAt,
+            toDate: effectiveEndAt,
             assignedTo: executorController.text,
-            clientName: clientController.text,
+            clientName: resolvedClientName,
             assignedImageUrl: execImage,
             status: StorageKeys.status_edit_requested,
             notes: updatedNotes,
@@ -279,10 +285,10 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             title: titleController.text,
             description: notesController.text,
             priority: priorityController.text,
-            fromDate: startAt!,
-            toDate: endAt!,
+            fromDate: effectiveStartAt,
+            toDate: effectiveEndAt,
             assignedTo: executorController.text,
-            clientName: clientController.text,
+            clientName: resolvedClientName,
             assignedImageUrl: execImage,
             status: StorageKeys.status_edit_requested,
             notes: updatedNotes,
@@ -301,10 +307,10 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             title: titleController.text,
             description: notesController.text,
             priority: priorityController.text,
-            fromDate: startAt!,
-            toDate: endAt!,
+            fromDate: effectiveStartAt,
+            toDate: effectiveEndAt,
             assignedTo: executorController.text,
-            clientName: clientController.text,
+            clientName: resolvedClientName,
             assignedImageUrl: execImage,
             status: StorageKeys.status_edit_requested,
             notes: updatedNotes,
@@ -322,10 +328,10 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             title: titleController.text,
             description: notesController.text,
             priority: priorityController.text,
-            fromDate: startAt!,
-            toDate: endAt!,
+            fromDate: effectiveStartAt,
+            toDate: effectiveEndAt,
             assignedTo: executorController.text,
-            clientName: clientController.text,
+            clientName: resolvedClientName,
             assignedImageUrl: execImage,
             status: StorageKeys.status_edit_requested,
             notes: updatedNotes,
@@ -344,10 +350,10 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             title: titleController.text,
             description: notesController.text,
             priority: priorityController.text,
-            fromDate: startAt!,
-            toDate: endAt!,
+            fromDate: effectiveStartAt,
+            toDate: effectiveEndAt,
             assignedTo: executorController.text,
-            clientName: clientController.text,
+            clientName: resolvedClientName,
             assignedImageUrl: execImage,
             status: StorageKeys.status_edit_requested,
             notes: updatedNotes,
@@ -366,10 +372,10 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             title: titleController.text,
             description: notesController.text,
             priority: priorityController.text,
-            fromDate: startAt!,
-            toDate: endAt!,
+            fromDate: effectiveStartAt,
+            toDate: effectiveEndAt,
             assignedTo: executorController.text,
-            clientName: clientController.text,
+            clientName: resolvedClientName,
             assignedImageUrl: execImage,
             status: StorageKeys.status_edit_requested,
             notes: updatedNotes,
@@ -387,10 +393,10 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             title: titleController.text,
             description: notesController.text,
             priority: priorityController.text,
-            fromDate: startAt!,
-            toDate: endAt!,
+            fromDate: effectiveStartAt,
+            toDate: effectiveEndAt,
             assignedTo: executorController.text,
-            clientName: clientController.text,
+            clientName: resolvedClientName,
             assignedImageUrl: execImage,
             status: StorageKeys.status_edit_requested,
             notes: updatedNotes,
@@ -404,8 +410,14 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
     }
   }
 
-  TaskModel? _buildNewTask(String assignedImageUrl, HomeController controller) {
+  TaskModel? _buildNewTask(
+    String assignedImageUrl,
+    HomeController controller,
+    String resolvedClientName,
+  ) {
     final now = DateTime.now();
+    final effectiveStartAt = startAt ?? now;
+    final effectiveEndAt = endAt ?? effectiveStartAt;
     final files = controller.uploadedFilesPaths.cast<String>().toList();
     final notesList = notesController.text.isEmpty ? <NoteModel>[] : <NoteModel>[
       NoteModel(note: notesController.text, byWho: controller.currentemployee.value?.name ?? '', timestamp: now),
@@ -417,10 +429,10 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
           description: notesController.text,
           status: StorageKeys.status_not_start_yet,
           priority: priorityController.text,
-          fromDate: startAt!,
-          toDate: endAt!,
+          fromDate: effectiveStartAt,
+          toDate: effectiveEndAt,
           assignedTo: executorController.text,
-          clientName: clientController.text,
+          clientName: resolvedClientName,
           assignedImageUrl: assignedImageUrl,
           actionText: '',
           files: files,
@@ -450,10 +462,10 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
           description: notesController.text,
           status: StorageKeys.status_not_start_yet,
           priority: priorityController.text,
-          fromDate: startAt!,
-          toDate: endAt!,
+          fromDate: effectiveStartAt,
+          toDate: effectiveEndAt,
           assignedTo: executorController.text,
-          clientName: clientController.text,
+          clientName: resolvedClientName,
           assignedImageUrl: assignedImageUrl,
           actionText: '',
           files: files,
@@ -473,10 +485,10 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
           description: notesController.text,
           status: StorageKeys.status_not_start_yet,
           priority: priorityController.text,
-          fromDate: startAt!,
-          toDate: endAt!,
+          fromDate: effectiveStartAt,
+          toDate: effectiveEndAt,
           assignedTo: executorController.text,
-          clientName: clientController.text,
+          clientName: resolvedClientName,
           assignedImageUrl: assignedImageUrl,
           actionText: '',
           files: files,
@@ -495,10 +507,10 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
           description: notesController.text,
           status: StorageKeys.status_not_start_yet,
           priority: priorityController.text,
-          fromDate: startAt!,
-          toDate: endAt!,
+          fromDate: effectiveStartAt,
+          toDate: effectiveEndAt,
           assignedTo: executorController.text,
-          clientName: clientController.text,
+          clientName: resolvedClientName,
           assignedImageUrl: assignedImageUrl,
           actionText: '',
           files: files,
@@ -518,10 +530,10 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
           description: notesController.text,
           status: StorageKeys.status_not_start_yet,
           priority: priorityController.text,
-          fromDate: startAt!,
-          toDate: endAt!,
+          fromDate: effectiveStartAt,
+          toDate: effectiveEndAt,
           assignedTo: executorController.text,
-          clientName: clientController.text,
+          clientName: resolvedClientName,
           assignedImageUrl: assignedImageUrl,
           actionText: '',
           files: files,
@@ -541,10 +553,10 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
           description: notesController.text,
           status: StorageKeys.status_not_start_yet,
           priority: priorityController.text,
-          fromDate: startAt!,
-          toDate: endAt!,
+          fromDate: effectiveStartAt,
+          toDate: effectiveEndAt,
           assignedTo: executorController.text,
-          clientName: clientController.text,
+          clientName: resolvedClientName,
           assignedImageUrl: assignedImageUrl,
           actionText: '',
           files: files,
@@ -586,6 +598,11 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
         builder: (controller) {
           final safeEmployees = (controller.employees as List<EmployeeModel>?) ?? <EmployeeModel>[];
           final safeClients = (controller.clients as List<ClientModel>?) ?? <ClientModel>[];
+          final matchedClient = safeClients.firstWhereOrNull((a) => a.id == clientController.text);
+          if (!useCustomClient && clientController.text.isNotEmpty && matchedClient == null) {
+            useCustomClient = true;
+            customClientController.text = clientController.text;
+          }
           final department = _departmentForType(taskType);
           final filteredEmployees = safeEmployees.where((a) => a.department == department).toList();
 
@@ -609,20 +626,48 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                   ),
                   const SizedBox(height: 16),
                   DynamicDropdown<dynamic>(
-                    items: safeClients
-                        .map((v) => DropdownMenuItem(value: v, child: Text('${v.name}')))
-                        .toList(),
-                    value: clientController.text.isEmpty ? null : safeClients.firstWhereOrNull((a) => a.id == clientController.text),
+                    items: [
+                      ...safeClients
+                          .map((v) => DropdownMenuItem(value: v, child: Text('${v.name}'))),
+                      DropdownMenuItem(
+                        value: _otherClientValue,
+                        child: Text('عميل آخر'.tr),
+                      ),
+                    ],
+                    value: useCustomClient
+                        ? _otherClientValue
+                        : (clientController.text.isEmpty ? null : matchedClient),
                     label: 'العميل'.tr,
                     borderRadius: 8,
                     borderColor: Colors.grey.shade300,
                     height: 48,
                     fillColor: Colors.white,
                     onChanged: (value) {
-                      if (value != null) clientController.text = (value as dynamic).id ?? '';
+                      setState(() {
+                        if (value == _otherClientValue) {
+                          useCustomClient = true;
+                          clientController.text = '';
+                        } else if (value != null) {
+                          useCustomClient = false;
+                          clientController.text = (value as dynamic).id ?? '';
+                        }
+                      });
                     },
                     validator: (v) => v == null ? ' ' : null,
                   ),
+                  if (useCustomClient) ...[
+                    const SizedBox(height: 12),
+                    InputText(
+                      labelText: 'اسم العميل'.tr,
+                      hintText: 'اكتب اسم العميل'.tr,
+                      height: 48,
+                      fillColor: Colors.white,
+                      controller: customClientController,
+                      validator: (v) => (v == null || v.trim().isEmpty) ? ' ' : null,
+                      borderRadius: 8,
+                      borderColor: Colors.grey.shade300,
+                    ),
+                  ],
                   const SizedBox(height: 16),
                   DynamicDropdown<EmployeeModel>(
                     items: filteredEmployees
@@ -765,32 +810,105 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                   Obx(
                     () => controller.uploadedFilesPaths.isEmpty
                         ? const SizedBox.shrink()
-                        : Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 12),
-                              ...controller.uploadedFilesPaths.map(
-                                (filePath) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 8),
-                                  child: Row(
-                                    children: [
-                                      InkWell(
-                                        onTap: () => controller.uploadedFilesPaths.remove(filePath),
-                                        child: const Icon(Icons.cancel, color: Colors.red, size: 22),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          FunHelper.getFileNameFromUrl(filePath),
-                                          style: const TextStyle(fontSize: 13, color: Colors.blue, decoration: TextDecoration.underline),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ),
-                                    ],
+                        : Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: controller.uploadedFilesPaths.length,
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    crossAxisSpacing: 10,
+                                    mainAxisSpacing: 10,
+                                    mainAxisExtent: 96,
                                   ),
-                                ),
-                              ),
-                            ],
+                              itemBuilder: (_, i) {
+                                final filePath =
+                                    controller.uploadedFilesPaths[i];
+                                final lower = filePath.toString().toLowerCase();
+                                final isImage =
+                                    lower.endsWith('.jpg') ||
+                                    lower.endsWith('.jpeg') ||
+                                    lower.endsWith('.png') ||
+                                    lower.endsWith('.webp') ||
+                                    lower.endsWith('.gif');
+                                return Center(
+                                  child: SizedBox(
+                                    width: 88,
+                                    height: 88,
+                                    child: Stack(
+                                      children: [
+                                        Positioned.fill(
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
+                                            child:
+                                                isImage
+                                                    ? Image.network(
+                                                      filePath,
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder:
+                                                          (
+                                                            _,
+                                                            __,
+                                                            ___,
+                                                          ) => Container(
+                                                            color: Colors
+                                                                .blueGrey
+                                                                .shade100,
+                                                            child: Icon(
+                                                              Icons.link,
+                                                              color: Colors
+                                                                  .blueGrey
+                                                                  .shade700,
+                                                            ),
+                                                          ),
+                                                    )
+                                                    : Container(
+                                                      color: Colors
+                                                          .blueGrey
+                                                          .shade100,
+                                                      child: Icon(
+                                                        Icons.link,
+                                                        color: Colors
+                                                            .blueGrey
+                                                            .shade700,
+                                                      ),
+                                                    ),
+                                          ),
+                                        ),
+                                        Positioned(
+                                          top: 4,
+                                          right: 4,
+                                          child: InkWell(
+                                            onTap:
+                                                () => controller
+                                                    .uploadedFilesPaths
+                                                    .remove(filePath),
+                                            child: Container(
+                                              width: 20,
+                                              height: 20,
+                                              decoration: BoxDecoration(
+                                                color: Colors.black54,
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                              ),
+                                              child: const Icon(
+                                                Icons.close,
+                                                color: Colors.white,
+                                                size: 13,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
                           ),
                   ),
                   const SizedBox(height: 32),

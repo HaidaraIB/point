@@ -1,13 +1,15 @@
-import 'dart:math';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/EmployeeModel.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
-import 'package:point/View/Auth/CreateUserAccount.dart';
 import 'package:point/View/Shared/CustomDropDown.dart';
 import 'package:point/View/Shared/InputText.dart';
+import 'package:point/View/Shared/ReadOnlyAccountEmailField.dart';
+import 'package:point/Utils/PasswordValidator.dart';
+import 'package:uuid/uuid.dart';
 
 /// Mobile-only full-screen add/edit employee form.
 /// Opened when showAddEmployeeDialog is called on mobile; desktop keeps the dialog.
@@ -30,6 +32,18 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
   String selectedRole = "employee";
   String selectedDepartment = "cat1";
   static const List<String> _roles = ["supervisor", "admin", "employee"];
+
+  bool get _canEditCredentials {
+    final m = widget.model;
+    if (m == null) return true;
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final au = m.authUid;
+    return uid != null &&
+        uid.isNotEmpty &&
+        au != null &&
+        au.isNotEmpty &&
+        uid == au;
+  }
 
   @override
   void initState() {
@@ -58,16 +72,20 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
     if (!_formKey.currentState!.validate()) return;
     final controller = Get.find<HomeController>();
     final model = widget.model;
+    final departmentToSave = selectedRole == 'employee' ? selectedDepartment : null;
 
     if (model == null) {
       final success = await controller.addEmployee(
-        password: passwordController.text,
+        password:
+            passwordController.text.trim().isEmpty
+                ? 'TempPass@123'
+                : passwordController.text.trim(),
         EmployeeModel(
-          id: '${Random().nextInt(100000)}',
+          id: const Uuid().v4(),
           name: nameController.text,
           email: emailController.text,
           role: selectedRole,
-          department: selectedDepartment,
+          department: departmentToSave,
           status: 'active',
           createdAt: DateTime.now(),
           image:
@@ -85,14 +103,21 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
       final success = await controller.updateEmployee(
         model.copyWith(
           name: nameController.text,
-          email: emailController.text,
+          email:
+              _canEditCredentials
+                  ? emailController.text
+                  : (model.email ?? ''),
           role: selectedRole,
-          department: selectedDepartment,
+          department: departmentToSave,
           image:
               controller.uploadedFilesPaths.isNotEmpty
                   ? controller.uploadedFilesPaths.last
                   : model.image,
         ),
+        newPassword:
+            !_canEditCredentials || passwordController.text.trim().isEmpty
+                ? null
+                : passwordController.text.trim(),
       );
       if (!mounted) return;
       if (success) {
@@ -167,7 +192,7 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
                   InputText(
                     labelText: 'name'.tr,
                     hintText: 'entername'.tr,
@@ -179,56 +204,65 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                     borderColor: Colors.grey.shade300,
                   ),
                   const SizedBox(height: 16),
-                  InputText(
-                    labelText: 'email'.tr,
-                    hintText: 'example@example.com'.tr,
-                    height: 48,
-                    fillColor: Colors.white,
-                    textInputType: TextInputType.emailAddress,
-                    controller: emailController,
-                    validator: (v) {
-                      if (v == null || v.isEmpty || !v.toString().isEmail) {
-                        return ' ';
-                      }
-                      return null;
-                    },
-                    borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
-                  ),
-                  const SizedBox(height: 16),
-                  InputText(
-                    hintText:
-                        widget.model == null
-                            ? '******'.tr
-                            : 'leave_empty_unchanged'.tr,
-                    labelText: 'password'.tr,
-                    obscureText: obscurePassword,
-                    controller: passwordController,
-                    height: 48,
-                    fillColor: Colors.white,
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        obscurePassword
-                            ? Icons.visibility_off
-                            : Icons.visibility,
-                        color: Colors.grey.shade600,
-                      ),
-                      onPressed: () {
-                        setState(() => obscurePassword = !obscurePassword);
-                      },
-                    ),
-                    validator: (v) {
-                      if (widget.model != null &&
-                          (v == null || v.toString().trim().isEmpty)) {
+                  if (widget.model == null || _canEditCredentials) ...[
+                    InputText(
+                      labelText: 'email'.tr,
+                      hintText: 'example@example.com'.tr,
+                      height: 48,
+                      fillColor: Colors.white,
+                      textInputType: TextInputType.emailAddress,
+                      controller: emailController,
+                      validator: (v) {
+                        if (v == null || v.isEmpty || !v.toString().isEmail) {
+                          return ' ';
+                        }
                         return null;
-                      }
-                      if (v == null || v.isEmpty) return ' ';
-                      return validatePasswordStrong(v);
-                    },
-                    borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
-                  ),
-                  const SizedBox(height: 16),
+                      },
+                      borderRadius: 8,
+                      borderColor: Colors.grey.shade300,
+                    ),
+                    const SizedBox(height: 16),
+                    InputText(
+                      hintText:
+                          widget.model == null
+                              ? '******'.tr
+                              : 'leave_empty_unchanged'.tr,
+                      labelText: 'password'.tr,
+                      obscureText: obscurePassword,
+                      controller: passwordController,
+                      height: 48,
+                      fillColor: Colors.white,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          obscurePassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          color: Colors.grey.shade600,
+                        ),
+                        onPressed: () {
+                          setState(() => obscurePassword = !obscurePassword);
+                        },
+                      ),
+                      validator: (v) {
+                        if (v == null || v.toString().trim().isEmpty) {
+                          return null;
+                        }
+                        return validatePasswordStrong(v);
+                      },
+                      borderRadius: 8,
+                      borderColor: Colors.grey.shade300,
+                    ),
+                    const SizedBox(height: 16),
+                  ] else ...[
+                    ReadOnlyAccountEmailField(
+                      email: widget.model?.email ?? '',
+                      height: 48,
+                      borderRadius: 8,
+                      borderColor: Colors.grey.shade300,
+                      fillColor: Colors.white,
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   DynamicDropdown<String>(
                     items:
                         _roles
@@ -247,7 +281,12 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                     fillColor: Colors.white,
                     onChanged: (value) {
                       if (value != null) {
-                        setState(() => selectedRole = value);
+                        setState(() {
+                          selectedRole = value;
+                          if (selectedRole != 'employee') {
+                            selectedDepartment = "cat1";
+                          }
+                        });
                       }
                     },
                   ),

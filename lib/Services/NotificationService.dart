@@ -50,6 +50,10 @@ class NotificationService {
       userId: employeeId,
       title: 'تم تعيينك على مهمة جديدة',
       body: taskTitle,
+      notificationType: 'employee_task_assigned',
+      actionText: 'يرجى فتح المهمة والبدء بالتنفيذ حسب الأولوية.',
+      referenceId: taskTitle,
+      emailDetails: {'عنوان المهمة': taskTitle},
     );
   }
 
@@ -62,6 +66,10 @@ class NotificationService {
       userId: employeeId,
       title: '⏳ اقتراب موعد التسليم',
       body: 'المهمة: $taskTitle',
+      notificationType: 'employee_task_due_soon',
+      actionText: 'يرجى إنهاء المهمة قبل موعد التسليم المحدد.',
+      referenceId: taskTitle,
+      emailDetails: {'المهمة': taskTitle},
     );
   }
 
@@ -74,6 +82,10 @@ class NotificationService {
       userId: employeeId,
       title: 'طلب تعديل على المهمة من قبل الإدارة',
       body: taskTitle,
+      notificationType: 'employee_task_edit_requested',
+      actionText: 'يرجى تنفيذ التعديلات المطلوبة ثم إعادة التسليم.',
+      referenceId: taskTitle,
+      emailDetails: {'المهمة': taskTitle},
     );
   }
 
@@ -86,6 +98,10 @@ class NotificationService {
       userId: employeeId,
       title: 'مهمة مرفوضة',
       body: 'تم رفض المهمة ($taskTitle) من قبل الإدارة',
+      notificationType: 'employee_task_rejected',
+      actionText: 'يرجى مراجعة سبب الرفض وتحديث المهمة.',
+      referenceId: taskTitle,
+      emailDetails: {'المهمة': taskTitle, 'الحالة': 'مرفوضة'},
     );
   }
 
@@ -98,6 +114,10 @@ class NotificationService {
       userId: employeeId,
       title: 'تم إعادة فتح مهمة لوجود ملاحظات',
       body: taskTitle,
+      notificationType: 'employee_task_reopened',
+      actionText: 'يرجى مراجعة الملاحظات واستكمال المعالجة.',
+      referenceId: taskTitle,
+      emailDetails: {'المهمة': taskTitle, 'الحالة': 'أعيد فتحها'},
     );
   }
 
@@ -110,6 +130,10 @@ class NotificationService {
       userId: employeeId,
       title: 'تم إرفاق ملفات جديدة بالمهمة',
       body: taskTitle,
+      notificationType: 'employee_task_new_attachments',
+      actionText: 'يرجى الاطلاع على الملفات المرفقة وتحديث العمل.',
+      referenceId: taskTitle,
+      emailDetails: {'المهمة': taskTitle},
     );
   }
 
@@ -124,6 +148,10 @@ class NotificationService {
       userId: employeeId,
       title: 'تم تغيير حالة المهمة',
       body: '$taskTitle — إلى: $label',
+      notificationType: 'employee_task_status_changed',
+      actionText: 'يرجى متابعة الحالة الجديدة للمهمة.',
+      referenceId: taskTitle,
+      emailDetails: {'المهمة': taskTitle, 'الحالة الجديدة': label},
     );
   }
 
@@ -141,6 +169,10 @@ class NotificationService {
       userIds: ids,
       title: 'تم استلام المهمة من قبل الموظف وهي قيد التنفيذ الآن',
       body: 'الموظف: $employeeName — المهمة: $taskTitle',
+      notificationType: 'manager_task_received',
+      actionText: 'يمكن متابعة التقدم عبر لوحة المهام.',
+      referenceId: taskTitle,
+      emailDetails: {'الموظف': employeeName, 'المهمة': taskTitle},
     );
   }
 
@@ -156,6 +188,10 @@ class NotificationService {
       userIds: ids,
       title: 'قام الموظف بإنجاز المهمة يرجى الاطلاع والموافقة',
       body: 'الموظف: $employeeName — المهمة: $taskTitle',
+      notificationType: 'manager_task_completed',
+      actionText: 'يرجى مراجعة المخرجات واعتماد المهمة أو طلب تعديل.',
+      referenceId: taskTitle,
+      emailDetails: {'الموظف': employeeName, 'المهمة': taskTitle},
     );
   }
 
@@ -171,6 +207,10 @@ class NotificationService {
       userIds: ids,
       title: 'قام الموظف بالتعديل على المهمة يرجى الاطلاع',
       body: 'الموظف: $employeeName — المهمة: $taskTitle',
+      notificationType: 'manager_task_edited',
+      actionText: 'يرجى مراجعة النسخة المعدلة.',
+      referenceId: taskTitle,
+      emailDetails: {'الموظف': employeeName, 'المهمة': taskTitle},
     );
   }
 
@@ -186,6 +226,10 @@ class NotificationService {
       userIds: ids,
       title: 'تم رفع محتوى جديد للمراجعة من قبل العميل',
       body: 'العميل: $clientName — المحتوى: $contentTitle',
+      notificationType: 'manager_content_submitted_by_client',
+      actionText: 'يرجى مراجعة المحتوى واتخاذ الإجراء المناسب.',
+      referenceId: contentTitle,
+      emailDetails: {'العميل': clientName, 'المحتوى': contentTitle},
     );
   }
 
@@ -201,6 +245,10 @@ class NotificationService {
       userIds: ids,
       title: 'مهمة متأخرة',
       body: 'تجاوزت موعد التسليم: $taskTitle — الموظف: $employeeName',
+      notificationType: 'manager_task_overdue',
+      actionText: 'يرجى متابعة سبب التأخير وتحديث الخطة الزمنية.',
+      referenceId: taskTitle,
+      emailDetails: {'الموظف': employeeName, 'المهمة': taskTitle},
     );
   }
 
@@ -216,6 +264,10 @@ class NotificationService {
       userIds: ids,
       title: 'تم إنشاء مهمة جديدة في قسم $departmentNameAr',
       body: taskTitle,
+      notificationType: 'manager_new_task_department',
+      actionText: 'يرجى توزيع المهمة ومتابعة التنفيذ.',
+      referenceId: taskTitle,
+      emailDetails: {'القسم': departmentNameAr, 'المهمة': taskTitle},
     );
   }
 
@@ -231,6 +283,10 @@ class NotificationService {
       userIds: ids,
       title: 'استلام ملاحظات من العميل',
       body: 'العميل: $clientName — المحتوى: $contentTitle',
+      notificationType: 'manager_client_notes',
+      actionText: 'يرجى معالجة ملاحظات العميل وإعادة الإرسال.',
+      referenceId: contentTitle,
+      emailDetails: {'العميل': clientName, 'المحتوى': contentTitle},
     );
   }
 
@@ -246,6 +302,10 @@ class NotificationService {
       userIds: ids,
       title: 'العميل قام بالموافقة على المحتوى',
       body: 'العميل: $clientName — المحتوى: $contentTitle',
+      notificationType: 'manager_client_approved_content',
+      actionText: 'تمت الموافقة، يمكن المتابعة للمرحلة التالية.',
+      referenceId: contentTitle,
+      emailDetails: {'العميل': clientName, 'المحتوى': contentTitle},
     );
   }
 
@@ -260,6 +320,10 @@ class NotificationService {
       userId: clientId,
       title: 'تم رفع $contentTypeLabel بانتظار موافقتك',
       body: 'يرجى الاطلاع والموافقة أو طلب التعديل',
+      notificationType: 'client_content_pending_approval',
+      actionText: 'يرجى فتح المحتوى واتخاذ القرار المناسب.',
+      referenceId: contentTypeLabel,
+      emailDetails: {'نوع المحتوى': contentTypeLabel},
     );
   }
 
@@ -272,6 +336,10 @@ class NotificationService {
       userId: clientId,
       title: 'لديك محتوى بانتظار المراجعة منذ أكثر من 24 ساعة',
       body: contentTitle,
+      notificationType: 'client_pending_over_24h',
+      actionText: 'يرجى مراجعة المحتوى لتجنب تأخر الجدولة.',
+      referenceId: contentTitle,
+      emailDetails: {'المحتوى': contentTitle},
     );
   }
 
@@ -283,6 +351,10 @@ class NotificationService {
       userId: clientId,
       title: 'شكراً! تمت الموافقة على التصميم من قبلك',
       body: 'تم تسجيل موافقتك بنجاح',
+      notificationType: 'client_approval_confirmed',
+      actionText: 'شكراً لتعاونك، سيتم المتابعة تلقائياً.',
+      referenceId: clientId,
+      emailDetails: {'الحالة': 'تمت الموافقة'},
     );
   }
 
@@ -295,6 +367,10 @@ class NotificationService {
       userId: clientId,
       title: 'تم تنفيذ التعديلات التي طلبتها',
       body: contentTitle,
+      notificationType: 'client_edits_done',
+      actionText: 'يرجى مراجعة النسخة المعدلة.',
+      referenceId: contentTitle,
+      emailDetails: {'المحتوى': contentTitle},
     );
   }
 
@@ -307,6 +383,10 @@ class NotificationService {
       userId: clientId,
       title: 'محتوى جديد محدث بانتظار الموافقة',
       body: contentTitle,
+      notificationType: 'client_content_updated',
+      actionText: 'يرجى الاطلاع وتأكيد الموافقة أو طلب تعديل إضافي.',
+      referenceId: contentTitle,
+      emailDetails: {'المحتوى': contentTitle},
     );
   }
 
@@ -320,6 +400,10 @@ class NotificationService {
       userId: clientId,
       title: 'تم جدولة المحتوى ليُنشر بتاريخ $dateFormatted',
       body: contentTitle,
+      notificationType: 'client_content_scheduled',
+      actionText: 'يرجى التأكد من الجاهزية قبل موعد النشر.',
+      referenceId: contentTitle,
+      emailDetails: {'المحتوى': contentTitle, 'تاريخ النشر': dateFormatted},
     );
   }
 
@@ -341,6 +425,15 @@ class NotificationService {
       userIds: all.toList(),
       title: 'تمت إضافة محتوى جديد للعميل على منصة',
       body: 'العميل: $clientName — المنصة: $platformLabel — $dateFormatted الساعة $timeFormatted',
+      notificationType: 'publish_content_added',
+      actionText: 'يرجى متابعة تجهيز النشر حسب الموعد.',
+      referenceId: clientName,
+      emailDetails: {
+        'العميل': clientName,
+        'المنصة': platformLabel,
+        'التاريخ': dateFormatted,
+        'الوقت': timeFormatted,
+      },
     );
   }
 
@@ -357,6 +450,10 @@ class NotificationService {
       userIds: all.toList(),
       title: 'قام العميل بطلب تعديل على المحتوى',
       body: contentTitle,
+      notificationType: 'publish_client_edit_request',
+      actionText: 'يرجى تنفيذ التعديل المطلوب وإعادة الإرسال.',
+      referenceId: contentTitle,
+      emailDetails: {'المحتوى': contentTitle},
     );
   }
 
@@ -374,6 +471,10 @@ class NotificationService {
       userIds: all.toList(),
       title: 'وافق العميل على المحتوى',
       body: 'العميل: $clientName — المحتوى: $contentTitle',
+      notificationType: 'publish_client_approved',
+      actionText: 'تمت الموافقة، يمكن المتابعة لخطوة النشر.',
+      referenceId: contentTitle,
+      emailDetails: {'العميل': clientName, 'المحتوى': contentTitle},
     );
   }
 
@@ -391,6 +492,10 @@ class NotificationService {
       userIds: all.toList(),
       title: 'تم رفض المحتوى من قبل العميل',
       body: 'المحتوى: $contentTitle — العميل: $clientName',
+      notificationType: 'publish_client_rejected',
+      actionText: 'يرجى مراجعة الرفض ومعالجة الملاحظات.',
+      referenceId: contentTitle,
+      emailDetails: {'العميل': clientName, 'المحتوى': contentTitle},
     );
   }
 
@@ -403,6 +508,10 @@ class NotificationService {
       userId: employeeId,
       title: 'تذكير: لديك منشور مجدول سيتم نشره خلال ساعة',
       body: contentTitle,
+      notificationType: 'publish_post_one_hour',
+      actionText: 'يرجى التأكد من جاهزية المنشور قبل النشر.',
+      referenceId: contentTitle,
+      emailDetails: {'المنشور': contentTitle},
     );
   }
 
@@ -415,6 +524,10 @@ class NotificationService {
       userId: employeeId,
       title: 'تنبيه: منشور مجدول اليوم ولم يتم تأكيده بعد',
       body: 'المنشور: $contentRef',
+      notificationType: 'publish_post_not_confirmed_today',
+      actionText: 'يرجى تأكيد المنشور أو تعديل حالته فوراً.',
+      referenceId: contentRef,
+      emailDetails: {'المرجع': contentRef},
     );
   }
 
@@ -427,6 +540,10 @@ class NotificationService {
       userId: employeeId,
       title: 'تنبيه: لا توجد منشورات مجدولة ليوم غد',
       body: 'حساب العميل: $clientName',
+      notificationType: 'publish_no_posts_tomorrow',
+      actionText: 'يرجى التخطيط لجدولة منشورات اليوم التالي.',
+      referenceId: clientName,
+      emailDetails: {'العميل': clientName},
     );
   }
 
@@ -440,6 +557,10 @@ class NotificationService {
       userIds: recipientIds,
       title: 'تم نشر المنشور بنجاح على منصة $platformLabel',
       body: contentTitle,
+      notificationType: 'publish_post_published',
+      actionText: 'يرجى توثيق النشر وإضافة الرابط إن توفر.',
+      referenceId: contentTitle,
+      emailDetails: {'المنصة': platformLabel, 'المحتوى': contentTitle},
     );
   }
 
@@ -452,6 +573,10 @@ class NotificationService {
       userIds: recipientIds,
       title: 'تمت إضافة رابط المنشور',
       body: contentTitle,
+      notificationType: 'publish_link_added',
+      actionText: 'يرجى مراجعة الرابط والتأكد من صحته.',
+      referenceId: contentTitle,
+      emailDetails: {'المحتوى': contentTitle},
     );
   }
 
@@ -464,6 +589,10 @@ class NotificationService {
       userIds: recipientIds,
       title: 'تم إدخال الملاحظات بعد النشر',
       body: contentTitle,
+      notificationType: 'publish_notes_after_publish',
+      actionText: 'يرجى مراجعة الملاحظات وتنفيذ المطلوب.',
+      referenceId: contentTitle,
+      emailDetails: {'المحتوى': contentTitle},
     );
   }
 
@@ -476,6 +605,10 @@ class NotificationService {
       userIds: recipientIds,
       title: 'تم إلغاء نشر منشور مجدول بناءً على طلب العميل',
       body: contentTitle,
+      notificationType: 'publish_scheduled_cancelled',
+      actionText: 'يرجى تحديث الجدولة وإبلاغ الأطراف المعنية.',
+      referenceId: contentTitle,
+      emailDetails: {'المحتوى': contentTitle},
     );
   }
 
@@ -491,6 +624,27 @@ class NotificationService {
       userIds: ids,
       title: 'تم تغيير حالة المحتوى',
       body: '$contentTitle — إلى: $promotionLabelAr',
+      notificationType: 'admin_promotion_status_changed',
+      actionText: 'يرجى متابعة انعكاس الحالة على الحملة.',
+      referenceId: contentTitle,
+      emailDetails: {'المحتوى': contentTitle, 'الحالة': promotionLabelAr},
+    );
+  }
+
+  /// تم تغيير حالة المحتوى (اسم) إلى (جاهز للنشر / ..) — للأدمن
+  static Future<void> notifyAdminContentStatusChanged({
+    required String contentTitle,
+    required String statusLabelAr,
+  }) async {
+    final ids = await FirestoreServices.getEmployeeIdsByRole(['admin']);
+    await FirestoreServices.sendFcmToEmployees(
+      userIds: ids,
+      title: 'تم تغيير حالة المحتوى',
+      body: '$contentTitle — إلى: $statusLabelAr',
+      notificationType: 'admin_content_status_changed',
+      actionText: 'يرجى مراجعة حالة المحتوى الجديدة.',
+      referenceId: contentTitle,
+      emailDetails: {'المحتوى': contentTitle, 'الحالة': statusLabelAr},
     );
   }
 
@@ -504,6 +658,10 @@ class NotificationService {
       userIds: ids,
       title: 'محتوى منشور جديد للعميل يرجى الاطلاع وإضافته للحملة الإعلانية',
       body: 'العميل: $clientName — المحتوى: $contentTitle',
+      notificationType: 'promotion_new_published_content',
+      actionText: 'يرجى إضافته للحملة الإعلانية المناسبة.',
+      referenceId: contentTitle,
+      emailDetails: {'العميل': clientName, 'المحتوى': contentTitle},
     );
   }
 }

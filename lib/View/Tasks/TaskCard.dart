@@ -176,22 +176,52 @@ class TaskCard extends StatelessWidget {
                                 default:
                               }
                             } else if (value == 2) {
-                              Get.find<HomeController>().deleteTask(task.id!);
+                              FunHelper.showConfirmDailog(
+                                context,
+                                title: 'تأكيد الحذف',
+                                message: 'هل أنت متأكد من حذف هذه المهمة؟',
+                                confirmText: 'حذف',
+                                confirmColor: Colors.red,
+                                onTap: () async {
+                                  await Get.find<HomeController>().deleteTask(
+                                    task.id!,
+                                  );
+                                },
+                              );
                             } else if (value == 3) {
-                              Get.find<HomeController>().updateTask(
-                                task.copyWith(
-                                  status: StorageKeys.status_rejected,
-                                ),
+                              FunHelper.showConfirmDailog(
+                                context,
+                                title: 'تأكيد الرفض',
+                                message: 'هل أنت متأكد من رفض هذه المهمة؟',
+                                confirmText: 'رفض',
+                                confirmColor: Colors.red,
+                                onTap: () async {
+                                  await Get.find<HomeController>().updateTask(
+                                    task.copyWith(
+                                      status: StorageKeys.status_rejected,
+                                    ),
+                                  );
+                                },
                               );
                             } else if (value == 4) {
-                              Get.find<HomeController>().updateTask(
-                                task.copyWith(
-                                  status: StorageKeys.status_approved,
-                                ),
+                              FunHelper.showConfirmDailog(
+                                context,
+                                title: 'تأكيد القبول',
+                                message: 'هل أنت متأكد من قبول هذه المهمة؟',
+                                confirmText: 'قبول',
+                                confirmColor: Colors.green,
+                                onTap: () async {
+                                  await Get.find<HomeController>().updateTask(
+                                    task.copyWith(
+                                      status: StorageKeys.status_approved,
+                                    ),
+                                  );
+                                },
                               );
                             }
                           },
-                          child: const Icon(Icons.more_vert), //
+                          child: const Icon(Icons.more_vert),
+                          tooltip: 'الخيارات',
                         ),
                       ),
                     ],

@@ -50,6 +50,7 @@ class EmployeeTaskCard extends StatelessWidget {
                   ),
                   SizedBox(
                     child: PopupMenuButton<int>(
+                      tooltip: 'الخيارات',
                       padding: EdgeInsets.zero,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -61,7 +62,6 @@ class EmployeeTaskCard extends StatelessWidget {
                             PopupMenuItem(
                               value: 0,
                               height: 30,
-
                               child: Container(
                                 height: 30,
                                 margin: EdgeInsets.all(2),
@@ -196,7 +196,7 @@ class EmployeeTaskCard extends StatelessWidget {
               // ),
               SizedBox(
                 width: Get.width,
-                height: 40,
+                height: 56,
                 child: DraggableProgressBar(
                   initialValue: task.progress ?? 0,
                   color: Colors.blue,
@@ -205,10 +205,6 @@ class EmployeeTaskCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                   onChanged: (value) {
                     controller.updateTask(task.copyWith(progress: value));
-                    print('💡 Progress: ${(value * 100).toStringAsFixed(0)}%');
-                  },
-                  onAction: () {
-                    print('🚀 Action triggered!');
                   },
                 ),
               ),
@@ -531,24 +527,22 @@ class OptionsMenu extends StatelessWidget {
 
 class DraggableProgressBar extends StatefulWidget {
   final double initialValue;
-  final double actionThreshold; // النسبة اللي بعدها ينفذ الأكشن
   final Color color;
   final Color backgroundColor;
   final double height;
   final BorderRadius borderRadius;
   final ValueChanged<double>? onChanged;
-  final VoidCallback? onAction;
+  final int stepsCount;
 
   const DraggableProgressBar({
     Key? key,
     this.initialValue = 0,
-    this.actionThreshold = 0.9,
     this.color = Colors.blue,
     this.backgroundColor = const Color(0xFFE0E0E0),
     this.height = 6,
     this.borderRadius = const BorderRadius.all(Radius.circular(10)),
     this.onChanged,
-    this.onAction,
+    this.stepsCount = 5,
   }) : super(key: key);
 
   @override
@@ -557,62 +551,109 @@ class DraggableProgressBar extends StatefulWidget {
 
 class _DraggableProgressBarState extends State<DraggableProgressBar> {
   double progress = 0.0;
-  double? _startDx;
 
   @override
   void initState() {
     super.initState();
-    progress = widget.initialValue;
+    progress = _snapToStep(widget.initialValue.clamp(0.0, 1.0));
+  }
+
+  double _snapToStep(double value) {
+    final segments = (widget.stepsCount - 1).clamp(1, 100);
+    final stepSize = 1 / segments;
+    final snapped = (value / stepSize).round() * stepSize;
+    return snapped.clamp(0.0, 1.0);
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onHorizontalDragStart: (details) {
-        _startDx = details.localPosition.dx;
-      },
-      onHorizontalDragUpdate: (details) {
-        if (_startDx == null) return;
-        final dx = details.localPosition.dx;
-        final boxWidth = context.size?.width ?? 200;
-        setState(() {
-          progress = (dx / boxWidth).clamp(0.0, 1.0);
-        });
-        widget.onChanged?.call(progress);
-      },
-      onHorizontalDragEnd: (details) {
-        if (progress >= widget.actionThreshold) {
-          widget.onAction?.call();
-        }
-        _startDx = null;
-      },
-      child: ClipRRect(
-        borderRadius: widget.borderRadius,
-        child: Stack(
-          alignment: Alignment.centerLeft,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final boxWidth = constraints.maxWidth;
+        final segments = (widget.stepsCount - 1).clamp(1, 100);
+        final currentStepIndex = (progress * segments).round();
+        final markerSize = widget.height + 8;
+        return Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Container(height: widget.height, color: widget.backgroundColor),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              height: widget.height,
-              width: MediaQuery.of(context).size.width * progress,
-              color: widget.color,
-            ),
-            Positioned.fill(
-              child: Center(
-                child: Text(
-                  '${(progress * 100).toStringAsFixed(0)}%',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black54,
+            SizedBox(
+              height: markerSize,
+              child: Stack(
+                children: [
+                  Positioned(
+                    top: (markerSize - widget.height) / 2,
+                    left: 0,
+                    right: 0,
+                    child: ClipRRect(
+                      borderRadius: widget.borderRadius,
+                      child: Stack(
+                        children: [
+                          Container(
+                            height: widget.height,
+                            color: widget.backgroundColor,
+                          ),
+                          Positioned(
+                            right: 0,
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              height: widget.height,
+                              width: boxWidth * progress,
+                              color: widget.color,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
+                  Positioned.fill(
+                    child: Row(
+                      textDirection: TextDirection.rtl,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: List.generate(widget.stepsCount, (index) {
+                        final isActive = index <= currentStepIndex;
+                        return InkWell(
+                          borderRadius: BorderRadius.circular(markerSize),
+                          onTap: () {
+                            final stepProgress = index / segments;
+                            final snapped = _snapToStep(stepProgress);
+                            if (snapped == progress) return;
+                            setState(() => progress = snapped);
+                            widget.onChanged?.call(snapped);
+                          },
+                          child: Container(
+                            width: markerSize,
+                            height: markerSize,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isActive ? widget.color : Colors.white,
+                              border: Border.all(
+                                color:
+                                    isActive
+                                        ? widget.color
+                                        : Colors.grey.shade400,
+                                width: 1.2,
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${(progress * 100).toStringAsFixed(0)}%',
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Colors.black54,
               ),
             ),
           ],
-        ),
-      ),
+        );
+      },
     );
   }
 }

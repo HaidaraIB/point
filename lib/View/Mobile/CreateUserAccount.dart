@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/ClientController.dart';
+import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/ClientModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppImages.dart';
+import 'package:point/Utils/PasswordValidator.dart';
 import 'package:point/View/Auth/Shared/Rights.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
+import 'package:uuid/uuid.dart';
 
 class CreateUserAccountMobileVersion extends StatelessWidget {
   @override
@@ -128,7 +131,7 @@ Widget _buildDesktopLayout() {
                   SizedBox(height: 25),
                   Obx(
                     () => MainButton(
-                      load: controller.isLoading.value,
+                      load: Get.find<HomeController>().isLoading.value,
                       icon: false,
                       height: 40,
                       bordersize: 10,
@@ -155,21 +158,19 @@ Widget _buildDesktopLayout() {
                       title: 'createaccount'.tr,
                       onpress: () async {
                         if (_key.currentState!.validate()) {
-                          await controller
+                          await Get.find<HomeController>()
                               .addClient(
                                 ClientModel(
                                   name: nameController.text,
                                   email:
                                       emailController.text.trim().toLowerCase(),
-                                  password: passwordController.text,
                                   status: StorageKeys.status_user_pending,
                                   createdAt: DateTime.now(),
                                   startAt: DateTime.now(),
                                   endAt: DateTime.now(),
-                                  id:
-                                      (controller.clients.length + 1)
-                                          .toString(),
+                                  id: const Uuid().v4(),
                                 ),
+                                password: passwordController.text.trim(),
                               )
                               .then((v) {
                                 if (v == true) {
@@ -196,16 +197,4 @@ Widget _buildDesktopLayout() {
       );
     },
   );
-}
-
-String? validatePasswordStrong(String? value) {
-  if (value == null || value.isEmpty) return 'password_required'.tr;
-  if (value.length < 8) return 'password_min_8'.tr;
-
-  final pattern =
-      r"""^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#\$&*~%^()_\-+=\[\]{}|:;"'<>,.?/]).{8,}$""";
-  final regExp = RegExp(pattern);
-
-  if (!regExp.hasMatch(value)) return 'password_requirements'.tr;
-  return null;
 }

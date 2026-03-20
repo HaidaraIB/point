@@ -10,7 +10,8 @@ class EmployeeModel {
   final DateTime? hireDate;
   final String? status;
   final DateTime createdAt;
-  final String? password; // اختياري مؤقتاً حتى لا نكسر البيانات القديمة
+  final String? authUid;
+  final String? authStatus; // pendingActivation, active, pendingEmailVerification
   final String? image; // 👈 تمت إضافة الصورة
 
   EmployeeModel({
@@ -25,7 +26,8 @@ class EmployeeModel {
     this.hireDate,
     required this.status,
     required this.createdAt,
-    this.password,
+    this.authUid,
+    this.authStatus,
     this.image, // 👈
   });
 
@@ -41,7 +43,8 @@ class EmployeeModel {
     DateTime? hireDate,
     String? status,
     DateTime? createdAt,
-    String? password,
+    String? authUid,
+    String? authStatus,
     String? image, // 👈
   }) {
     return EmployeeModel(
@@ -56,7 +59,8 @@ class EmployeeModel {
       hireDate: hireDate ?? this.hireDate,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
-      password: password ?? this.password,
+      authUid: authUid ?? this.authUid,
+      authStatus: authStatus ?? this.authStatus,
       image: image ?? this.image, // 👈
     );
   }
@@ -75,7 +79,8 @@ class EmployeeModel {
           json['hireDate'] != null ? DateTime.parse(json['hireDate']) : null,
       status: json['status'],
       createdAt: DateTime.parse(json['createdAt']),
-      password: json['password'],
+      authUid: json['authUid'],
+      authStatus: json['authStatus'],
       image: json['image'], // 👈
     );
   }
@@ -93,7 +98,8 @@ class EmployeeModel {
       "hireDate": hireDate?.toIso8601String(),
       "status": status,
       "createdAt": createdAt.toIso8601String(),
-      if (password != null) "password": password,
+      if (authUid != null) "authUid": authUid,
+      if (authStatus != null) "authStatus": authStatus,
       "image": image, // 👈
     };
   }

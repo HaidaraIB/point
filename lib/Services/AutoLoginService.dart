@@ -6,22 +6,16 @@ import 'package:get/get.dart';
 import 'package:point/Controller/ClientController.dart';
 import 'package:point/Controller/HomeController.dart';
 
-/// Attempts silent login using stored credentials.
+/// Attempts silent login using FirebaseAuth existing session.
 ///
 /// Returns the route name to navigate to on success, otherwise null.
-Future<String?> attemptSilentLogin({
-  required String email,
-  required String password,
-}) async {
+Future<String?> attemptSilentLogin() async {
   final homeController = Get.find<HomeController>();
   final clientController = Get.find<ClientController>();
 
   final fcm = FirebaseMessaging.instance;
 
-  final employee = await homeController.loginClient(
-    email.trim().toLowerCase(),
-    password.trim(),
-  );
+  final employee = await homeController.service.getCurrentEmployeeByAuth();
 
   if (employee != null) {
     log("✅ تم تسجيل دخول الموظف: ${employee.email}");
@@ -55,10 +49,7 @@ Future<String?> attemptSilentLogin({
     return null;
   }
 
-  final client = await clientController.loginclient(
-    email.trim().toLowerCase(),
-    password.trim(),
-  );
+  final client = await clientController.service.getCurrentClientByAuth();
 
   if (client != null) {
     log("✅ تم تسجيل دخول العميل: ${client.email}");

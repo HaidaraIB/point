@@ -4,8 +4,6 @@ import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
-import 'package:point/Utils/AppColors.dart';
-import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Tasks/DetailsDialogs/GenericTaskDetailsDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
@@ -16,13 +14,14 @@ void showProgrammingDialog(BuildContext context, {required TaskModel task}) {
   Responsive.isMobile(context)
       ? showTaskDetailsMobile(context, task: task)
       : showDialog(
-          context: context,
-          builder: (context) => GenericTaskDetailsDialog(
-            task: task,
-            dialogWidthFraction: 0.7,
-            typeSpecificSection: ProgrammingDetailsSection(task: task),
-          ),
-        );
+        context: context,
+        builder:
+            (context) => GenericTaskDetailsDialog(
+              task: task,
+              dialogWidthFraction: 0.7,
+              typeSpecificSection: ProgrammingDetailsSection(task: task),
+            ),
+      );
 }
 
 /// Type-specific info section for Programming task details (web).
@@ -33,113 +32,114 @@ class ProgrammingDetailsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final infoBoxWidth = (Get.width * 0.7 - 550) / 5;
-    final sectionWidth = Get.width * 0.7 - 450;
+    final clientName =
+        Get.find<HomeController>().clients
+            .firstWhereOrNull((emp) => emp.id == task.clientName)
+            ?.name ??
+        task.clientName;
 
-    return Row(
-      children: [
-        Container(
-          height: 110,
-          width: sectionWidth,
-          padding: const EdgeInsets.symmetric(vertical: 10),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TaskDetailsDialogHelpers.infoBox(
-                'العميل',
-                Get.find<HomeController>().clients
-                        .firstWhereOrNull(
-                          (emp) => emp.id == task.clientName,
-                        )
-                        ?.name ??
-                    '',
-                width: infoBoxWidth,
-                height: 110,
-              ),
-              _divider(),
-              InkWell(
-                onTap: () async {
-                  final url = task.programmingModel!.contenturl;
-                  if (await canLaunchUrl(Uri.parse(url))) {
-                    await launchUrl(
-                      Uri.parse(url),
-                      mode: LaunchMode.externalApplication,
-                    );
-                  } else {
-                    throw 'لا يمكن فتح الرابط $url';
-                  }
-                },
-                child: TaskDetailsDialogHelpers.infoBox(
-                  'رابط ',
-                  task.programmingModel!.contenturl,
-                  width: infoBoxWidth,
-                  height: 110,
-                ),
-              ),
-              _divider(),
-              TaskDetailsDialogHelpers.infoBox(
-                'الاولويه',
-                task.priority.tr,
-                width: infoBoxWidth,
-                height: 110,
-                child: TaskDetailsDialogHelpers.buildTag(task.priority, tr: true),
-              ),
-              SizedBox(height: 25, child: _divider()),
-              TaskDetailsDialogHelpers.infoBox(
-                'العلامة والتصنيف',
-                task.programmingModel!.category,
-                width: infoBoxWidth,
-                height: 110,
-                child: MainButton(
-                  width: (Get.width * 0.7 - 550) / 5,
-                  height: 25,
-                  borderColor: AppColors.primaryfontColor,
-                  backgroundcolor: Colors.white,
-                  title: 'اضافة علامة',
-                  fontcolor: AppColors.primaryfontColor,
-                  fontsize: 10,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 10),
-        Container(
-          height: 110,
-          width: 380,
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              TaskDetailsDialogHelpers.infoBoxDates(
-                'تاريخ البداية',
-                FunHelper.formatdate(task.fromDate),
-                CupertinoIcons.calendar,
-              ),
-              TaskDetailsDialogHelpers.infoBoxDates(
-                'تاريخ النهاية',
-                FunHelper.formatdate(task.toDate),
-                CupertinoIcons.calendar,
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxW = constraints.maxWidth;
+        final cellWidth = TaskDetailsDialogHelpers.gridCellWidth(maxW);
 
-  Widget _divider() {
-    return const SizedBox(
-      height: 35,
-      child: VerticalDivider(color: Colors.grey, thickness: 1),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  TaskDetailsDialogHelpers.infoBox(
+                    'العميل',
+                    clientName,
+                    width: cellWidth,
+                    height: 110,
+                  ),
+                  InkWell(
+                    onTap: () async {
+                      final url = task.programmingModel!.contenturl;
+                      if (await canLaunchUrl(Uri.parse(url))) {
+                        await launchUrl(
+                          Uri.parse(url),
+                          mode: LaunchMode.externalApplication,
+                        );
+                      } else {
+                        throw 'لا يمكن فتح الرابط $url';
+                      }
+                    },
+                    child: TaskDetailsDialogHelpers.infoBox(
+                      'رابط المحتوى',
+                      task.programmingModel!.contenturl,
+                      width: cellWidth,
+                      height: 110,
+                    ),
+                  ),
+                  TaskDetailsDialogHelpers.infoBox(
+                    'الاولويه',
+                    task.priority.tr,
+                    width: cellWidth,
+                    height: 110,
+                    child: TaskDetailsDialogHelpers.buildTag(
+                      task.priority,
+                      tr: true,
+                    ),
+                  ),
+                  TaskDetailsDialogHelpers.infoBox(
+                    'التصنيف',
+                    task.programmingModel!.category.tr,
+                    width: cellWidth,
+                    height: 110,
+                  ),
+                  TaskDetailsDialogHelpers.infoBox(
+                    'رابط الملفات',
+                    task.programmingModel!.fileurl ?? '-',
+                    width: cellWidth,
+                    height: 110,
+                  ),
+                  TaskDetailsDialogHelpers.infoBox(
+                    'القياسات',
+                    task.programmingModel!.designsDimensions ?? '-',
+                    width: cellWidth,
+                    height: 110,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              constraints: const BoxConstraints(minHeight: 110),
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Wrap(
+                alignment: WrapAlignment.center,
+                runSpacing: 8,
+                children: [
+                  TaskDetailsDialogHelpers.infoBoxDates(
+                    'تاريخ البداية',
+                    FunHelper.formatdate(task.fromDate),
+                    CupertinoIcons.calendar,
+                  ),
+                  TaskDetailsDialogHelpers.infoBoxDates(
+                    'تاريخ النهاية',
+                    FunHelper.formatdate(task.toDate),
+                    CupertinoIcons.calendar,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

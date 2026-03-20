@@ -1,4 +1,4 @@
-import 'dart:math';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
@@ -7,14 +7,27 @@ import 'package:point/Models/EmployeeModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
-import 'package:point/View/Auth/CreateUserAccount.dart';
+import 'package:point/Utils/PasswordValidator.dart';
 import 'package:point/View/Shared/CustomDropDown.dart';
 import 'package:point/View/Shared/InputText.dart';
+import 'package:point/View/Shared/ReadOnlyAccountEmailField.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/HorizantalScroll.dart';
 import 'package:point/View/Employees/Mobile/EmployeeFormMobilePage.dart';
 import 'package:point/View/Shared/responsive.dart';
+import 'package:uuid/uuid.dart';
+
+bool _canEditEmployeeCredentials(EmployeeModel? model) {
+  if (model == null) return true;
+  final uid = FirebaseAuth.instance.currentUser?.uid;
+  final au = model.authUid;
+  return uid != null &&
+      uid.isNotEmpty &&
+      au != null &&
+      au.isNotEmpty &&
+      uid == au;
+}
 
 class EmployeeTable extends StatefulWidget {
   @override
@@ -206,12 +219,10 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                           DataCell(
                                             Container(
                                               alignment: Alignment.center,
-                                              width: 110,
                                               height: 40,
                                               padding:
                                                   const EdgeInsets.symmetric(
                                                     horizontal: 8,
-                                                    // vertical: 4,
                                                   ),
                                               decoration: BoxDecoration(
                                                 color: Colors.purple.shade50,
@@ -219,8 +230,8 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                                     BorderRadius.circular(12),
                                               ),
                                               child: Text(
-                                                emp.role != 'supervisor'
-                                                    ? '${emp.role}\n(${emp.department?.tr})'
+                                                emp.role == 'employee'
+                                                    ? '${emp.role}\n(${emp.department?.tr ?? ''})'
                                                     : '${emp.role}',
                                                 textAlign: TextAlign.center,
                                                 style: TextStyle(
@@ -340,7 +351,7 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
 
   final nameController = TextEditingController(text: model?.name);
   final emailController = TextEditingController(text: model?.email);
-  final passwordController = TextEditingController(text: model?.password);
+  final passwordController = TextEditingController();
 
   bool obscurePassword = true;
 
@@ -351,6 +362,7 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
     model != null && model.image != null ? [model.image!] : [],
   );
   var _key = GlobalKey<FormState>();
+  final canEditCredentials = _canEditEmployeeCredentials(model);
   showDialog(
     barrierDismissible: false,
     context: context,
@@ -478,54 +490,65 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                   borderRadius: 5,
                                   borderColor: Colors.grey.shade300,
                                 ),
-                                InputText(
-                                  labelText: 'email'.tr,
-                                  hintText: 'example@example.com'.tr,
-                                  height: 42,
-                                  fillColor: Colors.white,
-                                  textInputType: TextInputType.emailAddress,
-                                  controller: emailController,
-
-                                  validator: (v) {
-                                    if (v == null ||
-                                        v.isEmpty ||
-                                        !v.toString().isEmail) {
-                                      return ' ';
-                                    }
-                                    return null;
-                                  },
-
-                                  borderRadius: 5,
-                                  borderColor: Colors.grey.shade300,
-                                ),
-                                InputText(
-                                  hintText: '******'.tr,
-                                  labelText: 'password'.tr,
-                                  obscureText: obscurePassword,
-                                  controller: passwordController,
-                                  height: 42,
-                                  fillColor: Colors.white,
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      obscurePassword
-                                          ? Icons.visibility_off
-                                          : Icons.visibility,
-                                      color: Colors.grey.shade600,
-                                    ),
-                                    onPressed: () {
-                                      obscurePassword = !obscurePassword;
-                                      newstate(() {});
+                                if (model == null || canEditCredentials)
+                                  InputText(
+                                    labelText: 'email'.tr,
+                                    hintText: 'example@example.com'.tr,
+                                    height: 42,
+                                    fillColor: Colors.white,
+                                    textInputType: TextInputType.emailAddress,
+                                    controller: emailController,
+                                    validator: (v) {
+                                      if (v == null ||
+                                          v.isEmpty ||
+                                          !v.toString().isEmail) {
+                                        return ' ';
+                                      }
+                                      return null;
                                     },
+                                    borderRadius: 5,
+                                    borderColor: Colors.grey.shade300,
+                                  )
+                                else
+                                  ReadOnlyAccountEmailField(
+                                    email: model.email ?? '',
+                                    height: 42,
+                                    borderRadius: 5,
+                                    borderColor: Colors.grey.shade300,
+                                    fillColor: Colors.white,
                                   ),
-                                  validator: (v) {
-                                    if (v == null || v.isEmpty) {
-                                      return ' ';
-                                    }
-                                    return validatePasswordStrong(v);
-                                  },
-                                  borderRadius: 5,
-                                  borderColor: Colors.grey.shade300,
-                                ),
+                                if (model == null || canEditCredentials)
+                                  InputText(
+                                    hintText:
+                                        model == null
+                                            ? '******'.tr
+                                            : 'leave_empty_unchanged'.tr,
+                                    labelText: 'password'.tr,
+                                    obscureText: obscurePassword,
+                                    controller: passwordController,
+                                    height: 42,
+                                    fillColor: Colors.white,
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                        obscurePassword
+                                            ? Icons.visibility_off
+                                            : Icons.visibility,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                      onPressed: () {
+                                        obscurePassword = !obscurePassword;
+                                        newstate(() {});
+                                      },
+                                    ),
+                                    validator: (v) {
+                                      if (v == null || v.trim().isEmpty) {
+                                        return null;
+                                      }
+                                      return validatePasswordStrong(v.trim());
+                                    },
+                                    borderRadius: 5,
+                                    borderColor: Colors.grey.shade300,
+                                  ),
                                 DynamicDropdown(
                                   items:
                                       roles
@@ -545,6 +568,9 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                   onChanged: (value) {
                                     if (value != null) {
                                       selectedRole = value;
+                                      if (selectedRole != 'employee') {
+                                        selectedDepartment = 'cat1';
+                                      }
                                       newstate(() {});
                                     }
                                   },
@@ -600,19 +626,24 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                       ),
                                       onPressed: () {
                                         if (_key.currentState!.validate()) {
+                                          final departmentToSave =
+                                              selectedRole == 'employee'
+                                                  ? selectedDepartment
+                                                  : null;
                                           if (model == null) {
                                             controller
                                                 .addEmployee(
                                                   password:
-                                                      passwordController.text,
+                                                      passwordController.text.trim().isEmpty
+                                                          ? 'TempPass@123'
+                                                          : passwordController.text.trim(),
                                                   EmployeeModel(
                                                     id:
-                                                        '${Random().nextInt(100000)}',
+                                                        const Uuid().v4(),
                                                     name: nameController.text,
                                                     email: emailController.text,
                                                     role: selectedRole,
-                                                    department:
-                                                        selectedDepartment,
+                                                    department: departmentToSave,
                                                     status: 'active',
                                                     createdAt: DateTime.now(),
                                                     image:
@@ -636,14 +667,14 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                           } else {
                                             controller
                                                 .updateEmployee(
-                                                  newPassword:
-                                                      passwordController.text,
                                                   model.copyWith(
                                                     name: nameController.text,
-                                                    email: emailController.text,
+                                                    email:
+                                                        canEditCredentials
+                                                            ? emailController.text
+                                                            : (model.email ?? ''),
                                                     role: selectedRole,
-                                                    department:
-                                                        selectedDepartment,
+                                                    department: departmentToSave,
                                                     image:
                                                         controller
                                                                 .uploadedFilesPaths
@@ -653,6 +684,11 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                                                 .last
                                                             : model.image,
                                                   ),
+                                                  newPassword:
+                                                      !canEditCredentials ||
+                                                              passwordController.text.trim().isEmpty
+                                                          ? null
+                                                          : passwordController.text.trim(),
                                                 )
                                                 .then((v) {
                                                   if (v) {

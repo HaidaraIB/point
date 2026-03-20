@@ -31,16 +31,19 @@ class GenericTaskFormDialog extends StatefulWidget {
 }
 
 class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
+  static const String _otherClientValue = '__other_client__';
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _titleController;
   late final TextEditingController _executorController;
   late final TextEditingController _clientController;
+  late final TextEditingController _customClientController;
   late final TextEditingController _priorityController;
   late final TextEditingController _startDateController;
   late final TextEditingController _endDateController;
   late final TextEditingController _notesController;
   DateTime? _startAt;
   DateTime? _endAt;
+  bool _useCustomClient = false;
 
   @override
   void initState() {
@@ -49,6 +52,7 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
     _titleController = TextEditingController(text: m?.title);
     _executorController = TextEditingController(text: m?.assignedTo);
     _clientController = TextEditingController(text: m?.clientName);
+    _customClientController = TextEditingController();
     _priorityController = TextEditingController(text: m?.priority);
     _startDateController = TextEditingController(text: FunHelper.formatdate(m?.fromDate));
     _endDateController = TextEditingController(text: FunHelper.formatdate(m?.toDate));
@@ -64,6 +68,7 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
     _titleController.dispose();
     _executorController.dispose();
     _clientController.dispose();
+    _customClientController.dispose();
     _priorityController.dispose();
     _startDateController.dispose();
     _endDateController.dispose();
@@ -160,34 +165,73 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
   }
 
   Widget _buildClientRow(HomeController controller) {
+    final matchedClient = controller.clients.firstWhereOrNull(
+      (a) => a.id == _clientController.text,
+    );
+    if (!_useCustomClient &&
+        _clientController.text.isNotEmpty &&
+        matchedClient == null) {
+      _useCustomClient = true;
+      _customClientController.text = _clientController.text;
+    }
+
     final w = (_dialogWidth / 2) - 20;
     return Padding(
       padding: const EdgeInsets.only(top: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
         children: [
-          SizedBox(
-            width: w,
-            child: DynamicDropdown(
-              items: controller.clients
-                  .map((v) => DropdownMenuItem(value: v, child: Text('${v.name}')))
-                  .toList(),
-              value: _clientController.text.isEmpty
-                  ? null
-                  : controller.clients.firstWhereOrNull(
-                      (a) => a.id == _clientController.text,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              SizedBox(
+                width: w,
+                child: DynamicDropdown<dynamic>(
+                  items: [
+                    ...controller.clients
+                        .map((v) => DropdownMenuItem(value: v, child: Text('${v.name}'))),
+                    DropdownMenuItem(
+                      value: _otherClientValue,
+                      child: Text('عميل آخر'.tr),
                     ),
-              label: 'chooseclient'.tr,
-              borderRadius: 5,
-              borderColor: Colors.grey.shade300,
-              height: 42,
-              fillColor: Colors.white,
-              onChanged: (value) {
-                if (value != null) _clientController.text = value.id ?? '';
-              },
-              validator: (v) => v == null ? ' ' : null,
-            ),
+                  ],
+                  value: _useCustomClient
+                      ? _otherClientValue
+                      : (_clientController.text.isEmpty ? null : matchedClient),
+                  label: 'chooseclient'.tr,
+                  borderRadius: 5,
+                  borderColor: Colors.grey.shade300,
+                  height: 42,
+                  fillColor: Colors.white,
+                  onChanged: (value) {
+                    setState(() {
+                      if (value == _otherClientValue) {
+                        _useCustomClient = true;
+                        _clientController.text = '';
+                      } else if (value != null) {
+                        _useCustomClient = false;
+                        _clientController.text = value.id ?? '';
+                      }
+                    });
+                  },
+                  validator: (v) => v == null ? ' ' : null,
+                ),
+              ),
+            ],
           ),
+          if (_useCustomClient)
+            SizedBox(
+              width: w,
+              child: InputText(
+                labelText: 'اسم العميل'.tr,
+                hintText: 'اكتب اسم العميل'.tr,
+                height: 42,
+                fillColor: Colors.white,
+                controller: _customClientController,
+                validator: (v) => (v == null || v.trim().isEmpty) ? ' ' : null,
+                borderRadius: 5,
+                borderColor: Colors.grey.shade300,
+              ),
+            ),
         ],
       ),
     );
@@ -411,29 +455,98 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
                 SizedBox(
                   width: w,
                   child: Obx(
-                    () => Column(
-                      children: [
-                        for (var filePath in controller.uploadedFilesPaths)
-                          Row(
-                            children: [
-                              InkWell(
-                                onTap: () =>
-                                    controller.uploadedFilesPaths.remove(filePath),
-                                child: const Icon(Icons.cancel, color: Colors.red),
+                    () {
+                      final files = controller.uploadedFilesPaths.toList();
+                      if (files.isEmpty) return const SizedBox.shrink();
+                      return GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: files.length,
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 10,
+                              mainAxisSpacing: 10,
+                              mainAxisExtent: 96,
+                            ),
+                        itemBuilder: (context, index) {
+                          final filePath = files[index];
+                          final lower = filePath.toString().toLowerCase();
+                          final isImage =
+                              lower.endsWith('.jpg') ||
+                              lower.endsWith('.jpeg') ||
+                              lower.endsWith('.png') ||
+                              lower.endsWith('.webp') ||
+                              lower.endsWith('.gif');
+                          return Center(
+                            child: SizedBox(
+                              width: 88,
+                              height: 88,
+                              child: Stack(
+                                children: [
+                                  Positioned.fill(
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(10),
+                                      child:
+                                          isImage
+                                              ? Image.network(
+                                                filePath,
+                                                fit: BoxFit.cover,
+                                                errorBuilder:
+                                                    (_, __, ___) => Container(
+                                                      color: Colors
+                                                          .blueGrey
+                                                          .shade100,
+                                                      child: Icon(
+                                                        Icons.link,
+                                                        color: Colors
+                                                            .blueGrey
+                                                            .shade700,
+                                                      ),
+                                                    ),
+                                              )
+                                              : Container(
+                                                color: Colors.blueGrey.shade100,
+                                                child: Icon(
+                                                  Icons.link,
+                                                  color: Colors
+                                                      .blueGrey
+                                                      .shade700,
+                                                ),
+                                              ),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    top: 4,
+                                    right: 4,
+                                    child: InkWell(
+                                      onTap:
+                                          () => controller.uploadedFilesPaths
+                                              .remove(filePath),
+                                      child: Container(
+                                        width: 20,
+                                        height: 20,
+                                        decoration: BoxDecoration(
+                                          color: Colors.black54,
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                        ),
+                                        child: const Icon(
+                                          Icons.close,
+                                          color: Colors.white,
+                                          size: 13,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 5),
-                              Text(
-                                FunHelper.getFileNameFromUrl(filePath),
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.blue,
-                                  decoration: TextDecoration.underline,
-                                ),
-                              ),
-                            ],
-                          ),
-                      ],
-                    ),
+                            ),
+                          );
+                        },
+                      );
+                    },
                   ),
                 ),
               ],
@@ -487,17 +600,21 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
   }
 
   Future<void> _onSave(HomeController controller) async {
-    if (!_formKey.currentState!.validate()) return;
-    if (_startAt == null || _endAt == null) return;
+    final fallbackDate = DateTime.now();
+    final fromDate = _startAt ?? fallbackDate;
+    final toDate = _endAt ?? fromDate;
+    final resolvedClientName = _useCustomClient
+        ? _customClientController.text.trim()
+        : _clientController.text.trim();
     final notes = widget.model?.notes ?? [];
     final common = CommonFormData(
       title: _titleController.text,
       description: _notesController.text,
       priority: _priorityController.text,
-      fromDate: _startAt!,
-      toDate: _endAt!,
+      fromDate: fromDate,
+      toDate: toDate,
       assignedTo: _executorController.text,
-      clientName: _clientController.text,
+      clientName: resolvedClientName,
       assignedImageUrl: controller.employees
               .firstWhereOrNull((a) => a.id == _executorController.text)
               ?.image ??

@@ -54,10 +54,9 @@ class LoginView extends StatelessWidget {
   }
 }
 
-var _key = GlobalKey<FormState>();
-
 // --- IGNORE ---
 Widget _buildDesktopLayout() {
+  final _key = GlobalKey<FormState>();
   final FirebaseMessaging _fcm = FirebaseMessaging.instance;
 
   return GetBuilder<AuthController>(
@@ -189,16 +188,12 @@ Widget _buildDesktopLayout() {
 
                                         await FunHelper.savelogindata(
                                           controller.email.text.trim(),
-                                          controller.pass.text.trim(),
                                         );
                                         if (!kIsWeb) {
                                           await _fcm.subscribeToTopic('all');
                                         }
-                                        Get.find<HomeController>()
-                                            .fetchnotification(v.id);
-
-                                        Get.find<HomeController>()
-                                            .listenToClient(v.id!);
+                                        // fetchnotification + listenToClient تُستدعى داخل loginClient()
+                                        // بعد نجاح Auth حتى يمرّ AuthMiddleware قبل Get.toNamed.
                                         if (v.role == 'supervisor') {
                                           if (!kIsWeb) {
                                             await _fcm.unsubscribeFromTopic(

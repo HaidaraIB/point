@@ -18,6 +18,7 @@ import 'package:point/View/Shared/t.dart';
 import 'package:point/View/Tasks/Mobile/GenericTaskFormMobilePage.dart';
 
 void showPromotionDialog(BuildContext context, {TaskModel? model}) {
+  const otherClientValue = '__other_client__';
   final ctx = Get.context;
   if (ctx != null && Responsive.isMobile(ctx)) {
     Get.to(() => GenericTaskFormMobilePage(model: model, typeForNew: '0'));
@@ -32,6 +33,13 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
   RxList platforms = (model?.promotionModel?.platforms ?? []).obs;
 
   final clientcontroller = TextEditingController(text: model?.clientName);
+  final homeController = Get.find<HomeController>();
+  final isCustomClient = (clientcontroller.text.isNotEmpty &&
+          !homeController.clients.any((c) => c.id == clientcontroller.text))
+      .obs;
+  final customClientController = TextEditingController(
+    text: isCustomClient.value ? clientcontroller.text : '',
+  );
   // final designTypeController = TextEditingController();
   final priorityController = TextEditingController(text: model?.priority);
   final campaignReasonController = TextEditingController(
@@ -157,37 +165,59 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                     // العميل
                                     SizedBox(
                                       width: (Get.width * 0.7 / 3) - 25,
-                                      child: DynamicDropdown(
-                                        items:
-                                            controller.clients
-                                                .map(
+                                      child: Obx(
+                                        () => Column(
+                                          children: [
+                                            DynamicDropdown<dynamic>(
+                                              items: [
+                                                ...controller.clients.map(
                                                   (v) => DropdownMenuItem(
                                                     value: v,
                                                     child: Text('${v.name}'),
                                                   ),
-                                                )
-                                                .toList(),
-                                        value:
-                                            clientcontroller.text.isEmpty
-                                                ? null
-                                                : controller.clients.firstWhere(
-                                                  (a) =>
-                                                      a.id ==
-                                                      clientcontroller.text,
                                                 ),
-                                        label: 'chooseclient'.tr,
-                                        borderRadius: 5,
-                                        borderColor: Colors.grey.shade300,
-                                        height: 42,
-                                        fillColor: Colors.white,
-                                        onChanged: (value) {
-                                          if (value != null) {
-                                            clientcontroller.text =
-                                                value.id ?? '';
-                                          }
-                                        },
-                                        validator:
-                                            (v) => v == null ? ' ' : null,
+                                                DropdownMenuItem(
+                                                  value: otherClientValue,
+                                                  child: Text('عميل آخر'.tr),
+                                                ),
+                                              ],
+                                              value: isCustomClient.value
+                                                  ? otherClientValue
+                                                  : (clientcontroller.text.isEmpty
+                                                      ? null
+                                                      : controller.clients.firstWhereOrNull(
+                                                          (a) => a.id == clientcontroller.text,
+                                                        )),
+                                              label: 'chooseclient'.tr,
+                                              borderRadius: 5,
+                                              borderColor: Colors.grey.shade300,
+                                              height: 42,
+                                              fillColor: Colors.white,
+                                              onChanged: (value) {
+                                                if (value == otherClientValue) {
+                                                  isCustomClient.value = true;
+                                                  clientcontroller.text = '';
+                                                } else if (value != null) {
+                                                  isCustomClient.value = false;
+                                                  clientcontroller.text = value.id ?? '';
+                                                }
+                                              },
+                                              validator: (v) => v == null ? ' ' : null,
+                                            ),
+                                            if (isCustomClient.value)
+                                              InputText(
+                                                labelText: 'اسم العميل'.tr,
+                                                hintText: 'اكتب اسم العميل'.tr,
+                                                height: 42,
+                                                fillColor: Colors.white,
+                                                controller: customClientController,
+                                                validator: (v) =>
+                                                    (v == null || v.trim().isEmpty) ? ' ' : null,
+                                                borderRadius: 5,
+                                                borderColor: Colors.grey.shade300,
+                                              ),
+                                          ],
+                                        ),
                                       ),
                                     ),
 
@@ -557,48 +587,115 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                       ? SizedBox.shrink()
                                       : SizedBox(
                                           width: Get.width * 0.7 - 32,
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              for (var filePath
-                                                  in controller
-                                                      .uploadedFilesPaths)
-                                                Row(
-                                                  children: [
-                                                    InkWell(
-                                                      onTap: () {
-                                                        controller
-                                                            .uploadedFilesPaths
-                                                            .remove(filePath);
-                                                      },
-                                                      child: Icon(
-                                                        Icons.cancel,
-                                                        color: Colors.red,
-                                                      ),
-                                                    ),
-                                                    SizedBox(width: 5),
-                                                    Expanded(
-                                                      child: Text(
-                                                        FunHelper
-                                                            .getFileNameFromUrl(
-                                                          filePath,
-                                                        ),
-                                                        style: TextStyle(
-                                                          fontSize: 12,
-                                                          color: Colors.blue,
-                                                          decoration:
-                                                              TextDecoration
-                                                                  .underline,
-                                                        ),
-                                                        overflow:
-                                                            TextOverflow
-                                                                .ellipsis,
-                                                      ),
-                                                    ),
-                                                  ],
+                                          child: GridView.builder(
+                                            shrinkWrap: true,
+                                            physics:
+                                                const NeverScrollableScrollPhysics(),
+                                            itemCount:
+                                                controller
+                                                    .uploadedFilesPaths
+                                                    .length,
+                                            gridDelegate:
+                                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                                  crossAxisCount: 2,
+                                                  crossAxisSpacing: 10,
+                                                  mainAxisSpacing: 10,
+                                                  mainAxisExtent: 96,
                                                 ),
-                                            ],
+                                            itemBuilder: (_, i) {
+                                              final filePath =
+                                                  controller
+                                                      .uploadedFilesPaths[i];
+                                              final lower = filePath
+                                                  .toString()
+                                                  .toLowerCase();
+                                              final isImage =
+                                                  lower.endsWith('.jpg') ||
+                                                  lower.endsWith('.jpeg') ||
+                                                  lower.endsWith('.png') ||
+                                                  lower.endsWith('.webp') ||
+                                                  lower.endsWith('.gif');
+                                              return Center(
+                                                child: SizedBox(
+                                                  width: 88,
+                                                  height: 88,
+                                                  child: Stack(
+                                                    children: [
+                                                      Positioned.fill(
+                                                        child: ClipRRect(
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                10,
+                                                              ),
+                                                          child:
+                                                              isImage
+                                                                  ? Image.network(
+                                                                    filePath,
+                                                                    fit: BoxFit
+                                                                        .cover,
+                                                                    errorBuilder:
+                                                                        (
+                                                                          _,
+                                                                          __,
+                                                                          ___,
+                                                                        ) => Container(
+                                                                          color: Colors
+                                                                              .blueGrey
+                                                                              .shade100,
+                                                                          child: Icon(
+                                                                            Icons.link,
+                                                                            color: Colors.blueGrey.shade700,
+                                                                          ),
+                                                                        ),
+                                                                  )
+                                                                  : Container(
+                                                                    color: Colors
+                                                                        .blueGrey
+                                                                        .shade100,
+                                                                    child: Icon(
+                                                                      Icons.link,
+                                                                      color: Colors
+                                                                          .blueGrey
+                                                                          .shade700,
+                                                                    ),
+                                                                  ),
+                                                        ),
+                                                      ),
+                                                      Positioned(
+                                                        top: 4,
+                                                        right: 4,
+                                                        child: InkWell(
+                                                          onTap:
+                                                              () => controller
+                                                                  .uploadedFilesPaths
+                                                                  .remove(
+                                                                    filePath,
+                                                                  ),
+                                                          child: Container(
+                                                            width: 20,
+                                                            height: 20,
+                                                            decoration: BoxDecoration(
+                                                              color:
+                                                                  Colors.black54,
+                                                              borderRadius:
+                                                                  BorderRadius.circular(
+                                                                    10,
+                                                                  ),
+                                                            ),
+                                                            child: const Icon(
+                                                              Icons.close,
+                                                              color:
+                                                                  Colors.white,
+                                                              size: 13,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              );
+                                            },
                                           ),
                                         ),
                                 ),
@@ -852,8 +949,13 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                         ),
                                       ),
                                       onPressed: () {
-                                        if (_key.currentState!.validate()) {
-                                          if (model == null) {
+                                        final fallbackDate = DateTime.now();
+                                        final effectiveStartAt = startAt ?? fallbackDate;
+                                        final effectiveEndAt = endAt ?? effectiveStartAt;
+                                        final resolvedClientName = isCustomClient.value
+                                            ? customClientController.text.trim()
+                                            : clientcontroller.text.trim();
+                                        if (model == null) {
                                             controller.addTask(
                                               TaskModel(
                                                 title: titleController.text,
@@ -880,12 +982,11 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                                 ],
                                                 priority:
                                                     priorityController.text,
-                                                fromDate: startAt!,
-                                                toDate: endAt!,
+                                                fromDate: effectiveStartAt,
+                                                toDate: effectiveEndAt,
                                                 assignedTo:
                                                     executorController.text,
-                                                clientName:
-                                                    clientcontroller.text,
+                                                clientName: resolvedClientName,
                                                 assignedImageUrl:
                                                     controller.employees
                                                         .firstWhereOrNull(
@@ -964,12 +1065,11 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                                         .status_edit_requested,
                                                 priority:
                                                     priorityController.text,
-                                                fromDate: startAt!,
-                                                toDate: endAt!,
+                                                fromDate: effectiveStartAt,
+                                                toDate: effectiveEndAt,
                                                 assignedTo:
                                                     executorController.text,
-                                                clientName:
-                                                    clientcontroller.text,
+                                                clientName: resolvedClientName,
                                                 assignedImageUrl:
                                                     controller.employees
                                                         .firstWhereOrNull(
@@ -1017,7 +1117,6 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                             controller.uploadedFilesPaths
                                                 .clear();
                                           }
-                                        }
                                       },
                                       child:
                                           controller.isLoading.value

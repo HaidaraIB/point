@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/AppImages.dart';
@@ -198,6 +199,7 @@ class MobileAppBarProfileWidget extends StatelessWidget {
           ),
         ),
         PopupMenuButton<int>(
+          tooltip: 'الخيارات',
           padding: EdgeInsets.zero,
           icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 24),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -232,6 +234,21 @@ class MobileAppBarProfileWidget extends StatelessWidget {
             }
             items.add(
               PopupMenuItem(
+                value: 3,
+                child: Row(
+                  children: [
+                    Icon(Icons.lock_reset, color: AppColors.primary),
+                    const SizedBox(width: 8),
+                    Text(
+                      'resetpassword'.tr,
+                      style: const TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                  ],
+                ),
+              ),
+            );
+            items.add(
+              PopupMenuItem(
                 value: 0,
                 height: 30,
                 child: Container(
@@ -259,6 +276,8 @@ class MobileAppBarProfileWidget extends StatelessWidget {
           },
           onSelected: (value) {
             if (value == 0) {
+              Get.find<HomeController>().clearEmployeeSession();
+              FirestoreServices().signOut();
               if (isClient) {
                 Get.offAllNamed('/auth/LoginUserAccount');
               } else {
@@ -269,6 +288,8 @@ class MobileAppBarProfileWidget extends StatelessWidget {
               _showNotificationsDialog(context);
             } else if (value == 2) {
               _openChatFromMobile(context);
+            } else if (value == 3) {
+              Get.toNamed('/auth/resetPassword');
             }
           },
         ),
@@ -370,6 +391,7 @@ class HeaderWidget extends StatelessWidget {
         ),
         SizedBox(
           child: PopupMenuButton<int>(
+            tooltip: 'الخيارات',
             padding: EdgeInsets.zero,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -405,6 +427,21 @@ class HeaderWidget extends StatelessWidget {
               }
               items.add(
                 PopupMenuItem(
+                  value: 3,
+                  child: Row(
+                    children: [
+                      Icon(Icons.lock_reset, color: AppColors.primary),
+                      SizedBox(width: 8),
+                      Text(
+                        'resetpassword'.tr,
+                        style: TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+              items.add(
+                PopupMenuItem(
                   value: 0,
                   height: 30,
                   child: Container(
@@ -432,6 +469,8 @@ class HeaderWidget extends StatelessWidget {
             },
             onSelected: (value) {
               if (value == 0) {
+              Get.find<HomeController>().clearEmployeeSession();
+                FirestoreServices().signOut();
                 if (client == true) {
                   Get.offAllNamed('/auth/LoginUserAccount');
                 } else {
@@ -442,6 +481,8 @@ class HeaderWidget extends StatelessWidget {
                 _showNotificationsDialog(context);
               } else if (value == 2) {
                 _openChatFromMobile(context);
+              } else if (value == 3) {
+                Get.toNamed('/auth/resetPassword');
               }
             },
             child: Icon(Icons.keyboard_arrow_down_rounded),

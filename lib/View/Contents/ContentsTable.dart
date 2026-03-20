@@ -245,11 +245,13 @@ class ContentsTable extends StatelessWidget {
                               );
                             }
                             return HorizontalScrollbarTable(
-                              child: SizedBox(
-                                width: 2000,
-                                child: DataTable(
-                                  dataRowMinHeight: 60,
-                                  dataRowMaxHeight: 60,
+                              child: Padding(
+                                padding: const EdgeInsets.only(top: 6, bottom: 14),
+                                child: SizedBox(
+                                  width: 2000,
+                                  child: DataTable(
+                                  dataRowMinHeight: 72,
+                                  dataRowMaxHeight: double.infinity,
                                   // headingRowColor: WidgetStateProperty.all(Colors.blue.shade50),
                                   dataRowColor: WidgetStateProperty.all(
                                     Colors.white,
@@ -573,12 +575,23 @@ class ContentsTable extends StatelessWidget {
                                                                 .toList(),
                                                       ).then((value) async {
                                                         if (value != null) {
+                                                          final statusLabelAr =
+                                                              NotificationService
+                                                                  .statusLabelAr(
+                                                            value,
+                                                          );
                                                           await controller
                                                               .updateContent(
                                                                 emp.copyWith(
                                                                   status: value,
                                                                 ),
                                                               );
+                                                          await NotificationService.notifyAdminContentStatusChanged(
+                                                            contentTitle:
+                                                                emp.title,
+                                                            statusLabelAr:
+                                                                statusLabelAr,
+                                                          );
                                                           if (value ==
                                                               StorageKeys
                                                                   .status_published) {
@@ -613,37 +626,16 @@ class ContentsTable extends StatelessWidget {
                                                         }
                                                       });
                                                     },
-                                                    child: Container(
-                                                      alignment:
-                                                          Alignment.center,
-                                                      width: 110,
-                                                      height: 32,
-                                                      padding:
-                                                          const EdgeInsets.symmetric(
-                                                            horizontal: 8,
-                                                          ),
-                                                      decoration: BoxDecoration(
-                                                        color:
-                                                            _getStatusbgColor(
-                                                              emp.status,
-                                                            ),
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              16,
-                                                            ),
+                                                    child: _buildDropdownChip(
+                                                      label: emp.status.tr,
+                                                      textColor: _getStatusColor(
+                                                        emp.status,
                                                       ),
-                                                      child: Text(
-                                                        emp.status.tr,
-                                                        style: TextStyle(
-                                                          color:
-                                                              _getStatusColor(
-                                                                emp.status,
-                                                              ),
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                          fontSize: 13,
-                                                        ),
+                                                      backgroundColor:
+                                                          _getStatusbgColor(
+                                                        emp.status,
                                                       ),
+                                                      width: 126,
                                                     ),
                                                   );
                                                 },
@@ -768,29 +760,21 @@ class ContentsTable extends StatelessWidget {
                                                       });
                                                     },
                                                     child: Center(
-                                                      child: Container(
-                                                        constraints:
-                                                            BoxConstraints(
-                                                              maxWidth: math.max(
-                                                                (Get.width -
-                                                                        280) /
-                                                                    9,
-                                                                120,
-                                                              ),
-                                                            ),
-                                                        child: Text(
-                                                          emp.promotion?.tr ??
-                                                              '--',
-                                                          overflow:
-                                                              TextOverflow
-                                                                  .ellipsis,
-                                                          style: TextStyle(
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                            color:
-                                                                AppColors
-                                                                    .fontColorGrey,
-                                                          ),
+                                                      child: _buildDropdownChip(
+                                                        label:
+                                                            emp.promotion?.tr ??
+                                                            '--',
+                                                        textColor:
+                                                            _getPromotionColor(
+                                                          emp.promotion,
+                                                        ),
+                                                        backgroundColor:
+                                                            _getPromotionBgColor(
+                                                          emp.promotion,
+                                                        ),
+                                                        width: math.max(
+                                                          (Get.width - 280) / 9,
+                                                          126,
                                                         ),
                                                       ),
                                                     ),
@@ -807,7 +791,14 @@ class ContentsTable extends StatelessWidget {
                                                       120,
                                                     ),
                                                   ),
-                                                  child: Column(
+                                                  child: Padding(
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          vertical: 6,
+                                                        ),
+                                                    child: Wrap(
+                                                      spacing: 10,
+                                                      runSpacing: 10,
                                                     children: [
                                                       for (var file
                                                           in emp.files ?? [])
@@ -853,38 +844,17 @@ class ContentsTable extends StatelessWidget {
                                                               );
                                                               return;
                                                             }
-                                                            if (await canLaunchUrl(
-                                                              Uri.parse(file),
-                                                            )) {
-                                                              await launchUrl(
-                                                                Uri.parse(file),
-                                                                mode:
-                                                                    LaunchMode
-                                                                        .externalApplication,
-                                                              );
-                                                            } else {
-                                                              throw 'لا يمكن فتح الرابط $file';
-                                                            }
+                                                            await _openAttachmentUrl(
+                                                              file,
+                                                            );
                                                           },
-                                                          child: Text(
-                                                            file ?? '--',
-                                                            overflow:
-                                                                TextOverflow
-                                                                    .ellipsis,
-
-                                                            style: TextStyle(
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .bold,
-                                                              decoration:
-                                                                  TextDecoration
-                                                                      .underline,
-                                                              color:
-                                                                  Colors.blue,
-                                                            ),
-                                                          ),
+                                                          child:
+                                                              _buildAttachmentPreviewTile(
+                                                                file,
+                                                              ),
                                                         ),
                                                     ],
+                                                    ),
                                                   ),
                                                 ),
                                               ),
@@ -949,7 +919,14 @@ class ContentsTable extends StatelessWidget {
                                                       120,
                                                     ),
                                                   ),
-                                                  child: Column(
+                                                  child: Padding(
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          vertical: 6,
+                                                        ),
+                                                    child: Wrap(
+                                                      spacing: 10,
+                                                      runSpacing: 10,
                                                     children: [
                                                       for (var file
                                                           in emp.clientEdits ??
@@ -996,38 +973,17 @@ class ContentsTable extends StatelessWidget {
                                                               );
                                                               return;
                                                             }
-                                                            if (await canLaunchUrl(
-                                                              Uri.parse(file),
-                                                            )) {
-                                                              await launchUrl(
-                                                                Uri.parse(file),
-                                                                mode:
-                                                                    LaunchMode
-                                                                        .externalApplication,
-                                                              );
-                                                            } else {
-                                                              throw 'لا يمكن فتح الرابط $file';
-                                                            }
+                                                            await _openAttachmentUrl(
+                                                              file,
+                                                            );
                                                           },
-                                                          child: Text(
-                                                            file ?? '--',
-                                                            overflow:
-                                                                TextOverflow
-                                                                    .ellipsis,
-
-                                                            style: TextStyle(
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .bold,
-                                                              decoration:
-                                                                  TextDecoration
-                                                                      .underline,
-                                                              color:
-                                                                  Colors.blue,
-                                                            ),
-                                                          ),
+                                                          child:
+                                                              _buildAttachmentPreviewTile(
+                                                                file,
+                                                              ),
                                                         ),
                                                     ],
+                                                    ),
                                                   ),
                                                 ),
                                               ),
@@ -1108,16 +1064,19 @@ class ContentsTable extends StatelessWidget {
                                                               ),
                                                             ),
                                                           ),
-                                                          if (controller
-                                                                      .currentemployee
-                                                                      .value
-                                                                      ?.role ==
-                                                                  'supervisor' ||
-                                                              controller
-                                                                      .currentemployee
-                                                                      .value
-                                                                      ?.role ==
-                                                                  'admin')
+                                                          if ([
+                                                            'supervisor',
+                                                            'admin',
+                                                            'accountholder',
+                                                          ].contains(
+                                                            (controller
+                                                                        .currentemployee
+                                                                        .value
+                                                                        ?.role ??
+                                                                    '')
+                                                                .trim()
+                                                                .toLowerCase(),
+                                                          ))
                                                             PopupMenuItem(
                                                               value: 1,
 
@@ -1212,6 +1171,7 @@ class ContentsTable extends StatelessWidget {
                                           ],
                                         );
                                       }).toList(),
+                                  ),
                                 ),
                               ),
                             );
@@ -1422,9 +1382,7 @@ class ContentsTable extends StatelessWidget {
                     return ContentStatusCard(
                       index: i,
                       model: content,
-                      onTap:
-                          () =>
-                              showContentDialogDetails(context, task: content),
+                      onTap: () => showContentDialogDetails(context, task: content),
                     );
                   },
                   separatorBuilder: (_, __) => const SizedBox(height: 8),
@@ -1486,6 +1444,158 @@ Color _getStatusbgColor(String status) {
     default:
       return Colors.grey.shade200;
   }
+}
+
+Color _getPromotionColor(String? promotion) {
+  switch (promotion) {
+    case 'under_promotion':
+      return Colors.teal;
+    case 'end_promotion':
+      return Colors.deepOrange;
+    case 'no_promotion':
+      return Colors.grey.shade700;
+    default:
+      return Colors.black54;
+  }
+}
+
+Color _getPromotionBgColor(String? promotion) {
+  switch (promotion) {
+    case 'under_promotion':
+      return Colors.teal.shade50;
+    case 'end_promotion':
+      return Colors.deepOrange.shade50;
+    case 'no_promotion':
+      return Colors.grey.shade200;
+    default:
+      return Colors.grey.shade100;
+  }
+}
+
+Widget _buildDropdownChip({
+  required String label,
+  required Color textColor,
+  required Color backgroundColor,
+  required double width,
+}) {
+  return Container(
+    alignment: Alignment.center,
+    width: width,
+    height: 32,
+    padding: const EdgeInsets.symmetric(horizontal: 8),
+    decoration: BoxDecoration(
+      color: backgroundColor,
+      borderRadius: BorderRadius.circular(16),
+    ),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Flexible(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              label,
+              maxLines: 1,
+              style: TextStyle(
+                color: textColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 3),
+        Icon(
+          Icons.keyboard_arrow_down_rounded,
+          size: 16,
+          color: textColor,
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _buildAttachmentPreviewTile(String url) {
+  final bool isImage = getFileType(url) == 'image';
+  return ClipRRect(
+    borderRadius: BorderRadius.circular(8),
+    child:
+        isImage
+            ? Image.network(
+              url,
+              width: 56,
+              height: 56,
+              fit: BoxFit.cover,
+              errorBuilder:
+                  (_, __, ___) =>
+                      _attachmentPlaceholderThumbnail(Icons.broken_image_outlined),
+            )
+            : _attachmentPlaceholderThumbnail(Icons.link_outlined),
+  );
+}
+
+Widget _attachmentPlaceholderThumbnail(IconData icon) {
+  return Container(
+    width: 56,
+    height: 56,
+    decoration: BoxDecoration(
+      color: Colors.blueGrey.shade100,
+      border: Border.all(color: Colors.blueGrey.shade200),
+    ),
+    child: Icon(icon, size: 22, color: Colors.blueGrey.shade700),
+  );
+}
+
+Widget _buildFormAttachmentThumbnail(String url) {
+  final isImage = getFileType(url) == 'image';
+  return ClipRRect(
+    borderRadius: BorderRadius.circular(10),
+    child: Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        color: Colors.grey.shade100,
+      ),
+      child:
+          isImage
+              ? Image.network(
+                url,
+                fit: BoxFit.cover,
+                errorBuilder:
+                    (_, __, ___) =>
+                        _attachmentPlaceholderThumbnail(Icons.broken_image_outlined),
+              )
+              : _attachmentPlaceholderThumbnail(Icons.link_outlined),
+    ),
+  );
+}
+
+Uri _normalizeAttachmentUri(String rawUrl) {
+  final trimmed = rawUrl.trim();
+  final parsed = Uri.tryParse(trimmed);
+  if (parsed != null && parsed.hasScheme) {
+    return parsed;
+  }
+  return Uri.parse('https://$trimmed');
+}
+
+Future<void> _openAttachmentUrl(String rawUrl) async {
+  try {
+    final uri = _normalizeAttachmentUri(rawUrl);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+      return;
+    }
+  } catch (_) {
+    // Ignore errors and show user-friendly feedback instead of throwing.
+  }
+
+  FunHelper.showsnackbar(
+    'تنبيه',
+    'تعذر فتح هذا الرابط',
+    snackPosition: SnackPosition.TOP,
+    backgroundColor: Colors.orange,
+    colorText: Colors.white,
+  );
 }
 
 void showAddContentDialog(
@@ -1578,12 +1688,7 @@ void showAddContentDialog(
                                 fillColor: Colors.white,
                                 controller: titleController,
 
-                                validator: (v) {
-                                  if (v == null || v.isEmpty) {
-                                    return ' ';
-                                  }
-                                  return null;
-                                },
+                                validator: (_) => null,
 
                                 borderRadius: 5,
                                 borderColor: Colors.grey.shade300,
@@ -1613,10 +1718,7 @@ void showAddContentDialog(
                                     textInputType: TextInputType.datetime,
                                     controller: publishDatectr,
                                     readOnly: true,
-                                    validator: (v) {
-                                      if (v == null || v.isEmpty) return ' ';
-                                      return null;
-                                    },
+                                    validator: (_) => null,
                                     suffixIcon: Icon(
                                       CupertinoIcons.calendar,
                                       color: Colors.grey,
@@ -1661,12 +1763,7 @@ void showAddContentDialog(
                                       }
                                     },
 
-                                    validator: (v) {
-                                      if (v == null) {
-                                        return ' ';
-                                      }
-                                      return null;
-                                    },
+                                    validator: (_) => null,
                                   ),
                                 ),
                               ],
@@ -1703,12 +1800,7 @@ void showAddContentDialog(
                                       }
                                     },
 
-                                    validator: (v) {
-                                      if (v == null || v.isEmpty) {
-                                        return ' ';
-                                      }
-                                      return null;
-                                    },
+                                    validator: (_) => null,
                                   ),
                                 ),
                                 Obx(
@@ -1727,12 +1819,7 @@ void showAddContentDialog(
                                       height: 42,
                                       fillColor: Colors.white,
 
-                                      validator: (v) {
-                                        if (v == null || v.isEmpty) {
-                                          return ' ';
-                                        }
-                                        return null;
-                                      },
+                                      validator: (_) => null,
                                       onChanged: (value) {
                                         platforms.assignAll(value);
                                       },
@@ -1775,17 +1862,7 @@ void showAddContentDialog(
                                           hintText: 'googledrivelink .com'.tr,
                                           height: 40,
                                           fillColor: Colors.white,
-                                          validator: (v) {
-                                            if (controller
-                                                    .uploadedFilesPaths
-                                                    .isEmpty &&
-                                                filecontroller.text.isEmpty) {
-                                              return ' ';
-                                            } else if (!v!.isURL) {
-                                              return 'رابط خطأ';
-                                            }
-                                            return null;
-                                          },
+                                          validator: (_) => null,
                                           controller: filecontroller,
                                           suffixIcon: Container(
                                             width: 80,
@@ -1838,15 +1915,7 @@ void showAddContentDialog(
                                           child: InputText(
                                             labelText: 'dragfile'.tr,
                                             hintText: ''.tr,
-                                            validator: (v) {
-                                              if (controller
-                                                      .uploadedFilesPaths
-                                                      .isEmpty &&
-                                                  filecontroller.text.isEmpty) {
-                                                return ' ';
-                                              }
-                                              return null;
-                                            },
+                                            validator: (_) => null,
                                             enable: false,
                                             height: 100,
                                             fillColor: Colors.white,
@@ -1907,57 +1976,76 @@ void showAddContentDialog(
                                       SizedBox(
                                         width: (Get.width * 0.7 / 2) - 30,
                                         child: Obx(
-                                          () => Column(
-                                            children: [
-                                              for (var filePath
-                                                  in controller
-                                                      .uploadedFilesPaths)
-                                                Row(
-                                                  children: [
-                                                    InkWell(
-                                                      onTap: () {
-                                                        controller
-                                                            .uploadedFilesPaths
-                                                            .remove(filePath);
-                                                      },
-                                                      child: Icon(
-                                                        Icons.cancel,
-                                                        color: Colors.red,
+                                          () {
+                                            final files =
+                                                controller.uploadedFilesPaths
+                                                    .toList();
+                                            if (files.isEmpty) {
+                                              return const SizedBox.shrink();
+                                            }
+                                            return GridView.builder(
+                                              shrinkWrap: true,
+                                              physics:
+                                                  const NeverScrollableScrollPhysics(),
+                                              itemCount: files.length,
+                                              gridDelegate:
+                                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                                    crossAxisCount: 2,
+                                                    crossAxisSpacing: 10,
+                                                    mainAxisSpacing: 10,
+                                                    childAspectRatio: 1,
+                                                  ),
+                                              itemBuilder: (context, index) {
+                                                final filePath = files[index];
+                                                return InkWell(
+                                                  onTap: () async {
+                                                    await _openAttachmentUrl(
+                                                      filePath,
+                                                    );
+                                                  },
+                                                  child: Stack(
+                                                    children: [
+                                                      Positioned.fill(
+                                                        child:
+                                                            _buildFormAttachmentThumbnail(
+                                                              filePath,
+                                                            ),
                                                       ),
-                                                    ),
-                                                    SizedBox(width: 5),
-                                                    InkWell(
-                                                      onTap: () async {
-                                                        if (await canLaunchUrl(
-                                                          Uri.parse(filePath),
-                                                        )) {
-                                                          await launchUrl(
-                                                            Uri.parse(filePath),
-                                                            mode:
-                                                                LaunchMode
-                                                                    .externalApplication,
-                                                          );
-                                                        } else {
-                                                          throw 'لا يمكن فتح الرابط $filePath';
-                                                        }
-                                                      },
-                                                      child: Text(
-                                                        FunHelper.getFileNameFromUrl(
-                                                          filePath,
-                                                        ),
-                                                        style: TextStyle(
-                                                          fontSize: 12,
-                                                          color: Colors.blue,
-                                                          decoration:
-                                                              TextDecoration
-                                                                  .underline,
+                                                      Positioned(
+                                                        top: 6,
+                                                        right: 6,
+                                                        child: InkWell(
+                                                          onTap: () {
+                                                            controller
+                                                                .uploadedFilesPaths
+                                                                .remove(filePath);
+                                                          },
+                                                          child: Container(
+                                                            width: 24,
+                                                            height: 24,
+                                                            decoration: BoxDecoration(
+                                                              color:
+                                                                  Colors.black54,
+                                                              borderRadius:
+                                                                  BorderRadius.circular(
+                                                                    12,
+                                                                  ),
+                                                            ),
+                                                            child: const Icon(
+                                                              Icons.close,
+                                                              color:
+                                                                  Colors.white,
+                                                              size: 15,
+                                                            ),
+                                                          ),
                                                         ),
                                                       ),
-                                                    ),
-                                                  ],
-                                                ),
-                                            ],
-                                          ),
+                                                    ],
+                                                  ),
+                                                );
+                                              },
+                                            );
+                                          },
                                         ),
                                       ),
                                     ],

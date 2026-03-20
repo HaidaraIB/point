@@ -11,7 +11,8 @@ class ClientModel {
   final String? description; // 👈 الوصف
   final DateTime? startAt; // 👈 بداية
   final DateTime? endAt; // 👈 نهاية
-  final String? password; // 👈 كلمة السر (اختياري مؤقتاً، سيتم التخلص منه لاحقاً)
+  final String? authUid;
+  final String? authStatus; // pendingActivation, active, pendingEmailVerification
   final String? fcmToken; // 👈 توكن الإشعارات
   final String? onesignal; // 👈 توكن الإشعارات
   final DateTime createdAt;
@@ -27,7 +28,8 @@ class ClientModel {
     this.description,
     this.startAt,
     this.endAt,
-    this.password,
+    this.authUid,
+    this.authStatus,
     this.fcmToken,
     this.onesignal,
     required this.createdAt,
@@ -44,7 +46,8 @@ class ClientModel {
     String? description,
     DateTime? startAt,
     DateTime? endAt,
-    String? password,
+    String? authUid,
+    String? authStatus,
     String? fcmToken,
     String? onesignal,
     DateTime? createdAt,
@@ -60,7 +63,8 @@ class ClientModel {
       description: description ?? this.description,
       startAt: startAt ?? this.startAt,
       endAt: endAt ?? this.endAt,
-      password: password ?? this.password,
+      authUid: authUid ?? this.authUid,
+      authStatus: authStatus ?? this.authStatus,
       fcmToken: fcmToken ?? this.fcmToken,
       createdAt: createdAt ?? this.createdAt,
       onesignal: onesignal ?? this.onesignal,
@@ -86,7 +90,8 @@ class ClientModel {
       description: json['description'] as String?,
       startAt: _parseDateTime(json['startAt']),
       endAt: _parseDateTime(json['endAt']),
-      password: json['password'] as String?,
+      authUid: json['authUid'] as String?,
+      authStatus: json['authStatus'] as String?,
       fcmToken: json['fcmToken'] as String?,
       createdAt: _parseDateTime(json['createdAt']) ?? DateTime.now(),
       onesignal: json['onesignal'] as String?,
@@ -105,7 +110,8 @@ class ClientModel {
       "description": description,
       "startAt": startAt,
       "endAt": endAt,
-      if (password != null) "password": password,
+      if (authUid != null) "authUid": authUid,
+      if (authStatus != null) "authStatus": authStatus,
       "fcmToken": fcmToken,
       "createdAt": createdAt,
       'onesignal': onesignal,

@@ -15,6 +15,9 @@ class AppTranslations extends Translations {
       'are_you_client': 'Are you a client?',
       'leave_empty_unchanged': 'Leave blank to keep unchanged',
       'editemployee': 'Edit Employee',
+      'credentials_owner_only_note':
+          'Email and password can only be changed by the account owner.',
+      'email_read_only_badge': 'Read-only',
     },
     'ar': {
       'login': 'تسجيل الدخول',
@@ -200,6 +203,9 @@ class AppTranslations extends Translations {
       "login_employee_title": "تسجيل دخول الموظف",
       "are_you_employee": "هل انت موظف ؟",
       "are_you_client": "هل أنت عميل؟",
+      "credentials_owner_only_note":
+          "لا يمكن تعديل البريد أو كلمة المرور إلا من صاحب الحساب نفسه.",
+      "email_read_only_badge": "للقراءة فقط",
       "": "",
     },
   };

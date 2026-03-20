@@ -79,10 +79,8 @@ class _CustomSidebarState extends State<CustomSidebar> {
             child: GetBuilder<HomeController>(
               builder: (controller) {
                 return Obx(
-                  () =>
-                      (controller.currentemployee.value?.role == 'admin' ||
-                              controller.currentemployee.value?.role ==
-                                  'accountholder')
+                  () => (controller.effectiveEmployee?.role == 'admin' ||
+                          controller.effectiveEmployee?.role == 'accountholder')
                           ? ListView(
                             children: [
                               _buildTile(

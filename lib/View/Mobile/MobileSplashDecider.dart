@@ -26,18 +26,14 @@ class _MobileSplashDeciderState extends State<MobileSplashDecider> {
     final pref = await SharedPreferences.getInstance();
     final isLoggedIn = (pref.get('isLoggedIn') ?? false) == true;
     final email = (pref.get('email') ?? '').toString();
-    final password = (pref.get('password') ?? '').toString();
 
-    if (!isLoggedIn || email.isEmpty || password.isEmpty) {
+    if (!isLoggedIn || email.isEmpty) {
       _navigated = true;
       Get.offAllNamed('/auth/ChooseUserType');
       return;
     }
 
-    final nextRoute = await attemptSilentLogin(
-      email: email,
-      password: password,
-    );
+    final nextRoute = await attemptSilentLogin();
 
     _navigated = true;
     if (nextRoute != null && nextRoute.isNotEmpty) {

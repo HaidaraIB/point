@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/ClientController.dart';
 import 'package:point/Services/FunHelper.dart';
+import 'package:point/Utils/PasswordValidator.dart';
 import 'package:point/View/Auth/Shared/Rights.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
@@ -147,6 +148,14 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
                   ),
 
                   SizedBox(height: 25),
+                  InkWell(
+                    onTap: () => Get.toNamed('/auth/resetPassword'),
+                    child: Text(
+                      'resetpassword'.tr,
+                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
+                  ),
+                  SizedBox(height: 8),
                   Obx(
                     () => MainButton(
                       load: controller.isLoading.value,
@@ -192,7 +201,6 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
                                   if (v.status == 'active') {
                                     await FunHelper.savelogindata(
                                       emailController.text.trim(),
-                                      passwordController.text.trim(),
                                     );
                                     controller.listenToClient(v.id!);
                                     WidgetsBinding.instance.addPostFrameCallback((_) => Get.offAllNamed('/ClientHome'));
@@ -246,16 +254,4 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
     },
   );
   }
-}
-
-String? validatePasswordStrong(String? value) {
-  if (value == null || value.isEmpty) return 'password_required'.tr;
-  if (value.length < 8) return 'password_min_8'.tr;
-
-  final pattern =
-      r"""^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#\$&*~%^()_\-+=\[\]{}|:;"'<>,.?/]).{8,}$""";
-  final regExp = RegExp(pattern);
-
-  if (!regExp.hasMatch(value)) return 'password_requirements'.tr;
-  return null;
 }

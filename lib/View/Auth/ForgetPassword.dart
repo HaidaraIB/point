@@ -1,31 +1,81 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get_navigation/src/extension_navigation.dart';
 import 'package:get/get_utils/src/extensions/internacionalization.dart';
 import 'package:get/instance_manager.dart';
+import 'package:point/Services/FireStoreServices.dart';
+import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppImages.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/responsive.dart';
 
-class ForgetPassword extends StatelessWidget {
+class ForgetPassword extends StatefulWidget {
+  const ForgetPassword({super.key});
+
+  @override
+  State<ForgetPassword> createState() => _ForgetPasswordState();
+}
+
+class _ForgetPasswordState extends State<ForgetPassword> {
+  final _emailController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isLoading = true);
+    try {
+      await FirestoreServices().sendPasswordResetEmail(_emailController.text);
+      FunHelper.showsnackbar(
+        'success'.tr,
+        'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني',
+        backgroundColor: Colors.green,
+      );
+    } on FirebaseAuthException catch (e) {
+      FunHelper.showsnackbar('error'.tr, e.message ?? 'فشل إرسال رابط الاستعادة');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Responsive(
       mobile: Scaffold(
-        appBar: AppBar(title: Text('Login - Mobile')),
-        body: Center(child: Text('Login View for Mobile')),
+        body: _buildDesktopLayout(
+          _formKey,
+          _emailController,
+          _isLoading,
+          _submit,
+        ),
       ),
       tablet: Scaffold(
-        appBar: AppBar(title: Text('Login - Tablet')),
-        body: Center(child: Text('Login View for Tablet')),
+        body: _buildDesktopLayout(
+          _formKey,
+          _emailController,
+          _isLoading,
+          _submit,
+        ),
       ),
-      desktop: Scaffold(body: _buildDesktopLayout()),
+      desktop: Scaffold(body: _buildDesktopLayout(_formKey, _emailController, _isLoading, _submit)),
     );
   }
 }
 
 // --- IGNORE ---
-Widget _buildDesktopLayout() {
+Widget _buildDesktopLayout(
+  GlobalKey<FormState> formKey,
+  TextEditingController emailController,
+  bool isLoading,
+  VoidCallback onSubmit,
+) {
   return Row(
     children: [
       Image.asset(
@@ -41,7 +91,9 @@ Widget _buildDesktopLayout() {
           // color: Colors.yellow,
           margin: EdgeInsets.symmetric(vertical: 50, horizontal: 100),
           width: Get.width / 2 - 50,
-          child: Column(
+          child: Form(
+            key: formKey,
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -63,6 +115,7 @@ Widget _buildDesktopLayout() {
               InputText(
                 hintText: 'example@gmail.com'.tr,
                 labelText: 'email'.tr,
+                controller: emailController,
                 height: 42,
                 fillColor: Colors.white,
 
@@ -103,8 +156,11 @@ Widget _buildDesktopLayout() {
                   end: Alignment.bottomRight,
                 ),
                 title: 'confirm'.tr,
+                load: isLoading,
+                onpress: onSubmit,
               ),
             ],
+            ),
           ),
         ),
       ),

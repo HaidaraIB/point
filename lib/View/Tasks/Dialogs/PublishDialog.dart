@@ -18,6 +18,7 @@ import 'package:point/View/Shared/t.dart';
 import 'package:point/View/Tasks/Mobile/GenericTaskFormMobilePage.dart';
 
 void publishDilaog(BuildContext context, {TaskModel? model}) {
+  const otherClientValue = '__other_client__';
   final ctx = Get.context;
   if (ctx != null && Responsive.isMobile(ctx)) {
     Get.to(() => GenericTaskFormMobilePage(model: model, typeForNew: '5'));
@@ -29,6 +30,13 @@ void publishDilaog(BuildContext context, {TaskModel? model}) {
   final executorController = TextEditingController(text: model?.assignedTo);
   RxList platforms = (model?.publishModel?.platform ?? []).obs;
   final clientController = TextEditingController(text: model?.clientName);
+  final homeController = Get.find<HomeController>();
+  final isCustomClient = (clientController.text.isNotEmpty &&
+          !homeController.clients.any((c) => c.id == clientController.text))
+      .obs;
+  final customClientController = TextEditingController(
+    text: isCustomClient.value ? clientController.text : '',
+  );
   final category = TextEditingController(text: model?.publishModel?.category);
   final priorityController = TextEditingController(text: model?.priority);
   final startDateController = TextEditingController(
@@ -174,39 +182,62 @@ void publishDilaog(BuildContext context, {TaskModel? model}) {
                               children: [
                                 SizedBox(
                                   width: (Get.width * 0.7 / 2) - 20,
-                                  child: DynamicDropdown(
-                                    items:
-                                        controller.clients
-                                            .map(
+                                  child: Obx(
+                                    () => Column(
+                                      children: [
+                                        DynamicDropdown<dynamic>(
+                                          items: [
+                                            ...controller.clients.map(
                                               (v) => DropdownMenuItem(
                                                 value: v,
                                                 child: Text('${v.name}'),
                                               ),
-                                            )
-                                            .toList(),
-                                    value:
-                                        clientController.text.isEmpty
-                                            ? null
-                                            : controller.clients.firstWhere(
-                                              (a) =>
-                                                  a.id == clientController.text,
                                             ),
-
-                                    label: 'chooseclient'.tr,
-                                    borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
-                                    height: 42,
-                                    fillColor: Colors.white,
-                                    onChanged: (value) {
-                                      if (value != null) {
-                                        clientController.text =
-                                            value.id ?? '';
-                                      }
-                                    },
-                                    validator: (v) {
-                                      if (v == null) return ' ';
-                                      return null;
-                                    },
+                                            DropdownMenuItem(
+                                              value: otherClientValue,
+                                              child: Text('عميل آخر'.tr),
+                                            ),
+                                          ],
+                                          value: isCustomClient.value
+                                              ? otherClientValue
+                                              : (clientController.text.isEmpty
+                                                  ? null
+                                                  : controller.clients.firstWhereOrNull(
+                                                      (a) => a.id == clientController.text,
+                                                    )),
+                                          label: 'chooseclient'.tr,
+                                          borderRadius: 5,
+                                          borderColor: Colors.grey.shade300,
+                                          height: 42,
+                                          fillColor: Colors.white,
+                                          onChanged: (value) {
+                                            if (value == otherClientValue) {
+                                              isCustomClient.value = true;
+                                              clientController.text = '';
+                                            } else if (value != null) {
+                                              isCustomClient.value = false;
+                                              clientController.text = value.id ?? '';
+                                            }
+                                          },
+                                          validator: (v) {
+                                            if (v == null) return ' ';
+                                            return null;
+                                          },
+                                        ),
+                                        if (isCustomClient.value)
+                                          InputText(
+                                            labelText: 'اسم العميل'.tr,
+                                            hintText: 'اكتب اسم العميل'.tr,
+                                            height: 42,
+                                            fillColor: Colors.white,
+                                            controller: customClientController,
+                                            validator: (v) =>
+                                                (v == null || v.trim().isEmpty) ? ' ' : null,
+                                            borderRadius: 5,
+                                            borderColor: Colors.grey.shade300,
+                                          ),
+                                      ],
+                                    ),
                                   ),
                                 ),
 
@@ -475,61 +506,94 @@ void publishDilaog(BuildContext context, {TaskModel? model}) {
                                 ),
                                 SizedBox(
                                   width: (Get.width * 0.7 / 2) - 30,
-                                  child: InputText(
-                                    labelText: 'dragfile'.tr,
-                                    hintText: 'enternotes'.tr,
-                                    enable: false,
-                                    height: 100,
-                                    fillColor: Colors.white,
-                                    // controller: notesController,
-                                    expanded: true,
-                                    // validator: (v) {
-                                    //   if (v == null || v.isEmpty) {
-                                    //     return ' ';
-                                    //   }
-                                    //   return null;
-                                    // },
-                                    body: Container(
-                                      padding: EdgeInsets.symmetric(
-                                        vertical: 10,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey.shade200,
-                                      ),
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Container(
-                                            margin: EdgeInsets.symmetric(
-                                              horizontal: 10,
-                                            ),
-                                            child: Text(
-                                              'dragfile'.tr,
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.bold,
+                                  child: InkWell(
+                                    onTap: () async {
+                                      final files = await controller.pickMultiFiles();
+                                      for (var file in files) {
+                                        controller.uploadFiles(
+                                          filePathOrBytes: file.bytes!,
+                                          fileName: file.name,
+                                        );
+                                      }
+                                    },
+                                    child: InputText(
+                                      labelText: 'dragfile'.tr,
+                                      hintText: 'enternotes'.tr,
+                                      enable: false,
+                                      height: 100,
+                                      fillColor: Colors.white,
+                                      expanded: true,
+                                      body: Container(
+                                        padding: EdgeInsets.symmetric(
+                                          vertical: 10,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey.shade200,
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Container(
+                                              margin: EdgeInsets.symmetric(
+                                                horizontal: 10,
+                                              ),
+                                              child: Text(
+                                                'dragfile'.tr,
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
                                               ),
                                             ),
-                                          ),
-                                          MainButton(
-                                            width: 100,
-                                            bordersize: 5,
-                                            height: 30,
-                                            fontsize: 12,
-                                            title: 'uploadfile'.tr,
-                                            backgroundcolor: Colors.white,
-                                            fontcolor:
-                                                AppColors.primaryfontColor,
-                                          ),
-                                        ],
+                                            MainButton(
+                                              width: 100,
+                                              bordersize: 5,
+                                              height: 30,
+                                              fontsize: 12,
+                                              load: controller.isUploading.value,
+                                              title: 'uploadfile'.tr,
+                                              backgroundcolor: Colors.white,
+                                              fontcolor:
+                                                  AppColors.primaryfontColor,
+                                            ),
+                                          ],
+                                        ),
                                       ),
+                                      borderRadius: 5,
+                                      borderColor: Colors.grey.shade300,
                                     ),
-                                    borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
                                   ),
                                 ),
                               ],
+                            ),
+                            SizedBox(
+                              width: Get.width * 0.7 - 32,
+                              child: Obx(
+                                () => Column(
+                                  children: [
+                                    for (var filePath in controller.uploadedFilesPaths)
+                                      Row(
+                                        children: [
+                                          InkWell(
+                                            onTap:
+                                                () => controller.uploadedFilesPaths.remove(filePath),
+                                            child: const Icon(Icons.cancel, color: Colors.red),
+                                          ),
+                                          const SizedBox(width: 5),
+                                          Text(
+                                            FunHelper.getFileNameFromUrl(filePath),
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.blue,
+                                              decoration: TextDecoration.underline,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ],
                         ),
@@ -555,8 +619,13 @@ void publishDilaog(BuildContext context, {TaskModel? model}) {
                                     ),
                                   ),
                                   onPressed: () {
-                                    if (_key.currentState!.validate()) {
-                                      if (model == null) {
+                                    final fallbackDate = DateTime.now();
+                                    final effectiveStartAt = startAt ?? fallbackDate;
+                                    final effectiveEndAt = endAt ?? effectiveStartAt;
+                                    final resolvedClientName = isCustomClient.value
+                                        ? customClientController.text.trim()
+                                        : clientController.text.trim();
+                                    if (model == null) {
                                         controller.addTask(
                                           TaskModel(
                                             title: titleController.text,
@@ -580,10 +649,10 @@ void publishDilaog(BuildContext context, {TaskModel? model}) {
                                                 StorageKeys
                                                     .status_not_start_yet,
                                             priority: priorityController.text,
-                                            fromDate: startAt!,
-                                            toDate: endAt!,
+                                            fromDate: effectiveStartAt,
+                                            toDate: effectiveEndAt,
                                             assignedTo: executorController.text,
-                                            clientName: clientController.text,
+                                            clientName: resolvedClientName,
                                             assignedImageUrl:
                                                 controller.employees
                                                     .firstWhereOrNull(
@@ -638,10 +707,10 @@ void publishDilaog(BuildContext context, {TaskModel? model}) {
                                                 StorageKeys
                                                     .status_edit_requested,
                                             priority: priorityController.text,
-                                            fromDate: startAt!,
-                                            toDate: endAt!,
+                                            fromDate: effectiveStartAt,
+                                            toDate: effectiveEndAt,
                                             assignedTo: executorController.text,
-                                            clientName: clientController.text,
+                                            clientName: resolvedClientName,
                                             assignedImageUrl:
                                                 controller.employees
                                                     .firstWhereOrNull(
@@ -671,7 +740,6 @@ void publishDilaog(BuildContext context, {TaskModel? model}) {
                                         Get.back();
                                         controller.uploadedFilesPaths.clear();
                                       }
-                                    }
                                   },
                                   child:
                                       controller.isLoading.value

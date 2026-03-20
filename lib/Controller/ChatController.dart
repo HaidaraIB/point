@@ -20,23 +20,25 @@ class ChatController extends GetxController {
           .where('members', arrayContains: currentUserId.value)
           .snapshots()
           .listen((snapshot) async {
-            chats.assignAll(await Future.wait(
-              snapshot.docs.map((doc) async {
-                final data = doc.data();
-                var otherUserId = (data['members'] as List).firstWhere(
-                  (id) => id != currentUserId.value,
-                );
-                log('########' + otherUserId.toString());
-                // var userDoc =
-                //     await _db.collection('employees').doc(otherUserId).get();
-                return {
-                  'id': doc.id,
-                  // 'name': userDoc['name'],
-                  'messages': [],
-                  'otherUserId': otherUserId,
-                };
-              }),
-            ));
+            chats.assignAll(
+              await Future.wait(
+                snapshot.docs.map((doc) async {
+                  final data = doc.data();
+                  var otherUserId = (data['members'] as List).firstWhere(
+                    (id) => id != currentUserId.value,
+                  );
+                  log('########' + otherUserId.toString());
+                  // var userDoc =
+                  //     await _db.collection('employees').doc(otherUserId).get();
+                  return {
+                    'id': doc.id,
+                    // 'name': userDoc['name'],
+                    'messages': [],
+                    'otherUserId': otherUserId,
+                  };
+                }),
+              ),
+            );
           });
     } catch (e) {
       log(e.toString());
