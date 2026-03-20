@@ -10,7 +10,7 @@ class EmailNotificationService {
   EmailNotificationService._();
   static final EmailNotificationService instance = EmailNotificationService._();
 
-  static const String _systemName = 'Point';
+  static const String _systemName = 'Point Agency';
 
   /// لم يعد مستخدماً؛ المفتاح يُضبط في Supabase Secrets (RESEND_API_KEY).
   @Deprecated('Use Supabase Edge Function; set RESEND_API_KEY in Supabase secrets')

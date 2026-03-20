@@ -10,7 +10,7 @@ type ServiceAccountJson = {
 const FCM_SCOPE = "https://www.googleapis.com/auth/firebase.messaging";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const RESEND_URL = "https://api.resend.com/emails";
-const FROM_EMAIL = "Point <no-reply@mail.point-iq.app>";
+const FROM_EMAIL = "Point Agency <no-reply@mail.point-iq.app>";
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { status: 200, headers: corsHeaders() });

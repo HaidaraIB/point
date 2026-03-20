@@ -7,7 +7,29 @@ import "https://deno.land/std@0.177.0/http/server.ts";
 import { buildEmailHtml } from "./email-template.ts";
 
 const RESEND_URL = "https://api.resend.com/emails";
-const FROM_EMAIL = "Point <no-reply@mail.point-iq.app>";
+const FROM_EMAIL = "Point Agency <no-reply@mail.point-iq.app>";
+
+/** نسخة نصية بسيطة عندما يكون الجسم HTML كاملاً (لجزء text/plain في MIME). */
+function htmlToPlainText(html: string): string {
+  const noScripts = html
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, " ")
+    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, " ");
+  const withBreaks = noScripts
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|tr|h[1-6])\s*>/gi, "\n");
+  const stripped = withBreaks.replace(/<[^>]+>/g, " ");
+  return stripped
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -20,16 +42,31 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ error: "RESEND_API_KEY not set" }, 500);
     }
 
-    const body = await req.json() as { toEmail?: string; subject?: string; body?: string };
+    const body = await req.json() as {
+      toEmail?: string;
+      subject?: string;
+      body?: string;
+      isHtml?: boolean;
+    };
     const toEmail = body?.toEmail?.trim();
     const subject = body?.subject ?? "";
-    const textBody = body?.body ?? "";
+    const rawBody = body?.body ?? "";
+    const isHtml = body?.isHtml === true;
 
     if (!toEmail) {
       return jsonResponse({ error: "toEmail required" }, 400);
     }
 
-    const htmlBody = buildEmailHtml(textBody);
+    let textPart: string;
+    let htmlPart: string;
+    if (isHtml) {
+      htmlPart = rawBody;
+      textPart = htmlToPlainText(rawBody);
+      if (!textPart) textPart = subject.trim() || "إشعار من Point Agency";
+    } else {
+      textPart = rawBody;
+      htmlPart = buildEmailHtml(rawBody);
+    }
 
     const res = await fetch(RESEND_URL, {
       method: "POST",
@@ -41,8 +78,8 @@ Deno.serve(async (req: Request) => {
         from: FROM_EMAIL,
         to: [toEmail],
         subject,
-        text: textBody,
-        html: htmlBody,
+        text: textPart,
+        html: htmlPart,
       }),
     });
 
