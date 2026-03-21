@@ -14,12 +14,12 @@ class EnterCode extends StatelessWidget {
   Widget build(BuildContext context) {
     return Responsive(
       mobile: Scaffold(
-        appBar: AppBar(title: Text('Login - Mobile')),
-        body: Center(child: Text('Login View for Mobile')),
+        appBar: AppBar(title: Text('auth.debug.login_mobile_title'.tr)),
+        body: Center(child: Text('auth.debug.login_mobile_body'.tr)),
       ),
       tablet: Scaffold(
-        appBar: AppBar(title: Text('Login - Tablet')),
-        body: Center(child: Text('Login View for Tablet')),
+        appBar: AppBar(title: Text('auth.debug.login_tablet_title'.tr)),
+        body: Center(child: Text('auth.debug.login_tablet_body'.tr)),
       ),
       desktop: Scaffold(body: _buildDesktopLayout()),
     );

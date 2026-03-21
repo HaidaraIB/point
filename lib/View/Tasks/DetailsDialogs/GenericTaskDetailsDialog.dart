@@ -5,6 +5,7 @@ import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/View/Shared/TaskTimelineWidget.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -98,14 +99,14 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
                     const SizedBox(height: 16),
                     _buildSectionShell(
                       context: context,
-                      title: 'تفاصيل المهمة',
+                      title: 'tasks.dialog_title'.tr,
                       icon: Icons.view_kanban_outlined,
                       child: widget.typeSpecificSection,
                     ),
                     const SizedBox(height: 16),
                     _buildSectionShell(
                       context: context,
-                      title: 'الملاحظات والمرفقات',
+                      title: 'content.dialog.notes_attachments_section'.tr,
                       icon: Icons.attach_file_outlined,
                       child: _buildNotesAndAttachmentsSection(
                         context,
@@ -177,7 +178,7 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
                 ] else ...[
                   const SizedBox(height: 4),
                   Text(
-                    'بدون وصف',
+                    'tasks.no_description'.tr,
                     style: TextStyle(
                       color: colorScheme.onSurfaceVariant,
                       fontSize: 11,
@@ -217,7 +218,7 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'المنفذ',
+                        'content.dialog.executor'.tr,
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 10,
@@ -249,7 +250,12 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
     final actionTextValue =
         widget.task.actionText.isNotEmpty ? widget.task.actionText : '-';
     final statusValue =
-        widget.task.status.isNotEmpty ? widget.task.status.tr : '-';
+        widget.task.status.isNotEmpty
+            ? FunHelper.trStored(
+                widget.task.status,
+                kind: StoredValueKind.taskStatus,
+              )
+            : '-';
     final bool compact = dialogWidth < 720;
     final infoWidth = compact ? (dialogWidth - 80).clamp(180.0, 240.0) : 220.0;
     final actionWidth =
@@ -260,21 +266,21 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
       runSpacing: 12,
       children: [
         _buildMetaTile(
-          label: 'الحالة',
+          label: 'tasks.status_label'.tr,
           value: statusValue,
           icon: Icons.flag_outlined,
           width: infoWidth,
           colorScheme: colorScheme,
         ),
         _buildMetaTile(
-          label: 'التقدم',
+          label: 'tasks.progress_label'.tr,
           value: progressPercent,
           icon: Icons.donut_small_outlined,
           width: infoWidth,
           colorScheme: colorScheme,
         ),
         _buildMetaTile(
-          label: 'نص الإجراء',
+          label: 'tasks.action_text_label'.tr,
           value: actionTextValue,
           icon: Icons.auto_fix_high_outlined,
           width: actionWidth,
@@ -295,10 +301,11 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
             ? (dialogWidth - 80).clamp(240.0, 760.0)
             : ((dialogWidth - 90) / 2).clamp(260.0, 700.0);
 
+    final latestNote = widget.task.notes.isNotEmpty ? widget.task.notes.last : null;
     final notesSection = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('الملاحظات', style: textTheme.titleSmall),
+        Text('tasks.notes_section'.tr, style: textTheme.titleSmall),
         const SizedBox(height: 8),
         Container(
           constraints: const BoxConstraints(minHeight: 200),
@@ -311,48 +318,104 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
               color: Theme.of(context).colorScheme.outlineVariant,
             ),
           ),
-          child:
-              widget.task.notes.isEmpty
-                  ? Center(
-                    child: Text(
-                      'لا توجد ملاحظات بعد',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  )
-                  : ListView(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (latestNote != null) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF7F6FF),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFD9D4FF)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      for (var note in widget.task.notes)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                note.note,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primaryfontColor,
-                                ),
-                              ),
-                              Text(
-                                note.byWho,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.green,
-                                ),
-                              ),
-                            ],
-                          ),
+                      Text(
+                        'tasks.latest_comment'.tr,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF5C5589),
                         ),
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        latestNote.note,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primaryfontColor,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _buildNoteMeta(latestNote.byWho, latestNote.timestamp),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Colors.green,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ],
                   ),
+                ),
+                const SizedBox(height: 10),
+              ],
+              if (widget.task.notes.isEmpty)
+                Center(
+                  child: Text(
+                    'content.dialog.no_notes'.tr,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                )
+              else
+                ListView(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: [
+                    for (var note in widget.task.notes)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              note.note,
+                              maxLines: 4,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primaryfontColor,
+                              ),
+                            ),
+                            Text(
+                              note.byWho,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.green,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+            ],
+          ),
         ),
       ],
     );
@@ -360,7 +423,7 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
     final attachmentsSection = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('المرفقات', style: textTheme.titleSmall),
+        Text('content.dialog.attachments'.tr, style: textTheme.titleSmall),
         const SizedBox(height: 10),
         Container(
           width: contentWidth,
@@ -377,7 +440,7 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
               widget.task.files.isEmpty
                   ? Center(
                     child: Text(
-                      'لا توجد مرفقات',
+                      'content.dialog.no_attachments'.tr,
                       style: TextStyle(
                         fontSize: 12,
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -445,8 +508,8 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
     }
 
     FunHelper.showsnackbar(
-      'تنبيه',
-      'تعذر فتح هذا الرابط',
+      AppLocaleKeys.errorTitle.tr,
+      AppLocaleKeys.contentDialogOpenLinkFailed.tr,
       snackPosition: SnackPosition.TOP,
       backgroundColor: Colors.orange,
       colorText: Colors.white,
@@ -559,5 +622,32 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
       ),
       child: child,
     );
+  }
+
+  String _buildNoteMeta(String author, DateTime timestamp) {
+    final safeAuthor =
+        author.trim().isEmpty ? 'content.dialog.unknown'.tr : author.trim();
+    return '$safeAuthor • ${_formatRelativeTime(timestamp)}';
+  }
+
+  String _formatRelativeTime(DateTime timestamp) {
+    final now = DateTime.now();
+    final diff = now.difference(timestamp);
+    if (diff.inSeconds < 60) return 'common.now'.tr;
+    if (diff.inMinutes < 60) {
+      return 'time.ago_minutes'.trParams({'count': '${diff.inMinutes}'});
+    }
+    if (diff.inHours < 24) {
+      return 'time.ago_hours'.trParams({'count': '${diff.inHours}'});
+    }
+    if (diff.inDays < 30) {
+      return 'time.ago_days'.trParams({'count': '${diff.inDays}'});
+    }
+    final months = (diff.inDays / 30).floor();
+    if (months < 12) {
+      return 'time.ago_months'.trParams({'count': '$months'});
+    }
+    final years = (months / 12).floor();
+    return 'time.ago_years'.trParams({'count': '$years'});
   }
 }

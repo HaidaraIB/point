@@ -120,7 +120,10 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (startAt == null || endAt == null) {
-      Get.snackbar('تنبيه', 'يرجى اختيار تاريخ البداية والنهاية');
+      Get.snackbar(
+        'validation.title'.tr,
+        'validation.pick_dates'.tr,
+      );
       return;
     }
     final controller = Get.find<HomeController>();
@@ -186,7 +189,7 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
         foregroundColor: Colors.white,
         elevation: 0,
         title: Text(
-          widget.model == null ? 'addclient'.tr : '${'edit'.tr} العميل',
+          widget.model == null ? 'addclient'.tr : 'editclient'.tr,
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         leading: IconButton(
@@ -364,7 +367,7 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
                                 ),
                               )
                             : Text(
-                                'تأكيد',
+                                'common.confirm'.tr,
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -388,7 +391,7 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
                         controller.uploadedFilesPaths.clear();
                         Get.back();
                       },
-                      child: Text('إلغاء'.tr),
+                      child: Text('common.cancel'.tr),
                     ),
                   ),
                 ],

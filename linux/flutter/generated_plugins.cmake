@@ -3,6 +3,7 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  audioplayers_linux
   emoji_picker_flutter
   gtk
   syncfusion_pdfviewer_linux

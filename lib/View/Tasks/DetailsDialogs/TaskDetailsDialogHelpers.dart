@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppColors.dart';
 
 /// Shared helpers for task details dialogs (web). Used by GenericTaskDetailsDialog
@@ -58,7 +59,7 @@ class TaskDetailsDialogHelpers {
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
-        tr ? text.tr : text,
+        tr ? FunHelper.translateAppKey(text) : text,
         style: TextStyle(
           color: getPriorityColor(text),
           fontSize: 11,
@@ -212,7 +213,7 @@ class TaskDetailsDialogHelpers {
           ElevatedButton.icon(
             onPressed: onDownload,
             icon: const Icon(Icons.download, size: 18),
-            label: const Text('تنزيل'),
+            label: Text('tasks.download'.tr),
             style: ElevatedButton.styleFrom(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),

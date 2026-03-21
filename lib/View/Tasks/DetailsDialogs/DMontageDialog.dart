@@ -56,52 +56,55 @@ class MontageDetailsSection extends StatelessWidget {
                 runSpacing: 12,
                 children: [
                   TaskDetailsDialogHelpers.infoBox(
-                    'العميل',
+                    'tasks.form.client_label'.tr,
                     clientName,
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'التصنيف',
-                    task.monatageModel!.category.tr,
+                    'task_details.category'.tr,
+                    FunHelper.trStored(task.monatageModel!.category),
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'المنصة',
+                    'platform'.tr,
                     task.monatageModel!.platform.isEmpty
                         ? '-'
-                        : task.monatageModel!.platform
-                            .map((e) => e.toString().tr)
-                            .join('، '),
+                        : FunHelper.formatStoredPlatforms(
+                            task.monatageModel!.platform,
+                          ),
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'المدة',
-                    '${task.monatageModel!.duration ?? '-'}'.tr,
+                    'task_details.duration'.tr,
+                    '${task.monatageModel!.duration ?? '-'}',
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'المقاسات',
-                    task.monatageModel!.dimentioans.tr,
+                    'task_details.size'.tr,
+                    FunHelper.trStored(task.monatageModel!.dimentioans),
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'رابط المرفق',
+                    'task_details.attachment_link'.tr,
                     task.monatageModel!.attachementurl ?? '-',
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'الاولويه',
-                    task.priority.tr,
+                    'task_details.task_priority'.tr,
+                    FunHelper.trStored(
+                      task.priority,
+                      kind: StoredValueKind.priority,
+                    ),
                     width: cellWidth,
                     height: 110,
                     child: TaskDetailsDialogHelpers.buildTag(
-                      task.priority,
+                      FunHelper.canonicalStoredPriority(task.priority),
                       tr: true,
                     ),
                   ),
@@ -121,12 +124,12 @@ class MontageDetailsSection extends StatelessWidget {
                 runSpacing: 8,
                 children: [
                   TaskDetailsDialogHelpers.infoBoxDates(
-                    'تاريخ البداية',
+                    'task_details.date_start_task'.tr,
                     FunHelper.formatdate(task.fromDate),
                     CupertinoIcons.calendar,
                   ),
                   TaskDetailsDialogHelpers.infoBoxDates(
-                    'تاريخ النهاية',
+                    'task_details.date_end_task'.tr,
                     FunHelper.formatdate(task.toDate),
                     CupertinoIcons.calendar,
                   ),

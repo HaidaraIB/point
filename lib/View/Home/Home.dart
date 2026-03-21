@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Services/EmailNotificationService.dart';
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
@@ -126,7 +127,7 @@ class Home extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'ارسال اشعار',
+                        AppLocaleKeys.homeSendNotification.tr,
                         style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
@@ -180,7 +181,7 @@ class Home extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'ارسال اشعار',
+                      AppLocaleKeys.homeSendNotification.tr,
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -258,7 +259,8 @@ Widget contentScheduletoday(BuildContext context) {
       final contents =
           Get.find<HomeController>().contents.where((a) {
             final d = a.publishDate;
-            return d!.year == today.year &&
+            if (d == null) return false;
+            return d.year == today.year &&
                 d.month == today.month &&
                 d.day == today.day;
           }).toList();
@@ -326,7 +328,7 @@ Widget contentScheduletoday(BuildContext context) {
                   ],
                   Expanded(
                     child: Text(
-                      'محتوى مجدول للنشر اليوم',
+                      AppLocaleKeys.homeScheduleToday.tr,
                       style: TextStyle(
                         fontSize: isMobile ? 15 : 16,
                         fontWeight: FontWeight.w700,
@@ -343,7 +345,7 @@ Widget contentScheduletoday(BuildContext context) {
                 child: Center(
                   child: _buildEmptySection(
                     icon: Icons.calendar_today_outlined,
-                    message: 'لا يوجد محتوى مجدول اليوم',
+                    message: AppLocaleKeys.homeNoScheduleToday.tr,
                     compact: isMobile,
                   ),
                 ),
@@ -591,7 +593,7 @@ Widget contentUnderPromotion(BuildContext context) {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'محتوى قيد الترويج',
+                              AppLocaleKeys.homeUnderPromotion.tr,
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
@@ -602,7 +604,7 @@ Widget contentUnderPromotion(BuildContext context) {
                         ],
                       )
                       : Text(
-                        'محتوى قيد الترويج',
+                        AppLocaleKeys.homeUnderPromotion.tr,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
@@ -616,7 +618,7 @@ Widget contentUnderPromotion(BuildContext context) {
                 child: Center(
                   child: _buildEmptySection(
                     icon: Icons.campaign_outlined,
-                    message: 'لا يوجد محتوى قيد الترويج',
+                    message: AppLocaleKeys.homeNoUnderPromotion.tr,
                     compact: isMobile,
                   ),
                 ),
@@ -830,7 +832,7 @@ Widget tasksUnderProcessing(BuildContext context) {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'مهام جاري تنفيذها',
+                              AppLocaleKeys.homeTasksInProgress.tr,
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
@@ -841,7 +843,7 @@ Widget tasksUnderProcessing(BuildContext context) {
                         ],
                       )
                       : Text(
-                        'مهام جاري تنفيذها',
+                        AppLocaleKeys.homeTasksInProgress.tr,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
@@ -855,7 +857,7 @@ Widget tasksUnderProcessing(BuildContext context) {
                 child: Center(
                   child: _buildEmptySection(
                     icon: Icons.pending_actions_outlined,
-                    message: 'لا مهام قيد التنفيذ',
+                    message: AppLocaleKeys.homeNoTasksInProgress.tr,
                     compact: isMobile,
                   ),
                 ),
@@ -1071,7 +1073,7 @@ void showaddNotifications(BuildContext context) {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'ارسال اشعارات '.tr,
+                                  AppLocaleKeys.homeNotificationFormTitle.tr,
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
@@ -1079,7 +1081,7 @@ void showaddNotifications(BuildContext context) {
                                   ),
                                 ),
                                 Text(
-                                  ' ادخال البيانات '.tr,
+                                  AppLocaleKeys.homeNotificationFormSubtitle.tr,
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 13,
@@ -1102,24 +1104,28 @@ void showaddNotifications(BuildContext context) {
                               return Row(
                                 children: [
                                   _userTypeButton(
-                                    'العملاء',
+                                    AppLocaleKeys.homeUserTypeClients.tr,
                                     'clients',
                                     selected,
                                   ),
                                   _userTypeButton(
-                                    'الموظفين',
+                                    AppLocaleKeys.homeUserTypeEmployees.tr,
                                     'employees',
                                     selected,
                                   ),
 
-                                  _userTypeButton('كلاهما', 'all', selected),
+                                  _userTypeButton(
+                                    AppLocaleKeys.homeUserTypeAll.tr,
+                                    'all',
+                                    selected,
+                                  ),
                                 ],
                               );
                             }),
 
                             InputText(
-                              labelText: 'عنوان الرسالة '.tr,
-                              hintText: 'اكتب العنوان ',
+                              labelText: AppLocaleKeys.homeNotificationTitle.tr,
+                              hintText: AppLocaleKeys.homeNotificationTitleHint.tr,
                               height: 42,
                               fillColor: Colors.white,
                               controller: title,
@@ -1144,8 +1150,8 @@ void showaddNotifications(BuildContext context) {
                                   ).format(picked.toLocal());
                                 }
                               },
-                              labelText: 'حدد وقت الرسالة '.tr,
-                              hintText: 'حدد وقت الرسالة '.tr,
+                              labelText: AppLocaleKeys.homeNotificationDate.tr,
+                              hintText: AppLocaleKeys.homeNotificationDate.tr,
                               height: 42,
                               fillColor: Colors.white,
                               textInputType: TextInputType.datetime,
@@ -1163,8 +1169,8 @@ void showaddNotifications(BuildContext context) {
                               borderColor: Colors.grey.shade300,
                             ),
                             InputText(
-                              labelText: ' نص الرسالة '.tr,
-                              hintText: 'اكتب رسالتك هنا '.tr,
+                              labelText: AppLocaleKeys.homeNotificationBody.tr,
+                              hintText: AppLocaleKeys.homeNotificationBodyHint.tr,
                               height: 100,
                               fillColor: Colors.white,
                               controller: body,
@@ -1214,7 +1220,7 @@ void showaddNotifications(BuildContext context) {
                                         Navigator.pop(context);
                                         FunHelper.showsnackbar(
                                           'success'.tr,
-                                          'تم ارسال الاشعار بنجاح'.tr,
+                                          AppLocaleKeys.homeNotificationSent.tr,
                                           snackPosition: SnackPosition.TOP,
                                           backgroundColor: Colors.green,
                                           colorText: Colors.white,
@@ -1231,7 +1237,7 @@ void showaddNotifications(BuildContext context) {
                                             ),
                                           )
                                           : Text(
-                                            "تأكيد",
+                                            AppLocaleKeys.commonConfirm.tr,
                                             style: TextStyle(
                                               color: Colors.white,
                                             ),
@@ -1252,7 +1258,7 @@ void showaddNotifications(BuildContext context) {
                                   ),
                                 ),
                                 onPressed: () => Navigator.pop(context),
-                                child: Text("إلغاء"),
+                                child: Text(AppLocaleKeys.commonCancel.tr),
                               ),
                             ),
                           ],
@@ -1272,9 +1278,11 @@ void showaddNotifications(BuildContext context) {
 
 void showSendTestEmailDialog(BuildContext context) {
   final toEmailController = TextEditingController();
-  final subjectController = TextEditingController(text: 'تجربة إيميل من Point');
+  final subjectController = TextEditingController(
+    text: 'home.test_email.default_subject'.tr,
+  );
   final bodyController = TextEditingController(
-    text: 'هذه رسالة تجريبية من لوحة التحكم.',
+    text: 'home.test_email.default_body'.tr,
   );
   final _key = GlobalKey<FormState>();
   var isLoading = false.obs;
@@ -1318,7 +1326,7 @@ void showSendTestEmailDialog(BuildContext context) {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'إرسال بريد تجريبي',
+                              'home.test_email.title'.tr,
                               style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -1326,7 +1334,7 @@ void showSendTestEmailDialog(BuildContext context) {
                               ),
                             ),
                             Text(
-                              'أدخل البريد والعنوان والنص',
+                              'home.test_email.subtitle'.tr,
                               style: TextStyle(
                                 color: Colors.white.withValues(alpha: 0.9),
                                 fontSize: 12,
@@ -1342,14 +1350,16 @@ void showSendTestEmailDialog(BuildContext context) {
                     child: Column(
                       children: [
                         InputText(
-                          labelText: 'البريد المستلم',
+                          labelText: 'home.test_email.to_label'.tr,
                           hintText: 'example@email.com',
                           height: 42,
                           fillColor: Colors.white,
                           controller: toEmailController,
                           textInputType: TextInputType.emailAddress,
                           validator: (v) {
-                            if (v == null || v.isEmpty) return 'أدخل البريد';
+                            if (v == null || v.isEmpty) {
+                              return 'home.test_email.validation_email'.tr;
+                            }
                             return null;
                           },
                           borderRadius: 5,
@@ -1357,13 +1367,15 @@ void showSendTestEmailDialog(BuildContext context) {
                         ),
                         const SizedBox(height: 14),
                         InputText(
-                          labelText: 'الموضوع',
-                          hintText: 'موضوع الرسالة',
+                          labelText: 'home.test_email.subject_label'.tr,
+                          hintText: 'home.test_email.subject_hint'.tr,
                           height: 42,
                           fillColor: Colors.white,
                           controller: subjectController,
                           validator: (v) {
-                            if (v == null || v.isEmpty) return 'أدخل الموضوع';
+                            if (v == null || v.isEmpty) {
+                              return 'home.test_email.validation_subject'.tr;
+                            }
                             return null;
                           },
                           borderRadius: 5,
@@ -1371,8 +1383,8 @@ void showSendTestEmailDialog(BuildContext context) {
                         ),
                         const SizedBox(height: 14),
                         InputText(
-                          labelText: 'نص الرسالة',
-                          hintText: 'اكتب النص هنا',
+                          labelText: 'home.test_email.body_label'.tr,
+                          hintText: 'home.test_email.body_hint'.tr,
                           height: 100,
                           fillColor: Colors.white,
                           controller: bodyController,
@@ -1421,7 +1433,7 @@ void showSendTestEmailDialog(BuildContext context) {
                                           Navigator.pop(context);
                                         FunHelper.showsnackbar(
                                           'success'.tr,
-                                          'تم إرسال البريد التجريبي'.tr,
+                                          'home.test_email.success_snackbar'.tr,
                                           snackPosition: SnackPosition.TOP,
                                           backgroundColor: Colors.green,
                                           colorText: Colors.white,
@@ -1438,7 +1450,7 @@ void showSendTestEmailDialog(BuildContext context) {
                                         ),
                                       )
                                       : Text(
-                                        'إرسال',
+                                        'send'.tr,
                                         style: TextStyle(color: Colors.white),
                                       ),
                             ),
@@ -1457,7 +1469,7 @@ void showSendTestEmailDialog(BuildContext context) {
                               ),
                             ),
                             onPressed: () => Navigator.pop(context),
-                            child: const Text('إلغاء'),
+                            child: Text(AppLocaleKeys.commonCancel.tr),
                           ),
                         ),
                       ],

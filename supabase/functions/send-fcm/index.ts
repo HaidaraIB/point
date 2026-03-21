@@ -13,14 +13,14 @@ const FIREBASE_ID_TOKEN_CERTS_URL =
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { status: 200, headers: corsHeaders() });
-  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+  if (req.method !== "POST") return json({ errorCode: "ERR_METHOD_NOT_ALLOWED" }, 405);
 
   try {
     // Web-safe auth: require a Firebase Auth ID token (no shared secret in client builds).
     const sa = getServiceAccount();
     const authz = req.headers.get("authorization") ?? "";
     const idToken = authz.toLowerCase().startsWith("bearer ") ? authz.slice(7).trim() : "";
-    if (!idToken) return json({ error: "Missing Authorization Bearer token" }, 401);
+    if (!idToken) return json({ errorCode: "ERR_MISSING_TOKEN" }, 401);
     const caller = await verifyFirebaseIdToken(idToken, sa.project_id);
 
     // Authorization: only allow admin/supervisor (matched by uid doc id OR by email field).
@@ -32,7 +32,7 @@ Deno.serve(async (req: Request) => {
       email: caller.email,
     });
     if (role !== "admin" && role !== "supervisor") {
-      return json({ error: "Forbidden" }, 403);
+      return json({ errorCode: "ERR_FORBIDDEN" }, 403);
     }
 
     const { token, topic, title, body, data } = await req.json().catch(() => ({})) as {
@@ -43,9 +43,9 @@ Deno.serve(async (req: Request) => {
       data?: Record<string, string>;
     };
 
-    if (!title || !body) return json({ error: "title and body are required" }, 400);
+    if (!title || !body) return json({ errorCode: "ERR_INVALID_DATA" }, 400);
     if ((!token && !topic) || (token && topic)) {
-      return json({ error: "Provide exactly one of token or topic" }, 400);
+      return json({ errorCode: "ERR_INVALID_DATA" }, 400);
     }
 
     const fcmUrl = `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`;
@@ -67,10 +67,10 @@ Deno.serve(async (req: Request) => {
     });
 
     const out = await res.json().catch(() => ({}));
-    if (!res.ok) return json({ error: out }, 500);
+    if (!res.ok) return json({ errorCode: "ERR_SERVER", details: out }, 500);
     return json({ ok: true, result: out }, 200);
   } catch (e) {
-    return json({ error: String(e) }, 500);
+    return json({ errorCode: "ERR_SERVER", details: String(e) }, 500);
   }
 });
 

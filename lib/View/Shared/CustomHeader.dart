@@ -48,7 +48,7 @@ void _showNotificationsDialog(BuildContext context) {
             Padding(
               padding: const EdgeInsets.all(16),
               child: Text(
-                'الإشعارات',
+                'header.notifications'.tr,
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   color: Colors.teal,
@@ -187,7 +187,7 @@ class MobileAppBarProfileWidget extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
               Text(
-                role,
+                FunHelper.localizeUiPhrase(role),
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.85),
                   fontSize: 11,
@@ -199,7 +199,7 @@ class MobileAppBarProfileWidget extends StatelessWidget {
           ),
         ),
         PopupMenuButton<int>(
-          tooltip: 'الخيارات',
+          tooltip: 'tasks.options_tooltip'.tr,
           padding: EdgeInsets.zero,
           icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 24),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -213,9 +213,12 @@ class MobileAppBarProfileWidget extends StatelessWidget {
                   value: 1,
                   child: Row(
                     children: [
-                      Icon(Icons.notifications_outlined, color: AppColors.primary),
+                      Text(
+                        'header.notifications'.tr,
+                        style: TextStyle(fontWeight: FontWeight.w500),
+                      ),
                       const SizedBox(width: 8),
-                      Text('الإشعارات', style: TextStyle(fontWeight: FontWeight.w500)),
+                      Icon(Icons.notifications_outlined, color: AppColors.primary),
                     ],
                   ),
                 ),
@@ -224,9 +227,12 @@ class MobileAppBarProfileWidget extends StatelessWidget {
                     value: 2,
                     child: Row(
                       children: [
-                        Icon(Icons.chat_bubble_outline, color: AppColors.primary),
+                        Text(
+                          'header.chat'.tr,
+                          style: TextStyle(fontWeight: FontWeight.w500),
+                        ),
                         const SizedBox(width: 8),
-                        Text('الدردشة', style: TextStyle(fontWeight: FontWeight.w500)),
+                        Icon(Icons.chat_bubble_outline, color: AppColors.primary),
                       ],
                     ),
                   ),
@@ -237,12 +243,12 @@ class MobileAppBarProfileWidget extends StatelessWidget {
                 value: 3,
                 child: Row(
                   children: [
-                    Icon(Icons.lock_reset, color: AppColors.primary),
-                    const SizedBox(width: 8),
                     Text(
                       'resetpassword'.tr,
                       style: const TextStyle(fontWeight: FontWeight.w500),
                     ),
+                    const SizedBox(width: 8),
+                    Icon(Icons.lock_reset, color: AppColors.primary),
                   ],
                 ),
               ),
@@ -261,12 +267,12 @@ class MobileAppBarProfileWidget extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.logout, color: Colors.red),
-                      const SizedBox(width: 5),
                       Text(
-                        "تسجيل الخروج",
+                        'logout'.tr,
                         style: TextStyle(fontWeight: FontWeight.bold),
                       ),
+                      const SizedBox(width: 5),
+                      Icon(Icons.logout, color: Colors.red),
                     ],
                   ),
                 ),
@@ -378,7 +384,7 @@ class HeaderWidget extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
               Text(
-                role,
+                FunHelper.localizeUiPhrase(role),
                 style: TextStyle(
                   color: Colors.grey,
                   fontSize: isMobile ? 11 : null,
@@ -391,7 +397,7 @@ class HeaderWidget extends StatelessWidget {
         ),
         SizedBox(
           child: PopupMenuButton<int>(
-            tooltip: 'الخيارات',
+            tooltip: 'tasks.options_tooltip'.tr,
             padding: EdgeInsets.zero,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -406,9 +412,12 @@ class HeaderWidget extends StatelessWidget {
                     value: 1,
                     child: Row(
                       children: [
-                        Icon(Icons.notifications_outlined, color: AppColors.primary),
+                        Text(
+                        'header.notifications'.tr,
+                        style: TextStyle(fontWeight: FontWeight.w500),
+                      ),
                         SizedBox(width: 8),
-                        Text('الإشعارات', style: TextStyle(fontWeight: FontWeight.w500)),
+                        Icon(Icons.notifications_outlined, color: AppColors.primary),
                       ],
                     ),
                   ),
@@ -417,9 +426,12 @@ class HeaderWidget extends StatelessWidget {
                       value: 2,
                       child: Row(
                         children: [
-                          Icon(Icons.chat_bubble_outline, color: AppColors.primary),
+                          Text(
+                          'header.chat'.tr,
+                          style: TextStyle(fontWeight: FontWeight.w500),
+                        ),
                           SizedBox(width: 8),
-                          Text('الدردشة', style: TextStyle(fontWeight: FontWeight.w500)),
+                          Icon(Icons.chat_bubble_outline, color: AppColors.primary),
                         ],
                       ),
                     ),
@@ -430,12 +442,12 @@ class HeaderWidget extends StatelessWidget {
                   value: 3,
                   child: Row(
                     children: [
-                      Icon(Icons.lock_reset, color: AppColors.primary),
-                      SizedBox(width: 8),
                       Text(
                         'resetpassword'.tr,
                         style: TextStyle(fontWeight: FontWeight.w500),
                       ),
+                      SizedBox(width: 8),
+                      Icon(Icons.lock_reset, color: AppColors.primary),
                     ],
                   ),
                 ),
@@ -448,18 +460,14 @@ class HeaderWidget extends StatelessWidget {
                     height: 30,
                     margin: EdgeInsets.all(2),
                     padding: EdgeInsets.symmetric(vertical: 5),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(5),
-                      color: Colors.grey.shade200,
-                    ),
                     child: Row(
                       children: [
-                        Icon(Icons.logout, color: Colors.red),
-                        SizedBox(width: 5),
                         Text(
-                          "تسجيل الخروج",
+                          'logout'.tr,
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
+                        SizedBox(width: 5),
+                        Icon(Icons.logout, color: Colors.red),
                       ],
                     ),
                   ),
@@ -664,11 +672,11 @@ class NotificationDropdown extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       enabled: false,
                       child: Center(
                         child: Text(
-                          "الإشعارات",
+                          'header.notifications'.tr,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             color: Colors.teal,

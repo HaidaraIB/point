@@ -39,7 +39,7 @@ Deno.serve(async (req: Request) => {
   try {
     const apiKey = Deno.env.get("RESEND_API_KEY");
     if (!apiKey) {
-      return jsonResponse({ error: "RESEND_API_KEY not set" }, 500);
+      return jsonResponse({ errorCode: "ERR_SERVER" }, 500);
     }
 
     const body = await req.json() as {
@@ -54,7 +54,7 @@ Deno.serve(async (req: Request) => {
     const isHtml = body?.isHtml === true;
 
     if (!toEmail) {
-      return jsonResponse({ error: "toEmail required" }, 400);
+      return jsonResponse({ errorCode: "ERR_EMAIL_REQUIRED" }, 400);
     }
 
     let textPart: string;
@@ -85,12 +85,12 @@ Deno.serve(async (req: Request) => {
 
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      return jsonResponse({ error: "Resend error", details: data }, res.status);
+      return jsonResponse({ errorCode: "ERR_SERVER", details: data }, res.status);
     }
 
     return jsonResponse({ ok: true, id: data?.id }, 200);
   } catch (e) {
-    return jsonResponse({ error: String(e) }, 500);
+    return jsonResponse({ errorCode: "ERR_SERVER", details: String(e) }, 500);
   }
 });
 

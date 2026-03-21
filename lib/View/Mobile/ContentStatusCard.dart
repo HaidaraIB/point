@@ -65,7 +65,10 @@ class ContentStatusCard extends StatelessWidget {
                             const SizedBox(width: 4),
                             Flexible(
                               child: Text(
-                                model?.contentType.tr ?? '',
+                                FunHelper.trStored(
+                                  model!.contentType,
+                                  kind: StoredValueKind.contentType,
+                                ),
                                 style: const TextStyle(
                                   fontSize: 12,
                                   color: Colors.black54,
@@ -196,16 +199,17 @@ Widget _buildIcon(String url) {
 }
 
 Widget _buildstatusTag(String text) {
+  final key = FunHelper.canonicalStoredStatus(text);
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
     decoration: BoxDecoration(
-      color: _getStatusbgColor(text),
+      color: _getStatusbgColor(key),
       borderRadius: BorderRadius.circular(8),
     ),
     child: Text(
-      text.toString().tr,
+      FunHelper.trStored(text, kind: StoredValueKind.taskStatus),
       style: TextStyle(
-        color: _getStatusColor(text),
+        color: _getStatusColor(key),
         fontSize: 11,
         fontWeight: FontWeight.bold,
       ),

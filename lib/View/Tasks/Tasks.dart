@@ -150,7 +150,7 @@ class Tasks extends StatelessWidget {
                                   children: [
                                     _buildStatBox(
                                       tasks.length.toString(),
-                                      'اجمالي المهام'.tr,
+                                      'employee.dashboard.total_tasks'.tr,
                                       Colors.blue,
                                       width: boxWidth,
                                     ),
@@ -163,7 +163,7 @@ class Tasks extends StatelessWidget {
                                           )
                                           .length
                                           .toString(),
-                                      'قيد التنفيذ'.tr,
+                                      'status_processing'.tr,
                                       Colors.amber,
                                       width: boxWidth,
                                     ),
@@ -177,7 +177,7 @@ class Tasks extends StatelessWidget {
                                           )
                                           .length
                                           .toString(),
-                                      'قيد المراجعة'.tr,
+                                      'status_under_revision'.tr,
                                       Colors.blue,
                                       width: boxWidth,
                                     ),
@@ -190,7 +190,7 @@ class Tasks extends StatelessWidget {
                                           )
                                           .length
                                           .toString(),
-                                      'مكتملة'.tr,
+                                      'employee.dashboard.completed'.tr,
                                       Colors.green,
                                       width: boxWidth,
                                     ),
@@ -203,7 +203,7 @@ class Tasks extends StatelessWidget {
                                           )
                                           .length
                                           .toString(),
-                                      'ملغاة'.tr,
+                                      'employee.dashboard.cancelled'.tr,
                                       Colors.red,
                                       width: boxWidth,
                                     ),
@@ -236,7 +236,7 @@ class Tasks extends StatelessWidget {
                                               color: Colors.grey,
                                             ),
                                             hintText:
-                                                'ابحث عن مهمة، عنوان، موظف...',
+                                                'tasks.search_hint_extended'.tr,
                                             height: 42,
                                             fillColor: Colors.white,
                                             controller:
@@ -288,7 +288,7 @@ class Tasks extends StatelessWidget {
                                                       horizontal: 8,
                                                     ),
                                                 child: Text(
-                                                  'الأولوية',
+                                                  'tasks.filter_priority'.tr,
                                                   style: TextStyle(
                                                     fontSize: 13,
                                                     color:
@@ -347,7 +347,7 @@ class Tasks extends StatelessWidget {
                                                       horizontal: 8,
                                                     ),
                                                 child: Text(
-                                                  'الحالة',
+                                                  'tasks.filter_status'.tr,
                                                   style: TextStyle(
                                                     fontSize: 13,
                                                     color:
@@ -430,7 +430,7 @@ class Tasks extends StatelessWidget {
                                                         horizontal: 8,
                                                       ),
                                                   child: Text(
-                                                    'المنفذ',
+                                                    'tasks.filter_assignee'.tr,
                                                     style: TextStyle(
                                                       fontSize: 13,
                                                       color:
@@ -510,7 +510,7 @@ class Tasks extends StatelessWidget {
                               ),
                               SizedBox(height: 15),
                               Text(
-                                'المهام المرسلة'.tr,
+                                'tasks.summary.sent_tasks'.tr,
                                 style: TextStyle(
                                   color: AppColors.fontColorGrey,
                                   fontSize: 15,

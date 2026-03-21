@@ -32,10 +32,10 @@ class EditRequestSheet extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Center(
+                  Center(
                     child: Text(
-                      'طلب تعديل',
-                      style: TextStyle(
+                      'requests.sheet_edit_heading'.tr,
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
@@ -46,8 +46,8 @@ class EditRequestSheet extends StatelessWidget {
                   SizedBox(
                     width: (Get.width) - 25,
                     child: InputText(
-                      labelText: ' التعديل '.tr,
-                      hintText: 'اكتب التفاصيل'.tr,
+                      labelText: 'requests.edit_title'.tr,
+                      hintText: 'requests.details_hint'.tr,
                       height: 130,
                       fillColor: Colors.grey.shade100,
                       controller: controller.notesController,
@@ -137,7 +137,7 @@ class EditRequestSheet extends StatelessWidget {
 
                                     FunHelper.showsnackbar(
                                       'success'.tr,
-                                      'تم ارسال طلب التعديل '.tr,
+                                      'requests.edit_sent'.tr,
                                       snackPosition: SnackPosition.TOP,
                                       backgroundColor: Colors.green,
                                       colorText: Colors.white,
@@ -157,9 +157,9 @@ class EditRequestSheet extends StatelessWidget {
                             child:
                                 Get.find<HomeController>().isLoading.value
                                     ? Center(child: CircularProgressIndicator())
-                                    : const Text(
-                                      'تأكيد',
-                                      style: TextStyle(color: Colors.white),
+                                    : Text(
+                                      'confirm'.tr,
+                                      style: const TextStyle(color: Colors.white),
                                     ),
                           ),
                         ),
@@ -175,9 +175,9 @@ class EditRequestSheet extends StatelessWidget {
                               ),
                               padding: const EdgeInsets.symmetric(vertical: 14),
                             ),
-                            child: const Text(
-                              'إلغاء',
-                              style: TextStyle(color: Colors.teal),
+                            child: Text(
+                              'common.cancel'.tr,
+                              style: const TextStyle(color: Colors.teal),
                             ),
                           ),
                         ),

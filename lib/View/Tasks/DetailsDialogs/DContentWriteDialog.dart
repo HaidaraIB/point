@@ -56,46 +56,51 @@ class ContentWriteDetailsSection extends StatelessWidget {
                 runSpacing: 12,
                 children: [
                   TaskDetailsDialogHelpers.infoBox(
-                    'العميل',
+                    'tasks.form.client_label'.tr,
                     clientName,
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'نوع المحتوى',
-                    task.contentWriteModel!.contenttype.tr,
+                    'task_details.content_type'.tr,
+                    FunHelper.trStored(
+                      task.contentWriteModel!.contenttype,
+                    ),
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'المنصة',
+                    'platform'.tr,
                     task.contentWriteModel!.platform.isEmpty
                         ? '-'
-                        : task.contentWriteModel!.platform
-                            .map((e) => e.toString().tr)
-                            .join('، '),
+                        : FunHelper.formatStoredPlatforms(
+                            task.contentWriteModel!.platform,
+                          ),
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'عدد الصور',
+                    'task_details.photo_count'.tr,
                     '${task.contentWriteModel!.designCount ?? '-'}',
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'القياسات',
+                    'task_details.dimensions'.tr,
                     task.contentWriteModel!.designsDimensions ?? '-',
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'الاولويه',
-                    task.priority.tr,
+                    'task_details.task_priority'.tr,
+                    FunHelper.trStored(
+                      task.priority,
+                      kind: StoredValueKind.priority,
+                    ),
                     width: cellWidth,
                     height: 110,
                     child: TaskDetailsDialogHelpers.buildTag(
-                      task.priority,
+                      FunHelper.canonicalStoredPriority(task.priority),
                       tr: true,
                     ),
                   ),
@@ -115,12 +120,12 @@ class ContentWriteDetailsSection extends StatelessWidget {
                 runSpacing: 8,
                 children: [
                   TaskDetailsDialogHelpers.infoBoxDates(
-                    'تاريخ البداية',
+                    'task_details.date_start_task'.tr,
                     FunHelper.formatdate(task.fromDate),
                     CupertinoIcons.calendar,
                   ),
                   TaskDetailsDialogHelpers.infoBoxDates(
-                    'تاريخ النهاية',
+                    'task_details.date_end_task'.tr,
                     FunHelper.formatdate(task.toDate),
                     CupertinoIcons.calendar,
                   ),

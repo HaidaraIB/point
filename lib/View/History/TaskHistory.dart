@@ -102,7 +102,7 @@ class _TasksHistoryState extends State<TasksHistory> {
                                           catController.text.isEmpty
                                               ? null
                                               : catController.text,
-                                      label: 'اختر القسم '.tr,
+                                      label: 'history.select_department'.tr,
                                       borderRadius: 5,
                                       borderColor: Colors.grey.shade300,
                                       height: 42,
@@ -149,7 +149,7 @@ class _TasksHistoryState extends State<TasksHistory> {
                                   children: [
                                     _buildStatBox(
                                       tasks.length.toString(),
-                                      'اجمالي المهام'.tr,
+                                      'employee.dashboard.total_tasks'.tr,
                                       Colors.blue,
                                     ),
                                   ],
@@ -175,7 +175,7 @@ class _TasksHistoryState extends State<TasksHistory> {
                                               color: Colors.grey,
                                             ),
                                             hintText:
-                                                'ابحث عن مهمة، عنوان، موظف...',
+                                                'tasks.search_hint_extended'.tr,
                                             height: 42,
                                             fillColor: Colors.white,
                                             controller:
@@ -227,7 +227,7 @@ class _TasksHistoryState extends State<TasksHistory> {
                                                       horizontal: 8,
                                                     ),
                                                 child: Text(
-                                                  'الأولوية',
+                                                  'tasks.filter_priority'.tr,
                                                   style: TextStyle(
                                                     fontSize: 13,
                                                     color:
@@ -286,7 +286,7 @@ class _TasksHistoryState extends State<TasksHistory> {
                                                       horizontal: 8,
                                                     ),
                                                 child: Text(
-                                                  'الحالة',
+                                                  'tasks.filter_status'.tr,
                                                   style: TextStyle(
                                                     fontSize: 13,
                                                     color:
@@ -368,7 +368,7 @@ class _TasksHistoryState extends State<TasksHistory> {
                                                         horizontal: 8,
                                                       ),
                                                   child: Text(
-                                                    'المنفذ',
+                                                    'tasks.filter_assignee'.tr,
                                                     style: TextStyle(
                                                       fontSize: 13,
                                                       color:
@@ -426,7 +426,7 @@ class _TasksHistoryState extends State<TasksHistory> {
                               ),
                               SizedBox(height: 15),
                               Text(
-                                'المهام المرسلة'.tr,
+                                'tasks.summary.sent_tasks'.tr,
                                 style: TextStyle(
                                   color: AppColors.fontColorGrey,
                                   fontSize: 15,

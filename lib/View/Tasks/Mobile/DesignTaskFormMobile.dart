@@ -204,7 +204,7 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
         foregroundColor: Colors.white,
         elevation: 0,
         title: Text(
-          widget.model == null ? 'اضافة مهمة'.tr : 'تعديل المهمة'.tr,
+          widget.model == null ? 'tasks.form.add_title'.tr : 'tasks.form.edit_title'.tr,
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         leading: IconButton(
@@ -229,10 +229,10 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _sectionLabel('بيانات المهمة'),
+                  _sectionLabel('tasks.form.section_task_data'.tr),
                   InputText(
-                    labelText: 'عنوان التصميم'.tr,
-                    hintText: 'اكتب اسم التصميم'.tr,
+                    labelText: 'tasks.form.design_title_label'.tr,
+                    hintText: 'tasks.form.design_name_hint'.tr,
                     height: 48,
                     fillColor: Colors.white,
                     controller: titleController,
@@ -244,7 +244,7 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                   DynamicDropdown<EmployeeModel>(
                     items: safeEmployees.where((a) => a.department == 'cat2').map((v) => DropdownMenuItem(value: v, child: Text('${v.name} (${v.role})'))).toList(),
                     value: executorController.text.isEmpty ? null : safeEmployees.firstWhereOrNull((a) => a.id == executorController.text),
-                    label: 'المنفذ'.tr,
+                    label: 'content.dialog.executor'.tr,
                     borderRadius: 8,
                     borderColor: Colors.grey.shade300,
                     height: 48,
@@ -258,7 +258,7 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                   DynamicDropdown<String>(
                     items: StorageKeys.tasktype.map((v) => DropdownMenuItem(value: v, child: Text(v.tr))).toList(),
                     value: taskTypeController.text.isEmpty ? null : taskTypeController.text,
-                    label: 'نوع المهمه'.tr,
+                    label: 'tasks.form.task_type_label'.tr,
                     borderRadius: 8,
                     borderColor: Colors.grey.shade300,
                     height: 48,
@@ -269,13 +269,13 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                     validator: (v) => (v == null || v.isEmpty) ? ' ' : null,
                   ),
                   const SizedBox(height: 24),
-                  _sectionLabel('العميل والمنصة'),
+                  _sectionLabel('tasks.form.section_client_platform'.tr),
                   DynamicDropdown<dynamic>(
                     items: [
                       ...safeClients.map((v) => DropdownMenuItem(value: v, child: Text('${v.name}'))),
                       DropdownMenuItem(
                         value: _otherClientValue,
-                        child: Text('عميل آخر'.tr),
+                        child: Text('tasks.other_client'.tr),
                       ),
                     ],
                     value: useCustomClient ? _otherClientValue : (clientController.text.isEmpty ? null : matchedClient),
@@ -300,8 +300,8 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                   if (useCustomClient) ...[
                     const SizedBox(height: 12),
                     InputText(
-                      labelText: 'اسم العميل'.tr,
-                      hintText: 'اكتب اسم العميل'.tr,
+                      labelText: 'tasks.form.client_name_label'.tr,
+                      hintText: 'tasks.form.client_name_hint'.tr,
                       height: 48,
                       fillColor: Colors.white,
                       controller: customClientController,
@@ -326,11 +326,11 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  _sectionLabel('التفاصيل'),
+                  _sectionLabel('tasks.form.section_details'.tr),
                   DynamicDropdown<String>(
                     items: StorageKeys.designTypes.map((v) => DropdownMenuItem(value: v, child: Text(v.tr))).toList(),
                     value: designTypeController.text.isEmpty ? null : designTypeController.text,
-                    label: 'نوع التصميم'.tr,
+                    label: 'tasks.form.design_type_label'.tr,
                     borderRadius: 8,
                     borderColor: Colors.grey.shade300,
                     height: 48,
@@ -356,8 +356,8 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                   ),
                   const SizedBox(height: 16),
                   InputText(
-                    labelText: 'عدد التصاميم'.tr,
-                    hintText: 'عدد التصاميم'.tr,
+                    labelText: 'task_details.design_count'.tr,
+                    hintText: 'task_details.design_count'.tr,
                     height: 48,
                     fillColor: Colors.white,
                     controller: designsCountController,
@@ -367,8 +367,8 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                   ),
                   const SizedBox(height: 16),
                   InputText(
-                    labelText: 'القياسات'.tr,
-                    hintText: 'اكتب القياسات'.tr,
+                    labelText: 'task_details.dimensions'.tr,
+                    hintText: 'tasks.form.write_dimensions_hint'.tr,
                     height: 48,
                     fillColor: Colors.white,
                     controller: dimensionsController,
@@ -377,7 +377,7 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                     borderColor: Colors.grey.shade300,
                   ),
                   const SizedBox(height: 24),
-                  _sectionLabel('التواريخ'),
+                  _sectionLabel('tasks.form.section_dates'.tr),
                   InputText(
                     onTap: _pickStartDate,
                     labelText: 'startat'.tr,
@@ -407,7 +407,7 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                   ),
                   const SizedBox(height: 24),
                   if (widget.model != null && widget.model!.notes.isNotEmpty) ...[
-                    _sectionLabel('سجل الملاحظات'.tr),
+                    _sectionLabel('tasks.form.notes_log'.tr),
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -445,7 +445,7 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                     ),
                     const SizedBox(height: 24),
                   ],
-                  _sectionLabel('الملاحظات والمرفقات'),
+                  _sectionLabel('tasks.form.section_notes_attachments'.tr),
                   InputText(
                     labelText: 'notes'.tr,
                     hintText: 'enternotes'.tr,
@@ -596,7 +596,7 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                         onPressed: controller.isLoading.value ? null : _submit,
                         child: controller.isLoading.value
                             ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                            : Text('حفظ'.tr, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                            : Text('common.save'.tr, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                       ),
                     ),
                   ),
@@ -607,7 +607,7 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     onPressed: () => Get.back(),
-                    child: Text('إلغاء'.tr),
+                    child: Text('common.cancel'.tr),
                   ),
                 ],
               ),

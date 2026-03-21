@@ -160,7 +160,7 @@ void addContentEmployeeDialog(
                                             ? (Get.width / 2) - 100
                                             : Get.width - 20,
                                     child: InputText(
-                                      labelText: 'ادراج رابط'.tr,
+                                      labelText: 'content.form.insert_link'.tr,
                                       hintText: 'googledrivelink .com'.tr,
                                       height: 40,
                                       fillColor: Colors.white,
@@ -316,7 +316,7 @@ void addContentEmployeeDialog(
 
                                               FunHelper.showsnackbar(
                                                 'success'.tr,
-                                                'تمت اضافة المحتوى بنجاح'.tr,
+                                                'content.add_success'.tr,
                                                 snackPosition:
                                                     SnackPosition.BOTTOM,
                                                 backgroundColor: Colors.green,
@@ -335,7 +335,7 @@ void addContentEmployeeDialog(
                                             ),
                                           )
                                           : Text(
-                                            "حفظ",
+                                            'common.save'.tr,
                                             style: TextStyle(
                                               color: Colors.white,
                                             ),
@@ -357,7 +357,7 @@ void addContentEmployeeDialog(
                                   ),
                                 ),
                                 onPressed: () => Navigator.pop(context),
-                                child: Text("إلغاء"),
+                                child: Text('common.cancel'.tr),
                               ),
                             ),
                           ],

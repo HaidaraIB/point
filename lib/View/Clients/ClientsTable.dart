@@ -14,6 +14,7 @@ import 'package:point/View/Clients/ClientFormMobilePage.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/HorizantalScroll.dart';
+import 'package:point/View/Shared/TableCellCenter.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/Utils/PasswordValidator.dart';
 import 'package:uuid/uuid.dart';
@@ -112,7 +113,7 @@ class ClientsTable extends StatelessWidget {
                                   Colors.white,
                                 ),
                                 dividerThickness: 0.5,
-                                columns: const [
+                                columns: [
                                   DataColumn(
                                     headingRowAlignment:
                                         MainAxisAlignment.center,
@@ -130,7 +131,7 @@ class ClientsTable extends StatelessWidget {
                                         MainAxisAlignment.center,
 
                                     label: Text(
-                                      "الاسم",
+                                      'name'.tr,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         color: AppColors.fontColorGrey,
@@ -142,7 +143,7 @@ class ClientsTable extends StatelessWidget {
                                         MainAxisAlignment.center,
 
                                     label: Text(
-                                      "الوصف",
+                                      'desc'.tr,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         color: AppColors.fontColorGrey,
@@ -154,7 +155,7 @@ class ClientsTable extends StatelessWidget {
                                         MainAxisAlignment.center,
 
                                     label: Text(
-                                      "تاريخ البداية",
+                                      'startat'.tr,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         color: AppColors.fontColorGrey,
@@ -165,7 +166,7 @@ class ClientsTable extends StatelessWidget {
                                     headingRowAlignment:
                                         MainAxisAlignment.center,
                                     label: Text(
-                                      "تاريخ التهاية",
+                                      'endat'.tr,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         color: AppColors.fontColorGrey,
@@ -176,7 +177,7 @@ class ClientsTable extends StatelessWidget {
                                     headingRowAlignment:
                                         MainAxisAlignment.center,
                                     label: Text(
-                                      "الاجراءات",
+                                      'actions'.tr,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         color: AppColors.fontColorGrey,
@@ -189,7 +190,7 @@ class ClientsTable extends StatelessWidget {
                                       return DataRow(
                                         cells: [
                                           DataCell(
-                                            Center(
+                                            TableCellCenter(
                                               child: Text(
                                                 emp.id.toString(),
                                                 style: TextStyle(
@@ -201,7 +202,7 @@ class ClientsTable extends StatelessWidget {
                                             ),
                                           ),
                                           DataCell(
-                                            Center(
+                                            TableCellCenter(
                                               child: Text(
                                                 emp.name ?? '',
                                                 style: TextStyle(
@@ -213,7 +214,7 @@ class ClientsTable extends StatelessWidget {
                                             ),
                                           ),
                                           DataCell(
-                                            Center(
+                                            TableCellCenter(
                                               child: Container(
                                                 constraints: BoxConstraints(
                                                   maxWidth: 150,
@@ -222,6 +223,7 @@ class ClientsTable extends StatelessWidget {
                                                   emp.description ?? '--',
                                                   overflow:
                                                       TextOverflow.ellipsis,
+                                                  textAlign: TextAlign.center,
                                                   style: TextStyle(
                                                     fontWeight: FontWeight.bold,
                                                     color:
@@ -232,7 +234,7 @@ class ClientsTable extends StatelessWidget {
                                             ),
                                           ),
                                           DataCell(
-                                            Center(
+                                            TableCellCenter(
                                               child: Text(
                                                 FunHelper.formatdate(
                                                       emp.startAt!,
@@ -247,7 +249,7 @@ class ClientsTable extends StatelessWidget {
                                             ),
                                           ),
                                           DataCell(
-                                            Center(
+                                            TableCellCenter(
                                               child: Text(
                                                 FunHelper.formatdate(
                                                       emp.endAt!,
@@ -262,9 +264,11 @@ class ClientsTable extends StatelessWidget {
                                             ),
                                           ),
                                           DataCell(
-                                            Row(
+                                            TableCellCenter(
+                                              child: Row(
                                               mainAxisAlignment:
                                                   MainAxisAlignment.center,
+                                              mainAxisSize: MainAxisSize.min,
                                               children: [
                                                 MainButton(
                                                   width: 78,
@@ -311,8 +315,8 @@ class ClientsTable extends StatelessWidget {
                                                   bordersize: 8,
                                                   title:
                                                       emp.status == 'active'
-                                                          ? 'تعطيل'
-                                                          : "تفعيل",
+                                                          ? 'common.disable'.tr
+                                                          : 'common.enable'.tr,
                                                   onpress: () {
                                                     FunHelper.showConfirmDailog(
                                                       context,
@@ -331,6 +335,7 @@ class ClientsTable extends StatelessWidget {
                                                   },
                                                 ),
                                               ],
+                                            ),
                                             ),
                                           ),
                                         ],
@@ -779,7 +784,7 @@ void showAddEmployeeDialog(BuildContext context, {ClientModel? model}) {
                                                     CircularProgressIndicator(),
                                               )
                                               : Text(
-                                                "تأكيد",
+                                                'common.confirm'.tr,
                                                 style: TextStyle(
                                                   color: Colors.white,
                                                 ),
@@ -803,7 +808,7 @@ void showAddEmployeeDialog(BuildContext context, {ClientModel? model}) {
                                       controller.uploadedFilesPaths.clear();
                                       Get.back();
                                     },
-                                    child: Text("إلغاء"),
+                                    child: Text('common.cancel'.tr),
                                   ),
                                 ),
                               ],
@@ -860,7 +865,10 @@ void showAddEmployeeDialog(BuildContext context, {ClientModel? model}) {
 //               onPressed: () {
 //                 Navigator.pop(context, selectedDate);
 //               },
-//               child: Text("تأكيد", style: TextStyle(color: Colors.white)),
+//               child: Text(
+//                 "تأكيد",
+//                 style: TextStyle(color: Colors.white),
+//               ),
 //             ),
 //           ),
 //           SizedBox(
@@ -873,7 +881,7 @@ void showAddEmployeeDialog(BuildContext context, {ClientModel? model}) {
 //                 padding: EdgeInsets.symmetric(horizontal: 32, vertical: 20),
 //               ),
 //               onPressed: () => Navigator.pop(context),
-//               child: Text("إلغاء"),
+//               child: Text('common.cancel'.tr),
 //             ),
 //           ),
 //         ],
@@ -963,7 +971,7 @@ Future<DateTime?> customDatePicker(BuildContext context) async {
                               Navigator.pop(context, selectedTime);
                             },
                             child: Text(
-                              "تأكيد",
+                              'common.confirm'.tr,
                               style: TextStyle(color: Colors.white),
                             ),
                           ),
@@ -981,7 +989,7 @@ Future<DateTime?> customDatePicker(BuildContext context) async {
                               ),
                             ),
                             onPressed: () => Navigator.pop(context),
-                            child: Text("إلغاء"),
+                            child: Text('common.cancel'.tr),
                           ),
                         ),
                       ],
@@ -1001,7 +1009,10 @@ Future<DateTime?> customDatePicker(BuildContext context) async {
 
                 Navigator.pop(context, selectedDate);
               },
-              child: Text("تأكيد", style: TextStyle(color: Colors.white)),
+              child: Text(
+                'common.confirm'.tr,
+                style: TextStyle(color: Colors.white),
+              ),
             ),
           ),
           SizedBox(
@@ -1014,7 +1025,7 @@ Future<DateTime?> customDatePicker(BuildContext context) async {
                 padding: EdgeInsets.symmetric(horizontal: 32, vertical: 20),
               ),
               onPressed: () => Navigator.pop(context),
-              child: Text("إلغاء"),
+              child: Text('common.cancel'.tr),
             ),
           ),
         ],

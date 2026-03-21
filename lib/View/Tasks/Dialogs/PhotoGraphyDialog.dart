@@ -99,7 +99,7 @@ void photoGraphyDialog(BuildContext context, {TaskModel? model}) {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'اضافة مهمة'.tr,
+                                  'tasks.form.add_title'.tr,
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
@@ -107,7 +107,7 @@ void photoGraphyDialog(BuildContext context, {TaskModel? model}) {
                                   ),
                                 ),
                                 Text(
-                                  'من فضلك قم بادخال بيانات المهمه'.tr,
+                                  'tasks.form.fill_required'.tr,
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 13,
@@ -129,8 +129,8 @@ void photoGraphyDialog(BuildContext context, {TaskModel? model}) {
                                 SizedBox(
                                   width: (Get.width * 0.7 / 2) - 25,
                                   child: InputText(
-                                    labelText: 'عنوان التصوير'.tr,
-                                    hintText: 'اكتب العنوان'.tr,
+                                    labelText: 'tasks.form.shooting_title_label'.tr,
+                                    hintText: 'tasks.form.write_title_hint'.tr,
                                     height: 42,
                                     fillColor: Colors.white,
                                     controller: titleController,
@@ -168,7 +168,7 @@ void photoGraphyDialog(BuildContext context, {TaskModel? model}) {
                                                   a.id ==
                                                   executorController.text,
                                             ),
-                                    label: 'اختر المصور'.tr,
+                                    label: 'tasks.form.select_photographer'.tr,
                                     borderRadius: 5,
                                     borderColor: Colors.grey.shade300,
                                     height: 42,
@@ -206,7 +206,7 @@ void photoGraphyDialog(BuildContext context, {TaskModel? model}) {
                                             ),
                                             DropdownMenuItem(
                                               value: otherClientValue,
-                                              child: Text('عميل آخر'.tr),
+                                              child: Text('tasks.other_client'.tr),
                                             ),
                                           ],
                                           value: isCustomClient.value
@@ -237,8 +237,8 @@ void photoGraphyDialog(BuildContext context, {TaskModel? model}) {
                                         ),
                                         if (isCustomClient.value)
                                           InputText(
-                                            labelText: 'اسم العميل'.tr,
-                                            hintText: 'اكتب اسم العميل'.tr,
+                                            labelText: 'tasks.form.client_name_label'.tr,
+                                            hintText: 'tasks.form.client_name_hint'.tr,
                                             height: 42,
                                             fillColor: Colors.white,
                                             controller: customClientController,
@@ -296,7 +296,7 @@ void photoGraphyDialog(BuildContext context, {TaskModel? model}) {
                                         shootingloction.text.isEmpty
                                             ? null
                                             : shootingloction.text,
-                                    label: 'مكان التصوير'.tr,
+                                    label: 'tasks.form.shooting_place'.tr,
                                     borderRadius: 5,
                                     borderColor: Colors.grey.shade300,
                                     height: 42,
@@ -334,7 +334,7 @@ void photoGraphyDialog(BuildContext context, {TaskModel? model}) {
                                         shootingtype.text.isEmpty
                                             ? null
                                             : shootingtype.text,
-                                    label: 'نوع التصوبر'.tr,
+                                    label: 'tasks.form.photography_shooting_type'.tr,
                                     borderRadius: 5,
                                     borderColor: Colors.grey.shade300,
                                     height: 42,
@@ -384,8 +384,8 @@ void photoGraphyDialog(BuildContext context, {TaskModel? model}) {
                                 SizedBox(
                                   width: (Get.width * 0.7 / 3) - 25,
                                   child: InputText(
-                                    labelText: 'عدد الصور'.tr,
-                                    hintText: 'عدد الصور او الفيديو'.tr,
+                                    labelText: 'task_details.photo_count'.tr,
+                                    hintText: 'task_details.photo_video_count'.tr,
                                     height: 42,
                                     fillColor: Colors.white,
                                     controller: designsCountController,
@@ -406,8 +406,8 @@ void photoGraphyDialog(BuildContext context, {TaskModel? model}) {
                                 SizedBox(
                                   width: (Get.width * 0.7 / 3) - 25,
                                   child: InputText(
-                                    labelText: 'مده التصوبر'.tr,
-                                    hintText: 'اكتب مدة التصوير'.tr,
+                                    labelText: 'tasks.form.photography_duration_label'.tr,
+                                    hintText: 'tasks.form.photography_duration_hint'.tr,
                                     height: 42,
                                     fillColor: Colors.white,
                                     controller: shootingduration,
@@ -499,7 +499,7 @@ void photoGraphyDialog(BuildContext context, {TaskModel? model}) {
                                       SizedBox(
                                         width: (Get.width * 0.7 / 2) - 25,
                                         child: InputText(
-                                          labelText: 'سجل الملاحظات'.tr,
+                                          labelText: 'tasks.form.notes_log'.tr,
                                           hintText: ''.tr,
                                           height: 250,
                                           fillColor: Colors.white,
@@ -927,7 +927,7 @@ void photoGraphyDialog(BuildContext context, {TaskModel? model}) {
                                             ),
                                           )
                                           : Text(
-                                            "حفظ",
+                                            'common.save'.tr,
                                             style: TextStyle(
                                               color: Colors.white,
                                             ),
@@ -949,7 +949,7 @@ void photoGraphyDialog(BuildContext context, {TaskModel? model}) {
                                   ),
                                 ),
                                 onPressed: () => Navigator.pop(context),
-                                child: Text("إلغاء"),
+                                child: Text('common.cancel'.tr),
                               ),
                             ),
                           ],

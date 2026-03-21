@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:get/get_utils/src/extensions/internacionalization.dart';
-import 'package:get/instance_manager.dart';
+import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
@@ -74,8 +73,8 @@ class TaskCard extends StatelessWidget {
                                   child: Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
-                                    children: const [
-                                      Text("عرض"),
+                                    children: [
+                                      Text('tasks.view'.tr),
                                       Icon(
                                         Icons.remove_red_eye_outlined,
                                         color: Colors.green,
@@ -89,8 +88,8 @@ class TaskCard extends StatelessWidget {
                                   child: Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
-                                    children: const [
-                                      Text("طلب تعديل"),
+                                    children: [
+                                      Text('tasks.request_edit'.tr),
                                       Icon(
                                         Icons.edit_outlined,
                                         color: Colors.blueAccent,
@@ -104,8 +103,8 @@ class TaskCard extends StatelessWidget {
                                   child: Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
-                                    children: const [
-                                      Text("حذف"),
+                                    children: [
+                                      Text('delete'.tr),
                                       Icon(
                                         Icons.delete_outline,
                                         color: Colors.red,
@@ -119,8 +118,8 @@ class TaskCard extends StatelessWidget {
                                   child: Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
-                                    children: const [
-                                      Text("رفض"),
+                                    children: [
+                                      Text('tasks.reject'.tr),
                                       Icon(
                                         Icons.close_rounded,
                                         color: Colors.red,
@@ -134,8 +133,8 @@ class TaskCard extends StatelessWidget {
                                   child: Row(
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
-                                    children: const [
-                                      Text("قبول"),
+                                    children: [
+                                      Text('tasks.accept'.tr),
                                       Icon(
                                         Icons.check,
                                         color: Colors.green,
@@ -178,9 +177,9 @@ class TaskCard extends StatelessWidget {
                             } else if (value == 2) {
                               FunHelper.showConfirmDailog(
                                 context,
-                                title: 'تأكيد الحذف',
-                                message: 'هل أنت متأكد من حذف هذه المهمة؟',
-                                confirmText: 'حذف',
+                                title: 'tasks.confirm_delete_title'.tr,
+                                message: 'tasks.confirm_delete_message'.tr,
+                                confirmText: 'delete'.tr,
                                 confirmColor: Colors.red,
                                 onTap: () async {
                                   await Get.find<HomeController>().deleteTask(
@@ -191,9 +190,9 @@ class TaskCard extends StatelessWidget {
                             } else if (value == 3) {
                               FunHelper.showConfirmDailog(
                                 context,
-                                title: 'تأكيد الرفض',
-                                message: 'هل أنت متأكد من رفض هذه المهمة؟',
-                                confirmText: 'رفض',
+                                title: 'tasks.confirm_reject_title'.tr,
+                                message: 'tasks.confirm_reject_message'.tr,
+                                confirmText: 'tasks.reject'.tr,
                                 confirmColor: Colors.red,
                                 onTap: () async {
                                   await Get.find<HomeController>().updateTask(
@@ -206,9 +205,9 @@ class TaskCard extends StatelessWidget {
                             } else if (value == 4) {
                               FunHelper.showConfirmDailog(
                                 context,
-                                title: 'تأكيد القبول',
-                                message: 'هل أنت متأكد من قبول هذه المهمة؟',
-                                confirmText: 'قبول',
+                                title: 'tasks.confirm_accept_title'.tr,
+                                message: 'tasks.confirm_accept_message'.tr,
+                                confirmText: 'tasks.accept'.tr,
                                 confirmColor: Colors.green,
                                 onTap: () async {
                                   await Get.find<HomeController>().updateTask(
@@ -221,7 +220,7 @@ class TaskCard extends StatelessWidget {
                             }
                           },
                           child: const Icon(Icons.more_vert),
-                          tooltip: 'الخيارات',
+                          tooltip: 'tasks.options_tooltip'.tr,
                         ),
                       ),
                     ],
@@ -231,17 +230,9 @@ class TaskCard extends StatelessWidget {
                   // --- الحالة و الأولوية ---
                   Row(
                     children: [
-                      _buildstatusTag(
-                        task.status,
-                        Colors.amber.shade700,
-                        Colors.amber.shade50,
-                      ),
+                      _buildstatusTag(task.status),
                       const SizedBox(width: 8),
-                      _buildpriortyTag(
-                        task.priority,
-                        Colors.red.shade700,
-                        Colors.red.shade50,
-                      ),
+                      _buildpriortyTag(task.priority),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -256,7 +247,10 @@ class TaskCard extends StatelessWidget {
                   const SizedBox(height: 12),
 
                   // --- التقدم ---
-                  Text('التقدم', style: TextStyle(color: Colors.grey.shade600)),
+                  Text(
+                    'tasks.progress_label'.tr,
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
@@ -279,67 +273,93 @@ class TaskCard extends StatelessWidget {
                   const SizedBox(height: 12),
 
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 14,
-                            backgroundImage: NetworkImage(
-                              task.assignedImageUrl.isEmpty
-                                  ? '${StorageKeys.supabaseStorageBaseUrl}/Avatar.png'
-                                  : task.assignedImageUrl,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            Get.find<HomeController>().employees
-                                    .firstWhereOrNull(
-                                      (emp) => emp.id == task.assignedTo,
-                                    )
-                                    ?.name ??
-                                '',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.calendar_today_outlined,
-                                size: 14,
-                                color: Colors.grey,
+                      Expanded(
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 14,
+                              backgroundImage: NetworkImage(
+                                task.assignedImageUrl.isEmpty
+                                    ? '${StorageKeys.supabaseStorageBaseUrl}/Avatar.png'
+                                    : task.assignedImageUrl,
                               ),
-                              const SizedBox(width: 4),
-                              Text(
-                                FunHelper.formatdate(task.fromDate).toString(),
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                Get.find<HomeController>().employees
+                                        .firstWhereOrNull(
+                                          (emp) => emp.id == task.assignedTo,
+                                        )
+                                        ?.name ??
+                                    '',
+                                maxLines: 1,
+                                softWrap: false,
+                                overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey,
+                                  fontSize: 13,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                            ],
-                          ),
-                          Text(
-                            _stilltime(task.toDate).toString(),
-                            style: TextStyle(
-                              fontSize: 12,
-                              color:
-                                  _stilltime(task.toDate).toString() ==
-                                          'الوقت منتهي'
-                                      ? Colors.red
-                                      : Colors.grey,
-                              fontWeight: FontWeight.bold,
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.calendar_today_outlined,
+                                  size: 14,
+                                  color: Colors.grey,
+                                ),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    FunHelper.formatdate(task.fromDate)
+                                        .toString(),
+                                    maxLines: 1,
+                                    softWrap: false,
+                                    textAlign: TextAlign.end,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Builder(
+                              builder: (_) {
+                                final deadlineText = _stilltime(task.toDate);
+                                return Text(
+                                  deadlineText,
+                                  maxLines: 1,
+                                  softWrap: false,
+                                  textAlign: TextAlign.end,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color:
+                                        deadlineText ==
+                                                'tasks.deadline_expired'.tr
+                                            ? Colors.red
+                                            : Colors.grey,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -354,7 +374,7 @@ class TaskCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: Text('عرض التفاصيل'),
+                        child: Text('tasks.view_details'.tr),
                       ),
                     ],
                   ),
@@ -367,42 +387,43 @@ class TaskCard extends StatelessWidget {
     );
   }
 
-  _stilltime(DateTime enddate) {
+  String _stilltime(DateTime enddate) {
     final now = DateTime.now();
     final difference = enddate.difference(now);
 
     if (difference.isNegative) {
-      return 'الوقت منتهي';
+      return 'tasks.deadline_expired'.tr;
     } else {
       final days = difference.inDays;
       final hours = difference.inHours % 24;
       final minutes = difference.inMinutes % 60;
 
-      String stilltime = '';
+      final parts = <String>[];
       if (days > 0) {
-        stilltime += '$days يوم ';
+        parts.add('tasks.time_days'.trParams({'count': '$days'}));
       }
       if (hours > 0) {
-        stilltime += '$hours ساعة ';
+        parts.add('tasks.time_hours'.trParams({'count': '$hours'}));
       }
       if (minutes > 0) {
-        stilltime += '$minutes دقيقة';
+        parts.add('tasks.time_minutes'.trParams({'count': '$minutes'}));
       }
-      return stilltime.trim();
+      return parts.join(' ');
     }
   }
 
-  Widget _buildpriortyTag(String text, Color color, Color bg) {
+  Widget _buildpriortyTag(String raw) {
+    final key = FunHelper.canonicalStoredPriority(raw);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: _getprioritybgColor(text),
+        color: _getprioritybgColor(key),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
-        text.toString().tr,
+        FunHelper.trStored(raw, kind: StoredValueKind.priority),
         style: TextStyle(
-          color: _getPriorityColor(text),
+          color: _getPriorityColor(key),
           fontSize: 11,
           fontWeight: FontWeight.bold,
         ),
@@ -411,17 +432,18 @@ class TaskCard extends StatelessWidget {
   }
 }
 
-Widget _buildstatusTag(String text, Color color, Color bg) {
+Widget _buildstatusTag(String raw) {
+  final key = FunHelper.canonicalStoredStatus(raw);
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
     decoration: BoxDecoration(
-      color: _getStatusbgColor(text),
+      color: _getStatusbgColor(key),
       borderRadius: BorderRadius.circular(8),
     ),
     child: Text(
-      text.toString().tr,
+      FunHelper.trStored(raw, kind: StoredValueKind.taskStatus),
       style: TextStyle(
-        color: _getStatusColor(text),
+        color: _getStatusColor(key),
         fontSize: 11,
         fontWeight: FontWeight.bold,
       ),
@@ -463,12 +485,26 @@ Color _getStatusColor(String status) {
   switch (status) {
     case StorageKeys.status_under_revision:
       return Colors.blue;
+    case StorageKeys.status_ready_to_publish:
+      return Colors.teal;
     case StorageKeys.status_approved:
       return Colors.green;
+    case StorageKeys.status_scheduled:
+      return Colors.orange;
+    case StorageKeys.status_processing:
+      return Colors.amber;
+    case StorageKeys.status_published:
+      return Colors.lightGreen;
     case StorageKeys.status_rejected:
       return Colors.red;
-    default:
+    case StorageKeys.status_in_edit:
+      return Colors.purple;
+    case StorageKeys.status_edit_requested:
+      return Colors.deepOrange;
+    case StorageKeys.status_not_start_yet:
       return Colors.grey;
+    default:
+      return Colors.black45;
   }
 }
 
@@ -476,10 +512,24 @@ Color _getStatusbgColor(String status) {
   switch (status) {
     case StorageKeys.status_under_revision:
       return Colors.blue.shade50;
+    case StorageKeys.status_ready_to_publish:
+      return Colors.teal.shade50;
     case StorageKeys.status_approved:
       return Colors.green.shade50;
+    case StorageKeys.status_scheduled:
+      return Colors.orange.shade50;
+    case StorageKeys.status_processing:
+      return Colors.amber.shade50;
+    case StorageKeys.status_published:
+      return Colors.lightGreen.shade50;
     case StorageKeys.status_rejected:
       return Colors.red.shade50;
+    case StorageKeys.status_in_edit:
+      return Colors.purple.shade50;
+    case StorageKeys.status_edit_requested:
+      return Colors.deepOrange.shade50;
+    case StorageKeys.status_not_start_yet:
+      return Colors.grey.shade200;
     default:
       return Colors.grey.shade200;
   }
@@ -512,19 +562,19 @@ class OptionsMenu extends StatelessWidget {
         children: [
           _buildOption(
             icon: Icons.remove_red_eye_outlined,
-            text: 'عرض',
+            text: 'tasks.view'.tr,
             color: Colors.green,
             onTap: onView,
           ),
           _buildOption(
             icon: Icons.edit_outlined,
-            text: 'تعديل',
+            text: 'edit'.tr,
             color: Colors.blueAccent,
             onTap: onEdit,
           ),
           _buildOption(
             icon: Icons.delete_outline,
-            text: 'حذف',
+            text: 'delete'.tr,
             color: Colors.red,
             onTap: onDelete,
           ),

@@ -13,6 +13,7 @@ import 'package:point/Models/ContentModel.dart';
 import 'package:point/Models/EmployeeModel.dart';
 import 'package:point/Models/NotificationModel.dart';
 import 'package:point/Models/TaskModel.dart';
+import 'package:point/Services/AudioService.dart';
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/NotificationService.dart';
@@ -212,7 +213,7 @@ class HomeController extends GetxController {
       if (emailUsed) {
         FunHelper.showsnackbar(
           'error'.tr,
-          'البريد الإلكتروني مستخدم مسبقاً في حساب موظف أو عميل.',
+          'client.errors.email_in_use_cross'.tr,
           snackPosition: SnackPosition.TOP,
           backgroundColor: Colors.red,
           colorText: Colors.white,
@@ -257,7 +258,7 @@ class HomeController extends GetxController {
       if (emailUsed) {
         FunHelper.showsnackbar(
           'error'.tr,
-          'البريد الإلكتروني مستخدم مسبقاً في حساب موظف أو عميل.',
+          'client.errors.email_in_use_cross'.tr,
           snackPosition: SnackPosition.TOP,
           backgroundColor: Colors.red,
           colorText: Colors.white,
@@ -301,7 +302,7 @@ class HomeController extends GetxController {
       if (emailUsed) {
         FunHelper.showsnackbar(
           'error'.tr,
-          'البريد الإلكتروني مستخدم مسبقاً في حساب موظف أو عميل.',
+          'client.errors.email_in_use_cross'.tr,
           snackPosition: SnackPosition.TOP,
           backgroundColor: Colors.red,
           colorText: Colors.white,
@@ -328,7 +329,7 @@ class HomeController extends GetxController {
       if (emailUsed) {
         FunHelper.showsnackbar(
           'error'.tr,
-          'البريد الإلكتروني مستخدم مسبقاً في حساب موظف أو عميل.',
+          'client.errors.email_in_use_cross'.tr,
           snackPosition: SnackPosition.TOP,
           backgroundColor: Colors.red,
           colorText: Colors.white,
@@ -364,6 +365,26 @@ class HomeController extends GetxController {
     contents.bindStream(_service.getContents());
   }
 
+  void refreshFilteredContents({String? clientId, bool onlyUpcoming = false}) {
+    final selectedClientId = (clientId ?? clientController.text).trim();
+    if (selectedClientId.isEmpty) {
+      searchedContents.clear();
+      return;
+    }
+
+    final now = DateTime.now();
+    searchedContents.assignAll(
+      contents.where((content) {
+        if (content.clientId != selectedClientId) return false;
+        if (!onlyUpcoming) return true;
+        final publishDate = content.publishDate;
+        if (publishDate == null) return false;
+        return publishDate.year > now.year ||
+            (publishDate.year == now.year && publishDate.month >= now.month);
+      }).toList(),
+    );
+  }
+
   fetchnotification(String? id) {
     notifications.bindStream(
       _service.getNotifications(id ?? currentemployee.value!.id!, 'all'),
@@ -388,6 +409,11 @@ class HomeController extends GetxController {
     isLoading.value = true;
     final result = await _service.deleteContent(id);
     isLoading.value = false;
+    if (result) {
+      contents.removeWhere((c) => c.id == id);
+      searchedContents.removeWhere((c) => c.id == id);
+      refreshFilteredContents();
+    }
     return result;
   }
 
@@ -403,7 +429,7 @@ class HomeController extends GetxController {
       type: 'created',
       label: 'تم إنشاء المهمة',
       byUserId: emp?.id ?? '',
-      byUserName: emp?.name ?? 'نظام',
+      byUserName: emp?.name ?? 'system.user',
       timestamp: DateTime.now(),
     );
     final taskWithTimeline = task.copyWith(timelineEvents: [createdEvent]);
@@ -603,7 +629,7 @@ class HomeController extends GetxController {
   ) {
     final emp = currentemployee.value;
     final userId = emp?.id ?? '';
-    final userName = emp?.name ?? 'نظام';
+    final userName = emp?.name ?? 'system.user';
     final now = DateTime.now();
     final List<TaskTimelineEvent> events = [];
 
@@ -1442,7 +1468,7 @@ class HomeController extends GetxController {
   var employees = <EmployeeModel>[].obs;
   var clients = <ClientModel>[].obs;
   var contents = <ContentModel>[].obs;
-  var searchedcontents = <ContentModel>[].obs;
+  var searchedContents = <ContentModel>[].obs;
   RxString selectedDate = ''.obs;
   var notifications = <NotificationModel>[].obs;
   var tasks = <TaskModel>[].obs;
@@ -1455,7 +1481,14 @@ class HomeController extends GetxController {
   void _startTotalUnreadStream(String userId) {
     _totalUnreadSub?.cancel();
     _totalUnreadSub = _service
-        .getTotalUnreadMessagesStream(userId)
+        .getTotalUnreadMessagesStream(
+          userId,
+          onPerChatUnreadIncrease: (chatId) {
+            unawaited(
+              AudioService.instance.playNotificationSound(chatId: chatId),
+            );
+          },
+        )
         .listen((count) => totalUnreadMessages.value = count);
   }
 
@@ -1527,7 +1560,7 @@ class HomeController extends GetxController {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  const Text("Uploading..."),
+                  Text('common.uploading'.tr),
                 ],
               ),
             );
@@ -1585,6 +1618,7 @@ class HomeController extends GetxController {
     fetchEmployees();
     fetchClients();
     fetchContents();
+    ever(contents, (_) => refreshFilteredContents());
     fetchTasks();
     ever(tasks, (_) {
       filterTasks();

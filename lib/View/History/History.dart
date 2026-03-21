@@ -13,9 +13,11 @@ import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Clients/ClientsTable.dart';
 import 'package:point/View/History/HistoryMobile.dart';
 import 'package:point/View/Mobile/ContentStatusCard.dart' show getFileType;
+import 'package:point/View/Shared/ContentStatusPromotionDropdownChip.dart';
 import 'package:point/View/Shared/CustomDropDown.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/HorizantalScroll.dart';
+import 'package:point/View/Shared/TableCellCenter.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/responsive.dart';
@@ -130,7 +132,7 @@ class History extends StatelessWidget {
                               fillColor: Colors.white,
                               onChanged: (value) {
                                 if (value != null) {
-                                  controller.searchedcontents.assignAll(
+                                  controller.searchedContents.assignAll(
                                     List.from(
                                       controller.contents.where(
                                         (a) => a.clientId == (value).id,
@@ -172,7 +174,7 @@ class History extends StatelessWidget {
                                     controller.selectedDate.value.isEmpty
                                         ? null
                                         : controller.selectedDate.value,
-                                label: 'اختر التاريخ'.tr,
+                                label: 'common.select_date'.tr,
                                 borderRadius: 5,
                                 borderColor: Colors.grey.shade300,
                                 height: 42,
@@ -188,7 +190,7 @@ class History extends StatelessWidget {
                                     print(year); // 2024
                                     print(month); // 1
 
-                                    controller.searchedcontents.assignAll(
+                                    controller.searchedContents.assignAll(
                                       List.from(
                                         controller.contents.where(
                                           (a) =>
@@ -291,7 +293,7 @@ class History extends StatelessWidget {
                                     ),
                                   ),
                                   DataColumn(
-                                    columnWidth: const FixedColumnWidth(140),
+                                    columnWidth: const FixedColumnWidth(210),
                                     headingRowAlignment:
                                         MainAxisAlignment.center,
                                     label: Text(
@@ -305,7 +307,7 @@ class History extends StatelessWidget {
                                     ),
                                   ),
                                   DataColumn(
-                                    columnWidth: const FixedColumnWidth(140),
+                                    columnWidth: const FixedColumnWidth(210),
                                     headingRowAlignment:
                                         MainAxisAlignment.center,
                                     label: Text(
@@ -323,7 +325,7 @@ class History extends StatelessWidget {
                                     headingRowAlignment:
                                         MainAxisAlignment.center,
                                     label: Text(
-                                      "المرفقات".tr,
+                                      'content.dialog.attachments'.tr,
                                       style: TextStyle(
                                         fontSize: 13,
 
@@ -390,11 +392,11 @@ class History extends StatelessWidget {
                                   ),
                                 ],
                                 rows:
-                                    controller.searchedcontents.map((emp) {
+                                    controller.searchedContents.map((emp) {
                                       return DataRow(
                                         cells: [
                                           DataCell(
-                                            Center(
+                                            TableCellCenter(
                                               child: Container(
                                                 constraints: BoxConstraints(
                                                   maxWidth:
@@ -412,7 +414,7 @@ class History extends StatelessWidget {
                                             ),
                                           ),
                                           DataCell(
-                                            Center(
+                                            TableCellCenter(
                                               child: Container(
                                                 constraints: BoxConstraints(
                                                   maxWidth:
@@ -432,327 +434,313 @@ class History extends StatelessWidget {
                                             ),
                                           ),
                                           DataCell(
-                                            Container(
-                                              alignment: Alignment.center,
-                                              width: 110,
-                                              height: 32,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 8,
-                                                    // vertical: 4,
+                                            TableCellCenter(
+                                              child: Container(
+                                                alignment: Alignment.center,
+                                                width: 110,
+                                                height: 32,
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      // vertical: 4,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.purple.shade50,
+                                                  borderRadius:
+                                                      BorderRadius.circular(16),
+                                                ),
+                                                child: Text(
+                                                  emp.contentType.tr,
+                                                  style: TextStyle(
+                                                    color: Colors.purple,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 13,
                                                   ),
-                                              decoration: BoxDecoration(
-                                                color: Colors.purple.shade50,
-                                                borderRadius:
-                                                    BorderRadius.circular(16),
-                                              ),
-                                              child: Text(
-                                                emp.contentType.tr,
-                                                style: TextStyle(
-                                                  color: Colors.purple,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 13,
                                                 ),
                                               ),
                                             ),
                                           ),
                                           DataCell(
-                                            Container(
-                                              alignment: Alignment.center,
-                                              width: 110,
-                                              height: 32,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 8,
-                                                    // vertical: 4,
+                                            TableCellCenter(
+                                              child: Container(
+                                                alignment: Alignment.center,
+                                                width: 110,
+                                                height: 32,
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      // vertical: 4,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color:
+                                                      Colors.blueGrey.shade100,
+                                                  borderRadius:
+                                                      BorderRadius.circular(16),
+                                                ),
+                                                child: Text(
+                                                  controller
+                                                          .getEmployeeById(
+                                                            emp.executor,
+                                                          )
+                                                          ?.name ??
+                                                      '',
+                                                  textAlign: TextAlign.center,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  style: TextStyle(
+                                                    color: Colors.blueGrey,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 13,
                                                   ),
-                                              decoration: BoxDecoration(
-                                                color: Colors.blueGrey.shade100,
-                                                borderRadius:
-                                                    BorderRadius.circular(16),
-                                              ),
-                                              child: Text(
-                                                controller
-                                                        .getEmployeeById(
-                                                          emp.executor,
-                                                        )
-                                                        ?.name ??
-                                                    '',
-                                                textAlign: TextAlign.center,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: TextStyle(
-                                                  color: Colors.blueGrey,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 13,
                                                 ),
                                               ),
                                             ),
                                           ),
                                           DataCell(
-                                            Builder(
-                                              builder: (context) {
-                                                final actionKey = GlobalKey();
-                                                return GestureDetector(
-                                                  key: actionKey,
-                                                  onTap: () {
-                                                    final RenderBox renderBox =
-                                                        actionKey
-                                                                .currentContext!
-                                                                .findRenderObject()
-                                                            as RenderBox;
+                                            TableCellCenter(
+                                              child: Builder(
+                                                builder: (context) {
+                                                  final actionKey = GlobalKey();
+                                                  return GestureDetector(
+                                                    key: actionKey,
+                                                    onTap: () {
+                                                      final RenderBox
+                                                      renderBox =
+                                                          actionKey
+                                                                  .currentContext!
+                                                                  .findRenderObject()
+                                                              as RenderBox;
 
-                                                    final Offset offset =
-                                                        renderBox.localToGlobal(
-                                                          Offset.zero,
-                                                        );
-                                                    final Size size =
-                                                        renderBox.size;
+                                                      final Offset offset =
+                                                          renderBox
+                                                              .localToGlobal(
+                                                                Offset.zero,
+                                                              );
+                                                      final Size size =
+                                                          renderBox.size;
 
-                                                    showMenu(
-                                                      context: context,
-                                                      position:
-                                                          RelativeRect.fromLTRB(
-                                                            offset.dx,
-                                                            offset.dy +
-                                                                size.height,
-                                                            offset.dx +
-                                                                size.width,
-                                                            0,
-                                                          ),
-                                                      items:
-                                                          StorageKeys.statusList
-                                                              .map((stat) {
-                                                                return PopupMenuItem(
-                                                                  child: Text(
-                                                                    stat.tr,
-                                                                  ),
-                                                                  value: stat,
-                                                                );
-                                                              })
-                                                              .toList(),
-                                                    ).then((value) async {
-                                                      if (value != null) {
-                                                        await controller
-                                                            .updateContent(
-                                                              emp.copyWith(
-                                                                status: value,
-                                                              ),
-                                                            );
-                                                        if (value ==
+                                                      showMenu(
+                                                        context: context,
+                                                        position:
+                                                            RelativeRect.fromLTRB(
+                                                              offset.dx,
+                                                              offset.dy +
+                                                                  size.height,
+                                                              offset.dx +
+                                                                  size.width,
+                                                              0,
+                                                            ),
+                                                        items:
                                                             StorageKeys
-                                                                .status_published) {
-                                                          final clientName =
-                                                              controller.clients
-                                                                  .firstWhereOrNull(
-                                                                    (c) =>
-                                                                        c.id ==
-                                                                        emp.clientId,
-                                                                  )
-                                                                  ?.name ??
-                                                              emp.clientId;
-                                                          await NotificationService.notifyPromotionDeptNewPublishedContent(
-                                                            clientName:
-                                                                clientName,
-                                                            contentTitle:
-                                                                emp.title,
+                                                                .statusList
+                                                                .map((stat) {
+                                                                  return PopupMenuItem(
+                                                                    child: Text(
+                                                                      stat.tr,
+                                                                    ),
+                                                                    value: stat,
+                                                                  );
+                                                                })
+                                                                .toList(),
+                                                      ).then((value) async {
+                                                        if (value != null) {
+                                                          await controller
+                                                              .updateContent(
+                                                                emp.copyWith(
+                                                                  status: value,
+                                                                ),
+                                                              );
+                                                          if (value ==
+                                                              StorageKeys
+                                                                  .status_published) {
+                                                            final clientName =
+                                                                controller
+                                                                    .clients
+                                                                    .firstWhereOrNull(
+                                                                      (c) =>
+                                                                          c.id ==
+                                                                          emp.clientId,
+                                                                    )
+                                                                    ?.name ??
+                                                                emp.clientId;
+                                                            await NotificationService.notifyPromotionDeptNewPublishedContent(
+                                                              clientName:
+                                                                  clientName,
+                                                              contentTitle:
+                                                                  emp.title,
+                                                            );
+                                                          }
+                                                          controller.searchedContents.assignAll(
+                                                            List.from(
+                                                              controller.contents.where(
+                                                                (a) =>
+                                                                    a.clientId ==
+                                                                    controller
+                                                                        .clientController
+                                                                        .text,
+                                                              ),
+                                                            ),
                                                           );
                                                         }
-                                                        controller
-                                                            .searchedcontents
-                                                            .assignAll(
-                                                              List.from(
-                                                                controller.contents.where(
-                                                                  (a) =>
-                                                                      a.clientId ==
-                                                                      controller
-                                                                          .clientController
-                                                                          .text,
-                                                                ),
-                                                              ),
-                                                            );
-                                                      }
-                                                    });
-                                                  },
-                                                  child: Container(
-                                                    alignment: Alignment.center,
-                                                    width: 110,
-                                                    height: 32,
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                          horizontal: 8,
-                                                        ),
-                                                    decoration: BoxDecoration(
-                                                      color: _getStatusbgColor(
-                                                        emp.status,
-                                                      ),
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            16,
+                                                      });
+                                                    },
+                                                    child: buildContentDropdownChip(
+                                                      label: emp.status.tr,
+                                                      textColor:
+                                                          getContentStatusColor(
+                                                            emp.status,
+                                                          ),
+                                                      backgroundColor:
+                                                          getContentStatusBgColor(
+                                                            emp.status,
                                                           ),
                                                     ),
-                                                    child: Text(
-                                                      emp.status.tr,
-                                                      style: TextStyle(
-                                                        color: _getStatusColor(
-                                                          emp.status,
-                                                        ),
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                        fontSize: 13,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                );
-                                              },
+                                                  );
+                                                },
+                                              ),
                                             ),
                                           ),
                                           DataCell(
-                                            Builder(
-                                              builder: (context) {
-                                                final actionKey = GlobalKey();
-                                                return GestureDetector(
-                                                  key: actionKey,
-                                                  onTap: () {
-                                                    if (controller
-                                                                .currentemployee
-                                                                .value
-                                                                ?.role !=
-                                                            'admin' &&
-                                                        controller
-                                                                .currentemployee
-                                                                .value
-                                                                ?.role !=
-                                                            'accountholder' &&
-                                                        controller
-                                                                .currentemployee
-                                                                .value
-                                                                ?.role !=
-                                                            'supervisor' &&
-                                                        controller
-                                                                .currentemployee
-                                                                .value
-                                                                ?.department !=
-                                                            'cat1') {
-                                                      FunHelper.showsnackbar(
-                                                        'error'.tr,
-                                                        '❌ ليس لديك صلاحية لتغيير الترويج.'
-                                                            .tr,
-                                                        snackPosition:
-                                                            SnackPosition
-                                                                .BOTTOM,
-                                                        backgroundColor:
-                                                            Colors.red,
-                                                        colorText: Colors.white,
-                                                      );
-                                                      return;
-                                                    }
-                                                    final RenderBox renderBox =
-                                                        actionKey
-                                                                .currentContext!
-                                                                .findRenderObject()
-                                                            as RenderBox;
-
-                                                    final Offset offset =
-                                                        renderBox.localToGlobal(
-                                                          Offset.zero,
+                                            TableCellCenter(
+                                              child: Builder(
+                                                builder: (context) {
+                                                  final actionKey = GlobalKey();
+                                                  return GestureDetector(
+                                                    key: actionKey,
+                                                    onTap: () {
+                                                      if (controller
+                                                                  .currentemployee
+                                                                  .value
+                                                                  ?.role !=
+                                                              'admin' &&
+                                                          controller
+                                                                  .currentemployee
+                                                                  .value
+                                                                  ?.role !=
+                                                              'accountholder' &&
+                                                          controller
+                                                                  .currentemployee
+                                                                  .value
+                                                                  ?.role !=
+                                                              'supervisor' &&
+                                                          controller
+                                                                  .currentemployee
+                                                                  .value
+                                                                  ?.department !=
+                                                              'cat1') {
+                                                        FunHelper.showsnackbar(
+                                                          'error'.tr,
+                                                          'errors.no_promotion_permission'
+                                                              .tr,
+                                                          snackPosition:
+                                                              SnackPosition
+                                                                  .BOTTOM,
+                                                          backgroundColor:
+                                                              Colors.red,
+                                                          colorText:
+                                                              Colors.white,
                                                         );
-                                                    final Size size =
-                                                        renderBox.size;
+                                                        return;
+                                                      }
+                                                      final RenderBox
+                                                      renderBox =
+                                                          actionKey
+                                                                  .currentContext!
+                                                                  .findRenderObject()
+                                                              as RenderBox;
 
-                                                    showMenu(
-                                                      context: context,
-                                                      position:
-                                                          RelativeRect.fromLTRB(
-                                                            offset.dx,
-                                                            offset.dy +
-                                                                size.height,
-                                                            offset.dx +
-                                                                size.width,
-                                                            0,
-                                                          ),
-                                                      items:
-                                                          StorageKeys.promations
-                                                              .map((stat) {
-                                                                return PopupMenuItem(
-                                                                  child: Text(
-                                                                    stat.tr,
-                                                                  ),
-                                                                  value: stat,
-                                                                );
-                                                              })
-                                                              .toList(),
-                                                    ).then((value) async {
-                                                      if (value != null) {
-                                                        await controller
-                                                            .updateContent(
-                                                              emp.copyWith(
-                                                                promotion:
-                                                                    value,
-                                                              ),
-                                                            );
-                                                        if (value ==
-                                                                'under_promotion' ||
-                                                            value ==
-                                                                'end_promotion') {
-                                                          final labelAr =
+                                                      final Offset offset =
+                                                          renderBox
+                                                              .localToGlobal(
+                                                                Offset.zero,
+                                                              );
+                                                      final Size size =
+                                                          renderBox.size;
+
+                                                      showMenu(
+                                                        context: context,
+                                                        position:
+                                                            RelativeRect.fromLTRB(
+                                                              offset.dx,
+                                                              offset.dy +
+                                                                  size.height,
+                                                              offset.dx +
+                                                                  size.width,
+                                                              0,
+                                                            ),
+                                                        items:
+                                                            StorageKeys
+                                                                .promations
+                                                                .map((stat) {
+                                                                  return PopupMenuItem(
+                                                                    child: Text(
+                                                                      stat.tr,
+                                                                    ),
+                                                                    value: stat,
+                                                                  );
+                                                                })
+                                                                .toList(),
+                                                      ).then((value) async {
+                                                        if (value != null) {
+                                                          await controller
+                                                              .updateContent(
+                                                                emp.copyWith(
+                                                                  promotion:
+                                                                      value,
+                                                                ),
+                                                              );
+                                                          if (value ==
+                                                                  'under_promotion' ||
                                                               value ==
-                                                                      'under_promotion'
-                                                                  ? 'قيد الترويج'
-                                                                  : 'انتهى الترويج';
-                                                          await NotificationService.notifyAdminContentPromotionStatusChanged(
-                                                            contentTitle:
-                                                                emp.title,
-                                                            promotionLabelAr:
-                                                                labelAr,
+                                                                  'end_promotion') {
+                                                            final promotionLabel =
+                                                                value ==
+                                                                        'under_promotion'
+                                                                    ? 'under_promotion'
+                                                                        .tr
+                                                                    : 'end_promotion'
+                                                                        .tr;
+                                                            await NotificationService.notifyAdminContentPromotionStatusChanged(
+                                                              contentTitle:
+                                                                  emp.title,
+                                                              promotionLabelAr:
+                                                                  promotionLabel,
+                                                            );
+                                                          }
+                                                          controller.searchedContents.assignAll(
+                                                            List.from(
+                                                              controller.contents.where(
+                                                                (a) =>
+                                                                    a.clientId ==
+                                                                    controller
+                                                                        .clientController
+                                                                        .text,
+                                                              ),
+                                                            ),
                                                           );
                                                         }
-                                                        controller
-                                                            .searchedcontents
-                                                            .assignAll(
-                                                              List.from(
-                                                                controller.contents.where(
-                                                                  (a) =>
-                                                                      a.clientId ==
-                                                                      controller
-                                                                          .clientController
-                                                                          .text,
-                                                                ),
-                                                              ),
-                                                            );
-                                                      }
-                                                    });
-                                                  },
-                                                  child: Center(
-                                                    child: Container(
-                                                      constraints:
-                                                          BoxConstraints(
-                                                            maxWidth:
-                                                                (Get.width -
-                                                                    280) /
-                                                                9,
+                                                      });
+                                                    },
+                                                    child: buildContentDropdownChip(
+                                                      label:
+                                                          emp.promotion?.tr ??
+                                                          '--',
+                                                      textColor:
+                                                          getContentPromotionColor(
+                                                            emp.promotion,
                                                           ),
-                                                      child: Text(
-                                                        emp.promotion?.tr ??
-                                                            '--',
-                                                        overflow:
-                                                            TextOverflow
-                                                                .ellipsis,
-                                                        style: TextStyle(
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                          color:
-                                                              AppColors
-                                                                  .fontColorGrey,
-                                                        ),
-                                                      ),
+                                                      backgroundColor:
+                                                          getContentPromotionBgColor(
+                                                            emp.promotion,
+                                                          ),
                                                     ),
-                                                  ),
-                                                );
-                                              },
+                                                  );
+                                                },
+                                              ),
                                             ),
                                           ),
                                           DataCell(
-                                            Center(
+                                            TableCellCenter(
                                               child: Container(
                                                 constraints: BoxConstraints(
                                                   maxWidth:
@@ -774,7 +762,7 @@ class History extends StatelessWidget {
                                                                   MainButton(
                                                                     icon: false,
                                                                     title:
-                                                                        'اغلاق'
+                                                                        'app.close'
                                                                             .tr,
                                                                     fontcolor:
                                                                         Colors
@@ -812,7 +800,14 @@ class History extends StatelessWidget {
                                                                       .externalApplication,
                                                             );
                                                           } else {
-                                                            throw 'لا يمكن فتح الرابط $file';
+                                                            FunHelper.showsnackbar(
+                                                              'error'.tr,
+                                                              'errors.cannot_open_link_param'
+                                                                  .trParams({
+                                                                    'url': file,
+                                                                  }),
+                                                            );
+                                                            return;
                                                           }
                                                         },
                                                         child: Text(
@@ -837,7 +832,7 @@ class History extends StatelessWidget {
                                             ),
                                           ),
                                           DataCell(
-                                            Center(
+                                            TableCellCenter(
                                               child: Container(
                                                 constraints: BoxConstraints(
                                                   maxWidth:
@@ -857,7 +852,7 @@ class History extends StatelessWidget {
                                             ),
                                           ),
                                           DataCell(
-                                            Center(
+                                            TableCellCenter(
                                               child: Container(
                                                 constraints: BoxConstraints(
                                                   maxWidth:
@@ -880,7 +875,7 @@ class History extends StatelessWidget {
                                             ),
                                           ),
                                           DataCell(
-                                            Center(
+                                            TableCellCenter(
                                               child: Container(
                                                 constraints: BoxConstraints(
                                                   maxWidth:
@@ -903,7 +898,7 @@ class History extends StatelessWidget {
                                                                   MainButton(
                                                                     icon: false,
                                                                     title:
-                                                                        'اغلاق'
+                                                                        'app.close'
                                                                             .tr,
                                                                     fontcolor:
                                                                         Colors
@@ -941,7 +936,14 @@ class History extends StatelessWidget {
                                                                       .externalApplication,
                                                             );
                                                           } else {
-                                                            throw 'لا يمكن فتح الرابط $file';
+                                                            FunHelper.showsnackbar(
+                                                              'error'.tr,
+                                                              'errors.cannot_open_link_param'
+                                                                  .trParams({
+                                                                    'url': file,
+                                                                  }),
+                                                            );
+                                                            return;
                                                           }
                                                         },
                                                         child: Text(
@@ -966,75 +968,22 @@ class History extends StatelessWidget {
                                             ),
                                           ),
                                           DataCell(
-                                            SizedBox(
-                                              child: PopupMenuButton<int>(
-                                                padding: EdgeInsets.zero,
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(12),
-                                                ),
-                                                color: Colors.white,
-                                                elevation: 4,
-                                                itemBuilder:
-                                                    (context) => [
-                                                      PopupMenuItem(
-                                                        value: 0,
-                                                        height: 30,
-
-                                                        child: Container(
-                                                          height: 30,
-                                                          margin:
-                                                              EdgeInsets.all(2),
-                                                          padding:
-                                                              EdgeInsets.symmetric(
-                                                                vertical: 5,
-                                                              ),
-                                                          decoration: BoxDecoration(
-                                                            borderRadius:
-                                                                BorderRadius.circular(
-                                                                  5,
-                                                                ),
-                                                            color:
-                                                                Colors
-                                                                    .grey
-                                                                    .shade200,
-                                                          ),
-                                                          child: Row(
-                                                            children: [
-                                                              Icon(
-                                                                Icons.edit,
-                                                                color:
-                                                                    Colors
-                                                                        .green,
-                                                              ),
-                                                              SizedBox(
-                                                                width: 5,
-                                                              ),
-                                                              Text(
-                                                                "تعديل",
-                                                                style: TextStyle(
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .bold,
-                                                                ),
-                                                              ),
-                                                            ],
-                                                          ),
+                                            TableCellCenter(
+                                              child: SizedBox(
+                                                child: PopupMenuButton<int>(
+                                                  padding: EdgeInsets.zero,
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          12,
                                                         ),
-                                                      ),
-                                                      if (controller
-                                                                  .currentemployee
-                                                                  .value
-                                                                  ?.role ==
-                                                              'supervisor' ||
-                                                          controller
-                                                                  .currentemployee
-                                                                  .value
-                                                                  ?.role ==
-                                                              'admin')
+                                                  ),
+                                                  color: Colors.white,
+                                                  elevation: 4,
+                                                  itemBuilder:
+                                                      (context) => [
                                                         PopupMenuItem(
-                                                          value: 1,
-
+                                                          value: 0,
                                                           height: 30,
 
                                                           child: Container(
@@ -1047,69 +996,114 @@ class History extends StatelessWidget {
                                                                 EdgeInsets.symmetric(
                                                                   vertical: 5,
                                                                 ),
-
-                                                            decoration: BoxDecoration(
-                                                              borderRadius:
-                                                                  BorderRadius.circular(
-                                                                    5,
-                                                                  ),
-                                                              color:
-                                                                  Colors
-                                                                      .grey
-                                                                      .shade200,
-                                                            ),
                                                             child: Row(
                                                               children: [
-                                                                Icon(
-                                                                  Icons.delete,
-                                                                  color:
-                                                                      Colors
-                                                                          .red,
-                                                                ),
-                                                                SizedBox(
-                                                                  width: 5,
-                                                                ),
                                                                 Text(
-                                                                  "حذف",
+                                                                  'edit'.tr,
                                                                   style: TextStyle(
                                                                     fontWeight:
                                                                         FontWeight
                                                                             .bold,
                                                                   ),
                                                                 ),
+                                                                SizedBox(
+                                                                  width: 5,
+                                                                ),
+                                                                Icon(
+                                                                  Icons.edit,
+                                                                  color:
+                                                                      Colors
+                                                                          .green,
+                                                                ),
                                                               ],
                                                             ),
                                                           ),
                                                         ),
-                                                    ],
-                                                onSelected: (value) {
-                                                  if (value == 0) {
-                                                    controller
-                                                        .uploadedFilesPaths
-                                                        .assignAll(
-                                                          emp.files ?? [],
-                                                        );
-                                                    showAddContentDialog(
-                                                      context,
-                                                      clientId:
-                                                          controller
-                                                              .clientController
-                                                              .text,
-                                                      model: emp,
-                                                    );
-                                                  } else if (value == 1) {
-                                                    FunHelper.showConfirmDailog(
-                                                      context,
-                                                      onTap: () async {
-                                                        await controller
-                                                            .deleteContent(
-                                                              emp.id!,
-                                                            );
-                                                      },
-                                                    );
-                                                  }
-                                                },
-                                                child: Icon(Icons.more_vert),
+                                                        if (controller
+                                                                    .currentemployee
+                                                                    .value
+                                                                    ?.role ==
+                                                                'supervisor' ||
+                                                            controller
+                                                                    .currentemployee
+                                                                    .value
+                                                                    ?.role ==
+                                                                'admin' ||
+                                                            controller
+                                                                    .currentemployee
+                                                                    .value
+                                                                    ?.role ==
+                                                                'accountholder')
+                                                          PopupMenuItem(
+                                                            value: 1,
+
+                                                            height: 30,
+
+                                                            child: Container(
+                                                              height: 30,
+                                                              margin:
+                                                                  EdgeInsets.all(
+                                                                    2,
+                                                                  ),
+                                                              padding:
+                                                                  EdgeInsets.symmetric(
+                                                                    vertical: 5,
+                                                                  ),
+
+                                                              child: Row(
+                                                                children: [
+                                                                  Text(
+                                                                    'delete'.tr,
+                                                                    style: TextStyle(
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .bold,
+                                                                    ),
+                                                                  ),
+                                                                  SizedBox(
+                                                                    width: 5,
+                                                                  ),
+                                                                  Icon(
+                                                                    Icons
+                                                                        .delete,
+                                                                    color:
+                                                                        Colors
+                                                                            .red,
+                                                                  ),
+                                                                ],
+                                                              ),
+                                                            ),
+                                                          ),
+                                                      ],
+                                                  onSelected: (value) {
+                                                    if (value == 0) {
+                                                      controller
+                                                          .uploadedFilesPaths
+                                                          .assignAll(
+                                                            emp.files ?? [],
+                                                          );
+                                                      showAddContentDialog(
+                                                        context,
+                                                        clientId:
+                                                            controller
+                                                                .clientController
+                                                                .text,
+                                                        model: emp,
+                                                      );
+                                                    } else if (value == 1) {
+                                                      FunHelper.showConfirmDailog(
+                                                        context,
+                                                        onTap: () async {
+                                                          await controller
+                                                              .deleteContent(
+                                                                emp.id!,
+                                                              );
+                                                        },
+                                                      );
+                                                    }
+                                                  },
+                                                  child: Icon(Icons.more_vert),
+                                                ),
                                               ),
                                             ),
                                           ),
@@ -1130,56 +1124,6 @@ class History extends StatelessWidget {
         },
       ),
     );
-  }
-}
-
-Color _getStatusColor(String status) {
-  switch (status) {
-    case StorageKeys.status_under_revision: // تحت المراجعة
-      return Colors.blue;
-
-    case StorageKeys.status_ready_to_publish: // جاهز للنشر
-      return Colors.teal;
-
-    case StorageKeys.status_approved: // تم الموافقة
-      return Colors.green;
-
-    case StorageKeys.status_scheduled: // مجدوَل
-      return Colors.orange;
-
-    case StorageKeys.status_processing: // جاري التنفيذ
-      return Colors.amber;
-
-    case StorageKeys.status_published: // منشور
-      return Colors.lightGreen;
-
-    case StorageKeys.status_rejected: // مرفوض
-      return Colors.red;
-
-    case StorageKeys.status_in_edit: // جاري التعديل
-      return Colors.purple;
-
-    case StorageKeys.status_edit_requested: // طلب تعديل
-      return Colors.deepOrange;
-
-    case StorageKeys.status_not_start_yet: // لم يبدأ بعد
-      return Colors.grey;
-
-    default:
-      return Colors.black45; // حالة غير معروفة
-  }
-}
-
-Color _getStatusbgColor(String status) {
-  switch (status) {
-    case StorageKeys.status_under_revision:
-      return Colors.blue.shade50;
-    case StorageKeys.status_approved:
-      return Colors.green.shade50;
-    case StorageKeys.status_rejected:
-      return Colors.red.shade50;
-    default:
-      return Colors.grey.shade200;
   }
 }
 
@@ -1301,7 +1245,7 @@ void showAddContentDialog(
                                         ).format(picked.toLocal());
                                       }
                                     },
-                                    labelText: 'تاريخ النشر'.tr,
+                                    labelText: 'publish_date'.tr,
                                     hintText: '1/10/2025'.tr,
                                     height: 42,
                                     fillColor: Colors.white,
@@ -1459,7 +1403,8 @@ void showAddContentDialog(
                                         width: (Get.width * 0.7 / 2) - 30,
 
                                         child: InputText(
-                                          labelText: 'ادراج رابط'.tr,
+                                          labelText:
+                                              'content.form.insert_link'.tr,
                                           hintText: 'googledrivelink .com'.tr,
                                           height: 40,
                                           fillColor: Colors.white,
@@ -1614,7 +1559,14 @@ void showAddContentDialog(
                                                                     .externalApplication,
                                                           );
                                                         } else {
-                                                          throw 'لا يمكن فتح الرابط $filePath';
+                                                          FunHelper.showsnackbar(
+                                                            'error'.tr,
+                                                            'errors.cannot_open_link_param'
+                                                                .trParams({
+                                                                  'url':
+                                                                      filePath,
+                                                                }),
+                                                          );
                                                         }
                                                       },
                                                       child: Text(
@@ -1703,7 +1655,7 @@ void showAddContentDialog(
                                               )
                                               .then((v) async {
                                                 if (v) {
-                                                  controller.searchedcontents.assignAll(
+                                                  controller.searchedContents.assignAll(
                                                     List.from(
                                                       controller.contents.where(
                                                         (a) =>
@@ -1719,7 +1671,8 @@ void showAddContentDialog(
                                                   await NotificationService.notifyClientContentPendingApproval(
                                                     clientId: clientId,
                                                     contentTypeLabel:
-                                                        'تصميم / فيديو جديد',
+                                                        'content.notify.design_video_new'
+                                                            .tr,
                                                   );
                                                   final clientName =
                                                       controller.clients
@@ -1773,7 +1726,7 @@ void showAddContentDialog(
                                               )
                                               .then((v) async {
                                                 if (v) {
-                                                  controller.searchedcontents.assignAll(
+                                                  controller.searchedContents.assignAll(
                                                     List.from(
                                                       controller.contents.where(
                                                         (a) =>
@@ -1804,7 +1757,7 @@ void showAddContentDialog(
                                               ),
                                             )
                                             : Text(
-                                              "حفظ",
+                                              'common.save'.tr,
                                               style: TextStyle(
                                                 color: Colors.white,
                                               ),
@@ -1826,7 +1779,7 @@ void showAddContentDialog(
                                   ),
                                 ),
                                 onPressed: () => Navigator.pop(context),
-                                child: Text("إلغاء"),
+                                child: Text('common.cancel'.tr),
                               ),
                             ),
                           ],

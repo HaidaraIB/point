@@ -115,7 +115,7 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'اضافة مهمة'.tr,
+                                      'tasks.form.add_title'.tr,
                                       style: TextStyle(
                                         color: Colors.white,
                                         fontWeight: FontWeight.bold,
@@ -123,7 +123,7 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                       ),
                                     ),
                                     Text(
-                                      'من فضلك قم بادخال بيانات المهمه'.tr,
+                                      'tasks.form.fill_required'.tr,
                                       style: TextStyle(
                                         color: Colors.white,
                                         fontSize: 13,
@@ -178,7 +178,7 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                                 ),
                                                 DropdownMenuItem(
                                                   value: otherClientValue,
-                                                  child: Text('عميل آخر'.tr),
+                                                  child: Text('tasks.other_client'.tr),
                                                 ),
                                               ],
                                               value: isCustomClient.value
@@ -206,8 +206,8 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                             ),
                                             if (isCustomClient.value)
                                               InputText(
-                                                labelText: 'اسم العميل'.tr,
-                                                hintText: 'اكتب اسم العميل'.tr,
+                                                labelText: 'tasks.form.client_name_label'.tr,
+                                                hintText: 'tasks.form.client_name_hint'.tr,
                                                 height: 42,
                                                 fillColor: Colors.white,
                                                 controller: customClientController,
@@ -320,7 +320,7 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                                           executorController
                                                               .text,
                                                     ),
-                                        label: 'المنفذ'.tr,
+                                        label: 'content.dialog.executor'.tr,
                                         borderRadius: 5,
                                         borderColor: Colors.grey.shade300,
                                         height: 42,
@@ -398,8 +398,8 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                     SizedBox(
                                       width: (Get.width * 0.7 / 3) - 25,
                                       child: InputText(
-                                        labelText: 'المدة'.tr,
-                                        hintText: 'مدة الحملة'.tr,
+                                        labelText: 'task_details.duration'.tr,
+                                        hintText: 'promotion.campaign_duration_hint'.tr,
 
                                         height: 42,
                                         fillColor: Colors.white,
@@ -502,8 +502,8 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                     SizedBox(
                                       width: (Get.width * 0.7 / 2) - 25,
                                       child: InputText(
-                                        labelText: 'رابط الملفات'.tr,
-                                        hintText: 'اكتب رابط الملفات'.tr,
+                                        labelText: 'task_details.files_link'.tr,
+                                        hintText: 'task_details.files_link_hint'.tr,
                                         height: 42,
                                         fillColor: Colors.white,
                                         controller: attachmentController,
@@ -710,7 +710,7 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                     color: Colors.grey.shade200,
                                   ),
                                   child: Text(
-                                    'بيانات الجمهور',
+                                    'promotion.audience_section'.tr,
                                     style: TextStyle(
                                       color: AppColors.fontColorGrey,
                                       fontWeight: FontWeight.bold,
@@ -732,7 +732,7 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                             StorageKeys.countryCitiesMap.keys
                                                 .toList(),
 
-                                        label: 'البلد'.tr,
+                                        label: 'task_details.country'.tr,
                                         borderRadius: 5,
                                         borderColor: Colors.grey.shade300,
                                         height: 42,
@@ -771,7 +771,7 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                         //     interestsController.text.isEmpty
                                         //         ? null
                                         //         : interestsController.text,
-                                        label: 'الاهتمامات'.tr,
+                                        label: 'task_details.interests'.tr,
                                         borderRadius: 5,
                                         borderColor: Colors.grey.shade300,
                                         height: 42,
@@ -796,7 +796,7 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                             StorageKeys.getCitiesForCountries(
                                               countriesList,
                                             ),
-                                        label: 'المدن'.tr,
+                                        label: 'task_details.cities'.tr,
                                         borderRadius: 5,
                                         borderColor: Colors.grey.shade300,
                                         height: 42,
@@ -822,8 +822,8 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                     SizedBox(
                                       width: (Get.width * 0.7 / 2) - 25,
                                       child: InputText(
-                                        labelText: 'الاعمار'.tr,
-                                        hintText: 'من-الى'.tr,
+                                        labelText: 'promotion.age_label'.tr,
+                                        hintText: 'promotion.age_range_hint'.tr,
                                         height: 42,
                                         fillColor: Colors.white,
                                         controller: tagsController,
@@ -842,7 +842,7 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                         selectedValues: specializationList,
                                         items: StorageKeys.specialist,
 
-                                        label: 'مجال الاختصاصات',
+                                        label: 'promotion.specialization_label'.tr,
                                         borderRadius: 5,
                                         borderColor: Colors.grey.shade300,
                                         height: 42,
@@ -865,7 +865,7 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                   SizedBox(
                                     width: (Get.width * 0.7 / 1) - 25,
                                     child: InputText(
-                                      labelText: 'سجل الملاحظات'.tr,
+                                      labelText: 'tasks.form.notes_log'.tr,
                                       hintText: ''.tr,
                                       height: 250,
                                       fillColor: Colors.white,
@@ -1125,7 +1125,7 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                                     CircularProgressIndicator(),
                                               )
                                               : Text(
-                                                "حفظ",
+                                                'common.save'.tr,
                                                 style: TextStyle(
                                                   color: Colors.white,
                                                 ),
@@ -1147,7 +1147,7 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                       ),
                                     ),
                                     onPressed: () => Navigator.pop(context),
-                                    child: Text("إلغاء"),
+                                    child: Text('common.cancel'.tr),
                                   ),
                                 ),
                               ],

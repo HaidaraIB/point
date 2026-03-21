@@ -4,8 +4,11 @@ import 'package:firebase_core/firebase_core.dart'
     show Firebase, FirebaseException;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:point/Services/AudioService.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
 import 'package:point/Bindings/AppBindings.dart';
+import 'package:point/Localization/LanguageController.dart';
 import 'package:point/Localization/AppTranslations.dart';
 import 'package:point/Routing/AppRouting.dart';
 import 'package:point/Services/FcmServices.dart';
@@ -23,6 +26,8 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+  final languageController = Get.put(LanguageController(), permanent: true);
+  await languageController.initialize();
 
   final supabaseUrl = AppConfig.supabaseUrl;
   final supabaseKey = StorageKeys.supabaseKey;
@@ -53,6 +58,10 @@ void main(List<String> args) async {
           : '⚠️ تحقق من إعداد Firebase Storage (.env و Storage rules)',
     );
   }
+  // لا نحمّل الصوت هنا على الويب: setSource قد يعلق/ينتظر حتى تفاعل المستخدم.
+  if (!kIsWeb) {
+    await AudioService.instance.initialize();
+  }
   // await html.Notification.requestPermission();
   FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
     await NotificationService().init();
@@ -82,30 +91,46 @@ Future<String?> checkLogin() async {
 class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return GetMaterialApp(
-      key: navigatorKey,
+    final lc = Get.find<LanguageController>();
+    return Obx(
+      () => Listener(
+        behavior: HitTestBehavior.translucent,
+        onPointerDown: (_) {
+          AudioService.instance.unlockAudio();
+        },
+        child: GetMaterialApp(
+        key: navigatorKey,
 
-      title: 'Point',
-      debugShowCheckedModeBanner: false,
-      initialBinding: AppBindings(),
-      theme: ThemeData(
-        fontFamily: 'IBM',
-        scaffoldBackgroundColor: Colors.white,
-        progressIndicatorTheme: ProgressIndicatorThemeData(color: Colors.white),
-        textTheme: TextTheme(
-          bodyLarge: TextStyle(color: AppColors.primaryfontColor),
-          bodyMedium: TextStyle(color: AppColors.primaryfontColor),
-          bodySmall: TextStyle(color: AppColors.primaryfontColor),
+        title: 'Point',
+        debugShowCheckedModeBanner: false,
+        initialBinding: AppBindings(),
+        theme: ThemeData(
+          fontFamily: 'IBM',
+          scaffoldBackgroundColor: Colors.white,
+          progressIndicatorTheme: ProgressIndicatorThemeData(color: Colors.white),
+          textTheme: TextTheme(
+            bodyLarge: TextStyle(color: AppColors.primaryfontColor),
+            bodyMedium: TextStyle(color: AppColors.primaryfontColor),
+            bodySmall: TextStyle(color: AppColors.primaryfontColor),
+          ),
+          // primarySwatch: Colors.blue,
         ),
-        // primarySwatch: Colors.blue,
+        initialRoute: AppRouting.initailPage,
+        // home: MyHomePage(),
+        locale: lc.currentLocale.value,
+        fallbackLocale: const Locale('ar'),
+        translations: AppTranslations(),
+        supportedLocales: const [Locale('ar'), Locale('en')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        popGesture: true,
+        getPages: AppRouting.routing,
+        // theme: ThemeData(primarySwatch: Colors.blue),
+        ),
       ),
-      initialRoute: AppRouting.initailPage,
-      // home: MyHomePage(),
-      locale: Locale('ar'),
-      translations: AppTranslations(),
-      popGesture: true,
-      getPages: AppRouting.routing,
-      // theme: ThemeData(primarySwatch: Colors.blue),
     );
   }
 }

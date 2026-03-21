@@ -52,7 +52,7 @@ Widget buildMobileHistory(
                 fillColor: Colors.white,
                 onChanged: (value) {
                   if (value != null) {
-                    controller.searchedcontents.assignAll(
+                    controller.searchedContents.assignAll(
                       List.from(
                         controller.contents.where(
                           (a) => a.clientId == (value as dynamic).id,
@@ -86,7 +86,7 @@ Widget buildMobileHistory(
                   value: controller.selectedDate.value.isEmpty
                       ? null
                       : controller.selectedDate.value,
-                  label: 'اختر التاريخ'.tr,
+                  label: 'common.select_date'.tr,
                   borderRadius: 5,
                   borderColor: Colors.grey.shade300,
                   height: 42,
@@ -96,7 +96,7 @@ Widget buildMobileHistory(
                       final parts = value.split('-');
                       final year = int.parse(parts[0]);
                       final month = int.parse(parts[1]);
-                      controller.searchedcontents.assignAll(
+                      controller.searchedContents.assignAll(
                         List.from(
                           controller.contents.where(
                             (a) =>
@@ -120,13 +120,13 @@ Widget buildMobileHistory(
           const SizedBox(height: 16),
           GetX<HomeController>(
             builder: (c) {
-              final contents = c.searchedcontents.toList();
+              final contents = c.searchedContents.toList();
               if (c.clientController.text.isEmpty) {
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 32),
                   child: Center(
                     child: Text(
-                      'اختر العميل لعرض المحتوى',
+                      'history.pick_client_content'.tr,
                       style: TextStyle(
                         fontSize: 15,
                         color: AppColors.fontColorGrey,
@@ -140,7 +140,7 @@ Widget buildMobileHistory(
                   padding: const EdgeInsets.symmetric(vertical: 32),
                   child: Center(
                     child: Text(
-                      'لا توجد بيانات',
+                      'history.empty_data'.tr,
                       style: TextStyle(
                         fontSize: 15,
                         color: AppColors.fontColorGrey,

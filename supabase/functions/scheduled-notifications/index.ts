@@ -14,13 +14,13 @@ const FROM_EMAIL = "Point Agency <no-reply@mail.point-iq.app>";
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { status: 200, headers: corsHeaders() });
-  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+  if (req.method !== "POST") return json({ errorCode: "ERR_METHOD_NOT_ALLOWED" }, 405);
 
   try {
     const authHeader = req.headers.get("authorization") ?? "";
     const expected = Deno.env.get("CRON_SECRET") ?? "";
     if (expected && authHeader !== `Bearer ${expected}`) {
-      return json({ error: "Unauthorized" }, 401);
+      return json({ errorCode: "ERR_UNAUTHORIZED" }, 401);
     }
 
     const sa = getServiceAccount();
@@ -48,7 +48,7 @@ Deno.serve(async (req: Request) => {
 
     return json({ ok: true }, 200);
   } catch (e) {
-    return json({ error: String(e) }, 500);
+    return json({ errorCode: "ERR_SERVER", details: String(e) }, 500);
   }
 });
 

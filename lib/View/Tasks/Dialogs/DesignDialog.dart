@@ -100,8 +100,8 @@ void designDialog(BuildContext context, {TaskModel? model}) {
                                 SizedBox(
                                   width: (dialogW / 3 - 25).clamp(60.0, double.infinity),
                                   child: InputText(
-                                    labelText: 'عنوان التصميم'.tr,
-                                    hintText: 'اكتب اسم التصميم'.tr,
+                                    labelText: 'tasks.form.design_title_label'.tr,
+                                    hintText: 'tasks.form.design_name_hint'.tr,
                                     height: 42,
                                     fillColor: Colors.white,
                                     controller: titleController,
@@ -140,7 +140,7 @@ void designDialog(BuildContext context, {TaskModel? model}) {
                                                       a.id ==
                                                       executorController.text,
                                                 ),
-                                    label: 'المنفذ'.tr,
+                                    label: 'content.dialog.executor'.tr,
                                     borderRadius: 5,
                                     borderColor: Colors.grey.shade300,
                                     height: 42,
@@ -173,7 +173,7 @@ void designDialog(BuildContext context, {TaskModel? model}) {
                                         taskTypeController.text.isEmpty
                                             ? null
                                             : taskTypeController.text,
-                                    label: 'نوع المهمه'.tr,
+                                    label: 'tasks.form.task_type_label'.tr,
                                     borderRadius: 5,
                                     borderColor: Colors.grey.shade300,
                                     height: 42,
@@ -210,7 +210,7 @@ void designDialog(BuildContext context, {TaskModel? model}) {
                                             ),
                                             DropdownMenuItem(
                                               value: otherClientValue,
-                                              child: Text('عميل آخر'.tr),
+                                              child: Text('tasks.other_client'.tr),
                                             ),
                                           ],
                                           value: isCustomClient.value
@@ -241,8 +241,8 @@ void designDialog(BuildContext context, {TaskModel? model}) {
                                         ),
                                         if (isCustomClient.value)
                                           InputText(
-                                            labelText: 'اسم العميل'.tr,
-                                            hintText: 'اكتب اسم العميل'.tr,
+                                            labelText: 'tasks.form.client_name_label'.tr,
+                                            hintText: 'tasks.form.client_name_hint'.tr,
                                             height: 42,
                                             fillColor: Colors.white,
                                             controller: customClientController,
@@ -307,7 +307,7 @@ void designDialog(BuildContext context, {TaskModel? model}) {
                                         designTypeController.text.isEmpty
                                             ? null
                                             : designTypeController.text,
-                                    label: 'نوع التصميم'.tr,
+                                    label: 'tasks.form.design_type_label'.tr,
                                     borderRadius: 5,
                                     borderColor: Colors.grey.shade300,
                                     height: 42,
@@ -357,8 +357,8 @@ void designDialog(BuildContext context, {TaskModel? model}) {
                                 SizedBox(
                                   width: (dialogW / 3 - 25).clamp(60.0, double.infinity),
                                   child: InputText(
-                                    labelText: 'عدد التصاميم'.tr,
-                                    hintText: 'عدد التصاميم'.tr,
+                                    labelText: 'task_details.design_count'.tr,
+                                    hintText: 'task_details.design_count'.tr,
                                     height: 42,
                                     fillColor: Colors.white,
                                     controller: designsCountController,
@@ -379,8 +379,8 @@ void designDialog(BuildContext context, {TaskModel? model}) {
                                 SizedBox(
                                   width: (dialogW / 3 - 25).clamp(60.0, double.infinity),
                                   child: InputText(
-                                    labelText: 'القياسات'.tr,
-                                    hintText: 'اكتب القياسات'.tr,
+                                    labelText: 'task_details.dimensions'.tr,
+                                    hintText: 'tasks.form.write_dimensions_hint'.tr,
                                     height: 42,
                                     fillColor: Colors.white,
                                     controller: dimensionsController,
@@ -477,7 +477,7 @@ void designDialog(BuildContext context, {TaskModel? model}) {
                                       SizedBox(
                                         width: (dialogW / 2 - 25).clamp(80.0, double.infinity),
                                         child: InputText(
-                                          labelText: 'سجل الملاحظات'.tr,
+                                          labelText: 'tasks.form.notes_log'.tr,
                                           hintText: ''.tr,
                                           height: 250,
                                           fillColor: Colors.white,
@@ -896,7 +896,7 @@ void designDialog(BuildContext context, {TaskModel? model}) {
                                             ),
                                           )
                                           : Text(
-                                            "حفظ",
+                                            'common.save'.tr,
                                             style: TextStyle(
                                               color: Colors.white,
                                             ),
@@ -918,7 +918,7 @@ void designDialog(BuildContext context, {TaskModel? model}) {
                                   ),
                                 ),
                                 onPressed: () => Navigator.pop(context),
-                                child: Text("إلغاء"),
+                                child: Text('common.cancel'.tr),
                               ),
                             ),
                           ],

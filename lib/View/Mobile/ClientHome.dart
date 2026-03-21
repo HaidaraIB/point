@@ -47,7 +47,12 @@ class ClientHome extends StatelessWidget {
                   const SizedBox(height: 50),
 
                   Obx(() {
-                    final tabs = ["الكل", "الموافقة", "تعديل", "مرفوض"];
+                    final tabs = [
+                      'client.status_tab.all'.tr,
+                      'client.status_tab.approved'.tr,
+                      'client.status_tab.revision'.tr,
+                      'client.status_tab.rejected'.tr,
+                    ];
                     return Container(
                       margin: const EdgeInsets.symmetric(horizontal: 20),
                       padding: const EdgeInsets.all(4),
@@ -99,9 +104,9 @@ class ClientHome extends StatelessWidget {
                   tabsController.selectedIndex.value == 0
                       ? Obx(() {
                         return controller.contents.isEmpty
-                            ? const Padding(
+                            ? Padding(
                               padding: EdgeInsets.all(20.0),
-                              child: Text('لا يوجد محتوى لعرضه.'),
+                              child: Text('content.empty_display'.tr),
                             )
                             : ListView.builder(
                               physics: NeverScrollableScrollPhysics(),
@@ -135,9 +140,9 @@ class ClientHome extends StatelessWidget {
                                       a.status == StorageKeys.status_approved,
                                 )
                                 .isEmpty
-                            ? const Padding(
+                            ? Padding(
                               padding: EdgeInsets.all(20.0),
-                              child: Text('لا يوجد محتوى لعرضه.'),
+                              child: Text('content.empty_display'.tr),
                             )
                             : ListView.builder(
                               shrinkWrap: true,
@@ -189,9 +194,9 @@ class ClientHome extends StatelessWidget {
                                       StorageKeys.status_edit_requested,
                                 )
                                 .isEmpty
-                            ? const Padding(
+                            ? Padding(
                               padding: EdgeInsets.all(20.0),
-                              child: Text('لا يوجد محتوى لعرضه.'),
+                              child: Text('content.empty_display'.tr),
                             )
                             : ListView.builder(
                               shrinkWrap: true,
@@ -243,9 +248,9 @@ class ClientHome extends StatelessWidget {
                                       a.status == StorageKeys.status_rejected,
                                 )
                                 .isEmpty
-                            ? const Padding(
+                            ? Padding(
                               padding: EdgeInsets.all(20.0),
-                              child: Text('لا يوجد محتوى لعرضه.'),
+                              child: Text('content.empty_display'.tr),
                             )
                             : ListView.builder(
                               physics: NeverScrollableScrollPhysics(),

@@ -48,11 +48,11 @@ class ContentWriteFormDelegate extends TaskFormDialogDelegate {
   String get executorDepartment => 'cat4';
 
   @override
-  String get fcmTitleNewTask => 'تم تعيينك علي مهمة جديدة';
+  String get fcmTitleNewTask => 'tasks.fcm.new_task_assigned'.tr;
 
   @override
   String fcmBodyNewTask(String taskTitle) =>
-      'تم تعيينك علي مهمة جديدة $taskTitle بقسم كتابة المحتوى';
+      'tasks.fcm.new_task_content_write'.trParams({'title': taskTitle});
 
   @override
   void initFromModel(TaskModel? model) {
@@ -101,7 +101,7 @@ class ContentWriteFormDelegate extends TaskFormDialogDelegate {
                   value: designTypeController.text.isEmpty
                       ? null
                       : designTypeController.text,
-                  label: 'نوع المحتوى'.tr,
+                  label: 'task_details.content_type'.tr,
                   borderRadius: 5,
                   borderColor: Colors.grey.shade300,
                   height: 42,
@@ -115,8 +115,8 @@ class ContentWriteFormDelegate extends TaskFormDialogDelegate {
               SizedBox(
                 width: w3.clamp(60.0, double.infinity),
                 child: InputText(
-                  labelText: 'عدد الصور'.tr,
-                  hintText: 'عدد الصور او الفيديو'.tr,
+                  labelText: 'task_details.photo_count'.tr,
+                  hintText: 'task_details.photo_video_count'.tr,
                   height: 42,
                   fillColor: Colors.white,
                   controller: designsCountController,
@@ -128,7 +128,7 @@ class ContentWriteFormDelegate extends TaskFormDialogDelegate {
               SizedBox(
                 width: w3.clamp(60.0, double.infinity),
                 child: InputText(
-                  labelText: 'القياسات'.tr,
+                  labelText: 'task_details.dimensions'.tr,
                   hintText: '',
                   height: 42,
                   fillColor: Colors.white,

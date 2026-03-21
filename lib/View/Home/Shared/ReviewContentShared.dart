@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Models/ContentModel.dart';
@@ -61,7 +62,7 @@ class _ReviewContentWidgetState extends State<ReviewContentWidget> {
             bottom: isMobile ? 12 : 0,
           ),
           child: Text(
-            'محتوى قيد المراجعة للعميل',
+            'home.review_carousel_title'.tr,
             textAlign: isMobile ? TextAlign.center : TextAlign.right,
             style: TextStyle(
               fontSize: isMobile ? 15 : 16,
@@ -205,7 +206,7 @@ class _ReviewContentWidgetState extends State<ReviewContentWidget> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        client.name ?? '',
+                        FunHelper.localizeUiPhrase(client.name),
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,

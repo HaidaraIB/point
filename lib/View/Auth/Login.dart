@@ -1,4 +1,5 @@
 import 'dart:developer';
+import 'dart:math' show min;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -64,31 +65,14 @@ Widget _buildDesktopLayout() {
     builder: (controller) {
       return Form(
         key: _key,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (Responsive.isDesktop(Get.context!))
-              Image.asset(
-                AppImages.images.authcover,
-                // width: Get.width / 2 - 50,
-                // height: Get.height,
-                // fit: BoxFit.fitWidth,
-              ),
-
-            Center(
-              child: Container(
-                alignment: Alignment.center,
-                // color: Colors.yellow,
-                margin:
-                    Responsive.isDesktop(Get.context!)
-                        ? EdgeInsets.symmetric(vertical: 50, horizontal: 100)
-                        : EdgeInsets.all(10),
-                width:
-                    Responsive.isDesktop(Get.context!)
-                        ? Get.width / 2 - 50
-                        : Get.width - 50,
-                child: SingleChildScrollView(
-                  child: Column(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final showAuthSplit =
+                Responsive.showAuthSplitLayout(constraints.maxWidth);
+            final viewportMinHeight = constraints.hasBoundedHeight
+                ? constraints.maxHeight
+                : 0.0;
+            final formColumn = Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -280,11 +264,76 @@ Widget _buildDesktopLayout() {
 
                       buildRightsSection(),
                     ],
+            );
+
+            if (!showAuthSplit) {
+              return SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: viewportMinHeight),
+                  child: Padding(
+                    padding: EdgeInsets.all(10),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: min(480, constraints.maxWidth - 20),
+                        ),
+                        child: formColumn,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-          ],
+              );
+            }
+
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: Image.asset(
+                    AppImages.images.authcover,
+                    fit: BoxFit.cover,
+                    alignment: Alignment.center,
+                    errorBuilder: (context, error, stackTrace) {
+                      return ColoredBox(color: Colors.grey.shade200);
+                    },
+                  ),
+                ),
+                Expanded(
+                  child: LayoutBuilder(
+                    builder: (context, colConstraints) {
+                      const verticalPad = 50.0;
+                      final minScrollChildHeight = colConstraints.maxHeight >
+                              verticalPad * 2
+                          ? colConstraints.maxHeight - verticalPad * 2
+                          : colConstraints.maxHeight;
+                      return SingleChildScrollView(
+                        padding: EdgeInsets.symmetric(
+                          vertical: verticalPad,
+                          horizontal: 40,
+                        ),
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minHeight: minScrollChildHeight,
+                          ),
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxWidth: min(
+                                  480,
+                                  colConstraints.maxWidth - 80,
+                                ),
+                              ),
+                              child: formColumn,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       );
     },

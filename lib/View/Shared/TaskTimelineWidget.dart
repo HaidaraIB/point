@@ -21,7 +21,7 @@ class TaskTimelineWidget extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'الجدول الزمني',
+          'tasks.timeline_title'.tr,
           style: Theme.of(context).textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: AppColors.primaryfontColor,
@@ -105,7 +105,7 @@ class _TimelineRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                event.label,
+                event.label.tr,
                 style: const TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
@@ -116,12 +116,14 @@ class _TimelineRow extends StatelessWidget {
                 const SizedBox(height: 4),
                 if (event.oldValue != null)
                   Text(
-                    'من: ${_formatValue(event.oldValue!)}',
+                    'timeline.value_from'
+                        .trParams({'value': _formatValue(event.oldValue!)}),
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                   ),
                 if (event.newValue != null)
                   Text(
-                    'إلى: ${_formatValue(event.newValue!)}',
+                    'timeline.value_to'
+                        .trParams({'value': _formatValue(event.newValue!)}),
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                   ),
               ],
@@ -130,7 +132,7 @@ class _TimelineRow extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      event.byUserName,
+                      event.byUserName.tr,
                       maxLines: 1,
                       softWrap: false,
                       overflow: TextOverflow.ellipsis,

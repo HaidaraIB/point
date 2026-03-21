@@ -88,7 +88,7 @@ void publishDilaog(BuildContext context, {TaskModel? model}) {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'اضافة مهمة'.tr,
+                                  'tasks.form.add_title'.tr,
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
@@ -96,7 +96,7 @@ void publishDilaog(BuildContext context, {TaskModel? model}) {
                                   ),
                                 ),
                                 Text(
-                                  'من فضلك قم بادخال بيانات المهمه'.tr,
+                                  'tasks.form.fill_required'.tr,
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 13,
@@ -118,8 +118,8 @@ void publishDilaog(BuildContext context, {TaskModel? model}) {
                                 SizedBox(
                                   width: (Get.width * 0.7 / 2) - 25,
                                   child: InputText(
-                                    labelText: 'عنوان المنشور'.tr,
-                                    hintText: 'اكتب العنوان'.tr,
+                                    labelText: 'tasks.form.post_title_label'.tr,
+                                    hintText: 'tasks.form.write_title_hint'.tr,
                                     height: 42,
                                     fillColor: Colors.white,
                                     controller: titleController,
@@ -157,7 +157,7 @@ void publishDilaog(BuildContext context, {TaskModel? model}) {
                                                   a.id ==
                                                   executorController.text,
                                             ),
-                                    label: 'اختر المنفذ'.tr,
+                                    label: 'tasks.form.select_executor'.tr,
                                     borderRadius: 5,
                                     borderColor: Colors.grey.shade300,
                                     height: 42,
@@ -195,7 +195,7 @@ void publishDilaog(BuildContext context, {TaskModel? model}) {
                                             ),
                                             DropdownMenuItem(
                                               value: otherClientValue,
-                                              child: Text('عميل آخر'.tr),
+                                              child: Text('tasks.other_client'.tr),
                                             ),
                                           ],
                                           value: isCustomClient.value
@@ -226,8 +226,8 @@ void publishDilaog(BuildContext context, {TaskModel? model}) {
                                         ),
                                         if (isCustomClient.value)
                                           InputText(
-                                            labelText: 'اسم العميل'.tr,
-                                            hintText: 'اكتب اسم العميل'.tr,
+                                            labelText: 'tasks.form.client_name_label'.tr,
+                                            hintText: 'tasks.form.client_name_hint'.tr,
                                             height: 42,
                                             fillColor: Colors.white,
                                             controller: customClientController,
@@ -277,8 +277,8 @@ void publishDilaog(BuildContext context, {TaskModel? model}) {
                                 SizedBox(
                                   width: (Get.width * 0.7 / 2) - 25,
                                   child: InputText(
-                                    labelText: 'رابط المحتوى'.tr,
-                                    hintText: 'رابط المحتوى'.tr,
+                                    labelText: 'task_details.content_link'.tr,
+                                    hintText: 'task_details.content_link'.tr,
                                     height: 42,
                                     fillColor: Colors.white,
                                     controller: contenturl,
@@ -290,8 +290,8 @@ void publishDilaog(BuildContext context, {TaskModel? model}) {
                                 SizedBox(
                                   width: (Get.width * 0.7 / 2) - 25,
                                   child: InputText(
-                                    labelText: 'رابط الملفات'.tr,
-                                    hintText: 'اكتب رابط الملفات'.tr,
+                                    labelText: 'task_details.files_link'.tr,
+                                    hintText: 'task_details.files_link_hint'.tr,
                                     height: 42,
                                     fillColor: Colors.white,
                                     controller: filesurl,
@@ -341,7 +341,7 @@ void publishDilaog(BuildContext context, {TaskModel? model}) {
                                 SizedBox(
                                   width: (Get.width * 0.7 / 2) - 25,
                                   child: InputText(
-                                    labelText: 'التصنيف'.tr,
+                                    labelText: 'task_details.category'.tr,
                                     hintText: ''.tr,
                                     height: 42,
                                     fillColor: Colors.white,
@@ -443,7 +443,7 @@ void publishDilaog(BuildContext context, {TaskModel? model}) {
                                       SizedBox(
                                         width: (Get.width * 0.7 / 2) - 25,
                                         child: InputText(
-                                          labelText: 'سجل الملاحظات'.tr,
+                                          labelText: 'tasks.form.notes_log'.tr,
                                           hintText: ''.tr,
                                           height: 250,
                                           fillColor: Colors.white,
@@ -747,7 +747,7 @@ void publishDilaog(BuildContext context, {TaskModel? model}) {
                                             child: CircularProgressIndicator(),
                                           )
                                           : Text(
-                                            "حفظ",
+                                            'common.save'.tr,
                                             style: TextStyle(
                                               color: Colors.white,
                                             ),
@@ -769,7 +769,7 @@ void publishDilaog(BuildContext context, {TaskModel? model}) {
                                   ),
                                 ),
                                 onPressed: () => Navigator.pop(context),
-                                child: Text("إلغاء"),
+                                child: Text('common.cancel'.tr),
                               ),
                             ),
                           ],

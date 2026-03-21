@@ -6,6 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Services/ChatAudioFocus.dart';
+import 'package:point/Services/ChatIncomingMessageSound.dart';
 import 'package:point/Services/FireStoreServices.dart';
 
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
@@ -57,6 +60,9 @@ class _ChatScreenState extends State<ChatScreen> {
   Stream<QuerySnapshot<Map<String, dynamic>>>? _messagesStream;
 
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _chatsSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _messageSoundSubscription;
+  /// يمنع إلغاء اشتراك الصوت عند كل تحديث لقائمة المحادثات (كان يُرمى أول snapshot فيه الرسائل الجديدة).
+  String? _messageSoundBoundChatId;
 
   bool _loadingEmployees = true;
   bool _loadingChats = true;
@@ -77,13 +83,13 @@ class _ChatScreenState extends State<ChatScreen> {
       _currentUserName =
           homecontroller.currentemployee.value?.name ??
           homecontroller.currentemployee.value?.email ??
-          'Me';
+          'Me'.tr;
       // **جلب بيانات القسم والدور للمستخدم الحالي**
       _currentUserDept = homecontroller.currentemployee.value?.department;
     } else {
       // if no users at all, create a temporary id (but better to have employees collection)
       _currentUserId = 'temp_current_user';
-      _currentUserName = 'Me';
+      _currentUserName = 'Me'.tr;
       _currentUserDept = null;
     }
 
@@ -219,6 +225,32 @@ class _ChatScreenState extends State<ChatScreen> {
     setState(() {});
   }
 
+  void _syncMessageSoundListener() {
+    final stream = _messagesStream;
+    final uid = _currentUserId;
+    final sel = _selectedChat;
+    if (stream == null || uid == null || sel == null) {
+      _messageSoundSubscription?.cancel();
+      _messageSoundSubscription = null;
+      _messageSoundBoundChatId = null;
+      ChatAudioFocus.clearForeground();
+      return;
+    }
+    final chatId = sel['id'] as String;
+    ChatAudioFocus.setForeground(chatId);
+    if (_messageSoundSubscription != null && _messageSoundBoundChatId == chatId) {
+      return;
+    }
+    _messageSoundSubscription?.cancel();
+    _messageSoundSubscription = null;
+    _messageSoundBoundChatId = chatId;
+    _messageSoundSubscription = attachIncomingMessageSoundSubscription(
+      stream: stream,
+      chatId: chatId,
+      currentUserId: uid,
+    );
+  }
+
   // **---------------- Chats (Private & Group) ----------------**
   void _listenChats() {
     if (_currentUserId == null) return;
@@ -257,6 +289,7 @@ class _ChatScreenState extends State<ChatScreen> {
           }
           if (!mounted || _chatsSubscription == null) return;
           setState(() {});
+          _syncMessageSoundListener();
         });
   }
 
@@ -265,6 +298,9 @@ class _ChatScreenState extends State<ChatScreen> {
     final sub = _chatsSubscription;
     _chatsSubscription = null; // أي callback قادم من الـ stream سيرى null ولن يستدعي setState
     sub?.cancel();
+    _messageSoundSubscription?.cancel();
+    _messageSoundBoundChatId = null;
+    ChatAudioFocus.clearForeground();
     _messageController.dispose();
     _searchController.dispose();
     super.dispose();
@@ -276,7 +312,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     // إذا كانت مجموعة، نستخدم العنوان (Title)
     if (_selectedChat!['isGroup'] == true) {
-      return _selectedChat!['title'] ?? 'مجموعة القسم';
+      return _selectedChat!['title'] ?? AppLocaleKeys.chatDepartmentGroup.tr;
     }
 
     // للمحادثة الفردية، نجد اسم الطرف الآخر من الكاش
@@ -340,6 +376,7 @@ class _ChatScreenState extends State<ChatScreen> {
             .snapshots();
 
     setState(() {});
+    _syncMessageSoundListener();
   }
 
   // **إضافة لفتح مجموعة القسم**
@@ -367,6 +404,7 @@ class _ChatScreenState extends State<ChatScreen> {
               .snapshots();
       _otherUserId = null; // لا يوجد طرف آخر محدد في المجموعة
       setState(() {});
+      _syncMessageSoundListener();
     }
   }
 
@@ -430,7 +468,10 @@ class _ChatScreenState extends State<ChatScreen> {
           // يمكن هنا إرسال الإشعار لكل مشارك بشكل فردي (إذا كنت تخزن الـ FCM token للموظفين)
           await FirestoreServices.sendFcm(
             userId: id,
-            title: '${_currentUserName} في مجموعة ${_selectedChat!['title']}',
+            title: 'chat.fcm_in_group_title'.trParams({
+              'user': _currentUserName ?? '',
+              'group': '${_selectedChat!['title']}',
+            }),
             body: text,
             // token: token,
           );
@@ -486,13 +527,13 @@ class _ChatScreenState extends State<ChatScreen> {
     final diff = now.difference(dt);
 
     if (diff.inSeconds < 60) {
-      return 'منذ ثوانٍ';
+      return AppLocaleKeys.commonNow.tr;
     } else if (diff.inMinutes < 60) {
-      return 'منذ ${diff.inMinutes} دقيقة';
+      return AppLocaleKeys.commonMinutesAgo.trParams({'count': '${diff.inMinutes}'});
     } else if (diff.inHours < 24) {
-      return 'منذ ${diff.inHours} ساعة';
+      return AppLocaleKeys.commonHoursAgo.trParams({'count': '${diff.inHours}'});
     } else if (diff.inDays < 7) {
-      return 'منذ ${diff.inDays} يوم';
+      return 'chat.days_ago'.trParams({'count': '${diff.inDays}'});
     } else {
       return DateFormat('dd/MM/yyyy').format(dt);
     }
@@ -564,7 +605,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'اختيار موظف لبدء محادثة',
+                      AppLocaleKeys.chatPickEmployee.tr,
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -574,7 +615,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     TextField(
                       controller: _searchController,
                       decoration: InputDecoration(
-                        hintText: 'ابحث باسم الموظف',
+                        hintText: AppLocaleKeys.chatSearchEmployee.tr,
                         prefixIcon: Icon(Icons.search),
                       ),
                       onChanged: (v) => filterEmployeesDialog(v),
@@ -586,7 +627,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           _loadingEmployees
                               ? Center(child: CircularProgressIndicator())
                               : _filteredEmployees.isEmpty
-                              ? Center(child: Text('لا يوجد موظفين'))
+                              ? Center(child: Text(AppLocaleKeys.chatNoEmployees.tr))
                               : ListView.builder(
                                 itemCount: _filteredEmployees.length,
                                 itemBuilder: (context, idx) {
@@ -673,7 +714,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                 Expanded(
                                   child: TextField(
                                     decoration: InputDecoration(
-                                      hintText: 'ابحث',
+                                      hintText: AppLocaleKeys.chatSearch.tr,
                                       prefixIcon: Icon(Icons.search),
                                       filled: true,
                                       fillColor: Colors.grey.shade100,
@@ -721,13 +762,13 @@ class _ChatScreenState extends State<ChatScreen> {
                               child: Icon(Icons.group, color: Colors.blueGrey),
                             ),
                             title: Text(
-                              'مجموعة ${_currentUserDept!.tr}',
+                              '${AppLocaleKeys.chatDepartmentGroup.tr} ${_currentUserDept!.tr}',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: Colors.blue.shade700,
                               ),
                             ),
-                            subtitle: Text('محادثة جماعية للقسم'),
+                            subtitle: Text(AppLocaleKeys.chatGroupConversation.tr),
                             tileColor:
                                 _selectedChat != null &&
                                         _selectedChat!['id'] ==
@@ -747,7 +788,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                   ? Center(child: CircularProgressIndicator())
                                   : _chats.isEmpty
                                   ? Center(
-                                    child: Text('لا توجد محادثات حالياً'),
+                                    child: Text(AppLocaleKeys.chatNoChats.tr),
                                   )
                                   : ListView.builder(
                                     itemCount: _chats.length,
@@ -765,9 +806,9 @@ class _ChatScreenState extends State<ChatScreen> {
                                       Color? titleColor;
 
                                       if (isGroup) {
-                                        displayName = ch['title'] ?? 'مجموعة';
+                                        displayName = ch['title'] ?? AppLocaleKeys.chatDepartmentGroup.tr;
                                         subtitle =
-                                            'مجموعة: ${ch['lastMessage'] ?? ''}';
+                                            '${'chat.group_prefix'.tr} ${ch['lastMessage'] ?? ''}';
                                         initial = _initialFromName(displayName);
                                         avatarColor = Colors.blueGrey.shade100;
                                         avatarIcon = Icons.group;
@@ -796,7 +837,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                             other.isNotEmpty
                                                 ? other['name']
                                                 : (otherId.length > 10
-                                                    ? 'مستخدم مجهول'
+                                                    ? AppLocaleKeys.chatUnknownUser.tr
                                                     : otherId);
                                         subtitle = ch['lastMessage'] ?? '';
                                         initial = _initialFromName(displayName);
@@ -853,6 +894,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                             _otherUserId = null;
                                           }
                                           setState(() {});
+                                          _syncMessageSoundListener();
                                         },
                                         leading: CircleAvatar(
                                           radius: 24,
@@ -952,7 +994,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         _selectedChat == null
                             ? Center(
                               child: Text(
-                                'اختر محادثة من القائمة',
+                                AppLocaleKeys.chatSelectFromList.tr,
                                 style: TextStyle(
                                   color: Colors.grey,
                                   fontSize: 18,
@@ -1004,8 +1046,8 @@ class _ChatScreenState extends State<ChatScreen> {
                                         ),
                                         Text(
                                           _selectedChat!['isGroup'] == true
-                                              ? 'مجموعة القسم'
-                                              : 'محادثة فردية',
+                                              ? AppLocaleKeys.chatGroupType.tr
+                                              : AppLocaleKeys.chatPrivateType.tr,
                                           style: TextStyle(
                                             color: Colors.grey.shade600,
                                           ),
@@ -1030,7 +1072,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                                 _messagesStream == null
                                                     ? Center(
                                                       child: Text(
-                                                        'لا توجد رسائل بعد',
+                                                        AppLocaleKeys.chatNoMessages.tr,
                                                       ),
                                                     )
                                                     : StreamBuilder<
@@ -1060,7 +1102,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                                         if (docs.isEmpty) {
                                                           return Center(
                                                             child: Text(
-                                                              'لا توجد رسائل بعد',
+                                                              AppLocaleKeys.chatNoMessages.tr,
                                                             ),
                                                           );
                                                         }
@@ -1086,7 +1128,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                                                     as Timestamp?;
                                                             final senderName =
                                                                 d['senderName'] ??
-                                                                'مُرسل';
+                                                                AppLocaleKeys.chatSenderFallback.tr;
 
                                                             return Align(
                                                               alignment:
@@ -1251,7 +1293,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                                         _messageController,
                                                     decoration: InputDecoration(
                                                       hintText:
-                                                          'اكتب رسالتك...',
+                                                          AppLocaleKeys.chatWriteMessage.tr,
                                                       filled: true,
                                                       fillColor:
                                                           Colors.grey.shade100,

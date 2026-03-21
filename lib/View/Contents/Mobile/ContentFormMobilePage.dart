@@ -106,7 +106,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
       );
       if (!mounted) return;
       if (ok) {
-        controller.searchedcontents.assignAll(
+        controller.searchedContents.assignAll(
           List.from(
             controller.contents
                 .where((a) => a.clientId == controller.clientController.text),
@@ -115,7 +115,10 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
         Get.back();
         controller.uploadedFilesPaths.clear();
         final clientName = controller.clients.firstWhereOrNull((c) => c.id == widget.clientId)?.name ?? widget.clientId;
-        await NotificationService.notifyClientContentPendingApproval(clientId: widget.clientId, contentTypeLabel: 'تصميم / فيديو جديد');
+        await NotificationService.notifyClientContentPendingApproval(
+          clientId: widget.clientId,
+          contentTypeLabel: 'content.notify.design_video_new'.tr,
+        );
         await NotificationService.notifyManagersContentSubmittedByClient(clientName: clientName, contentTitle: titleController.text);
         if (publishDate != null) {
           await NotificationService.notifyClientContentScheduled(clientId: widget.clientId, contentTitle: titleController.text, dateFormatted: FunHelper.formatdate(publishDate) ?? '');
@@ -137,7 +140,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
       );
       if (!mounted) return;
       if (ok) {
-        controller.searchedcontents.assignAll(
+        controller.searchedContents.assignAll(
           List.from(
             controller.contents
                 .where((a) => a.clientId == controller.clientController.text),
@@ -167,7 +170,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
         foregroundColor: Colors.white,
         elevation: 0,
         title: Text(
-          widget.model == null ? 'addcontent'.tr : 'تعديل المحتوى'.tr,
+          widget.model == null ? 'addcontent'.tr : 'content.form.edit_title'.tr,
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         leading: IconButton(
@@ -199,7 +202,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                   GestureDetector(
                     onTap: _pickPublishDate,
                     child: InputText(
-                      labelText: 'تاريخ النشر'.tr,
+                      labelText: 'publish_date'.tr,
                       hintText: '1/10/2025'.tr,
                       height: 48,
                       fillColor: Colors.white,
@@ -294,7 +297,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                   ),
                   const SizedBox(height: 16),
                   InputText(
-                    labelText: 'ادراج رابط'.tr,
+                    labelText: 'content.form.insert_link'.tr,
                     hintText: 'googledrivelink .com'.tr,
                     height: 48,
                     fillColor: Colors.white,
@@ -397,7 +400,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                                               if (context.mounted) {
                                                 FunHelper.showsnackbar(
                                                   'error'.tr,
-                                                  'لا يمكن فتح الرابط',
+                                                  'errors.cannot_open_link'.tr,
                                                 );
                                               }
                                             }
@@ -446,7 +449,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                                 ),
                               )
                             : Text(
-                                'حفظ'.tr,
+                                'common.save'.tr,
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
@@ -465,7 +468,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                       ),
                     ),
                     onPressed: () => Get.back(),
-                    child: Text('إلغاء'.tr),
+                    child: Text('common.cancel'.tr),
                   ),
                 ],
               ),

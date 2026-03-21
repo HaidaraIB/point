@@ -14,6 +14,7 @@ import 'package:point/View/Shared/ReadOnlyAccountEmailField.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/HorizantalScroll.dart';
+import 'package:point/View/Shared/TableCellCenter.dart';
 import 'package:point/View/Employees/Mobile/EmployeeFormMobilePage.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:uuid/uuid.dart';
@@ -115,7 +116,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                   Colors.white,
                                 ),
                                 dividerThickness: 0.5,
-                                columns: const [
+                                columns: [
                                   DataColumn(
                                     headingRowAlignment:
                                         MainAxisAlignment.center,
@@ -133,7 +134,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                         MainAxisAlignment.center,
 
                                     label: Text(
-                                      "الاسم",
+                                      'name'.tr,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         color: AppColors.fontColorGrey,
@@ -145,7 +146,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                         MainAxisAlignment.center,
 
                                     label: Text(
-                                      "البريد",
+                                      'email'.tr,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         color: AppColors.fontColorGrey,
@@ -157,7 +158,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                         MainAxisAlignment.center,
 
                                     label: Text(
-                                      "الدور",
+                                      'role'.tr,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         color: AppColors.fontColorGrey,
@@ -168,7 +169,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                     headingRowAlignment:
                                         MainAxisAlignment.center,
                                     label: Text(
-                                      "الاجراءات",
+                                      'actions'.tr,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         color: AppColors.fontColorGrey,
@@ -181,7 +182,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                       return DataRow(
                                         cells: [
                                           DataCell(
-                                            Center(
+                                            TableCellCenter(
                                               child: Text(
                                                 emp.id.toString(),
                                                 style: TextStyle(
@@ -193,7 +194,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                             ),
                                           ),
                                           DataCell(
-                                            Center(
+                                            TableCellCenter(
                                               child: Text(
                                                 emp.name ?? '',
                                                 style: TextStyle(
@@ -205,7 +206,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                             ),
                                           ),
                                           DataCell(
-                                            Center(
+                                            TableCellCenter(
                                               child: Text(
                                                 emp.email ?? '',
                                                 style: TextStyle(
@@ -217,7 +218,8 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                             ),
                                           ),
                                           DataCell(
-                                            Container(
+                                            TableCellCenter(
+                                              child: Container(
                                               alignment: Alignment.center,
                                               height: 40,
                                               padding:
@@ -241,12 +243,15 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                                 ),
                                               ),
                                             ),
+                                            ),
                                           ),
 
                                           DataCell(
-                                            Row(
+                                            TableCellCenter(
+                                              child: Row(
                                               mainAxisAlignment:
                                                   MainAxisAlignment.center,
+                                              mainAxisSize: MainAxisSize.min,
                                               children: [
                                                 MainButton(
                                                   width: 78,
@@ -266,7 +271,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                                             'accountholder') {
                                                       FunHelper.showsnackbar(
                                                         'error'.tr,
-                                                        'ليس لديك الصلاحيه'.tr,
+                                                        'errors.no_permission'.tr,
                                                         snackPosition:
                                                             SnackPosition.TOP,
                                                         backgroundColor:
@@ -299,7 +304,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                                             'accountholder') {
                                                       FunHelper.showsnackbar(
                                                         'error'.tr,
-                                                        'ليس لديك الصلاحيه'.tr,
+                                                        'errors.no_permission'.tr,
                                                         snackPosition:
                                                             SnackPosition.TOP,
                                                         backgroundColor:
@@ -321,6 +326,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                                   },
                                                 ),
                                               ],
+                                            ),
                                             ),
                                           ),
                                         ],
@@ -587,7 +593,7 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                             )
                                             .toList(),
                                     value: selectedDepartment,
-                                    label: 'القسم'.tr,
+                                    label: 'employees.department'.tr,
                                     borderRadius: 5,
                                     borderColor: Colors.grey.shade300,
                                     height: 42,
@@ -711,7 +717,7 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                                     ),
                                               )
                                               : Text(
-                                                "تأكيد",
+                                                'common.confirm'.tr,
                                                 style: TextStyle(
                                                   color: Colors.white,
                                                 ),
@@ -735,7 +741,7 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                       controller.uploadedFilesPaths.clear();
                                       Get.back();
                                     },
-                                    child: Text("إلغاء"),
+                                    child: Text('common.cancel'.tr),
                                   ),
                                 ),
                               ],

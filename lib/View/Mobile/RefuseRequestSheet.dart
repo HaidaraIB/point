@@ -29,10 +29,13 @@ class RefuseRequestSheet extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                const Center(
+                Center(
                   child: Text(
-                    'طلب رفض',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    'requests.sheet_refuse_heading'.tr,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -40,8 +43,8 @@ class RefuseRequestSheet extends StatelessWidget {
                 SizedBox(
                   width: (Get.width) - 25,
                   child: InputText(
-                    labelText: ' الرفض '.tr,
-                    hintText: 'اكتب التفاصيل'.tr,
+                    labelText: 'requests.reject_title'.tr,
+                    hintText: 'requests.details_hint'.tr,
                     height: 130,
                     fillColor: Colors.grey.shade100,
                     controller: controller.notesController,
@@ -70,7 +73,7 @@ class RefuseRequestSheet extends StatelessWidget {
                                 controller.notesController.clear();
                                 FunHelper.showsnackbar(
                                   'success'.tr,
-                                  'تم ارسال طلب الرفض '.tr,
+                                  'requests.reject_sent'.tr,
                                   snackPosition: SnackPosition.TOP,
                                   backgroundColor: Colors.green,
                                   colorText: Colors.white,
@@ -86,9 +89,9 @@ class RefuseRequestSheet extends StatelessWidget {
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
-                        child: const Text(
-                          'تأكيد',
-                          style: TextStyle(color: Colors.white),
+                        child: Text(
+                          'confirm'.tr,
+                          style: const TextStyle(color: Colors.white),
                         ),
                       ),
                     ),
@@ -104,9 +107,9 @@ class RefuseRequestSheet extends StatelessWidget {
                           ),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
-                        child: const Text(
-                          'إلغاء',
-                          style: TextStyle(color: Colors.teal),
+                        child: Text(
+                          'common.cancel'.tr,
+                          style: const TextStyle(color: Colors.teal),
                         ),
                       ),
                     ),

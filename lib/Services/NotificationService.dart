@@ -1,143 +1,125 @@
+import 'package:get/get.dart';
 import 'package:point/Services/FireStoreServices.dart';
-import 'package:point/Services/StorageKeys.dart';
 
-/// خدمة مركزية لإرسال إشعارات Push و Email بنصوص عربية موحدة.
-/// تستدعي FirestoreServices.sendFcm / sendFcmForClient / sendFcmToEmployees.
+/// Centralized push/email notifications; copy follows current [Get.locale].
 class NotificationService {
   NotificationService._();
 
-  static const Map<String, String> _departmentNameAr = {
-    'cat1': 'قسم الترويج',
-    'cat2': 'قسم التصميم',
-    'cat3': 'قسم التصوير',
-    'cat4': 'قسم كتابة المحتوى',
-    'cat5': 'قسم المونتاج',
-    'cat6': 'قسم النشر',
-    'cat7': 'قسم البرمجة',
+  static Map<String, String> _emailLabels(Map<String, String> fields) => {
+    for (final e in fields.entries) e.key.tr: e.value,
   };
 
-  static const Map<String, String> _statusLabelAr = {
-    StorageKeys.status_not_start_yet: 'لم يبدأ بعد',
-    StorageKeys.status_processing: 'قيد التنفيذ',
-    StorageKeys.status_under_revision: 'قيد المراجعة',
-    StorageKeys.status_in_edit: 'قيد التعديل',
-    StorageKeys.status_edit_requested: 'طلب التعديل',
-    StorageKeys.status_ready_to_publish: 'جاهز للنشر',
-    StorageKeys.status_scheduled: 'مؤجلة / مجدولة',
-    StorageKeys.status_approved: 'مكتملة / تمت الموافقة',
-    StorageKeys.status_published: 'تم النشر',
-    StorageKeys.status_rejected: 'مرفوضة',
-  };
-
-  /// نوع المهمة (0-6) → قسم عربي
+  /// Task type index 0–6 → localized department name (cat1…cat7).
   static String departmentNameFromTaskType(String type) {
     final idx = int.tryParse(type);
-    if (idx == null || idx < 0 || idx > 6) return 'قسم غير محدد';
-    return _departmentNameAr['cat${idx + 1}'] ?? 'قسم غير محدد';
+    if (idx == null || idx < 0 || idx > 6) {
+      return 'notify.department_unknown'.tr;
+    }
+    final key = 'cat${idx + 1}';
+    return key.tr;
   }
 
-  static String statusLabelAr(String status) =>
-      _statusLabelAr[status] ?? status;
+  /// Content / task status storage key → localized label.
+  static String statusLabelAr(String status) => status.tr;
 
-  // ─── إشعارات الموظف (حسب القسم) ─────────────────────────────────────────
+  // ─── Employee notifications ─────────────────────────────────────────────
 
-  /// ✅ تم تعيينك على مهمة جديدة (عنوان المهمة)
   static Future<void> notifyEmployeeAssignedToTask({
     required String employeeId,
     required String taskTitle,
   }) async {
     await FirestoreServices.sendFcm(
       userId: employeeId,
-      title: 'تم تعيينك على مهمة جديدة',
+      title: 'notify.emp.assigned.title'.tr,
       body: taskTitle,
       notificationType: 'employee_task_assigned',
-      actionText: 'يرجى فتح المهمة والبدء بالتنفيذ حسب الأولوية.',
+      actionText: 'notify.emp.assigned.action'.tr,
       referenceId: taskTitle,
-      emailDetails: {'عنوان المهمة': taskTitle},
+      emailDetails: _emailLabels({'notify.email.task_title': taskTitle}),
     );
   }
 
-  /// ⏳ اقتراب موعد التسليم — يُستدعى من Cloud Function
   static Future<void> notifyTaskDueSoon({
     required String employeeId,
     required String taskTitle,
   }) async {
     await FirestoreServices.sendFcm(
       userId: employeeId,
-      title: '⏳ اقتراب موعد التسليم',
-      body: 'المهمة: $taskTitle',
+      title: 'notify.emp.due_soon.title'.tr,
+      body: 'notify.emp.due_soon.body'.trParams({'title': taskTitle}),
       notificationType: 'employee_task_due_soon',
-      actionText: 'يرجى إنهاء المهمة قبل موعد التسليم المحدد.',
+      actionText: 'notify.emp.due_soon.action'.tr,
       referenceId: taskTitle,
-      emailDetails: {'المهمة': taskTitle},
+      emailDetails: _emailLabels({'notify.email.task': taskTitle}),
     );
   }
 
-  /// طلب تعديل على المهمة (عنوان) من قبل الإدارة
   static Future<void> notifyEmployeeEditRequestedByManagement({
     required String employeeId,
     required String taskTitle,
   }) async {
     await FirestoreServices.sendFcm(
       userId: employeeId,
-      title: 'طلب تعديل على المهمة من قبل الإدارة',
+      title: 'notify.emp.edit_mgmt.title'.tr,
       body: taskTitle,
       notificationType: 'employee_task_edit_requested',
-      actionText: 'يرجى تنفيذ التعديلات المطلوبة ثم إعادة التسليم.',
+      actionText: 'notify.emp.edit_mgmt.action'.tr,
       referenceId: taskTitle,
-      emailDetails: {'المهمة': taskTitle},
+      emailDetails: _emailLabels({'notify.email.task': taskTitle}),
     );
   }
 
-  /// مهمة مرفوضة — تم رفض المهمة (عنوان) من قبل الإدارة
   static Future<void> notifyEmployeeTaskRejected({
     required String employeeId,
     required String taskTitle,
   }) async {
     await FirestoreServices.sendFcm(
       userId: employeeId,
-      title: 'مهمة مرفوضة',
-      body: 'تم رفض المهمة ($taskTitle) من قبل الإدارة',
+      title: 'notify.emp.rejected.title'.tr,
+      body: 'notify.emp.rejected.body'.trParams({'title': taskTitle}),
       notificationType: 'employee_task_rejected',
-      actionText: 'يرجى مراجعة سبب الرفض وتحديث المهمة.',
+      actionText: 'notify.emp.rejected.action'.tr,
       referenceId: taskTitle,
-      emailDetails: {'المهمة': taskTitle, 'الحالة': 'مرفوضة'},
+      emailDetails: _emailLabels({
+        'notify.email.task': taskTitle,
+        'notify.email.status': 'status_rejected'.tr,
+      }),
     );
   }
 
-  /// 🛠 تم إعادة فتح مهمة لوجود ملاحظات
   static Future<void> notifyEmployeeTaskReopened({
     required String employeeId,
     required String taskTitle,
   }) async {
     await FirestoreServices.sendFcm(
       userId: employeeId,
-      title: 'تم إعادة فتح مهمة لوجود ملاحظات',
+      title: 'notify.emp.reopened.title'.tr,
       body: taskTitle,
       notificationType: 'employee_task_reopened',
-      actionText: 'يرجى مراجعة الملاحظات واستكمال المعالجة.',
+      actionText: 'notify.emp.reopened.action'.tr,
       referenceId: taskTitle,
-      emailDetails: {'المهمة': taskTitle, 'الحالة': 'أعيد فتحها'},
+      emailDetails: _emailLabels({
+        'notify.email.task': taskTitle,
+        'notify.email.status': 'notify.email.state_reopened'.tr,
+      }),
     );
   }
 
-  /// 📎 تم إرفاق ملفات جديدة بالمهمة
   static Future<void> notifyEmployeeNewAttachments({
     required String employeeId,
     required String taskTitle,
   }) async {
     await FirestoreServices.sendFcm(
       userId: employeeId,
-      title: 'تم إرفاق ملفات جديدة بالمهمة',
+      title: 'notify.emp.attachments.title'.tr,
       body: taskTitle,
       notificationType: 'employee_task_new_attachments',
-      actionText: 'يرجى الاطلاع على الملفات المرفقة وتحديث العمل.',
+      actionText: 'notify.emp.attachments.action'.tr,
       referenceId: taskTitle,
-      emailDetails: {'المهمة': taskTitle},
+      emailDetails: _emailLabels({'notify.email.task': taskTitle}),
     );
   }
 
-  /// 🔁 تم تغيير حالة المهمة (إلى: ...)
   static Future<void> notifyEmployeeTaskStatusChanged({
     required String employeeId,
     required String taskTitle,
@@ -146,18 +128,21 @@ class NotificationService {
     final label = statusLabelAr(newStatus);
     await FirestoreServices.sendFcm(
       userId: employeeId,
-      title: 'تم تغيير حالة المهمة',
-      body: '$taskTitle — إلى: $label',
+      title: 'notify.emp.status_changed.title'.tr,
+      body: 'notify.emp.status_changed.body'
+          .trParams({'title': taskTitle, 'label': label}),
       notificationType: 'employee_task_status_changed',
-      actionText: 'يرجى متابعة الحالة الجديدة للمهمة.',
+      actionText: 'notify.emp.status_changed.action'.tr,
       referenceId: taskTitle,
-      emailDetails: {'المهمة': taskTitle, 'الحالة الجديدة': label},
+      emailDetails: _emailLabels({
+        'notify.email.task': taskTitle,
+        'notify.email.new_status': label,
+      }),
     );
   }
 
-  // ─── إشعارات المدير / الإدارة ───────────────────────────────────────────
+  // ─── Manager / admin ─────────────────────────────────────────────────────
 
-  /// 🔁 تم استلام المهمة من قبل الموظف (اسم الموظف) وهي قيد التنفيذ الآن
   static Future<void> notifyManagersTaskReceivedByEmployee({
     required String employeeName,
     required String taskTitle,
@@ -167,16 +152,19 @@ class NotificationService {
     );
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
-      title: 'تم استلام المهمة من قبل الموظف وهي قيد التنفيذ الآن',
-      body: 'الموظف: $employeeName — المهمة: $taskTitle',
+      title: 'notify.mgr.received.title'.tr,
+      body: 'notify.mgr.received.body'
+          .trParams({'name': employeeName, 'title': taskTitle}),
       notificationType: 'manager_task_received',
-      actionText: 'يمكن متابعة التقدم عبر لوحة المهام.',
+      actionText: 'notify.mgr.received.action'.tr,
       referenceId: taskTitle,
-      emailDetails: {'الموظف': employeeName, 'المهمة': taskTitle},
+      emailDetails: _emailLabels({
+        'notify.email.employee': employeeName,
+        'notify.email.task': taskTitle,
+      }),
     );
   }
 
-  /// 🔁 قام الموظف (اسم) بإنجاز المهمة (عنوان) يرجى الاطلاع والموافقة
   static Future<void> notifyManagersTaskCompletedByEmployee({
     required String employeeName,
     required String taskTitle,
@@ -186,16 +174,19 @@ class NotificationService {
     );
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
-      title: 'قام الموظف بإنجاز المهمة يرجى الاطلاع والموافقة',
-      body: 'الموظف: $employeeName — المهمة: $taskTitle',
+      title: 'notify.mgr.completed.title'.tr,
+      body: 'notify.mgr.completed.body'
+          .trParams({'name': employeeName, 'title': taskTitle}),
       notificationType: 'manager_task_completed',
-      actionText: 'يرجى مراجعة المخرجات واعتماد المهمة أو طلب تعديل.',
+      actionText: 'notify.mgr.completed.action'.tr,
       referenceId: taskTitle,
-      emailDetails: {'الموظف': employeeName, 'المهمة': taskTitle},
+      emailDetails: _emailLabels({
+        'notify.email.employee': employeeName,
+        'notify.email.task': taskTitle,
+      }),
     );
   }
 
-  /// قام الموظف (اسم) بالتعديل على المهمة (عنوان) يرجى الاطلاع
   static Future<void> notifyManagersEmployeeEditedTask({
     required String employeeName,
     required String taskTitle,
@@ -205,16 +196,19 @@ class NotificationService {
     );
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
-      title: 'قام الموظف بالتعديل على المهمة يرجى الاطلاع',
-      body: 'الموظف: $employeeName — المهمة: $taskTitle',
+      title: 'notify.mgr.edited.title'.tr,
+      body: 'notify.mgr.edited.body'
+          .trParams({'name': employeeName, 'title': taskTitle}),
       notificationType: 'manager_task_edited',
-      actionText: 'يرجى مراجعة النسخة المعدلة.',
+      actionText: 'notify.mgr.edited.action'.tr,
       referenceId: taskTitle,
-      emailDetails: {'الموظف': employeeName, 'المهمة': taskTitle},
+      emailDetails: _emailLabels({
+        'notify.email.employee': employeeName,
+        'notify.email.task': taskTitle,
+      }),
     );
   }
 
-  /// 📤 تم رفع محتوى جديد للمراجعة من قبل العميل (اسم العميل)
   static Future<void> notifyManagersContentSubmittedByClient({
     required String clientName,
     required String contentTitle,
@@ -224,16 +218,19 @@ class NotificationService {
     );
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
-      title: 'تم رفع محتوى جديد للمراجعة من قبل العميل',
-      body: 'العميل: $clientName — المحتوى: $contentTitle',
+      title: 'notify.mgr.content_submitted.title'.tr,
+      body: 'notify.mgr.content_submitted.body'
+          .trParams({'name': clientName, 'title': contentTitle}),
       notificationType: 'manager_content_submitted_by_client',
-      actionText: 'يرجى مراجعة المحتوى واتخاذ الإجراء المناسب.',
+      actionText: 'notify.mgr.content_submitted.action'.tr,
       referenceId: contentTitle,
-      emailDetails: {'العميل': clientName, 'المحتوى': contentTitle},
+      emailDetails: _emailLabels({
+        'notify.email.client': clientName,
+        'notify.email.content': contentTitle,
+      }),
     );
   }
 
-  /// ⚠️ مهمة متأخرة — تجاوزت موعد التسليم (المهمة) (الموظف)
   static Future<void> notifyManagersTaskOverdue({
     required String taskTitle,
     required String employeeName,
@@ -243,16 +240,19 @@ class NotificationService {
     );
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
-      title: 'مهمة متأخرة',
-      body: 'تجاوزت موعد التسليم: $taskTitle — الموظف: $employeeName',
+      title: 'notify.mgr.overdue.title'.tr,
+      body: 'notify.mgr.overdue.body'
+          .trParams({'title': taskTitle, 'name': employeeName}),
       notificationType: 'manager_task_overdue',
-      actionText: 'يرجى متابعة سبب التأخير وتحديث الخطة الزمنية.',
+      actionText: 'notify.mgr.overdue.action'.tr,
       referenceId: taskTitle,
-      emailDetails: {'الموظف': employeeName, 'المهمة': taskTitle},
+      emailDetails: _emailLabels({
+        'notify.email.employee': employeeName,
+        'notify.email.task': taskTitle,
+      }),
     );
   }
 
-  /// 🆕 تم إنشاء مهمة جديدة في قسم (المونتاج / التصميم…)
   static Future<void> notifyManagersNewTaskInDepartment({
     required String taskTitle,
     required String departmentNameAr,
@@ -262,16 +262,19 @@ class NotificationService {
     );
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
-      title: 'تم إنشاء مهمة جديدة في قسم $departmentNameAr',
+      title: 'notify.mgr.new_task_dept.title'
+          .trParams({'dept': departmentNameAr}),
       body: taskTitle,
       notificationType: 'manager_new_task_department',
-      actionText: 'يرجى توزيع المهمة ومتابعة التنفيذ.',
+      actionText: 'notify.mgr.new_task_dept.action'.tr,
       referenceId: taskTitle,
-      emailDetails: {'القسم': departmentNameAr, 'المهمة': taskTitle},
+      emailDetails: _emailLabels({
+        'notify.email.department': departmentNameAr,
+        'notify.email.task': taskTitle,
+      }),
     );
   }
 
-  /// 📩 استلام ملاحظات من العميل (اسم العميل) المحتوى (عنوان)
   static Future<void> notifyManagersClientNotesOnContent({
     required String clientName,
     required String contentTitle,
@@ -281,16 +284,19 @@ class NotificationService {
     );
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
-      title: 'استلام ملاحظات من العميل',
-      body: 'العميل: $clientName — المحتوى: $contentTitle',
+      title: 'notify.mgr.client_notes.title'.tr,
+      body: 'notify.mgr.client_notes.body'
+          .trParams({'name': clientName, 'title': contentTitle}),
       notificationType: 'manager_client_notes',
-      actionText: 'يرجى معالجة ملاحظات العميل وإعادة الإرسال.',
+      actionText: 'notify.mgr.client_notes.action'.tr,
       referenceId: contentTitle,
-      emailDetails: {'العميل': clientName, 'المحتوى': contentTitle},
+      emailDetails: _emailLabels({
+        'notify.email.client': clientName,
+        'notify.email.content': contentTitle,
+      }),
     );
   }
 
-  /// ✅ العميل (اسم) قام بالموافقة على المحتوى (عنوان)
   static Future<void> notifyManagersClientApprovedContent({
     required String clientName,
     required String contentTitle,
@@ -300,97 +306,100 @@ class NotificationService {
     );
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
-      title: 'العميل قام بالموافقة على المحتوى',
-      body: 'العميل: $clientName — المحتوى: $contentTitle',
+      title: 'notify.mgr.client_approved.title'.tr,
+      body: 'notify.mgr.client_approved.body'
+          .trParams({'name': clientName, 'title': contentTitle}),
       notificationType: 'manager_client_approved_content',
-      actionText: 'تمت الموافقة، يمكن المتابعة للمرحلة التالية.',
+      actionText: 'notify.mgr.client_approved.action'.tr,
       referenceId: contentTitle,
-      emailDetails: {'العميل': clientName, 'المحتوى': contentTitle},
+      emailDetails: _emailLabels({
+        'notify.email.client': clientName,
+        'notify.email.content': contentTitle,
+      }),
     );
   }
 
-  // ─── إشعارات العميل ────────────────────────────────────────────────────
+  // ─── Client ─────────────────────────────────────────────────────────────
 
-  /// 📬 تم رفع (تصميم / فيديو جديد) بانتظار موافقتك
   static Future<void> notifyClientContentPendingApproval({
     required String clientId,
     required String contentTypeLabel,
   }) async {
     await FirestoreServices.sendFcmForClient(
       userId: clientId,
-      title: 'تم رفع $contentTypeLabel بانتظار موافقتك',
-      body: 'يرجى الاطلاع والموافقة أو طلب التعديل',
+      title: 'notify.client.pending.title'.trParams({'type': contentTypeLabel}),
+      body: 'notify.client.pending.body'.tr,
       notificationType: 'client_content_pending_approval',
-      actionText: 'يرجى فتح المحتوى واتخاذ القرار المناسب.',
+      actionText: 'notify.client.pending.action'.tr,
       referenceId: contentTypeLabel,
-      emailDetails: {'نوع المحتوى': contentTypeLabel},
+      emailDetails: _emailLabels({
+        'notify.email.content_type': contentTypeLabel,
+      }),
     );
   }
 
-  /// 🕐 لديك محتوى بانتظار المراجعة منذ أكثر من 24 ساعة
   static Future<void> notifyClientContentPendingOver24h({
     required String clientId,
     required String contentTitle,
   }) async {
     await FirestoreServices.sendFcmForClient(
       userId: clientId,
-      title: 'لديك محتوى بانتظار المراجعة منذ أكثر من 24 ساعة',
+      title: 'notify.client.pending_24h.title'.tr,
       body: contentTitle,
       notificationType: 'client_pending_over_24h',
-      actionText: 'يرجى مراجعة المحتوى لتجنب تأخر الجدولة.',
+      actionText: 'notify.client.pending_24h.action'.tr,
       referenceId: contentTitle,
-      emailDetails: {'المحتوى': contentTitle},
+      emailDetails: _emailLabels({'notify.email.content': contentTitle}),
     );
   }
 
-  /// ✅ شكراً! تمت الموافقة على التصميم من قبلك
   static Future<void> notifyClientApprovalConfirmed({
     required String clientId,
   }) async {
     await FirestoreServices.sendFcmForClient(
       userId: clientId,
-      title: 'شكراً! تمت الموافقة على التصميم من قبلك',
-      body: 'تم تسجيل موافقتك بنجاح',
+      title: 'notify.client.approval_confirmed.title'.tr,
+      body: 'notify.client.approval_confirmed.body'.tr,
       notificationType: 'client_approval_confirmed',
-      actionText: 'شكراً لتعاونك، سيتم المتابعة تلقائياً.',
+      actionText: 'notify.client.approval_confirmed.action'.tr,
       referenceId: clientId,
-      emailDetails: {'الحالة': 'تمت الموافقة'},
+      emailDetails: _emailLabels({
+        'notify.email.status':
+            'notify.client.approval_confirmed.email_status'.tr,
+      }),
     );
   }
 
-  /// ✏️ تم تنفيذ التعديلات التي طلبتها
   static Future<void> notifyClientEditsDone({
     required String clientId,
     required String contentTitle,
   }) async {
     await FirestoreServices.sendFcmForClient(
       userId: clientId,
-      title: 'تم تنفيذ التعديلات التي طلبتها',
+      title: 'notify.client.edits_done.title'.tr,
       body: contentTitle,
       notificationType: 'client_edits_done',
-      actionText: 'يرجى مراجعة النسخة المعدلة.',
+      actionText: 'notify.client.edits_done.action'.tr,
       referenceId: contentTitle,
-      emailDetails: {'المحتوى': contentTitle},
+      emailDetails: _emailLabels({'notify.email.content': contentTitle}),
     );
   }
 
-  /// 🔁 محتوى جديد محدث بانتظار الموافقة
   static Future<void> notifyClientContentUpdatedForApproval({
     required String clientId,
     required String contentTitle,
   }) async {
     await FirestoreServices.sendFcmForClient(
       userId: clientId,
-      title: 'محتوى جديد محدث بانتظار الموافقة',
+      title: 'notify.client.updated.title'.tr,
       body: contentTitle,
       notificationType: 'client_content_updated',
-      actionText: 'يرجى الاطلاع وتأكيد الموافقة أو طلب تعديل إضافي.',
+      actionText: 'notify.client.updated.action'.tr,
       referenceId: contentTitle,
-      emailDetails: {'المحتوى': contentTitle},
+      emailDetails: _emailLabels({'notify.email.content': contentTitle}),
     );
   }
 
-  /// 📅 تم جدولة المحتوى ليُنشر بتاريخ (DD/MM)
   static Future<void> notifyClientContentScheduled({
     required String clientId,
     required String contentTitle,
@@ -398,18 +407,21 @@ class NotificationService {
   }) async {
     await FirestoreServices.sendFcmForClient(
       userId: clientId,
-      title: 'تم جدولة المحتوى ليُنشر بتاريخ $dateFormatted',
+      title: 'notify.client.scheduled.title'
+          .trParams({'date': dateFormatted}),
       body: contentTitle,
       notificationType: 'client_content_scheduled',
-      actionText: 'يرجى التأكد من الجاهزية قبل موعد النشر.',
+      actionText: 'notify.client.scheduled.action'.tr,
       referenceId: contentTitle,
-      emailDetails: {'المحتوى': contentTitle, 'تاريخ النشر': dateFormatted},
+      emailDetails: _emailLabels({
+        'notify.email.content': contentTitle,
+        'notify.email.publish_date': dateFormatted,
+      }),
     );
   }
 
-  // ─── إشعارات قسم النشر (أدمن + موظف قسم النشر cat6) ───────────────────
+  // ─── Publishing department ──────────────────────────────────────────────
 
-  /// 📌 تمت إضافة محتوى جديد للعميل على منصة بتاريخ (DD/MM) الساعة (HH:MM)
   static Future<void> notifyPublishDeptContentAdded({
     required String clientName,
     required String platformLabel,
@@ -423,21 +435,25 @@ class NotificationService {
     final all = <String>{...adminIds, ...deptIds};
     await FirestoreServices.sendFcmToEmployees(
       userIds: all.toList(),
-      title: 'تمت إضافة محتوى جديد للعميل على منصة',
-      body: 'العميل: $clientName — المنصة: $platformLabel — $dateFormatted الساعة $timeFormatted',
+      title: 'notify.publish.added.title'.tr,
+      body: 'notify.publish.added.body'.trParams({
+        'client': clientName,
+        'platform': platformLabel,
+        'date': dateFormatted,
+        'time': timeFormatted,
+      }),
       notificationType: 'publish_content_added',
-      actionText: 'يرجى متابعة تجهيز النشر حسب الموعد.',
+      actionText: 'notify.publish.added.action'.tr,
       referenceId: clientName,
-      emailDetails: {
-        'العميل': clientName,
-        'المنصة': platformLabel,
-        'التاريخ': dateFormatted,
-        'الوقت': timeFormatted,
-      },
+      emailDetails: _emailLabels({
+        'notify.email.client': clientName,
+        'notify.email.platform': platformLabel,
+        'notify.email.date': dateFormatted,
+        'notify.email.time': timeFormatted,
+      }),
     );
   }
 
-  /// ✏️ قام العميل بطلب تعديل على المحتوى (عنوان)
   static Future<void> notifyPublishDeptClientEditRequest({
     required String contentTitle,
   }) async {
@@ -448,16 +464,15 @@ class NotificationService {
     final all = <String>{...adminIds, ...deptIds};
     await FirestoreServices.sendFcmToEmployees(
       userIds: all.toList(),
-      title: 'قام العميل بطلب تعديل على المحتوى',
+      title: 'notify.publish.edit_req.title'.tr,
       body: contentTitle,
       notificationType: 'publish_client_edit_request',
-      actionText: 'يرجى تنفيذ التعديل المطلوب وإعادة الإرسال.',
+      actionText: 'notify.publish.edit_req.action'.tr,
       referenceId: contentTitle,
-      emailDetails: {'المحتوى': contentTitle},
+      emailDetails: _emailLabels({'notify.email.content': contentTitle}),
     );
   }
 
-  /// 📤 وافق العميل (اسم) على المحتوى (عنوان)
   static Future<void> notifyPublishDeptClientApproved({
     required String clientName,
     required String contentTitle,
@@ -469,16 +484,19 @@ class NotificationService {
     final all = <String>{...adminIds, ...deptIds};
     await FirestoreServices.sendFcmToEmployees(
       userIds: all.toList(),
-      title: 'وافق العميل على المحتوى',
-      body: 'العميل: $clientName — المحتوى: $contentTitle',
+      title: 'notify.publish.approved.title'.tr,
+      body: 'notify.publish.approved.body'
+          .trParams({'name': clientName, 'title': contentTitle}),
       notificationType: 'publish_client_approved',
-      actionText: 'تمت الموافقة، يمكن المتابعة لخطوة النشر.',
+      actionText: 'notify.publish.approved.action'.tr,
       referenceId: contentTitle,
-      emailDetails: {'العميل': clientName, 'المحتوى': contentTitle},
+      emailDetails: _emailLabels({
+        'notify.email.client': clientName,
+        'notify.email.content': contentTitle,
+      }),
     );
   }
 
-  /// 🛑 تم رفض المحتوى (عنوان) من قبل العميل (اسم)
   static Future<void> notifyPublishDeptClientRejected({
     required String contentTitle,
     required String clientName,
@@ -490,64 +508,66 @@ class NotificationService {
     final all = <String>{...adminIds, ...deptIds};
     await FirestoreServices.sendFcmToEmployees(
       userIds: all.toList(),
-      title: 'تم رفض المحتوى من قبل العميل',
-      body: 'المحتوى: $contentTitle — العميل: $clientName',
+      title: 'notify.publish.rejected.title'.tr,
+      body: 'notify.publish.rejected.body'
+          .trParams({'title': contentTitle, 'name': clientName}),
       notificationType: 'publish_client_rejected',
-      actionText: 'يرجى مراجعة الرفض ومعالجة الملاحظات.',
+      actionText: 'notify.publish.rejected.action'.tr,
       referenceId: contentTitle,
-      emailDetails: {'العميل': clientName, 'المحتوى': contentTitle},
+      emailDetails: _emailLabels({
+        'notify.email.client': clientName,
+        'notify.email.content': contentTitle,
+      }),
     );
   }
 
-  /// ⏰ تذكير: لديك منشور مجدول سيتم نشره خلال ساعة
   static Future<void> notifyPublishDeptPostInOneHour({
     required String employeeId,
     required String contentTitle,
   }) async {
     await FirestoreServices.sendFcm(
       userId: employeeId,
-      title: 'تذكير: لديك منشور مجدول سيتم نشره خلال ساعة',
+      title: 'notify.publish.one_hour.title'.tr,
       body: contentTitle,
       notificationType: 'publish_post_one_hour',
-      actionText: 'يرجى التأكد من جاهزية المنشور قبل النشر.',
+      actionText: 'notify.publish.one_hour.action'.tr,
       referenceId: contentTitle,
-      emailDetails: {'المنشور': contentTitle},
+      emailDetails: _emailLabels({'notify.email.post': contentTitle}),
     );
   }
 
-  /// 📅 تنبيه: منشور مجدول اليوم ولم يتم تأكيده بعد
   static Future<void> notifyPublishDeptPostScheduledTodayNotConfirmed({
     required String employeeId,
     required String contentRef,
   }) async {
     await FirestoreServices.sendFcm(
       userId: employeeId,
-      title: 'تنبيه: منشور مجدول اليوم ولم يتم تأكيده بعد',
-      body: 'المنشور: $contentRef',
+      title: 'notify.publish.today_not_confirmed.title'.tr,
+      body: 'notify.publish.today_not_confirmed.body'
+          .trParams({'ref': contentRef}),
       notificationType: 'publish_post_not_confirmed_today',
-      actionText: 'يرجى تأكيد المنشور أو تعديل حالته فوراً.',
+      actionText: 'notify.publish.today_not_confirmed.action'.tr,
       referenceId: contentRef,
-      emailDetails: {'المرجع': contentRef},
+      emailDetails: _emailLabels({'notify.email.reference': contentRef}),
     );
   }
 
-  /// ⚠️ تنبيه: لا توجد منشورات مجدولة ليوم غد في حساب (العميل)
   static Future<void> notifyPublishDeptNoPostsTomorrow({
     required String employeeId,
     required String clientName,
   }) async {
     await FirestoreServices.sendFcm(
       userId: employeeId,
-      title: 'تنبيه: لا توجد منشورات مجدولة ليوم غد',
-      body: 'حساب العميل: $clientName',
+      title: 'notify.publish.no_posts_tomorrow.title'.tr,
+      body: 'notify.publish.no_posts_tomorrow.body'
+          .trParams({'name': clientName}),
       notificationType: 'publish_no_posts_tomorrow',
-      actionText: 'يرجى التخطيط لجدولة منشورات اليوم التالي.',
+      actionText: 'notify.publish.no_posts_tomorrow.action'.tr,
       referenceId: clientName,
-      emailDetails: {'العميل': clientName},
+      emailDetails: _emailLabels({'notify.email.client': clientName}),
     );
   }
 
-  /// ✅ تم نشر المنشور بنجاح على منصة (XXX)
   static Future<void> notifyPublishDeptPostPublished({
     required List<String> recipientIds,
     required String platformLabel,
@@ -555,66 +575,66 @@ class NotificationService {
   }) async {
     await FirestoreServices.sendFcmToEmployees(
       userIds: recipientIds,
-      title: 'تم نشر المنشور بنجاح على منصة $platformLabel',
+      title: 'notify.publish.published.title'
+          .trParams({'platform': platformLabel}),
       body: contentTitle,
       notificationType: 'publish_post_published',
-      actionText: 'يرجى توثيق النشر وإضافة الرابط إن توفر.',
+      actionText: 'notify.publish.published.action'.tr,
       referenceId: contentTitle,
-      emailDetails: {'المنصة': platformLabel, 'المحتوى': contentTitle},
+      emailDetails: _emailLabels({
+        'notify.email.platform': platformLabel,
+        'notify.email.content': contentTitle,
+      }),
     );
   }
 
-  /// 🔗 تمت إضافة رابط المنشور
   static Future<void> notifyPublishDeptLinkAdded({
     required List<String> recipientIds,
     required String contentTitle,
   }) async {
     await FirestoreServices.sendFcmToEmployees(
       userIds: recipientIds,
-      title: 'تمت إضافة رابط المنشور',
+      title: 'notify.publish.link_added.title'.tr,
       body: contentTitle,
       notificationType: 'publish_link_added',
-      actionText: 'يرجى مراجعة الرابط والتأكد من صحته.',
+      actionText: 'notify.publish.link_added.action'.tr,
       referenceId: contentTitle,
-      emailDetails: {'المحتوى': contentTitle},
+      emailDetails: _emailLabels({'notify.email.content': contentTitle}),
     );
   }
 
-  /// 📝 تم إدخال الملاحظات بعد النشر من قبل الإدارة / العميل
   static Future<void> notifyPublishDeptNotesAfterPublish({
     required List<String> recipientIds,
     required String contentTitle,
   }) async {
     await FirestoreServices.sendFcmToEmployees(
       userIds: recipientIds,
-      title: 'تم إدخال الملاحظات بعد النشر',
+      title: 'notify.publish.notes_after.title'.tr,
       body: contentTitle,
       notificationType: 'publish_notes_after_publish',
-      actionText: 'يرجى مراجعة الملاحظات وتنفيذ المطلوب.',
+      actionText: 'notify.publish.notes_after.action'.tr,
       referenceId: contentTitle,
-      emailDetails: {'المحتوى': contentTitle},
+      emailDetails: _emailLabels({'notify.email.content': contentTitle}),
     );
   }
 
-  /// ❌ تم إلغاء نشر منشور مجدول بناءً على طلب العميل
   static Future<void> notifyPublishDeptScheduledCancelled({
     required List<String> recipientIds,
     required String contentTitle,
   }) async {
     await FirestoreServices.sendFcmToEmployees(
       userIds: recipientIds,
-      title: 'تم إلغاء نشر منشور مجدول بناءً على طلب العميل',
+      title: 'notify.publish.cancelled.title'.tr,
       body: contentTitle,
       notificationType: 'publish_scheduled_cancelled',
-      actionText: 'يرجى تحديث الجدولة وإبلاغ الأطراف المعنية.',
+      actionText: 'notify.publish.cancelled.action'.tr,
       referenceId: contentTitle,
-      emailDetails: {'المحتوى': contentTitle},
+      emailDetails: _emailLabels({'notify.email.content': contentTitle}),
     );
   }
 
-  // ─── إشعارات قسم الترويج ───────────────────────────────────────────────
+  // ─── Promotion / admin ───────────────────────────────────────────────────
 
-  /// تم تغيير حالة المحتوى (اسم) إلى (قيد الترويج / انتهى الترويج) — للأدمن
   static Future<void> notifyAdminContentPromotionStatusChanged({
     required String contentTitle,
     required String promotionLabelAr,
@@ -622,16 +642,19 @@ class NotificationService {
     final ids = await FirestoreServices.getEmployeeIdsByRole(['admin']);
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
-      title: 'تم تغيير حالة المحتوى',
-      body: '$contentTitle — إلى: $promotionLabelAr',
+      title: 'notify.admin.promo_changed.title'.tr,
+      body: 'notify.admin.promo_changed.body'
+          .trParams({'title': contentTitle, 'label': promotionLabelAr}),
       notificationType: 'admin_promotion_status_changed',
-      actionText: 'يرجى متابعة انعكاس الحالة على الحملة.',
+      actionText: 'notify.admin.promo_changed.action'.tr,
       referenceId: contentTitle,
-      emailDetails: {'المحتوى': contentTitle, 'الحالة': promotionLabelAr},
+      emailDetails: _emailLabels({
+        'notify.email.content': contentTitle,
+        'notify.email.status': promotionLabelAr,
+      }),
     );
   }
 
-  /// تم تغيير حالة المحتوى (اسم) إلى (جاهز للنشر / ..) — للأدمن
   static Future<void> notifyAdminContentStatusChanged({
     required String contentTitle,
     required String statusLabelAr,
@@ -639,16 +662,19 @@ class NotificationService {
     final ids = await FirestoreServices.getEmployeeIdsByRole(['admin']);
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
-      title: 'تم تغيير حالة المحتوى',
-      body: '$contentTitle — إلى: $statusLabelAr',
+      title: 'notify.admin.status_changed.title'.tr,
+      body: 'notify.admin.status_changed.body'
+          .trParams({'title': contentTitle, 'label': statusLabelAr}),
       notificationType: 'admin_content_status_changed',
-      actionText: 'يرجى مراجعة حالة المحتوى الجديدة.',
+      actionText: 'notify.admin.status_changed.action'.tr,
       referenceId: contentTitle,
-      emailDetails: {'المحتوى': contentTitle, 'الحالة': statusLabelAr},
+      emailDetails: _emailLabels({
+        'notify.email.content': contentTitle,
+        'notify.email.status': statusLabelAr,
+      }),
     );
   }
 
-  /// محتوى منشور جديد للعميل (اسم) يرجى الاطلاع وإضافته للحملة الإعلانية — لموظف الترويج
   static Future<void> notifyPromotionDeptNewPublishedContent({
     required String clientName,
     required String contentTitle,
@@ -656,12 +682,16 @@ class NotificationService {
     final ids = await FirestoreServices.getEmployeeIdsByDepartment('cat1');
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
-      title: 'محتوى منشور جديد للعميل يرجى الاطلاع وإضافته للحملة الإعلانية',
-      body: 'العميل: $clientName — المحتوى: $contentTitle',
+      title: 'notify.promo.new_published.title'.tr,
+      body: 'notify.promo.new_published.body'
+          .trParams({'name': clientName, 'title': contentTitle}),
       notificationType: 'promotion_new_published_content',
-      actionText: 'يرجى إضافته للحملة الإعلانية المناسبة.',
+      actionText: 'notify.promo.new_published.action'.tr,
       referenceId: contentTitle,
-      emailDetails: {'العميل': clientName, 'المحتوى': contentTitle},
+      emailDetails: _emailLabels({
+        'notify.email.client': clientName,
+        'notify.email.content': contentTitle,
+      }),
     );
   }
 }

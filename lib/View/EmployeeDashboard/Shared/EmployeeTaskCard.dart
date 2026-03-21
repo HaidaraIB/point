@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
@@ -17,6 +18,7 @@ class EmployeeTaskCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GetBuilder<HomeController>(
       builder: (controller) {
+        final latestNote = task.notes.isNotEmpty ? task.notes.last : null;
         return Container(
           margin: const EdgeInsets.all(8),
           padding: const EdgeInsets.all(12),
@@ -50,7 +52,7 @@ class EmployeeTaskCard extends StatelessWidget {
                   ),
                   SizedBox(
                     child: PopupMenuButton<int>(
-                      tooltip: 'الخيارات',
+                      tooltip: 'tasks.options_tooltip'.tr,
                       padding: EdgeInsets.zero,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -74,7 +76,7 @@ class EmployeeTaskCard extends StatelessWidget {
                                   children: [
                                     SizedBox(width: 5),
                                     Text(
-                                      "جاري التنفيذ",
+                                      StorageKeys.status_processing.tr,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -101,7 +103,7 @@ class EmployeeTaskCard extends StatelessWidget {
                                   children: [
                                     SizedBox(width: 5),
                                     Text(
-                                      "ارسال الي المراجعة",
+                                      StorageKeys.status_under_revision.tr,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -136,7 +138,7 @@ class EmployeeTaskCard extends StatelessWidget {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text('تغيير الحالة'),
+                            Text('tasks.change_status'.tr),
                             Icon(Icons.keyboard_arrow_down_sharp),
                           ],
                         ),
@@ -174,7 +176,10 @@ class EmployeeTaskCard extends StatelessWidget {
               const SizedBox(height: 12),
 
               // --- التقدم ---
-              Text('التقدم', style: TextStyle(color: Colors.grey.shade600)),
+              Text(
+                'tasks.progress_label'.tr,
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
               const SizedBox(height: 4),
               // Row(
               //   children: [
@@ -210,6 +215,58 @@ class EmployeeTaskCard extends StatelessWidget {
               ),
 
               const SizedBox(height: 12),
+
+              if (latestNote != null) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF7F6FF),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFD9D4FF)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'tasks.latest_comment'.tr,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF5C5589),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        latestNote.note,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _buildNoteMeta(latestNote.byWho, latestNote.timestamp),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade700,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
 
               // --- الشخص + التاريخ ---
               Row(
@@ -286,59 +343,87 @@ class EmployeeTaskCard extends StatelessWidget {
 
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width:
-                          Responsive.isDesktop(context)
-                              ? Get.width * 0.3 - 220
-                              : Get.width / 2 - 55,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF5C5589),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(24),
-                          ),
-                          padding: EdgeInsets.symmetric(
-                            // horizontal: 48,
-                            vertical: 5,
-                          ),
-                        ),
-                        onPressed: onTap,
-                        child: Text(
-                          Responsive.isDesktop(context)
-                              ? "عرض تفاصيل المهمه"
-                              : 'عرض التقاصيل',
-                          style: TextStyle(color: Colors.white, fontSize: 12),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 20),
-                    SizedBox(
-                      width:
-                          Responsive.isDesktop(context)
-                              ? 160
-                              : Get.width / 2 - 60,
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(24),
-                          ),
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 32,
-                            vertical: 5,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isDesktop = Responsive.isDesktop(context);
+                    final spacing = isDesktop ? 16.0 : 10.0;
+                    final minButtonWidth = isDesktop ? 150.0 : 120.0;
+                    final buttonWidth =
+                        ((constraints.maxWidth - (spacing * 2)) / 3).clamp(
+                          minButtonWidth,
+                          constraints.maxWidth,
+                        );
+                    return Wrap(
+                      spacing: spacing,
+                      runSpacing: 10,
+                      children: [
+                        SizedBox(
+                          width: buttonWidth,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF5C5589),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                            ),
+                            onPressed: onTap,
+                            child: Text(
+                              'tasks.view_task_details'.tr,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
+                            ),
                           ),
                         ),
-                        onPressed: () {
-                          addContentEmployeeDialog(context, model: task);
-                        },
-                        child: Text(
-                          "اضافة محتوى",
-                          style: TextStyle(fontSize: 12),
+                        SizedBox(
+                          width: buttonWidth,
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                            ),
+                            onPressed: () {
+                              addContentEmployeeDialog(context, model: task);
+                            },
+                            child: Text(
+                              'addcontent'.tr,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  ],
+                        SizedBox(
+                          width: buttonWidth,
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                            ),
+                            onPressed:
+                                () => _showAddCommentDialog(
+                                  context: context,
+                                  controller: controller,
+                                ),
+                            child: Text(
+                              'tasks.add_comment_title'.tr,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
             ],
@@ -346,6 +431,97 @@ class EmployeeTaskCard extends StatelessWidget {
         );
       },
     );
+  }
+
+  String _buildNoteMeta(String author, DateTime timestamp) {
+    final safeAuthor = author.trim().isEmpty
+        ? 'content.dialog.unknown'.tr
+        : author.trim();
+    return '$safeAuthor • ${_formatRelativeTime(timestamp)}';
+  }
+
+  String _formatRelativeTime(DateTime timestamp) {
+    final now = DateTime.now();
+    final diff = now.difference(timestamp);
+    if (diff.inSeconds < 60) return 'common.now'.tr;
+    if (diff.inMinutes < 60) {
+      return 'time.ago_minutes'.trParams({'count': '${diff.inMinutes}'});
+    }
+    if (diff.inHours < 24) {
+      return 'time.ago_hours'.trParams({'count': '${diff.inHours}'});
+    }
+    if (diff.inDays < 30) {
+      return 'time.ago_days'.trParams({'count': '${diff.inDays}'});
+    }
+    final months = (diff.inDays / 30).floor();
+    if (months < 12) {
+      return 'time.ago_months'.trParams({'count': '$months'});
+    }
+    final years = (months / 12).floor();
+    return 'time.ago_years'.trParams({'count': '$years'});
+  }
+
+  Future<void> _showAddCommentDialog({
+    required BuildContext context,
+    required HomeController controller,
+  }) async {
+    final formKey = GlobalKey<FormState>();
+    final commentController = TextEditingController();
+    await showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: Text('tasks.add_comment_title'.tr),
+            content: Form(
+              key: formKey,
+              child: TextFormField(
+                controller: commentController,
+                minLines: 3,
+                maxLines: 5,
+                maxLength: 500,
+                decoration: InputDecoration(
+                  hintText: 'employee.comment_hint'.tr,
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if ((value ?? '').trim().isEmpty) {
+                    return 'validation.comment_required'.tr;
+                  }
+                  return null;
+                },
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(AppLocaleKeys.commonCancel.tr),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  if (!formKey.currentState!.validate()) return;
+                  final author =
+                      controller.currentemployee.value?.name?.trim().isNotEmpty ==
+                              true
+                          ? controller.currentemployee.value!.name!.trim()
+                          : 'employee.fallback_name'.tr;
+                  final note = NoteModel(
+                    note: commentController.text.trim(),
+                    byWho: author,
+                    timestamp: DateTime.now(),
+                  );
+                  await controller.updateTask(
+                    task.copyWith(notes: [...task.notes, note]),
+                  );
+                  if (context.mounted) {
+                    Navigator.of(context).pop();
+                  }
+                },
+                child: Text('common.save'.tr),
+              ),
+            ],
+          ),
+    );
+    commentController.dispose();
   }
 
   Widget _buildpriortyTag(String text, Color color, Color bg) {
@@ -468,19 +644,19 @@ class OptionsMenu extends StatelessWidget {
         children: [
           _buildOption(
             icon: Icons.remove_red_eye_outlined,
-            text: 'عرض',
+            text: 'tasks.view'.tr,
             color: Colors.green,
             onTap: onView,
           ),
           _buildOption(
             icon: Icons.edit_outlined,
-            text: 'تعديل',
+            text: 'edit'.tr,
             color: Colors.blueAccent,
             onTap: onEdit,
           ),
           _buildOption(
             icon: Icons.delete_outline,
-            text: 'حذف',
+            text: 'delete'.tr,
             color: Colors.red,
             onTap: onDelete,
           ),

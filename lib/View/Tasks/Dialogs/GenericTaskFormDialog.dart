@@ -127,8 +127,8 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
         SizedBox(
           width: w.clamp(60.0, double.infinity),
           child: InputText(
-            labelText: 'عنوان'.tr,
-            hintText: 'اكتب العنوان'.tr,
+            labelText: 'tasks.form.title_short'.tr,
+            hintText: 'tasks.form.write_title_hint'.tr,
             height: 42,
             fillColor: Colors.white,
             controller: _titleController,
@@ -149,7 +149,7 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
                 : controller.employees.firstWhereOrNull(
                     (a) => a.id == _executorController.text,
                   ),
-            label: 'اختر المنفذ'.tr,
+            label: 'tasks.form.select_executor'.tr,
             borderRadius: 5,
             borderColor: Colors.grey.shade300,
             height: 42,
@@ -191,7 +191,7 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
                         .map((v) => DropdownMenuItem(value: v, child: Text('${v.name}'))),
                     DropdownMenuItem(
                       value: _otherClientValue,
-                      child: Text('عميل آخر'.tr),
+                      child: Text('tasks.other_client'.tr),
                     ),
                   ],
                   value: _useCustomClient
@@ -222,8 +222,8 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
             SizedBox(
               width: w,
               child: InputText(
-                labelText: 'اسم العميل'.tr,
-                hintText: 'اكتب اسم العميل'.tr,
+                labelText: 'tasks.form.client_name_label'.tr,
+                hintText: 'tasks.form.client_name_hint'.tr,
                 height: 42,
                 fillColor: Colors.white,
                 controller: _customClientController,
@@ -346,7 +346,7 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
                 SizedBox(
                   width: (_dialogWidth / 2) - 25,
                   child: InputText(
-                    labelText: 'سجل الملاحظات'.tr,
+                    labelText: 'tasks.form.notes_log'.tr,
                     hintText: '',
                     height: 250,
                     fillColor: Colors.white,
@@ -576,7 +576,7 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
                 onPressed: () => _onSave(controller),
                 child: controller.isLoading.value
                     ? const Center(child: CircularProgressIndicator(color: Colors.white))
-                    : Text('حفظ'.tr, style: const TextStyle(color: Colors.white)),
+                    : Text('common.save'.tr, style: const TextStyle(color: Colors.white)),
               ),
             ),
           ),
@@ -591,7 +591,7 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
                 padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
               ),
               onPressed: () => Navigator.pop(context),
-              child: Text('إلغاء'.tr),
+              child: Text('common.cancel'.tr),
             ),
           ),
         ],

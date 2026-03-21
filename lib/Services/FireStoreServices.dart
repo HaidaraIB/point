@@ -8,6 +8,7 @@ import 'package:point/Models/EmployeeModel.dart';
 import 'package:point/Models/NotificationModel.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Models/ChatMetaData.dart';
+import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Services/EmailNotificationService.dart';
 import 'package:point/config/app_config.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -118,7 +119,22 @@ class FirestoreServices {
     );
 
     if (res.status != 200) {
-      throw StateError('send-fcm failed (${res.status}): ${res.data}');
+      final data = res.data as Map<String, dynamic>?;
+      final code = data?['errorCode']?.toString();
+      switch (code) {
+        case 'ERR_METHOD_NOT_ALLOWED':
+          throw StateError(AppLocaleKeys.errorsMethodNotAllowed);
+        case 'ERR_UNAUTHORIZED':
+          throw StateError(AppLocaleKeys.errorsUnauthorized);
+        case 'ERR_FORBIDDEN':
+          throw StateError(AppLocaleKeys.errorsForbidden);
+        case 'ERR_MISSING_TOKEN':
+          throw StateError(AppLocaleKeys.errorsMissingToken);
+        case 'ERR_INVALID_DATA':
+          throw StateError(AppLocaleKeys.errorsInvalidData);
+        default:
+          throw StateError(AppLocaleKeys.errorsServer);
+      }
     }
   }
 
@@ -840,7 +856,13 @@ class FirestoreServices {
 
   /// Stream of total unread messages count across all chats for [userId].
   /// Updates in real time when chats or messages change.
-  Stream<int> getTotalUnreadMessagesStream(String userId) {
+  ///
+  /// [onPerChatUnreadIncrease] يُستدعى عندما يرتفع عدد غير المقروء من الطرف الآخر
+  /// في محادثة معيّنة (بعد تجاهل أول emission لكل اشتراك لتفادي الطنين عند إعادة الربط).
+  Stream<int> getTotalUnreadMessagesStream(
+    String userId, {
+    void Function(String chatId)? onPerChatUnreadIncrease,
+  }) {
     final controller = StreamController<int>.broadcast();
     controller.add(0);
     StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? chatsSub;
@@ -860,6 +882,7 @@ class FirestoreServices {
       for (final id in chatIds) {
         counts[id] = 0;
       }
+      final unreadFirstDone = <String, bool>{};
 
       void emitTotal() {
         controller.add(counts.values.fold<int>(0, (a, b) => a + b));
@@ -882,7 +905,17 @@ class FirestoreServices {
             );
         unreadSubs[chatId] = unreadStream.listen(
           (count) {
+            if (unreadFirstDone[chatId] != true) {
+              unreadFirstDone[chatId] = true;
+              counts[chatId] = count;
+              emitTotal();
+              return;
+            }
+            final previous = counts[chatId] ?? 0;
             counts[chatId] = count;
+            if (count > previous) {
+              onPerChatUnreadIncrease?.call(chatId);
+            }
             emitTotal();
           },
           onError: controller.addError,

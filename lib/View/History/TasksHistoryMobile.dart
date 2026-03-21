@@ -57,7 +57,7 @@ class TasksHistoryMobile extends StatelessWidget {
                       _buildFilters(context, controller),
                       const SizedBox(height: 15),
                       Text(
-                        'المهام المرسلة'.tr,
+                        'tasks.summary.sent_tasks'.tr,
                         style: const TextStyle(
                           color: AppColors.fontColorGrey,
                           fontSize: 15,
@@ -114,7 +114,7 @@ class TasksHistoryMobile extends StatelessWidget {
                     .map((v) => DropdownMenuItem(value: v, child: Text(v.tr)))
                     .toList(),
             value: StorageKeys.departments[selectedIndex],
-            label: 'اختر القسم '.tr,
+            label: 'history.select_department'.tr,
             borderRadius: 5,
             borderColor: Colors.grey.shade300,
             height: 42,
@@ -145,7 +145,7 @@ class TasksHistoryMobile extends StatelessWidget {
         children: [
           _buildStatBox(
             tasks.length.toString(),
-            'اجمالي المهام'.tr,
+            'employee.dashboard.total_tasks'.tr,
             Colors.blue,
             width: boxWidth,
           ),
@@ -227,7 +227,7 @@ class TasksHistoryMobile extends StatelessWidget {
                 width: (Get.width * 0.7 / 3) - 25,
                 child: InputText(
                   prefixIcon: Icon(CupertinoIcons.search, color: Colors.grey),
-                  hintText: 'ابحث عن مهمة، عنوان، موظف...',
+                  hintText: 'tasks.search_hint_extended'.tr,
                   height: 42,
                   fillColor: Colors.white,
                   controller: controller.searchController,
@@ -253,7 +253,7 @@ class TasksHistoryMobile extends StatelessWidget {
               const SizedBox(width: 24),
               _buildDropdown<String>(
                 width: 150,
-                hint: 'الأولوية',
+                hint: 'tasks.filter_priority'.tr,
                 value:
                     controller.selectedPriority.value.isEmpty
                         ? null
@@ -274,7 +274,7 @@ class TasksHistoryMobile extends StatelessWidget {
               const SizedBox(width: 10),
               _buildDropdown<String>(
                 width: 150,
-                hint: 'المنفذ',
+                hint: 'tasks.filter_assignee'.tr,
                 value:
                     controller.selectedExecutor.value.isEmpty
                         ? null
@@ -351,10 +351,10 @@ class TasksHistoryMobile extends StatelessWidget {
         ),
         child: DropdownButtonHideUnderline(
           child: DropdownButton<String>(
-            hint: const Padding(
+            hint: Padding(
               padding: EdgeInsets.symmetric(horizontal: 8),
               child: Text(
-                'الحالة',
+                'tasks.filter_status'.tr,
                 style: TextStyle(
                   fontSize: 13,
                   color: AppColors.primaryfontColor,

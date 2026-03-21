@@ -183,7 +183,6 @@ class ChatController extends GetxController {
           .doc(chatRoomId)
           .collection('messages')
           .add(messageData);
-      // **TODO: هنا يتم إضافة منطق إرسال إشعار FCM للمستلم/المجموعة**
     } catch (e) {
       print('Error sending message to Firebase: $e');
     }
@@ -253,17 +252,21 @@ class ChatSidebar extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _buildHeader('💬 المحادثات'),
+          _buildHeader('newchat.sidebar_chats'.tr),
           Expanded(
             child: ListView(
               children: [
-                _buildListHeader('👥 مجموعات الأقسام'),
+                _buildListHeader('newchat.sidebar_dept_groups'.tr),
                 Obx(
                   () => Column(
                     children:
                         controller.departmentGroups.map((groupName) {
                           return ListTile(
-                            title: Text('مجموعة $groupName'),
+                            title: Text(
+                              'newchat.group_title'.trParams({
+                                'name': groupName,
+                              }),
+                            ),
                             leading: Icon(Icons.group, color: Colors.orange),
                             onTap: () => controller.openChat(null, groupName),
                           );
@@ -271,15 +274,18 @@ class ChatSidebar extends StatelessWidget {
                   ),
                 ),
                 Divider(),
-                _buildListHeader('👤 الموظفين'),
+                _buildListHeader('newchat.sidebar_employees'.tr),
                 Obx(
                   () => Column(
                     children:
                         controller.allEmployees.map((employee) {
                           return ListTile(
-                            title: Text(employee.name ?? 'موظف'),
+                            title: Text(
+                              employee.name ?? 'employee.fallback_name'.tr,
+                            ),
                             subtitle: Text(
-                              employee.department ?? 'لا يوجد قسم',
+                              employee.department ??
+                                  'newchat.no_department'.tr,
                             ),
                             leading: CircleAvatar(
                               backgroundImage:
@@ -345,8 +351,11 @@ class _ChatPopUpWindowState extends State<ChatPopUpWindow> {
     String title =
         widget.controller.currentOpenChatUser.value?.name ??
         (widget.controller.currentOpenChatGroup.value != null
-            ? 'مجموعة ${widget.controller.currentOpenChatGroup.value}'
-            : 'الشات');
+            ? 'newchat.group_title'.trParams({
+                'name':
+                    widget.controller.currentOpenChatGroup.value ?? '',
+              })
+            : 'chat.conversation_fallback'.tr);
 
     return Container(
       width: 300,
@@ -437,7 +446,7 @@ class _ChatPopUpWindowState extends State<ChatPopUpWindow> {
             child: TextField(
               controller: _messageController,
               decoration: InputDecoration(
-                hintText: 'اكتب رسالة...',
+                hintText: 'chat.write_message'.tr,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(20),
                 ),
@@ -479,7 +488,7 @@ class MyHomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('صفحة الويب الرئيسية')),
+      appBar: AppBar(title: Text('newchat.web_home'.tr)),
       body: Stack(
         children: [
           // 1. محتوى الصفحة الرئيسية يظهر هنا.
@@ -489,7 +498,7 @@ class MyHomePage extends StatelessWidget {
             ), // هام: لترك مساحة للشات Sidebar
             child: Center(
               child: Text(
-                'هذا هو محتوى الموقع الأساسي.',
+                'newchat.demo_body'.tr,
                 style: TextStyle(fontSize: 24),
               ),
             ),

@@ -79,25 +79,28 @@ class PromotionDetailsSection extends StatelessWidget {
     String displayPromoPriority(String? value) {
       final v = value?.trim() ?? '';
       if (v.isEmpty) return '-';
-      // If stored as placeholder `priority`, translate to the dropdown label.
       if (v == 'priority' || v == 'priortity') return 'priortity'.tr;
-      return v.tr;
+      return FunHelper.trStored(v, kind: StoredValueKind.priority);
     }
 
     String displayPromoStatus(String? value) {
       final v = value?.trim() ?? '';
       if (v.isEmpty) return '-';
       if (v == 'status') return 'status'.tr;
-      return v.tr;
+      return FunHelper.trStored(v, kind: StoredValueKind.taskStatus);
     }
 
-    final taskPriorityForTag =
-        task.priority.trim() == 'priority' ? 'priortity' : task.priority;
-
-    String listOrDash(List? list) =>
-        (list == null || list.isEmpty)
-            ? '-'
-            : list.map((e) => e.toString().tr).join('، ');
+    String listOrDash(
+      List? list, {
+      StoredValueKind kind = StoredValueKind.generic,
+    }) {
+      if (list == null || list.isEmpty) return '-';
+      final sep =
+          (Get.locale?.languageCode ?? 'ar') == 'ar' ? '، ' : ', ';
+      return list
+          .map((e) => FunHelper.trStored(e.toString(), kind: kind))
+          .join(sep);
+    }
 
     String dateOrDash(DateTime? d) =>
         d == null ? '-' : (FunHelper.formatdate(d) ?? '-');
@@ -122,71 +125,79 @@ class PromotionDetailsSection extends StatelessWidget {
                 runSpacing: 12,
                 children: [
                   TaskDetailsDialogHelpers.infoBox(
-                    'العميل',
+                    'tasks.form.client_label'.tr,
                     clientName,
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'اسم المهمة',
+                    'task_details.task_title'.tr,
                     displayPromoName(promo.name),
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'اسم الحملة',
+                    'task_details.campaign_name'.tr,
                     displayCampaignName(promo.campaignName),
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'نوع المهمة',
+                    'task_details.task_type'.tr,
                     displayPromoType(promo.type),
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'الهدف',
-                    promo.target.trim().isEmpty ? '-' : promo.target.tr,
+                    'task_details.objective'.tr,
+                    promo.target.trim().isEmpty
+                        ? '-'
+                        : FunHelper.trStored(promo.target),
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'المنصة',
-                    listOrDash(promo.platforms),
+                    'platform'.tr,
+                    listOrDash(
+                      promo.platforms,
+                      kind: StoredValueKind.platform,
+                    ),
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'العلامات',
+                    'task_details.marketing_tags'.tr,
                     promo.tags ?? '-',
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'أولوية المهمة',
-                    task.priority,
+                    'task_details.task_priority'.tr,
+                    FunHelper.trStored(
+                      task.priority,
+                      kind: StoredValueKind.priority,
+                    ),
                     width: cellWidth,
                     height: 110,
                     child: TaskDetailsDialogHelpers.buildTag(
-                      taskPriorityForTag,
+                      FunHelper.canonicalStoredPriority(task.priority),
                       tr: true,
                     ),
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'أولوية الحملة',
+                    'task_details.campaign_priority'.tr,
                     displayPromoPriority(promo.priority),
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'حالة الحملة',
+                    'task_details.campaign_status'.tr,
                     displayPromoStatus(promo.status),
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'منفذ المهمة',
+                    'task_details.task_executor'.tr,
                     normalizeDepartmentId(promo.executorId).tr,
                     width: cellWidth,
                     height: 110,
@@ -208,43 +219,43 @@ class PromotionDetailsSection extends StatelessWidget {
                 runSpacing: 12,
                 children: [
                   TaskDetailsDialogHelpers.infoBox(
-                    'الاهتمامات',
+                    'task_details.interests'.tr,
                     listOrDash(promo.interests),
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'المدن',
+                    'task_details.cities'.tr,
                     listOrDash(promo.cities),
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'الدول',
+                    'task_details.countries'.tr,
                     listOrDash(promo.countries),
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'مجالات الاختصاص',
+                    'task_details.specializations'.tr,
                     listOrDash(promo.specializations),
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'الفئات العمرية',
+                    'task_details.age_ranges'.tr,
                     promo.ageRanges ?? '-',
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'المدة',
+                    'task_details.duration'.tr,
                     promo.duration ?? '-',
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'وصف الحملة',
+                    'task_details.campaign_description'.tr,
                     promo.description ?? '-',
                     width: cellWidth,
                     height: 110,
@@ -269,12 +280,12 @@ class PromotionDetailsSection extends StatelessWidget {
                     runSpacing: 8,
                     children: [
                       TaskDetailsDialogHelpers.infoBoxDates(
-                        'تاريخ البداية (المهمة)',
+                        'task_details.date_start_task'.tr,
                         FunHelper.formatdate(task.fromDate),
                         CupertinoIcons.calendar,
                       ),
                       TaskDetailsDialogHelpers.infoBoxDates(
-                        'تاريخ النهاية (المهمة)',
+                        'task_details.date_end_task'.tr,
                         FunHelper.formatdate(task.toDate),
                         CupertinoIcons.calendar,
                       ),
@@ -286,37 +297,37 @@ class PromotionDetailsSection extends StatelessWidget {
                     runSpacing: 12,
                     children: [
                       TaskDetailsDialogHelpers.infoBox(
-                        'تاريخ البداية (الحملة)',
+                        'task_details.date_start_campaign'.tr,
                         dateOrDash(promo.startDate),
                         width: cellWidth,
                         height: 110,
                       ),
                       TaskDetailsDialogHelpers.infoBox(
-                        'تاريخ النهاية (الحملة)',
+                        'task_details.date_end_campaign'.tr,
                         dateOrDash(promo.endDate),
                         width: cellWidth,
                         height: 110,
                       ),
                       TaskDetailsDialogHelpers.infoBox(
-                        'تاريخ الإنشاء',
+                        'task_details.created_at'.tr,
                         dateOrDash(promo.createdAt),
                         width: cellWidth,
                         height: 110,
                       ),
                       TaskDetailsDialogHelpers.infoBox(
-                        'رابط الملفات',
+                        'task_details.files_link'.tr,
                         promo.attachementurl ?? '-',
                         width: cellWidth,
                         height: 110,
                       ),
                       TaskDetailsDialogHelpers.infoBox(
-                        'الملاحظات',
+                        'notes'.tr,
                         promo.notes ?? '-',
                         width: cellWidth,
                         height: 110,
                       ),
                       TaskDetailsDialogHelpers.infoBox(
-                        'تفاصيل إضافية (بيانات JSON)',
+                        'task_details.custom_json'.tr,
                         promo.customDetails == null
                             ? '-'
                             : jsonEncode(promo.customDetails),

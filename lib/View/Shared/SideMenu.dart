@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Localization/LanguageController.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/AppImages.dart';
 
@@ -18,6 +20,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
   bool isCollapsed = false;
   late int _selectedtab;
   int? _subseletedtab;
+  final LanguageController _languageController = Get.find<LanguageController>();
 
   @override
   void initState() {
@@ -495,6 +498,91 @@ class _CustomSidebarState extends State<CustomSidebar> {
               },
             ),
           ),
+          Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: isCollapsed ? 4 : 12,
+              vertical: 8,
+            ),
+            child:
+                isCollapsed
+                    ? Center(
+                      child: PopupMenuButton<String>(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 40,
+                          minHeight: 40,
+                        ),
+                        color: Colors.white,
+                        icon: const Icon(
+                          Icons.language,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                        onSelected:
+                            (value) =>
+                                _languageController.changeLanguage(value),
+                        itemBuilder:
+                            (context) => [
+                              PopupMenuItem(
+                                value: 'ar',
+                                child: Text(
+                                  AppLocaleKeys.appLanguageArabic.tr,
+                                ),
+                              ),
+                              PopupMenuItem(
+                                value: 'en',
+                                child: Text(
+                                  AppLocaleKeys.appLanguageEnglish.tr,
+                                ),
+                              ),
+                            ],
+                      ),
+                    )
+                    : Row(
+                      children: [
+                        const Icon(
+                          Icons.language,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            AppLocaleKeys.appLanguage.tr,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                        PopupMenuButton<String>(
+                          color: Colors.white,
+                          icon: const Icon(
+                            Icons.arrow_drop_down,
+                            color: Colors.white,
+                          ),
+                          onSelected:
+                              (value) =>
+                                  _languageController.changeLanguage(value),
+                          itemBuilder:
+                              (context) => [
+                                PopupMenuItem(
+                                  value: 'ar',
+                                  child: Text(
+                                    AppLocaleKeys.appLanguageArabic.tr,
+                                  ),
+                                ),
+                                PopupMenuItem(
+                                  value: 'en',
+                                  child: Text(
+                                    AppLocaleKeys.appLanguageEnglish.tr,
+                                  ),
+                                ),
+                              ],
+                        ),
+                      ],
+                    ),
+          ),
         ],
       ),
     );
@@ -509,38 +597,65 @@ class _CustomSidebarState extends State<CustomSidebar> {
   }) {
     final color =
         selectedTab == _selectedtab ? AppColors.fontColorGrey : Colors.white;
+    final decoration =
+        selectedTab == _selectedtab
+            ? BoxDecoration(
+              color: Color(0xffECECEC),
+              borderRadius: BorderRadius.circular(3),
+            )
+            : null;
+
+    // ListTile يفرض padding عريضاً؛ في الشريط المطوي (~60px صافية) لا يتبقى عرض للـ leading/trailing.
+    if (isCollapsed) {
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 5),
+        decoration: decoration,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            child: SizedBox(
+              height: 48,
+              child: Center(
+                child:
+                    iconData != null
+                        ? Icon(iconData, color: color, size: 24)
+                        : Image.asset(
+                          icon,
+                          color: color,
+                          width: 24,
+                          height: 24,
+                          fit: BoxFit.contain,
+                        ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 5),
-      decoration:
-          selectedTab == _selectedtab
-              ? BoxDecoration(
-                color: Color(0xffECECEC),
-                borderRadius: BorderRadius.circular(3),
-              )
-              : null,
+      decoration: decoration,
       child: ListTile(
         minVerticalPadding: 0,
         leading:
             iconData != null
                 ? Icon(iconData, color: color, size: 24)
                 : Image.asset(icon, color: color),
-        title:
-            isCollapsed
-                ? null
-                : Text(
-                  text,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color:
-                        selectedTab == _selectedtab
-                            ? AppColors.fontColorGrey
-                            : Colors.white,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+        title: Text(
+          text,
+          style: TextStyle(
+            fontSize: 14,
+            color:
+                selectedTab == _selectedtab
+                    ? AppColors.fontColorGrey
+                    : Colors.white,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
         onTap: onTap,
-        trailing:
-            selectedTab == _selectedtab ? Icon(Icons.arrow_forward) : null,
+        trailing: selectedTab == _selectedtab ? Icon(Icons.arrow_forward) : null,
       ),
     );
   }
@@ -602,52 +717,75 @@ class _CustomSidebarState extends State<CustomSidebar> {
     required String text,
     required List<Widget> children,
   }) {
+    final iconColor =
+        selectedTab == _selectedtab
+            ? AppColors.fontColorGrey
+            : Colors.white;
+    final decoration =
+        selectedTab == _selectedtab
+            ? BoxDecoration(
+              color: Color(0xffECECEC),
+              borderRadius: BorderRadius.circular(3),
+            )
+            : null;
+
+    if (isCollapsed) {
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 5),
+        decoration: decoration,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              setState(() {
+                isCollapsed = false;
+                openMenus[id] = true;
+              });
+            },
+            child: SizedBox(
+              height: 48,
+              child: Center(
+                child: Image.asset(
+                  icon,
+                  color: iconColor,
+                  width: 24,
+                  height: 24,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 5),
-
-      decoration:
-          selectedTab == _selectedtab
-              ? BoxDecoration(
-                color: Color(0xffECECEC),
-                borderRadius: BorderRadius.circular(3),
-              )
-              : null,
+      decoration: decoration,
       child: ExpansionTile(
         childrenPadding: EdgeInsets.zero,
-        leading: Image.asset(
-          icon,
-          color:
-              selectedTab == _selectedtab
-                  ? AppColors.fontColorGrey
-                  : Colors.white,
+        leading: Image.asset(icon, color: iconColor),
+        trailing: Icon(
+          Icons.arrow_downward_outlined,
+          color: Colors.white,
+          size: 18,
         ),
-        trailing:
-            isCollapsed
-                ? const SizedBox.shrink()
-                : Icon(
-                  Icons.arrow_downward_outlined,
-                  color: Colors.white,
-                  size: 18,
-                ),
-        title:
-            isCollapsed
-                ? const SizedBox.shrink()
-                : Text(
-                  text,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color:
-                        selectedTab == _selectedtab
-                            ? AppColors.fontColorGrey
-                            : Colors.white,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+        title: Text(
+          text,
+          style: TextStyle(
+            fontSize: 14,
+            color:
+                selectedTab == _selectedtab
+                    ? AppColors.fontColorGrey
+                    : Colors.white,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
         initiallyExpanded: openMenus[id] ?? false,
         onExpansionChanged: (expanded) {
           setState(() => openMenus[id] = expanded);
         },
-        children: isCollapsed ? [] : children,
+        children: children,
       ),
     );
   }

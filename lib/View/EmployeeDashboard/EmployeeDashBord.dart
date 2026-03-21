@@ -75,7 +75,7 @@ class EmployeeDashBord extends StatelessWidget {
                           //   ),
                           // ),
                           Text(
-                            'المهام المسندة اليك'.tr,
+                            'employee.dashboard.tasks_assigned_to_you'.tr,
                             style: TextStyle(
                               color: AppColors.fontColorGrey,
                               fontSize: 15,
@@ -97,7 +97,7 @@ class EmployeeDashBord extends StatelessWidget {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
-                                    'ادارة المحتوى'.tr,
+                                    'managecontent'.tr,
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.bold,
@@ -138,7 +138,7 @@ class EmployeeDashBord extends StatelessWidget {
                           children: [
                             _buildStatBox(
                               tasks.length.toString(),
-                              'اجمالي المهام'.tr,
+                              'employee.dashboard.total_tasks'.tr,
                               Colors.blue,
                               width: boxWidth,
                             ),
@@ -151,7 +151,7 @@ class EmployeeDashBord extends StatelessWidget {
                                   )
                                   .length
                                   .toString(),
-                              'قيد التنفيذ'.tr,
+                              'status_processing'.tr,
                               Colors.amber,
                               width: boxWidth,
                             ),
@@ -164,7 +164,7 @@ class EmployeeDashBord extends StatelessWidget {
                                   )
                                   .length
                                   .toString(),
-                              'قيد المراجعة'.tr,
+                              'status_under_revision'.tr,
                               Colors.blue,
                               width: boxWidth,
                             ),
@@ -176,7 +176,7 @@ class EmployeeDashBord extends StatelessWidget {
                                   )
                                   .length
                                   .toString(),
-                              'مكتملة'.tr,
+                              'employee.dashboard.completed'.tr,
                               Colors.green,
                               width: boxWidth,
                             ),
@@ -188,7 +188,7 @@ class EmployeeDashBord extends StatelessWidget {
                                   )
                                   .length
                                   .toString(),
-                              'ملغاة'.tr,
+                              'employee.dashboard.cancelled'.tr,
                               Colors.red,
                               width: boxWidth,
                             ),
@@ -214,7 +214,7 @@ class EmployeeDashBord extends StatelessWidget {
                                   CupertinoIcons.search,
                                   color: Colors.grey,
                                 ),
-                                hintText: 'ابحث عن مهمة، عنوان، ..',
+                                hintText: 'employee.search_tasks_hint'.tr,
                                 height: 42,
                                 fillColor: Colors.white,
                                 controller: controller.searchController,
@@ -256,7 +256,7 @@ class EmployeeDashBord extends StatelessWidget {
                                       horizontal: 8,
                                     ),
                                     child: Text(
-                                      'الأولوية',
+                                      'tasks.filter_priority'.tr,
                                       style: TextStyle(
                                         fontSize: 13,
                                         color: AppColors.primaryfontColor,
@@ -303,7 +303,7 @@ class EmployeeDashBord extends StatelessWidget {
                                       horizontal: 8,
                                     ),
                                     child: Text(
-                                      'الحالة',
+                                      'tasks.filter_status'.tr,
                                       style: TextStyle(
                                         fontSize: 13,
                                         color: AppColors.primaryfontColor,
@@ -340,7 +340,7 @@ class EmployeeDashBord extends StatelessWidget {
                       ),
                       SizedBox(height: 15),
                       Text(
-                        'المهام المرسلة'.tr,
+                        'tasks.summary.sent_tasks'.tr,
                         style: TextStyle(
                           color: AppColors.fontColorGrey,
                           fontSize: 15,
@@ -395,7 +395,7 @@ class EmployeeDashBord extends StatelessWidget {
                       Row(
                         children: [
                           Text(
-                            'المهام المسندة اليك'.tr,
+                            'employee.dashboard.tasks_assigned_to_you'.tr,
                             style: TextStyle(
                               color: AppColors.fontColorGrey,
                               fontSize: 15,
@@ -417,7 +417,7 @@ class EmployeeDashBord extends StatelessWidget {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
-                                    'ادارة المحتوى'.tr,
+                                    'managecontent'.tr,
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.bold,
@@ -452,7 +452,7 @@ class EmployeeDashBord extends StatelessWidget {
                           children: [
                             _buildStatBox(
                               tasks.length.toString(),
-                              'اجمالي المهام'.tr,
+                              'employee.dashboard.total_tasks'.tr,
                               Colors.blue,
                               width: Get.width - 30,
                             ),
@@ -467,7 +467,7 @@ class EmployeeDashBord extends StatelessWidget {
                                       )
                                       .length
                                       .toString(),
-                                  'قيد التنفيذ'.tr,
+                                  'status_processing'.tr,
                                   Colors.amber,
                                   width: Get.width / 2 - 30,
                                 ),
@@ -480,7 +480,7 @@ class EmployeeDashBord extends StatelessWidget {
                                       )
                                       .length
                                       .toString(),
-                                  'قيد المراجعة'.tr,
+                                  'status_under_revision'.tr,
                                   Colors.blue,
                                   width: Get.width / 2 - 30,
                                 ),
@@ -498,7 +498,7 @@ class EmployeeDashBord extends StatelessWidget {
                                       )
                                       .length
                                       .toString(),
-                                  'مكتملة'.tr,
+                                  'employee.dashboard.completed'.tr,
                                   Colors.green,
                                   width: Get.width / 2 - 30,
                                 ),
@@ -511,7 +511,7 @@ class EmployeeDashBord extends StatelessWidget {
                                       )
                                       .length
                                       .toString(),
-                                  'ملغاة'.tr,
+                                  'employee.dashboard.cancelled'.tr,
                                   Colors.red,
                                   width: Get.width / 2 - 30,
                                 ),
@@ -535,7 +535,7 @@ class EmployeeDashBord extends StatelessWidget {
                                       CupertinoIcons.search,
                                       color: Colors.grey,
                                     ),
-                                    hintText: 'ابحث عن مهمة، عنوان، ..',
+                                    hintText: 'employee.search_tasks_hint'.tr,
                                     height: 42,
                                     fillColor: Colors.white,
                                     controller: controller.searchController,
@@ -584,7 +584,7 @@ class EmployeeDashBord extends StatelessWidget {
                                           horizontal: 8,
                                         ),
                                         child: Text(
-                                          'الأولوية',
+                                          'tasks.filter_priority'.tr,
                                           style: TextStyle(
                                             fontSize: 13,
                                             color: AppColors.primaryfontColor,
@@ -637,7 +637,7 @@ class EmployeeDashBord extends StatelessWidget {
                                           horizontal: 8,
                                         ),
                                         child: Text(
-                                          'الحالة',
+                                          'tasks.filter_status'.tr,
                                           style: TextStyle(
                                             fontSize: 13,
                                             color: AppColors.primaryfontColor,
@@ -676,7 +676,7 @@ class EmployeeDashBord extends StatelessWidget {
                       ),
                       SizedBox(height: 15),
                       Text(
-                        'المهام المرسلة'.tr,
+                        'tasks.summary.sent_tasks'.tr,
                         style: TextStyle(
                           color: AppColors.fontColorGrey,
                           fontSize: 15,

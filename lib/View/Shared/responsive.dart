@@ -21,6 +21,12 @@ class Responsive extends StatelessWidget {
   static bool isDesktop(BuildContext context) =>
       MediaQuery.of(context).size.width >= 1100;
 
+  /// Min width for auth screens that show a side cover + form (e.g. login).
+  static const double authSplitMinWidth = 1280;
+
+  static bool showAuthSplitLayout(double layoutWidth) =>
+      layoutWidth >= authSplitMinWidth;
+
   @override
   Widget build(BuildContext context) {
     final Size _size = MediaQuery.of(context).size;

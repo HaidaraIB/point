@@ -56,52 +56,57 @@ class PhotographyDetailsSection extends StatelessWidget {
                 runSpacing: 12,
                 children: [
                   TaskDetailsDialogHelpers.infoBox(
-                    'العميل',
+                    'tasks.form.client_label'.tr,
                     clientName,
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'الهدف ',
-                    task.photoGrapghyModel!.shootingtype.tr,
+                    'task_details.objective'.tr,
+                    FunHelper.trStored(task.photoGrapghyModel!.shootingtype),
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'نوع التصوير',
-                    task.photoGrapghyModel!.shootinglocation.toString().tr,
+                    'task_details.shooting_type'.tr,
+                    FunHelper.trStored(
+                      task.photoGrapghyModel!.shootinglocation.toString(),
+                    ),
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'عدد الصور او الفديو',
+                    'task_details.photo_video_count'.tr,
                     '${task.photoGrapghyModel!.designCount ?? '-'}',
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'المنصة',
+                    'platform'.tr,
                     task.photoGrapghyModel!.platform.isEmpty
                         ? '-'
-                        : task.photoGrapghyModel!.platform
-                            .map((e) => e.toString().tr)
-                            .join('، '),
+                        : FunHelper.formatStoredPlatforms(
+                            task.photoGrapghyModel!.platform,
+                          ),
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'المدة',
+                    'task_details.duration'.tr,
                     '${task.photoGrapghyModel!.duration ?? '-'}',
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'الاولويه',
-                    task.priority.tr,
+                    'task_details.task_priority'.tr,
+                    FunHelper.trStored(
+                      task.priority,
+                      kind: StoredValueKind.priority,
+                    ),
                     width: cellWidth,
                     height: 110,
                     child: TaskDetailsDialogHelpers.buildTag(
-                      task.priority,
+                      FunHelper.canonicalStoredPriority(task.priority),
                       tr: true,
                     ),
                   ),
@@ -121,12 +126,12 @@ class PhotographyDetailsSection extends StatelessWidget {
                 runSpacing: 8,
                 children: [
                   TaskDetailsDialogHelpers.infoBoxDates(
-                    'تاريخ البداية',
+                    'task_details.date_start_task'.tr,
                     FunHelper.formatdate(task.fromDate),
                     CupertinoIcons.calendar,
                   ),
                   TaskDetailsDialogHelpers.infoBoxDates(
-                    'تاريخ النهاية',
+                    'task_details.date_end_task'.tr,
                     FunHelper.formatdate(task.toDate),
                     CupertinoIcons.calendar,
                   ),

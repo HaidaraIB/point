@@ -25,7 +25,7 @@ class TaskFormDialogHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'اضافة مهمة'.tr,
+                  'tasks.form.add_title'.tr,
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -33,7 +33,7 @@ class TaskFormDialogHeader extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'من فضلك قم بادخال بيانات المهمه'.tr,
+                  'tasks.form.fill_required'.tr,
                   style: const TextStyle(color: Colors.white, fontSize: 13),
                 ),
               ],

@@ -29,7 +29,7 @@ class ClientController extends GetxController {
     if (exists) {
       FunHelper.showsnackbar(
         'error'.tr,
-        '❌ العميل بالبريد الإلكتروني ${client.email} موجود بالفعل.'.tr,
+        'client.errors.email_exists'.trParams({'email': '${client.email}'}),
         snackPosition: SnackPosition.TOP,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -42,7 +42,7 @@ class ClientController extends GetxController {
       if (crossUsed) {
         FunHelper.showsnackbar(
           'error'.tr,
-          'البريد الإلكتروني مستخدم مسبقاً في حساب موظف أو عميل.',
+          'client.errors.email_in_use_cross'.tr,
           snackPosition: SnackPosition.TOP,
           backgroundColor: Colors.red,
           colorText: Colors.white,
@@ -66,7 +66,7 @@ class ClientController extends GetxController {
       if (crossUsed) {
         FunHelper.showsnackbar(
           'error'.tr,
-          'البريد الإلكتروني مستخدم مسبقاً في حساب موظف أو عميل.',
+          'client.errors.email_in_use_cross'.tr,
           snackPosition: SnackPosition.TOP,
           backgroundColor: Colors.red,
           colorText: Colors.white,

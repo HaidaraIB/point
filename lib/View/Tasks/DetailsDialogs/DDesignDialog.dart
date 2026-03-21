@@ -56,51 +56,54 @@ class DesignDetailsSection extends StatelessWidget {
                 runSpacing: 12,
                 children: [
                   TaskDetailsDialogHelpers.infoBox(
-                    'العميل',
+                    'tasks.form.client_label'.tr,
                     clientName,
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'نوع المهمة',
-                    task.designDetails!.taskType.tr,
+                    'task_details.task_type'.tr,
+                    FunHelper.trStored(task.designDetails!.taskType),
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'نوع التصميم',
-                    task.designDetails!.designType.tr,
+                    'task_details.design_type'.tr,
+                    FunHelper.trStored(task.designDetails!.designType),
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'المنصة',
+                    'platform'.tr,
                     task.designDetails!.platform.isEmpty
                         ? '-'
-                        : task.designDetails!.platform
-                            .map((e) => e.toString().tr)
-                            .join('، '),
+                        : FunHelper.formatStoredPlatforms(
+                            task.designDetails!.platform,
+                          ),
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'الاولويه',
-                    task.priority.tr,
+                    'task_details.task_priority'.tr,
+                    FunHelper.trStored(
+                      task.priority,
+                      kind: StoredValueKind.priority,
+                    ),
                     width: cellWidth,
                     height: 110,
                     child: TaskDetailsDialogHelpers.buildTag(
-                      task.priority,
+                      FunHelper.canonicalStoredPriority(task.priority),
                       tr: true,
                     ),
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'عدد التصاميم',
+                    'task_details.design_count'.tr,
                     '${task.designDetails!.designCount ?? '-'}',
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'القياسات',
+                    'task_details.dimensions'.tr,
                     task.designDetails!.designsDimensions ?? '-',
                     width: cellWidth,
                     height: 110,
@@ -121,12 +124,12 @@ class DesignDetailsSection extends StatelessWidget {
                 runSpacing: 8,
                 children: [
                   TaskDetailsDialogHelpers.infoBoxDates(
-                    'تاريخ البداية',
+                    'task_details.date_start_task'.tr,
                     FunHelper.formatdate(task.fromDate),
                     CupertinoIcons.calendar,
                   ),
                   TaskDetailsDialogHelpers.infoBoxDates(
-                    'تاريخ النهاية',
+                    'task_details.date_end_task'.tr,
                     FunHelper.formatdate(task.toDate),
                     CupertinoIcons.calendar,
                   ),

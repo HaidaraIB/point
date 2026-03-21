@@ -58,7 +58,7 @@ class TasksMobile extends StatelessWidget {
                       _buildFilters(context, controller),
                       const SizedBox(height: 15),
                       Text(
-                        'المهام المرسلة'.tr,
+                        'tasks.summary.sent_tasks'.tr,
                         style: const TextStyle(
                           color: AppColors.fontColorGrey,
                           fontSize: 15,
@@ -173,7 +173,7 @@ class TasksMobile extends StatelessWidget {
       children: [
         _buildStatBox(
           tasks.length.toString(),
-          'اجمالي المهام'.tr,
+          'employee.dashboard.total_tasks'.tr,
           Colors.blue,
           width: boxWidth,
         ),
@@ -182,7 +182,7 @@ class TasksMobile extends StatelessWidget {
               .where((a) => a.status == StorageKeys.status_processing)
               .length
               .toString(),
-          'قيد التنفيذ'.tr,
+          'status_processing'.tr,
           Colors.amber,
           width: boxWidth,
         ),
@@ -191,7 +191,7 @@ class TasksMobile extends StatelessWidget {
               .where((a) => a.status == StorageKeys.status_under_revision)
               .length
               .toString(),
-          'قيد المراجعة'.tr,
+          'status_under_revision'.tr,
           Colors.blue,
           width: boxWidth,
         ),
@@ -200,7 +200,7 @@ class TasksMobile extends StatelessWidget {
               .where((a) => a.status == StorageKeys.status_approved)
               .length
               .toString(),
-          'مكتملة'.tr,
+          'employee.dashboard.completed'.tr,
           Colors.green,
           width: boxWidth,
         ),
@@ -209,7 +209,7 @@ class TasksMobile extends StatelessWidget {
               .where((a) => a.status == StorageKeys.status_rejected)
               .length
               .toString(),
-          'ملغاة'.tr,
+          'employee.dashboard.cancelled'.tr,
           Colors.red,
           width: boxWidth,
         ),
@@ -288,7 +288,7 @@ class TasksMobile extends StatelessWidget {
                 width: (Get.width * 0.7 / 3) - 25,
                 child: InputText(
                   prefixIcon: Icon(CupertinoIcons.search, color: Colors.grey),
-                  hintText: 'ابحث عن مهمة، عنوان، موظف...',
+                  hintText: 'tasks.search_hint_extended'.tr,
                   height: 42,
                   fillColor: Colors.white,
                   controller: controller.searchController,
@@ -314,7 +314,7 @@ class TasksMobile extends StatelessWidget {
               const SizedBox(width: 24),
               _buildDropdown<String>(
                 width: 150,
-                hint: 'الأولوية',
+                hint: 'tasks.filter_priority'.tr,
                 value:
                     controller.selectedPriority.value.isEmpty
                         ? null
@@ -335,7 +335,7 @@ class TasksMobile extends StatelessWidget {
               const SizedBox(width: 10),
               _buildDropdown<String>(
                 width: 150,
-                hint: 'المنفذ',
+                hint: 'tasks.filter_assignee'.tr,
                 value:
                     controller.selectedExecutor.value.isEmpty
                         ? null
@@ -411,10 +411,10 @@ class TasksMobile extends StatelessWidget {
         ),
         child: DropdownButtonHideUnderline(
           child: DropdownButton<String>(
-            hint: const Padding(
+            hint: Padding(
               padding: EdgeInsets.symmetric(horizontal: 8),
               child: Text(
-                'الحالة',
+                'tasks.filter_status'.tr,
                 style: TextStyle(
                   fontSize: 13,
                   color: AppColors.primaryfontColor,

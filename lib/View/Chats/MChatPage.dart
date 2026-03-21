@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -5,9 +7,12 @@ import 'package:intl/intl.dart';
 // يجب أن يكون هذا الملف متاحًا لديك، وإلا سيعطي خطأ
 import 'package:point/Controller/HomeController.dart';
 // يجب أن يكون هذا الملف متاحًا لديك، وإلا سيعطي خطأ
+import 'package:point/Services/ChatAudioFocus.dart';
+import 'package:point/Services/ChatIncomingMessageSound.dart';
 import 'package:point/Services/FireStoreServices.dart';
 
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
+import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/View/Chats/ChatPage.dart';
 
 // تعريف ثوابت الأدوار
@@ -74,11 +79,11 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
       _currentUserName =
           homecontroller.currentemployee.value?.name ??
           homecontroller.currentemployee.value?.email ??
-          'Me';
+          AppLocaleKeys.me.tr;
       _currentUserDept = homecontroller.currentemployee.value?.department;
     } else {
       _currentUserId = 'temp_current_user';
-      _currentUserName = 'Me';
+      _currentUserName = AppLocaleKeys.me.tr;
       _currentUserDept = null;
     }
 
@@ -293,7 +298,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
         'isGroup': chatData['isGroup'] ?? false,
         'title': chatData['title'],
         // اسم العرض للمجموعة
-        'displayName': chatData['title'] ?? 'مجموعة القسم',
+        'displayName': chatData['title'] ?? AppLocaleKeys.chatDepartmentGroup.tr,
       };
 
       // الانتقال إلى شاشة الرسائل (MessageScreen)
@@ -314,7 +319,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
     String? otherId;
 
     if (chat['isGroup'] == true) {
-      displayName = chat['title'] ?? 'مجموعة غير معروفة';
+      displayName = chat['title'] ?? AppLocaleKeys.chatGroupUnknown.tr;
     } else {
       final participants = List<String>.from(chat['participants'] ?? []);
       otherId = participants.firstWhere(
@@ -328,7 +333,9 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
       displayName =
           other.isNotEmpty
               ? other['name']
-              : (otherId.length > 10 ? 'مستخدم مجهول' : otherId);
+              : (otherId.length > 10
+                  ? AppLocaleKeys.chatUnknownUser.tr
+                  : otherId);
     }
 
     final selectedChatData = Map<String, dynamic>.from(chat)
@@ -382,7 +389,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'اختيار موظف لبدء محادثة',
+                      AppLocaleKeys.chatPickEmployee.tr,
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -392,7 +399,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                     TextField(
                       controller: _searchController,
                       decoration: InputDecoration(
-                        hintText: 'ابحث باسم الموظف',
+                        hintText: AppLocaleKeys.chatSearchEmployee.tr,
                         prefixIcon: Icon(Icons.search),
                       ),
                       onChanged: (v) => filterEmployeesDialog(v),
@@ -404,7 +411,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                           _loadingEmployees
                               ? Center(child: CircularProgressIndicator())
                               : _filteredEmployees.isEmpty
-                              ? Center(child: Text('لا يوجد موظفين'))
+                              ? Center(child: Text('chat.no_employees'.tr))
                               : ListView.builder(
                                 itemCount: _filteredEmployees.length,
                                 itemBuilder: (context, idx) {
@@ -482,7 +489,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
           appBar: PreferredSize(
             preferredSize: const Size.fromHeight(60.0), // تعيين حجم الـ AppBar
             child: AppBar(
-              title: const Text('المحادثات'),
+              title: Text('chat.screen_title'.tr),
               centerTitle: true,
               actions: [
                 // IconButton(
@@ -516,7 +523,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                           Expanded(
                             child: TextField(
                               decoration: InputDecoration(
-                                hintText: 'ابحث في المحادثات',
+                                hintText: AppLocaleKeys.chatSearchInChats.tr,
                                 prefixIcon: const Icon(Icons.search),
                                 filled: true,
                                 fillColor: Colors.grey.shade100,
@@ -564,6 +571,9 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                         if (groupChatData.isEmpty)
                           return const SizedBox.shrink(); // لو لم يتم تحميلها بعد
 
+                        final lastGroupMsg =
+                            groupChatData['lastMessage']?.toString() ?? '';
+
                         return ListTile(
                           leading: CircleAvatar(
                             radius: 24,
@@ -574,15 +584,17 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                             ),
                           ),
                           title: Text(
-                            'مجموعة ${_currentUserDept!.tr}',
+                            'newchat.group_title'
+                                .trParams({'name': _currentUserDept!.tr}),
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Colors.blue.shade700,
                             ),
                           ),
                           subtitle: Text(
-                            groupChatData['lastMessage'] ??
-                                'محادثة جماعية للقسم',
+                            lastGroupMsg.isEmpty
+                                ? AppLocaleKeys.chatGroupConversation.tr
+                                : lastGroupMsg,
                           ),
                           trailing:
                               unreadCount > 0
@@ -614,8 +626,8 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                         _loadingChats
                             ? const Center(child: CircularProgressIndicator())
                             : _chats.isEmpty
-                            ? const Center(
-                              child: Text('لا توجد محادثات حالياً'),
+                            ? Center(
+                              child: Text('chat.no_chats'.tr),
                             )
                             : ListView.builder(
                               itemCount: _chats.length,
@@ -637,7 +649,8 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                 Color? titleColor;
 
                                 if (isGroup) {
-                                  displayName = ch['title'] ?? 'مجموعة';
+                                  displayName =
+                                      ch['title'] ?? 'chat.group_default'.tr;
                                   initial = _initialFromName(displayName);
                                   avatarColor = Colors.blueGrey.shade100;
                                   avatarIcon = Icons.group;
@@ -659,7 +672,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                       other.isNotEmpty
                                           ? other['name']
                                           : (otherId.length > 10
-                                              ? 'مستخدم مجهول'
+                                              ? AppLocaleKeys.chatUnknownUser.tr
                                               : otherId);
                                   initial = _initialFromName(displayName);
                                   avatarColor = Colors.grey.shade200;
@@ -767,6 +780,7 @@ class _MessageScreenState extends State<MessageScreen> {
   bool _isEmojiVisible = false;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   Stream<QuerySnapshot<Map<String, dynamic>>>? _messagesStream;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _messageSoundSubscription;
   late String _chatId;
   late String _displayName;
 
@@ -774,7 +788,8 @@ class _MessageScreenState extends State<MessageScreen> {
   void initState() {
     super.initState();
     _chatId = widget.chat['id'];
-    _displayName = widget.chat['displayName'] ?? 'محادثة';
+    _displayName =
+        widget.chat['displayName'] ?? AppLocaleKeys.chatConversationFallback.tr;
     _messagesStream =
         _firestore
             .collection('chats')
@@ -783,7 +798,22 @@ class _MessageScreenState extends State<MessageScreen> {
             .orderBy('timestamp', descending: true)
             .snapshots();
 
+    ChatAudioFocus.setForeground(_chatId);
+    _messageSoundSubscription = attachIncomingMessageSoundSubscription(
+      stream: _messagesStream!,
+      chatId: _chatId,
+      currentUserId: widget.currentUserId,
+    );
+
     _markMessagesAsRead(_chatId);
+  }
+
+  @override
+  void dispose() {
+    _messageSoundSubscription?.cancel();
+    ChatAudioFocus.clearForegroundIfEquals(_chatId);
+    _messageController.dispose();
+    super.dispose();
   }
 
   // -----------// داخل الميثود send message بتاعتك
@@ -826,7 +856,10 @@ class _MessageScreenState extends State<MessageScreen> {
         if (id != widget.currentUserId) {
           await FirestoreServices.sendFcm(
             userId: id,
-            title: '${widget.currentUserName} في مجموعة ${_displayName}',
+            title: AppLocaleKeys.chatFcmInGroupTitle.trParams({
+              'user': widget.currentUserName,
+              'group': _displayName,
+            }),
             body: text,
           );
         }
@@ -876,13 +909,15 @@ class _MessageScreenState extends State<MessageScreen> {
     final diff = now.difference(dt);
 
     if (diff.inSeconds < 60) {
-      return 'منذ ثوانٍ';
+      return 'time.seconds_ago'.tr;
     } else if (diff.inMinutes < 60) {
-      return 'منذ ${diff.inMinutes} دقيقة';
+      return AppLocaleKeys.commonMinutesAgo
+          .trParams({'count': '${diff.inMinutes}'});
     } else if (diff.inHours < 24) {
-      return 'منذ ${diff.inHours} ساعة';
+      return AppLocaleKeys.commonHoursAgo
+          .trParams({'count': '${diff.inHours}'});
     } else if (diff.inDays < 7) {
-      return 'منذ ${diff.inDays} يوم';
+      return 'time.ago_days'.trParams({'count': '${diff.inDays}'});
     } else {
       return DateFormat('dd/MM/yyyy').format(dt);
     }
@@ -921,7 +956,7 @@ class _MessageScreenState extends State<MessageScreen> {
                       return const Center(child: CircularProgressIndicator());
                     }
                     if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                      return const Center(child: Text('ابدأ محادثتك الأولى!'));
+                      return Center(child: Text('chat.start_first'.tr));
                     }
 
                     final messages = snapshot.data!.docs;
@@ -932,7 +967,8 @@ class _MessageScreenState extends State<MessageScreen> {
                       itemBuilder: (context, index) {
                         final msg = messages[index].data();
                         final isMe = msg['senderId'] == widget.currentUserId;
-                        final senderName = msg['senderName'] ?? 'مجهول';
+                        final senderName =
+                            msg['senderName'] ?? 'chat.unknown_user'.tr;
                         final timestamp = msg['timestamp'] as Timestamp?;
                         final isRead = msg['isRead'] ?? false;
 
@@ -996,7 +1032,8 @@ class _MessageScreenState extends State<MessageScreen> {
                                     ],
                                   ),
                                   child: messageText(
-                                    msg['text'] ?? 'رسالة فارغة',
+                                    msg['text'] ??
+                                        AppLocaleKeys.chatEmptyMessage.tr,
                                     isMe,
                                   ),
                                   // Text(
@@ -1079,8 +1116,8 @@ class _MessageScreenState extends State<MessageScreen> {
                       minLines: 1,
                       maxLines: 5,
                       keyboardType: TextInputType.multiline,
-                      decoration: const InputDecoration(
-                        hintText: 'اكتب رسالتك...',
+                      decoration: InputDecoration(
+                        hintText: AppLocaleKeys.chatWriteMessage.tr,
                         border: InputBorder.none,
                       ),
                       onTap: () {

@@ -57,7 +57,7 @@ class ProgrammingDetailsSection extends StatelessWidget {
                 runSpacing: 12,
                 children: [
                   TaskDetailsDialogHelpers.infoBox(
-                    'العميل',
+                    'tasks.form.client_label'.tr,
                     clientName,
                     width: cellWidth,
                     height: 110,
@@ -71,40 +71,48 @@ class ProgrammingDetailsSection extends StatelessWidget {
                           mode: LaunchMode.externalApplication,
                         );
                       } else {
-                        throw 'لا يمكن فتح الرابط $url';
+                        FunHelper.showsnackbar(
+                          'error'.tr,
+                          'errors.cannot_open_link_param'.trParams({
+                            'url': url,
+                          }),
+                        );
                       }
                     },
                     child: TaskDetailsDialogHelpers.infoBox(
-                      'رابط المحتوى',
+                      'task_details.content_link'.tr,
                       task.programmingModel!.contenturl,
                       width: cellWidth,
                       height: 110,
                     ),
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'الاولويه',
-                    task.priority.tr,
+                    'task_details.task_priority'.tr,
+                    FunHelper.trStored(
+                      task.priority,
+                      kind: StoredValueKind.priority,
+                    ),
                     width: cellWidth,
                     height: 110,
                     child: TaskDetailsDialogHelpers.buildTag(
-                      task.priority,
+                      FunHelper.canonicalStoredPriority(task.priority),
                       tr: true,
                     ),
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'التصنيف',
-                    task.programmingModel!.category.tr,
+                    'task_details.category'.tr,
+                    FunHelper.trStored(task.programmingModel!.category),
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'رابط الملفات',
+                    'task_details.files_link'.tr,
                     task.programmingModel!.fileurl ?? '-',
                     width: cellWidth,
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
-                    'القياسات',
+                    'task_details.dimensions'.tr,
                     task.programmingModel!.designsDimensions ?? '-',
                     width: cellWidth,
                     height: 110,
@@ -125,12 +133,12 @@ class ProgrammingDetailsSection extends StatelessWidget {
                 runSpacing: 8,
                 children: [
                   TaskDetailsDialogHelpers.infoBoxDates(
-                    'تاريخ البداية',
+                    'task_details.date_start_task'.tr,
                     FunHelper.formatdate(task.fromDate),
                     CupertinoIcons.calendar,
                   ),
                   TaskDetailsDialogHelpers.infoBoxDates(
-                    'تاريخ النهاية',
+                    'task_details.date_end_task'.tr,
                     FunHelper.formatdate(task.toDate),
                     CupertinoIcons.calendar,
                   ),

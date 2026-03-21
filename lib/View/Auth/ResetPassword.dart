@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/AuthController.dart';
+import 'package:point/Controller/ClientController.dart';
+import 'package:point/Controller/HomeController.dart';
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppImages.dart';
@@ -36,7 +38,7 @@ class _ResetPasswordState extends State<ResetPassword> {
   Future<void> _resetPassword() async {
     if (!_key.currentState!.validate()) return;
     if (_newPassController.text.trim() != _confirmPassController.text.trim()) {
-      FunHelper.showsnackbar('error'.tr, 'كلمتا المرور غير متطابقتين');
+      FunHelper.showsnackbar('error'.tr, 'passwordmustmatch'.tr);
       return;
     }
     setState(() => _isLoading = true);
@@ -45,16 +47,32 @@ class _ResetPasswordState extends State<ResetPassword> {
         currentPassword: _currentPassController.text.trim(),
         newPassword: _newPassController.text.trim(),
       );
+      final isClientFlow = Get.isRegistered<ClientController>() &&
+          Get.find<ClientController>().currentClient.value != null;
       FunHelper.showsnackbar(
         'success'.tr,
-        'تم تغيير كلمة المرور بنجاح',
+        'auth.password_changed_success'.tr,
         backgroundColor: Colors.green,
       );
       _currentPassController.clear();
       _newPassController.clear();
       _confirmPassController.clear();
+      if (Get.isRegistered<HomeController>()) {
+        Get.find<HomeController>().clearEmployeeSession();
+      }
+      if (Get.isRegistered<ClientController>()) {
+        Get.find<ClientController>().currentClient.value = null;
+      }
+      await FirestoreServices().signOut();
+      await FunHelper.removelogindata();
+      Get.offAllNamed(
+        isClientFlow ? '/auth/LoginUserAccount' : '/auth/login',
+      );
     } on FirebaseAuthException catch (e) {
-      FunHelper.showsnackbar('error'.tr, e.message ?? 'فشل تغيير كلمة المرور');
+      FunHelper.showsnackbar(
+        'error'.tr,
+        e.message ?? 'auth.reset_password_failed'.tr,
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

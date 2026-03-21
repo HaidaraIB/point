@@ -1,13 +1,11 @@
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/ContentModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
-import 'package:point/Utils/AppColors.dart';
-import 'package:point/View/Shared/HorizontalScrollbarAttachments.dart';
+import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 void showContentDialogDetails(
@@ -22,564 +20,475 @@ void showContentDialogDetails(
   );
 }
 
-class ContentDialogDetails extends StatelessWidget {
+class ContentDialogDetails extends StatefulWidget {
   final ContentModel task;
-  ContentDialogDetails({super.key, required this.task});
+  const ContentDialogDetails({super.key, required this.task});
+
+  @override
+  State<ContentDialogDetails> createState() => _ContentDialogDetailsState();
+}
+
+class _ContentDialogDetailsState extends State<ContentDialogDetails> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isNarrow = screenWidth < 600;
-    final dialogWidth = isNarrow ? screenWidth - 32 : Get.width * 0.7;
-    final horizontalInset = isNarrow ? 16.0 : 40.0;
+    final colorScheme = Theme.of(context).colorScheme;
+    final viewSize = MediaQuery.sizeOf(context);
+    final dialogWidth = (viewSize.width * 0.78).clamp(320.0, 920.0);
+    final maxDialogHeight = (viewSize.height * 0.9).clamp(420.0, 900.0);
 
     return Dialog(
-      insetPadding: EdgeInsets.symmetric(horizontal: horizontalInset, vertical: 24),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      backgroundColor: Colors.grey.shade100,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 42, vertical: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      backgroundColor: colorScheme.surface,
       child: Container(
+        clipBehavior: Clip.antiAlias,
         width: dialogWidth,
-        constraints: const BoxConstraints(maxHeight: 700),
-        padding: EdgeInsets.all(isNarrow ? 12 : 20),
+        constraints: BoxConstraints(maxHeight: maxDialogHeight),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [colorScheme.surfaceContainerLowest, colorScheme.surface],
+          ),
+        ),
         child: Padding(
-          padding: EdgeInsets.only(top: 10, left: isNarrow ? 6 : 10, right: isNarrow ? 6 : 10),
-          child: SingleChildScrollView(
+          padding: const EdgeInsets.all(18),
+          child: Scrollbar(
+            controller: _scrollController,
+            thumbVisibility: true,
+            thickness: 9,
+            radius: const Radius.circular(10),
+            child: SingleChildScrollView(
+              controller: _scrollController,
+              child: Padding(
+                padding: const EdgeInsetsDirectional.only(end: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Align(
+                      alignment: Alignment.topRight,
+                      child: IconButton.filledTonal(
+                        onPressed: () => Get.back(),
+                        icon: const Icon(Icons.close),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    _buildHeader(context, dialogWidth),
+                    const SizedBox(height: 12),
+                    _buildSectionShell(
+                      context: context,
+                      title: AppLocaleKeys.contentDialogMetaSection.tr,
+                      icon: Icons.info_outline,
+                      child: _buildMetaSection(context, dialogWidth),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildSectionShell(
+                      context: context,
+                      title: AppLocaleKeys.contentDialogNotesAttachmentsSection.tr,
+                      icon: Icons.attach_file_outlined,
+                      child: _buildNotesAndAttachmentsSection(
+                        context,
+                        dialogWidth,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, double dialogWidth) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final executorName =
+        Get.find<HomeController>().employees
+            .firstWhereOrNull((emp) => emp.id == widget.task.executor)
+            ?.name ??
+        AppLocaleKeys.contentDialogUnknown.tr;
+    final subtitle =
+        '${AppLocaleKeys.contentType.tr}: ${FunHelper.trStored(widget.task.contentType, kind: StoredValueKind.contentType)}';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () {
-                    Get.back();
-                  },
-                ),
-                // --- المنفذ والعنوان ---
-                Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isNarrow ? 10 : 15,
-                    vertical: isNarrow ? 14 : 23,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              task.title,
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              task.title,
-                              style: TextStyle(
-                                color: Colors.grey,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(width: isNarrow ? 6 : 10),
-                      Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 14,
-                            backgroundImage: NetworkImage(
-                              '${StorageKeys.supabaseStorageBaseUrl}/Avatar.png',
-                            ),
-                          ),
-                          SizedBox(width: 6),
-                          Column(
-                            children: [
-                              Text(
-                                'المنفذ',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                              Text(
-                                Get.find<HomeController>().employees
-                                        .firstWhereOrNull(
-                                          (emp) => emp.id == task.executor,
-                                        )
-                                        ?.name ??
-                                    '',
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ],
+                Text(
+                  widget.task.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 20),
-
-                isNarrow
-                    ? SizedBox(
-                        height: 110,
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                            Container(
-                              height: 110,
-                              padding: EdgeInsets.symmetric(
-                                vertical: 10,
-                                horizontal: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                              _infoBox(
-                            'العميل',
-                            Get.find<HomeController>().clients
-                                    .firstWhereOrNull(
-                                      (emp) => emp.id == task.clientId,
-                                    )
-                                    ?.name ??
-                                '',
-                          ),
-                          SizedBox(
-                            height: 35,
-                            child: const VerticalDivider(
-                              color: Colors.grey,
-                              thickness: 1,
-                            ),
-                          ),
-                          _infoBox('نوع المحتوى', task.contentType.tr),
-                          SizedBox(
-                            height: 35,
-                            child: const VerticalDivider(
-                              color: Colors.grey,
-                              thickness: 1,
-                            ),
-                          ),
-                          _infoBox(
-                            'المنصة',
-                            // '',
-                            task.platform.toString().tr,
-                          ),
-                          SizedBox(
-                            height: 35,
-                            child: const VerticalDivider(
-                              color: Colors.grey,
-                              thickness: 1,
-                            ),
-                          ),
-                          _infoBox(
-                            'الحاله',
-                            // '',
-                            task.status.toString().tr,
-                          ),
-                          SizedBox(
-                            height: 35,
-                            child: const VerticalDivider(
-                              color: Colors.grey,
-                              thickness: 1,
-                            ),
-                          ),
-                          _infoBox(
-                            'الترويج',
-                            // '',
-                            task.promotion.toString().tr,
-                          ),
-                          SizedBox(
-                            height: 35,
-                            child: const VerticalDivider(
-                              color: Colors.grey,
-                              thickness: 1,
-                            ),
-                          ),
-                                  _infoBox(
-                                    'ملاحظات العميل',
-                                    task.clientNotes.toString(),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            SizedBox(width: 10),
-                            Container(
-                              height: 110,
-                              width: 140,
-                              padding: EdgeInsets.symmetric(
-                                vertical: 10,
-                                horizontal: 10,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Expanded(
-                                    child: FittedBox(
-                                      fit: BoxFit.scaleDown,
-                                      alignment: Alignment.center,
-                                      child: _infoBoxdates(
-                                        'تاريخ النشر',
-                                        '${FunHelper.formatdate(task.publishDate)}',
-                                        CupertinoIcons.calendar,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        ),
-                      )
-                    : Row(
-                        children: [
-                          Expanded(
-                            child: Container(
-                              height: 110,
-                              padding: EdgeInsets.symmetric(
-                                vertical: 10,
-                                horizontal: 10,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    _infoBox(
-                                      'العميل',
-                                      Get.find<HomeController>().clients
-                                          .firstWhereOrNull(
-                                            (emp) => emp.id == task.clientId,
-                                          )
-                                          ?.name ??
-                                          '',
-                                    ),
-                                    SizedBox(
-                                      height: 35,
-                                      child: const VerticalDivider(
-                                        color: Colors.grey,
-                                        thickness: 1,
-                                      ),
-                                    ),
-                                    _infoBox('نوع المحتوى', task.contentType.tr),
-                                    SizedBox(
-                                      height: 35,
-                                      child: const VerticalDivider(
-                                        color: Colors.grey,
-                                        thickness: 1,
-                                      ),
-                                    ),
-                                    _infoBox(
-                                      'المنصة',
-                                      task.platform.toString().tr,
-                                    ),
-                                    SizedBox(
-                                      height: 35,
-                                      child: const VerticalDivider(
-                                        color: Colors.grey,
-                                        thickness: 1,
-                                      ),
-                                    ),
-                                    _infoBox(
-                                      'الحاله',
-                                      task.status.toString().tr,
-                                    ),
-                                    SizedBox(
-                                      height: 35,
-                                      child: const VerticalDivider(
-                                        color: Colors.grey,
-                                        thickness: 1,
-                                      ),
-                                    ),
-                                    _infoBox(
-                                      'الترويج',
-                                      task.promotion.toString().tr,
-                                    ),
-                                    SizedBox(
-                                      height: 35,
-                                      child: const VerticalDivider(
-                                        color: Colors.grey,
-                                        thickness: 1,
-                                      ),
-                                    ),
-                                    _infoBox(
-                                      'ملاحظات العميل',
-                                      task.clientNotes.toString(),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                          SizedBox(width: 10),
-                          Flexible(
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(
-                                minWidth: 120,
-                                maxWidth: 200,
-                              ),
-                              child: Container(
-                                height: 110,
-                                padding: EdgeInsets.symmetric(
-                                  vertical: 10,
-                                  horizontal: 10,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    _infoBoxdates(
-                                      'تاريخ النشر',
-                                      '${FunHelper.formatdate(task.publishDate)}',
-                                      CupertinoIcons.calendar,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                const SizedBox(height: 24),
-
-                // --- المرفقات ---
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Container(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('الملاحظات', style: textTheme.titleMedium),
-                            const SizedBox(height: 8),
-                            Container(
-                              height: 280,
-                              width: isNarrow ? null : (Get.width * 0.35 - 35),
-                              constraints: isNarrow
-                                  ? null
-                                  : null,
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  task.notes ?? '',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.primaryfontColor,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    ),
-                    SizedBox(width: isNarrow ? 12 : 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('المرفقات', style: textTheme.titleMedium),
-                          const SizedBox(height: 10),
-                          Container(
-                            width: isNarrow ? null : (Get.width * 0.35 - 35),
-                            constraints: isNarrow ? null : null,
-                          height: 200,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          padding: EdgeInsets.all(10),
-                          child: Column(
-                            children: [
-                              HorizontalScrollbarAttachments(
-                                child: kIsWeb
-                                    ? Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          for (var i = 0;
-                                              i < task.files!.length;
-                                              i++) ...[
-                                            if (i > 0)
-                                              const SizedBox(width: 16),
-                                            _attachmentCard(
-                                              FunHelper.getFileNameFromUrl(
-                                                  task.files![i]),
-                                              '',
-                                              onDownload: () async {
-                                                final att = task.files![i];
-                                                if (await canLaunchUrl(
-                                                    Uri.parse(att))) {
-                                                  await launchUrl(
-                                                    Uri.parse(att),
-                                                    mode: LaunchMode
-                                                        .externalApplication,
-                                                  );
-                                                } else {
-                                                  throw 'لا يمكن فتح الرابط $att';
-                                                }
-                                              },
-                                            ),
-                                          ],
-                                        ],
-                                      )
-                                    : Wrap(
-                                        spacing: 16,
-                                        children: [
-                                          for (var att in task.files!)
-                                            _attachmentCard(
-                                              FunHelper.getFileNameFromUrl(att),
-                                              '',
-                                              onDownload: () async {
-                                                if (await canLaunchUrl(
-                                                  Uri.parse(att),
-                                                )) {
-                                                  await launchUrl(
-                                                    Uri.parse(att),
-                                                    mode: LaunchMode
-                                                        .externalApplication,
-                                                  );
-                                                } else {
-                                                  throw 'لا يمكن فتح الرابط $att';
-                                                }
-                                              },
-                                            ),
-                                        ],
-                                      ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colorScheme.onSurfaceVariant,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
                   ),
-                  ],
                 ),
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _infoBox(String title, String value, {Widget? child}) {
-    final screenWidth = Get.width;
-    final calculatedWidth = (screenWidth * 0.7 - 550) / 5;
-    final width = calculatedWidth < 70 ? 70.0 : calculatedWidth;
-    return Container(
-      width: width,
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(),
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        alignment: Alignment.center,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
+          const SizedBox(width: 10),
+          Container(
+            constraints: BoxConstraints(
+              maxWidth: dialogWidth < 520 ? dialogWidth - 120 : 250,
             ),
-            const SizedBox(height: 6),
-            child ??
-                Text(
-                  value,
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                    color: AppColors.primaryfontColor,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: colorScheme.outlineVariant),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircleAvatar(
+                  radius: 12,
+                  backgroundImage: NetworkImage(
+                    '${StorageKeys.supabaseStorageBaseUrl}/Avatar.png',
                   ),
                 ),
-          ],
-        ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        AppLocaleKeys.contentDialogExecutor.tr,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 10,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      Text(
+                        executorName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _infoBoxdates(String title, String value, IconData icon) {
+  Widget _buildMetaSection(BuildContext context, double dialogWidth) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final clientName =
+        Get.find<HomeController>().clients
+            .firstWhereOrNull((client) => client.id == widget.task.clientId)
+            ?.name ??
+        '-';
+    final publishDate =
+        widget.task.publishDate == null
+            ? AppLocaleKeys.contentDialogNoDate.tr
+            : FunHelper.formatdate(widget.task.publishDate).toString();
+    final promotionValue =
+        (widget.task.promotion == null || widget.task.promotion!.trim().isEmpty)
+            ? AppLocaleKeys.contentDialogNoPromotion.tr
+            : FunHelper.trStored(
+                widget.task.promotion,
+                kind: StoredValueKind.promotion,
+              );
+    final platformValue = _formatPlatformValue(widget.task.platform);
+
+    final bool compact = dialogWidth < 760;
+    final tileWidth = compact ? (dialogWidth - 96).clamp(220.0, 360.0) : 235.0;
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: [
+        _buildMetaTile(
+          label: AppLocaleKeys.contentDialogClient.tr,
+          value: clientName,
+          icon: Icons.person_outline,
+          width: tileWidth,
+          colorScheme: colorScheme,
+        ),
+        _buildMetaTile(
+          label: AppLocaleKeys.contentType.tr,
+          value: FunHelper.trStored(
+            widget.task.contentType,
+            kind: StoredValueKind.contentType,
+          ),
+          icon: Icons.category_outlined,
+          width: tileWidth,
+          colorScheme: colorScheme,
+        ),
+        _buildMetaTile(
+          label: AppLocaleKeys.platform.tr,
+          value: platformValue,
+          icon: Icons.public_outlined,
+          width: tileWidth,
+          colorScheme: colorScheme,
+        ),
+        _buildMetaTile(
+          label: AppLocaleKeys.status.tr,
+          value: FunHelper.trStored(
+            widget.task.status,
+            kind: StoredValueKind.taskStatus,
+          ),
+          icon: Icons.flag_outlined,
+          width: tileWidth,
+          colorScheme: colorScheme,
+        ),
+        _buildMetaTile(
+          label: AppLocaleKeys.promotion.tr,
+          value: promotionValue,
+          icon: Icons.campaign_outlined,
+          width: tileWidth,
+          colorScheme: colorScheme,
+        ),
+        _buildMetaTile(
+          label: AppLocaleKeys.clientNotes.tr,
+          value:
+              widget.task.clientNotes?.trim().isNotEmpty == true
+                  ? widget.task.clientNotes!
+                  : '-',
+          icon: Icons.sticky_note_2_outlined,
+          width: tileWidth,
+          colorScheme: colorScheme,
+        ),
+        _buildMetaTile(
+          label: AppLocaleKeys.publishDate.tr,
+          value: publishDate,
+          icon: Icons.calendar_today_outlined,
+          width: tileWidth,
+          colorScheme: colorScheme,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNotesAndAttachmentsSection(
+    BuildContext context,
+    double dialogWidth,
+  ) {
+    final textTheme = Theme.of(context).textTheme;
+    final bool stacked = dialogWidth < 760;
+    final contentWidth =
+        stacked
+            ? (dialogWidth - 92).clamp(240.0, 780.0)
+            : ((dialogWidth - 92) / 2).clamp(260.0, 740.0);
+    final attachments = widget.task.files ?? <dynamic>[];
+
+    final notesCard = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(AppLocaleKeys.notes.tr, style: textTheme.titleSmall),
+        const SizedBox(height: 8),
+        Container(
+          width: contentWidth,
+          constraints: const BoxConstraints(minHeight: 200),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+          ),
+          child: Text(
+            widget.task.notes?.trim().isNotEmpty == true
+                ? widget.task.notes!
+                : AppLocaleKeys.contentDialogNoNotes.tr,
+            style: TextStyle(
+              fontSize: 12,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    );
+
+    final attachmentsCard = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(AppLocaleKeys.contentDialogAttachments.tr, style: textTheme.titleSmall),
+        const SizedBox(height: 8),
+        Container(
+          width: contentWidth,
+          constraints: const BoxConstraints(minHeight: 200),
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+          ),
+          child:
+              attachments.isEmpty
+                  ? Center(
+                    child: Text(
+                      AppLocaleKeys.contentDialogNoAttachments.tr,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  )
+                  : GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: attachments.length,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount:
+                          contentWidth < 340 ? 1 : (contentWidth < 560 ? 2 : 3),
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                      mainAxisExtent: 84,
+                    ),
+                    itemBuilder: (context, index) {
+                      final rawUrl = attachments[index].toString();
+                      return TaskDetailsDialogHelpers.attachmentThumbnail(
+                        rawUrl,
+                        onOpen: () => _launchAttachment(rawUrl),
+                      );
+                    },
+                  ),
+        ),
+      ],
+    );
+
+    if (stacked) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          notesCard,
+          const SizedBox(height: 16),
+          attachmentsCard,
+        ],
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [notesCard, attachmentsCard],
+    );
+  }
+
+  Widget _buildSectionShell({
+    required BuildContext context,
+    required String title,
+    required IconData icon,
+    required Widget child,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      width: 170,
-      margin: EdgeInsets.all(5),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade300),
+        color: colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: Colors.grey),
-              SizedBox(width: 5),
+              Icon(icon, size: 18, color: colorScheme.primary),
+              const SizedBox(width: 8),
               Text(
                 title,
-                style: const TextStyle(fontSize: 14, color: Colors.grey),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
               ),
             ],
           ),
-          SizedBox(height: 10),
-          Text(
-            value,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
-              color: AppColors.primaryfontColor,
+          const SizedBox(height: 10),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetaTile({
+    required String label,
+    required String value,
+    required IconData icon,
+    required double width,
+    required ColorScheme colorScheme,
+  }) {
+    return Container(
+      width: width,
+      constraints: const BoxConstraints(minHeight: 90),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CircleAvatar(
+            radius: 14,
+            backgroundColor: colorScheme.primaryContainer,
+            child: Icon(icon, size: 15, color: colorScheme.primary),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: colorScheme.onSurface,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -587,70 +496,36 @@ class ContentDialogDetails extends StatelessWidget {
     );
   }
 
-  Widget _attachmentCard(
-    String title,
-    String size, {
-    required VoidCallback onDownload,
-  }) {
-    return Container(
-      width: 200,
-      height: 140,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: Colors.white,
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: Colors.blue.withValues(alpha: 0.2),
-                radius: 14,
-                child: const Icon(
-                  Icons.insert_drive_file_outlined,
-                  color: Colors.blue,
-                  size: 16,
-                ),
-              ),
-              SizedBox(width: 5),
-              SizedBox(
-                width: 100,
-                child: Text(
-                  title,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
+  String _formatPlatformValue(List<dynamic> platformValues) {
+    if (platformValues.isEmpty) return '-';
+    final s = FunHelper.formatStoredPlatforms(platformValues);
+    return s.isEmpty ? '-' : s;
+  }
 
-                    color: AppColors.primaryfontColor,
-                  ),
-                ),
-              ),
-            ],
-          ),
+  Uri _normalizeUri(String rawUrl) {
+    final trimmed = rawUrl.trim();
+    final parsed = Uri.tryParse(trimmed);
+    if (parsed != null && parsed.hasScheme) return parsed;
+    return Uri.parse('https://$trimmed');
+  }
 
-          Text(size, style: const TextStyle(color: Colors.grey)),
-          const SizedBox(height: 10),
-          ElevatedButton.icon(
-            onPressed: onDownload,
-            icon: const Icon(Icons.download, size: 18),
-            label: const Text('تنزيل'),
-            style: ElevatedButton.styleFrom(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              backgroundColor: Color(0xffF9F5FF),
-              foregroundColor: Colors.blue,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-            ),
-          ),
-        ],
-      ),
+  Future<void> _launchAttachment(String rawUrl) async {
+    try {
+      final uri = _normalizeUri(rawUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        return;
+      }
+    } catch (_) {
+      // Fall through to snackbar.
+    }
+
+    FunHelper.showsnackbar(
+      AppLocaleKeys.errorTitle.tr,
+      AppLocaleKeys.contentDialogOpenLinkFailed.tr,
+      snackPosition: SnackPosition.TOP,
+      backgroundColor: Colors.orange,
+      colorText: Colors.white,
     );
   }
 }

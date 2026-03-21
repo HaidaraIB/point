@@ -20,7 +20,9 @@ import 'package:point/View/Shared/CustomDropDown.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 import 'package:point/View/Shared/button.dart';
+import 'package:point/View/Shared/ContentStatusPromotionDropdownChip.dart';
 import 'package:point/View/Shared/HorizantalScroll.dart';
+import 'package:point/View/Shared/TableCellCenter.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/t.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -95,8 +97,7 @@ class ContentsTable extends StatelessWidget {
                                 if (controller.clientController.text.isEmpty) {
                                   FunHelper.showsnackbar(
                                     'error'.tr,
-                                    '❌ يرجى اختيار عميل قبل إضافة محتوى جديد.'
-                                        .tr,
+                                    'content.form.select_client_first'.tr,
                                     snackPosition: SnackPosition.TOP,
                                     backgroundColor: Colors.red,
                                     colorText: Colors.white,
@@ -125,7 +126,7 @@ class ContentsTable extends StatelessWidget {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Text(
-                                      'ادارة المهام'.tr,
+                                      'tasks'.tr,
                                       style: TextStyle(
                                         color: Colors.white,
                                         fontWeight: FontWeight.bold,
@@ -175,26 +176,9 @@ class ContentsTable extends StatelessWidget {
                               fillColor: Colors.white,
                               onChanged: (value) {
                                 if (value != null) {
-                                  controller.searchedcontents.assignAll(
-                                    List.from(
-                                      controller.contents.where(
-                                        (a) =>
-                                            (a.clientId == (value).id &&
-                                                a.publishDate != null &&
-                                                (a.publishDate!.year >
-                                                        DateTime.now().year ||
-                                                    (a.publishDate!.year ==
-                                                            DateTime.now()
-                                                                .year &&
-                                                        a.publishDate!.month >=
-                                                            DateTime.now()
-                                                                .month))),
-                                      ),
-                                    ),
-                                  );
-
                                   controller.clientController.text =
                                       (value).id ?? '';
+                                  controller.refreshFilteredContents();
                                 }
                                 log(
                                   "Selected client ID: ${controller.clientController.text}",
@@ -211,7 +195,7 @@ class ContentsTable extends StatelessWidget {
                         SizedBox(height: 10),
                         GetX<HomeController>(
                           builder: (c) {
-                            final contents = c.searchedcontents.toList();
+                            final contents = c.searchedContents.toList();
                             if (c.clientController.text.isEmpty) {
                               return Center(
                                 child: Padding(
@@ -219,7 +203,7 @@ class ContentsTable extends StatelessWidget {
                                     vertical: 32,
                                   ),
                                   child: Text(
-                                    'اختر العميل لعرض المحتوى',
+                                    'history.pick_client_content'.tr,
                                     style: TextStyle(
                                       fontSize: 15,
                                       color: AppColors.fontColorGrey,
@@ -235,7 +219,7 @@ class ContentsTable extends StatelessWidget {
                                     vertical: 32,
                                   ),
                                   child: Text(
-                                    'لا توجد بيانات',
+                                    'history.empty_data'.tr,
                                     style: TextStyle(
                                       fontSize: 15,
                                       color: AppColors.fontColorGrey,
@@ -246,931 +230,980 @@ class ContentsTable extends StatelessWidget {
                             }
                             return HorizontalScrollbarTable(
                               child: Padding(
-                                padding: const EdgeInsets.only(top: 6, bottom: 14),
+                                padding: const EdgeInsets.only(
+                                  top: 6,
+                                  bottom: 14,
+                                ),
                                 child: SizedBox(
                                   width: 2000,
                                   child: DataTable(
-                                  dataRowMinHeight: 72,
-                                  dataRowMaxHeight: double.infinity,
-                                  // headingRowColor: WidgetStateProperty.all(Colors.blue.shade50),
-                                  dataRowColor: WidgetStateProperty.all(
-                                    Colors.white,
-                                  ),
-                                  dividerThickness: 0.5,
-                                  columns: [
-                                    DataColumn(
-                                      columnWidth: const FixedColumnWidth(180),
-                                      headingRowAlignment:
-                                          MainAxisAlignment.center,
+                                    dataRowMinHeight: 72,
+                                    dataRowMaxHeight: double.infinity,
+                                    // headingRowColor: WidgetStateProperty.all(Colors.blue.shade50),
+                                    dataRowColor: WidgetStateProperty.all(
+                                      Colors.white,
+                                    ),
+                                    dividerThickness: 0.5,
+                                    columns: [
+                                      DataColumn(
+                                        columnWidth: const FixedColumnWidth(
+                                          180,
+                                        ),
+                                        headingRowAlignment:
+                                            MainAxisAlignment.center,
 
-                                      label: Text(
-                                        "title".tr,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 13,
-                                          color: AppColors.fontColorGrey,
+                                        label: Text(
+                                          "title".tr,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 13,
+                                            color: AppColors.fontColorGrey,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    DataColumn(
-                                      columnWidth: const FixedColumnWidth(180),
-                                      headingRowAlignment:
-                                          MainAxisAlignment.center,
+                                      DataColumn(
+                                        columnWidth: const FixedColumnWidth(
+                                          180,
+                                        ),
+                                        headingRowAlignment:
+                                            MainAxisAlignment.center,
 
-                                      label: Text(
-                                        "platform".tr,
-                                        style: TextStyle(
-                                          fontSize: 13,
+                                        label: Text(
+                                          "platform".tr,
+                                          style: TextStyle(
+                                            fontSize: 13,
 
-                                          fontWeight: FontWeight.bold,
-                                          color: AppColors.fontColorGrey,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.fontColorGrey,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    DataColumn(
-                                      columnWidth: const FixedColumnWidth(160),
-                                      headingRowAlignment:
-                                          MainAxisAlignment.center,
+                                      DataColumn(
+                                        columnWidth: const FixedColumnWidth(
+                                          160,
+                                        ),
+                                        headingRowAlignment:
+                                            MainAxisAlignment.center,
 
-                                      label: Text(
-                                        "content_type".tr,
-                                        style: TextStyle(
-                                          fontSize: 13,
+                                        label: Text(
+                                          "content_type".tr,
+                                          style: TextStyle(
+                                            fontSize: 13,
 
-                                          fontWeight: FontWeight.bold,
-                                          color: AppColors.fontColorGrey,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.fontColorGrey,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    DataColumn(
-                                      columnWidth: const FixedColumnWidth(180),
-                                      headingRowAlignment:
-                                          MainAxisAlignment.center,
+                                      DataColumn(
+                                        columnWidth: const FixedColumnWidth(
+                                          180,
+                                        ),
+                                        headingRowAlignment:
+                                            MainAxisAlignment.center,
 
-                                      label: Text(
-                                        "content_provider".tr,
-                                        style: TextStyle(
-                                          fontSize: 13,
+                                        label: Text(
+                                          "content_provider".tr,
+                                          style: TextStyle(
+                                            fontSize: 13,
 
-                                          fontWeight: FontWeight.bold,
-                                          color: AppColors.fontColorGrey,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.fontColorGrey,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    DataColumn(
-                                      columnWidth: const FixedColumnWidth(140),
-                                      headingRowAlignment:
-                                          MainAxisAlignment.center,
-                                      label: Text(
-                                        "status".tr,
-                                        style: TextStyle(
-                                          fontSize: 13,
+                                      DataColumn(
+                                        columnWidth: const FixedColumnWidth(
+                                          210,
+                                        ),
+                                        headingRowAlignment:
+                                            MainAxisAlignment.center,
+                                        label: Text(
+                                          "status".tr,
+                                          style: TextStyle(
+                                            fontSize: 13,
 
-                                          fontWeight: FontWeight.bold,
-                                          color: AppColors.fontColorGrey,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.fontColorGrey,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    DataColumn(
-                                      columnWidth: const FixedColumnWidth(140),
-                                      headingRowAlignment:
-                                          MainAxisAlignment.center,
-                                      label: Text(
-                                        "promotion".tr,
-                                        style: TextStyle(
-                                          fontSize: 13,
+                                      DataColumn(
+                                        columnWidth: const FixedColumnWidth(
+                                          210,
+                                        ),
+                                        headingRowAlignment:
+                                            MainAxisAlignment.center,
+                                        label: Text(
+                                          "promotion".tr,
+                                          style: TextStyle(
+                                            fontSize: 13,
 
-                                          fontWeight: FontWeight.bold,
-                                          color: AppColors.fontColorGrey,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.fontColorGrey,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    DataColumn(
-                                      columnWidth: const FixedColumnWidth(180),
-                                      headingRowAlignment:
-                                          MainAxisAlignment.center,
-                                      label: Text(
-                                        "المرفقات".tr,
-                                        style: TextStyle(
-                                          fontSize: 13,
+                                      DataColumn(
+                                        columnWidth: const FixedColumnWidth(
+                                          180,
+                                        ),
+                                        headingRowAlignment:
+                                            MainAxisAlignment.center,
+                                        label: Text(
+                                          'content.dialog.attachments'.tr,
+                                          style: TextStyle(
+                                            fontSize: 13,
 
-                                          fontWeight: FontWeight.bold,
-                                          color: AppColors.fontColorGrey,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.fontColorGrey,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    DataColumn(
-                                      columnWidth: const FixedColumnWidth(160),
-                                      headingRowAlignment:
-                                          MainAxisAlignment.center,
-                                      label: Text(
-                                        "client_notes".tr,
-                                        style: TextStyle(
-                                          fontSize: 13,
+                                      DataColumn(
+                                        columnWidth: const FixedColumnWidth(
+                                          160,
+                                        ),
+                                        headingRowAlignment:
+                                            MainAxisAlignment.center,
+                                        label: Text(
+                                          "client_notes".tr,
+                                          style: TextStyle(
+                                            fontSize: 13,
 
-                                          fontWeight: FontWeight.bold,
-                                          color: AppColors.fontColorGrey,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.fontColorGrey,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    DataColumn(
-                                      columnWidth: const FixedColumnWidth(160),
-                                      headingRowAlignment:
-                                          MainAxisAlignment.center,
-                                      label: Text(
-                                        "publish_date".tr,
-                                        style: TextStyle(
-                                          fontSize: 13,
+                                      DataColumn(
+                                        columnWidth: const FixedColumnWidth(
+                                          160,
+                                        ),
+                                        headingRowAlignment:
+                                            MainAxisAlignment.center,
+                                        label: Text(
+                                          "publish_date".tr,
+                                          style: TextStyle(
+                                            fontSize: 13,
 
-                                          fontWeight: FontWeight.bold,
-                                          color: AppColors.fontColorGrey,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.fontColorGrey,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    DataColumn(
-                                      columnWidth: const FixedColumnWidth(180),
-                                      headingRowAlignment:
-                                          MainAxisAlignment.center,
-                                      label: Text(
-                                        "client_revisions".tr,
-                                        style: TextStyle(
-                                          fontSize: 13,
+                                      DataColumn(
+                                        columnWidth: const FixedColumnWidth(
+                                          180,
+                                        ),
+                                        headingRowAlignment:
+                                            MainAxisAlignment.center,
+                                        label: Text(
+                                          "client_revisions".tr,
+                                          style: TextStyle(
+                                            fontSize: 13,
 
-                                          fontWeight: FontWeight.bold,
-                                          color: AppColors.fontColorGrey,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.fontColorGrey,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    DataColumn(
-                                      columnWidth: const FixedColumnWidth(160),
-                                      headingRowAlignment:
-                                          MainAxisAlignment.center,
-                                      label: Text(
-                                        "actions".tr,
-                                        style: TextStyle(
-                                          fontSize: 13,
+                                      DataColumn(
+                                        columnWidth: const FixedColumnWidth(
+                                          160,
+                                        ),
+                                        headingRowAlignment:
+                                            MainAxisAlignment.center,
+                                        label: Text(
+                                          "actions".tr,
+                                          style: TextStyle(
+                                            fontSize: 13,
 
-                                          fontWeight: FontWeight.bold,
-                                          color: AppColors.fontColorGrey,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.fontColorGrey,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                  rows:
-                                      contents.map((emp) {
-                                        return DataRow(
-                                          cells: [
-                                            DataCell(
-                                              Center(
-                                                child: Container(
-                                                  constraints: BoxConstraints(
-                                                    maxWidth: math.max(
-                                                      (Get.width - 280) / 9,
-                                                      120,
-                                                    ),
-                                                  ),
-                                                  child: Text(
-                                                    emp.title,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    maxLines: 2,
-                                                    style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      color:
-                                                          AppColors
-                                                              .fontColorGrey,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                            DataCell(
-                                              Center(
-                                                child: Container(
-                                                  constraints: BoxConstraints(
-                                                    maxWidth: math.max(
-                                                      (Get.width - 280) / 9,
-                                                      120,
-                                                    ),
-                                                  ),
-                                                  child: Text(
-                                                    emp.platform.toString(),
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      color:
-                                                          AppColors
-                                                              .fontColorGrey,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                            DataCell(
-                                              Container(
-                                                alignment: Alignment.center,
-                                                width: 110,
-                                                height: 32,
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      // vertical: 4,
-                                                    ),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.purple.shade50,
-                                                  borderRadius:
-                                                      BorderRadius.circular(16),
-                                                ),
-                                                child: Text(
-                                                  emp.contentType.tr,
-                                                  style: TextStyle(
-                                                    color: Colors.purple,
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 13,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                            DataCell(
-                                              Container(
-                                                alignment: Alignment.center,
-                                                width: 110,
-                                                height: 32,
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                      // vertical: 4,
-                                                    ),
-                                                decoration: BoxDecoration(
-                                                  color:
-                                                      Colors.blueGrey.shade100,
-                                                  borderRadius:
-                                                      BorderRadius.circular(16),
-                                                ),
-                                                child: Text(
-                                                  controller
-                                                          .getEmployeeById(
-                                                            emp.executor,
-                                                          )
-                                                          ?.name ??
-                                                      '',
-                                                  textAlign: TextAlign.center,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                    color: Colors.blueGrey,
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 13,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                            DataCell(
-                                              Builder(
-                                                builder: (context) {
-                                                  final actionKey = GlobalKey();
-                                                  return GestureDetector(
-                                                    key: actionKey,
-                                                    onTap: () {
-                                                      final RenderBox
-                                                      renderBox =
-                                                          actionKey
-                                                                  .currentContext!
-                                                                  .findRenderObject()
-                                                              as RenderBox;
-
-                                                      final Offset offset =
-                                                          renderBox
-                                                              .localToGlobal(
-                                                                Offset.zero,
-                                                              );
-                                                      final Size size =
-                                                          renderBox.size;
-
-                                                      showMenu(
-                                                        context: context,
-                                                        position:
-                                                            RelativeRect.fromLTRB(
-                                                              offset.dx,
-                                                              offset.dy +
-                                                                  size.height,
-                                                              offset.dx +
-                                                                  size.width,
-                                                              0,
-                                                            ),
-                                                        items:
-                                                            StorageKeys
-                                                                .statusList
-                                                                .map((stat) {
-                                                                  return PopupMenuItem(
-                                                                    child: Text(
-                                                                      stat.tr,
-                                                                    ),
-                                                                    value: stat,
-                                                                  );
-                                                                })
-                                                                .toList(),
-                                                      ).then((value) async {
-                                                        if (value != null) {
-                                                          final statusLabelAr =
-                                                              NotificationService
-                                                                  .statusLabelAr(
-                                                            value,
-                                                          );
-                                                          await controller
-                                                              .updateContent(
-                                                                emp.copyWith(
-                                                                  status: value,
-                                                                ),
-                                                              );
-                                                          await NotificationService.notifyAdminContentStatusChanged(
-                                                            contentTitle:
-                                                                emp.title,
-                                                            statusLabelAr:
-                                                                statusLabelAr,
-                                                          );
-                                                          if (value ==
-                                                              StorageKeys
-                                                                  .status_published) {
-                                                            final clientName =
-                                                                controller
-                                                                    .clients
-                                                                    .firstWhereOrNull(
-                                                                      (c) =>
-                                                                          c.id ==
-                                                                          emp.clientId,
-                                                                    )
-                                                                    ?.name ??
-                                                                emp.clientId;
-                                                            await NotificationService.notifyPromotionDeptNewPublishedContent(
-                                                              clientName:
-                                                                  clientName,
-                                                              contentTitle:
-                                                                  emp.title,
-                                                            );
-                                                          }
-                                                          controller.searchedcontents.assignAll(
-                                                            List.from(
-                                                              controller.contents.where(
-                                                                (a) =>
-                                                                    a.clientId ==
-                                                                    controller
-                                                                        .clientController
-                                                                        .text,
-                                                              ),
-                                                            ),
-                                                          );
-                                                        }
-                                                      });
-                                                    },
-                                                    child: _buildDropdownChip(
-                                                      label: emp.status.tr,
-                                                      textColor: _getStatusColor(
-                                                        emp.status,
-                                                      ),
-                                                      backgroundColor:
-                                                          _getStatusbgColor(
-                                                        emp.status,
-                                                      ),
-                                                      width: 126,
-                                                    ),
-                                                  );
-                                                },
-                                              ),
-                                            ),
-                                            DataCell(
-                                              Builder(
-                                                builder: (context) {
-                                                  final actionKey = GlobalKey();
-                                                  return GestureDetector(
-                                                    key: actionKey,
-                                                    onTap: () {
-                                                      if (controller
-                                                                  .currentemployee
-                                                                  .value
-                                                                  ?.role !=
-                                                              'admin' &&
-                                                          controller
-                                                                  .currentemployee
-                                                                  .value
-                                                                  ?.role !=
-                                                              'accountholder' &&
-                                                          controller
-                                                                  .currentemployee
-                                                                  .value
-                                                                  ?.role !=
-                                                              'supervisor' &&
-                                                          controller
-                                                                  .currentemployee
-                                                                  .value
-                                                                  ?.department !=
-                                                              'cat1') {
-                                                        FunHelper.showsnackbar(
-                                                          'error'.tr,
-                                                          '❌ ليس لديك صلاحية لتغيير الترويج.'
-                                                              .tr,
-                                                          snackPosition:
-                                                              SnackPosition
-                                                                  .BOTTOM,
-                                                          backgroundColor:
-                                                              Colors.red,
-                                                          colorText:
-                                                              Colors.white,
-                                                        );
-                                                        return;
-                                                      }
-                                                      final RenderBox
-                                                      renderBox =
-                                                          actionKey
-                                                                  .currentContext!
-                                                                  .findRenderObject()
-                                                              as RenderBox;
-
-                                                      final Offset offset =
-                                                          renderBox
-                                                              .localToGlobal(
-                                                                Offset.zero,
-                                                              );
-                                                      final Size size =
-                                                          renderBox.size;
-
-                                                      showMenu(
-                                                        context: context,
-                                                        position:
-                                                            RelativeRect.fromLTRB(
-                                                              offset.dx,
-                                                              offset.dy +
-                                                                  size.height,
-                                                              offset.dx +
-                                                                  size.width,
-                                                              0,
-                                                            ),
-                                                        items:
-                                                            StorageKeys
-                                                                .promations
-                                                                .map((stat) {
-                                                                  return PopupMenuItem(
-                                                                    child: Text(
-                                                                      stat.tr,
-                                                                    ),
-                                                                    value: stat,
-                                                                  );
-                                                                })
-                                                                .toList(),
-                                                      ).then((value) async {
-                                                        if (value != null) {
-                                                          await controller
-                                                              .updateContent(
-                                                                emp.copyWith(
-                                                                  promotion:
-                                                                      value,
-                                                                ),
-                                                              );
-                                                          if (value ==
-                                                                  'under_promotion' ||
-                                                              value ==
-                                                                  'end_promotion') {
-                                                            final labelAr =
-                                                                value ==
-                                                                        'under_promotion'
-                                                                    ? 'قيد الترويج'
-                                                                    : 'انتهى الترويج';
-                                                            await NotificationService.notifyAdminContentPromotionStatusChanged(
-                                                              contentTitle:
-                                                                  emp.title,
-                                                              promotionLabelAr:
-                                                                  labelAr,
-                                                            );
-                                                          }
-                                                          controller.searchedcontents.assignAll(
-                                                            List.from(
-                                                              controller.contents.where(
-                                                                (a) =>
-                                                                    a.clientId ==
-                                                                    controller
-                                                                        .clientController
-                                                                        .text,
-                                                              ),
-                                                            ),
-                                                          );
-                                                        }
-                                                      });
-                                                    },
-                                                    child: Center(
-                                                      child: _buildDropdownChip(
-                                                        label:
-                                                            emp.promotion?.tr ??
-                                                            '--',
-                                                        textColor:
-                                                            _getPromotionColor(
-                                                          emp.promotion,
-                                                        ),
-                                                        backgroundColor:
-                                                            _getPromotionBgColor(
-                                                          emp.promotion,
-                                                        ),
-                                                        width: math.max(
-                                                          (Get.width - 280) / 9,
-                                                          126,
-                                                        ),
+                                    ],
+                                    rows:
+                                        contents.map((emp) {
+                                          return DataRow(
+                                            cells: [
+                                              DataCell(
+                                                TableCellCenter(
+                                                  child: Container(
+                                                    constraints: BoxConstraints(
+                                                      maxWidth: math.max(
+                                                        (Get.width - 280) / 9,
+                                                        120,
                                                       ),
                                                     ),
-                                                  );
-                                                },
-                                              ),
-                                            ),
-                                            DataCell(
-                                              Center(
-                                                child: Container(
-                                                  constraints: BoxConstraints(
-                                                    maxWidth: math.max(
-                                                      (Get.width - 280) / 9,
-                                                      120,
+                                                    child: Text(
+                                                      emp.title,
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      maxLines: 2,
+                                                      style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color:
+                                                            AppColors
+                                                                .fontColorGrey,
+                                                      ),
                                                     ),
                                                   ),
-                                                  child: Padding(
+                                                ),
+                                              ),
+                                              DataCell(
+                                                TableCellCenter(
+                                                  child: Container(
+                                                    constraints: BoxConstraints(
+                                                      maxWidth: math.max(
+                                                        (Get.width - 280) / 9,
+                                                        120,
+                                                      ),
+                                                    ),
+                                                    child: Text(
+                                                      FunHelper.formatStoredPlatforms(
+                                                        emp.platform,
+                                                      ),
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color:
+                                                            AppColors
+                                                                .fontColorGrey,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              DataCell(
+                                                TableCellCenter(
+                                                  child: Container(
+                                                    alignment: Alignment.center,
+                                                    width: 110,
+                                                    height: 32,
                                                     padding:
                                                         const EdgeInsets.symmetric(
-                                                          vertical: 6,
+                                                          horizontal: 8,
+                                                          // vertical: 4,
                                                         ),
-                                                    child: Wrap(
-                                                      spacing: 10,
-                                                      runSpacing: 10,
-                                                    children: [
-                                                      for (var file
-                                                          in emp.files ?? [])
-                                                        InkWell(
-                                                          onTap: () async {
-                                                            if (getFileType(
-                                                                  file,
-                                                                ) ==
-                                                                'image') {
-                                                              Get.dialog(
-                                                                AlertDialog(
-                                                                  actions: [
-                                                                    MainButton(
-                                                                      icon:
-                                                                          false,
-                                                                      title:
-                                                                          'اغلاق'
-                                                                              .tr,
-                                                                      fontcolor:
-                                                                          Colors
-                                                                              .white,
-                                                                      backgroundcolor:
-                                                                          AppColors
-                                                                              .primary,
-                                                                      width:
-                                                                          100,
-                                                                      bordersize:
-                                                                          5,
-                                                                      height:
-                                                                          30,
-                                                                      onpress: () {
-                                                                        Get.back();
-                                                                      },
-                                                                    ),
-                                                                  ],
-                                                                  content: Image.network(
-                                                                    file,
-                                                                    fit:
-                                                                        BoxFit
-                                                                            .contain,
-                                                                  ),
-                                                                ),
-                                                              );
-                                                              return;
-                                                            }
-                                                            await _openAttachmentUrl(
-                                                              file,
-                                                            );
-                                                          },
-                                                          child:
-                                                              _buildAttachmentPreviewTile(
-                                                                file,
-                                                              ),
-                                                        ),
-                                                    ],
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                            DataCell(
-                                              Center(
-                                                child: Container(
-                                                  constraints: BoxConstraints(
-                                                    maxWidth: math.max(
-                                                      (Get.width - 280) / 9,
-                                                      120,
-                                                    ),
-                                                  ),
-                                                  child: Text(
-                                                    emp.clientNotes ?? '--',
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold,
+                                                    decoration: BoxDecoration(
                                                       color:
-                                                          AppColors
-                                                              .fontColorGrey,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                            DataCell(
-                                              Center(
-                                                child: Container(
-                                                  constraints: BoxConstraints(
-                                                    maxWidth: math.max(
-                                                      (Get.width - 280) / 9,
-                                                      120,
-                                                    ),
-                                                  ),
-                                                  child: Text(
-                                                    FunHelper.formatdate(
-                                                          emp.publishDate,
-                                                        ) ??
-                                                        '--',
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      color:
-                                                          AppColors
-                                                              .fontColorGrey,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                            DataCell(
-                                              Center(
-                                                child: Container(
-                                                  constraints: BoxConstraints(
-                                                    maxWidth: math.max(
-                                                      (Get.width - 280) / 9,
-                                                      120,
-                                                    ),
-                                                  ),
-                                                  child: Padding(
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                          vertical: 6,
-                                                        ),
-                                                    child: Wrap(
-                                                      spacing: 10,
-                                                      runSpacing: 10,
-                                                    children: [
-                                                      for (var file
-                                                          in emp.clientEdits ??
-                                                              [])
-                                                        InkWell(
-                                                          onTap: () async {
-                                                            if (getFileType(
-                                                                  file,
-                                                                ) ==
-                                                                'image') {
-                                                              Get.dialog(
-                                                                AlertDialog(
-                                                                  actions: [
-                                                                    MainButton(
-                                                                      icon:
-                                                                          false,
-                                                                      title:
-                                                                          'اغلاق'
-                                                                              .tr,
-                                                                      fontcolor:
-                                                                          Colors
-                                                                              .white,
-                                                                      backgroundcolor:
-                                                                          AppColors
-                                                                              .primary,
-                                                                      width:
-                                                                          100,
-                                                                      bordersize:
-                                                                          5,
-                                                                      height:
-                                                                          30,
-                                                                      onpress: () {
-                                                                        Get.back();
-                                                                      },
-                                                                    ),
-                                                                  ],
-                                                                  content: Image.network(
-                                                                    file,
-                                                                    fit:
-                                                                        BoxFit
-                                                                            .contain,
-                                                                  ),
-                                                                ),
-                                                              );
-                                                              return;
-                                                            }
-                                                            await _openAttachmentUrl(
-                                                              file,
-                                                            );
-                                                          },
-                                                          child:
-                                                              _buildAttachmentPreviewTile(
-                                                                file,
-                                                              ),
-                                                        ),
-                                                    ],
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                            DataCell(
-                                              FittedBox(
-                                                fit: BoxFit.scaleDown,
-                                                alignment: Alignment.center,
-                                                child: SizedBox(
-                                                  width: 88,
-                                                  height: 40,
-                                                  child: PopupMenuButton<int>(
-                                                    padding: EdgeInsets.zero,
-                                                    shape: RoundedRectangleBorder(
+                                                          Colors.purple.shade50,
                                                       borderRadius:
                                                           BorderRadius.circular(
-                                                            12,
+                                                            16,
                                                           ),
                                                     ),
-                                                    color: Colors.white,
-                                                    elevation: 4,
-                                                    itemBuilder:
-                                                        (context) => [
-                                                          PopupMenuItem(
-                                                            value: 0,
-                                                            height: 30,
-
-                                                            child: Container(
-                                                              height: 30,
-                                                              margin:
-                                                                  EdgeInsets.all(
-                                                                    2,
-                                                                  ),
-                                                              padding:
-                                                                  EdgeInsets.symmetric(
-                                                                    vertical: 5,
-                                                                  ),
-                                                              decoration: BoxDecoration(
-                                                                borderRadius:
-                                                                    BorderRadius.circular(
-                                                                      5,
-                                                                    ),
-                                                                color:
-                                                                    Colors
-                                                                        .grey
-                                                                        .shade200,
-                                                              ),
-                                                              child: Row(
-                                                                mainAxisSize:
-                                                                    MainAxisSize
-                                                                        .min,
-                                                                children: [
-                                                                  Icon(
-                                                                    Icons.edit,
-                                                                    color:
-                                                                        Colors
-                                                                            .green,
-                                                                    size: 18,
-                                                                  ),
-                                                                  SizedBox(
-                                                                    width: 4,
-                                                                  ),
-                                                                  Flexible(
-                                                                    child: Text(
-                                                                      "تعديل",
-                                                                      style: TextStyle(
-                                                                        fontWeight:
-                                                                            FontWeight.bold,
-                                                                        fontSize:
-                                                                            12,
-                                                                      ),
-                                                                      overflow:
-                                                                          TextOverflow
-                                                                              .ellipsis,
-                                                                    ),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                            ),
-                                                          ),
-                                                          if ([
-                                                            'supervisor',
-                                                            'admin',
-                                                            'accountholder',
-                                                          ].contains(
-                                                            (controller
-                                                                        .currentemployee
-                                                                        .value
-                                                                        ?.role ??
-                                                                    '')
-                                                                .trim()
-                                                                .toLowerCase(),
-                                                          ))
-                                                            PopupMenuItem(
-                                                              value: 1,
-
-                                                              height: 30,
-
-                                                              child: Container(
-                                                                height: 30,
-                                                                margin:
-                                                                    EdgeInsets.all(
-                                                                      2,
-                                                                    ),
-                                                                padding:
-                                                                    EdgeInsets.symmetric(
-                                                                      vertical:
-                                                                          5,
-                                                                    ),
-
-                                                                decoration: BoxDecoration(
-                                                                  borderRadius:
-                                                                      BorderRadius.circular(
-                                                                        5,
-                                                                      ),
-                                                                  color:
-                                                                      Colors
-                                                                          .grey
-                                                                          .shade200,
-                                                                ),
-                                                                child: Row(
-                                                                  mainAxisSize:
-                                                                      MainAxisSize
-                                                                          .min,
-                                                                  children: [
-                                                                    Icon(
-                                                                      Icons
-                                                                          .delete,
-                                                                      color:
-                                                                          Colors
-                                                                              .red,
-                                                                      size: 18,
-                                                                    ),
-                                                                    SizedBox(
-                                                                      width: 4,
-                                                                    ),
-                                                                    Text(
-                                                                      "حذف",
-                                                                      style: TextStyle(
-                                                                        fontWeight:
-                                                                            FontWeight.bold,
-                                                                        fontSize:
-                                                                            12,
-                                                                      ),
-                                                                    ),
-                                                                  ],
-                                                                ),
-                                                              ),
-                                                            ),
-                                                        ],
-                                                    onSelected: (value) {
-                                                      if (value == 0) {
-                                                        controller
-                                                            .uploadedFilesPaths
-                                                            .assignAll(
-                                                              emp.files ?? [],
-                                                            );
-                                                        showAddContentDialog(
-                                                          context,
-                                                          clientId:
-                                                              controller
-                                                                  .clientController
-                                                                  .text,
-                                                          model: emp,
-                                                        );
-                                                      } else if (value == 1) {
-                                                        FunHelper.showConfirmDailog(
-                                                          context,
-                                                          onTap: () async {
-                                                            await controller
-                                                                .deleteContent(
-                                                                  emp.id!,
-                                                                );
-                                                          },
-                                                        );
-                                                      }
-                                                    },
-                                                    child: Icon(
-                                                      Icons.more_vert,
+                                                    child: Text(
+                                                      FunHelper.trStored(
+                                                        emp.contentType,
+                                                        kind:
+                                                            StoredValueKind
+                                                                .contentType,
+                                                      ),
+                                                      style: TextStyle(
+                                                        color: Colors.purple,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize: 13,
+                                                      ),
                                                     ),
                                                   ),
                                                 ),
                                               ),
-                                            ),
-                                          ],
-                                        );
-                                      }).toList(),
+                                              DataCell(
+                                                TableCellCenter(
+                                                  child: Container(
+                                                    alignment: Alignment.center,
+                                                    width: 110,
+                                                    height: 32,
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 8,
+                                                          // vertical: 4,
+                                                        ),
+                                                    decoration: BoxDecoration(
+                                                      color:
+                                                          Colors
+                                                              .blueGrey
+                                                              .shade100,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            16,
+                                                          ),
+                                                    ),
+                                                    child: Text(
+                                                      controller
+                                                              .getEmployeeById(
+                                                                emp.executor,
+                                                              )
+                                                              ?.name ??
+                                                          '',
+                                                      textAlign:
+                                                          TextAlign.center,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      style: TextStyle(
+                                                        color: Colors.blueGrey,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        fontSize: 13,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              DataCell(
+                                                TableCellCenter(
+                                                  child: Builder(
+                                                    builder: (context) {
+                                                      final actionKey =
+                                                          GlobalKey();
+                                                      return GestureDetector(
+                                                        key: actionKey,
+                                                        onTap: () {
+                                                          final RenderBox
+                                                          renderBox =
+                                                              actionKey
+                                                                      .currentContext!
+                                                                      .findRenderObject()
+                                                                  as RenderBox;
+
+                                                          final Offset
+                                                          offset = renderBox
+                                                              .localToGlobal(
+                                                                Offset.zero,
+                                                              );
+                                                          final Size size =
+                                                              renderBox.size;
+
+                                                          showMenu(
+                                                            context: context,
+                                                            position:
+                                                                RelativeRect.fromLTRB(
+                                                                  offset.dx,
+                                                                  offset.dy +
+                                                                      size.height,
+                                                                  offset.dx +
+                                                                      size.width,
+                                                                  0,
+                                                                ),
+                                                            items:
+                                                                StorageKeys
+                                                                    .statusList
+                                                                    .map((
+                                                                      stat,
+                                                                    ) {
+                                                                      return PopupMenuItem(
+                                                                        child: Text(
+                                                                          stat.tr,
+                                                                        ),
+                                                                        value:
+                                                                            stat,
+                                                                      );
+                                                                    })
+                                                                    .toList(),
+                                                          ).then((value) async {
+                                                            if (value != null) {
+                                                              final statusLabelAr =
+                                                                  NotificationService.statusLabelAr(
+                                                                    value,
+                                                                  );
+                                                              await controller
+                                                                  .updateContent(
+                                                                    emp.copyWith(
+                                                                      status:
+                                                                          value,
+                                                                    ),
+                                                                  );
+                                                              await NotificationService.notifyAdminContentStatusChanged(
+                                                                contentTitle:
+                                                                    emp.title,
+                                                                statusLabelAr:
+                                                                    statusLabelAr,
+                                                              );
+                                                              if (value ==
+                                                                  StorageKeys
+                                                                      .status_published) {
+                                                                final clientName =
+                                                                    controller
+                                                                        .clients
+                                                                        .firstWhereOrNull(
+                                                                          (c) =>
+                                                                              c.id ==
+                                                                              emp.clientId,
+                                                                        )
+                                                                        ?.name ??
+                                                                    emp.clientId;
+                                                                await NotificationService.notifyPromotionDeptNewPublishedContent(
+                                                                  clientName:
+                                                                      clientName,
+                                                                  contentTitle:
+                                                                      emp.title,
+                                                                );
+                                                              }
+                                                              controller
+                                                                  .refreshFilteredContents();
+                                                            }
+                                                          });
+                                                        },
+                                                        child: buildContentDropdownChip(
+                                                          label: FunHelper.trStored(
+                                                            emp.status,
+                                                            kind:
+                                                                StoredValueKind
+                                                                    .taskStatus,
+                                                          ),
+                                                          textColor:
+                                                              getContentStatusColor(
+                                                                FunHelper.canonicalStoredStatus(
+                                                                  emp.status,
+                                                                ),
+                                                              ),
+                                                          backgroundColor:
+                                                              getContentStatusBgColor(
+                                                                FunHelper.canonicalStoredStatus(
+                                                                  emp.status,
+                                                                ),
+                                                              ),
+                                                        ),
+                                                      );
+                                                    },
+                                                  ),
+                                                ),
+                                              ),
+                                              DataCell(
+                                                TableCellCenter(
+                                                  child: Builder(
+                                                    builder: (context) {
+                                                      final actionKey =
+                                                          GlobalKey();
+                                                      return GestureDetector(
+                                                        key: actionKey,
+                                                        onTap: () {
+                                                          if (controller
+                                                                      .currentemployee
+                                                                      .value
+                                                                      ?.role !=
+                                                                  'admin' &&
+                                                              controller
+                                                                      .currentemployee
+                                                                      .value
+                                                                      ?.role !=
+                                                                  'accountholder' &&
+                                                              controller
+                                                                      .currentemployee
+                                                                      .value
+                                                                      ?.role !=
+                                                                  'supervisor' &&
+                                                              controller
+                                                                      .currentemployee
+                                                                      .value
+                                                                      ?.department !=
+                                                                  'cat1') {
+                                                            FunHelper.showsnackbar(
+                                                              'error'.tr,
+                                                              'errors.no_promotion_permission'
+                                                                  .tr,
+                                                              snackPosition:
+                                                                  SnackPosition
+                                                                      .BOTTOM,
+                                                              backgroundColor:
+                                                                  Colors.red,
+                                                              colorText:
+                                                                  Colors.white,
+                                                            );
+                                                            return;
+                                                          }
+                                                          final RenderBox
+                                                          renderBox =
+                                                              actionKey
+                                                                      .currentContext!
+                                                                      .findRenderObject()
+                                                                  as RenderBox;
+
+                                                          final Offset
+                                                          offset = renderBox
+                                                              .localToGlobal(
+                                                                Offset.zero,
+                                                              );
+                                                          final Size size =
+                                                              renderBox.size;
+
+                                                          showMenu(
+                                                            context: context,
+                                                            position:
+                                                                RelativeRect.fromLTRB(
+                                                                  offset.dx,
+                                                                  offset.dy +
+                                                                      size.height,
+                                                                  offset.dx +
+                                                                      size.width,
+                                                                  0,
+                                                                ),
+                                                            items:
+                                                                StorageKeys
+                                                                    .promations
+                                                                    .map((
+                                                                      stat,
+                                                                    ) {
+                                                                      return PopupMenuItem(
+                                                                        child: Text(
+                                                                          stat.tr,
+                                                                        ),
+                                                                        value:
+                                                                            stat,
+                                                                      );
+                                                                    })
+                                                                    .toList(),
+                                                          ).then((value) async {
+                                                            if (value != null) {
+                                                              await controller
+                                                                  .updateContent(
+                                                                    emp.copyWith(
+                                                                      promotion:
+                                                                          value,
+                                                                    ),
+                                                                  );
+                                                              if (value ==
+                                                                      'under_promotion' ||
+                                                                  value ==
+                                                                      'end_promotion') {
+                                                                final promotionLabel =
+                                                                    value ==
+                                                                            'under_promotion'
+                                                                        ? 'under_promotion'
+                                                                            .tr
+                                                                        : 'end_promotion'
+                                                                            .tr;
+                                                                await NotificationService.notifyAdminContentPromotionStatusChanged(
+                                                                  contentTitle:
+                                                                      emp.title,
+                                                                  promotionLabelAr:
+                                                                      promotionLabel,
+                                                                );
+                                                              }
+                                                              controller
+                                                                  .refreshFilteredContents();
+                                                            }
+                                                          });
+                                                        },
+                                                        child: buildContentDropdownChip(
+                                                          label:
+                                                              emp.promotion ==
+                                                                          null ||
+                                                                      emp.promotion!
+                                                                          .trim()
+                                                                          .isEmpty
+                                                                  ? '--'
+                                                                  : FunHelper.trStored(
+                                                                    emp.promotion,
+                                                                    kind:
+                                                                        StoredValueKind
+                                                                            .promotion,
+                                                                  ),
+                                                          textColor:
+                                                              getContentPromotionColor(
+                                                                FunHelper.canonicalStoredPromotion(
+                                                                  emp.promotion,
+                                                                ),
+                                                              ),
+                                                          backgroundColor:
+                                                              getContentPromotionBgColor(
+                                                                FunHelper.canonicalStoredPromotion(
+                                                                  emp.promotion,
+                                                                ),
+                                                              ),
+                                                        ),
+                                                      );
+                                                    },
+                                                  ),
+                                                ),
+                                              ),
+                                              DataCell(
+                                                TableCellCenter(
+                                                  child: Container(
+                                                    constraints: BoxConstraints(
+                                                      maxWidth: math.max(
+                                                        (Get.width - 280) / 9,
+                                                        120,
+                                                      ),
+                                                    ),
+                                                    child: Padding(
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            vertical: 6,
+                                                          ),
+                                                      child: Wrap(
+                                                        spacing: 10,
+                                                        runSpacing: 10,
+                                                        children: [
+                                                          for (var file
+                                                              in emp.files ??
+                                                                  [])
+                                                            InkWell(
+                                                              onTap: () async {
+                                                                if (getFileType(
+                                                                      file,
+                                                                    ) ==
+                                                                    'image') {
+                                                                  Get.dialog(
+                                                                    AlertDialog(
+                                                                      actions: [
+                                                                        MainButton(
+                                                                          icon:
+                                                                              false,
+                                                                          title:
+                                                                              'app.close'.tr,
+                                                                          fontcolor:
+                                                                              Colors.white,
+                                                                          backgroundcolor:
+                                                                              AppColors.primary,
+                                                                          width:
+                                                                              100,
+                                                                          bordersize:
+                                                                              5,
+                                                                          height:
+                                                                              30,
+                                                                          onpress: () {
+                                                                            Get.back();
+                                                                          },
+                                                                        ),
+                                                                      ],
+                                                                      content: Image.network(
+                                                                        file,
+                                                                        fit:
+                                                                            BoxFit.contain,
+                                                                      ),
+                                                                    ),
+                                                                  );
+                                                                  return;
+                                                                }
+                                                                await _openAttachmentUrl(
+                                                                  file,
+                                                                );
+                                                              },
+                                                              child:
+                                                                  _buildAttachmentPreviewTile(
+                                                                    file,
+                                                                  ),
+                                                            ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              DataCell(
+                                                TableCellCenter(
+                                                  child: Container(
+                                                    constraints: BoxConstraints(
+                                                      maxWidth: math.max(
+                                                        (Get.width - 280) / 9,
+                                                        120,
+                                                      ),
+                                                    ),
+                                                    child: Text(
+                                                      emp.clientNotes ?? '--',
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color:
+                                                            AppColors
+                                                                .fontColorGrey,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              DataCell(
+                                                TableCellCenter(
+                                                  child: Container(
+                                                    constraints: BoxConstraints(
+                                                      maxWidth: math.max(
+                                                        (Get.width - 280) / 9,
+                                                        120,
+                                                      ),
+                                                    ),
+                                                    child: Text(
+                                                      FunHelper.formatdate(
+                                                            emp.publishDate,
+                                                          ) ??
+                                                          '--',
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      style: TextStyle(
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color:
+                                                            AppColors
+                                                                .fontColorGrey,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              DataCell(
+                                                TableCellCenter(
+                                                  child: Container(
+                                                    constraints: BoxConstraints(
+                                                      maxWidth: math.max(
+                                                        (Get.width - 280) / 9,
+                                                        120,
+                                                      ),
+                                                    ),
+                                                    child: Padding(
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            vertical: 6,
+                                                          ),
+                                                      child: Wrap(
+                                                        spacing: 10,
+                                                        runSpacing: 10,
+                                                        children: [
+                                                          for (var file
+                                                              in emp.clientEdits ??
+                                                                  [])
+                                                            InkWell(
+                                                              onTap: () async {
+                                                                if (getFileType(
+                                                                      file,
+                                                                    ) ==
+                                                                    'image') {
+                                                                  Get.dialog(
+                                                                    AlertDialog(
+                                                                      actions: [
+                                                                        MainButton(
+                                                                          icon:
+                                                                              false,
+                                                                          title:
+                                                                              'app.close'.tr,
+                                                                          fontcolor:
+                                                                              Colors.white,
+                                                                          backgroundcolor:
+                                                                              AppColors.primary,
+                                                                          width:
+                                                                              100,
+                                                                          bordersize:
+                                                                              5,
+                                                                          height:
+                                                                              30,
+                                                                          onpress: () {
+                                                                            Get.back();
+                                                                          },
+                                                                        ),
+                                                                      ],
+                                                                      content: Image.network(
+                                                                        file,
+                                                                        fit:
+                                                                            BoxFit.contain,
+                                                                      ),
+                                                                    ),
+                                                                  );
+                                                                  return;
+                                                                }
+                                                                await _openAttachmentUrl(
+                                                                  file,
+                                                                );
+                                                              },
+                                                              child:
+                                                                  _buildAttachmentPreviewTile(
+                                                                    file,
+                                                                  ),
+                                                            ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              DataCell(
+                                                TableCellCenter(
+                                                  child: FittedBox(
+                                                    fit: BoxFit.scaleDown,
+                                                    alignment: Alignment.center,
+                                                    child: SizedBox(
+                                                      width: 88,
+                                                      height: 40,
+                                                      child: PopupMenuButton<
+                                                        int
+                                                      >(
+                                                        tooltip:
+                                                            'tasks.options_tooltip'
+                                                                .tr,
+                                                        padding:
+                                                            EdgeInsets.zero,
+                                                        shape: RoundedRectangleBorder(
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                12,
+                                                              ),
+                                                        ),
+                                                        color: Colors.white,
+                                                        elevation: 4,
+                                                        itemBuilder:
+                                                            (context) => [
+                                                              PopupMenuItem(
+                                                                value: 0,
+                                                                height: 30,
+
+                                                                child: Container(
+                                                                  height: 30,
+                                                                  margin:
+                                                                      EdgeInsets.all(
+                                                                        2,
+                                                                      ),
+                                                                  padding:
+                                                                      EdgeInsets.symmetric(
+                                                                        vertical:
+                                                                            5,
+                                                                      ),
+                                                                  child: Row(
+                                                                    mainAxisSize:
+                                                                        MainAxisSize
+                                                                            .min,
+                                                                    children: [
+                                                                      Flexible(
+                                                                        child: Text(
+                                                                          'edit'
+                                                                              .tr,
+                                                                          style: TextStyle(
+                                                                            fontWeight:
+                                                                                FontWeight.bold,
+                                                                            fontSize:
+                                                                                12,
+                                                                          ),
+                                                                          overflow:
+                                                                              TextOverflow.ellipsis,
+                                                                        ),
+                                                                      ),
+                                                                      SizedBox(
+                                                                        width:
+                                                                            4,
+                                                                      ),
+                                                                      Icon(
+                                                                        Icons
+                                                                            .edit,
+                                                                        color:
+                                                                            Colors.green,
+                                                                        size:
+                                                                            18,
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                              if ([
+                                                                'supervisor',
+                                                                'admin',
+                                                                'accountholder',
+                                                              ].contains(
+                                                                (controller
+                                                                            .currentemployee
+                                                                            .value
+                                                                            ?.role ??
+                                                                        '')
+                                                                    .trim()
+                                                                    .toLowerCase(),
+                                                              ))
+                                                                PopupMenuItem(
+                                                                  value: 1,
+
+                                                                  height: 30,
+
+                                                                  child: Container(
+                                                                    height: 30,
+                                                                    margin:
+                                                                        EdgeInsets.all(
+                                                                          2,
+                                                                        ),
+                                                                    padding:
+                                                                        EdgeInsets.symmetric(
+                                                                          vertical:
+                                                                              5,
+                                                                        ),
+
+                                                                    child: Row(
+                                                                      mainAxisSize:
+                                                                          MainAxisSize
+                                                                              .min,
+                                                                      children: [
+                                                                        Text(
+                                                                          'delete'
+                                                                              .tr,
+                                                                          style: TextStyle(
+                                                                            fontWeight:
+                                                                                FontWeight.bold,
+                                                                            fontSize:
+                                                                                12,
+                                                                          ),
+                                                                        ),
+                                                                        SizedBox(
+                                                                          width:
+                                                                              4,
+                                                                        ),
+                                                                        Icon(
+                                                                          Icons
+                                                                              .delete,
+                                                                          color:
+                                                                              Colors.red,
+                                                                          size:
+                                                                              18,
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                            ],
+                                                        onSelected: (value) {
+                                                          if (value == 0) {
+                                                            controller
+                                                                .uploadedFilesPaths
+                                                                .assignAll(
+                                                                  emp.files ??
+                                                                      [],
+                                                                );
+                                                            showAddContentDialog(
+                                                              context,
+                                                              clientId:
+                                                                  controller
+                                                                      .clientController
+                                                                      .text,
+                                                              model: emp,
+                                                            );
+                                                          } else if (value ==
+                                                              1) {
+                                                            FunHelper.showConfirmDailog(
+                                                              context,
+                                                              onTap: () async {
+                                                                await controller
+                                                                    .deleteContent(
+                                                                      emp.id!,
+                                                                    );
+                                                              },
+                                                            );
+                                                          }
+                                                        },
+                                                        child: Icon(
+                                                          Icons.more_vert,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        }).toList(),
                                   ),
                                 ),
                               ),
@@ -1242,7 +1275,7 @@ class ContentsTable extends StatelessWidget {
                     if (controller.clientController.text.isEmpty) {
                       FunHelper.showsnackbar(
                         'error'.tr,
-                        '❌ يرجى اختيار عميل قبل إضافة محتوى جديد.'.tr,
+                        'content.form.select_client_first'.tr,
                         snackPosition: SnackPosition.TOP,
                         backgroundColor: Colors.red,
                         colorText: Colors.white,
@@ -1271,7 +1304,7 @@ class ContentsTable extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'ادارة المهام'.tr,
+                          'tasks'.tr,
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -1320,21 +1353,8 @@ class ContentsTable extends StatelessWidget {
                   fillColor: Colors.white,
                   onChanged: (value) {
                     if (value != null) {
-                      controller.searchedcontents.assignAll(
-                        List.from(
-                          controller.contents.where(
-                            (a) =>
-                                a.clientId == (value).id &&
-                                a.publishDate != null &&
-                                (a.publishDate!.year > DateTime.now().year ||
-                                    (a.publishDate!.year ==
-                                            DateTime.now().year &&
-                                        a.publishDate!.month >=
-                                            DateTime.now().month)),
-                          ),
-                        ),
-                      );
                       controller.clientController.text = (value).id ?? '';
+                      controller.refreshFilteredContents();
                     }
                   },
                   validator: (v) => v == null ? ' ' : null,
@@ -1344,13 +1364,13 @@ class ContentsTable extends StatelessWidget {
             const SizedBox(height: 16),
             GetX<HomeController>(
               builder: (c) {
-                final contents = c.searchedcontents.toList();
+                final contents = c.searchedContents.toList();
                 if (c.clientController.text.isEmpty) {
                   return Center(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 32),
                       child: Text(
-                        'اختر العميل لعرض المحتوى',
+                        'history.pick_client_content'.tr,
                         style: TextStyle(
                           fontSize: 15,
                           color: AppColors.fontColorGrey,
@@ -1364,7 +1384,7 @@ class ContentsTable extends StatelessWidget {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 32),
                       child: Text(
-                        'لا توجد بيانات',
+                        'history.empty_data'.tr,
                         style: TextStyle(
                           fontSize: 15,
                           color: AppColors.fontColorGrey,
@@ -1382,7 +1402,9 @@ class ContentsTable extends StatelessWidget {
                     return ContentStatusCard(
                       index: i,
                       model: content,
-                      onTap: () => showContentDialogDetails(context, task: content),
+                      onTap:
+                          () =>
+                              showContentDialogDetails(context, task: content),
                     );
                   },
                   separatorBuilder: (_, __) => const SizedBox(height: 8),
@@ -1394,125 +1416,6 @@ class ContentsTable extends StatelessWidget {
       ),
     );
   }
-}
-
-Color _getStatusColor(String status) {
-  switch (status) {
-    case StorageKeys.status_under_revision: // تحت المراجعة
-      return Colors.blue;
-
-    case StorageKeys.status_ready_to_publish: // جاهز للنشر
-      return Colors.teal;
-
-    case StorageKeys.status_approved: // تم الموافقة
-      return Colors.green;
-
-    case StorageKeys.status_scheduled: // مجدوَل
-      return Colors.orange;
-
-    case StorageKeys.status_processing: // جاري التنفيذ
-      return Colors.amber;
-
-    case StorageKeys.status_published: // منشور
-      return Colors.lightGreen;
-
-    case StorageKeys.status_rejected: // مرفوض
-      return Colors.red;
-
-    case StorageKeys.status_in_edit: // جاري التعديل
-      return Colors.purple;
-
-    case StorageKeys.status_edit_requested: // طلب تعديل
-      return Colors.deepOrange;
-
-    case StorageKeys.status_not_start_yet: // لم يبدأ بعد
-      return Colors.grey;
-
-    default:
-      return Colors.black45; // حالة غير معروفة
-  }
-}
-
-Color _getStatusbgColor(String status) {
-  switch (status) {
-    case StorageKeys.status_under_revision:
-      return Colors.blue.shade50;
-    case StorageKeys.status_approved:
-      return Colors.green.shade50;
-    case StorageKeys.status_rejected:
-      return Colors.red.shade50;
-    default:
-      return Colors.grey.shade200;
-  }
-}
-
-Color _getPromotionColor(String? promotion) {
-  switch (promotion) {
-    case 'under_promotion':
-      return Colors.teal;
-    case 'end_promotion':
-      return Colors.deepOrange;
-    case 'no_promotion':
-      return Colors.grey.shade700;
-    default:
-      return Colors.black54;
-  }
-}
-
-Color _getPromotionBgColor(String? promotion) {
-  switch (promotion) {
-    case 'under_promotion':
-      return Colors.teal.shade50;
-    case 'end_promotion':
-      return Colors.deepOrange.shade50;
-    case 'no_promotion':
-      return Colors.grey.shade200;
-    default:
-      return Colors.grey.shade100;
-  }
-}
-
-Widget _buildDropdownChip({
-  required String label,
-  required Color textColor,
-  required Color backgroundColor,
-  required double width,
-}) {
-  return Container(
-    alignment: Alignment.center,
-    width: width,
-    height: 32,
-    padding: const EdgeInsets.symmetric(horizontal: 8),
-    decoration: BoxDecoration(
-      color: backgroundColor,
-      borderRadius: BorderRadius.circular(16),
-    ),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Flexible(
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              label,
-              maxLines: 1,
-              style: TextStyle(
-                color: textColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 3),
-        Icon(
-          Icons.keyboard_arrow_down_rounded,
-          size: 16,
-          color: textColor,
-        ),
-      ],
-    ),
-  );
 }
 
 Widget _buildAttachmentPreviewTile(String url) {
@@ -1527,8 +1430,9 @@ Widget _buildAttachmentPreviewTile(String url) {
               height: 56,
               fit: BoxFit.cover,
               errorBuilder:
-                  (_, __, ___) =>
-                      _attachmentPlaceholderThumbnail(Icons.broken_image_outlined),
+                  (_, __, ___) => _attachmentPlaceholderThumbnail(
+                    Icons.broken_image_outlined,
+                  ),
             )
             : _attachmentPlaceholderThumbnail(Icons.link_outlined),
   );
@@ -1561,8 +1465,9 @@ Widget _buildFormAttachmentThumbnail(String url) {
                 url,
                 fit: BoxFit.cover,
                 errorBuilder:
-                    (_, __, ___) =>
-                        _attachmentPlaceholderThumbnail(Icons.broken_image_outlined),
+                    (_, __, ___) => _attachmentPlaceholderThumbnail(
+                      Icons.broken_image_outlined,
+                    ),
               )
               : _attachmentPlaceholderThumbnail(Icons.link_outlined),
     ),
@@ -1590,8 +1495,8 @@ Future<void> _openAttachmentUrl(String rawUrl) async {
   }
 
   FunHelper.showsnackbar(
-    'تنبيه',
-    'تعذر فتح هذا الرابط',
+    'validation.title'.tr,
+    'errors.cannot_open_link'.tr,
     snackPosition: SnackPosition.TOP,
     backgroundColor: Colors.orange,
     colorText: Colors.white,
@@ -1711,7 +1616,7 @@ void showAddContentDialog(
                                         ).format(picked.toLocal());
                                       }
                                     },
-                                    labelText: 'تاريخ النشر'.tr,
+                                    labelText: 'publish_date'.tr,
                                     hintText: '1/10/2025'.tr,
                                     height: 42,
                                     fillColor: Colors.white,
@@ -1858,7 +1763,8 @@ void showAddContentDialog(
                                         width: (Get.width * 0.7 / 2) - 30,
 
                                         child: InputText(
-                                          labelText: 'ادراج رابط'.tr,
+                                          labelText:
+                                              'content.form.insert_link'.tr,
                                           hintText: 'googledrivelink .com'.tr,
                                           height: 40,
                                           fillColor: Colors.white,
@@ -1975,78 +1881,75 @@ void showAddContentDialog(
 
                                       SizedBox(
                                         width: (Get.width * 0.7 / 2) - 30,
-                                        child: Obx(
-                                          () {
-                                            final files =
-                                                controller.uploadedFilesPaths
-                                                    .toList();
-                                            if (files.isEmpty) {
-                                              return const SizedBox.shrink();
-                                            }
-                                            return GridView.builder(
-                                              shrinkWrap: true,
-                                              physics:
-                                                  const NeverScrollableScrollPhysics(),
-                                              itemCount: files.length,
-                                              gridDelegate:
-                                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                                    crossAxisCount: 2,
-                                                    crossAxisSpacing: 10,
-                                                    mainAxisSpacing: 10,
-                                                    childAspectRatio: 1,
-                                                  ),
-                                              itemBuilder: (context, index) {
-                                                final filePath = files[index];
-                                                return InkWell(
-                                                  onTap: () async {
-                                                    await _openAttachmentUrl(
-                                                      filePath,
-                                                    );
-                                                  },
-                                                  child: Stack(
-                                                    children: [
-                                                      Positioned.fill(
-                                                        child:
-                                                            _buildFormAttachmentThumbnail(
-                                                              filePath,
-                                                            ),
-                                                      ),
-                                                      Positioned(
-                                                        top: 6,
-                                                        right: 6,
-                                                        child: InkWell(
-                                                          onTap: () {
-                                                            controller
-                                                                .uploadedFilesPaths
-                                                                .remove(filePath);
-                                                          },
-                                                          child: Container(
-                                                            width: 24,
-                                                            height: 24,
-                                                            decoration: BoxDecoration(
-                                                              color:
-                                                                  Colors.black54,
-                                                              borderRadius:
-                                                                  BorderRadius.circular(
-                                                                    12,
-                                                                  ),
-                                                            ),
-                                                            child: const Icon(
-                                                              Icons.close,
-                                                              color:
-                                                                  Colors.white,
-                                                              size: 15,
-                                                            ),
+                                        child: Obx(() {
+                                          final files =
+                                              controller.uploadedFilesPaths
+                                                  .toList();
+                                          if (files.isEmpty) {
+                                            return const SizedBox.shrink();
+                                          }
+                                          return GridView.builder(
+                                            shrinkWrap: true,
+                                            physics:
+                                                const NeverScrollableScrollPhysics(),
+                                            itemCount: files.length,
+                                            gridDelegate:
+                                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                                  crossAxisCount: 2,
+                                                  crossAxisSpacing: 10,
+                                                  mainAxisSpacing: 10,
+                                                  childAspectRatio: 1,
+                                                ),
+                                            itemBuilder: (context, index) {
+                                              final filePath = files[index];
+                                              return InkWell(
+                                                onTap: () async {
+                                                  await _openAttachmentUrl(
+                                                    filePath,
+                                                  );
+                                                },
+                                                child: Stack(
+                                                  children: [
+                                                    Positioned.fill(
+                                                      child:
+                                                          _buildFormAttachmentThumbnail(
+                                                            filePath,
+                                                          ),
+                                                    ),
+                                                    Positioned(
+                                                      top: 6,
+                                                      right: 6,
+                                                      child: InkWell(
+                                                        onTap: () {
+                                                          controller
+                                                              .uploadedFilesPaths
+                                                              .remove(filePath);
+                                                        },
+                                                        child: Container(
+                                                          width: 24,
+                                                          height: 24,
+                                                          decoration: BoxDecoration(
+                                                            color:
+                                                                Colors.black54,
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  12,
+                                                                ),
+                                                          ),
+                                                          child: const Icon(
+                                                            Icons.close,
+                                                            color: Colors.white,
+                                                            size: 15,
                                                           ),
                                                         ),
                                                       ),
-                                                    ],
-                                                  ),
-                                                );
-                                              },
-                                            );
-                                          },
-                                        ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                            },
+                                          );
+                                        }),
                                       ),
                                     ],
                                   ),
@@ -2116,23 +2019,15 @@ void showAddContentDialog(
                                               )
                                               .then((v) async {
                                                 if (v) {
-                                                  controller.searchedcontents.assignAll(
-                                                    List.from(
-                                                      controller.contents.where(
-                                                        (a) =>
-                                                            a.clientId ==
-                                                            controller
-                                                                .clientController
-                                                                .text,
-                                                      ),
-                                                    ),
-                                                  );
+                                                  controller
+                                                      .refreshFilteredContents();
                                                   Get.back();
 
                                                   await NotificationService.notifyClientContentPendingApproval(
                                                     clientId: clientId,
                                                     contentTypeLabel:
-                                                        'تصميم / فيديو جديد',
+                                                        'content.notify.design_video_new'
+                                                            .tr,
                                                   );
                                                   final clientName =
                                                       controller.clients
@@ -2186,17 +2081,8 @@ void showAddContentDialog(
                                               )
                                               .then((v) async {
                                                 if (v) {
-                                                  controller.searchedcontents.assignAll(
-                                                    List.from(
-                                                      controller.contents.where(
-                                                        (a) =>
-                                                            a.clientId ==
-                                                            controller
-                                                                .clientController
-                                                                .text,
-                                                      ),
-                                                    ),
-                                                  );
+                                                  controller
+                                                      .refreshFilteredContents();
                                                   Get.back();
 
                                                   await NotificationService.notifyClientContentUpdatedForApproval(
@@ -2217,7 +2103,7 @@ void showAddContentDialog(
                                               ),
                                             )
                                             : Text(
-                                              "حفظ",
+                                              'common.save'.tr,
                                               style: TextStyle(
                                                 color: Colors.white,
                                               ),
@@ -2239,7 +2125,7 @@ void showAddContentDialog(
                                   ),
                                 ),
                                 onPressed: () => Navigator.pop(context),
-                                child: Text("إلغاء"),
+                                child: Text('common.cancel'.tr),
                               ),
                             ),
                           ],
@@ -2305,7 +2191,7 @@ void showAddContentDialog(
 //                 padding: EdgeInsets.symmetric(horizontal: 32, vertical: 20),
 //               ),
 //               onPressed: () => Navigator.pop(context),
-//               child: Text("إلغاء"),
+//               child: Text('common.cancel'.tr),
 //             ),
 //           ),
 //         ],

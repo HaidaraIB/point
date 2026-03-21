@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
@@ -10,9 +11,14 @@ class StatisticsCard extends StatefulWidget {
 }
 
 class _StatisticsCardState extends State<StatisticsCard> {
-  String selectedTab = "آخر 7 أيام";
+  static const List<String> _periodKeys = [
+    'statistics.period_today',
+    'statistics.period_last_7',
+    'statistics.period_this_month',
+    'statistics.period_this_year',
+  ];
 
-  final List<String> tabs = ["اليوم", "آخر 7 أيام", "هذا الشهر", "هذا العام"];
+  String selectedPeriodKey = 'statistics.period_last_7';
 
   final List<_ChartData> data = [
     _ChartData('Jan', 30, 40, 60),
@@ -45,22 +51,23 @@ class _StatisticsCardState extends State<StatisticsCard> {
             Row(
               // mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'احصائيات',
+                Text(
+                  'statistics.title'.tr,
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 SizedBox(width: 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children:
-                      tabs.map((t) {
-                        final isActive = t == selectedTab;
+                      _periodKeys.map((key) {
+                        final isActive = key == selectedPeriodKey;
                         return Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 6),
                           child: GestureDetector(
-                            onTap: () => setState(() => selectedTab = t),
+                            onTap: () =>
+                                setState(() => selectedPeriodKey = key),
                             child: Text(
-                              t,
+                              key.tr,
                               style: TextStyle(
                                 fontWeight:
                                     isActive
@@ -79,7 +86,10 @@ class _StatisticsCardState extends State<StatisticsCard> {
                       }).toList(),
                 ),
                 Spacer(),
-                OutlinedButton(onPressed: () {}, child: const Text('تصدير')),
+                OutlinedButton(
+                  onPressed: () {},
+                  child: Text('statistics.export'.tr),
+                ),
               ],
             ),
             const SizedBox(height: 12),
@@ -95,7 +105,7 @@ class _StatisticsCardState extends State<StatisticsCard> {
               tooltipBehavior: TooltipBehavior(enable: true),
               series: [
                 SplineAreaSeries<_ChartData, String>(
-                  name: 'العملاء',
+                  name: 'statistics.series_clients'.tr,
                   color: Colors.amber.withValues(alpha: 0.05),
                   borderColor: Colors.amber,
                   borderWidth: 2,
@@ -104,7 +114,7 @@ class _StatisticsCardState extends State<StatisticsCard> {
                   yValueMapper: (d, _) => d.clients,
                 ),
                 SplineAreaSeries<_ChartData, String>(
-                  name: 'المهام المرسلة',
+                  name: 'statistics.series_tasks_sent'.tr,
                   color: Colors.purpleAccent.withValues(alpha: 0.05),
                   borderColor: Colors.purpleAccent,
                   borderWidth: 2,
@@ -113,7 +123,7 @@ class _StatisticsCardState extends State<StatisticsCard> {
                   yValueMapper: (d, _) => d.tasks,
                 ),
                 SplineAreaSeries<_ChartData, String>(
-                  name: 'المحتوى المنشور',
+                  name: 'statistics.series_content_published'.tr,
                   color: Colors.deepPurple.withValues(alpha: 0.05),
                   borderColor: Colors.deepPurple,
                   borderWidth: 2,

@@ -147,7 +147,7 @@ class _DynamicMultiSelectState<T> extends State<DynamicMultiSelect<T>> {
                           Navigator.pop(context);
                         },
                         child: Text(
-                          "حفظ",
+                          'common.save'.tr,
                           style: TextStyle(color: Colors.white),
                         ),
                       ),

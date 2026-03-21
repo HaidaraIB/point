@@ -56,12 +56,13 @@ class DynamicDropdown<T> extends StatelessWidget {
             ],
             Container(
               color: fillColor ?? Colors.transparent,
-
-              height: height,
+              constraints:
+                  height != null
+                      ? BoxConstraints(minHeight: height!)
+                      : const BoxConstraints(),
               child: DropdownButtonFormField<T>(
                 initialValue: value,
                 items: items,
-
                 icon: Icon(
                   Icons.keyboard_arrow_down_rounded,
                   color: Colors.grey,
@@ -106,12 +107,17 @@ class DynamicDropdown<T> extends StatelessWidget {
                   ),
                   errorBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(borderRadius ?? 15),
-                    borderSide: BorderSide(color: Colors.red),
+                    borderSide: const BorderSide(color: Colors.red, width: 1.5),
+                  ),
+                  focusedErrorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(borderRadius ?? 15),
+                    borderSide: const BorderSide(color: Colors.red, width: 1.5),
                   ),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 12,
-                    vertical: 0,
+                    vertical: 10,
                   ),
+                  errorStyle: const TextStyle(fontSize: 0, height: 0),
                 ),
               ),
             ),

@@ -570,7 +570,10 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
           ),
         );
       default:
-        Get.snackbar('تنبيه', 'نوع المهمة غير مدعوم');
+        Get.snackbar(
+          'validation.title'.tr,
+          'validation.unsupported_task_type'.tr,
+        );
         return null;
     }
   }
@@ -586,7 +589,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
         foregroundColor: Colors.white,
         elevation: 0,
         title: Text(
-          widget.model == null ? 'اضافة مهمة'.tr : 'تعديل المهمة'.tr,
+          widget.model == null ? 'tasks.form.add_title'.tr : 'tasks.form.edit_title'.tr,
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         leading: IconButton(
@@ -613,10 +616,10 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _sectionLabel('بيانات المهمة'),
+                  _sectionLabel('tasks.form.section_task_data'.tr),
                   InputText(
-                    labelText: 'عنوان المهمة'.tr,
-                    hintText: 'اكتب عنوان المهمة'.tr,
+                    labelText: 'task_details.task_title'.tr,
+                    hintText: 'tasks.form.write_task_title_hint'.tr,
                     height: 48,
                     fillColor: Colors.white,
                     controller: titleController,
@@ -631,13 +634,13 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                           .map((v) => DropdownMenuItem(value: v, child: Text('${v.name}'))),
                       DropdownMenuItem(
                         value: _otherClientValue,
-                        child: Text('عميل آخر'.tr),
+                        child: Text('tasks.other_client'.tr),
                       ),
                     ],
                     value: useCustomClient
                         ? _otherClientValue
                         : (clientController.text.isEmpty ? null : matchedClient),
-                    label: 'العميل'.tr,
+                    label: 'content.dialog.client'.tr,
                     borderRadius: 8,
                     borderColor: Colors.grey.shade300,
                     height: 48,
@@ -658,8 +661,8 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                   if (useCustomClient) ...[
                     const SizedBox(height: 12),
                     InputText(
-                      labelText: 'اسم العميل'.tr,
-                      hintText: 'اكتب اسم العميل'.tr,
+                      labelText: 'tasks.form.client_name_label'.tr,
+                      hintText: 'tasks.form.client_name_hint'.tr,
                       height: 48,
                       fillColor: Colors.white,
                       controller: customClientController,
@@ -674,7 +677,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                         .map((v) => DropdownMenuItem(value: v, child: Text('${v.name} (${v.role})')))
                         .toList(),
                     value: executorController.text.isEmpty ? null : filteredEmployees.firstWhereOrNull((a) => a.id == executorController.text),
-                    label: 'المنفذ'.tr,
+                    label: 'content.dialog.executor'.tr,
                     borderRadius: 8,
                     borderColor: Colors.grey.shade300,
                     height: 48,
@@ -690,7 +693,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                         .map((v) => DropdownMenuItem(value: v, child: Text(v.tr)))
                         .toList(),
                     value: priorityController.text.isEmpty ? null : priorityController.text,
-                    label: 'الأولوية'.tr,
+                    label: 'task_details.task_priority'.tr,
                     borderRadius: 8,
                     borderColor: Colors.grey.shade300,
                     height: 48,
@@ -701,12 +704,12 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                     validator: (v) => v == null ? ' ' : null,
                   ),
                   const SizedBox(height: 16),
-                  _sectionLabel('التواريخ'),
+                  _sectionLabel('tasks.form.section_dates'.tr),
                   InkWell(
                     onTap: _pickStartDate,
                     child: InputText(
-                      labelText: 'تاريخ البداية'.tr,
-                      hintText: 'اختر التاريخ'.tr,
+                      labelText: 'startat'.tr,
+                      hintText: 'common.select_date'.tr,
                       height: 48,
                       fillColor: Colors.white,
                       controller: startDateController,
@@ -720,8 +723,8 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                   InkWell(
                     onTap: _pickEndDate,
                     child: InputText(
-                      labelText: 'تاريخ النهاية'.tr,
-                      hintText: 'اختر التاريخ'.tr,
+                      labelText: 'endat'.tr,
+                      hintText: 'common.select_date'.tr,
                       height: 48,
                       fillColor: Colors.white,
                       controller: endDateController,
@@ -734,7 +737,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                   ..._buildTypeSpecificFields(),
                   const SizedBox(height: 16),
                   if (widget.model != null && widget.model!.notes.isNotEmpty) ...[
-                    _sectionLabel('سجل الملاحظات'.tr),
+                    _sectionLabel('tasks.form.notes_log'.tr),
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -773,8 +776,8 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                     const SizedBox(height: 24),
                   ],
                   InputText(
-                    labelText: 'ملاحظات'.tr,
-                    hintText: 'ملاحظات (اختياري)'.tr,
+                    labelText: 'notes'.tr,
+                    hintText: 'tasks.form.notes_optional_hint'.tr,
                     height: 80,
                     fillColor: Colors.white,
                     controller: notesController,
@@ -783,7 +786,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                     borderColor: Colors.grey.shade300,
                   ),
                   const SizedBox(height: 24),
-                  _sectionLabel('الملاحظات والمرفقات'),
+                  _sectionLabel('tasks.form.section_notes_attachments'.tr),
                   GestureDetector(
                     onTap: () async {
                       final files = await controller.pickMultiFiles();
@@ -924,7 +927,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                         onPressed: controller.isLoading.value ? null : _submit,
                         child: controller.isLoading.value
                             ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                            : Text('حفظ'.tr, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                            : Text('common.save'.tr, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
                       ),
                     ),
                   ),
@@ -935,7 +938,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     onPressed: () => Get.back(),
-                    child: Text('إلغاء'.tr),
+                    child: Text('common.cancel'.tr),
                   ),
                 ],
               ),
@@ -952,7 +955,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
       case '0': // Promotion
         return [
           const SizedBox(height: 24),
-          _sectionLabel('تفاصيل الترويج'),
+          _sectionLabel('tasks.form.section_promotion'.tr),
           DynamicDropdown<String>(
             items: StorageKeys.campaignTarget.map((v) => DropdownMenuItem(value: v, child: Text(v.tr))).toList(),
             value: campaignReasonController.text.isEmpty ? null : campaignReasonController.text,
@@ -980,13 +983,13 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
           pad,
           InputText(labelText: 'marks'.tr, hintText: 'addmark'.tr, height: 48, fillColor: Colors.white, controller: marksController, borderRadius: 8, borderColor: Colors.grey.shade300),
           pad,
-          InputText(labelText: 'المدة'.tr, hintText: 'مدة الحملة'.tr, height: 48, fillColor: Colors.white, controller: durationPromoController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          InputText(labelText: 'task_details.duration'.tr, hintText: 'promotion.campaign_duration_hint'.tr, height: 48, fillColor: Colors.white, controller: durationPromoController, borderRadius: 8, borderColor: Colors.grey.shade300),
           pad,
           Obx(() => DynamicDropdownMultiSelect<String>(
             items: StorageKeys.countryCitiesMap.keys.toList(),
             selectedValues: countriesList.toList(),
             itemLabel: (v) => v,
-            label: 'الدول'.tr,
+            label: 'task_details.countries'.tr,
             borderRadius: 8,
             borderColor: Colors.grey.shade300,
             height: 48,
@@ -1002,7 +1005,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             items: StorageKeys.interestsList,
             selectedValues: interestsList.toList(),
             itemLabel: (v) => v,
-            label: 'الاهتمامات'.tr,
+            label: 'task_details.interests'.tr,
             borderRadius: 8,
             borderColor: Colors.grey.shade300,
             height: 48,
@@ -1014,7 +1017,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             items: StorageKeys.getCitiesForCountries(countriesList.toList()),
             selectedValues: cityList.toList(),
             itemLabel: (v) => v,
-            label: 'المدن'.tr,
+            label: 'task_details.cities'.tr,
             borderRadius: 8,
             borderColor: Colors.grey.shade300,
             height: 48,
@@ -1022,13 +1025,13 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             onChanged: (v) => cityList.assignAll(v),
           )),
           pad,
-          InputText(labelText: 'الفئات العمرية'.tr, hintText: 'الفئات العمرية'.tr, height: 48, fillColor: Colors.white, controller: ageRangesController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          InputText(labelText: 'task_details.age_ranges'.tr, hintText: 'task_details.age_ranges'.tr, height: 48, fillColor: Colors.white, controller: ageRangesController, borderRadius: 8, borderColor: Colors.grey.shade300),
           pad,
           Obx(() => DynamicDropdownMultiSelect<String>(
             items: StorageKeys.specialist,
             selectedValues: specializationsList.toList(),
             itemLabel: (v) => v,
-            label: 'التخصصات'.tr,
+            label: 'task_details.specializations'.tr,
             borderRadius: 8,
             borderColor: Colors.grey.shade300,
             height: 48,
@@ -1036,12 +1039,12 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             onChanged: (v) => specializationsList.assignAll(v),
           )),
           pad,
-          InputText(labelText: 'رابط الملفات'.tr, hintText: 'اكتب رابط الملفات'.tr, height: 48, fillColor: Colors.white, controller: attachmentPromoController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          InputText(labelText: 'task_details.files_link'.tr, hintText: 'task_details.files_link_hint'.tr, height: 48, fillColor: Colors.white, controller: attachmentPromoController, borderRadius: 8, borderColor: Colors.grey.shade300),
         ];
       case '2': // Photography
         return [
           const SizedBox(height: 24),
-          _sectionLabel('تفاصيل التصوير'),
+          _sectionLabel('tasks.form.section_photography'.tr),
           Obx(() => DynamicDropdownMultiSelect<String>(
             items: StorageKeys.platformList.map((v) => v.tr).toList(),
             selectedValues: platformsPhoto.toList(),
@@ -1057,7 +1060,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
           DynamicDropdown<String>(
             items: StorageKeys.shootingtype.map((v) => DropdownMenuItem(value: v, child: Text(v.tr))).toList(),
             value: shootingTypeController.text.isEmpty ? null : shootingTypeController.text,
-            label: 'نوع التصوير'.tr,
+            label: 'task_details.shooting_type'.tr,
             borderRadius: 8,
             borderColor: Colors.grey.shade300,
             height: 48,
@@ -1068,7 +1071,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
           DynamicDropdown<String>(
             items: StorageKeys.shootingLocations.map((v) => DropdownMenuItem(value: v, child: Text(v.tr))).toList(),
             value: shootingLocationController.text.isEmpty ? null : shootingLocationController.text,
-            label: 'موقع التصوير'.tr,
+            label: 'task_details.shooting_location'.tr,
             borderRadius: 8,
             borderColor: Colors.grey.shade300,
             height: 48,
@@ -1076,14 +1079,14 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             onChanged: (v) { if (v != null) shootingLocationController.text = v; },
           ),
           pad,
-          InputText(labelText: 'عدد التصاميم'.tr, hintText: 'عدد التصاميم'.tr, height: 48, fillColor: Colors.white, controller: designCountPhotoController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          InputText(labelText: 'task_details.design_count'.tr, hintText: 'task_details.design_count'.tr, height: 48, fillColor: Colors.white, controller: designCountPhotoController, borderRadius: 8, borderColor: Colors.grey.shade300),
           pad,
-          InputText(labelText: 'المدة'.tr, hintText: 'المدة'.tr, height: 48, fillColor: Colors.white, controller: durationPhotoController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          InputText(labelText: 'task_details.duration'.tr, hintText: 'task_details.duration'.tr, height: 48, fillColor: Colors.white, controller: durationPhotoController, borderRadius: 8, borderColor: Colors.grey.shade300),
         ];
       case '3': // ContentWrite
         return [
           const SizedBox(height: 24),
-          _sectionLabel('تفاصيل كتابة المحتوى'),
+          _sectionLabel('tasks.form.section_content_write'.tr),
           Obx(() => DynamicDropdownMultiSelect<String>(
             items: StorageKeys.platformList.map((v) => v.tr).toList(),
             selectedValues: platformsContent.toList(),
@@ -1099,7 +1102,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
           DynamicDropdown<String>(
             items: StorageKeys.contentTypes.map((v) => DropdownMenuItem(value: v, child: Text(v.tr))).toList(),
             value: contentTypeController.text.isEmpty ? null : contentTypeController.text,
-            label: 'نوع المحتوى'.tr,
+            label: 'task_details.content_type'.tr,
             borderRadius: 8,
             borderColor: Colors.grey.shade300,
             height: 48,
@@ -1107,14 +1110,14 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             onChanged: (v) { if (v != null) contentTypeController.text = v; },
           ),
           pad,
-          InputText(labelText: 'عدد التصاميم'.tr, hintText: 'عدد التصاميم'.tr, height: 48, fillColor: Colors.white, controller: designCountContentController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          InputText(labelText: 'task_details.design_count'.tr, hintText: 'task_details.design_count'.tr, height: 48, fillColor: Colors.white, controller: designCountContentController, borderRadius: 8, borderColor: Colors.grey.shade300),
           pad,
-          InputText(labelText: 'القياسات'.tr, hintText: 'القياسات'.tr, height: 48, fillColor: Colors.white, controller: dimensionsContentController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          InputText(labelText: 'task_details.dimensions'.tr, hintText: 'task_details.dimensions'.tr, height: 48, fillColor: Colors.white, controller: dimensionsContentController, borderRadius: 8, borderColor: Colors.grey.shade300),
         ];
       case '4': // Montage
         return [
           const SizedBox(height: 24),
-          _sectionLabel('تفاصيل المونتاج'),
+          _sectionLabel('tasks.form.section_montage'.tr),
           Obx(() => DynamicDropdownMultiSelect<String>(
             items: StorageKeys.platformList.map((v) => v.tr).toList(),
             selectedValues: platformsMontage.toList(),
@@ -1130,7 +1133,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
           DynamicDropdown<String>(
             items: StorageKeys.monatgecategory.map((v) => DropdownMenuItem(value: v, child: Text(v.tr))).toList(),
             value: categoryMontageController.text.isEmpty ? null : categoryMontageController.text,
-            label: 'التصنيف'.tr,
+            label: 'task_details.category'.tr,
             borderRadius: 8,
             borderColor: Colors.grey.shade300,
             height: 48,
@@ -1138,21 +1141,21 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             onChanged: (v) { if (v != null) categoryMontageController.text = v; },
           ),
           pad,
-          InputText(labelText: 'القياسات'.tr, hintText: 'القياسات'.tr, height: 48, fillColor: Colors.white, controller: dimensionsMontageController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          InputText(labelText: 'task_details.dimensions'.tr, hintText: 'task_details.dimensions'.tr, height: 48, fillColor: Colors.white, controller: dimensionsMontageController, borderRadius: 8, borderColor: Colors.grey.shade300),
           pad,
-          InputText(labelText: 'رابط المرفقات'.tr, hintText: 'رابط المرفقات'.tr, height: 48, fillColor: Colors.white, controller: attachmentMontageController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          InputText(labelText: 'task_details.attachment_link'.tr, hintText: 'task_details.attachment_link'.tr, height: 48, fillColor: Colors.white, controller: attachmentMontageController, borderRadius: 8, borderColor: Colors.grey.shade300),
           pad,
-          InputText(labelText: 'المدة'.tr, hintText: 'المدة'.tr, height: 48, fillColor: Colors.white, controller: durationMontageController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          InputText(labelText: 'task_details.duration'.tr, hintText: 'task_details.duration'.tr, height: 48, fillColor: Colors.white, controller: durationMontageController, borderRadius: 8, borderColor: Colors.grey.shade300),
         ];
       case '5': // Publish
         return [
           const SizedBox(height: 24),
-          _sectionLabel('تفاصيل النشر'),
-          InputText(labelText: 'رابط المحتوى'.tr, hintText: 'رابط المحتوى'.tr, height: 48, fillColor: Colors.white, controller: contentUrlController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          _sectionLabel('tasks.form.section_publish'.tr),
+          InputText(labelText: 'task_details.content_link'.tr, hintText: 'task_details.content_link'.tr, height: 48, fillColor: Colors.white, controller: contentUrlController, borderRadius: 8, borderColor: Colors.grey.shade300),
           pad,
-          InputText(labelText: 'رابط الملفات'.tr, hintText: 'رابط الملفات'.tr, height: 48, fillColor: Colors.white, controller: fileUrlController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          InputText(labelText: 'task_details.files_link'.tr, hintText: 'task_details.files_link'.tr, height: 48, fillColor: Colors.white, controller: fileUrlController, borderRadius: 8, borderColor: Colors.grey.shade300),
           pad,
-          InputText(labelText: 'التصنيف'.tr, hintText: 'التصنيف'.tr, height: 48, fillColor: Colors.white, controller: categoryController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          InputText(labelText: 'task_details.category'.tr, hintText: 'task_details.category'.tr, height: 48, fillColor: Colors.white, controller: categoryController, borderRadius: 8, borderColor: Colors.grey.shade300),
           pad,
           Obx(() => DynamicDropdownMultiSelect<String>(
             items: StorageKeys.platformList.map((v) => v.tr).toList(),
@@ -1166,17 +1169,17 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             onChanged: (v) => platformsPublish.assignAll(v),
           )),
           pad,
-          InputText(labelText: 'القياسات'.tr, hintText: 'القياسات'.tr, height: 48, fillColor: Colors.white, controller: dimensionsPublishController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          InputText(labelText: 'task_details.dimensions'.tr, hintText: 'task_details.dimensions'.tr, height: 48, fillColor: Colors.white, controller: dimensionsPublishController, borderRadius: 8, borderColor: Colors.grey.shade300),
         ];
       case '6': // Programming
         return [
           const SizedBox(height: 24),
-          _sectionLabel('تفاصيل البرمجة'),
-          InputText(labelText: 'رابط المحتوى'.tr, hintText: 'رابط المحتوى'.tr, height: 48, fillColor: Colors.white, controller: contentUrlController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          _sectionLabel('tasks.form.section_programming'.tr),
+          InputText(labelText: 'task_details.content_link'.tr, hintText: 'task_details.content_link'.tr, height: 48, fillColor: Colors.white, controller: contentUrlController, borderRadius: 8, borderColor: Colors.grey.shade300),
           pad,
-          InputText(labelText: 'رابط الملفات'.tr, hintText: 'رابط الملفات'.tr, height: 48, fillColor: Colors.white, controller: fileUrlController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          InputText(labelText: 'task_details.files_link'.tr, hintText: 'task_details.files_link'.tr, height: 48, fillColor: Colors.white, controller: fileUrlController, borderRadius: 8, borderColor: Colors.grey.shade300),
           pad,
-          InputText(labelText: 'التصنيف'.tr, hintText: 'التصنيف'.tr, height: 48, fillColor: Colors.white, controller: categoryController, validator: (v) => (v == null || v.isEmpty) ? ' ' : null, borderRadius: 8, borderColor: Colors.grey.shade300),
+          InputText(labelText: 'task_details.category'.tr, hintText: 'task_details.category'.tr, height: 48, fillColor: Colors.white, controller: categoryController, validator: (v) => (v == null || v.isEmpty) ? ' ' : null, borderRadius: 8, borderColor: Colors.grey.shade300),
         ];
       default:
         return [];

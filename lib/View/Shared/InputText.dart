@@ -56,6 +56,8 @@ class InputText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isCompactHeight = (height ?? 0) > 0 && (height ?? 0) <= 44;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -76,7 +78,10 @@ class InputText extends StatelessWidget {
           ),
         if (labelText != null) SizedBox(height: 8),
         Container(
-          height: height,
+          constraints:
+              height != null
+                  ? BoxConstraints(minHeight: height!)
+                  : const BoxConstraints(),
           width: double.infinity,
           decoration: BoxDecoration(
             color: fillColor ?? Color(0xffF1F5F9),
@@ -93,13 +98,14 @@ class InputText extends StatelessWidget {
             keyboardType: textInputType,
             maxLength: maxLength,
             maxLines: expanded == true ? null : 1,
+            textAlignVertical: TextAlignVertical.center,
             style:
                 textStyle ??
                 TextStyle(fontSize: 13, color: AppColors.primaryfontColor),
             inputFormatters: inputFormatters,
 
-            // ✅ contentPadding ديناميكي حسب height أو default
             decoration: InputDecoration(
+              isDense: isCompactHeight,
               hintText: hintText,
               hintStyle:
                   hintStyle ??
@@ -111,7 +117,7 @@ class InputText extends StatelessWidget {
               label: body,
               contentPadding: EdgeInsets.symmetric(
                 horizontal: 16,
-                vertical: height != null ? (height! / 2 - 10) : 14,
+                vertical: isCompactHeight ? 8 : 12,
               ),
 
               border: OutlineInputBorder(
@@ -137,16 +143,17 @@ class InputText extends StatelessWidget {
               ),
               errorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(borderRadius ?? 15),
-                borderSide: BorderSide(color: Colors.red, width: 1.8),
+                borderSide: const BorderSide(color: Colors.red, width: 1.5),
               ),
               focusedErrorBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(borderRadius ?? 15),
-                borderSide: BorderSide(color: Colors.red, width: 2),
+                borderSide: const BorderSide(color: Colors.red, width: 1.5),
               ),
 
               suffixIcon: suffixIcon,
               prefixIcon: prefixIcon,
-              errorStyle: TextStyle(fontSize: 13, height: 1.4),
+              // Keep border style on validation failure without shrinking field height.
+              errorStyle: const TextStyle(fontSize: 0, height: 0),
             ),
           ),
         ),

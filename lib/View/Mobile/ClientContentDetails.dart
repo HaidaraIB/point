@@ -25,7 +25,7 @@ class Clientcontentdetails extends StatelessWidget {
             child: Column(
               children: [
                 SizedBox(height: 50),
-                TopAppBar("تفاصيل المحتوى"),
+                TopAppBar('content.details_title'.tr),
                 SizedBox(height: 25),
 
                 VideoCard(model: model!),
@@ -40,7 +40,7 @@ class Clientcontentdetails extends StatelessWidget {
                       load: controller.isLoading.value,
 
                       fontcolor: Colors.white,
-                      title: 'قبول',
+                      title: 'tasks.accept'.tr,
                       onpress: () async {
                         final ok = await controller.updateContent(
                           model!.copyWith(
@@ -55,7 +55,7 @@ class Clientcontentdetails extends StatelessWidget {
                         }
                         FunHelper.showsnackbar(
                           'success'.tr,
-                          'تم القبول بنجاح'.tr,
+                          'client.accept_success'.tr,
                           snackPosition: SnackPosition.TOP,
                           backgroundColor: Colors.green,
                           colorText: Colors.white,
@@ -70,7 +70,7 @@ class Clientcontentdetails extends StatelessWidget {
                   backgroundcolor: Color(0xffE6B802),
                   fontcolor: Colors.white,
                   bordersize: 10,
-                  title: 'تعديل',
+                  title: 'edit'.tr,
                   // load: controller.isLoading.value,
                   onpress: () {
                     showModalBottomSheet(
@@ -99,7 +99,7 @@ class Clientcontentdetails extends StatelessWidget {
                     backgroundcolor: Colors.red,
                     fontcolor: Colors.white,
                     bordersize: 10,
-                    title: 'رفض',
+                    title: 'tasks.reject'.tr,
                   ),
               ],
             ),

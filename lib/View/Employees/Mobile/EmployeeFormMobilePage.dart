@@ -303,7 +303,7 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                               )
                               .toList(),
                       value: selectedDepartment,
-                      label: 'القسم'.tr,
+                      label: 'employees.department'.tr,
                       borderRadius: 8,
                       borderColor: Colors.grey.shade300,
                       height: 48,
@@ -339,7 +339,7 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                                   ),
                                 )
                                 : Text(
-                                  'تأكيد',
+                                  'common.confirm'.tr,
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
@@ -361,7 +361,7 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                       controller.uploadedFilesPaths.clear();
                       Get.back();
                     },
-                    child: Text('إلغاء'.tr),
+                    child: Text('common.cancel'.tr),
                   ),
                 ],
               ),

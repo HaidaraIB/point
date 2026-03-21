@@ -101,7 +101,7 @@ void montageDiloag(BuildContext context, {TaskModel? model}) {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'اضافة مهمة'.tr,
+                                  'tasks.form.add_title'.tr,
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
@@ -109,7 +109,7 @@ void montageDiloag(BuildContext context, {TaskModel? model}) {
                                   ),
                                 ),
                                 Text(
-                                  'من فضلك قم بادخال بيانات المهمه'.tr,
+                                  'tasks.form.fill_required'.tr,
                                   style: TextStyle(
                                     color: Colors.white,
                                     fontSize: 13,
@@ -131,8 +131,8 @@ void montageDiloag(BuildContext context, {TaskModel? model}) {
                                 SizedBox(
                                   width: (Get.width * 0.7 / 2) - 25,
                                   child: InputText(
-                                    labelText: 'عنوان الفيديو'.tr,
-                                    hintText: 'اكتب العنوان'.tr,
+                                    labelText: 'tasks.form.video_title_label'.tr,
+                                    hintText: 'tasks.form.write_title_hint'.tr,
                                     height: 42,
                                     fillColor: Colors.white,
                                     controller: titleController,
@@ -170,7 +170,7 @@ void montageDiloag(BuildContext context, {TaskModel? model}) {
                                                   a.id ==
                                                   executorController.text,
                                             ),
-                                    label: 'اختر المنفذ'.tr,
+                                    label: 'tasks.form.select_executor'.tr,
                                     borderRadius: 5,
                                     borderColor: Colors.grey.shade300,
                                     height: 42,
@@ -208,7 +208,7 @@ void montageDiloag(BuildContext context, {TaskModel? model}) {
                                             ),
                                             DropdownMenuItem(
                                               value: otherClientValue,
-                                              child: Text('عميل آخر'.tr),
+                                              child: Text('tasks.other_client'.tr),
                                             ),
                                           ],
                                           value: isCustomClient.value
@@ -239,8 +239,8 @@ void montageDiloag(BuildContext context, {TaskModel? model}) {
                                         ),
                                         if (isCustomClient.value)
                                           InputText(
-                                            labelText: 'اسم العميل'.tr,
-                                            hintText: 'اكتب اسم العميل'.tr,
+                                            labelText: 'tasks.form.client_name_label'.tr,
+                                            hintText: 'tasks.form.client_name_hint'.tr,
                                             height: 42,
                                             fillColor: Colors.white,
                                             controller: customClientController,
@@ -290,8 +290,8 @@ void montageDiloag(BuildContext context, {TaskModel? model}) {
                                 SizedBox(
                                   width: (Get.width * 0.7 / 2) - 25,
                                   child: InputText(
-                                    labelText: 'مدة الفديو'.tr,
-                                    hintText: 'اكتب مدة الفديو'.tr,
+                                    labelText: 'tasks.form.video_duration_label'.tr,
+                                    hintText: 'tasks.form.video_duration_hint'.tr,
                                     height: 42,
                                     fillColor: Colors.white,
                                     controller: duration,
@@ -303,8 +303,8 @@ void montageDiloag(BuildContext context, {TaskModel? model}) {
                                 SizedBox(
                                   width: (Get.width * 0.7 / 2) - 25,
                                   child: InputText(
-                                    labelText: 'رابط الملفات'.tr,
-                                    hintText: ' رابط الملفات'.tr,
+                                    labelText: 'task_details.files_link'.tr,
+                                    hintText: 'tasks.form.files_link_hint'.tr,
                                     height: 42,
                                     fillColor: Colors.white,
 
@@ -335,7 +335,7 @@ void montageDiloag(BuildContext context, {TaskModel? model}) {
                                         dimentaions.text.isEmpty
                                             ? null
                                             : dimentaions.text,
-                                    label: 'اختر المقاسات'.tr,
+                                    label: 'tasks.form.select_size'.tr,
                                     borderRadius: 5,
                                     borderColor: Colors.grey.shade300,
                                     height: 42,
@@ -385,7 +385,7 @@ void montageDiloag(BuildContext context, {TaskModel? model}) {
                                 SizedBox(
                                   width: (Get.width * 0.7 / 3) - 25,
                                   child: InputText(
-                                    labelText: 'التصنيف'.tr,
+                                    labelText: 'task_details.category'.tr,
                                     hintText: ''.tr,
                                     height: 42,
                                     fillColor: Colors.white,
@@ -487,7 +487,7 @@ void montageDiloag(BuildContext context, {TaskModel? model}) {
                                       SizedBox(
                                         width: (Get.width * 0.7 / 2) - 25,
                                         child: InputText(
-                                          labelText: 'سجل الملاحظات'.tr,
+                                          labelText: 'tasks.form.notes_log'.tr,
                                           hintText: ''.tr,
                                           height: 250,
                                           fillColor: Colors.white,
@@ -904,7 +904,7 @@ void montageDiloag(BuildContext context, {TaskModel? model}) {
                                             ),
                                           )
                                           : Text(
-                                            "حفظ",
+                                            'common.save'.tr,
                                             style: TextStyle(
                                               color: Colors.white,
                                             ),
@@ -926,7 +926,7 @@ void montageDiloag(BuildContext context, {TaskModel? model}) {
                                   ),
                                 ),
                                 onPressed: () => Navigator.pop(context),
-                                child: Text("إلغاء"),
+                                child: Text('common.cancel'.tr),
                               ),
                             ),
                           ],

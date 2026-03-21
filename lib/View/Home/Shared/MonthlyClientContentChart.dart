@@ -42,10 +42,10 @@ class MonthlyClientContentChart extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 🔹 العنوان
-            const Text(
-              "المحتوى الشهري المنشور للعملاء",
+            Text(
+              'home.chart_monthly_published_title'.tr,
               textDirection: TextDirection.rtl,
-              style: TextStyle(
+              style: const TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
                 color: Colors.black87,

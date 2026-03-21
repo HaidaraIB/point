@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -5,6 +7,8 @@ import 'package:intl/intl.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/AppConstants.dart';
+import 'package:point/Services/ChatAudioFocus.dart';
+import 'package:point/Services/ChatIncomingMessageSound.dart';
 import 'package:point/View/Chats/ChatPage.dart';
 import 'package:point/View/Shared/CustomHeader.dart';
 import 'package:point/View/Shared/SideMenu.dart';
@@ -140,11 +144,11 @@ class ResponsiveScaffold extends StatelessWidget {
                                         CrossAxisAlignment.start,
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Text(
-                                        'لوحة التحكم',
+                                      Text(
+                                        'app.dashboard_title'.tr,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 18,
                                           fontWeight: FontWeight.w700,
@@ -222,8 +226,30 @@ class _ChatPopupState extends State<ChatPopup> {
   Offset offset = Offset.zero;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   Stream<QuerySnapshot<Map<String, dynamic>>>? _messagesStream;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _messageSoundSubscription;
   late String _chatId;
   final TextEditingController _messageController = TextEditingController();
+
+  void _syncPopupSoundAndFocus() {
+    _messageSoundSubscription?.cancel();
+    _messageSoundSubscription = null;
+    final uid = Get.find<HomeController>().currentemployee.value?.id;
+    final stream = _messagesStream;
+    if (stream == null || uid == null) {
+      ChatAudioFocus.clearForegroundIfEquals(_chatId);
+      return;
+    }
+    if (!widget.chat.minimized) {
+      ChatAudioFocus.setForeground(_chatId);
+      _messageSoundSubscription = attachIncomingMessageSoundSubscription(
+        stream: stream,
+        chatId: _chatId,
+        currentUserId: uid,
+      );
+    } else {
+      ChatAudioFocus.clearForegroundIfEquals(_chatId);
+    }
+  }
 
   @override
   void initState() {
@@ -237,7 +263,25 @@ class _ChatPopupState extends State<ChatPopup> {
             .orderBy('timestamp', descending: true)
             .snapshots();
 
+    _syncPopupSoundAndFocus();
+
     // _markMessagesAsRead(_chatId);
+  }
+
+  @override
+  void didUpdateWidget(ChatPopup oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.chat.minimized != widget.chat.minimized) {
+      _syncPopupSoundAndFocus();
+    }
+  }
+
+  @override
+  void dispose() {
+    _messageSoundSubscription?.cancel();
+    ChatAudioFocus.clearForegroundIfEquals(_chatId);
+    _messageController.dispose();
+    super.dispose();
   }
 
   @override
@@ -337,7 +381,7 @@ class _ChatPopupState extends State<ChatPopup> {
                       return const Center(child: CircularProgressIndicator());
                     }
                     if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                      return const Center(child: Text('ابدأ محادثتك الأولى!'));
+                      return Center(child: Text('chat.start_first'.tr));
                     }
 
                     final messages = snapshot.data!.docs;
@@ -350,7 +394,8 @@ class _ChatPopupState extends State<ChatPopup> {
                         final isMe =
                             msg['senderId'] ==
                             controller.currentemployee.value?.id;
-                        final senderName = msg['senderName'] ?? 'مجهول';
+                        final senderName =
+                            msg['senderName'] ?? 'chat.unknown_sender'.tr;
                         final timestamp = msg['timestamp'] as Timestamp?;
                         final isRead = msg['isRead'] ?? false;
 
@@ -416,7 +461,7 @@ class _ChatPopupState extends State<ChatPopup> {
                                     ],
                                   ),
                                   child: messageText(
-                                    msg['text'] ?? 'رسالة فارغة',
+                                    msg['text'] ?? 'chat.empty_message'.tr,
                                     isMe,
                                   ),
                                   // Text(
@@ -482,8 +527,8 @@ class _ChatPopupState extends State<ChatPopup> {
                       minLines: 1,
                       maxLines: 5,
                       keyboardType: TextInputType.multiline,
-                      decoration: const InputDecoration(
-                        hintText: 'اكتب رسالتك...',
+                      decoration: InputDecoration(
+                        hintText: 'chat.write_message'.tr,
                         border: InputBorder.none,
                       ),
                       onTap: () {
@@ -581,13 +626,14 @@ String _formatTimestamp(Timestamp? ts) {
   final diff = now.difference(dt);
 
   if (diff.inSeconds < 60) {
-    return 'منذ ثوانٍ';
+    return 'chat.seconds_ago'.tr;
   } else if (diff.inMinutes < 60) {
-    return 'منذ ${diff.inMinutes} دقيقة';
+    return 'common.minutes_ago'
+        .trParams({'count': '${diff.inMinutes}'});
   } else if (diff.inHours < 24) {
-    return 'منذ ${diff.inHours} ساعة';
+    return 'common.hours_ago'.trParams({'count': '${diff.inHours}'});
   } else if (diff.inDays < 7) {
-    return 'منذ ${diff.inDays} يوم';
+    return 'chat.days_ago'.trParams({'count': '${diff.inDays}'});
   } else {
     return DateFormat('dd/MM/yyyy').format(dt);
   }

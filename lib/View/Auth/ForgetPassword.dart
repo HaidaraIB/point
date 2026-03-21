@@ -35,11 +35,14 @@ class _ForgetPasswordState extends State<ForgetPassword> {
       await FirestoreServices().sendPasswordResetEmail(_emailController.text);
       FunHelper.showsnackbar(
         'success'.tr,
-        'تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني',
+        'auth.forget_password_sent'.tr,
         backgroundColor: Colors.green,
       );
     } on FirebaseAuthException catch (e) {
-      FunHelper.showsnackbar('error'.tr, e.message ?? 'فشل إرسال رابط الاستعادة');
+      FunHelper.showsnackbar(
+        'error'.tr,
+        e.message ?? 'auth.recovery_send_failed'.tr,
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
