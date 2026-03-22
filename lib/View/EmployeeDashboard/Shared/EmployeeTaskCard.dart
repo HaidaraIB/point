@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
-import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/View/EmployeeDashboard/Shared/AddContentEmployeeDialog.dart';
 import 'package:point/View/Shared/responsive.dart';
+import 'package:point/View/Tasks/Shared/add_task_comment_dialog.dart';
 
 class EmployeeTaskCard extends StatelessWidget {
   final TaskModel task;
@@ -33,400 +33,450 @@ class EmployeeTaskCard extends StatelessWidget {
               ),
             ],
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // --- العنوان + النقاط الثلاثة ---
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      task.title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    child: PopupMenuButton<int>(
-                      tooltip: 'tasks.options_tooltip'.tr,
-                      padding: EdgeInsets.zero,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      color: Colors.white,
-                      elevation: 4,
-                      itemBuilder:
-                          (context) => [
-                            PopupMenuItem(
-                              value: 0,
-                              height: 30,
-                              child: Container(
-                                height: 30,
-                                margin: EdgeInsets.all(2),
-                                padding: EdgeInsets.symmetric(vertical: 5),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(5),
-                                  color: Colors.grey.shade200,
-                                ),
-                                child: Row(
-                                  children: [
-                                    SizedBox(width: 5),
-                                    Text(
-                                      StorageKeys.status_processing.tr,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            PopupMenuItem(
-                              value: 1,
-
-                              height: 30,
-
-                              child: Container(
-                                height: 30,
-                                margin: EdgeInsets.all(2),
-                                padding: EdgeInsets.symmetric(vertical: 5),
-
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(5),
-                                  color: Colors.grey.shade200,
-                                ),
-                                child: Row(
-                                  children: [
-                                    SizedBox(width: 5),
-                                    Text(
-                                      StorageKeys.status_under_revision.tr,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                      onSelected: (value) {
-                        if (value == 0) {
-                          controller.updateTask(
-                            task.copyWith(
-                              status: StorageKeys.status_processing,
-                            ),
-                          );
-                        } else if (value == 1) {
-                          controller.updateTask(
-                            task.copyWith(
-                              status: StorageKeys.status_under_revision,
-                            ),
-                          );
-                        }
-                      },
-                      child: Container(
-                        width: 110,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(25),
-                          border: Border.all(color: Colors.grey),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text('tasks.change_status'.tr),
-                            Icon(Icons.keyboard_arrow_down_sharp),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-
-              // --- الحالة و الأولوية ---
-              Row(
-                children: [
-                  _buildstatusTag(
-                    task.status,
-                    Colors.amber.shade700,
-                    Colors.amber.shade50,
-                  ),
-                  const SizedBox(width: 8),
-                  _buildpriortyTag(
-                    task.priority,
-                    Colors.red.shade700,
-                    Colors.red.shade50,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-
-              // --- الوصف ---
-              Text(
-                task.description,
-                maxLines: 3,
-                style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
-              ),
-              const SizedBox(height: 12),
-
-              // --- التقدم ---
-              Text(
-                'tasks.progress_label'.tr,
-                style: TextStyle(color: Colors.grey.shade600),
-              ),
-              const SizedBox(height: 4),
-              // Row(
-              //   children: [
-              //     Expanded(
-              //       child: LinearProgressIndicator(
-              //         value: task.progress ?? 0,
-              //         color: Colors.blue,
-              //         backgroundColor: Colors.grey.shade200,
-              //         minHeight: 6,
-              //         borderRadius: BorderRadius.circular(10),
-              //       ),
-              //     ),
-              //     const SizedBox(width: 8),
-              //     Text(
-              //       '${(task.progress ?? 0.0 * 100).toInt()}%',
-              //       style: const TextStyle(fontSize: 12),
-              //     ),
-              //   ],
-              // ),
-              SizedBox(
-                width: Get.width,
-                height: 56,
-                child: DraggableProgressBar(
-                  initialValue: task.progress ?? 0,
-                  color: Colors.blue,
-                  backgroundColor: Colors.grey.shade200,
-                  height: 10,
-                  borderRadius: BorderRadius.circular(20),
-                  onChanged: (value) {
-                    controller.updateTask(task.copyWith(progress: value));
-                  },
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              if (latestNote != null) ...[
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF7F6FF),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFD9D4FF)),
-                  ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minWidth: constraints.maxWidth),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // --- العنوان + النقاط الثلاثة ---
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              task.title,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          SizedBox(
+                            child: PopupMenuButton<int>(
+                              tooltip: 'tasks.options_tooltip'.tr,
+                              padding: EdgeInsets.zero,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              color: Colors.white,
+                              elevation: 4,
+                              itemBuilder:
+                                  (context) => [
+                                    PopupMenuItem(
+                                      value: 0,
+                                      height: 30,
+                                      child: Container(
+                                        height: 30,
+                                        margin: EdgeInsets.all(2),
+                                        padding: EdgeInsets.symmetric(
+                                          vertical: 5,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            SizedBox(width: 5),
+                                            Text(
+                                              StorageKeys.status_processing.tr,
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 1,
+                                      height: 30,
+                                      child: Container(
+                                        height: 30,
+                                        margin: EdgeInsets.all(2),
+                                        padding: EdgeInsets.symmetric(
+                                          vertical: 5,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            SizedBox(width: 5),
+                                            Text(
+                                              StorageKeys
+                                                  .status_under_revision
+                                                  .tr,
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                              onSelected: (value) {
+                                if (value == 0) {
+                                  controller.updateTask(
+                                    task.copyWith(
+                                      status: StorageKeys.status_processing,
+                                    ),
+                                  );
+                                } else if (value == 1) {
+                                  controller.updateTask(
+                                    task.copyWith(
+                                      status: StorageKeys.status_under_revision,
+                                    ),
+                                  );
+                                }
+                              },
+                              child: Container(
+                                width: 110,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(25),
+                                  border: Border.all(color: Colors.grey),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text('tasks.change_status'.tr),
+                                    Icon(Icons.keyboard_arrow_down_sharp),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+
+                      // --- الحالة و الأولوية ---
+                      Row(
+                        children: [
+                          _buildstatusTag(
+                            task.status,
+                            Colors.amber.shade700,
+                            Colors.amber.shade50,
+                          ),
+                          const SizedBox(width: 8),
+                          _buildpriortyTag(
+                            task.priority,
+                            Colors.red.shade700,
+                            Colors.red.shade50,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+
+                      // --- الوصف ---
                       Text(
-                        'tasks.latest_comment'.tr,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        task.description,
+                        maxLines: 3,
                         style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF5C5589),
+                          color: Colors.grey.shade700,
+                          fontSize: 13,
                         ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // --- التقدم ---
+                      Text(
+                        'tasks.progress_label'.tr,
+                        style: TextStyle(color: Colors.grey.shade600),
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        latestNote.note,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                      // Row(
+                      //   children: [
+                      //     Expanded(
+                      //       child: LinearProgressIndicator(
+                      //         value: task.progress ?? 0,
+                      //         color: Colors.blue,
+                      //         backgroundColor: Colors.grey.shade200,
+                      //         minHeight: 6,
+                      //         borderRadius: BorderRadius.circular(10),
+                      //       ),
+                      //     ),
+                      //     const SizedBox(width: 8),
+                      //     Text(
+                      //       '${(task.progress ?? 0.0 * 100).toInt()}%',
+                      //       style: const TextStyle(fontSize: 12),
+                      //     ),
+                      //   ],
+                      // ),
+                      SizedBox(
+                        width: constraints.maxWidth,
+                        height: 56,
+                        child: DraggableProgressBar(
+                          initialValue: task.progress ?? 0,
+                          color: Colors.blue,
+                          backgroundColor: Colors.grey.shade200,
+                          height: 10,
+                          borderRadius: BorderRadius.circular(20),
+                          onChanged: (value) {
+                            controller.updateTask(
+                              task.copyWith(progress: value),
+                            );
+                          },
                         ),
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        _buildNoteMeta(latestNote.byWho, latestNote.timestamp),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey.shade700,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-              ],
 
-              // --- الشخص + التاريخ ---
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 14,
-                        backgroundImage: NetworkImage(
-                          task.assignedImageUrl.isEmpty
-                              ? '${StorageKeys.supabaseStorageBaseUrl}/Avatar.png'
-                              : task.assignedImageUrl,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        (Get.find<HomeController>().employees
-                                    .firstWhereOrNull(
-                                      (emp) => emp.id == task.assignedTo,
-                                    )
-                                    ?.name ??
-                                '')
-                            .substring(
-                              0,
-                              ((Get.find<HomeController>().employees
-                                                  .firstWhereOrNull(
-                                                    (emp) =>
-                                                        emp.id ==
-                                                        task.assignedTo,
-                                                  )
-                                                  ?.name ??
-                                              '')
-                                          .length >
-                                      10)
-                                  ? 10
-                                  : ((Get.find<HomeController>().employees
-                                              .firstWhereOrNull(
-                                                (emp) =>
-                                                    emp.id == task.assignedTo,
-                                              )
-                                              ?.name ??
-                                          '')
-                                      .length),
-                            ),
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.calendar_today_outlined,
-                        size: 14,
-                        color: Colors.grey,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        FunHelper.formatdate(task.fromDate).toString(),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
+                      const SizedBox(height: 12),
 
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final isDesktop = Responsive.isDesktop(context);
-                    final spacing = isDesktop ? 16.0 : 10.0;
-                    final minButtonWidth = isDesktop ? 150.0 : 120.0;
-                    final buttonWidth =
-                        ((constraints.maxWidth - (spacing * 2)) / 3).clamp(
-                          minButtonWidth,
-                          constraints.maxWidth,
-                        );
-                    return Wrap(
-                      spacing: spacing,
-                      runSpacing: 10,
-                      children: [
-                        SizedBox(
-                          width: buttonWidth,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF5C5589),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(24),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                            ),
-                            onPressed: onTap,
-                            child: Text(
-                              'tasks.view_task_details'.tr,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                              ),
-                            ),
+                      if (latestNote != null) ...[
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 8,
                           ),
-                        ),
-                        SizedBox(
-                          width: buttonWidth,
-                          child: OutlinedButton(
-                            style: OutlinedButton.styleFrom(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(24),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                            ),
-                            onPressed: () {
-                              addContentEmployeeDialog(context, model: task);
-                            },
-                            child: Text(
-                              'addcontent'.tr,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 12),
-                            ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF7F6FF),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFD9D4FF)),
                           ),
-                        ),
-                        SizedBox(
-                          width: buttonWidth,
-                          child: OutlinedButton(
-                            style: OutlinedButton.styleFrom(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(24),
-                              ),
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                            ),
-                            onPressed:
-                                () => _showAddCommentDialog(
-                                  context: context,
-                                  controller: controller,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'tasks.latest_comment'.tr,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF5C5589),
                                 ),
-                            child: Text(
-                              'tasks.add_comment_title'.tr,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(fontSize: 12),
-                            ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                latestNote.note,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                _buildNoteMeta(
+                                  latestNote.byWho,
+                                  latestNote.timestamp,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey.shade700,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
+                        const SizedBox(height: 12),
                       ],
-                    );
-                  },
+
+                      // --- المكلَّف ---
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 14,
+                            backgroundImage: NetworkImage(
+                              task.assignedImageUrl.isEmpty
+                                  ? '${StorageKeys.supabaseStorageBaseUrl}/Avatar.png'
+                                  : task.assignedImageUrl,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              (Get.find<HomeController>().employees
+                                          .firstWhereOrNull(
+                                            (emp) => emp.id == task.assignedTo,
+                                          )
+                                          ?.name ??
+                                      '')
+                                  .substring(
+                                    0,
+                                    ((Get.find<HomeController>().employees
+                                                        .firstWhereOrNull(
+                                                          (emp) =>
+                                                              emp.id ==
+                                                              task.assignedTo,
+                                                        )
+                                                        ?.name ??
+                                                    '')
+                                                .length >
+                                            10)
+                                        ? 10
+                                        : ((Get.find<HomeController>().employees
+                                                    .firstWhereOrNull(
+                                                      (emp) =>
+                                                          emp.id ==
+                                                          task.assignedTo,
+                                                    )
+                                                    ?.name ??
+                                                '')
+                                            .length),
+                                  ),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Builder(
+                        builder: (ctx) {
+                          final dir = Directionality.of(ctx);
+                          final remaining = FunHelper.taskTimeUntilDeadline(
+                            task.toDate,
+                          );
+                          final expired =
+                              remaining == 'tasks.deadline_expired'.tr;
+                          return Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEFF6FF),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color:
+                                    expired
+                                        ? Colors.red.shade200
+                                        : const Color(0xFFBFDBFE),
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'tasks.time_remaining_label'.tr,
+                                  textAlign: TextAlign.start,
+                                  textDirection: dir,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.blueGrey.shade800,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  remaining,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.start,
+                                  textDirection: dir,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                    color:
+                                        expired
+                                            ? Colors.red.shade700
+                                            : const Color(0xFF5C5589),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 12),
+
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        child: Builder(
+                          builder: (context) {
+                            final columnGap =
+                                Responsive.isDesktop(context) ? 12.0 : 8.0;
+                            const rowGap = 10.0;
+                            return employeeTaskCardActionRows(
+                              columnSpacing: columnGap,
+                              rowSpacing: rowGap,
+                              cells: [
+                                OutlinedButton(
+                                  style: OutlinedButton.styleFrom(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(24),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 10,
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    addContentEmployeeDialog(
+                                      context,
+                                      model: task,
+                                    );
+                                  },
+                                  child: Text(
+                                    'addcontent'.tr,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(fontSize: 12),
+                                  ),
+                                ),
+                                OutlinedButton(
+                                  style: OutlinedButton.styleFrom(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(24),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 10,
+                                    ),
+                                  ),
+                                  onPressed:
+                                      () => showAddTaskCommentDialog(
+                                        context: context,
+                                        task: task,
+                                      ),
+                                  child: Text(
+                                    'tasks.add_comment_title'.tr,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(fontSize: 12),
+                                  ),
+                                ),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF5C5589),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(24),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 10,
+                                    ),
+                                  ),
+                                  onPressed: onTap,
+                                  child: Text(
+                                    'tasks.view_task_details'.tr,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              );
+            },
           ),
         );
       },
@@ -434,9 +484,8 @@ class EmployeeTaskCard extends StatelessWidget {
   }
 
   String _buildNoteMeta(String author, DateTime timestamp) {
-    final safeAuthor = author.trim().isEmpty
-        ? 'content.dialog.unknown'.tr
-        : author.trim();
+    final safeAuthor =
+        author.trim().isEmpty ? 'content.dialog.unknown'.tr : author.trim();
     return '$safeAuthor • ${_formatRelativeTime(timestamp)}';
   }
 
@@ -461,69 +510,6 @@ class EmployeeTaskCard extends StatelessWidget {
     return 'time.ago_years'.trParams({'count': '$years'});
   }
 
-  Future<void> _showAddCommentDialog({
-    required BuildContext context,
-    required HomeController controller,
-  }) async {
-    final formKey = GlobalKey<FormState>();
-    final commentController = TextEditingController();
-    await showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text('tasks.add_comment_title'.tr),
-            content: Form(
-              key: formKey,
-              child: TextFormField(
-                controller: commentController,
-                minLines: 3,
-                maxLines: 5,
-                maxLength: 500,
-                decoration: InputDecoration(
-                  hintText: 'employee.comment_hint'.tr,
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) {
-                  if ((value ?? '').trim().isEmpty) {
-                    return 'validation.comment_required'.tr;
-                  }
-                  return null;
-                },
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: Text(AppLocaleKeys.commonCancel.tr),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  if (!formKey.currentState!.validate()) return;
-                  final author =
-                      controller.currentemployee.value?.name?.trim().isNotEmpty ==
-                              true
-                          ? controller.currentemployee.value!.name!.trim()
-                          : 'employee.fallback_name'.tr;
-                  final note = NoteModel(
-                    note: commentController.text.trim(),
-                    byWho: author,
-                    timestamp: DateTime.now(),
-                  );
-                  await controller.updateTask(
-                    task.copyWith(notes: [...task.notes, note]),
-                  );
-                  if (context.mounted) {
-                    Navigator.of(context).pop();
-                  }
-                },
-                child: Text('common.save'.tr),
-              ),
-            ],
-          ),
-    );
-    commentController.dispose();
-  }
-
   Widget _buildpriortyTag(String text, Color color, Color bg) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -541,6 +527,43 @@ class EmployeeTaskCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// صفوف بعرض البطاقة: زرّان في كل صف؛ إن وُجد عدد فردي يكون الصف الأخير بعرض كامل.
+/// أضف عناصر إلى [cells] بالترتيب لإنشاء صفوف إضافية (كل صفين = صف واحد).
+Widget employeeTaskCardActionRows({
+  required List<Widget> cells,
+  required double columnSpacing,
+  required double rowSpacing,
+}) {
+  final rows = <Widget>[];
+  for (var i = 0; i < cells.length; i += 2) {
+    if (i > 0) rows.add(SizedBox(height: rowSpacing));
+    if (i + 1 < cells.length) {
+      rows.add(
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(child: cells[i]),
+            SizedBox(width: columnSpacing),
+            Expanded(child: cells[i + 1]),
+          ],
+        ),
+      );
+    } else {
+      rows.add(
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [Expanded(child: cells[i])],
+        ),
+      );
+    }
+  }
+  return Column(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: rows,
+  );
 }
 
 Widget _buildstatusTag(String text, Color color, Color bg) {

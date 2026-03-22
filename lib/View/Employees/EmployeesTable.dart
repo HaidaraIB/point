@@ -17,6 +17,7 @@ import 'package:point/View/Shared/HorizantalScroll.dart';
 import 'package:point/View/Shared/TableCellCenter.dart';
 import 'package:point/View/Employees/Mobile/EmployeeFormMobilePage.dart';
 import 'package:point/View/Shared/responsive.dart';
+import 'package:point/View/Shared/table_actions_menu_row.dart';
 import 'package:uuid/uuid.dart';
 
 bool _canEditEmployeeCredentials(EmployeeModel? model) {
@@ -248,20 +249,39 @@ class _EmployeeTableState extends State<EmployeeTable> {
 
                                           DataCell(
                                             TableCellCenter(
-                                              child: Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                MainButton(
-                                                  width: 78,
-                                                  height: 36,
-                                                  backgroundcolor: Color(
-                                                    0xff84D62C,
+                                              child: PopupMenuButton<int>(
+                                                tooltip:
+                                                    'tasks.options_tooltip'.tr,
+                                                padding: EdgeInsets.zero,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
+                                                color: Colors.white,
+                                                elevation: 4,
+                                                itemBuilder: (context) => [
+                                                  PopupMenuItem(
+                                                    value: 0,
+                                                    child: tableActionsMenuRow(
+                                                      label: 'edit'.tr,
+                                                      icon: Icons.edit_outlined,
+                                                      iconColor:
+                                                          AppColors.success,
+                                                    ),
                                                   ),
-                                                  bordersize: 8,
-                                                  title: 'edit'.tr,
-                                                  onpress: () {
+                                                  PopupMenuItem(
+                                                    value: 1,
+                                                    child: tableActionsMenuRow(
+                                                      label: 'delete'.tr,
+                                                      icon:
+                                                          Icons.delete_outline,
+                                                      iconColor:
+                                                          AppColors.destructive,
+                                                    ),
+                                                  ),
+                                                ],
+                                                onSelected: (value) {
+                                                  if (value == 0) {
                                                     if (emp.role ==
                                                             'accountholder' &&
                                                         controller
@@ -271,30 +291,22 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                                             'accountholder') {
                                                       FunHelper.showsnackbar(
                                                         'error'.tr,
-                                                        'errors.no_permission'.tr,
+                                                        'errors.no_permission'
+                                                            .tr,
                                                         snackPosition:
                                                             SnackPosition.TOP,
                                                         backgroundColor:
                                                             Colors.red,
-                                                        colorText: Colors.white,
+                                                        colorText:
+                                                            Colors.white,
                                                       );
-
                                                       return;
                                                     }
                                                     showAddEmployeeDialog(
                                                       context,
                                                       model: emp,
                                                     );
-                                                  },
-                                                ),
-                                                SizedBox(width: 5),
-                                                MainButton(
-                                                  width: 78,
-                                                  height: 36,
-                                                  backgroundcolor: Colors.red,
-                                                  bordersize: 8,
-                                                  title: 'delete'.tr,
-                                                  onpress: () {
+                                                  } else if (value == 1) {
                                                     if (emp.role ==
                                                             'accountholder' &&
                                                         controller
@@ -304,14 +316,15 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                                             'accountholder') {
                                                       FunHelper.showsnackbar(
                                                         'error'.tr,
-                                                        'errors.no_permission'.tr,
+                                                        'errors.no_permission'
+                                                            .tr,
                                                         snackPosition:
                                                             SnackPosition.TOP,
                                                         backgroundColor:
                                                             Colors.red,
-                                                        colorText: Colors.white,
+                                                        colorText:
+                                                            Colors.white,
                                                       );
-
                                                       return;
                                                     }
                                                     FunHelper.showConfirmDailog(
@@ -323,10 +336,18 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                                             );
                                                       },
                                                     );
-                                                  },
+                                                  }
+                                                },
+                                                child: Padding(
+                                                  padding:
+                                                      const EdgeInsets.all(8),
+                                                  child: Icon(
+                                                    Icons.more_vert,
+                                                    color:
+                                                        AppColors.primaryfontColor,
+                                                  ),
                                                 ),
-                                              ],
-                                            ),
+                                              ),
                                             ),
                                           ),
                                         ],

@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class NotificationModel {
   final String? id;
   final String? title;
@@ -5,6 +7,8 @@ class NotificationModel {
   final Map<String, dynamic>? data;
   final String? recipientId; // fcmToken بتاع المستلم
   final DateTime? createdAt;
+  /// null أو true = لا يُحسب ضمن «غير مقروء» في الشارة؛ false = غير مقروء.
+  final bool? isRead;
 
   NotificationModel({
     this.id,
@@ -13,6 +17,7 @@ class NotificationModel {
     this.data,
     this.recipientId,
     this.createdAt,
+    this.isRead,
   });
 
   NotificationModel copyWith({
@@ -22,6 +27,7 @@ class NotificationModel {
     Map<String, dynamic>? data,
     String? recipientId,
     DateTime? createdAt,
+    bool? isRead,
   }) {
     return NotificationModel(
       id: id ?? this.id,
@@ -30,6 +36,7 @@ class NotificationModel {
       data: data ?? this.data,
       recipientId: recipientId ?? this.recipientId,
       createdAt: createdAt ?? this.createdAt,
+      isRead: isRead ?? this.isRead,
     );
   }
 
@@ -41,10 +48,14 @@ class NotificationModel {
       data:
           json['data'] != null ? Map<String, dynamic>.from(json['data']) : null,
       recipientId: json['recipientId'],
-      createdAt:
-          json['createdAt'] != null
-              ? DateTime.tryParse(json['createdAt'])
-              : null,
+      createdAt: () {
+        final v = json['createdAt'];
+        if (v == null) return null;
+        if (v is Timestamp) return v.toDate();
+        if (v is String) return DateTime.tryParse(v);
+        return DateTime.tryParse(v.toString());
+      }(),
+      isRead: json['isRead'] as bool?,
     );
   }
 
@@ -56,6 +67,7 @@ class NotificationModel {
       'data': data,
       'recipientId': recipientId,
       'createdAt': createdAt?.toIso8601String(),
+      if (isRead != null) 'isRead': isRead,
     };
   }
 }

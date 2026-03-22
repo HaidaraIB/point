@@ -11,6 +11,7 @@ import 'package:point/View/Tasks/Dialogs/PhotoGraphyDialog.dart';
 import 'package:point/View/Tasks/Dialogs/ProgrammingDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PromotionDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PublishDialog.dart';
+import 'package:point/View/Tasks/Shared/add_task_comment_dialog.dart';
 
 class TaskCard extends StatelessWidget {
   final TaskModel task;
@@ -308,57 +309,48 @@ class TaskCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Row(
+                        child: Builder(
+                          builder: (context) {
+                            final dir = Directionality.of(context);
+                            final deadlineText =
+                                FunHelper.taskTimeUntilDeadline(task.toDate);
+                            final expired =
+                                deadlineText == 'tasks.deadline_expired'.tr;
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(
-                                  Icons.calendar_today_outlined,
-                                  size: 14,
-                                  color: Colors.grey,
+                                Text(
+                                  'tasks.time_remaining_label'.tr,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  textAlign: TextAlign.start,
+                                  textDirection: dir,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.blueGrey.shade700,
+                                  ),
                                 ),
-                                const SizedBox(width: 4),
-                                Expanded(
-                                  child: Text(
-                                    FunHelper.formatdate(task.fromDate)
-                                        .toString(),
-                                    maxLines: 1,
-                                    softWrap: false,
-                                    textAlign: TextAlign.end,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  deadlineText,
+                                  maxLines: 2,
+                                  softWrap: true,
+                                  textAlign: TextAlign.start,
+                                  textDirection: dir,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: expired
+                                        ? Colors.red.shade700
+                                        : const Color(0xFF5C5589),
+                                    fontWeight: FontWeight.w700,
                                   ),
                                 ),
                               ],
-                            ),
-                            Builder(
-                              builder: (_) {
-                                final deadlineText = _stilltime(task.toDate);
-                                return Text(
-                                  deadlineText,
-                                  maxLines: 1,
-                                  softWrap: false,
-                                  textAlign: TextAlign.end,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color:
-                                        deadlineText ==
-                                                'tasks.deadline_expired'.tr
-                                            ? Colors.red
-                                            : Colors.grey,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                );
-                              },
-                            ),
-                          ],
+                            );
+                          },
                         ),
                       ),
                     ],
@@ -367,14 +359,41 @@ class TaskCard extends StatelessWidget {
 
                   Row(
                     children: [
-                      OutlinedButton(
-                        onPressed: onTap,
-                        style: OutlinedButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: onTap,
+                          style: OutlinedButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                          ),
+                          child: Text(
+                            'tasks.view_details'.tr,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        child: Text('tasks.view_details'.tr),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => showAddTaskCommentDialog(
+                            context: context,
+                            task: task,
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                          ),
+                          child: Text(
+                            'tasks.add_comment_title'.tr,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -385,31 +404,6 @@ class TaskCard extends StatelessWidget {
         },
       ),
     );
-  }
-
-  String _stilltime(DateTime enddate) {
-    final now = DateTime.now();
-    final difference = enddate.difference(now);
-
-    if (difference.isNegative) {
-      return 'tasks.deadline_expired'.tr;
-    } else {
-      final days = difference.inDays;
-      final hours = difference.inHours % 24;
-      final minutes = difference.inMinutes % 60;
-
-      final parts = <String>[];
-      if (days > 0) {
-        parts.add('tasks.time_days'.trParams({'count': '$days'}));
-      }
-      if (hours > 0) {
-        parts.add('tasks.time_hours'.trParams({'count': '$hours'}));
-      }
-      if (minutes > 0) {
-        parts.add('tasks.time_minutes'.trParams({'count': '$minutes'}));
-      }
-      return parts.join(' ');
-    }
   }
 
   Widget _buildpriortyTag(String raw) {

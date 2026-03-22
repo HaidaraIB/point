@@ -27,6 +27,11 @@ class Responsive extends StatelessWidget {
   static bool showAuthSplitLayout(double layoutWidth) =>
       layoutWidth >= authSplitMinWidth;
 
+  /// Flex ratio for branding cover vs form in split auth layouts (narrower than 50/50).
+  /// 2:5 is roughly 29% cover, 71% form.
+  static const int authSplitCoverFlex = 2;
+  static const int authSplitFormFlex = 5;
+
   @override
   Widget build(BuildContext context) {
     final Size _size = MediaQuery.of(context).size;

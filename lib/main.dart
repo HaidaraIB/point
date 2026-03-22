@@ -18,6 +18,7 @@ import 'package:point/Services/AutoLoginService.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/config/app_config.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
@@ -92,6 +93,8 @@ class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final lc = Get.find<LanguageController>();
+    final almaraiTextTheme =
+        GoogleFonts.almaraiTextTheme(ThemeData.light().textTheme);
     return Obx(
       () => Listener(
         behavior: HitTestBehavior.translucent,
@@ -104,16 +107,26 @@ class App extends StatelessWidget {
         title: 'Point',
         debugShowCheckedModeBanner: false,
         initialBinding: AppBindings(),
+        builder: (context, child) {
+          final code = lc.currentLocale.value.languageCode;
+          final dir =
+              code == 'ar' ? TextDirection.rtl : TextDirection.ltr;
+          return Directionality(
+            textDirection: dir,
+            child: child ?? const SizedBox.shrink(),
+          );
+        },
         theme: ThemeData(
-          fontFamily: 'IBM',
           scaffoldBackgroundColor: Colors.white,
           progressIndicatorTheme: ProgressIndicatorThemeData(color: Colors.white),
-          textTheme: TextTheme(
-            bodyLarge: TextStyle(color: AppColors.primaryfontColor),
-            bodyMedium: TextStyle(color: AppColors.primaryfontColor),
-            bodySmall: TextStyle(color: AppColors.primaryfontColor),
+          textTheme: almaraiTextTheme.copyWith(
+            bodyLarge: almaraiTextTheme.bodyLarge
+                ?.copyWith(color: AppColors.primaryfontColor),
+            bodyMedium: almaraiTextTheme.bodyMedium
+                ?.copyWith(color: AppColors.primaryfontColor),
+            bodySmall: almaraiTextTheme.bodySmall
+                ?.copyWith(color: AppColors.primaryfontColor),
           ),
-          // primarySwatch: Colors.blue,
         ),
         initialRoute: AppRouting.initailPage,
         // home: MyHomePage(),

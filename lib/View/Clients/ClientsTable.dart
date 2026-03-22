@@ -16,6 +16,7 @@ import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/HorizantalScroll.dart';
 import 'package:point/View/Shared/TableCellCenter.dart';
 import 'package:point/View/Shared/responsive.dart';
+import 'package:point/View/Shared/table_actions_menu_row.dart';
 import 'package:point/Utils/PasswordValidator.dart';
 import 'package:uuid/uuid.dart';
 
@@ -265,34 +266,71 @@ class ClientsTable extends StatelessWidget {
                                           ),
                                           DataCell(
                                             TableCellCenter(
-                                              child: Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                MainButton(
-                                                  width: 78,
-                                                  height: 36,
-                                                  backgroundcolor: Color(
-                                                    0xff84D62C,
-                                                  ),
-                                                  bordersize: 8,
-                                                  title: 'edit'.tr,
-                                                  onpress: () {
+                                              child: PopupMenuButton<int>(
+                                                tooltip:
+                                                    'tasks.options_tooltip'.tr,
+                                                padding: EdgeInsets.zero,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
+                                                color: Colors.white,
+                                                elevation: 4,
+                                                itemBuilder: (context) {
+                                                  final active =
+                                                      emp.status == 'active';
+                                                  return [
+                                                    PopupMenuItem(
+                                                      value: 0,
+                                                      child:
+                                                          tableActionsMenuRow(
+                                                        label: 'edit'.tr,
+                                                        icon:
+                                                            Icons.edit_outlined,
+                                                        iconColor:
+                                                            AppColors.success,
+                                                      ),
+                                                    ),
+                                                    PopupMenuItem(
+                                                      value: 1,
+                                                      child:
+                                                          tableActionsMenuRow(
+                                                        label: 'delete'.tr,
+                                                        icon: Icons
+                                                            .delete_outline,
+                                                        iconColor: AppColors
+                                                            .destructive,
+                                                      ),
+                                                    ),
+                                                    PopupMenuItem(
+                                                      value: 2,
+                                                      child:
+                                                          tableActionsMenuRow(
+                                                        label: active
+                                                            ? 'common.disable'
+                                                                .tr
+                                                            : 'common.enable'
+                                                                .tr,
+                                                        icon: active
+                                                            ? Icons
+                                                                .pause_circle_outline
+                                                            : Icons
+                                                                .play_circle_outline,
+                                                        iconColor: active
+                                                            ? AppColors.caution
+                                                            : AppColors
+                                                                .success,
+                                                      ),
+                                                    ),
+                                                  ];
+                                                },
+                                                onSelected: (value) {
+                                                  if (value == 0) {
                                                     showAddEmployeeDialog(
                                                       context,
                                                       model: emp,
                                                     );
-                                                  },
-                                                ),
-                                                SizedBox(width: 5),
-                                                MainButton(
-                                                  width: 78,
-                                                  height: 36,
-                                                  backgroundcolor: Colors.red,
-                                                  bordersize: 8,
-                                                  title: 'delete'.tr,
-                                                  onpress: () {
+                                                  } else if (value == 1) {
                                                     FunHelper.showConfirmDailog(
                                                       context,
                                                       onTap: () async {
@@ -302,40 +340,33 @@ class ClientsTable extends StatelessWidget {
                                                             );
                                                       },
                                                     );
-                                                  },
-                                                ),
-                                                SizedBox(width: 5),
-                                                MainButton(
-                                                  width: 78,
-                                                  height: 36,
-                                                  backgroundcolor:
-                                                      emp.status == 'active'
-                                                          ? Colors.red
-                                                          : Colors.green,
-                                                  bordersize: 8,
-                                                  title:
-                                                      emp.status == 'active'
-                                                          ? 'common.disable'.tr
-                                                          : 'common.enable'.tr,
-                                                  onpress: () {
+                                                  } else if (value == 2) {
                                                     FunHelper.showConfirmDailog(
                                                       context,
                                                       onTap: () async {
-                                                        await controller.updateClient(
+                                                        await controller
+                                                            .updateClient(
                                                           emp.copyWith(
-                                                            status:
-                                                                emp.status ==
-                                                                        'active'
-                                                                    ? 'inactive'
-                                                                    : 'active',
+                                                            status: emp.status ==
+                                                                    'active'
+                                                                ? 'inactive'
+                                                                : 'active',
                                                           ),
                                                         );
                                                       },
                                                     );
-                                                  },
+                                                  }
+                                                },
+                                                child: Padding(
+                                                  padding:
+                                                      const EdgeInsets.all(8),
+                                                  child: Icon(
+                                                    Icons.more_vert,
+                                                    color: AppColors
+                                                        .primaryfontColor,
+                                                  ),
                                                 ),
-                                              ],
-                                            ),
+                                              ),
                                             ),
                                           ),
                                         ],

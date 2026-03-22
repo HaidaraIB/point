@@ -16,6 +16,9 @@ const Map<String, String> notifyTranslationsEn = {
   'notify.email.time': 'Time',
   'notify.email.post': 'Post',
   'notify.email.reference': 'Reference',
+  'notify.email.update_type': 'Update type',
+  'notify.email.changed_by': 'Changed by',
+  'notify.unknown_actor': 'Unknown',
   'notify.email.state_reopened': 'Reopened',
   'notify.emp.assigned.title': 'You have been assigned a new task',
   'notify.emp.assigned.action':
@@ -48,10 +51,24 @@ const Map<String, String> notifyTranslationsEn = {
   'notify.mgr.completed.body': 'Employee: @name — Task: @title',
   'notify.mgr.completed.action':
       'Review the deliverables and approve or request changes.',
-  'notify.mgr.edited.title':
-      'Employee submitted edits to the task — please review',
-  'notify.mgr.edited.body': 'Employee: @name — Task: @title',
-  'notify.mgr.edited.action': 'Review the updated version.',
+  'notify.mgr.edited.title': 'Employee added a comment',
+  'notify.mgr.edited.body':
+      '@name added a comment on task «@title»',
+  'notify.mgr.edited.action':
+      'Review the comment and the task details.',
+  'notify.mgr.edited.detail_value': 'New comment',
+  'notify.mgr.edited_files.title': 'Employee added an attachment',
+  'notify.mgr.edited_files.body':
+      '@name added an attachment to task «@title»',
+  'notify.mgr.edited_files.action':
+      'Review the attachment and the task details.',
+  'notify.mgr.edited_files.detail_value': 'New attachment',
+  'notify.mgr.edited_both.title': 'Employee added a comment or attachment',
+  'notify.mgr.edited_both.body':
+      '@name updated task «@title» with a new comment and/or attachment',
+  'notify.mgr.edited_both.action':
+      'Review the new comment, attachments, and task details.',
+  'notify.mgr.edited_both.detail_value': 'Comment / attachment',
   'notify.mgr.content_submitted.title':
       'New content submitted for review by client',
   'notify.mgr.content_submitted.body': 'Client: @name — Content: @title',
@@ -138,7 +155,7 @@ const Map<String, String> notifyTranslationsEn = {
   'notify.admin.promo_changed.body': '@title — to: @label',
   'notify.admin.promo_changed.action': 'Monitor the impact on the campaign.',
   'notify.admin.status_changed.title': 'Content status changed',
-  'notify.admin.status_changed.body': '@title — to: @label',
+  'notify.admin.status_changed.body': '@title — to: @label — by: @by',
   'notify.admin.status_changed.action': 'Review the new content status.',
   'notify.promo.new_published.title':
       'New published content for client — add it to the ad campaign',
@@ -164,6 +181,9 @@ const Map<String, String> notifyTranslationsAr = {
   'notify.email.time': 'الوقت',
   'notify.email.post': 'المنشور',
   'notify.email.reference': 'المرجع',
+  'notify.email.update_type': 'نوع التحديث',
+  'notify.email.changed_by': 'تم التغيير بواسطة',
+  'notify.unknown_actor': 'غير معروف',
   'notify.email.state_reopened': 'أعيد فتحها',
   'notify.emp.assigned.title': 'تم تعيينك على مهمة جديدة',
   'notify.emp.assigned.action':
@@ -194,10 +214,25 @@ const Map<String, String> notifyTranslationsAr = {
   'notify.mgr.completed.body': 'الموظف: @name — المهمة: @title',
   'notify.mgr.completed.action':
       'يرجى مراجعة المخرجات واعتماد المهمة أو طلب تعديل.',
-  'notify.mgr.edited.title':
-      'قام الموظف بالتعديل على المهمة يرجى الاطلاع',
-  'notify.mgr.edited.body': 'الموظف: @name — المهمة: @title',
-  'notify.mgr.edited.action': 'يرجى مراجعة النسخة المعدلة.',
+  'notify.mgr.edited.title': 'قام الموظف بإضافة تعليق',
+  'notify.mgr.edited.body':
+      'أضاف @name تعليقاً على المهمة «@title»',
+  'notify.mgr.edited.action':
+      'يرجى الاطلاع على التعليق ومراجعة تفاصيل المهمة.',
+  'notify.mgr.edited.detail_value': 'تعليق جديد',
+  'notify.mgr.edited_files.title': 'قام الموظف بإضافة مرفق',
+  'notify.mgr.edited_files.body':
+      'أضاف @name مرفقاً إلى المهمة «@title»',
+  'notify.mgr.edited_files.action':
+      'يرجى مراجعة المرفق وتفاصيل المهمة.',
+  'notify.mgr.edited_files.detail_value': 'مرفق جديد',
+  'notify.mgr.edited_both.title':
+      'قام الموظف بإضافة تعليق أو مرفق',
+  'notify.mgr.edited_both.body':
+      'حدّث @name المهمة «@title» بتعليق و/أو مرفق جديد',
+  'notify.mgr.edited_both.action':
+      'يرجى مراجعة التعليق والمرفقات وتفاصيل المهمة.',
+  'notify.mgr.edited_both.detail_value': 'تعليق / مرفق',
   'notify.mgr.content_submitted.title':
       'تم رفع محتوى جديد للمراجعة من قبل العميل',
   'notify.mgr.content_submitted.body': 'العميل: @name — المحتوى: @title',
@@ -285,7 +320,7 @@ const Map<String, String> notifyTranslationsAr = {
   'notify.admin.promo_changed.action':
       'يرجى متابعة انعكاس الحالة على الحملة.',
   'notify.admin.status_changed.title': 'تم تغيير حالة المحتوى',
-  'notify.admin.status_changed.body': '@title — إلى: @label',
+  'notify.admin.status_changed.body': '@title — إلى: @label — بواسطة: @by',
   'notify.admin.status_changed.action': 'يرجى مراجعة حالة المحتوى الجديدة.',
   'notify.promo.new_published.title':
       'محتوى منشور جديد للعميل يرجى الاطلاع وإضافته للحملة الإعلانية',

@@ -848,10 +848,27 @@ class FirestoreServices {
         .set(message.toJson());
   }
 
-  static addNotification(NotificationModel model) async {
-    await FirebaseFirestore.instance
-        .collection('notifications')
-        .add(model.toJson());
+  static Future<void> addNotification(NotificationModel model) async {
+    final data = Map<String, dynamic>.from(model.toJson())..remove('id');
+    data['isRead'] = model.isRead ?? false;
+    await FirebaseFirestore.instance.collection('notifications').add(data);
+  }
+
+  /// يضع [isRead] = true لمجموعة مستندات الإشعارات (دُفعات 450 لتفادي حد الـ batch).
+  static Future<void> markInAppNotificationsAsRead(
+    Iterable<String> docIds,
+  ) async {
+    final ids = docIds.where((id) => id.isNotEmpty).toList();
+    if (ids.isEmpty) return;
+    final coll = FirebaseFirestore.instance.collection('notifications');
+    const chunkSize = 450;
+    for (var i = 0; i < ids.length; i += chunkSize) {
+      final batch = FirebaseFirestore.instance.batch();
+      for (final id in ids.skip(i).take(chunkSize)) {
+        batch.update(coll.doc(id), {'isRead': true});
+      }
+      await batch.commit();
+    }
   }
 
   /// Stream of total unread messages count across all chats for [userId].
@@ -951,7 +968,12 @@ class FirestoreServices {
                 .orderBy('createdAt', descending: true)
                 .snapshots()) {
           yield snapshot.docs
-              .map((doc) => NotificationModel.fromJson(doc.data()))
+              .map(
+                (doc) => NotificationModel.fromJson({
+                  ...doc.data(),
+                  'id': doc.id,
+                }),
+              )
               .toList();
         }
       } catch (e) {
@@ -1040,6 +1062,7 @@ class FirestoreServices {
           body: body,
           recipientId: userId,
           createdAt: DateTime.now(),
+          isRead: false,
         ),
       );
       log("✅ FCM Response: $userId");
@@ -1125,6 +1148,7 @@ class FirestoreServices {
           body: body,
           recipientId: userId,
           createdAt: DateTime.now(),
+          isRead: false,
         ),
       );
       log("✅ FCM sent to client: $userId");

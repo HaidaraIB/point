@@ -31,6 +31,8 @@ class AppLocaleKeys {
   static const homeNotificationBody = 'home.notification_body';
   static const homeNotificationBodyHint = 'home.notification_body_hint';
   static const homeNotificationSent = 'home.notification_sent';
+  static const homeReviewListSubtitle = 'home.review_list_subtitle';
+  static const homeReviewListEmpty = 'home.review_list_empty';
 
   static const chatSearch = 'chat.search';
   static const chatSearchEmployee = 'chat.search_employee';

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:point/Utils/AppColors.dart';
@@ -57,6 +58,8 @@ class InputText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isCompactHeight = (height ?? 0) > 0 && (height ?? 0) <= 44;
+    final double fieldVerticalPadding =
+        isCompactHeight ? (kIsWeb ? 8.0 : 5.0) : 12.0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -80,7 +83,9 @@ class InputText extends StatelessWidget {
         Container(
           constraints:
               height != null
-                  ? BoxConstraints(minHeight: height!)
+                  ? (!kIsWeb
+                      ? BoxConstraints(minHeight: height!, maxHeight: height!)
+                      : BoxConstraints(minHeight: height!))
                   : const BoxConstraints(),
           width: double.infinity,
           decoration: BoxDecoration(
@@ -117,7 +122,7 @@ class InputText extends StatelessWidget {
               label: body,
               contentPadding: EdgeInsets.symmetric(
                 horizontal: 16,
-                vertical: isCompactHeight ? 8 : 12,
+                vertical: fieldVerticalPadding,
               ),
 
               border: OutlineInputBorder(

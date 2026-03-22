@@ -623,11 +623,24 @@ class ContentsTable extends StatelessWidget {
                                                                           value,
                                                                     ),
                                                                   );
+                                                              final actorName =
+                                                                  (controller
+                                                                              .currentemployee
+                                                                              .value
+                                                                              ?.name ??
+                                                                          '')
+                                                                      .trim();
                                                               await NotificationService.notifyAdminContentStatusChanged(
                                                                 contentTitle:
                                                                     emp.title,
                                                                 statusLabelAr:
                                                                     statusLabelAr,
+                                                                changedByName:
+                                                                    actorName
+                                                                            .isEmpty
+                                                                        ? 'notify.unknown_actor'
+                                                                            .tr
+                                                                        : actorName,
                                                               );
                                                               if (value ==
                                                                   StorageKeys

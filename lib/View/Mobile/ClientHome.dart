@@ -39,7 +39,6 @@ class ClientHome extends StatelessWidget {
                         avatarUrl:
                             controller.currentClient.value?.image ??
                             kDefaultAvatarUrl,
-                        notificationCount: 1,
                       ),
                     ),
                   ),

@@ -57,7 +57,6 @@ class EmployeeDashBord extends StatelessWidget {
                             avatarUrl:
                                 controller.currentemployee.value?.image ??
                                 kDefaultAvatarUrl,
-                            notificationCount: 1,
                           ),
                         ),
                       ),
@@ -386,7 +385,6 @@ class EmployeeDashBord extends StatelessWidget {
                             role: controller.currentemployee.value?.role ?? '',
                             avatarUrl:
                                 controller.currentemployee.value?.image ?? kDefaultAvatarUrl,
-                            notificationCount: 1,
                           ),
                         ),
                       ),

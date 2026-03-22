@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
-import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
-import 'package:point/Models/ContentModel.dart';
-import 'package:point/View/Contents/ContentDialogDetails.dart';
+import 'package:point/View/Home/Shared/ClientUnderReviewListPage.dart';
 
 const double _kScrollStep = 220.0;
 
@@ -153,10 +151,10 @@ class _ReviewContentWidgetState extends State<ReviewContentWidget> {
             .where((c) => c.status == StorageKeys.status_under_revision)
             .toList();
         final seenClientIds = <String>{};
-        final uniqueClientContents = <MapEntry<String, ContentModel>>[];
+        final uniqueClientIds = <String>[];
         for (final c in underReview) {
           if (seenClientIds.add(c.clientId)) {
-            uniqueClientContents.add(MapEntry(c.clientId, c));
+            uniqueClientIds.add(c.clientId);
           }
         }
         return SingleChildScrollView(
@@ -164,17 +162,17 @@ class _ReviewContentWidgetState extends State<ReviewContentWidget> {
           scrollDirection: Axis.horizontal,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: uniqueClientContents.map((entry) {
-              final clientId = entry.key;
-              final ContentModel firstContent = entry.value;
+            children: uniqueClientIds.map((clientId) {
               final client = controller.clients
                   .firstWhereOrNull((a) => a.id == clientId);
               if (client == null) return const SizedBox.shrink();
               return InkWell(
                 onTap: () {
-                  controller.uploadedFilesPaths.assignAll(
-                      firstContent.files ?? []);
-                  showContentDialogDetails(context, task: firstContent);
+                  showClientUnderReviewListDialog(
+                    context,
+                    clientId: clientId,
+                    clientName: client.name ?? '',
+                  );
                 },
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -206,7 +204,7 @@ class _ReviewContentWidgetState extends State<ReviewContentWidget> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        FunHelper.localizeUiPhrase(client.name),
+                        client.name ?? '',
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,

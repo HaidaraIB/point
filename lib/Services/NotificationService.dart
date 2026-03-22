@@ -1,6 +1,16 @@
 import 'package:get/get.dart';
 import 'package:point/Services/FireStoreServices.dart';
 
+/// ما أضافه المكلَّف عند بقاء حالة المهمة كما هي (إشعار المشرف).
+enum ManagerTaskEditKind {
+  /// تعليق (ملاحظات) فقط.
+  comment,
+  /// مرفقات فقط.
+  attachment,
+  /// تعليق ومرفق.
+  both,
+}
+
 /// Centralized push/email notifications; copy follows current [Get.locale].
 class NotificationService {
   NotificationService._();
@@ -190,21 +200,27 @@ class NotificationService {
   static Future<void> notifyManagersEmployeeEditedTask({
     required String employeeName,
     required String taskTitle,
+    required ManagerTaskEditKind kind,
   }) async {
     final ids = await FirestoreServices.getEmployeeIdsByRole(
       ['admin', 'supervisor'],
     );
+    final prefix = switch (kind) {
+      ManagerTaskEditKind.comment => 'notify.mgr.edited',
+      ManagerTaskEditKind.attachment => 'notify.mgr.edited_files',
+      ManagerTaskEditKind.both => 'notify.mgr.edited_both',
+    };
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
-      title: 'notify.mgr.edited.title'.tr,
-      body: 'notify.mgr.edited.body'
-          .trParams({'name': employeeName, 'title': taskTitle}),
+      title: '$prefix.title'.tr,
+      body: '$prefix.body'.trParams({'name': employeeName, 'title': taskTitle}),
       notificationType: 'manager_task_edited',
-      actionText: 'notify.mgr.edited.action'.tr,
+      actionText: '$prefix.action'.tr,
       referenceId: taskTitle,
       emailDetails: _emailLabels({
         'notify.email.employee': employeeName,
         'notify.email.task': taskTitle,
+        'notify.email.update_type': '$prefix.detail_value'.tr,
       }),
     );
   }
@@ -658,19 +674,24 @@ class NotificationService {
   static Future<void> notifyAdminContentStatusChanged({
     required String contentTitle,
     required String statusLabelAr,
+    required String changedByName,
   }) async {
     final ids = await FirestoreServices.getEmployeeIdsByRole(['admin']);
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
       title: 'notify.admin.status_changed.title'.tr,
-      body: 'notify.admin.status_changed.body'
-          .trParams({'title': contentTitle, 'label': statusLabelAr}),
+      body: 'notify.admin.status_changed.body'.trParams({
+        'title': contentTitle,
+        'label': statusLabelAr,
+        'by': changedByName,
+      }),
       notificationType: 'admin_content_status_changed',
       actionText: 'notify.admin.status_changed.action'.tr,
       referenceId: contentTitle,
       emailDetails: _emailLabels({
         'notify.email.content': contentTitle,
         'notify.email.status': statusLabelAr,
+        'notify.email.changed_by': changedByName,
       }),
     );
   }

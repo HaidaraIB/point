@@ -71,7 +71,6 @@ class ResponsiveScaffold extends StatelessWidget {
                                     avatarUrl:
                                         controller.effectiveEmployee?.image ??
                                         kDefaultAvatarUrl,
-                                    notificationCount: 1,
                                   ),
                                 ),
                               ),

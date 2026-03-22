@@ -18,6 +18,7 @@ import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/NotificationService.dart';
 import 'package:point/Services/StorageKeys.dart';
+import 'package:point/Utils/AppColors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:file_picker/file_picker.dart';
@@ -541,9 +542,20 @@ class HomeController extends GetxController {
         oldTask.status == newTask.status &&
         (newTask.notes.length > oldTask.notes.length ||
             newTask.files.length > oldTask.files.length)) {
+      final addedNotes =
+          newTask.notes.length > oldTask.notes.length;
+      final addedFiles =
+          newTask.files.length > oldTask.files.length;
+      final editKind =
+          addedNotes && addedFiles
+              ? ManagerTaskEditKind.both
+              : addedNotes
+                  ? ManagerTaskEditKind.comment
+                  : ManagerTaskEditKind.attachment;
       await NotificationService.notifyManagersEmployeeEditedTask(
         employeeName: assigneeName,
         taskTitle: newTask.title,
+        kind: editKind,
       );
     }
   }
@@ -1382,20 +1394,22 @@ class HomeController extends GetxController {
     String? fileName,
   }) async {
     final uuid = Uuid();
+    Timer? uploadProgressTimer;
     try {
       isUploading.value = true;
       uploadProgress.value = 0.0;
 
-      showUploadDialog(); // 👈 نعرض الدايلوج
+      showUploadDialog();
 
       final bucket = supabase.storage.from('point');
       final uniqueName = "${uuid.v1()}.${getExtension(fileName ?? '')}";
 
       final bytes = filePathOrBytes as Uint8List;
 
-      // 🔥 نعمل حركة progress manually أثناء الرفع
-      // (Supabase مفيهوش progress حقيقي)
-      Timer.periodic(Duration(milliseconds: 100), (timer) {
+      // حركة تقدم تقريبية أثناء الرفع (Supabase لا يعرض progress حقيقي)
+      uploadProgressTimer = Timer.periodic(const Duration(milliseconds: 100), (
+        timer,
+      ) {
         if (uploadProgress.value >= 0.95) {
           timer.cancel();
         } else {
@@ -1403,16 +1417,16 @@ class HomeController extends GetxController {
         }
       });
 
-      await bucket.uploadBinary(uniqueName, bytes); // الرفع الحقيقي
+      await bucket.uploadBinary(uniqueName, bytes);
 
-      uploadProgress.value = 1.0; // 100%
+      uploadProgress.value = 1.0;
 
       final url = bucket.getPublicUrl(uniqueName);
 
       uploadedFilesPaths.add(url);
 
       isUploading.value = false;
-      Get.back(); // اقفل الدايلوج
+      Get.back();
 
       return url;
     } catch (e) {
@@ -1420,6 +1434,8 @@ class HomeController extends GetxController {
       Get.back();
       log("Error uploading file: $e");
       return null;
+    } finally {
+      uploadProgressTimer?.cancel();
     }
   }
 
@@ -1537,37 +1553,69 @@ class HomeController extends GetxController {
 
   void showUploadDialog() {
     Get.dialog(
-      Scaffold(
-        body: Center(
-          child: Obx(() {
-            return Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              width: 260,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const CircularProgressIndicator(),
-                  const SizedBox(height: 20),
-                  Text(
-                    "${(uploadProgress.value * 100).toStringAsFixed(0)} %",
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+      Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 320),
+          child: Material(
+            color: Colors.white,
+            elevation: 8,
+            shadowColor: Colors.black26,
+            borderRadius: BorderRadius.circular(16),
+            clipBehavior: Clip.antiAlias,
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Obx(() {
+                final p = uploadProgress.value.clamp(0.0, 1.0);
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Icon(
+                      Icons.cloud_upload_outlined,
+                      size: 40,
+                      color: AppColors.primary,
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text('common.uploading'.tr),
-                ],
-              ),
-            );
-          }),
+                    const SizedBox(height: 16),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: p,
+                        minHeight: 8,
+                        backgroundColor: AppColors.greylight,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      '${(p * 100).toStringAsFixed(0)}%',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primaryfontColor,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'common.uploading'.tr,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColors.fontColorGrey,
+                      ),
+                    ),
+                  ],
+                );
+              }),
+            ),
+          ),
         ),
       ),
       barrierDismissible: false,
+      barrierColor: Colors.black54,
     );
   }
 

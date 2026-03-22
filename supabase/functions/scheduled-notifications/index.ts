@@ -212,6 +212,39 @@ async function sendFcm({
   }).catch(() => {});
 }
 
+async function patchTaskStringFields(
+  accessToken: string,
+  documentName: string,
+  updates: Record<string, string>,
+) {
+  const keys = Object.keys(updates);
+  if (keys.length === 0) return;
+  const fields: Record<string, { stringValue: string }> = {};
+  for (const [k, v] of Object.entries(updates)) {
+    fields[k] = { stringValue: v };
+  }
+  const mask = keys.map((k) => `updateMask.fieldPaths=${encodeURIComponent(k)}`).join("&");
+  const url = `https://firestore.googleapis.com/v1/${documentName}?${mask}`;
+  const res = await fetch(url, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ fields }),
+  });
+  if (!res.ok) {
+    console.error("patchTaskStringFields failed", documentName, await res.text());
+  }
+}
+
+/** مهام انتهت من ناحية سير العمل — لا نرسل تذكير اقتراب موعد. */
+const TASK_ENDED_STATUSES = new Set([
+  "status_approved",
+  "status_published",
+  "status_rejected",
+]);
+
 async function handleTaskReminders({
   accessToken,
   firestoreBase,
@@ -239,7 +272,8 @@ async function handleTaskReminders({
   const managers = [...byEmpId.entries()].filter(([, v]) => v.role === "admin" || v.role === "supervisor").map(([id]) => id);
 
   const nowIso = now.toISOString();
-  const in24hIso = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
+  const in48hIso = new Date(now.getTime() + 48 * 60 * 60 * 1000).toISOString();
+  const notifyStamp = now.toISOString();
 
   // Overdue: toDate < now
   const overdueTasks = await runQuery({
@@ -265,6 +299,8 @@ async function handleTaskReminders({
     const title = (f?.title?.stringValue as string) ?? "مهمة";
     const assignedTo = (f?.assignedTo?.stringValue as string) ?? "";
     if (!assignedTo) continue;
+    const st = getStringField(f, "status") ?? "";
+    if (TASK_ENDED_STATUSES.has(st)) continue;
     const emp = byEmpId.get(assignedTo);
     const empName = emp?.name ?? assignedTo;
     const msgBody = `تجاوزت موعد التسليم: ${title} — الموظف: ${empName}`;
@@ -275,8 +311,8 @@ async function handleTaskReminders({
     }
   }
 
-  // DueSoon: now <= toDate <= in24h
-  const dueSoonTasks = await runQuery({
+  // تذكير قبل التسليم: نافذة 24 ساعة و 6 ساعات (شريحة ساعة واحدة لكل تشغيل كرون ساعي)، مع منع التكرار عبر حقول على المستند.
+  const upcomingTasks = await runQuery({
     accessToken,
     projectId,
     structuredQuery: {
@@ -285,25 +321,49 @@ async function handleTaskReminders({
         compositeFilter: {
           op: "AND",
           filters: [
-            { fieldFilter: { field: { fieldPath: "toDate" }, op: "GREATER_THAN_OR_EQUAL", value: { stringValue: nowIso } } },
-            { fieldFilter: { field: { fieldPath: "toDate" }, op: "LESS_THAN_OR_EQUAL", value: { stringValue: in24hIso } } },
+            { fieldFilter: { field: { fieldPath: "toDate" }, op: "GREATER_THAN", value: { stringValue: nowIso } } },
+            { fieldFilter: { field: { fieldPath: "toDate" }, op: "LESS_THAN_OR_EQUAL", value: { stringValue: in48hIso } } },
+            { fieldFilter: { field: { fieldPath: "assignedTo" }, op: "GREATER_THAN", value: { stringValue: "" } } },
           ],
         },
       },
-      limit: 50,
+      limit: 100,
     },
   });
 
-  for (const t of dueSoonTasks) {
+  for (const t of upcomingTasks) {
     const f = t.fields as any;
     const title = (f?.title?.stringValue as string) ?? "مهمة";
     const assignedTo = (f?.assignedTo?.stringValue as string) ?? "";
-    if (!assignedTo) continue;
+    const toDateStr = getStringField(f, "toDate");
+    const status = getStringField(f, "status") ?? "";
+    if (!assignedTo || !toDateStr) continue;
+    if (TASK_ENDED_STATUSES.has(status)) continue;
+
+    const toDate = new Date(toDateStr);
+    if (Number.isNaN(toDate.getTime())) continue;
+
+    const hoursUntil = (toDate.getTime() - now.getTime()) / (60 * 60 * 1000);
     const emp = byEmpId.get(assignedTo);
-    const msgTitle = "⏳ اقتراب موعد التسليم";
-    const msgBody = `المهمة: ${title}`;
-    await sendEmailIfPossible(emp?.email ?? null, msgTitle, msgBody);
-    await sendFcm({ accessToken, fcmUrl, token: emp?.fcmToken ?? null, title: msgTitle, body: msgBody });
+    const notified24 = getStringField(f, "dueSoonNotifiedAt24h");
+    const notified6 = getStringField(f, "dueSoonNotifiedAt6h");
+
+    // متبقي أكثر من 23 ساعة وأقل أو يساوي 24 ساعة
+    if (hoursUntil <= 24 && hoursUntil > 23 && !notified24) {
+      const msgTitle = "⏳ اقتراب موعد التسليم (24 ساعة)";
+      const msgBody = `المهمة: ${title}`;
+      await sendEmailIfPossible(emp?.email ?? null, msgTitle, msgBody);
+      await sendFcm({ accessToken, fcmUrl, token: emp?.fcmToken ?? null, title: msgTitle, body: msgBody });
+      await patchTaskStringFields(accessToken, t.name, { dueSoonNotifiedAt24h: notifyStamp });
+    }
+
+    if (hoursUntil <= 6 && hoursUntil > 5 && !notified6) {
+      const msgTitle = "⏳ اقتراب موعد التسليم (6 ساعات)";
+      const msgBody = `المهمة: ${title}`;
+      await sendEmailIfPossible(emp?.email ?? null, msgTitle, msgBody);
+      await sendFcm({ accessToken, fcmUrl, token: emp?.fcmToken ?? null, title: msgTitle, body: msgBody });
+      await patchTaskStringFields(accessToken, t.name, { dueSoonNotifiedAt6h: notifyStamp });
+    }
   }
 }
 

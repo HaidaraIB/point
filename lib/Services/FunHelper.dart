@@ -66,11 +66,6 @@ class FunHelper {
     'live': 'content_live',
   };
 
-  /// Raw client/header labels that are not translation keys.
-  static final Map<String, String> _legacyUiPhraseToKey = {
-    'from mobile': 'home.badge_from_mobile',
-  };
-
   static final Map<String, String> _legacyPlatformToKey = {
     'facebook': 'platform_facebook',
     'instagram': 'platform_instagram',
@@ -117,10 +112,6 @@ class FunHelper {
   static String localizeUiPhrase(String? raw) {
     final t = raw?.trim() ?? '';
     if (t.isEmpty) return t;
-    final trKey = _legacyUiPhraseToKey[t.toLowerCase()];
-    if (trKey != null) {
-      return _translationForAppLanguage(trKey) ?? trKey.tr;
-    }
     return t;
   }
 
@@ -204,7 +195,10 @@ class FunHelper {
   }
 
   /// Translate values saved as English text, legacy labels, or real keys.
-  static String trStored(String? raw, {StoredValueKind kind = StoredValueKind.generic}) {
+  static String trStored(
+    String? raw, {
+    StoredValueKind kind = StoredValueKind.generic,
+  }) {
     final t = raw?.trim() ?? '';
     if (t.isEmpty) return t;
     for (final c in _candidatesForStored(t, kind)) {
@@ -253,13 +247,16 @@ class FunHelper {
 
   static String mapErrorToKey(Object? error) {
     final raw = (error ?? '').toString().toLowerCase();
-    if (raw.contains('method not allowed')) return AppLocaleKeys.errorsMethodNotAllowed;
+    if (raw.contains('method not allowed'))
+      return AppLocaleKeys.errorsMethodNotAllowed;
     if (raw.contains('unauthorized')) return AppLocaleKeys.errorsUnauthorized;
     if (raw.contains('forbidden')) return AppLocaleKeys.errorsForbidden;
     if (raw.contains('missing authorization') || raw.contains('token')) {
       return AppLocaleKeys.errorsMissingToken;
     }
-    if (raw.contains('required') || raw.contains('invalid') || raw.contains('malformed')) {
+    if (raw.contains('required') ||
+        raw.contains('invalid') ||
+        raw.contains('malformed')) {
       return AppLocaleKeys.errorsInvalidData;
     }
     return AppLocaleKeys.errorGeneric;
@@ -270,7 +267,6 @@ class FunHelper {
     Uint8List byteList = bytes.buffer.asUint8List();
     return base64Encode(byteList);
   }
-
 
   static animatedNavigate(Widget page, {Function()? thenMehode}) {
     Get.to(
@@ -286,14 +282,13 @@ class FunHelper {
     try {
       if (date == null) return null;
       final useAr = _isArabicAppLanguage();
-      final loc = useAr
-          ? const Locale('ar')
-          : (Get.locale ?? const Locale('en'));
-      final localeName = loc.countryCode != null && loc.countryCode!.isNotEmpty
-          ? '${loc.languageCode}_${loc.countryCode}'
-          : loc.languageCode;
-      final pattern =
-          useAr ? 'dd/MM/yyyy HH:mm' : 'dd/MM/yyyy hh:mm a';
+      final loc =
+          useAr ? const Locale('ar') : (Get.locale ?? const Locale('en'));
+      final localeName =
+          loc.countryCode != null && loc.countryCode!.isNotEmpty
+              ? '${loc.languageCode}_${loc.countryCode}'
+              : loc.languageCode;
+      final pattern = useAr ? 'dd/MM/yyyy HH:mm' : 'dd/MM/yyyy hh:mm a';
       return DateFormat(pattern, localeName).format(date.toLocal());
     } catch (e) {
       return null;
@@ -304,14 +299,13 @@ class FunHelper {
     try {
       if (date == null) return null;
       final useAr = _isArabicAppLanguage();
-      final loc = useAr
-          ? const Locale('ar')
-          : (Get.locale ?? const Locale('en'));
-      final localeName = loc.countryCode != null && loc.countryCode!.isNotEmpty
-          ? '${loc.languageCode}_${loc.countryCode}'
-          : loc.languageCode;
-      final pattern =
-          useAr ? 'yyyy-MM-dd HH:mm' : 'yyyy-MM-dd hh:mm a';
+      final loc =
+          useAr ? const Locale('ar') : (Get.locale ?? const Locale('en'));
+      final localeName =
+          loc.countryCode != null && loc.countryCode!.isNotEmpty
+              ? '${loc.languageCode}_${loc.countryCode}'
+              : loc.languageCode;
+      final pattern = useAr ? 'yyyy-MM-dd HH:mm' : 'yyyy-MM-dd hh:mm a';
       return DateFormat(pattern, localeName).format(date.toLocal());
     } catch (e) {
       return null;
@@ -429,9 +423,13 @@ class FunHelper {
     if (diff.inSeconds < 60) {
       return AppLocaleKeys.commonNow.tr;
     } else if (diff.inMinutes < 60) {
-      return AppLocaleKeys.commonMinutesAgo.trParams({'count': '${diff.inMinutes}'});
+      return AppLocaleKeys.commonMinutesAgo.trParams({
+        'count': '${diff.inMinutes}',
+      });
     } else if (diff.inHours < 24) {
-      return AppLocaleKeys.commonHoursAgo.trParams({'count': '${diff.inHours}'});
+      return AppLocaleKeys.commonHoursAgo.trParams({
+        'count': '${diff.inHours}',
+      });
     } else {
       // لو أكتر من يوم → نعرض التاريخ والوقت
       final formatter = DateFormat('dd/MM/yyyy HH:mm');
@@ -478,6 +476,32 @@ class FunHelper {
     SharedPreferences pref = await SharedPreferences.getInstance();
     await pref.remove('isLoggedIn');
     await pref.remove('email');
+  }
+
+  /// الوقت المتبقي حتى موعد التسليم (نص مترجم). يطابق سلوك بطاقة المهام السابقة.
+  static String taskTimeUntilDeadline(DateTime endDate) {
+    final now = DateTime.now();
+    final difference = endDate.difference(now);
+    if (difference.isNegative) {
+      return 'tasks.deadline_expired'.tr;
+    }
+    final days = difference.inDays;
+    final hours = difference.inHours % 24;
+    final minutes = difference.inMinutes % 60;
+    final parts = <String>[];
+    if (days > 0) {
+      parts.add('tasks.time_days'.trParams({'count': '$days'}));
+    }
+    if (hours > 0) {
+      parts.add('tasks.time_hours'.trParams({'count': '$hours'}));
+    }
+    if (minutes > 0) {
+      parts.add('tasks.time_minutes'.trParams({'count': '$minutes'}));
+    }
+    if (parts.isEmpty) {
+      return 'tasks.time_minutes'.trParams({'count': '1'});
+    }
+    return parts.join(' ');
   }
 }
 

@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Models/NotificationModel.dart';
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppColors.dart';
@@ -10,6 +13,13 @@ import 'package:point/View/Chats/ChatPage.dart';
 import 'package:point/View/Chats/MChatPage.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/responsive.dart';
+
+/// Firestore role slug (e.g. employee, admin) shown in headers.
+String _localizedStoredRole(String raw) {
+  final s = raw.trim();
+  if (s.isEmpty) return raw;
+  return s.tr;
+}
 
 Widget _buildAvatar(String url, {required double radius}) {
   if (url.isEmpty) {
@@ -34,8 +44,68 @@ Widget _buildAvatar(String url, {required double radius}) {
   );
 }
 
+bool _isAppInboxNotification(NotificationModel n) {
+  return n.data?['type'] != 'message' && n.data?['type'] != 'chat';
+}
+
+int _unreadAppNotificationCount(HomeController c) {
+  return c.notifications
+      .where((n) => _isAppInboxNotification(n) && n.isRead == false)
+      .length;
+}
+
+Future<void> _markVisibleAppNotificationsRead(HomeController controller) async {
+  final ids =
+      controller.notifications
+          .where(
+            (n) =>
+                _isAppInboxNotification(n) &&
+                n.isRead == false &&
+                n.id != null &&
+                n.id!.isNotEmpty,
+          )
+          .map((n) => n.id!)
+          .toSet()
+          .toList();
+  if (ids.isEmpty) return;
+  await FirestoreServices.markInAppNotificationsAsRead(ids);
+}
+
+/// Red numeric badge (e.g. chat / notifications); hidden when [count] <= 0.
+class HeaderCountBadge extends StatelessWidget {
+  final int count;
+
+  const HeaderCountBadge({super.key, required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    if (count <= 0) return const SizedBox.shrink();
+    final label = count > 99 ? '99+' : count.toString();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+      decoration: const BoxDecoration(
+        color: Colors.red,
+        shape: BoxShape.rectangle,
+        borderRadius: BorderRadius.all(Radius.circular(9)),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        label,
+        style: const TextStyle(
+          fontSize: 11,
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+}
+
 /// Shows the notifications panel as a dialog (used from mobile account dropdown).
 void _showNotificationsDialog(BuildContext context) {
+  final home = Get.find<HomeController>();
+  unawaited(_markVisibleAppNotificationsRead(home));
   showDialog(
     context: context,
     builder: (context) => Dialog(
@@ -187,7 +257,7 @@ class MobileAppBarProfileWidget extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
               Text(
-                FunHelper.localizeUiPhrase(role),
+                _localizedStoredRole(role),
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.85),
                   fontSize: 11,
@@ -213,11 +283,26 @@ class MobileAppBarProfileWidget extends StatelessWidget {
                   value: 1,
                   child: Row(
                     children: [
-                      Text(
-                        'header.notifications'.tr,
-                        style: TextStyle(fontWeight: FontWeight.w500),
+                      Expanded(
+                        child: Text(
+                          'header.notifications'.tr,
+                          style: const TextStyle(fontWeight: FontWeight.w500),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      const SizedBox(width: 8),
+                      Obx(
+                        () {
+                          final n = _unreadAppNotificationCount(
+                            Get.find<HomeController>(),
+                          );
+                          if (n <= 0) return const SizedBox.shrink();
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            child: HeaderCountBadge(count: n),
+                          );
+                        },
+                      ),
                       Icon(Icons.notifications_outlined, color: AppColors.primary),
                     ],
                   ),
@@ -227,11 +312,25 @@ class MobileAppBarProfileWidget extends StatelessWidget {
                     value: 2,
                     child: Row(
                       children: [
-                        Text(
-                          'header.chat'.tr,
-                          style: TextStyle(fontWeight: FontWeight.w500),
+                        Expanded(
+                          child: Text(
+                            'header.chat'.tr,
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                        const SizedBox(width: 8),
+                        Obx(
+                          () {
+                            final n =
+                                Get.find<HomeController>().totalUnreadMessages.value;
+                            if (n <= 0) return const SizedBox.shrink();
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 6),
+                              child: HeaderCountBadge(count: n),
+                            );
+                          },
+                        ),
                         Icon(Icons.chat_bubble_outline, color: AppColors.primary),
                       ],
                     ),
@@ -261,10 +360,6 @@ class MobileAppBarProfileWidget extends StatelessWidget {
                   height: 30,
                   margin: const EdgeInsets.all(2),
                   padding: const EdgeInsets.symmetric(vertical: 5),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(5),
-                    color: Colors.grey.shade200,
-                  ),
                   child: Row(
                     children: [
                       Text(
@@ -308,7 +403,6 @@ class HeaderWidget extends StatelessWidget {
   final String name;
   final String role;
   final String avatarUrl;
-  final int notificationCount;
   final bool? employee;
   final bool? client;
 
@@ -317,7 +411,6 @@ class HeaderWidget extends StatelessWidget {
     required this.name,
     required this.role,
     required this.avatarUrl,
-    required this.notificationCount,
     this.employee,
     this.client,
   });
@@ -384,7 +477,7 @@ class HeaderWidget extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
               Text(
-                FunHelper.localizeUiPhrase(role),
+                _localizedStoredRole(role),
                 style: TextStyle(
                   color: Colors.grey,
                   fontSize: isMobile ? 11 : null,
@@ -565,6 +658,7 @@ class NotificationDropdown extends StatelessWidget {
             IconButton(
               icon: const Icon(Icons.notifications_outlined),
               onPressed: () {
+                unawaited(_markVisibleAppNotificationsRead(controller));
                 final RenderBox button =
                     context.findRenderObject() as RenderBox;
                 final RenderBox overlay =
@@ -692,13 +786,8 @@ class NotificationDropdown extends StatelessWidget {
             Positioned(
               right: 6,
               top: 6,
-              child: Container(
-                height: 10,
-                width: 10,
-                decoration: const BoxDecoration(
-                  color: Colors.red,
-                  shape: BoxShape.circle,
-                ),
+              child: Obx(
+                () => HeaderCountBadge(count: _unreadAppNotificationCount(controller)),
               ),
             ),
           ],
@@ -750,29 +839,11 @@ class _chats extends StatelessWidget {
             Positioned(
               right: 6,
               top: 6,
-              child: Obx(() {
-                final count = controller.totalUnreadMessages.value;
-                if (count <= 0) return const SizedBox.shrink();
-                final label = count > 99 ? '99+' : count.toString();
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                  constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.rectangle,
-                    borderRadius: BorderRadius.all(Radius.circular(9)),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    label,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                );
-              }),
+              child: Obx(
+                () => HeaderCountBadge(
+                  count: controller.totalUnreadMessages.value,
+                ),
+              ),
             ),
           ],
         );

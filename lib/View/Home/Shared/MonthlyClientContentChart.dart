@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
@@ -60,7 +61,7 @@ class MonthlyClientContentChart extends StatelessWidget {
                 plotAreaBorderWidth: 0,
                 primaryXAxis: CategoryAxis(
                   majorGridLines: const MajorGridLines(width: 0),
-                  labelStyle: const TextStyle(fontFamily: 'IBM', fontSize: 12),
+                  labelStyle: GoogleFonts.almarai(fontSize: 12),
                 ),
                 primaryYAxis: NumericAxis(
                   isVisible: false,

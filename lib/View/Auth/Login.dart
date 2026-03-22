@@ -251,16 +251,15 @@ Widget _buildDesktopLayout() {
                         ),
                       ),
                       SizedBox(height: 10),
-                      if (!kIsWeb)
-                        InkWell(
-                          onTap: () => Get.toNamed('/auth/LoginUserAccount'),
-                          child: Center(
-                            child: Text(
-                              'are_you_client'.tr,
-                              style: TextStyle(color: Colors.grey, fontSize: 13),
-                            ),
+                      InkWell(
+                        onTap: () => Get.toNamed('/auth/LoginUserAccount'),
+                        child: Center(
+                          child: Text(
+                            'are_you_client'.tr,
+                            style: TextStyle(color: Colors.grey, fontSize: 13),
                           ),
                         ),
+                      ),
 
                       buildRightsSection(),
                     ],
@@ -289,6 +288,7 @@ Widget _buildDesktopLayout() {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
+                  flex: Responsive.authSplitCoverFlex,
                   child: Image.asset(
                     AppImages.images.authcover,
                     fit: BoxFit.cover,
@@ -299,6 +299,7 @@ Widget _buildDesktopLayout() {
                   ),
                 ),
                 Expanded(
+                  flex: Responsive.authSplitFormFlex,
                   child: LayoutBuilder(
                     builder: (context, colConstraints) {
                       const verticalPad = 50.0;

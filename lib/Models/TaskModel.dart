@@ -30,6 +30,10 @@ class TaskModel {
   final List<dynamic> files;
   final List<NoteModel> notes;
   final List<TaskTimelineEvent> timelineEvents;
+  /// طابع ISO لآخر إشعار «قبل 24 ساعة» (يحدّث من scheduled-notifications).
+  final String? dueSoonNotifiedAt24h;
+  /// طابع ISO لآخر إشعار «قبل 6 ساعات».
+  final String? dueSoonNotifiedAt6h;
 
   TaskModel({
     this.id,
@@ -56,6 +60,8 @@ class TaskModel {
     this.notes = const [],
     this.files = const [],
     this.timelineEvents = const [],
+    this.dueSoonNotifiedAt24h,
+    this.dueSoonNotifiedAt6h,
   });
 
   // ✅ fromJson
@@ -121,6 +127,8 @@ class TaskModel {
                   .map((e) => TaskTimelineEvent.fromJson(e))
                   .toList()
               : [],
+      dueSoonNotifiedAt24h: json['dueSoonNotifiedAt24h'] as String?,
+      dueSoonNotifiedAt6h: json['dueSoonNotifiedAt6h'] as String?,
     );
   }
 
@@ -151,6 +159,10 @@ class TaskModel {
       'files': files,
       'notes': notes.map((e) => e.toJson()).toList(),
       'timelineEvents': timelineEvents.map((e) => e.toJson()).toList(),
+      if (dueSoonNotifiedAt24h != null)
+        'dueSoonNotifiedAt24h': dueSoonNotifiedAt24h,
+      if (dueSoonNotifiedAt6h != null)
+        'dueSoonNotifiedAt6h': dueSoonNotifiedAt6h,
     };
   }
 
@@ -179,6 +191,8 @@ class TaskModel {
     ProgrammingModel? programmingModel,
     List<NoteModel>? notes,
     List<TaskTimelineEvent>? timelineEvents,
+    String? dueSoonNotifiedAt24h,
+    String? dueSoonNotifiedAt6h,
   }) {
     return TaskModel(
       id: id ?? this.id,
@@ -204,6 +218,9 @@ class TaskModel {
       files: files ?? this.files,
       notes: notes ?? this.notes,
       timelineEvents: timelineEvents ?? this.timelineEvents,
+      dueSoonNotifiedAt24h:
+          dueSoonNotifiedAt24h ?? this.dueSoonNotifiedAt24h,
+      dueSoonNotifiedAt6h: dueSoonNotifiedAt6h ?? this.dueSoonNotifiedAt6h,
     );
   }
 }
