@@ -79,7 +79,7 @@ workflows:
         script: |
           cd "$CM_BUILD_DIR"
           PROFILE_NAME=""
-          PREFERRED_NAME="Point"
+          PREFERRED_NAME="Point Agency"
           echo "=== Looking for com.point.agency profile WITH Push Notifications (aps-environment) ==="
           for f in ~/Library/MobileDevice/Provisioning\ Profiles/*.mobileprovision; do
             [ -f "$f" ] || continue
