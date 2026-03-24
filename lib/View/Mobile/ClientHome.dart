@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/ClientController.dart';
+import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Localization/LanguageController.dart';
+import 'package:point/Services/FireStoreServices.dart';
+import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
+import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Mobile/ClientContentDetails.dart';
 import 'package:point/View/Mobile/ContentStatusCard.dart';
 import 'package:point/Utils/AppConstants.dart';
-import 'package:point/View/Shared/CustomHeader.dart';
 
 class TabsController extends GetxController {
   RxInt selectedIndex =
@@ -13,6 +17,8 @@ class TabsController extends GetxController {
 }
 
 class ClientHome extends StatelessWidget {
+  final LanguageController _languageController = Get.find<LanguageController>();
+
   @override
   Widget build(BuildContext context) {
     final tabsController = Get.put(TabsController());
@@ -22,28 +28,26 @@ class ClientHome extends StatelessWidget {
         return Obx(
           () => Scaffold(
             backgroundColor: Colors.white,
+            appBar: _buildClientAppBar(controller),
             body: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  SizedBox(height: 35),
-                  PreferredSize(
-                    preferredSize: Size(Get.width, 60),
-                    child: Obx(
-                      () => HeaderWidget(
-                        client: true,
-                        employee: true,
-                        name: controller.currentClient.value?.name ?? '',
-                        role: '',
-                        avatarUrl:
-                            controller.currentClient.value?.image ??
-                            kDefaultAvatarUrl,
+                  if (MediaQuery.of(context).size.width >= 800)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                      child: Row(
+                        children: [
+                          const Spacer(),
+                          _buildLanguageMenuButton(),
+                        ],
                       ),
                     ),
-                  ),
-
-                  const SizedBox(height: 50),
+                  const SizedBox(height: 16),
 
                   Obx(() {
                     final tabs = [
@@ -301,4 +305,155 @@ class ClientHome extends StatelessWidget {
       },
     );
   }
+
+  PreferredSizeWidget _buildClientAppBar(ClientController controller) {
+    return AppBar(
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.white,
+      elevation: 0.5,
+      titleSpacing: 10,
+      title: Row(
+        children: [
+          PopupMenuButton<String>(
+            tooltip: AppLocaleKeys.appLanguage.tr,
+            padding: EdgeInsets.zero,
+            icon: const Icon(Icons.language, color: AppColors.primary),
+            onSelected: (value) => _languageController.changeLanguage(value),
+            itemBuilder:
+                (context) => [
+                  PopupMenuItem(
+                    value: 'ar',
+                    child: Text(AppLocaleKeys.appLanguageArabic.tr),
+                  ),
+                  PopupMenuItem(
+                    value: 'en',
+                    child: Text(AppLocaleKeys.appLanguageEnglish.tr),
+                  ),
+                ],
+          ),
+          const Spacer(),
+          PopupMenuButton<int>(
+            tooltip: 'tasks.options_tooltip'.tr,
+            padding: EdgeInsets.zero,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            color: Colors.white,
+            elevation: 4,
+            onSelected: (value) async {
+              if (value == 0) {
+                final shouldLogout = await _confirmClientLogoutDialog(Get.context!);
+                if (!shouldLogout) return;
+                controller.currentClient.value = null;
+                await FirestoreServices().signOut();
+                FunHelper.removelogindata();
+                Get.offAllNamed('/auth/LoginUserAccount');
+              } else if (value == 1) {
+                Get.toNamed('/auth/resetPassword');
+              }
+            },
+            itemBuilder:
+                (context) => [
+                  PopupMenuItem(
+                    value: 1,
+                    child: Row(
+                      children: [
+                        Text(
+                          'resetpassword'.tr,
+                          style: const TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.lock_reset, color: AppColors.primary),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 0,
+                    child: Row(
+                      children: [
+                        Text(
+                          'logout'.tr,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.logout, color: Colors.red),
+                      ],
+                    ),
+                  ),
+                ],
+            child: CircleAvatar(
+              radius: 16,
+              backgroundImage: NetworkImage(
+                controller.currentClient.value?.image ?? kDefaultAvatarUrl,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLanguageMenuButton() {
+    return PopupMenuButton<String>(
+      tooltip: AppLocaleKeys.appLanguage.tr,
+      icon: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.language, color: AppColors.primary),
+          const SizedBox(width: 6),
+          Text(
+            AppLocaleKeys.appLanguage.tr,
+            style: const TextStyle(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const Icon(Icons.arrow_drop_down, color: AppColors.primary),
+        ],
+      ),
+      onSelected: (value) => _languageController.changeLanguage(value),
+      itemBuilder:
+          (context) => [
+            PopupMenuItem(
+              value: 'ar',
+              child: Text(AppLocaleKeys.appLanguageArabic.tr),
+            ),
+            PopupMenuItem(
+              value: 'en',
+              child: Text(AppLocaleKeys.appLanguageEnglish.tr),
+            ),
+          ],
+    );
+  }
+}
+
+Future<bool> _confirmClientLogoutDialog(BuildContext context) async {
+  final isArabic = Get.locale?.languageCode == 'ar';
+  final result = await showDialog<bool>(
+    context: context,
+    builder:
+        (ctx) => AlertDialog(
+          title: Text('logout'.tr),
+          content: Text(
+            isArabic
+                ? 'هل أنت متأكد أنك تريد تسجيل الخروج؟'
+                : 'Are you sure you want to log out?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text('cancel'.tr),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(
+                'logout'.tr,
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+  );
+  return result ?? false;
 }

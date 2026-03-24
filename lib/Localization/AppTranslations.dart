@@ -98,7 +98,7 @@ class AppTranslations extends Translations {
       'delete': 'Delete',
       'home.test_email.title': 'Send test email',
       'home.test_email.subtitle': 'Enter recipient, subject and body',
-      'home.test_email.default_subject': 'Test email from Point',
+      'home.test_email.default_subject': 'Test email from Point Agency',
       'home.test_email.default_body':
           'This is a test message from the dashboard.',
       'home.test_email.to_label': 'Recipient email',
@@ -250,7 +250,7 @@ class AppTranslations extends Translations {
       'auth.recovery_send_failed': 'Failed to send recovery link',
       'auth.password_changed_success': 'Password changed successfully',
       'auth.reset_password_failed': 'Failed to change password',
-      'auth.footer.copyright': '© 2025 Point. All rights reserved.',
+      'auth.footer.copyright': '© 2025 Point Agency. All rights reserved.',
       'content.notify.design_video_new': 'Design / new video',
       'tasks.fcm.new_task_assigned': 'You were assigned a new task',
       'tasks.fcm.new_task_content_write':
@@ -847,7 +847,7 @@ class AppTranslations extends Translations {
       "common.save": "حفظ",
       "home.test_email.title": "إرسال بريد تجريبي",
       "home.test_email.subtitle": "أدخل البريد والعنوان والنص",
-      "home.test_email.default_subject": "تجربة إيميل من Point",
+      "home.test_email.default_subject": "تجربة إيميل من Point Agency",
       "home.test_email.default_body": "هذه رسالة تجريبية من لوحة التحكم.",
       "home.test_email.to_label": "البريد المستلم",
       "home.test_email.subject_label": "الموضوع",
@@ -993,7 +993,7 @@ class AppTranslations extends Translations {
       "auth.recovery_send_failed": "فشل إرسال رابط الاستعادة",
       "auth.password_changed_success": "تم تغيير كلمة المرور بنجاح",
       "auth.reset_password_failed": "فشل تغيير كلمة المرور",
-      "auth.footer.copyright": "© 2025 Point. جميع الحقوق محفوظة",
+      "auth.footer.copyright": "© 2025 Point Agency. جميع الحقوق محفوظة",
       "content.notify.design_video_new": "تصميم / فيديو جديد",
       "tasks.fcm.new_task_assigned": "تم تعيينك علي مهمة جديدة",
       "tasks.fcm.new_task_content_write":

@@ -3,9 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Localization/LanguageController.dart';
+import 'package:point/Models/NotificationModel.dart';
+import 'package:point/Services/FireStoreServices.dart';
+import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/AppConstants.dart';
+import 'package:point/View/Chats/MChatPage.dart';
 import 'package:point/View/EmployeeDashboard/Shared/EmployeeTaskCard.dart';
 import 'package:point/View/Shared/CustomHeader.dart';
 import 'package:point/View/Shared/InputText.dart';
@@ -22,15 +28,153 @@ import 'package:point/View/Tasks/Dialogs/ProgrammingDialog.dart';
 
 class EmployeeDashBord extends StatelessWidget {
   // final subselected = Get.parameters;
+  final LanguageController _languageController = Get.find<LanguageController>();
   @override
   Widget build(BuildContext context) {
     return GetBuilder<HomeController>(
       builder: (controller) {
+        final isMobile = Responsive.isMobile(context);
         return Scaffold(
           backgroundColor: Colors.grey.shade100,
+          appBar: isMobile ? _buildMobileAppBar(controller) : null,
           body: Responsive(mobile: _buildMobile(), desktop: _buildDesktop()),
         );
       },
+    );
+  }
+
+  PreferredSizeWidget _buildMobileAppBar(HomeController controller) {
+    return AppBar(
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.white,
+      elevation: 0.5,
+      titleSpacing: 10,
+      title: Row(
+        children: [
+          IconButton(
+            tooltip: 'header.notifications'.tr,
+            icon: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                const Icon(Icons.notifications_outlined, color: AppColors.primary),
+                Positioned(
+                  right: -4,
+                  top: -4,
+                  child: Obx(
+                    () => HeaderCountBadge(
+                      count:
+                          controller.notifications
+                              .where(
+                                (n) =>
+                                    n.data?['type'] != 'message' &&
+                                    n.data?['type'] != 'chat' &&
+                                    n.isRead == false,
+                              )
+                              .length,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            onPressed: () {
+              _showEmployeeNotificationsDialog(Get.context!, controller);
+            },
+          ),
+          PopupMenuButton<String>(
+            tooltip: AppLocaleKeys.appLanguage.tr,
+            padding: EdgeInsets.zero,
+            icon: const Icon(Icons.language, color: AppColors.primary),
+            onSelected: (value) => _languageController.changeLanguage(value),
+            itemBuilder:
+                (context) => [
+                  PopupMenuItem(
+                    value: 'ar',
+                    child: Text(AppLocaleKeys.appLanguageArabic.tr),
+                  ),
+                  PopupMenuItem(
+                    value: 'en',
+                    child: Text(AppLocaleKeys.appLanguageEnglish.tr),
+                  ),
+                ],
+          ),
+          IconButton(
+            tooltip: 'header.chat'.tr,
+            icon: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                const Icon(Icons.chat_bubble_outline, color: AppColors.primary),
+                Positioned(
+                  right: -4,
+                  top: -4,
+                  child: Obx(
+                    () => HeaderCountBadge(
+                      count: controller.totalUnreadMessages.value,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            onPressed: () => Get.to(() => ChatsListScreen(onMinimize: () {})),
+          ),
+          const Spacer(),
+          PopupMenuButton<int>(
+            tooltip: 'tasks.options_tooltip'.tr,
+            padding: EdgeInsets.zero,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            color: Colors.white,
+            elevation: 4,
+            onSelected: (value) async {
+              if (value == 0) {
+                final shouldLogout = await _confirmEmployeeLogoutDialog(Get.context!);
+                if (!shouldLogout) return;
+                controller.clearEmployeeSession();
+                await FirestoreServices().signOut();
+                FunHelper.removelogindata();
+                Get.offAllNamed('/auth/login');
+              } else if (value == 1) {
+                Get.toNamed('/auth/resetPassword');
+              }
+            },
+            itemBuilder:
+                (context) => [
+                  PopupMenuItem(
+                    value: 1,
+                    child: Row(
+                      children: [
+                        Text(
+                          'resetpassword'.tr,
+                          style: const TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.lock_reset, color: AppColors.primary),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 0,
+                    child: Row(
+                      children: [
+                        Text(
+                          'logout'.tr,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.logout, color: Colors.red),
+                      ],
+                    ),
+                  ),
+                ],
+            child: CircleAvatar(
+              radius: 16,
+              backgroundImage: NetworkImage(
+                controller.currentemployee.value?.image ?? kDefaultAvatarUrl,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -80,6 +224,33 @@ class EmployeeDashBord extends StatelessWidget {
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
                             ),
+                          ),
+                          const SizedBox(width: 10),
+                          PopupMenuButton<String>(
+                            tooltip: AppLocaleKeys.appLanguage.tr,
+                            padding: EdgeInsets.zero,
+                            icon: const Icon(
+                              Icons.language,
+                              color: AppColors.primary,
+                            ),
+                            onSelected:
+                                (value) =>
+                                    _languageController.changeLanguage(value),
+                            itemBuilder:
+                                (context) => [
+                                  PopupMenuItem(
+                                    value: 'ar',
+                                    child: Text(
+                                      AppLocaleKeys.appLanguageArabic.tr,
+                                    ),
+                                  ),
+                                  PopupMenuItem(
+                                    value: 'en',
+                                    child: Text(
+                                      AppLocaleKeys.appLanguageEnglish.tr,
+                                    ),
+                                  ),
+                                ],
                           ),
                           Spacer(),
                           if (controller.currentemployee.value?.department ==
@@ -375,20 +546,7 @@ class EmployeeDashBord extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SizedBox(height: 35),
-                      PreferredSize(
-                        preferredSize: Size(Get.width, 60),
-                        child: Obx(
-                          () => HeaderWidget(
-                            employee: true,
-                            name: controller.currentemployee.value?.name ?? '',
-                            role: controller.currentemployee.value?.role ?? '',
-                            avatarUrl:
-                                controller.currentemployee.value?.image ?? kDefaultAvatarUrl,
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 20),
+                      const SizedBox(height: 8),
 
                       Row(
                         children: [
@@ -399,6 +557,33 @@ class EmployeeDashBord extends StatelessWidget {
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
                             ),
+                          ),
+                          const SizedBox(width: 8),
+                          PopupMenuButton<String>(
+                            tooltip: AppLocaleKeys.appLanguage.tr,
+                            padding: EdgeInsets.zero,
+                            icon: const Icon(
+                              Icons.language,
+                              color: AppColors.primary,
+                            ),
+                            onSelected:
+                                (value) =>
+                                    _languageController.changeLanguage(value),
+                            itemBuilder:
+                                (context) => [
+                                  PopupMenuItem(
+                                    value: 'ar',
+                                    child: Text(
+                                      AppLocaleKeys.appLanguageArabic.tr,
+                                    ),
+                                  ),
+                                  PopupMenuItem(
+                                    value: 'en',
+                                    child: Text(
+                                      AppLocaleKeys.appLanguageEnglish.tr,
+                                    ),
+                                  ),
+                                ],
                           ),
                           Spacer(),
                           if (controller.currentemployee.value?.department ==
@@ -872,4 +1057,162 @@ class TasksListPage extends StatelessWidget {
       ),
     );
   }
+}
+
+Future<bool> _confirmEmployeeLogoutDialog(BuildContext context) async {
+  final isArabic = Get.locale?.languageCode == 'ar';
+  final result = await showDialog<bool>(
+    context: context,
+    builder:
+        (ctx) => AlertDialog(
+          title: Text('logout'.tr),
+          content: Text(
+            isArabic
+                ? 'هل أنت متأكد أنك تريد تسجيل الخروج؟'
+                : 'Are you sure you want to log out?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text('cancel'.tr),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(
+                'logout'.tr,
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+  );
+  return result ?? false;
+}
+
+bool _isAppInboxNotification(NotificationModel n) {
+  return n.data?['type'] != 'message' && n.data?['type'] != 'chat';
+}
+
+Future<void> _markVisibleAppNotificationsRead(HomeController controller) async {
+  final ids =
+      controller.notifications
+          .where(
+            (n) =>
+                _isAppInboxNotification(n) &&
+                n.isRead == false &&
+                n.id != null &&
+                n.id!.isNotEmpty,
+          )
+          .map((n) => n.id!)
+          .toSet()
+          .toList();
+  if (ids.isEmpty) return;
+  await FirestoreServices.markInAppNotificationsAsRead(ids);
+}
+
+void _showEmployeeNotificationsDialog(
+  BuildContext context,
+  HomeController controller,
+) {
+  _markVisibleAppNotificationsRead(controller);
+  showDialog(
+    context: context,
+    builder:
+        (context) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400, maxHeight: 500),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text(
+                    'header.notifications'.tr,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.teal,
+                      fontSize: 18,
+                    ),
+                  ),
+                ),
+                Flexible(
+                  child: Obx(() {
+                    final filtered =
+                        controller.notifications
+                            .where((n) => _isAppInboxNotification(n))
+                            .toList();
+                    return ListView.separated(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      shrinkWrap: true,
+                      itemCount: filtered.length,
+                      separatorBuilder: (_, __) => const Divider(height: 10),
+                      itemBuilder: (context, index) {
+                        final n = filtered[index];
+                        final bgColors = [
+                          Colors.pink.shade100,
+                          Colors.green.shade100,
+                          Colors.purple.shade100,
+                          Colors.teal.shade100,
+                        ];
+                        final randomColor = bgColors[index % bgColors.length];
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: CircleAvatar(
+                            radius: 24,
+                            backgroundColor: randomColor,
+                            child: Text(
+                              n.title.toString().isNotEmpty
+                                  ? n.title.toString()[0]
+                                  : 'N',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          title: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                n.title ?? '',
+                                textDirection: TextDirection.rtl,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                n.body ?? '',
+                                textDirection: TextDirection.rtl,
+                                style: const TextStyle(fontSize: 13),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                          subtitle: Text(
+                            n.createdAt != null
+                                ? FunHelper.formatdateTime(n.createdAt!).toString()
+                                : '',
+                            textDirection: TextDirection.rtl,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  }),
+                ),
+              ],
+            ),
+          ),
+        ),
+  );
 }

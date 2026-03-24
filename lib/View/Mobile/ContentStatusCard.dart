@@ -19,6 +19,10 @@ class ContentStatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final firstFile =
+        (model?.files != null && model!.files!.isNotEmpty)
+            ? model!.files!.first
+            : null;
     return InkWell(
       onTap: onTap,
       // borderRadius: BorderRadius.circular(0),
@@ -31,7 +35,7 @@ class ContentStatusCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildIcon(model!.files?.first),
+            _buildIcon(firstFile),
             const SizedBox(width: 10),
             Expanded(
               child: Row(
@@ -169,7 +173,15 @@ String getFileType(String url) {
   }
 }
 
-Widget _buildIcon(String url) {
+Widget _buildIcon(String? url) {
+  if (url == null || url.trim().isEmpty) {
+    return Image.asset(
+      'assets/images/Arrow(2).png',
+      width: 65,
+      height: 65,
+      fit: BoxFit.cover,
+    );
+  }
   var type = getFileType(url);
   switch (type) {
     case 'image':

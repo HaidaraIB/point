@@ -213,6 +213,37 @@ void _openChatFromMobile(BuildContext context) {
   Get.to(() => ChatsListScreen(onMinimize: () {}));
 }
 
+Future<bool> _confirmLogoutDialog(BuildContext context) async {
+  final isArabic = Get.locale?.languageCode == 'ar';
+  final result = await showDialog<bool>(
+    context: context,
+    builder:
+        (ctx) => AlertDialog(
+          title: Text('logout'.tr),
+          content: Text(
+            isArabic
+                ? 'هل أنت متأكد أنك تريد تسجيل الخروج؟'
+                : 'Are you sure you want to log out?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text('cancel'.tr),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(
+                'logout'.tr,
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        ),
+  );
+  return result ?? false;
+}
+
 /// Compact profile widget for the mobile app bar (avatar + name/role + dropdown).
 /// Placed on the side opposite to the drawer.
 class MobileAppBarProfileWidget extends StatelessWidget {
@@ -375,10 +406,12 @@ class MobileAppBarProfileWidget extends StatelessWidget {
             );
             return items;
           },
-          onSelected: (value) {
+          onSelected: (value) async {
             if (value == 0) {
+              final shouldLogout = await _confirmLogoutDialog(context);
+              if (!shouldLogout) return;
               Get.find<HomeController>().clearEmployeeSession();
-              FirestoreServices().signOut();
+              await FirestoreServices().signOut();
               if (isClient) {
                 Get.offAllNamed('/auth/LoginUserAccount');
               } else {
@@ -568,10 +601,12 @@ class HeaderWidget extends StatelessWidget {
               );
               return items;
             },
-            onSelected: (value) {
+            onSelected: (value) async {
               if (value == 0) {
-              Get.find<HomeController>().clearEmployeeSession();
-                FirestoreServices().signOut();
+                final shouldLogout = await _confirmLogoutDialog(context);
+                if (!shouldLogout) return;
+                Get.find<HomeController>().clearEmployeeSession();
+                await FirestoreServices().signOut();
                 if (client == true) {
                   Get.offAllNamed('/auth/LoginUserAccount');
                 } else {

@@ -104,7 +104,7 @@ class App extends StatelessWidget {
         child: GetMaterialApp(
         key: navigatorKey,
 
-        title: 'Point',
+        title: 'Point Agency',
         debugShowCheckedModeBanner: false,
         initialBinding: AppBindings(),
         builder: (context, child) {

@@ -1185,84 +1185,169 @@ void showaddNotifications(BuildContext context) {
                       // Actions
                       Padding(
                         padding: const EdgeInsets.all(16),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            Obx(
-                              () => SizedBox(
-                                width:
-                                    Responsive.isDesktop(Get.context!)
-                                        ? Get.width * 0.4 - 260
-                                        : 190,
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Color(0xFF5C5589),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(24),
-                                    ),
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 48,
-                                      vertical: 20,
-                                    ),
-                                  ),
-                                  onPressed: () async {
-                                    if (_key.currentState!.validate()) {
-                                      controller.isLoading.value = true;
-                                      await FirestoreServices.sendFcmTopic(
-                                        scheduledAt: date.toString(),
-                                        topic:
-                                            controller
-                                                .selectedTypeNotifications
-                                                .value,
-                                        title: title.text,
-                                        body: body.text,
-                                      ).then((value) {
-                                        Navigator.pop(context);
-                                        FunHelper.showsnackbar(
-                                          'success'.tr,
-                                          AppLocaleKeys.homeNotificationSent.tr,
-                                          snackPosition: SnackPosition.TOP,
-                                          backgroundColor: Colors.green,
-                                          colorText: Colors.white,
-                                        );
-                                        controller.isLoading.value = false;
-                                      });
-                                    }
-                                  },
-                                  child:
-                                      controller.isLoading.value
-                                          ? Center(
-                                            child: CircularProgressIndicator(
-                                              color: Colors.white,
-                                            ),
-                                          )
-                                          : Text(
-                                            AppLocaleKeys.commonConfirm.tr,
-                                            style: TextStyle(
-                                              color: Colors.white,
+                        child: Responsive.isDesktop(Get.context!)
+                            ? Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  Obx(
+                                    () => SizedBox(
+                                      width: Get.width * 0.4 - 260,
+                                      child: ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Color(0xFF5C5589),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              24,
                                             ),
                                           ),
-                                ),
-                              ),
-                            ),
-                            SizedBox(
-                              width: 190,
-                              child: OutlinedButton(
-                                style: OutlinedButton.styleFrom(
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(24),
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: 48,
+                                            vertical: 20,
+                                          ),
+                                        ),
+                                        onPressed: () async {
+                                          if (_key.currentState!.validate()) {
+                                            controller.isLoading.value = true;
+                                            await FirestoreServices.sendFcmTopic(
+                                              scheduledAt: date.toString(),
+                                              topic:
+                                                  controller
+                                                      .selectedTypeNotifications
+                                                      .value,
+                                              title: title.text,
+                                              body: body.text,
+                                            ).then((value) {
+                                              Navigator.pop(context);
+                                              FunHelper.showsnackbar(
+                                                'success'.tr,
+                                                AppLocaleKeys.homeNotificationSent
+                                                    .tr,
+                                                snackPosition:
+                                                    SnackPosition.TOP,
+                                                backgroundColor: Colors.green,
+                                                colorText: Colors.white,
+                                              );
+                                              controller.isLoading.value = false;
+                                            });
+                                          }
+                                        },
+                                        child:
+                                            controller.isLoading.value
+                                                ? Center(
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                        color: Colors.white,
+                                                      ),
+                                                )
+                                                : Text(
+                                                  AppLocaleKeys.commonConfirm.tr,
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                      ),
+                                    ),
                                   ),
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 32,
-                                    vertical: 20,
+                                  SizedBox(
+                                    width: 190,
+                                    child: OutlinedButton(
+                                      style: OutlinedButton.styleFrom(
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            24,
+                                          ),
+                                        ),
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 32,
+                                          vertical: 20,
+                                        ),
+                                      ),
+                                      onPressed: () => Navigator.pop(context),
+                                      child: Text(AppLocaleKeys.commonCancel.tr),
+                                    ),
                                   ),
-                                ),
-                                onPressed: () => Navigator.pop(context),
-                                child: Text(AppLocaleKeys.commonCancel.tr),
+                                ],
+                              )
+                            : Row(
+                                children: [
+                                  Expanded(
+                                    child: Obx(
+                                      () => ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Color(0xFF5C5589),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              24,
+                                            ),
+                                          ),
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 20,
+                                          ),
+                                        ),
+                                        onPressed: () async {
+                                          if (_key.currentState!.validate()) {
+                                            controller.isLoading.value = true;
+                                            await FirestoreServices.sendFcmTopic(
+                                              scheduledAt: date.toString(),
+                                              topic:
+                                                  controller
+                                                      .selectedTypeNotifications
+                                                      .value,
+                                              title: title.text,
+                                              body: body.text,
+                                            ).then((value) {
+                                              Navigator.pop(context);
+                                              FunHelper.showsnackbar(
+                                                'success'.tr,
+                                                AppLocaleKeys.homeNotificationSent
+                                                    .tr,
+                                                snackPosition:
+                                                    SnackPosition.TOP,
+                                                backgroundColor: Colors.green,
+                                                colorText: Colors.white,
+                                              );
+                                              controller.isLoading.value = false;
+                                            });
+                                          }
+                                        },
+                                        child:
+                                            controller.isLoading.value
+                                                ? Center(
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                        color: Colors.white,
+                                                      ),
+                                                )
+                                                : Text(
+                                                  AppLocaleKeys.commonConfirm.tr,
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: OutlinedButton(
+                                      style: OutlinedButton.styleFrom(
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            24,
+                                          ),
+                                        ),
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 20,
+                                        ),
+                                      ),
+                                      onPressed: () => Navigator.pop(context),
+                                      child: Text(AppLocaleKeys.commonCancel.tr),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                          ],
-                        ),
                       ),
                     ],
                   ),
@@ -1506,20 +1591,24 @@ Widget _userTypeButton(String label, String type, String selected) {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              label,
-              style: TextStyle(
-                // color: isSelected ? Colors.deepPurple : Colors.black,
-                fontWeight: FontWeight.w500,
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  // color: isSelected ? Colors.deepPurple : Colors.black,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
             const SizedBox(width: 6),
-
             Icon(
               isSelected
                   ? Icons.radio_button_checked
                   : Icons.radio_button_unchecked,
               color: isSelected ? Colors.deepPurple : Colors.grey,
+              size: 22,
             ),
           ],
         ),

@@ -1,3 +1,9 @@
+# iOS / TestFlight عبر Codemagic — checklist سريع:
+# 1) أنشئ تطبيقاً في Codemagic يشير لهذا الريبو واختر الفرع (مثل master) وworkflow: ios-workflow
+# 2) Integrations → App Store Connect: اسم التكامل يجب أن يطابق السطر integrations.app_store_connect أدناه (حالياً: Point)
+# 3) Environment → مجموعة ios_config: انظر codemagic-ios-config.example.env
+# 4) Apple Developer: App ID com.point.agency مع Push + provisioning profile App Store يحتوي aps-environment (السكربت يفضّل اسماً Point)
+# 5) رقم البناء: يُشتق من pubspec + FCI_BUILD_NUMBER/CM_BUILD_NUMBER/BUILD_NUMBER عند التوفر (فعّل زيادة رقم البناء في إعدادات التطبيق على Codemagic إن رغبت)
 workflows:
   ios-workflow:
     name: iOS Workflow
@@ -21,12 +27,27 @@ workflows:
         XCODE_WORKSPACE: "ios/Runner.xcworkspace"
         XCODE_SCHEME: "Runner"
         FLUTTER_BUILD_MODE: "release"
-        FLUTTER_BUILD_NAME: "1.0.0"
-        FLUTTER_BUILD_NUMBER: "1"
     scripts:
       - name: Get Flutter dependencies
         script: |
           flutter pub get
+      - name: Set iOS version from pubspec and Codemagic build number
+        script: |
+          cd "$CM_BUILD_DIR"
+          VERSION_LINE=$(grep '^version:' pubspec.yaml | head -1 | sed 's/version:[[:space:]]*//' | tr -d '[:space:]')
+          NAME=$(echo "$VERSION_LINE" | cut -d'+' -f1)
+          BUILD_FROM_PUB=$(echo "$VERSION_LINE" | cut -d'+' -f2)
+          [ -n "$NAME" ] || NAME="1.0.0"
+          [ -n "$BUILD_FROM_PUB" ] || BUILD_FROM_PUB="1"
+          INCR="${FCI_BUILD_NUMBER:-${CM_BUILD_NUMBER:-${BUILD_NUMBER:-}}}"
+          if [ -n "$INCR" ]; then
+            NUM="$INCR"
+          else
+            NUM="$BUILD_FROM_PUB"
+          fi
+          echo "FLUTTER_BUILD_NAME=$NAME" >> "$CM_ENV"
+          echo "FLUTTER_BUILD_NUMBER=$NUM" >> "$CM_ENV"
+          echo "✅ FLUTTER_BUILD_NAME=$NAME FLUTTER_BUILD_NUMBER=$NUM (pubspec: $VERSION_LINE; increment: ${INCR:-from pubspec})"
       - name: Install CocoaPods dependencies
         script: |
           cd ios && pod install
@@ -93,6 +114,7 @@ workflows:
       - name: Flutter build ipa
         script: |
           cd "$CM_BUILD_DIR"
+          set +e
           flutter build ipa \
             --release \
             --dart-define=SUPABASE_URL="$SUPABASE_URL" \
@@ -100,14 +122,28 @@ workflows:
             --dart-define=SUPABASE_STORAGE_BASE_URL="$SUPABASE_STORAGE_BASE_URL" \
             --export-options-plist /tmp/ExportOptions.plist \
             --build-name="${FLUTTER_BUILD_NAME}" \
-            --build-number="${FLUTTER_BUILD_NUMBER}" || true
-          if [ ! -d build/ios/ipa ] || [ -z "$(ls -A build/ios/ipa 2>/dev/null)" ]; then
-            echo "=== Flutter export failed, running xcodebuild -exportArchive manually ==="
+            --build-number="${FLUTTER_BUILD_NUMBER}"
+          FLUTTER_EXIT=$?
+          set -e
+          if [ -d build/ios/ipa ] && [ -n "$(ls -A build/ios/ipa 2>/dev/null)" ]; then
+            echo "✅ IPA produced by flutter build ipa"
+          elif [ -d build/ios/archive/Runner.xcarchive ]; then
+            echo "=== IPA missing but archive present (exit $FLUTTER_EXIT); running xcodebuild -exportArchive ==="
             mkdir -p build/ios/ipa
+            set +e
             xcodebuild -exportArchive \
               -archivePath build/ios/archive/Runner.xcarchive \
               -exportPath build/ios/ipa \
               -exportOptionsPlist /tmp/ExportOptions.plist
+            XCODE_EXPORT_EXIT=$?
+            set -e
+            if [ ! -d build/ios/ipa ] || [ -z "$(ls -A build/ios/ipa 2>/dev/null)" ]; then
+              echo "❌ xcodebuild -exportArchive failed or produced no IPA (exit $XCODE_EXPORT_EXIT)"
+              exit "${XCODE_EXPORT_EXIT:-1}"
+            fi
+          else
+            echo "❌ flutter build ipa failed (exit $FLUTTER_EXIT) and no Runner.xcarchive — aborting"
+            exit "$FLUTTER_EXIT"
           fi
           echo "=== After build: looking for IPA ==="
           ls -la build/ios/ipa/ 2>/dev/null || true

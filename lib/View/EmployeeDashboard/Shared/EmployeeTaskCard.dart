@@ -35,6 +35,7 @@ class EmployeeTaskCard extends StatelessWidget {
           ),
           child: LayoutBuilder(
             builder: (context, constraints) {
+              final isDesktop = Responsive.isDesktop(context);
               return SingleChildScrollView(
                 physics: const ClampingScrollPhysics(),
                 child: ConstrainedBox(
@@ -130,17 +131,37 @@ class EmployeeTaskCard extends StatelessWidget {
                                 }
                               },
                               child: Container(
-                                width: 110,
+                                constraints:
+                                    isDesktop
+                                        ? const BoxConstraints(
+                                          minWidth: 110,
+                                          maxWidth: 110,
+                                        )
+                                        : const BoxConstraints(minWidth: 0),
                                 height: 32,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                ),
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(25),
                                   border: Border.all(color: Colors.grey),
                                 ),
                                 child: Row(
+                                  mainAxisSize: MainAxisSize.min,
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Text('tasks.change_status'.tr),
-                                    Icon(Icons.keyboard_arrow_down_sharp),
+                                    Flexible(
+                                      child: Text(
+                                        'tasks.change_status'.tr,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 2),
+                                    const Icon(
+                                      Icons.keyboard_arrow_down_sharp,
+                                      size: 20,
+                                    ),
                                   ],
                                 ),
                               ),

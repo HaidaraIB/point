@@ -10,6 +10,7 @@ import 'package:point/Utils/AppConstants.dart';
 import 'package:point/Services/ChatAudioFocus.dart';
 import 'package:point/Services/ChatIncomingMessageSound.dart';
 import 'package:point/View/Chats/ChatPage.dart';
+import 'package:point/View/Chats/MChatPage.dart';
 import 'package:point/View/Shared/CustomHeader.dart';
 import 'package:point/View/Shared/SideMenu.dart';
 
@@ -88,13 +89,20 @@ class ResponsiveScaffold extends StatelessWidget {
               // شاشة صغيرة (موبايل)
               return Scaffold(
                 appBar: PreferredSize(
-                  preferredSize: Size(Get.width, 180),
+                  preferredSize: Size(Get.width, 88),
                   child: SafeArea(
                     bottom: false,
                     child: Container(
-                      height: 80,
+                      height: 76,
                       decoration: BoxDecoration(
                         color: AppColors.primary,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.12),
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
                         borderRadius: const BorderRadius.only(
                           bottomLeft: Radius.circular(22),
                           bottomRight: Radius.circular(22),
@@ -130,50 +138,42 @@ class ResponsiveScaffold extends StatelessWidget {
                               )
                             else
                               const SizedBox(width: 44),
-
                             const SizedBox(width: 12),
-
-                            // Center: Title / Subtitle (constrained to avoid overflow)
                             Expanded(
-                              child: LayoutBuilder(
-                                builder: (context, constraints) {
-                                  return Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        'app.dashboard_title'.tr,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                    ],
-                                  );
-                                },
+                              child: Text(
+                                'app.dashboard_title'.tr,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
                             ),
-
-                            // Other side of title and drawer: profile widget (avatar + name/role + dropdown with logout)
-                            const SizedBox(width: 8),
-                            Obx(
-                              () => MobileAppBarProfileWidget(
-                                name:
-                                    controller.effectiveEmployee?.name ?? '',
-                                role:
-                                    controller.effectiveEmployee?.role ?? '',
-                                avatarUrl:
-                                    controller.effectiveEmployee?.image ??
-                                    kDefaultAvatarUrl,
-                                isEmployee: true,
-                                isClient: false,
-                              ),
+                            const SizedBox(width: 6),
+                            _MobileHeaderIconButton(
+                              icon: Icons.chat_bubble_outline_rounded,
+                              count: controller.totalUnreadMessages.value,
+                              onTap: () {
+                                Get.to(() => ChatsListScreen(onMinimize: () {}));
+                              },
+                            ),
+                            const SizedBox(width: 6),
+                            _MobileHeaderIconButton(
+                              icon: Icons.notifications_none_rounded,
+                              count:
+                                  controller.notifications
+                                      .where(
+                                        (n) =>
+                                            n.data?['type'] != 'message' &&
+                                            n.data?['type'] != 'chat' &&
+                                            n.isRead == false,
+                                      )
+                                      .length,
+                              onTap: () {
+                                _showMobileNotificationsDialog(context);
+                              },
                             ),
                           ],
                         ),
@@ -196,6 +196,138 @@ class ResponsiveScaffold extends StatelessWidget {
       },
     );
   }
+}
+
+class _MobileHeaderIconButton extends StatelessWidget {
+  final IconData icon;
+  final int count;
+  final VoidCallback onTap;
+
+  const _MobileHeaderIconButton({
+    required this.icon,
+    required this.count,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasBadge = count > 0;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: IconButton(
+            icon: Icon(icon, color: Colors.white, size: 20),
+            onPressed: onTap,
+          ),
+        ),
+        if (hasBadge)
+          Positioned(
+            top: -3,
+            right: -3,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+              constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(9),
+              ),
+              child: Text(
+                count > 99 ? '99+' : '$count',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+void _showMobileNotificationsDialog(BuildContext context) {
+  final controller = Get.find<HomeController>();
+  final notifications =
+      controller.notifications
+          .where((n) => n.data?['type'] != 'message' && n.data?['type'] != 'chat')
+          .toList();
+
+  showDialog(
+    context: context,
+    builder:
+        (_) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 500),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 10),
+                  child: Text(
+                    'header.notifications'.tr,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+                const Divider(height: 1),
+                if (notifications.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Text('لا توجد إشعارات حالياً'),
+                  )
+                else
+                  Flexible(
+                    child: ListView.separated(
+                      padding: const EdgeInsets.all(12),
+                      itemCount: notifications.length,
+                      separatorBuilder: (_, __) => const Divider(height: 8),
+                      itemBuilder: (context, index) {
+                        final n = notifications[index];
+                        return ListTile(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          leading: CircleAvatar(
+                            backgroundColor: AppColors.primary.withValues(
+                              alpha: 0.14,
+                            ),
+                            child: const Icon(
+                              Icons.notifications,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          title: Text(
+                            n.title ?? '',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                          subtitle: Text(
+                            n.body ?? '',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+  );
 }
 
 class ChatOverlay extends StatelessWidget {

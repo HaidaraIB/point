@@ -3,7 +3,9 @@ import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Localization/LanguageController.dart';
+import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/AppConstants.dart';
 import 'package:point/Utils/AppImages.dart';
 
 class CustomSidebar extends StatefulWidget {
@@ -21,6 +23,37 @@ class _CustomSidebarState extends State<CustomSidebar> {
   late int _selectedtab;
   int? _subseletedtab;
   final LanguageController _languageController = Get.find<LanguageController>();
+
+  Future<bool> _confirmLogout() async {
+    final isArabic = Get.locale?.languageCode == 'ar';
+    final result = await showDialog<bool>(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: Text('logout'.tr),
+            content: Text(
+              isArabic
+                  ? 'هل أنت متأكد أنك تريد تسجيل الخروج؟'
+                  : 'Are you sure you want to log out?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: Text('cancel'.tr),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                onPressed: () => Navigator.of(ctx).pop(true),
+                child: Text(
+                  'logout'.tr,
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+    );
+    return result ?? false;
+  }
 
   @override
   void initState() {
@@ -52,7 +85,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(height: 25),
+          SizedBox(height: 40),
           Image.asset(
             AppImages.images.logo,
             width: 180,
@@ -77,6 +110,95 @@ class _CustomSidebarState extends State<CustomSidebar> {
               },
             ),
           ),
+          if (Get.width < 800) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              child: GetBuilder<HomeController>(
+                builder: (controller) {
+                  final employee = controller.effectiveEmployee;
+                  final displayName = employee?.name ?? '';
+                  final displayRole = employee?.role ?? '';
+                  final displayImage = employee?.image ?? kDefaultAvatarUrl;
+                  final firstLetter =
+                      displayName.trim().isNotEmpty
+                          ? displayName.trim()[0].toUpperCase()
+                          : 'U';
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.15),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 20,
+                          backgroundColor: Colors.white24,
+                          backgroundImage:
+                              displayImage.isNotEmpty
+                                  ? NetworkImage(displayImage)
+                                  : null,
+                          child:
+                              displayImage.isEmpty
+                                  ? Text(
+                                    firstLetter,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  )
+                                  : null,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                displayName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                displayRole.tr,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'resetpassword'.tr,
+                          icon: const Icon(
+                            Icons.lock_reset_outlined,
+                            color: Colors.white,
+                          ),
+                          onPressed: () {
+                            Get.toNamed('/auth/resetPassword');
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
 
           Expanded(
             child: GetBuilder<HomeController>(
@@ -498,6 +620,21 @@ class _CustomSidebarState extends State<CustomSidebar> {
               },
             ),
           ),
+          _buildTile(
+            selectedTab: 999,
+            icon: '',
+            text: 'logout'.tr,
+            iconData: Icons.logout,
+            customColor: Colors.red.shade400,
+            onTap: () async {
+              final controller = Get.find<HomeController>();
+              final shouldLogout = await _confirmLogout();
+              if (!shouldLogout) return;
+              controller.clearEmployeeSession();
+              await FirestoreServices().signOut();
+              Get.offAllNamed('/auth/login');
+            },
+          ),
           Padding(
             padding: EdgeInsets.symmetric(
               horizontal: isCollapsed ? 4 : 12,
@@ -594,9 +731,12 @@ class _CustomSidebarState extends State<CustomSidebar> {
     required VoidCallback onTap,
     required int selectedTab,
     IconData? iconData,
+    Color? customColor,
   }) {
+    final tileColor = customColor;
     final color =
-        selectedTab == _selectedtab ? AppColors.fontColorGrey : Colors.white;
+        tileColor ??
+        (selectedTab == _selectedtab ? AppColors.fontColorGrey : Colors.white);
     final decoration =
         selectedTab == _selectedtab
             ? BoxDecoration(
@@ -648,9 +788,10 @@ class _CustomSidebarState extends State<CustomSidebar> {
           style: TextStyle(
             fontSize: 14,
             color:
-                selectedTab == _selectedtab
+                tileColor ??
+                (selectedTab == _selectedtab
                     ? AppColors.fontColorGrey
-                    : Colors.white,
+                    : Colors.white),
             fontWeight: FontWeight.w500,
           ),
         ),
