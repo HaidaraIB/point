@@ -40,8 +40,13 @@ workflows:
           [ -n "$NAME" ] || NAME="1.0.0"
           [ -n "$BUILD_FROM_PUB" ] || BUILD_FROM_PUB="1"
           INCR="${FCI_BUILD_NUMBER:-${CM_BUILD_NUMBER:-${BUILD_NUMBER:-}}}"
-          if [ -n "$INCR" ]; then
+          # Max(Codemagic counter, pubspec build) so CFBundleVersion is never below pubspec (+N)
+          # and App Store Connect does not reject duplicates when the UI counter lags.
+          if [ -n "$INCR" ] && [ "$INCR" -ge "$BUILD_FROM_PUB" ] 2>/dev/null; then
             NUM="$INCR"
+          elif [ -n "$INCR" ]; then
+            NUM="$BUILD_FROM_PUB"
+            echo "⚠️ Codemagic build number ($INCR) < pubspec ($BUILD_FROM_PUB); using pubspec for CFBundleVersion"
           else
             NUM="$BUILD_FROM_PUB"
           fi
