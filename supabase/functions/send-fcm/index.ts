@@ -6,12 +6,35 @@ type ServiceAccountJson = {
   private_key: string;
 };
 
+type PushDiagnosticPayload = {
+  requestId: string;
+  stage: string;
+  status: "ok" | "error";
+  senderUid?: string;
+  senderEmail?: string;
+  recipientId?: string;
+  recipientType?: string;
+  targetType: "token" | "topic";
+  tokenMasked?: string;
+  topic?: string;
+  title?: string;
+  bodyLen?: number;
+  notificationType?: string;
+  functionVersion: string;
+  fcmHttpStatus?: number;
+  fcmErrorCode?: string;
+  fcmErrorStatus?: string;
+  fcmErrorMessage?: string;
+  details?: unknown;
+};
+
 // نستخدم scope واسع يغطي كل من Firestore REST و FCM v1.
 // هذا يمنع انتقال المشكلة من `401 Invalid JWT` إلى `403` بسبب صلاحيات ناقصة.
 const FCM_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const FIREBASE_ID_TOKEN_CERTS_URL =
   "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com";
+const FUNCTION_VERSION = "send-fcm-v2-diag";
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { status: 200, headers: corsHeaders() });
@@ -35,17 +58,97 @@ Deno.serve(async (req: Request) => {
     const accessToken = await getAccessToken(sa);
     void caller; // keep variable referenced (useful for future audits/logging)
 
-    const { token, topic, title, body, data } = await req.json().catch(() => ({})) as {
+    const {
+      token,
+      topic,
+      title,
+      body,
+      data,
+      requestId,
+      recipientId,
+      recipientType,
+      notificationType,
+    } = await req.json().catch(() => ({})) as {
       token?: string;
       topic?: string;
       title?: string;
       body?: string;
       data?: Record<string, string>;
+      requestId?: string;
+      recipientId?: string;
+      recipientType?: string;
+      notificationType?: string;
     };
 
-    if (!title || !body) return json({ errorCode: "ERR_INVALID_DATA" }, 400);
+    const requestIdSafe = (requestId ?? crypto.randomUUID()).trim();
+    await writePushDiagnostic({
+      accessToken,
+      projectId: sa.project_id,
+      payload: {
+        requestId: requestIdSafe,
+        stage: "function_request",
+        status: "ok",
+        senderUid: caller.uid,
+        senderEmail: caller.email,
+        recipientId,
+        recipientType,
+        targetType: token ? "token" : "topic",
+        tokenMasked: token ? maskFcmToken(token) : undefined,
+        topic,
+        title,
+        bodyLen: body?.length ?? 0,
+        notificationType,
+        functionVersion: FUNCTION_VERSION,
+      },
+    });
+
+    if (!title || !body) {
+      await writePushDiagnostic({
+        accessToken,
+        projectId: sa.project_id,
+        payload: {
+          requestId: requestIdSafe,
+          stage: "function_validation",
+          status: "error",
+          senderUid: caller.uid,
+          senderEmail: caller.email,
+          recipientId,
+          recipientType,
+          targetType: token ? "token" : "topic",
+          tokenMasked: token ? maskFcmToken(token) : undefined,
+          topic,
+          title,
+          bodyLen: body?.length ?? 0,
+          notificationType,
+          functionVersion: FUNCTION_VERSION,
+          details: { reason: "missing_title_or_body" },
+        },
+      });
+      return json({ errorCode: "ERR_INVALID_DATA", requestId: requestIdSafe }, 400);
+    }
     if ((!token && !topic) || (token && topic)) {
-      return json({ errorCode: "ERR_INVALID_DATA" }, 400);
+      await writePushDiagnostic({
+        accessToken,
+        projectId: sa.project_id,
+        payload: {
+          requestId: requestIdSafe,
+          stage: "function_validation",
+          status: "error",
+          senderUid: caller.uid,
+          senderEmail: caller.email,
+          recipientId,
+          recipientType,
+          targetType: token ? "token" : "topic",
+          tokenMasked: token ? maskFcmToken(token) : undefined,
+          topic,
+          title,
+          bodyLen: body.length,
+          notificationType,
+          functionVersion: FUNCTION_VERSION,
+          details: { reason: "invalid_target_selection" },
+        },
+      });
+      return json({ errorCode: "ERR_INVALID_DATA", requestId: requestIdSafe }, 400);
     }
 
     const fcmUrl = `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`;
@@ -67,12 +170,116 @@ Deno.serve(async (req: Request) => {
     });
 
     const out = await res.json().catch(() => ({}));
-    if (!res.ok) return json({ errorCode: "ERR_SERVER", details: out }, 500);
-    return json({ ok: true, result: out }, 200);
+    if (!res.ok) {
+      const fcmError = (out as any)?.error;
+      await writePushDiagnostic({
+        accessToken,
+        projectId: sa.project_id,
+        payload: {
+          requestId: requestIdSafe,
+          stage: "function_result",
+          status: "error",
+          senderUid: caller.uid,
+          senderEmail: caller.email,
+          recipientId,
+          recipientType,
+          targetType: token ? "token" : "topic",
+          tokenMasked: token ? maskFcmToken(token) : undefined,
+          topic,
+          title,
+          bodyLen: body.length,
+          notificationType,
+          functionVersion: FUNCTION_VERSION,
+          fcmHttpStatus: res.status,
+          fcmErrorCode: fcmError?.code?.toString(),
+          fcmErrorStatus: fcmError?.status?.toString(),
+          fcmErrorMessage: fcmError?.message?.toString(),
+          details: out,
+        },
+      });
+      return json({ errorCode: "ERR_SERVER", details: out, requestId: requestIdSafe }, 500);
+    }
+    await writePushDiagnostic({
+      accessToken,
+      projectId: sa.project_id,
+      payload: {
+        requestId: requestIdSafe,
+        stage: "function_result",
+        status: "ok",
+        senderUid: caller.uid,
+        senderEmail: caller.email,
+        recipientId,
+        recipientType,
+        targetType: token ? "token" : "topic",
+        tokenMasked: token ? maskFcmToken(token) : undefined,
+        topic,
+        title,
+        bodyLen: body.length,
+        notificationType,
+        functionVersion: FUNCTION_VERSION,
+        fcmHttpStatus: res.status,
+        details: out,
+      },
+    });
+    return json({ ok: true, result: out, requestId: requestIdSafe }, 200);
   } catch (e) {
     return json({ errorCode: "ERR_SERVER", details: String(e) }, 500);
   }
 });
+
+function maskFcmToken(t: string): string {
+  if (t.length <= 12) return "***";
+  return `${t.substring(0, 6)}...${t.substring(t.length - 4)}`;
+}
+
+async function writePushDiagnostic(args: {
+  accessToken: string;
+  projectId: string;
+  payload: PushDiagnosticPayload;
+}): Promise<void> {
+  try {
+    const url =
+      `https://firestore.googleapis.com/v1/projects/${args.projectId}/databases/(default)/documents/push_diagnostics`;
+    const p = args.payload;
+    const fields: Record<string, unknown> = {
+      requestId: { stringValue: p.requestId },
+      stage: { stringValue: p.stage },
+      status: { stringValue: p.status },
+      targetType: { stringValue: p.targetType },
+      functionVersion: { stringValue: p.functionVersion },
+      createdAt: { timestampValue: new Date().toISOString() },
+      bodyLen: { integerValue: String(p.bodyLen ?? 0) },
+    };
+    if (p.senderUid) fields.senderUid = { stringValue: p.senderUid };
+    if (p.senderEmail) fields.senderEmail = { stringValue: p.senderEmail };
+    if (p.recipientId) fields.recipientId = { stringValue: p.recipientId };
+    if (p.recipientType) fields.recipientType = { stringValue: p.recipientType };
+    if (p.tokenMasked) fields.tokenMasked = { stringValue: p.tokenMasked };
+    if (p.topic) fields.topic = { stringValue: p.topic };
+    if (p.title) fields.title = { stringValue: p.title };
+    if (p.notificationType) fields.notificationType = { stringValue: p.notificationType };
+    if (typeof p.fcmHttpStatus === "number") {
+      fields.fcmHttpStatus = { integerValue: String(p.fcmHttpStatus) };
+    }
+    if (p.fcmErrorCode) fields.fcmErrorCode = { stringValue: p.fcmErrorCode };
+    if (p.fcmErrorStatus) fields.fcmErrorStatus = { stringValue: p.fcmErrorStatus };
+    if (p.fcmErrorMessage) fields.fcmErrorMessage = { stringValue: p.fcmErrorMessage };
+    if (p.details !== undefined) {
+      fields.detailsJson = { stringValue: JSON.stringify(p.details).slice(0, 1400) };
+    }
+
+    await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${args.accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ fields }),
+    });
+  } catch (_) {
+    // Keep diagnostics non-blocking.
+  }
+}
 
 function getServiceAccount(): ServiceAccountJson {
   const raw = Deno.env.get("FIREBASE_SERVICE_ACCOUNT_JSON");
