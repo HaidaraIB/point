@@ -9,6 +9,7 @@ import 'package:get/get_utils/src/extensions/internacionalization.dart';
 import 'package:get/instance_manager.dart';
 import 'package:point/Controller/AuthController.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppImages.dart';
 import 'package:point/View/Auth/Shared/Rights.dart';
@@ -52,6 +53,25 @@ class LoginView extends StatelessWidget {
       centerTitle: true,
     );
   }
+}
+
+String _extractDiagnosticCode(Object error) {
+  final raw = error.toString().toUpperCase();
+  final match = RegExp(r'FIREBASE_AUTH_([A-Z0-9\-_]+)').firstMatch(raw);
+  if (match != null && (match.group(1)?.isNotEmpty ?? false)) {
+    return 'AUTH_${match.group(1)!}';
+  }
+  if (raw.contains('AUTH_UID_MISMATCH')) return 'AUTH_UID_MISMATCH';
+  if (raw.contains('NETWORK')) return 'NETWORK_REQUEST_FAILED';
+  return 'LOGIN_FAILED';
+}
+
+String _buildLoginErrorMessage(Object error) {
+  final key = FunHelper.mapErrorToKey(error);
+  final translated = key.tr;
+  final fallback = 'حدث خطأ غير متوقع';
+  final base = translated == key ? fallback : translated;
+  return '$base (${_extractDiagnosticCode(error)})';
 }
 
 // --- IGNORE ---
@@ -155,40 +175,63 @@ Widget _buildDesktopLayout() {
                           borderSize: 10,
                           load: Get.find<HomeController>().isLoading.value,
                           margin: EdgeInsets.all(0),
-                          onPressed: () {
+                          onPressed: () async {
                             if (_key.currentState!.validate()) {
-                              Get.find<HomeController>()
-                                  .loginClient(
-                                    controller.email.text.trim(),
-                                    controller.pass.text.trim(),
-                                  )
-                                  .then((v) {
-                                    if (v != null) {
-                                      log("✅ تم تسجيل دخول الموظف: ${v.email}");
-                                      log(v.status.toString());
-                                      if (v.status == 'active') {
-                                        // الجلسة مفعّلة في loginClient؛ باقي الإعداد في SessionSetupScreen.
-                                        Get.offAllNamed('/sessionSetup');
-                                      } else {
-                                        FunHelper.showSnackbar(
-                                          'error'.tr,
-                                          'account_not_active_contact_support'
-                                              .tr,
-                                          snackPosition: SnackPosition.TOP,
-                                          backgroundColor: Colors.red,
-                                          colorText: Colors.white,
-                                        );
-                                      }
-                                    } else {
-                                      FunHelper.showSnackbar(
-                                        'error'.tr,
-                                        'invalid_email_or_password'.tr,
-                                        snackPosition: SnackPosition.TOP,
-                                        backgroundColor: Colors.red,
-                                        colorText: Colors.white,
-                                      );
-                                    }
-                                  });
+                              try {
+                                final v = await Get.find<HomeController>()
+                                    .loginClient(
+                                      controller.email.text.trim(),
+                                      controller.pass.text.trim(),
+                                    );
+                                if (v != null) {
+                                  log("✅ تم تسجيل دخول الموظف: ${v.email}");
+                                  log(v.status.toString());
+                                  if (v.status == 'active') {
+                                    // الجلسة مفعّلة في loginClient؛ باقي الإعداد في SessionSetupScreen.
+                                    Get.offAllNamed('/sessionSetup');
+                                  } else {
+                                    FunHelper.showSnackbar(
+                                      'error'.tr,
+                                      'account_not_active_contact_support'.tr,
+                                      snackPosition: SnackPosition.TOP,
+                                      backgroundColor: Colors.red,
+                                      colorText: Colors.white,
+                                    );
+                                  }
+                                } else {
+                                  FunHelper.showSnackbar(
+                                    'error'.tr,
+                                    'invalid_email_or_password'.tr,
+                                    snackPosition: SnackPosition.TOP,
+                                    backgroundColor: Colors.red,
+                                    colorText: Colors.white,
+                                  );
+                                }
+                              } catch (e, st) {
+                                final code = _extractDiagnosticCode(e);
+                                log(
+                                  'Employee login failed: type=${e.runtimeType}, message=$e',
+                                  stackTrace: st,
+                                );
+                                await FirestoreServices.logClientDiagnosticError(
+                                  source: 'LoginView.employeeLogin',
+                                  code: code,
+                                  error: e,
+                                  stackTrace: st,
+                                  extra: {
+                                    'platform': defaultTargetPlatform.name,
+                                    'isWeb': kIsWeb,
+                                    'email': controller.email.text.trim(),
+                                  },
+                                );
+                                FunHelper.showSnackbar(
+                                  'error'.tr,
+                                  _buildLoginErrorMessage(e),
+                                  snackPosition: SnackPosition.TOP,
+                                  backgroundColor: Colors.red,
+                                  colorText: Colors.white,
+                                );
+                              }
                             }
                           },
                           // lineargrad: ,

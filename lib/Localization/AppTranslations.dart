@@ -556,6 +556,9 @@ class AppTranslations extends Translations {
       'success': 'Success',
       'error': 'Error',
       'invalid_email_or_password': 'Invalid email or password',
+      'errors.too_many_requests': 'Too many attempts. Please try again later',
+      'errors.network_failed': 'Network error. Please check your internet',
+      'errors.account_mismatch': 'Account mismatch. Please contact support',
       'account_not_active_contact_support':
           'Account is inactive, please contact support',
       'monthly_content_plan': 'Monthly content plan',
@@ -758,6 +761,9 @@ class AppTranslations extends Translations {
       "success": "نجاح",
       "error": "خطأ",
       "invalid_email_or_password": "البريد الالكتروني او كلمة المرور غير صحيحة",
+      "errors.too_many_requests": "محاولات كثيرة، حاول مرة أخرى لاحقًا",
+      "errors.network_failed": "مشكلة في الشبكة، تأكد من اتصال الإنترنت",
+      "errors.account_mismatch": "تعارض في الحساب، يرجى التواصل مع الدعم",
       "account_not_active_contact_support":
           "الحساب غير نشط، يرجى التواصل مع الدعم",
       'monthly_content_plan': 'خطة محتوى شهري',

@@ -17,7 +17,6 @@ class NotificationService {
   factory NotificationService() => _instance;
   NotificationService._internal();
 
-  final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
@@ -31,23 +30,11 @@ class NotificationService {
       if (_isInitialized) return;
       _isInitialized = true;
 
-      await _requestPermission();
       await _initLocalNotifications();
       await _setupInteractedMessage();
       _listenToForegroundMessages();
     }();
     return _initFuture!;
-  }
-
-  // طلب صلاحيات الإشعارات
-  Future<void> _requestPermission() async {
-    NotificationSettings settings = await _messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
-
-    log('User granted permission: ${settings.authorizationStatus}');
   }
 
   // تهيئة flutter_local_notifications

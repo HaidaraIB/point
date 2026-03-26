@@ -14,6 +14,31 @@ import 'package:point/config/app_config.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class FirestoreServices {
+  static Future<void> logClientDiagnosticError({
+    required String source,
+    required String code,
+    required Object error,
+    StackTrace? stackTrace,
+    Map<String, dynamic>? extra,
+  }) async {
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      await FirebaseFirestore.instance.collection('app_error_logs').add({
+        'source': source,
+        'code': code,
+        'message': error.toString(),
+        'errorType': error.runtimeType.toString(),
+        'stackTrace': stackTrace?.toString(),
+        'uid': currentUser?.uid,
+        'createdAt': FieldValue.serverTimestamp(),
+        if (extra != null) 'extra': extra,
+      });
+    } catch (e, s) {
+      log('⚠️ logClientDiagnosticError failed: $e');
+      log('StackTrace: $s');
+    }
+  }
+
   static const Set<String> _globalRolesWithoutDepartment = {
     'admin',
     'supervisor',
@@ -391,7 +416,7 @@ class FirestoreServices {
           employee.authUid!.isNotEmpty &&
           employee.authUid != uid) {
         log("❌ loginEmployee: authUid mismatch for ${employee.id}");
-        return null;
+        throw StateError('AUTH_UID_MISMATCH');
       }
 
       await _updateAuthFieldsWithRetry(docRef: doc.reference, uid: uid);
@@ -402,10 +427,10 @@ class FirestoreServices {
         "❌ loginEmployee FirebaseAuthException code=${e.code}, message=${e.message}",
       );
       log("StackTrace: $s");
-      return null;
+      throw StateError('FIREBASE_AUTH_${e.code.toUpperCase()}');
     } catch (e, s) {
       log("❌ loginEmployee error: $e\n$s");
-      return null;
+      rethrow;
     }
   }
 

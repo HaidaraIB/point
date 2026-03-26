@@ -100,11 +100,32 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
           controller.listenToClient(v.id!);
           WidgetsBinding.instance
               .addPostFrameCallback((_) => Get.offAllNamed('/ClientHome'));
-          await fcm.unsubscribeFromTopic(
-            'employees',
-          );
-          await fcm.subscribeToTopic('clients');
-          await fcm.subscribeToTopic('all');
+          if (!kIsWeb) {
+            try {
+              final settings = await fcm.requestPermission(
+                alert: true,
+                badge: true,
+                sound: true,
+              );
+              final allowed =
+                  settings.authorizationStatus == AuthorizationStatus.authorized ||
+                  settings.authorizationStatus ==
+                      AuthorizationStatus.provisional;
+              if (allowed) {
+                await fcm.unsubscribeFromTopic(
+                  'employees',
+                );
+                await fcm.subscribeToTopic('clients');
+                await fcm.subscribeToTopic('all');
+              } else {
+                log(
+                  'Client login notification permission denied: ${settings.authorizationStatus}',
+                );
+              }
+            } catch (e) {
+              log('Client FCM setup failed: $e');
+            }
+          }
         } else {
           FunHelper.showSnackbar(
             'error'.tr,

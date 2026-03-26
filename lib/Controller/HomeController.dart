@@ -1445,18 +1445,21 @@ class HomeController extends GetxController {
 
   Future<EmployeeModel?> loginClient(email, pass) async {
     isLoading.value = true;
-    final result = await _service.loginEmployee(email, pass);
-    // يجب تعبئة الجلسة هنا فورًا: AuthMiddleware يعتمد على currentemployee قبل التنقل،
-    // بينما listenToClient يحدّثه فقط عند وصول أول snapshot من Firestore (متأخر عن أول إطار).
-    if (result != null && result.id != null) {
-      currentemployee.value = result;
-      lastKnownEmployee.value = result;
-      _startTotalUnreadStream(result.id!);
-      listenToClient(result.id!);
-      fetchnotification(result.id);
+    try {
+      final result = await _service.loginEmployee(email, pass);
+      // يجب تعبئة الجلسة هنا فورًا: AuthMiddleware يعتمد على currentemployee قبل التنقل،
+      // بينما listenToClient يحدّثه فقط عند وصول أول snapshot من Firestore (متأخر عن أول إطار).
+      if (result != null && result.id != null) {
+        currentemployee.value = result;
+        lastKnownEmployee.value = result;
+        _startTotalUnreadStream(result.id!);
+        listenToClient(result.id!);
+        fetchnotification(result.id);
+      }
+      return result;
+    } finally {
+      isLoading.value = false;
     }
-    isLoading.value = false;
-    return result;
   }
 
   final _clientCollection = FirebaseFirestore.instance.collection("employees");
@@ -1529,7 +1532,10 @@ class HomeController extends GetxController {
         sound: true,
       );
 
-      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+      final isAllowed =
+          settings.authorizationStatus == AuthorizationStatus.authorized ||
+          settings.authorizationStatus == AuthorizationStatus.provisional;
+      if (isAllowed) {
         print('User granted permission');
 
         // 2. الحصول على التوكن (على الويب قد يفشل لغياب Service Worker / إعدادات المشروع)
@@ -1546,6 +1552,9 @@ class HomeController extends GetxController {
         });
       } else {
         print('User declined or has not yet granted permission');
+        throw StateError(
+          'NOTIFICATION_PERMISSION_${settings.authorizationStatus.name.toUpperCase()}',
+        );
       }
     } catch (e) {
       // على الويب: token-subscribe-failed شائع لغياب OAuth/Service Worker

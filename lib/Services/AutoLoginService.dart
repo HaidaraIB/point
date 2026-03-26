@@ -20,6 +20,12 @@ Future<String?> attemptSilentLogin() async {
   if (employee != null) {
     log("✅ تم تسجيل دخول الموظف: ${employee.email}");
     if (employee.status == 'active') {
+      try {
+        await homeController.setupFCM(employee.id);
+      } catch (e) {
+        log('FCM setup: $e');
+      }
+
       if (!kIsWeb) {
         try {
           await fcm.subscribeToTopic('all');
@@ -32,12 +38,6 @@ Future<String?> attemptSilentLogin() async {
 
       homeController.fetchnotification(employee.id);
       homeController.listenToClient(employee.id!);
-
-      try {
-        await homeController.setupFCM(employee.id);
-      } catch (e) {
-        log('FCM setup: $e');
-      }
 
       final role = employee.role;
       if (role == 'employee') return '/employeeDashboard';

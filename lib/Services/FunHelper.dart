@@ -247,6 +247,16 @@ class FunHelper {
 
   static String mapErrorToKey(Object? error) {
     final raw = (error ?? '').toString().toLowerCase();
+    if (raw.contains('wrong-password') || raw.contains('invalid-password')) {
+      return 'invalid_email_or_password';
+    }
+    if (raw.contains('user-not-found')) return 'invalid_email_or_password';
+    if (raw.contains('invalid-credential')) return 'invalid_email_or_password';
+    if (raw.contains('too-many-requests')) return 'errors.too_many_requests';
+    if (raw.contains('network-request-failed') || raw.contains('network')) {
+      return 'errors.network_failed';
+    }
+    if (raw.contains('auth_uid_mismatch')) return 'errors.account_mismatch';
     if (raw.contains('method not allowed'))
       return AppLocaleKeys.errorsMethodNotAllowed;
     if (raw.contains('unauthorized')) return AppLocaleKeys.errorsUnauthorized;

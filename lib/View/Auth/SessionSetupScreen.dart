@@ -22,6 +22,14 @@ class SessionSetupScreen extends StatefulWidget {
 class _SessionSetupScreenState extends State<SessionSetupScreen> {
   bool _started = false;
 
+  String _compactErrorCode(Object error) {
+    final raw = error.toString().toLowerCase();
+    if (raw.contains('apns') || raw.contains('fcm')) return 'FCM_SETUP_FAILED';
+    if (raw.contains('network') || raw.contains('socket'))
+      return 'NETWORK_UNAVAILABLE';
+    return 'SESSION_SETUP_FAILED';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -68,12 +76,25 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
 
     try {
       await FunHelper.saveLoginData(email);
-      await _applyTopicSubscriptions(v.role);
-      await hc.setupFCM(v.id);
-      final next = _destinationForRole(v.role);
-      Get.offAllNamed(next);
     } catch (e, st) {
-      log('SessionSetup failed: $e', stackTrace: st);
+      final code = 'SESSION_SAVE_LOGIN_DATA_FAILED';
+      log(
+        'SessionSetup critical step failed while saving login data: '
+        'type=${e.runtimeType}, message=$e, code=$code, platform=${defaultTargetPlatform.name}',
+        stackTrace: st,
+      );
+      await FirestoreServices.logClientDiagnosticError(
+        source: 'SessionSetupScreen._bootstrap.saveLoginData',
+        code: code,
+        error: e,
+        stackTrace: st,
+        extra: {
+          'platform': defaultTargetPlatform.name,
+          'isWeb': kIsWeb,
+          'employeeId': v.id,
+          'email': email,
+        },
+      );
       FunHelper.showSnackbar(
         'error'.tr,
         AppLocaleKeys.errorGeneric.tr,
@@ -82,7 +103,43 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
         colorText: Colors.white,
       );
       await _abortSetup(hc);
+      return;
     }
+
+    try {
+      await hc.setupFCM(v.id);
+      await _applyTopicSubscriptions(v.role);
+    } catch (e, st) {
+      final code = _compactErrorCode(e);
+      log(
+        'SessionSetup non-critical push setup failed: '
+        'type=${e.runtimeType}, message=$e, code=$code, platform=${defaultTargetPlatform.name}',
+        stackTrace: st,
+      );
+      await FirestoreServices.logClientDiagnosticError(
+        source: 'SessionSetupScreen._bootstrap.pushSetup',
+        code: code,
+        error: e,
+        stackTrace: st,
+        extra: {
+          'platform': defaultTargetPlatform.name,
+          'isWeb': kIsWeb,
+          'employeeId': v.id,
+          'email': email,
+          'role': v.role,
+        },
+      );
+      FunHelper.showSnackbar(
+        'error'.tr,
+        '${AppLocaleKeys.errorGeneric.tr} ($code)',
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.orange,
+        colorText: Colors.white,
+      );
+    }
+
+    final next = _destinationForRole(v.role);
+    Get.offAllNamed(next);
   }
 
   Future<void> _abortSetup(HomeController hc) async {
