@@ -1542,7 +1542,10 @@ class HomeController extends GetxController {
         // لا نستخدم VAPID — getToken بدون vapidKey
         String? token = await messaging.getToken();
         if (token != null && currentemployee.value != null) {
-          updateEmployee(currentemployee.value!.copyWith(fcmToken: token));
+          await FirestoreServices.addEmployeeFcmToken(
+            employeeId: currentemployee.value!.id ?? userId,
+            token: token,
+          );
           print("FCM Registration Token: ${kIsWeb ? 'Web' : ''} $token");
         }
 

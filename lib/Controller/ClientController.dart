@@ -114,7 +114,7 @@ class ClientController extends GetxController {
     try {
       String? token = await FirebaseMessaging.instance.getToken();
       if (model != null && token != null) {
-        updateClient(model.copyWith(fcmToken: token));
+        await FirestoreServices.addClientFcmToken(clientId: model.id!, token: token);
       }
     } catch (e) {
       // على الويب قد يفشل FCM لغياب OAuth/Service Worker

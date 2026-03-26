@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:point/Models/ClientModel.dart';
 import 'package:point/Models/ContentModel.dart';
 import 'package:point/Models/EmployeeModel.dart';
@@ -13,7 +14,109 @@ import 'package:point/Services/EmailNotificationService.dart';
 import 'package:point/config/app_config.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+class FcmSendException implements Exception {
+  final int? status;
+  final String? errorCode;
+  final String? details;
+
+  const FcmSendException({this.status, this.errorCode, this.details});
+
+  @override
+  String toString() =>
+      'FcmSendException(status: $status, code: $errorCode, details: $details)';
+}
+
 class FirestoreServices {
+  static List<String> _extractFcmTokens(Map<String, dynamic>? data) {
+    if (data == null) return const [];
+    final tokens = <String>{};
+    final rawList = data['fcmTokens'];
+    if (rawList is List) {
+      for (final raw in rawList) {
+        final token = raw?.toString().trim() ?? '';
+        if (token.isNotEmpty) tokens.add(token);
+      }
+    }
+    final singleToken = data['fcmToken']?.toString().trim() ?? '';
+    if (singleToken.isNotEmpty) tokens.add(singleToken);
+    return tokens.toList();
+  }
+
+  static bool _isInvalidOrExpiredTokenError(Object error) {
+    if (error is! FcmSendException) return false;
+    final code = (error.errorCode ?? '').toLowerCase();
+    final details = (error.details ?? '').toLowerCase();
+    final combined = '$code $details';
+    return combined.contains('registration-token-not-registered') ||
+        combined.contains('invalid-registration-token') ||
+        combined.contains('invalid argument') ||
+        combined.contains('unregistered') ||
+        combined.contains('not registered') ||
+        combined.contains('token-not-registered');
+  }
+
+  static Future<void> addEmployeeFcmToken({
+    required String employeeId,
+    required String token,
+  }) async {
+    final cleanedId = employeeId.trim();
+    final cleanedToken = token.trim();
+    if (cleanedId.isEmpty || cleanedToken.isEmpty) return;
+    await FirebaseFirestore.instance.collection('employees').doc(cleanedId).update({
+      'fcmToken': cleanedToken,
+      'fcmTokens': FieldValue.arrayUnion([cleanedToken]),
+    });
+  }
+
+  static Future<void> addClientFcmToken({
+    required String clientId,
+    required String token,
+  }) async {
+    final cleanedId = clientId.trim();
+    final cleanedToken = token.trim();
+    if (cleanedId.isEmpty || cleanedToken.isEmpty) return;
+    await FirebaseFirestore.instance.collection('clients').doc(cleanedId).update({
+      'fcmToken': cleanedToken,
+      'fcmTokens': FieldValue.arrayUnion([cleanedToken]),
+    });
+  }
+
+  static Future<void> _removeEmployeeFcmToken({
+    required String employeeId,
+    required String token,
+  }) async {
+    final cleanedId = employeeId.trim();
+    final cleanedToken = token.trim();
+    if (cleanedId.isEmpty || cleanedToken.isEmpty) return;
+    final ref = FirebaseFirestore.instance.collection('employees').doc(cleanedId);
+    final snap = await ref.get();
+    if (!snap.exists) return;
+    final data = snap.data();
+    final currentSingle = data?['fcmToken']?.toString().trim() ?? '';
+    await ref.update({
+      'fcmTokens': FieldValue.arrayRemove([cleanedToken]),
+      if (currentSingle == cleanedToken) 'fcmToken': null,
+    });
+  }
+
+  static Future<void> _removeClientFcmToken({
+    required String clientId,
+    required String token,
+  }) async {
+    final cleanedId = clientId.trim();
+    final cleanedToken = token.trim();
+    if (cleanedId.isEmpty || cleanedToken.isEmpty) return;
+    final ref = FirebaseFirestore.instance.collection('clients').doc(cleanedId);
+    final snap = await ref.get();
+    if (!snap.exists) return;
+    final data = snap.data();
+    final currentSingle = data?['fcmToken']?.toString().trim() ?? '';
+    await ref.update({
+      'fcmTokens': FieldValue.arrayRemove([cleanedToken]),
+      if (currentSingle == cleanedToken) 'fcmToken': null,
+    });
+  }
+
   static Future<void> logClientDiagnosticError({
     required String source,
     required String code,
@@ -163,23 +266,15 @@ class FirestoreServices {
     if (res.status != 200) {
       final responseData = res.data as Map<String, dynamic>?;
       final code = responseData?['errorCode']?.toString();
+      final details = responseData?['details']?.toString();
       log(
-        '❌ FCM invoke failed. target=$targetLabel status=${res.status} errorCode=$code details=${responseData?['details']}',
+        '❌ FCM invoke failed. target=$targetLabel status=${res.status} errorCode=$code details=$details',
       );
-      switch (code) {
-        case 'ERR_METHOD_NOT_ALLOWED':
-          throw StateError(AppLocaleKeys.errorsMethodNotAllowed);
-        case 'ERR_UNAUTHORIZED':
-          throw StateError(AppLocaleKeys.errorsUnauthorized);
-        case 'ERR_FORBIDDEN':
-          throw StateError(AppLocaleKeys.errorsForbidden);
-        case 'ERR_MISSING_TOKEN':
-          throw StateError(AppLocaleKeys.errorsMissingToken);
-        case 'ERR_INVALID_DATA':
-          throw StateError(AppLocaleKeys.errorsInvalidData);
-        default:
-          throw StateError(AppLocaleKeys.errorsServer);
-      }
+      throw FcmSendException(
+        status: res.status,
+        errorCode: code,
+        details: details,
+      );
     } else {
       log(
         '✅ FCM invoke success. target=$targetLabel status=${res.status} data=${res.data}',
@@ -676,7 +771,46 @@ class FirestoreServices {
   }
 
   Future<void> signOut() async {
+    await _removeCurrentDeviceFcmToken();
     await FirebaseAuth.instance.signOut();
+  }
+
+  Future<void> _removeCurrentDeviceFcmToken() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+      final token = await FirebaseMessaging.instance.getToken();
+      final cleanedToken = token?.trim() ?? '';
+      if (cleanedToken.isEmpty) return;
+
+      final employeeSnap =
+          await _employeeCollection.where('authUid', isEqualTo: user.uid).limit(1).get();
+      if (employeeSnap.docs.isNotEmpty) {
+        final ref = employeeSnap.docs.first.reference;
+        final employeeData = employeeSnap.docs.first.data();
+        final employeeMap =
+            employeeData is Map<String, dynamic> ? employeeData : null;
+        final currentSingle = employeeMap?['fcmToken']?.toString().trim() ?? '';
+        await ref.update({
+          'fcmTokens': FieldValue.arrayRemove([cleanedToken]),
+          if (currentSingle == cleanedToken) 'fcmToken': null,
+        });
+      }
+
+      final clientSnap =
+          await _clientCollection.where('authUid', isEqualTo: user.uid).limit(1).get();
+      if (clientSnap.docs.isNotEmpty) {
+        final ref = clientSnap.docs.first.reference;
+        final clientData = clientSnap.docs.first.data();
+        final currentSingle = clientData['fcmToken']?.toString().trim() ?? '';
+        await ref.update({
+          'fcmTokens': FieldValue.arrayRemove([cleanedToken]),
+          if (currentSingle == cleanedToken) 'fcmToken': null,
+        });
+      }
+    } catch (e) {
+      log("⚠️ remove current device token before signOut failed: $e");
+    }
   }
 
   Future<EmployeeModel?> getCurrentEmployeeByAuth() async {
@@ -1079,7 +1213,7 @@ class FirestoreServices {
 
       final data = doc.data();
       final email = data?['email']?.toString().trim();
-      final token = data?['fcmToken']?.toString();
+      final tokens = _extractFcmTokens(data);
       final rawRecipientName = data?['name']?.toString().trim();
       final recipientName =
           (rawRecipientName != null && rawRecipientName.isNotEmpty)
@@ -1128,22 +1262,58 @@ class FirestoreServices {
       // إذا المستخدم لا يريد Push، ننهي بدون فحص token أو إرسال push.
       if (!sendPush) return;
 
-      if (token == null || token.isEmpty) {
+      if (tokens.isEmpty) {
         log("⚠️ fcmToken missing for employee $userId — push not sent");
         return;
       }
 
-      await _sendFcmViaFunction(
-        token: token,
-        title: title,
-        body: body,
-        data: <String, String>{
-          'type': 'internal',
-          'id': trimmedUserId,
-          'url': 'https://example.com',
-        },
-      );
+      for (final token in tokens) {
+        try {
+          await _sendFcmViaFunction(
+            token: token,
+            title: title,
+            body: body,
+            data: <String, String>{
+              'type': 'internal',
+              'id': trimmedUserId,
+              'url': 'https://example.com',
+            },
+          );
+        } catch (e) {
+          if (_isInvalidOrExpiredTokenError(e)) {
+            await _removeEmployeeFcmToken(
+              employeeId: trimmedUserId,
+              token: token,
+            );
+            log(
+              "🧹 Removed invalid employee token for $trimmedUserId",
+            );
+            continue;
+          }
+          rethrow;
+        }
+      }
       log("✅ FCM Response: $userId");
+    } on FcmSendException catch (e) {
+      switch (e.errorCode) {
+        case 'ERR_METHOD_NOT_ALLOWED':
+          log("❌ FCM Error: ${AppLocaleKeys.errorsMethodNotAllowed}");
+          break;
+        case 'ERR_UNAUTHORIZED':
+          log("❌ FCM Error: ${AppLocaleKeys.errorsUnauthorized}");
+          break;
+        case 'ERR_FORBIDDEN':
+          log("❌ FCM Error: ${AppLocaleKeys.errorsForbidden}");
+          break;
+        case 'ERR_MISSING_TOKEN':
+          log("❌ FCM Error: ${AppLocaleKeys.errorsMissingToken}");
+          break;
+        case 'ERR_INVALID_DATA':
+          log("❌ FCM Error: ${AppLocaleKeys.errorsInvalidData}");
+          break;
+        default:
+          log("❌ FCM Error: ${AppLocaleKeys.errorsServer} | $e");
+      }
     } catch (e) {
       log("❌ FCM Error: $e");
     }
@@ -1173,7 +1343,7 @@ class FirestoreServices {
 
       final data = doc.data();
       final email = data?['email']?.toString().trim();
-      final token = data?['fcmToken']?.toString();
+      final tokens = _extractFcmTokens(data);
       final rawRecipientName = data?['name']?.toString().trim();
       final recipientName =
           (rawRecipientName != null && rawRecipientName.isNotEmpty)
@@ -1216,22 +1386,53 @@ class FirestoreServices {
         );
       }
 
-      if (token == null || token.isEmpty) {
+      if (tokens.isEmpty) {
         log("⚠️ fcmToken missing for client $userId — push not sent");
         return;
       }
 
-      await _sendFcmViaFunction(
-        token: token,
-        title: title,
-        body: body,
-        data: <String, String>{
-          'type': 'internal',
-          'id': trimmedUserId,
-          'url': 'https://example.com',
-        },
-      );
+      for (final token in tokens) {
+        try {
+          await _sendFcmViaFunction(
+            token: token,
+            title: title,
+            body: body,
+            data: <String, String>{
+              'type': 'internal',
+              'id': trimmedUserId,
+              'url': 'https://example.com',
+            },
+          );
+        } catch (e) {
+          if (_isInvalidOrExpiredTokenError(e)) {
+            await _removeClientFcmToken(clientId: trimmedUserId, token: token);
+            log("🧹 Removed invalid client token for $trimmedUserId");
+            continue;
+          }
+          rethrow;
+        }
+      }
       log("✅ FCM sent to client: $userId");
+    } on FcmSendException catch (e) {
+      switch (e.errorCode) {
+        case 'ERR_METHOD_NOT_ALLOWED':
+          log("❌ FCM Error: ${AppLocaleKeys.errorsMethodNotAllowed}");
+          break;
+        case 'ERR_UNAUTHORIZED':
+          log("❌ FCM Error: ${AppLocaleKeys.errorsUnauthorized}");
+          break;
+        case 'ERR_FORBIDDEN':
+          log("❌ FCM Error: ${AppLocaleKeys.errorsForbidden}");
+          break;
+        case 'ERR_MISSING_TOKEN':
+          log("❌ FCM Error: ${AppLocaleKeys.errorsMissingToken}");
+          break;
+        case 'ERR_INVALID_DATA':
+          log("❌ FCM Error: ${AppLocaleKeys.errorsInvalidData}");
+          break;
+        default:
+          log("❌ FCM Error: ${AppLocaleKeys.errorsServer} | $e");
+      }
     } catch (e) {
       log("❌ FCM Error: $e");
     }
