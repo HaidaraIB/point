@@ -210,7 +210,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
                             children: [
                               _buildTile(
                                 selectedTab: 0,
-                                icon: 'assets/images/Home.png',
+                                icon: 'assets/images/nav_home.png',
                                 text: "home".tr,
                                 onTap: () {
                                   setState(() {
@@ -226,7 +226,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
 
                               _buildTile(
                                 selectedTab: 1,
-                                icon: 'assets/images/User.png',
+                                icon: 'assets/images/nav_employees.png',
                                 text: "employees".tr,
                                 onTap: () {
                                   setState(() {
@@ -242,7 +242,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
                               ),
                               _buildTile(
                                 selectedTab: 2,
-                                icon: 'assets/images/Frame.png',
+                                icon: 'assets/images/nav_clients.png',
                                 text: "clients".tr,
                                 onTap: () {
                                   setState(() {
@@ -258,7 +258,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
                               ),
                               _buildTile(
                                 selectedTab: 3,
-                                icon: 'assets/images/Film.png',
+                                icon: 'assets/images/nav_content.png',
                                 text: "content".tr,
                                 onTap: () {
                                   setState(() {
@@ -277,7 +277,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                 id: 'tasks',
                                 selectedTab: 4,
 
-                                icon: 'assets/images/Airplay.png',
+                                icon: 'assets/images/nav_tasks.png',
                                 text: "tasks".tr,
 
                                 children: [
@@ -410,7 +410,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
                               ),
                               _buildTile(
                                 selectedTab: 6,
-                                icon: 'assets/images/Frame(2).png',
+                                icon: 'assets/images/nav_statistics.png',
                                 text: "statistcs".tr,
                                 onTap: () {
                                   setState(() {
@@ -426,7 +426,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
                               ),
                               _buildTile(
                                 selectedTab: 7,
-                                icon: 'assets/images/Frame(1).png',
+                                icon: 'assets/images/nav_history.png',
                                 text: "settings".tr,
                                 iconData: Icons.history_rounded,
                                 onTap: () {
@@ -443,7 +443,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
                               ),
                               _buildTile(
                                 selectedTab: 8,
-                                icon: 'assets/images/Frame(1).png',
+                                icon: 'assets/images/nav_history.png',
                                 text: "TasksHistory".tr,
                                 iconData: Icons.assignment_outlined,
                                 onTap: () {
@@ -464,7 +464,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
                             children: [
                               _buildTile(
                                 selectedTab: 3,
-                                icon: 'assets/images/Film.png',
+                                icon: 'assets/images/nav_content.png',
                                 text: "content".tr,
                                 onTap: () {
                                   setState(() {
@@ -483,7 +483,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                 id: 'tasks',
                                 selectedTab: 4,
 
-                                icon: 'assets/images/Airplay.png',
+                                icon: 'assets/images/nav_tasks.png',
                                 text: "tasks".tr,
 
                                 children: [

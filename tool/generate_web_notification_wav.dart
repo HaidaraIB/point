@@ -51,7 +51,7 @@ void main() {
     addI16(v);
   }
 
-  final path = 'assets/sounds/web_notification.wav';
+  final path = 'assets/sounds/notification_web.wav';
   File(path).writeAsBytesSync(out.toBytes(), flush: true);
   // ignore: avoid_print
   print('Wrote $path (${dataSize + 44} bytes)');

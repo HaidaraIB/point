@@ -32,6 +32,10 @@ class HomeController extends GetxController {
 
   var clientController = TextEditingController();
   RxString selectedTypeNotifications = 'clients'.obs; // clients, employees, all
+  // Channels selection for "Send notifications" dialog.
+  // Default true/true to match existing behavior (send push + email).
+  RxBool sendPushNotifications = true.obs;
+  RxBool sendEmailNotifications = true.obs;
   final supabase = Supabase.instance.client;
   void changeType(String type) {
     selectedTypeNotifications.value = type;
@@ -212,7 +216,7 @@ class HomeController extends GetxController {
     if (emailToCheck.isNotEmpty) {
       final emailUsed = await _service.isEmailUsedAcrossUsers(emailToCheck);
       if (emailUsed) {
-        FunHelper.showsnackbar(
+        FunHelper.showSnackbar(
           'error'.tr,
           'client.errors.email_in_use_cross'.tr,
           snackPosition: SnackPosition.TOP,
@@ -257,7 +261,7 @@ class HomeController extends GetxController {
         excludeEmployeeId: employee.id,
       );
       if (emailUsed) {
-        FunHelper.showsnackbar(
+        FunHelper.showSnackbar(
           'error'.tr,
           'client.errors.email_in_use_cross'.tr,
           snackPosition: SnackPosition.TOP,
@@ -301,7 +305,7 @@ class HomeController extends GetxController {
     if (emailToCheck.isNotEmpty) {
       final emailUsed = await _service.isEmailUsedAcrossUsers(emailToCheck);
       if (emailUsed) {
-        FunHelper.showsnackbar(
+        FunHelper.showSnackbar(
           'error'.tr,
           'client.errors.email_in_use_cross'.tr,
           snackPosition: SnackPosition.TOP,
@@ -328,7 +332,7 @@ class HomeController extends GetxController {
         excludeClientId: client.id,
       );
       if (emailUsed) {
-        FunHelper.showsnackbar(
+        FunHelper.showSnackbar(
           'error'.tr,
           'client.errors.email_in_use_cross'.tr,
           snackPosition: SnackPosition.TOP,

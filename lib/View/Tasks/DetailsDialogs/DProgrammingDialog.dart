@@ -71,7 +71,7 @@ class ProgrammingDetailsSection extends StatelessWidget {
                           mode: LaunchMode.externalApplication,
                         );
                       } else {
-                        FunHelper.showsnackbar(
+                        FunHelper.showSnackbar(
                           'error'.tr,
                           'errors.cannot_open_link_param'.trParams({
                             'url': url,

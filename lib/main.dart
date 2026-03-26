@@ -1,5 +1,4 @@
 import 'dart:developer';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_core/firebase_core.dart'
     show Firebase, FirebaseException;
 import 'package:flutter/foundation.dart';
@@ -48,7 +47,8 @@ void main(List<String> args) async {
     }
   }
   if (!kIsWeb) {
-    await FirebaseMessaging.instance.requestPermission();
+    // تهيئة إشعارات الـPush + الـLocal مرة واحدة قبل runApp.
+    await NotificationService().init();
   }
   if (kDebugMode) {
     await FirestoreServices().ensureAccountholderTestUser();
@@ -63,11 +63,6 @@ void main(List<String> args) async {
   if (!kIsWeb) {
     await AudioService.instance.initialize();
   }
-  // await html.Notification.requestPermission();
-  FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-    await NotificationService().init();
-    //   // html.Notification(title, body: body);
-  });
 
   runApp(App());
 }

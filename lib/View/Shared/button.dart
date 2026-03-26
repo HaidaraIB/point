@@ -5,23 +5,23 @@ import 'package:point/Utils/AppColors.dart';
 Widget MainButton({
   double? width,
   double? height,
-  Function()? onpress,
-  Color? backgroundcolor,
+  Function()? onPressed,
+  Color? backgroundColor,
   Color? borderColor,
-  Color? fontcolor,
-  double? fontsize,
+  Color? fontColor,
+  double? fontSize,
   String? title,
   Widget? widget,
   bool? load,
   bool? enabled,
-  LinearGradient? lineargrad,
+  LinearGradient? linearGradient,
   EdgeInsetsGeometry? margin,
-  double? bordersize,
+  double? borderSize,
   bool icon = false,
-  FontWeight? fontweight,
+  FontWeight? fontWeight,
 }) {
   return InkWell(
-    onTap: (enabled == false || load == true) ? null : onpress,
+    onTap: (enabled == false || load == true) ? null : onPressed,
     child: Opacity(
       opacity: (enabled == false || load == true) ? 0.4 : 1,
       child: Container(
@@ -30,16 +30,16 @@ Widget MainButton({
         width: width ?? Get.width,
         height: height ?? 60,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(bordersize ?? 30),
+          borderRadius: BorderRadius.circular(borderSize ?? 30),
           border: borderColor != null ? Border.all(color: borderColor) : null,
           gradient:
-              lineargrad ??
+              linearGradient ??
               LinearGradient(
                 colors: [
-                  backgroundcolor ?? AppColors.primary,
-                  backgroundcolor ?? Color(0xff095D71),
-                  backgroundcolor ?? Color(0xff095D71),
-                  backgroundcolor ?? Color(0xff0B3954),
+                  backgroundColor ?? AppColors.primary,
+                  backgroundColor ?? Color(0xff095D71),
+                  backgroundColor ?? Color(0xff095D71),
+                  backgroundColor ?? Color(0xff0B3954),
 
                   // backgroundcolor ?? AppColors.primary,
                 ],
@@ -56,8 +56,8 @@ Widget MainButton({
                 ? Text(
                   title ?? '',
                   style: TextStyle(
-                    color: fontcolor ?? Colors.white,
-                    fontSize: fontsize ?? 15,
+                    color: fontColor ?? Colors.white,
+                    fontSize: fontSize ?? 15,
                     fontWeight: FontWeight.w500,
                     // fontFamily: Appfonts.basicFont,
                   ),
@@ -69,9 +69,9 @@ Widget MainButton({
                     Text(
                       title ?? '',
                       style: TextStyle(
-                        color: fontcolor ?? Colors.white,
-                        fontSize: fontsize ?? 15,
-                        fontWeight: fontweight ?? FontWeight.w500,
+                        color: fontColor ?? Colors.white,
+                        fontSize: fontSize ?? 15,
+                        fontWeight: fontWeight ?? FontWeight.w500,
                         // fontFamily: Appfonts.basicFont,
                       ),
                     ),

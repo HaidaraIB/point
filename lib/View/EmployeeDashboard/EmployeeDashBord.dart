@@ -5,11 +5,11 @@ import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Localization/LanguageController.dart';
-import 'package:point/Models/NotificationModel.dart';
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/AppNotificationInbox.dart';
 import 'package:point/Utils/AppConstants.dart';
 import 'package:point/View/Chats/MChatPage.dart';
 import 'package:point/View/EmployeeDashboard/Shared/EmployeeTaskCard.dart';
@@ -45,6 +45,7 @@ class EmployeeDashBord extends StatelessWidget {
 
   PreferredSizeWidget _buildMobileAppBar(HomeController controller) {
     return AppBar(
+      automaticallyImplyLeading: false,
       backgroundColor: Colors.white,
       surfaceTintColor: Colors.white,
       elevation: 0.5,
@@ -62,15 +63,7 @@ class EmployeeDashBord extends StatelessWidget {
                   top: -4,
                   child: Obx(
                     () => HeaderCountBadge(
-                      count:
-                          controller.notifications
-                              .where(
-                                (n) =>
-                                    n.data?['type'] != 'message' &&
-                                    n.data?['type'] != 'chat' &&
-                                    n.isRead == false,
-                              )
-                              .length,
+                      count: unreadInAppInboxCount(controller.notifications),
                     ),
                   ),
                 ),
@@ -116,62 +109,114 @@ class EmployeeDashBord extends StatelessWidget {
             ),
             onPressed: () => Get.to(() => ChatsListScreen(onMinimize: () {})),
           ),
-          const Spacer(),
-          PopupMenuButton<int>(
-            tooltip: 'tasks.options_tooltip'.tr,
-            padding: EdgeInsets.zero,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            color: Colors.white,
-            elevation: 4,
-            onSelected: (value) async {
-              if (value == 0) {
-                final shouldLogout = await _confirmEmployeeLogoutDialog(Get.context!);
-                if (!shouldLogout) return;
-                controller.clearEmployeeSession();
-                await FirestoreServices().signOut();
-                FunHelper.removelogindata();
-                Get.offAllNamed('/auth/login');
-              } else if (value == 1) {
-                Get.toNamed('/auth/resetPassword');
-              }
-            },
-            itemBuilder:
-                (context) => [
-                  PopupMenuItem(
-                    value: 1,
-                    child: Row(
+          Expanded(
+            child: Obx(() {
+              final emp = controller.currentemployee.value;
+              final displayName = (emp?.name ?? '').trim();
+              final displayRole = (emp?.role ?? '').trim();
+              final avatarUrl = emp?.image ?? kDefaultAvatarUrl;
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Flexible(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text(
-                          'resetpassword'.tr,
-                          style: const TextStyle(fontWeight: FontWeight.w500),
-                        ),
-                        const SizedBox(width: 8),
-                        const Icon(Icons.lock_reset, color: AppColors.primary),
+                        if (displayName.isNotEmpty)
+                          Text(
+                            displayName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.end,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                              color: Color(0xFF1A1A1A),
+                            ),
+                          ),
+                        if (displayRole.isNotEmpty) ...[
+                          if (displayName.isNotEmpty) const SizedBox(height: 2),
+                          Text(
+                            displayRole.tr,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.end,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
-                  PopupMenuItem(
-                    value: 0,
-                    child: Row(
-                      children: [
-                        Text(
-                          'logout'.tr,
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(width: 8),
-                        const Icon(Icons.logout, color: Colors.red),
-                      ],
+                  const SizedBox(width: 8),
+                  PopupMenuButton<int>(
+                    tooltip: 'tasks.options_tooltip'.tr,
+                    padding: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    color: Colors.white,
+                    elevation: 4,
+                    onSelected: (value) async {
+                      if (value == 0) {
+                        final shouldLogout =
+                            await _confirmEmployeeLogoutDialog(Get.context!);
+                        if (!shouldLogout) return;
+                        controller.clearEmployeeSession();
+                        await FirestoreServices().signOut();
+                        FunHelper.removeLoginData();
+                        Get.offAllNamed('/auth/login');
+                      } else if (value == 1) {
+                        Get.toNamed('/auth/resetPassword');
+                      }
+                    },
+                    itemBuilder:
+                        (context) => [
+                          PopupMenuItem(
+                            value: 1,
+                            child: Row(
+                              children: [
+                                Text(
+                                  'resetpassword'.tr,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                const Icon(
+                                  Icons.lock_reset,
+                                  color: AppColors.primary,
+                                ),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem(
+                            value: 0,
+                            child: Row(
+                              children: [
+                                Text(
+                                  'logout'.tr,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                const Icon(Icons.logout, color: Colors.red),
+                              ],
+                            ),
+                          ),
+                        ],
+                    child: CircleAvatar(
+                      radius: 16,
+                      backgroundImage: NetworkImage(avatarUrl),
                     ),
                   ),
                 ],
-            child: CircleAvatar(
-              radius: 16,
-              backgroundImage: NetworkImage(
-                controller.currentemployee.value?.image ?? kDefaultAvatarUrl,
-              ),
-            ),
+              );
+            }),
           ),
         ],
       ),
@@ -260,9 +305,9 @@ class EmployeeDashBord extends StatelessWidget {
                             MainButton(
                               width: 180,
                               height: 45,
-                              bordersize: 35,
-                              fontcolor: Colors.white,
-                              backgroundcolor: AppColors.primary,
+                              borderSize: 35,
+                              fontColor: Colors.white,
+                              backgroundColor: AppColors.primary,
                               widget: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
@@ -281,7 +326,7 @@ class EmployeeDashBord extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                              onpress: () {
+                              onPressed: () {
                                 Get.toNamed('/content');
                               },
                             ),
@@ -407,7 +452,7 @@ class EmployeeDashBord extends StatelessWidget {
                                 controller.filterTasks();
                               },
                               child: SvgPicture.asset(
-                                'assets/svgs/Menu.svg',
+                                'assets/svgs/icon_menu.svg',
                                 height: 42,
                               ),
                             ),
@@ -558,33 +603,6 @@ class EmployeeDashBord extends StatelessWidget {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          PopupMenuButton<String>(
-                            tooltip: AppLocaleKeys.appLanguage.tr,
-                            padding: EdgeInsets.zero,
-                            icon: const Icon(
-                              Icons.language,
-                              color: AppColors.primary,
-                            ),
-                            onSelected:
-                                (value) =>
-                                    _languageController.changeLanguage(value),
-                            itemBuilder:
-                                (context) => [
-                                  PopupMenuItem(
-                                    value: 'ar',
-                                    child: Text(
-                                      AppLocaleKeys.appLanguageArabic.tr,
-                                    ),
-                                  ),
-                                  PopupMenuItem(
-                                    value: 'en',
-                                    child: Text(
-                                      AppLocaleKeys.appLanguageEnglish.tr,
-                                    ),
-                                  ),
-                                ],
-                          ),
                           Spacer(),
                           if (controller.currentemployee.value?.department ==
                                   'cat1' ||
@@ -593,9 +611,9 @@ class EmployeeDashBord extends StatelessWidget {
                             MainButton(
                               width: 180,
                               height: 45,
-                              bordersize: 35,
-                              fontcolor: Colors.white,
-                              backgroundcolor: AppColors.primary,
+                              borderSize: 35,
+                              fontColor: Colors.white,
+                              backgroundColor: AppColors.primary,
                               widget: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
@@ -614,7 +632,7 @@ class EmployeeDashBord extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                              onpress: () {
+                              onPressed: () {
                                 Get.toNamed('/content');
                               },
                             ),
@@ -741,7 +759,7 @@ class EmployeeDashBord extends StatelessWidget {
                                     controller.filterTasks();
                                   },
                                   child: SvgPicture.asset(
-                                    'assets/svgs/Menu.svg',
+                                    'assets/svgs/icon_menu.svg',
                                     height: 42,
                                   ),
                                 ),
@@ -762,12 +780,15 @@ class EmployeeDashBord extends StatelessWidget {
                                   ),
                                   child: DropdownButtonHideUnderline(
                                     child: DropdownButton<String>(
+                                      isExpanded: true,
                                       hint: Padding(
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 8,
                                         ),
                                         child: Text(
                                           'tasks.filter_priority'.tr,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                           style: TextStyle(
                                             fontSize: 13,
                                             color: AppColors.primaryfontColor,
@@ -789,7 +810,12 @@ class EmployeeDashBord extends StatelessWidget {
                                               .map(
                                                 (e) => DropdownMenuItem(
                                                   value: e,
-                                                  child: Text(e.tr),
+                                                  child: Text(
+                                                    e.tr,
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
                                                 ),
                                               )
                                               .toList(),
@@ -815,12 +841,15 @@ class EmployeeDashBord extends StatelessWidget {
                                   ),
                                   child: DropdownButtonHideUnderline(
                                     child: DropdownButton<String>(
+                                      isExpanded: true,
                                       hint: Padding(
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 8,
                                         ),
                                         child: Text(
                                           'tasks.filter_status'.tr,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                           style: TextStyle(
                                             fontSize: 13,
                                             color: AppColors.primaryfontColor,
@@ -840,7 +869,12 @@ class EmployeeDashBord extends StatelessWidget {
                                               .map(
                                                 (e) => DropdownMenuItem(
                                                   value: e,
-                                                  child: Text(e.tr),
+                                                  child: Text(
+                                                    e.tr,
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
                                                 ),
                                               )
                                               .toList(),
@@ -1090,129 +1124,234 @@ Future<bool> _confirmEmployeeLogoutDialog(BuildContext context) async {
   return result ?? false;
 }
 
-bool _isAppInboxNotification(NotificationModel n) {
-  return n.data?['type'] != 'message' && n.data?['type'] != 'chat';
-}
-
-Future<void> _markVisibleAppNotificationsRead(HomeController controller) async {
-  final ids =
-      controller.notifications
-          .where(
-            (n) =>
-                _isAppInboxNotification(n) &&
-                n.isRead == false &&
-                n.id != null &&
-                n.id!.isNotEmpty,
-          )
-          .map((n) => n.id!)
-          .toSet()
-          .toList();
-  if (ids.isEmpty) return;
-  await FirestoreServices.markInAppNotificationsAsRead(ids);
-}
-
 void _showEmployeeNotificationsDialog(
   BuildContext context,
   HomeController controller,
 ) {
-  _markVisibleAppNotificationsRead(controller);
   showDialog(
     context: context,
-    builder:
-        (context) => Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 400, maxHeight: 500),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text(
-                    'header.notifications'.tr,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.teal,
-                      fontSize: 18,
+    builder: (dialogContext) {
+      var filterIndex = 2; // 0=unread, 1=read, 2=all
+      return StatefulBuilder(
+        builder: (ctx, setState) {
+          return Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 400, maxHeight: 500),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      'header.notifications'.tr,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.teal,
+                        fontSize: 18,
+                      ),
                     ),
                   ),
-                ),
-                Flexible(
-                  child: Obx(() {
-                    final filtered =
-                        controller.notifications
-                            .where((n) => _isAppInboxNotification(n))
-                            .toList();
-                    return ListView.separated(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      shrinkWrap: true,
-                      itemCount: filtered.length,
-                      separatorBuilder: (_, __) => const Divider(height: 10),
-                      itemBuilder: (context, index) {
-                        final n = filtered[index];
-                        final bgColors = [
-                          Colors.pink.shade100,
-                          Colors.green.shade100,
-                          Colors.purple.shade100,
-                          Colors.teal.shade100,
-                        ];
-                        final randomColor = bgColors[index % bgColors.length];
-                        return ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          leading: CircleAvatar(
-                            radius: 24,
-                            backgroundColor: randomColor,
-                            child: Text(
-                              n.title.toString().isNotEmpty
-                                  ? n.title.toString()[0]
-                                  : 'N',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                          title: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                n.title ?? '',
-                                textDirection: TextDirection.rtl,
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: ToggleButtons(
+                      isSelected: [
+                        filterIndex == 0,
+                        filterIndex == 1,
+                        filterIndex == 2,
+                      ],
+                      onPressed: (i) => setState(() => filterIndex = i),
+                      borderRadius:
+                          const BorderRadius.all(Radius.circular(10)),
+                      constraints: const BoxConstraints(
+                        minHeight: 36,
+                        minWidth: 88,
+                      ),
+                      children: [
+                        Text(
+                          'notifications.filter.unread'.tr,
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        Text(
+                          'notifications.filter.read'.tr,
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        Text(
+                          'notifications.filter.all'.tr,
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Flexible(
+                    child: Obx(() {
+                      final base = controller.notifications
+                          .where((n) => isAppInboxNotification(n))
+                          .toList();
+
+                      final filtered = base.where((n) {
+                        switch (filterIndex) {
+                          case 0:
+                            return isInAppNotificationUnread(n);
+                          case 1:
+                            return n.isRead == true;
+                          case 2:
+                          default:
+                            return true;
+                        }
+                      }).toList();
+
+                      return ListView.separated(
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 12),
+                        shrinkWrap: true,
+                        itemCount: filtered.length,
+                        separatorBuilder: (_, __) => const Divider(height: 10),
+                        itemBuilder: (context, index) {
+                          final n = filtered[index];
+                          final bgColors = [
+                            Colors.pink.shade100,
+                            Colors.green.shade100,
+                            Colors.purple.shade100,
+                            Colors.teal.shade100,
+                          ];
+                          final randomColor =
+                              bgColors[index % bgColors.length];
+
+                          final isUnread = isInAppNotificationUnread(n);
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: CircleAvatar(
+                              radius: 24,
+                              backgroundColor: randomColor,
+                              child: Text(
+                                n.title.toString().isNotEmpty
+                                    ? n.title.toString()[0]
+                                    : 'N',
                                 style: const TextStyle(
-                                  fontSize: 13,
+                                  color: Colors.white,
                                   fontWeight: FontWeight.bold,
-                                  color: AppColors.primary,
                                 ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
                               ),
-                              Text(
-                                n.body ?? '',
-                                textDirection: TextDirection.rtl,
-                                style: const TextStyle(fontSize: 13),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ),
-                          subtitle: Text(
-                            n.createdAt != null
-                                ? FunHelper.formatdateTime(n.createdAt!).toString()
-                                : '',
-                            textDirection: TextDirection.rtl,
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey.shade600,
                             ),
-                          ),
-                        );
-                      },
-                    );
-                  }),
-                ),
-              ],
+                            title: Column(
+                              crossAxisAlignment:
+                                  CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  n.title ?? '',
+                                  textDirection: TextDirection.rtl,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.primary,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(
+                                  n.body ?? '',
+                                  textDirection: TextDirection.rtl,
+                                  style: const TextStyle(fontSize: 13),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                            subtitle: Text(
+                              n.createdAt != null
+                                  ? FunHelper.formatdateTime(n.createdAt!)
+                                      .toString()
+                                  : '',
+                              textDirection: TextDirection.rtl,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (isUnread)
+                                  IconButton(
+                                    tooltip:
+                                        'notifications.action.mark_as_read'.tr,
+                                    icon: const Icon(
+                                      Icons.mark_email_read_outlined,
+                                      color: AppColors.primary,
+                                    ),
+                                    onPressed: () async {
+                                      final id = n.id;
+                                      if (id == null || id.isEmpty) return;
+                                      await FirestoreServices
+                                          .markInAppNotificationsAsRead([id]);
+                                    },
+                                  ),
+                                IconButton(
+                                  tooltip: 'notifications.action.delete'.tr,
+                                  icon: const Icon(
+                                    Icons.delete_outline,
+                                    color: Colors.redAccent,
+                                  ),
+                                  onPressed: () async {
+                                    final id = n.id;
+                                    if (id == null || id.isEmpty) return;
+
+                                    final ok = await showDialog<bool>(
+                                      context: context,
+                                      builder: (ctx) => AlertDialog(
+                                        title: Text(
+                                          'notifications.confirm_delete_title'.tr,
+                                        ),
+                                        content: Text(
+                                          'notifications.confirm_delete_message'.tr,
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.of(ctx).pop(false),
+                                            child: Text('cancel'.tr),
+                                          ),
+                                          ElevatedButton(
+                                            style:
+                                                ElevatedButton.styleFrom(
+                                              backgroundColor: Colors.red,
+                                            ),
+                                            onPressed: () =>
+                                                Navigator.of(ctx).pop(true),
+                                            child: Text(
+                                              'notifications.action.delete'.tr,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+
+                                    if (ok == true) {
+                                      await FirestoreServices
+                                          .deleteInAppNotifications([id]);
+                                    }
+                                  },
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      );
+                    }),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
+      );
+    },
   );
 }

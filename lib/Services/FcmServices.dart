@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
+import 'dart:async';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -20,12 +21,22 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _localNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
-  // تهيئة كل حاجة
-  Future<void> init() async {
-    await _requestPermission();
-    await _initLocalNotifications();
-    await _setupInteractedMessage();
-    _listenToForegroundMessages();
+  bool _isInitialized = false;
+  Future<void>? _initFuture;
+  StreamSubscription<RemoteMessage>? _foregroundSub;
+
+  // تهيئة كل حاجة (idempotent)
+  Future<void> init() {
+    _initFuture ??= () async {
+      if (_isInitialized) return;
+      _isInitialized = true;
+
+      await _requestPermission();
+      await _initLocalNotifications();
+      await _setupInteractedMessage();
+      _listenToForegroundMessages();
+    }();
+    return _initFuture!;
   }
 
   // طلب صلاحيات الإشعارات
@@ -42,10 +53,12 @@ class NotificationService {
   // تهيئة flutter_local_notifications
   Future<void> _initLocalNotifications() async {
     const AndroidInitializationSettings androidInit =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@drawable/ic_launcher_monochrome');
+    const DarwinInitializationSettings iosInit = DarwinInitializationSettings();
 
     const InitializationSettings initSettings = InitializationSettings(
       android: androidInit,
+      iOS: iosInit,
     );
 
     await _localNotificationsPlugin.initialize(
@@ -79,7 +92,11 @@ class NotificationService {
   // عرض الإشعار محليًا
   Future<void> _showLocalNotification(RemoteMessage message) async {
     final notification = message.notification;
-    final android = notification?.android;
+
+    final title = notification?.title ?? message.data['title']?.toString();
+    final body = notification?.body ?? message.data['body']?.toString();
+
+    if (title == null || title.isEmpty) return;
 
     final imageUrl = notification?.android?.imageUrl ?? message.data['image'];
 
@@ -94,30 +111,72 @@ class NotificationService {
       );
     }
 
-    if (notification != null && android != null) {
-      AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-        'default_channel',
-        'General Notifications',
-        styleInformation: bigPicture,
-        channelDescription: 'This channel is used for general notifications.',
-        importance: Importance.max,
-        priority: Priority.high,
-        icon: '@mipmap/ic_launcher',
-      );
+    AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'default_channel',
+      'General Notifications',
+      styleInformation: bigPicture,
+      channelDescription: 'This channel is used for general notifications.',
+      importance: Importance.max,
+      priority: Priority.high,
+      icon: '@drawable/ic_launcher_monochrome',
+    );
 
-      NotificationDetails notificationDetails = NotificationDetails(
-        android: androidDetails,
-      );
+    const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
 
-      await _localNotificationsPlugin.show(
-        notification.hashCode,
-        notification.title,
-        notification.body,
-        notificationDetails,
+    NotificationDetails notificationDetails = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
 
-        payload: jsonEncode(message.data), // optional
-      );
-    }
+    await _localNotificationsPlugin.show(
+      notification?.hashCode ?? title.hashCode,
+      title,
+      body ?? '',
+      notificationDetails,
+      payload: jsonEncode(message.data), // optional
+    );
+  }
+
+  /// Local notification helper for testing.
+  Future<void> showTestLocalNotification({
+    required String title,
+    required String body,
+  }) async {
+    await init();
+
+    const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      'default_channel',
+      'General Notifications',
+      channelDescription: 'This channel is used for general notifications.',
+      importance: Importance.max,
+      priority: Priority.high,
+      icon: '@drawable/ic_launcher_monochrome',
+    );
+
+    const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+
+    const NotificationDetails notificationDetails = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    await _localNotificationsPlugin.show(
+      DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      title,
+      body,
+      notificationDetails,
+      payload: jsonEncode(<String, String>{
+        'type': 'local_test',
+      }),
+    );
   }
 
   Future<String> _downloadAndSaveFile(String url, String fileName) async {
@@ -131,7 +190,7 @@ class NotificationService {
 
   // الرسائل وقت ما التطبيق شغال
   void _listenToForegroundMessages() {
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    _foregroundSub ??= FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       log('Received a message in foreground: ${message.notification?.title}');
       _showLocalNotification(message);
     });

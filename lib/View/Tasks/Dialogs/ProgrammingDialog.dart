@@ -76,7 +76,7 @@ void programmingDiloag(BuildContext context, {TaskModel? model}) {
                         padding: EdgeInsets.all(16),
                         child: Row(
                           children: [
-                            SvgPicture.asset('assets/svgs/Check_circle.svg'),
+                            SvgPicture.asset('assets/svgs/icon_check_circle.svg'),
                             SizedBox(width: 10),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -513,13 +513,13 @@ void programmingDiloag(BuildContext context, {TaskModel? model}) {
                                             ),
                                             MainButton(
                                               width: 100,
-                                              bordersize: 5,
+                                              borderSize: 5,
                                               height: 30,
-                                              fontsize: 12,
+                                              fontSize: 12,
                                               load: controller.isUploading.value,
                                               title: 'uploadfile'.tr,
-                                              backgroundcolor: Colors.white,
-                                              fontcolor:
+                                              backgroundColor: Colors.white,
+                                              fontColor:
                                                   AppColors.primaryfontColor,
                                             ),
                                           ],

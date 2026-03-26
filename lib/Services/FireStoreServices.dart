@@ -100,15 +100,32 @@ class FirestoreServices {
     required String body,
     Map<String, String>? data,
   }) async {
+    String _maskFcmToken(String t) {
+      if (t.length <= 12) return '***';
+      return '${t.substring(0, 6)}...${t.substring(t.length - 4)}';
+    }
+
+    final targetLabel = token != null
+        ? 'token=${_maskFcmToken(token)}'
+        : 'topic=${topic ?? "(null)"}';
+
     final firebaseIdToken =
         await FirebaseAuth.instance.currentUser?.getIdToken();
     if (firebaseIdToken == null || firebaseIdToken.isEmpty) {
       throw StateError('FirebaseAuth session required to send FCM.');
     }
 
+    log(
+      '➡️ FCM invoke start. target=$targetLabel title="$title" bodyLen=${body.length}',
+    );
+
     final res = await Supabase.instance.client.functions.invoke(
       'send-fcm',
-      headers: <String, String>{'authorization': 'Bearer $firebaseIdToken'},
+      // IMPORTANT: keep `authorization` for Supabase; pass Firebase token via a
+      // dedicated header so the Edge Function can verify it.
+      headers: <String, String>{
+        'x-firebase-id-token': 'Bearer $firebaseIdToken',
+      },
       body: <String, dynamic>{
         if (token != null) 'token': token,
         if (topic != null) 'topic': topic,
@@ -119,8 +136,11 @@ class FirestoreServices {
     );
 
     if (res.status != 200) {
-      final data = res.data as Map<String, dynamic>?;
-      final code = data?['errorCode']?.toString();
+      final responseData = res.data as Map<String, dynamic>?;
+      final code = responseData?['errorCode']?.toString();
+      log(
+        '❌ FCM invoke failed. target=$targetLabel status=${res.status} errorCode=$code details=${responseData?['details']}',
+      );
       switch (code) {
         case 'ERR_METHOD_NOT_ALLOWED':
           throw StateError(AppLocaleKeys.errorsMethodNotAllowed);
@@ -135,6 +155,10 @@ class FirestoreServices {
         default:
           throw StateError(AppLocaleKeys.errorsServer);
       }
+    } else {
+      log(
+        '✅ FCM invoke success. target=$targetLabel status=${res.status} data=${res.data}',
+      );
     }
   }
 
@@ -871,6 +895,25 @@ class FirestoreServices {
     }
   }
 
+  /// Delete in-app notifications by Firestore document ids.
+  ///
+  /// Uses chunking to stay under Firestore batch limits.
+  static Future<void> deleteInAppNotifications(
+    Iterable<String> docIds,
+  ) async {
+    final ids = docIds.where((id) => id.isNotEmpty).toList();
+    if (ids.isEmpty) return;
+    final coll = FirebaseFirestore.instance.collection('notifications');
+    const chunkSize = 450;
+    for (var i = 0; i < ids.length; i += chunkSize) {
+      final batch = FirebaseFirestore.instance.batch();
+      for (final id in ids.skip(i).take(chunkSize)) {
+        batch.delete(coll.doc(id));
+      }
+      await batch.commit();
+    }
+  }
+
   /// Stream of total unread messages count across all chats for [userId].
   /// Updates in real time when chats or messages change.
   ///
@@ -993,6 +1036,8 @@ class FirestoreServices {
     String? actionText,
     String? referenceId,
     Map<String, String>? emailDetails,
+    bool sendPush = true,
+    bool sendEmail = true,
   }) async {
     try {
       // 1. هات بيانات المستخدم من Firestore
@@ -1016,30 +1061,47 @@ class FirestoreServices {
               ? rawRecipientName
               : 'الموظف';
 
-      // إرسال إيميل حتى عند غياب FCM (من لم يثبت التطبيق أو عطّل الإشعارات يظل يحصل على الإيميل)
-      if (email != null && email.isNotEmpty) {
-        final details = <String, String>{
-          'المستلم': recipientName,
-          'معرف المستلم': userId.trim(),
-          if (emailDetails != null) ...emailDetails,
-        };
-        unawaited(
-          EmailNotificationService.sendDetailedNotification(
-            toEmail: email,
-            title: title,
-            body: body,
-            recipientLabel: recipientName,
-            notificationType: notificationType ?? 'إشعار موظف',
-            actionText: actionText,
-            referenceId: referenceId ?? userId.trim(),
-            details: details,
-          ),
-        );
-      } else {
-        log(
-          "⚠️ Email missing for employee $userId — skipping email notification",
-        );
+      final trimmedUserId = userId.trim();
+      await addNotification(
+        NotificationModel(
+          title: title,
+          body: body,
+          recipientId: trimmedUserId,
+          createdAt: DateTime.now(),
+          isRead: false,
+        ),
+      );
+
+      // إرسال بريد (اختياري حسب اختيار القناة)
+      if (sendEmail) {
+        // إرسال إيميل حتى عند غياب FCM (من لم يثبت التطبيق أو عطّل الإشعارات يظل يحصل على الإيميل)
+        if (email != null && email.isNotEmpty) {
+          final details = <String, String>{
+            'المستلم': recipientName,
+            'معرف المستلم': trimmedUserId,
+            if (emailDetails != null) ...emailDetails,
+          };
+          unawaited(
+            EmailNotificationService.sendDetailedNotification(
+              toEmail: email,
+              title: title,
+              body: body,
+              recipientLabel: recipientName,
+              notificationType: notificationType ?? 'إشعار موظف',
+              actionText: actionText,
+              referenceId: referenceId ?? trimmedUserId,
+              details: details,
+            ),
+          );
+        } else {
+          log(
+            "⚠️ Email missing for employee $userId — skipping email notification",
+          );
+        }
       }
+
+      // إذا المستخدم لا يريد Push، ننهي بدون فحص token أو إرسال push.
+      if (!sendPush) return;
 
       if (token == null || token.isEmpty) {
         log("⚠️ fcmToken missing for employee $userId — push not sent");
@@ -1052,18 +1114,9 @@ class FirestoreServices {
         body: body,
         data: <String, String>{
           'type': 'internal',
-          'id': userId,
+          'id': trimmedUserId,
           'url': 'https://example.com',
         },
-      );
-      addNotification(
-        NotificationModel(
-          title: title,
-          body: body,
-          recipientId: userId,
-          createdAt: DateTime.now(),
-          isRead: false,
-        ),
       );
       log("✅ FCM Response: $userId");
     } catch (e) {
@@ -1102,11 +1155,22 @@ class FirestoreServices {
               ? rawRecipientName
               : 'العميل';
 
+      final trimmedUserId = userId.trim();
+      await addNotification(
+        NotificationModel(
+          title: title,
+          body: body,
+          recipientId: trimmedUserId,
+          createdAt: DateTime.now(),
+          isRead: false,
+        ),
+      );
+
       // إرسال إيميل حتى عند غياب FCM (من لم يثبت التطبيق أو عطّل الإشعارات يظل يحصل على الإيميل)
       if (email != null && email.isNotEmpty) {
         final details = <String, String>{
           'المستلم': recipientName,
-          'معرف المستلم': userId.trim(),
+          'معرف المستلم': trimmedUserId,
           if (emailDetails != null) ...emailDetails,
         };
         unawaited(
@@ -1117,7 +1181,7 @@ class FirestoreServices {
             recipientLabel: recipientName,
             notificationType: notificationType ?? 'إشعار عميل',
             actionText: actionText,
-            referenceId: referenceId ?? userId.trim(),
+            referenceId: referenceId ?? trimmedUserId,
             details: details,
           ),
         );
@@ -1138,18 +1202,9 @@ class FirestoreServices {
         body: body,
         data: <String, String>{
           'type': 'internal',
-          'id': userId,
+          'id': trimmedUserId,
           'url': 'https://example.com',
         },
-      );
-      addNotification(
-        NotificationModel(
-          title: title,
-          body: body,
-          recipientId: userId,
-          createdAt: DateTime.now(),
-          isRead: false,
-        ),
       );
       log("✅ FCM sent to client: $userId");
     } catch (e) {
@@ -1166,28 +1221,33 @@ class FirestoreServices {
     String? actionText,
     String? referenceId,
     Map<String, String>? emailDetails,
+    bool sendPush = true,
+    bool sendEmail = true,
   }) async {
     try {
-      await _sendFcmViaFunction(topic: topic, title: title, body: body);
+      if (sendPush) {
+        await _sendFcmViaFunction(topic: topic, title: title, body: body);
+        log("✅ FCM topic sent: $topic");
+      }
 
-      // إرسال إيميل إشعار لجميع المستلمين في الـ topic (بدون انتظار)
-      unawaited(
-        _sendEmailForTopic(
-          topic,
-          title,
-          body,
-          notificationType: notificationType,
-          actionText: actionText,
-          referenceId: referenceId,
-          emailDetails: <String, String>{
-            'الموضوع': topic,
-            'موعد الإرسال المجدول': scheduledAt,
-            if (emailDetails != null) ...emailDetails,
-          },
-        ),
-      );
-
-      log("✅ FCM topic sent: $topic");
+      if (sendEmail) {
+        // إرسال إيميل إشعار لجميع المستلمين في الـ topic (بدون انتظار)
+        unawaited(
+          _sendEmailForTopic(
+            topic,
+            title,
+            body,
+            notificationType: notificationType,
+            actionText: actionText,
+            referenceId: referenceId,
+            emailDetails: <String, String>{
+              'الموضوع': topic,
+              'موعد الإرسال المجدول': scheduledAt,
+              if (emailDetails != null) ...emailDetails,
+            },
+          ),
+        );
+      }
     } catch (e) {
       log("❌ FCM Error: $e");
     }

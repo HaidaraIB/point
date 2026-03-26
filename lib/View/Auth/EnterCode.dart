@@ -78,7 +78,7 @@ Widget _buildDesktopLayout() {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         SvgPicture.asset(
-                          'assets/svgs/Featured icon.svg',
+                          'assets/svgs/enter_code_featured_icon.svg',
                           height: 80,
                         ),
                         Center(
@@ -181,10 +181,10 @@ Widget _buildDesktopLayout() {
                   MainButton(
                     icon: false,
                     height: 40,
-                    bordersize: 10,
+                    borderSize: 10,
                     margin: EdgeInsets.all(0),
                     // lineargrad: ,
-                    lineargrad: LinearGradient(
+                    linearGradient: LinearGradient(
                       colors: [
                         Color(0xff19133F),
                         Color(0xff19133F),

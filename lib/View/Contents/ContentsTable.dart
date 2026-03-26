@@ -72,9 +72,9 @@ class ContentsTable extends StatelessWidget {
                             MainButton(
                               width: 180,
                               height: 45,
-                              bordersize: 35,
-                              fontcolor: Colors.white,
-                              backgroundcolor: AppColors.primary,
+                              borderSize: 35,
+                              fontColor: Colors.white,
+                              backgroundColor: AppColors.primary,
                               widget: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
@@ -93,9 +93,9 @@ class ContentsTable extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                              onpress: () {
+                              onPressed: () {
                                 if (controller.clientController.text.isEmpty) {
-                                  FunHelper.showsnackbar(
+                                  FunHelper.showSnackbar(
                                     'error'.tr,
                                     'content.form.select_client_first'.tr,
                                     snackPosition: SnackPosition.TOP,
@@ -119,9 +119,9 @@ class ContentsTable extends StatelessWidget {
                               MainButton(
                                 width: 180,
                                 height: 45,
-                                bordersize: 35,
-                                fontcolor: Colors.white,
-                                backgroundcolor: AppColors.primary,
+                                borderSize: 35,
+                                fontColor: Colors.white,
+                                backgroundColor: AppColors.primary,
                                 widget: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
@@ -140,7 +140,7 @@ class ContentsTable extends StatelessWidget {
                                     ),
                                   ],
                                 ),
-                                onpress: () {
+                                onPressed: () {
                                   Get.toNamed('/employeeDashboard');
                                 },
                               ),
@@ -721,7 +721,7 @@ class ContentsTable extends StatelessWidget {
                                                                       .value
                                                                       ?.department !=
                                                                   'cat1') {
-                                                            FunHelper.showsnackbar(
+                                                            FunHelper.showSnackbar(
                                                               'error'.tr,
                                                               'errors.no_promotion_permission'
                                                                   .tr,
@@ -875,17 +875,17 @@ class ContentsTable extends StatelessWidget {
                                                                               false,
                                                                           title:
                                                                               'app.close'.tr,
-                                                                          fontcolor:
+                                                                          fontColor:
                                                                               Colors.white,
-                                                                          backgroundcolor:
+                                                                          backgroundColor:
                                                                               AppColors.primary,
                                                                           width:
                                                                               100,
-                                                                          bordersize:
+                                                                          borderSize:
                                                                               5,
                                                                           height:
                                                                               30,
-                                                                          onpress: () {
+                                                                          onPressed: () {
                                                                             Get.back();
                                                                           },
                                                                         ),
@@ -1000,17 +1000,17 @@ class ContentsTable extends StatelessWidget {
                                                                               false,
                                                                           title:
                                                                               'app.close'.tr,
-                                                                          fontcolor:
+                                                                          fontColor:
                                                                               Colors.white,
-                                                                          backgroundcolor:
+                                                                          backgroundColor:
                                                                               AppColors.primary,
                                                                           width:
                                                                               100,
-                                                                          bordersize:
+                                                                          borderSize:
                                                                               5,
                                                                           height:
                                                                               30,
-                                                                          onpress: () {
+                                                                          onPressed: () {
                                                                             Get.back();
                                                                           },
                                                                         ),
@@ -1263,9 +1263,9 @@ class ContentsTable extends StatelessWidget {
                 MainButton(
                   width: 160,
                   height: 45,
-                  bordersize: 35,
-                  fontcolor: Colors.white,
-                  backgroundcolor: AppColors.primary,
+                  borderSize: 35,
+                  fontColor: Colors.white,
+                  backgroundColor: AppColors.primary,
                   widget: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -1284,9 +1284,9 @@ class ContentsTable extends StatelessWidget {
                       ),
                     ],
                   ),
-                  onpress: () {
+                  onPressed: () {
                     if (controller.clientController.text.isEmpty) {
-                      FunHelper.showsnackbar(
+                      FunHelper.showSnackbar(
                         'error'.tr,
                         'content.form.select_client_first'.tr,
                         snackPosition: SnackPosition.TOP,
@@ -1310,9 +1310,9 @@ class ContentsTable extends StatelessWidget {
                   MainButton(
                     width: 140,
                     height: 45,
-                    bordersize: 35,
-                    fontcolor: Colors.white,
-                    backgroundcolor: AppColors.primary,
+                    borderSize: 35,
+                    fontColor: Colors.white,
+                    backgroundColor: AppColors.primary,
                     widget: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -1332,7 +1332,7 @@ class ContentsTable extends StatelessWidget {
                         ),
                       ],
                     ),
-                    onpress: () => Get.toNamed('/employeeDashboard'),
+                    onPressed: () => Get.toNamed('/employeeDashboard'),
                   ),
                 ],
               ],
@@ -1507,7 +1507,7 @@ Future<void> _openAttachmentUrl(String rawUrl) async {
     // Ignore errors and show user-friendly feedback instead of throwing.
   }
 
-  FunHelper.showsnackbar(
+  FunHelper.showSnackbar(
     'validation.title'.tr,
     'errors.cannot_open_link'.tr,
     snackPosition: SnackPosition.TOP,
@@ -1566,7 +1566,7 @@ void showAddContentDialog(
                         padding: EdgeInsets.all(16),
                         child: Row(
                           children: [
-                            SvgPicture.asset('assets/svgs/Check_circle.svg'),
+                            SvgPicture.asset('assets/svgs/icon_check_circle.svg'),
                             SizedBox(width: 10),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1869,17 +1869,17 @@ void showAddContentDialog(
                                                   ),
                                                   MainButton(
                                                     width: 100,
-                                                    bordersize: 5,
+                                                    borderSize: 5,
                                                     height: 30,
-                                                    fontsize: 12,
+                                                    fontSize: 12,
                                                     load:
                                                         controller
                                                             .isUploading
                                                             .value,
                                                     title: 'uploadfile'.tr,
-                                                    backgroundcolor:
+                                                    backgroundColor:
                                                         Colors.white,
-                                                    fontcolor:
+                                                    fontColor:
                                                         AppColors
                                                             .primaryfontColor,
                                                   ),

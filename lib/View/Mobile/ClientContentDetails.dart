@@ -35,13 +35,13 @@ class Clientcontentdetails extends StatelessWidget {
                     () => MainButton(
                       icon: false,
                       height: 50,
-                      backgroundcolor: Colors.green,
-                      bordersize: 10,
+                      backgroundColor: Colors.green,
+                      borderSize: 10,
                       load: controller.isLoading.value,
 
-                      fontcolor: Colors.white,
+                      fontColor: Colors.white,
                       title: 'tasks.accept'.tr,
-                      onpress: () async {
+                      onPressed: () async {
                         final ok = await controller.updateContent(
                           model!.copyWith(
                             status: StorageKeys.status_ready_to_publish,
@@ -53,7 +53,7 @@ class Clientcontentdetails extends StatelessWidget {
                           await NotificationService.notifyManagersClientApprovedContent(clientName: clientName, contentTitle: model!.title);
                           await NotificationService.notifyPublishDeptClientApproved(clientName: clientName, contentTitle: model!.title);
                         }
-                        FunHelper.showsnackbar(
+                        FunHelper.showSnackbar(
                           'success'.tr,
                           'client.accept_success'.tr,
                           snackPosition: SnackPosition.TOP,
@@ -67,12 +67,12 @@ class Clientcontentdetails extends StatelessWidget {
                 MainButton(
                   icon: false,
                   height: 50,
-                  backgroundcolor: Color(0xffE6B802),
-                  fontcolor: Colors.white,
-                  bordersize: 10,
+                  backgroundColor: Color(0xffE6B802),
+                  fontColor: Colors.white,
+                  borderSize: 10,
                   title: 'edit'.tr,
                   // load: controller.isLoading.value,
-                  onpress: () {
+                  onPressed: () {
                     showModalBottomSheet(
                       context: context,
                       isScrollControlled: true,
@@ -86,7 +86,7 @@ class Clientcontentdetails extends StatelessWidget {
                   MainButton(
                     icon: false,
                     height: 50,
-                    onpress: () {
+                    onPressed: () {
                       showModalBottomSheet(
                         context: context,
                         isScrollControlled: true,
@@ -96,9 +96,9 @@ class Clientcontentdetails extends StatelessWidget {
                     },
 
                     // load: controller.isLoading.value,
-                    backgroundcolor: Colors.red,
-                    fontcolor: Colors.white,
-                    bordersize: 10,
+                    backgroundColor: Colors.red,
+                    fontColor: Colors.white,
+                    borderSize: 10,
                     title: 'tasks.reject'.tr,
                   ),
               ],

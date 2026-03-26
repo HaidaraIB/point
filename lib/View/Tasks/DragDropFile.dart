@@ -68,10 +68,10 @@ class _DragFilePickerState extends State<DragFilePicker> {
                     ),
                     MainButton(
                       width: 100,
-                      bordersize: 5,
+                      borderSize: 5,
                       height: 30,
-                      fontsize: 12,
-                      onpress: () async {
+                      fontSize: 12,
+                      onPressed: () async {
                         final files = await widget.controller.pickMultiFiles();
                         for (var file in files) {
                           await widget.controller.uploadFiles(
@@ -81,8 +81,8 @@ class _DragFilePickerState extends State<DragFilePicker> {
                         }
                       },
                       title: 'uploadfile'.tr,
-                      backgroundcolor: Colors.white,
-                      fontcolor: AppColors.primaryfontColor,
+                      backgroundColor: Colors.white,
+                      fontColor: AppColors.primaryfontColor,
                     ),
                   ],
                 ),

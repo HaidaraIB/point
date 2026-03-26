@@ -7,7 +7,7 @@ class NotificationModel {
   final Map<String, dynamic>? data;
   final String? recipientId; // fcmToken بتاع المستلم
   final DateTime? createdAt;
-  /// null أو true = لا يُحسب ضمن «غير مقروء» في الشارة؛ false = غير مقروء.
+  /// `true` = مقروء؛ `false` أو null = غير مقروء في الشارة والفلاتر (`AppNotificationInbox`).
   final bool? isRead;
 
   NotificationModel({

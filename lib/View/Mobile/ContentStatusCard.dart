@@ -176,7 +176,7 @@ String getFileType(String url) {
 Widget _buildIcon(String? url) {
   if (url == null || url.trim().isEmpty) {
     return Image.asset(
-      'assets/images/Arrow(2).png',
+      'assets/images/content_type_placeholder.png',
       width: 65,
       height: 65,
       fit: BoxFit.cover,
@@ -188,21 +188,21 @@ Widget _buildIcon(String? url) {
       return Image.network(url, width: 65, height: 65, fit: BoxFit.cover);
     case 'content_image':
       return Image.asset(
-        'assets/images/Arrow(1).png',
+        'assets/images/content_type_image.png',
         width: 65,
         height: 65,
         fit: BoxFit.cover,
       );
     case 'content_text':
       return Image.asset(
-        'assets/images/Arrow(2).png',
+        'assets/images/content_type_placeholder.png',
         width: 65,
         height: 65,
         fit: BoxFit.cover,
       );
     default:
       return Image.asset(
-        'assets/images/Arrow(2).png',
+        'assets/images/content_type_placeholder.png',
         width: 65,
         height: 65,
         fit: BoxFit.cover,

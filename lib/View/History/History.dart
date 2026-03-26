@@ -628,7 +628,7 @@ class History extends StatelessWidget {
                                                                   .value
                                                                   ?.department !=
                                                               'cat1') {
-                                                        FunHelper.showsnackbar(
+                                                        FunHelper.showSnackbar(
                                                           'error'.tr,
                                                           'errors.no_promotion_permission'
                                                               .tr,
@@ -764,17 +764,17 @@ class History extends StatelessWidget {
                                                                     title:
                                                                         'app.close'
                                                                             .tr,
-                                                                    fontcolor:
+                                                                    fontColor:
                                                                         Colors
                                                                             .white,
-                                                                    backgroundcolor:
+                                                                    backgroundColor:
                                                                         AppColors
                                                                             .primary,
                                                                     width: 100,
-                                                                    bordersize:
+                                                                    borderSize:
                                                                         5,
                                                                     height: 30,
-                                                                    onpress: () {
+                                                                    onPressed: () {
                                                                       Get.back();
                                                                     },
                                                                   ),
@@ -800,7 +800,7 @@ class History extends StatelessWidget {
                                                                       .externalApplication,
                                                             );
                                                           } else {
-                                                            FunHelper.showsnackbar(
+                                                            FunHelper.showSnackbar(
                                                               'error'.tr,
                                                               'errors.cannot_open_link_param'
                                                                   .trParams({
@@ -900,17 +900,17 @@ class History extends StatelessWidget {
                                                                     title:
                                                                         'app.close'
                                                                             .tr,
-                                                                    fontcolor:
+                                                                    fontColor:
                                                                         Colors
                                                                             .white,
-                                                                    backgroundcolor:
+                                                                    backgroundColor:
                                                                         AppColors
                                                                             .primary,
                                                                     width: 100,
-                                                                    bordersize:
+                                                                    borderSize:
                                                                         5,
                                                                     height: 30,
-                                                                    onpress: () {
+                                                                    onPressed: () {
                                                                       Get.back();
                                                                     },
                                                                   ),
@@ -936,7 +936,7 @@ class History extends StatelessWidget {
                                                                       .externalApplication,
                                                             );
                                                           } else {
-                                                            FunHelper.showsnackbar(
+                                                            FunHelper.showSnackbar(
                                                               'error'.tr,
                                                               'errors.cannot_open_link_param'
                                                                   .trParams({
@@ -1177,7 +1177,7 @@ void showAddContentDialog(
                         padding: EdgeInsets.all(16),
                         child: Row(
                           children: [
-                            SvgPicture.asset('assets/svgs/Check_circle.svg'),
+                            SvgPicture.asset('assets/svgs/icon_check_circle.svg'),
                             SizedBox(width: 10),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1502,17 +1502,17 @@ void showAddContentDialog(
                                                   ),
                                                   MainButton(
                                                     width: 100,
-                                                    bordersize: 5,
+                                                    borderSize: 5,
                                                     height: 30,
-                                                    fontsize: 12,
+                                                    fontSize: 12,
                                                     load:
                                                         controller
                                                             .isUploading
                                                             .value,
                                                     title: 'uploadfile'.tr,
-                                                    backgroundcolor:
+                                                    backgroundColor:
                                                         Colors.white,
-                                                    fontcolor:
+                                                    fontColor:
                                                         AppColors
                                                             .primaryfontColor,
                                                   ),
@@ -1559,7 +1559,7 @@ void showAddContentDialog(
                                                                     .externalApplication,
                                                           );
                                                         } else {
-                                                          FunHelper.showsnackbar(
+                                                          FunHelper.showSnackbar(
                                                             'error'.tr,
                                                             'errors.cannot_open_link_param'
                                                                 .trParams({

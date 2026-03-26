@@ -849,6 +849,7 @@ class _MessageScreenState extends State<MessageScreen> {
         userId: widget.otherUserId ?? '',
         title: '${widget.currentUserName}',
         body: text,
+        sendEmail: false,
       );
     } else if (isGroup) {
       final participants = List<String>.from(widget.chat['participants'] ?? []);
@@ -861,6 +862,7 @@ class _MessageScreenState extends State<MessageScreen> {
               'group': _displayName,
             }),
             body: text,
+            sendEmail: false,
           );
         }
       }

@@ -33,13 +33,13 @@ class _ForgetPasswordState extends State<ForgetPassword> {
     setState(() => _isLoading = true);
     try {
       await FirestoreServices().sendPasswordResetEmail(_emailController.text);
-      FunHelper.showsnackbar(
+      FunHelper.showSnackbar(
         'success'.tr,
         'auth.forget_password_sent'.tr,
         backgroundColor: Colors.green,
       );
     } on FirebaseAuthException catch (e) {
-      FunHelper.showsnackbar(
+      FunHelper.showSnackbar(
         'error'.tr,
         e.message ?? 'auth.recovery_send_failed'.tr,
       );
@@ -137,10 +137,10 @@ Widget _buildDesktopLayout(
               MainButton(
                 icon: false,
                 height: 40,
-                bordersize: 10,
+                borderSize: 10,
                 margin: EdgeInsets.all(0),
                 // lineargrad: ,
-                lineargrad: LinearGradient(
+                linearGradient: LinearGradient(
                   colors: [
                     Color(0xff19133F),
                     Color(0xff19133F),
@@ -160,7 +160,7 @@ Widget _buildDesktopLayout(
                 ),
                 title: 'confirm'.tr,
                 load: isLoading,
-                onpress: onSubmit,
+                onPressed: onSubmit,
               ),
             ],
             ),

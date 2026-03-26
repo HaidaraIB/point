@@ -350,12 +350,12 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                                   )
                                 : MainButton(
                                     width: 100,
-                                    bordersize: 5,
+                                    borderSize: 5,
                                     height: 36,
-                                    fontsize: 12,
+                                    fontSize: 12,
                                     title: 'uploadfile'.tr,
-                                    backgroundcolor: Colors.white,
-                                    fontcolor: AppColors.primaryfontColor,
+                                    backgroundColor: Colors.white,
+                                    fontColor: AppColors.primaryfontColor,
                                   ),
                           ),
                         ],
@@ -398,7 +398,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                                               );
                                             } else {
                                               if (context.mounted) {
-                                                FunHelper.showsnackbar(
+                                                FunHelper.showSnackbar(
                                                   'error'.tr,
                                                   'errors.cannot_open_link'.tr,
                                                 );

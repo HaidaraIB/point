@@ -31,6 +31,13 @@ class AppLocaleKeys {
   static const homeNotificationBody = 'home.notification_body';
   static const homeNotificationBodyHint = 'home.notification_body_hint';
   static const homeNotificationSent = 'home.notification_sent';
+  static const homeNotificationTarget = 'home.notification_target';
+  static const homeNotificationSendPush = 'home.notification_send_push';
+  static const homeNotificationSendEmail = 'home.notification_send_email';
+  static const homeNotificationSendChannelsTitle =
+      'home.notification_send_channels_title';
+  static const homeNotificationSelectChannelsError =
+      'home.notification_select_channels_error';
   static const homeReviewListSubtitle = 'home.review_list_subtitle';
   static const homeReviewListEmpty = 'home.review_list_empty';
 
@@ -66,6 +73,7 @@ class AppLocaleKeys {
   static const funConfirmMessage = 'fun.confirm_message';
 
   static const authFooterCopyright = 'auth.footer.copyright';
+  static const authPreparingSession = 'auth.preparing_session';
 
   static const me = 'me';
   static const chatConversationFallback = 'chat.conversation_fallback';

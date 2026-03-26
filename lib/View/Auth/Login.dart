@@ -1,6 +1,5 @@
 import 'dart:developer';
 import 'dart:math' show min;
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get_navigation/src/extension_navigation.dart';
@@ -58,7 +57,6 @@ class LoginView extends StatelessWidget {
 // --- IGNORE ---
 Widget _buildDesktopLayout() {
   final _key = GlobalKey<FormState>();
-  final FirebaseMessaging _fcm = FirebaseMessaging.instance;
 
   return GetBuilder<AuthController>(
     init: AuthController(),
@@ -154,60 +152,25 @@ Widget _buildDesktopLayout() {
                         () => MainButton(
                           icon: false,
                           height: 40,
-                          bordersize: 10,
+                          borderSize: 10,
                           load: Get.find<HomeController>().isLoading.value,
                           margin: EdgeInsets.all(0),
-                          onpress: () {
+                          onPressed: () {
                             if (_key.currentState!.validate()) {
                               Get.find<HomeController>()
                                   .loginClient(
                                     controller.email.text.trim(),
                                     controller.pass.text.trim(),
                                   )
-                                  .then((v) async {
+                                  .then((v) {
                                     if (v != null) {
                                       log("✅ تم تسجيل دخول الموظف: ${v.email}");
                                       log(v.status.toString());
                                       if (v.status == 'active') {
-
-                                        await FunHelper.savelogindata(
-                                          controller.email.text.trim(),
-                                        );
-                                        if (!kIsWeb) {
-                                          await _fcm.subscribeToTopic('all');
-                                        }
-                                        // fetchnotification + listenToClient تُستدعى داخل loginClient()
-                                        // بعد نجاح Auth حتى يمرّ AuthMiddleware قبل Get.toNamed.
-                                        if (v.role == 'supervisor') {
-                                          if (!kIsWeb) {
-                                            await _fcm.unsubscribeFromTopic(
-                                              'clients',
-                                            );
-                                            await _fcm.subscribeToTopic(
-                                              'employees',
-                                            );
-                                          }
-                                          Get.toNamed('/');
-                                        } else if (v.role == 'admin') {
-                                          Get.toNamed('/');
-                                        } else if (v.role == 'employee') {
-                                          if (!kIsWeb) {
-                                            await _fcm.unsubscribeFromTopic(
-                                              'clients',
-                                            );
-                                            await _fcm.subscribeToTopic(
-                                              'employees',
-                                            );
-                                          }
-
-                                          Get.toNamed('/employeeDashboard');
-                                        } else if (v.role == 'accountholder') {
-                                          Get.toNamed('/');
-                                        }
-                                        await Get.find<HomeController>()
-                                            .setupFCM(v.id);
+                                        // الجلسة مفعّلة في loginClient؛ باقي الإعداد في SessionSetupScreen.
+                                        Get.offAllNamed('/sessionSetup');
                                       } else {
-                                        FunHelper.showsnackbar(
+                                        FunHelper.showSnackbar(
                                           'error'.tr,
                                           'account_not_active_contact_support'
                                               .tr,
@@ -217,7 +180,7 @@ Widget _buildDesktopLayout() {
                                         );
                                       }
                                     } else {
-                                      FunHelper.showsnackbar(
+                                      FunHelper.showSnackbar(
                                         'error'.tr,
                                         'invalid_email_or_password'.tr,
                                         snackPosition: SnackPosition.TOP,
@@ -229,7 +192,7 @@ Widget _buildDesktopLayout() {
                             }
                           },
                           // lineargrad: ,
-                          lineargrad: LinearGradient(
+                          linearGradient: LinearGradient(
                             colors: [
                               Color(0xff19133F),
                               Color(0xff19133F),

@@ -248,7 +248,7 @@ class TasksHistoryMobile extends StatelessWidget {
                   controller.selectedExecutor.value = '';
                   controller.filterTasksHistory();
                 },
-                child: SvgPicture.asset('assets/svgs/Menu.svg', height: 42),
+                child: SvgPicture.asset('assets/svgs/icon_menu.svg', height: 42),
               ),
               const SizedBox(width: 24),
               _buildDropdown<String>(

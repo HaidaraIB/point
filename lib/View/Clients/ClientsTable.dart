@@ -72,9 +72,9 @@ class ClientsTable extends StatelessWidget {
                             MainButton(
                               width: 180,
                               height: 45,
-                              bordersize: 35,
-                              fontcolor: Colors.white,
-                              backgroundcolor: AppColors.primary,
+                              borderSize: 35,
+                              fontColor: Colors.white,
+                              backgroundColor: AppColors.primary,
                               widget: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
@@ -92,7 +92,7 @@ class ClientsTable extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                              onpress: () {
+                              onPressed: () {
                                 showAddEmployeeDialog(context);
                               },
                             ),
@@ -115,18 +115,6 @@ class ClientsTable extends StatelessWidget {
                                 ),
                                 dividerThickness: 0.5,
                                 columns: [
-                                  DataColumn(
-                                    headingRowAlignment:
-                                        MainAxisAlignment.center,
-
-                                    label: Text(
-                                      "ID",
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
-                                      ),
-                                    ),
-                                  ),
                                   DataColumn(
                                     headingRowAlignment:
                                         MainAxisAlignment.center,
@@ -190,18 +178,6 @@ class ClientsTable extends StatelessWidget {
                                     controller.clients.map((emp) {
                                       return DataRow(
                                         cells: [
-                                          DataCell(
-                                            TableCellCenter(
-                                              child: Text(
-                                                emp.id.toString(),
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  color:
-                                                      AppColors.fontColorGrey,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
                                           DataCell(
                                             TableCellCenter(
                                               child: Text(
@@ -448,7 +424,7 @@ void showAddEmployeeDialog(BuildContext context, {ClientModel? model}) {
                             child: Row(
                               children: [
                                 SvgPicture.asset(
-                                  'assets/svgs/Check_circle.svg',
+                                  'assets/svgs/icon_check_circle.svg',
                                 ),
                                 SizedBox(width: 10),
                                 Column(

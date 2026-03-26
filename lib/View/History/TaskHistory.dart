@@ -203,7 +203,7 @@ class _TasksHistoryState extends State<TasksHistory> {
                                             controller.filterTasksHistory();
                                           },
                                           child: SvgPicture.asset(
-                                            'assets/svgs/Menu.svg',
+                                            'assets/svgs/icon_menu.svg',
                                             height: 42,
                                           ),
                                         ),

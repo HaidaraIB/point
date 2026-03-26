@@ -592,17 +592,17 @@ void designDialog(BuildContext context, {TaskModel? model}) {
                                                   ),
                                                   MainButton(
                                                     width: 100,
-                                                    bordersize: 5,
+                                                    borderSize: 5,
                                                     height: 30,
-                                                    fontsize: 12,
+                                                    fontSize: 12,
                                                     load:
                                                         controller
                                                             .isUploading
                                                             .value,
                                                     title: 'uploadfile'.tr,
-                                                    backgroundcolor:
+                                                    backgroundColor:
                                                         Colors.white,
-                                                    fontcolor:
+                                                    fontColor:
                                                         AppColors
                                                             .primaryfontColor,
                                                   ),

@@ -27,7 +27,7 @@ class ClientController extends GetxController {
       (c) => (c.email ?? '').trim().toLowerCase() == normalizedEmail,
     );
     if (exists) {
-      FunHelper.showsnackbar(
+      FunHelper.showSnackbar(
         'error'.tr,
         'client.errors.email_exists'.trParams({'email': '${client.email}'}),
         snackPosition: SnackPosition.TOP,
@@ -40,7 +40,7 @@ class ClientController extends GetxController {
     if (normalizedEmail.isNotEmpty) {
       final crossUsed = await _service.isEmailUsedAcrossUsers(normalizedEmail);
       if (crossUsed) {
-        FunHelper.showsnackbar(
+        FunHelper.showSnackbar(
           'error'.tr,
           'client.errors.email_in_use_cross'.tr,
           snackPosition: SnackPosition.TOP,
@@ -64,7 +64,7 @@ class ClientController extends GetxController {
         excludeClientId: client.id,
       );
       if (crossUsed) {
-        FunHelper.showsnackbar(
+        FunHelper.showSnackbar(
           'error'.tr,
           'client.errors.email_in_use_cross'.tr,
           snackPosition: SnackPosition.TOP,

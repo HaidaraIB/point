@@ -252,9 +252,9 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
     final statusValue =
         widget.task.status.isNotEmpty
             ? FunHelper.trStored(
-                widget.task.status,
-                kind: StoredValueKind.taskStatus,
-              )
+              widget.task.status,
+              kind: StoredValueKind.taskStatus,
+            )
             : '-';
     final bool compact = dialogWidth < 720;
     final infoWidth = compact ? (dialogWidth - 80).clamp(180.0, 240.0) : 220.0;
@@ -301,7 +301,8 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
             ? (dialogWidth - 80).clamp(240.0, 760.0)
             : ((dialogWidth - 90) / 2).clamp(260.0, 700.0);
 
-    final latestNote = widget.task.notes.isNotEmpty ? widget.task.notes.last : null;
+    final latestNote =
+        widget.task.notes.isNotEmpty ? widget.task.notes.last : null;
     final notesSection = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -507,7 +508,7 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
       // fall through to snackbar
     }
 
-    FunHelper.showsnackbar(
+    FunHelper.showSnackbar(
       AppLocaleKeys.errorTitle.tr,
       AppLocaleKeys.contentDialogOpenLinkFailed.tr,
       snackPosition: SnackPosition.TOP,

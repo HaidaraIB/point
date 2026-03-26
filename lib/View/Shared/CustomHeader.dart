@@ -4,11 +4,11 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
-import 'package:point/Models/NotificationModel.dart';
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/AppImages.dart';
+import 'package:point/Utils/AppNotificationInbox.dart';
 import 'package:point/View/Chats/ChatPage.dart';
 import 'package:point/View/Chats/MChatPage.dart';
 import 'package:point/View/Shared/InputText.dart';
@@ -44,33 +44,6 @@ Widget _buildAvatar(String url, {required double radius}) {
   );
 }
 
-bool _isAppInboxNotification(NotificationModel n) {
-  return n.data?['type'] != 'message' && n.data?['type'] != 'chat';
-}
-
-int _unreadAppNotificationCount(HomeController c) {
-  return c.notifications
-      .where((n) => _isAppInboxNotification(n) && n.isRead == false)
-      .length;
-}
-
-Future<void> _markVisibleAppNotificationsRead(HomeController controller) async {
-  final ids =
-      controller.notifications
-          .where(
-            (n) =>
-                _isAppInboxNotification(n) &&
-                n.isRead == false &&
-                n.id != null &&
-                n.id!.isNotEmpty,
-          )
-          .map((n) => n.id!)
-          .toSet()
-          .toList();
-  if (ids.isEmpty) return;
-  await FirestoreServices.markInAppNotificationsAsRead(ids);
-}
-
 /// Red numeric badge (e.g. chat / notifications); hidden when [count] <= 0.
 class HeaderCountBadge extends StatelessWidget {
   final int count;
@@ -104,108 +77,247 @@ class HeaderCountBadge extends StatelessWidget {
 
 /// Shows the notifications panel as a dialog (used from mobile account dropdown).
 void _showNotificationsDialog(BuildContext context) {
-  final home = Get.find<HomeController>();
-  unawaited(_markVisibleAppNotificationsRead(home));
   showDialog(
     context: context,
-    builder: (context) => Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 400, maxHeight: 500),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                'header.notifications'.tr,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.teal,
-                  fontSize: 18,
-                ),
+    builder: (dialogContext) {
+      var filterIndex = 2; // 0=unread, 1=read, 2=all
+      return StatefulBuilder(
+        builder: (ctx, setState) {
+          return Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: 400,
+                maxHeight: 500,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      'header.notifications'.tr,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.teal,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: ToggleButtons(
+                      isSelected: [
+                        filterIndex == 0,
+                        filterIndex == 1,
+                        filterIndex == 2,
+                      ],
+                      onPressed: (i) => setState(() => filterIndex = i),
+                      borderRadius: const BorderRadius.all(Radius.circular(10)),
+                      constraints: const BoxConstraints(
+                        minHeight: 36,
+                        minWidth: 88,
+                      ),
+                      children: [
+                        Text(
+                          'notifications.filter.unread'.tr,
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        Text(
+                          'notifications.filter.read'.tr,
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        Text(
+                          'notifications.filter.all'.tr,
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Flexible(
+                    child: GetBuilder<HomeController>(
+                      builder: (controller) => Obx(
+                        () {
+                          final base = controller.notifications
+                              .where((n) => isAppInboxNotification(n))
+                              .toList();
+
+                          final filtered = base.where((n) {
+                            switch (filterIndex) {
+                              case 0:
+                                return isInAppNotificationUnread(n);
+                              case 1:
+                                return n.isRead == true;
+                              case 2:
+                              default:
+                                return true;
+                            }
+                          }).toList();
+
+                          return ListView.separated(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 12),
+                            shrinkWrap: true,
+                            itemCount: filtered.length,
+                            separatorBuilder: (_, __) =>
+                                const Divider(height: 10),
+                            itemBuilder: (context, index) {
+                              final n = filtered[index];
+                              final bgColors = [
+                                Colors.pink.shade100,
+                                Colors.green.shade100,
+                                Colors.purple.shade100,
+                                Colors.teal.shade100,
+                              ];
+                              final randomColor =
+                                  bgColors[index % bgColors.length];
+
+                              final isUnread = isInAppNotificationUnread(n);
+                              return ListTile(
+                                contentPadding: EdgeInsets.zero,
+                                leading: CircleAvatar(
+                                  radius: 24,
+                                  backgroundColor: randomColor,
+                                  child: Text(
+                                    n.title.toString().isNotEmpty
+                                        ? n.title.toString()[0]
+                                        : 'N',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                title: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      n.title ?? '',
+                                      textDirection: TextDirection.rtl,
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.primary,
+                                      ),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    Text(
+                                      n.body ?? '',
+                                      textDirection: TextDirection.rtl,
+                                      style: const TextStyle(fontSize: 13),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                                subtitle: Text(
+                                  n.createdAt != null
+                                      ? FunHelper.formatdateTime(n.createdAt!)
+                                          .toString()
+                                      : '',
+                                  textDirection: TextDirection.rtl,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (isUnread)
+                                      IconButton(
+                                        tooltip:
+                                            'notifications.action.mark_as_read'.tr,
+                                        icon: const Icon(
+                                          Icons.mark_email_read_outlined,
+                                          color: AppColors.primary,
+                                        ),
+                                        onPressed: () async {
+                                          final id = n.id;
+                                          if (id == null || id.isEmpty) return;
+                                          await FirestoreServices
+                                              .markInAppNotificationsAsRead(
+                                            [id],
+                                          );
+                                        },
+                                      ),
+                                    IconButton(
+                                      tooltip:
+                                          'notifications.action.delete'.tr,
+                                      icon: const Icon(
+                                        Icons.delete_outline,
+                                        color: Colors.redAccent,
+                                      ),
+                                      onPressed: () async {
+                                        final id = n.id;
+                                        if (id == null || id.isEmpty) return;
+
+                                        final ok = await showDialog<bool>(
+                                          context: context,
+                                          builder: (ctx) => AlertDialog(
+                                            title: Text(
+                                              'notifications.confirm_delete_title'
+                                                  .tr,
+                                            ),
+                                            content: Text(
+                                              'notifications.confirm_delete_message'
+                                                  .tr,
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () =>
+                                                    Navigator.of(ctx).pop(false),
+                                                child: Text('cancel'.tr),
+                                              ),
+                                              ElevatedButton(
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: Colors.red,
+                                                ),
+                                                onPressed: () =>
+                                                    Navigator.of(ctx).pop(true),
+                                                child: Text(
+                                                  'notifications.action.delete'.tr,
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+
+                                        if (ok == true) {
+                                          await FirestoreServices
+                                              .deleteInAppNotifications([id]);
+                                        }
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            Flexible(
-              child: GetBuilder<HomeController>(
-                builder: (controller) => Obx(
-                  () {
-                    final filtered = controller.notifications
-                        .where((n) =>
-                            n.data?['type'] != 'message' &&
-                            n.data?['type'] != 'chat')
-                        .toList();
-                    return ListView.separated(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      shrinkWrap: true,
-                      itemCount: filtered.length,
-                      separatorBuilder: (_, __) => const Divider(height: 10),
-                      itemBuilder: (context, index) {
-                        final n = filtered[index];
-                        final bgColors = [
-                          Colors.pink.shade100,
-                          Colors.green.shade100,
-                          Colors.purple.shade100,
-                          Colors.teal.shade100,
-                        ];
-                        final randomColor = bgColors[
-                            filtered.indexOf(n) % bgColors.length];
-                      return ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        leading: CircleAvatar(
-                          radius: 24,
-                          backgroundColor: randomColor,
-                          child: Text(
-                            n.title.toString()[0],
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        title: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              n.title ?? '',
-                              textDirection: TextDirection.rtl,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            Text(
-                              n.body ?? '',
-                              textDirection: TextDirection.rtl,
-                              style: const TextStyle(fontSize: 13),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                        subtitle: Text(
-                          FunHelper.formatdateTime(n.createdAt!).toString(),
-                          textDirection: TextDirection.rtl,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                      );
-                    },
-                    );
-                  },
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),
+          );
+        },
+      );
+    },
   );
+}
+
+/// نفس [_showNotificationsDialog]؛ يُستدعى من شريط الموبايل في [ResponsiveScaffold] (admin/supervisor).
+void showInAppNotificationsDialog(BuildContext context) {
+  _showNotificationsDialog(context);
 }
 
 /// Opens chat screen (used from mobile account dropdown).
@@ -324,8 +436,8 @@ class MobileAppBarProfileWidget extends StatelessWidget {
                       ),
                       Obx(
                         () {
-                          final n = _unreadAppNotificationCount(
-                            Get.find<HomeController>(),
+                          final n = unreadInAppInboxCount(
+                            Get.find<HomeController>().notifications,
                           );
                           if (n <= 0) return const SizedBox.shrink();
                           return Padding(
@@ -417,7 +529,7 @@ class MobileAppBarProfileWidget extends StatelessWidget {
               } else {
                 Get.offAllNamed('/auth/login');
               }
-              FunHelper.removelogindata();
+              FunHelper.removeLoginData();
             } else if (value == 1) {
               _showNotificationsDialog(context);
             } else if (value == 2) {
@@ -612,7 +724,7 @@ class HeaderWidget extends StatelessWidget {
                 } else {
                   Get.offAllNamed('/auth/login');
                 }
-                FunHelper.removelogindata();
+                FunHelper.removeLoginData();
               } else if (value == 1) {
                 _showNotificationsDialog(context);
               } else if (value == 2) {
@@ -693,7 +805,7 @@ class NotificationDropdown extends StatelessWidget {
             IconButton(
               icon: const Icon(Icons.notifications_outlined),
               onPressed: () {
-                unawaited(_markVisibleAppNotificationsRead(controller));
+                int filterIndex = 2; // 0=unread, 1=read, 2=all
                 final RenderBox button =
                     context.findRenderObject() as RenderBox;
                 final RenderBox overlay =
@@ -725,77 +837,226 @@ class NotificationDropdown extends StatelessWidget {
                       child: Container(
                         width: 700,
                         constraints: const BoxConstraints(maxHeight: 800),
-                        child: Obx(
-                          () {
-                            final filtered = controller.notifications
-                                .where((n) =>
-                                    n.data?['type'] != 'message' &&
-                                    n.data?['type'] != 'chat')
-                                .toList();
-                            return ListView.separated(
-                              padding: const EdgeInsets.all(12),
-                              itemCount: filtered.length,
-                              separatorBuilder:
-                                  (_, __) => const Divider(height: 10),
-                              itemBuilder: (context, index) {
-                                final n = filtered[index];
-                                final bgColors = [
-                                  Colors.pink.shade100,
-                                  Colors.green.shade100,
-                                  Colors.purple.shade100,
-                                  Colors.teal.shade100,
-                                ];
-                                final randomColor =
-                                    bgColors[filtered.indexOf(n) % bgColors.length];
-                              return ListTile(
-                                contentPadding: EdgeInsets.zero,
-                                leading: CircleAvatar(
-                                  radius: 24,
-                                  backgroundColor: randomColor,
-                                  child: Text(
-                                    n.title.toString()[0],
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
+                        child: StatefulBuilder(
+                          builder: (context, setState) {
+                            return Column(
+                              children: [
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.fromLTRB(12, 12, 12, 6),
+                                  child: ToggleButtons(
+                                    isSelected: [
+                                      filterIndex == 0,
+                                      filterIndex == 1,
+                                      filterIndex == 2,
+                                    ],
+                                    onPressed: (i) =>
+                                        setState(() => filterIndex = i),
+                                    borderRadius: const BorderRadius.all(
+                                      Radius.circular(10),
                                     ),
-                                  ),
-                                ),
-                                title: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      n.title ?? '',
-                                      textDirection: TextDirection.rtl,
-                                      style: const TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.primary,
+                                    constraints: const BoxConstraints(
+                                      minHeight: 36,
+                                      minWidth: 100,
+                                    ),
+                                    children: [
+                                      Text(
+                                        'notifications.filter.unread'.tr,
+                                        style: const TextStyle(fontSize: 12),
                                       ),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    Text(
-                                      n.body ?? '',
-                                      textDirection: TextDirection.rtl,
-                                      style: const TextStyle(fontSize: 13),
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-
-                                subtitle: Text(
-                                  FunHelper.formatdateTime(
-                                    n.createdAt!,
-                                  ).toString(),
-                                  textDirection: TextDirection.rtl,
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.grey.shade600,
+                                      Text(
+                                        'notifications.filter.read'.tr,
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                      Text(
+                                        'notifications.filter.all'.tr,
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              );
-                            },
+                                Expanded(
+                                  child: Obx(
+                                    () {
+                                      final base = controller.notifications
+                                          .where((n) =>
+                                              isAppInboxNotification(n))
+                                          .toList();
+
+                                      final filtered = base.where((n) {
+                                        switch (filterIndex) {
+                                          case 0:
+                                            return isInAppNotificationUnread(n);
+                                          case 1:
+                                            return n.isRead == true;
+                                          case 2:
+                                          default:
+                                            return true;
+                                        }
+                                      }).toList();
+
+                                      return ListView.separated(
+                                        padding: const EdgeInsets.all(12),
+                                        itemCount: filtered.length,
+                                        separatorBuilder:
+                                            (_, __) =>
+                                                const Divider(height: 10),
+                                        itemBuilder: (context, index) {
+                                          final n = filtered[index];
+                                          final bgColors = [
+                                            Colors.pink.shade100,
+                                            Colors.green.shade100,
+                                            Colors.purple.shade100,
+                                            Colors.teal.shade100,
+                                          ];
+                                          final randomColor =
+                                              bgColors[index % bgColors.length];
+
+                                          final isUnread =
+                                              isInAppNotificationUnread(n);
+                                          return ListTile(
+                                            contentPadding: EdgeInsets.zero,
+                                            leading: CircleAvatar(
+                                              radius: 24,
+                                              backgroundColor: randomColor,
+                                              child: Text(
+                                                n.title.toString().isNotEmpty
+                                                    ? n.title.toString()[0]
+                                                    : 'N',
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                            title: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  n.title ?? '',
+                                                  textDirection: TextDirection.rtl,
+                                                  style: const TextStyle(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: AppColors.primary,
+                                                  ),
+                                                  maxLines: 2,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                                Text(
+                                                  n.body ?? '',
+                                                  textDirection: TextDirection.rtl,
+                                                  style: const TextStyle(
+                                                    fontSize: 13,
+                                                  ),
+                                                  maxLines: 2,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ],
+                                            ),
+                                            subtitle: Text(
+                                              n.createdAt != null
+                                                  ? FunHelper
+                                                      .formatdateTime(
+                                                        n.createdAt!,
+                                                      )
+                                                      .toString()
+                                                  : '',
+                                              textDirection: TextDirection.rtl,
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: Colors.grey.shade600,
+                                              ),
+                                            ),
+                                            trailing: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                if (isUnread)
+                                                  IconButton(
+                                                    tooltip: 'notifications.action.mark_as_read'.tr,
+                                                    icon: const Icon(
+                                                      Icons
+                                                          .mark_email_read_outlined,
+                                                      color: AppColors.primary,
+                                                    ),
+                                                    onPressed: () async {
+                                                      final id = n.id;
+                                                      if (id == null ||
+                                                          id.isEmpty) return;
+                                                      await FirestoreServices
+                                                          .markInAppNotificationsAsRead(
+                                                        [id],
+                                                      );
+                                                    },
+                                                  ),
+                                                IconButton(
+                                                  tooltip:
+                                                      'notifications.action.delete'.tr,
+                                                  icon: const Icon(
+                                                    Icons.delete_outline,
+                                                    color: Colors.redAccent,
+                                                  ),
+                                                  onPressed: () async {
+                                                    final id = n.id;
+                                                    if (id == null ||
+                                                        id.isEmpty) return;
+
+                                                    final ok = await showDialog<bool>(
+                                                      context: context,
+                                                      builder: (ctx) =>
+                                                          AlertDialog(
+                                                        title: Text(
+                                                          'notifications.confirm_delete_title'.tr,
+                                                        ),
+                                                        content: Text(
+                                                          'notifications.confirm_delete_message'.tr,
+                                                        ),
+                                                        actions: [
+                                                          TextButton(
+                                                            onPressed: () =>
+                                                                Navigator.of(ctx)
+                                                                    .pop(false),
+                                                            child: Text('cancel'.tr),
+                                                          ),
+                                                          ElevatedButton(
+                                                            style: ElevatedButton.styleFrom(
+                                                              backgroundColor:
+                                                                  Colors.red,
+                                                            ),
+                                                            onPressed: () =>
+                                                                Navigator.of(ctx)
+                                                                    .pop(true),
+                                                            child: Text(
+                                                              'notifications.action.delete'.tr,
+                                                              style: const TextStyle(
+                                                                color: Colors.white,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    );
+
+                                                    if (ok == true) {
+                                                      await FirestoreServices
+                                                          .deleteInAppNotifications(
+                                                        [id],
+                                                      );
+                                                    }
+                                                  },
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        },
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ],
                             );
                           },
                         ),
@@ -822,7 +1083,9 @@ class NotificationDropdown extends StatelessWidget {
               right: 6,
               top: 6,
               child: Obx(
-                () => HeaderCountBadge(count: _unreadAppNotificationCount(controller)),
+                () => HeaderCountBadge(
+                      count: unreadInAppInboxCount(controller.notifications),
+                    ),
               ),
             ),
           ],

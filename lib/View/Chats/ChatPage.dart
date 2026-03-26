@@ -457,6 +457,7 @@ class _ChatScreenState extends State<ChatScreen> {
         userId: otherId,
         title: '$_currentUserName',
         body: text,
+        sendEmail: false,
         // token: token,
       );
     } else if (isGroup) {
@@ -473,6 +474,7 @@ class _ChatScreenState extends State<ChatScreen> {
               'group': '${_selectedChat!['title']}',
             }),
             body: text,
+            sendEmail: false,
             // token: token,
           );
         }

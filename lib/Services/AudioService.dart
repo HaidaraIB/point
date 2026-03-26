@@ -20,8 +20,8 @@ class AudioService {
 
   /// Keys كما في [pubspec] (مسار كامل تحت `assets/`).
   static String get _bundleAssetKey => kIsWeb
-      ? 'assets/sounds/web_notification.wav'
-      : 'assets/sounds/new_message.mp3';
+      ? 'assets/sounds/notification_web.wav'
+      : 'assets/sounds/notification_message.mp3';
   static const Duration _minPlayInterval = Duration(seconds: 1);
 
   final AudioPlayer _player = AudioPlayer();

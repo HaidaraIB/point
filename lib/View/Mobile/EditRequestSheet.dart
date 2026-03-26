@@ -69,7 +69,7 @@ class EditRequestSheet extends StatelessWidget {
                       }
                     },
                     child: SvgPicture.asset(
-                      'assets/svgs/Component 139.svg',
+                      'assets/svgs/edit_request_attachment_zone.svg',
                       width: Get.width,
                     ),
                   ),
@@ -135,7 +135,7 @@ class EditRequestSheet extends StatelessWidget {
                                     Get.back();
                                     controller.notesController.clear();
 
-                                    FunHelper.showsnackbar(
+                                    FunHelper.showSnackbar(
                                       'success'.tr,
                                       'requests.edit_sent'.tr,
                                       snackPosition: SnackPosition.TOP,

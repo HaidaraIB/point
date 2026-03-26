@@ -94,7 +94,7 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
       if (v != null) {
         log("✅ تم تسجيل دخول العميل: ${v.email}");
         if (v.status == 'active') {
-          await FunHelper.savelogindata(
+          await FunHelper.saveLoginData(
             emailController.text.trim(),
           );
           controller.listenToClient(v.id!);
@@ -106,7 +106,7 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
           await fcm.subscribeToTopic('clients');
           await fcm.subscribeToTopic('all');
         } else {
-          FunHelper.showsnackbar(
+          FunHelper.showSnackbar(
             'error'.tr,
             'account_not_active_contact_support'.tr,
             snackPosition: SnackPosition.TOP,
@@ -115,7 +115,7 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
           );
         }
       } else {
-        FunHelper.showsnackbar(
+        FunHelper.showSnackbar(
           'error'.tr,
           'invalid_email_or_password'.tr,
           snackPosition: SnackPosition.TOP,
@@ -329,9 +329,9 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
             load: controller.isLoading.value,
             icon: false,
             height: 40,
-            bordersize: 10,
+            borderSize: 10,
             margin: EdgeInsets.all(0),
-            lineargrad: LinearGradient(
+            linearGradient: LinearGradient(
               colors: [
                 Color(0xff19133F),
                 Color(0xff19133F),
@@ -347,7 +347,7 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
               end: Alignment.bottomRight,
             ),
             title: 'login'.tr,
-            onpress: () => _submitClientLogin(controller),
+            onPressed: () => _submitClientLogin(controller),
           ),
         ),
         SizedBox(height: 10),

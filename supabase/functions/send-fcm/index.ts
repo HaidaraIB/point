@@ -6,7 +6,9 @@ type ServiceAccountJson = {
   private_key: string;
 };
 
-const FCM_SCOPE = "https://www.googleapis.com/auth/firebase.messaging";
+// نستخدم scope واسع يغطي كل من Firestore REST و FCM v1.
+// هذا يمنع انتقال المشكلة من `401 Invalid JWT` إلى `403` بسبب صلاحيات ناقصة.
+const FCM_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const FIREBASE_ID_TOKEN_CERTS_URL =
   "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com";
@@ -18,22 +20,20 @@ Deno.serve(async (req: Request) => {
   try {
     // Web-safe auth: require a Firebase Auth ID token (no shared secret in client builds).
     const sa = getServiceAccount();
-    const authz = req.headers.get("authorization") ?? "";
-    const idToken = authz.toLowerCase().startsWith("bearer ") ? authz.slice(7).trim() : "";
+    // Firebase token passed by the Flutter app (we intentionally keep `authorization`
+    // free for Supabase client JWT, if present).
+    const firebaseAuthz = req.headers.get("x-firebase-id-token") ?? "";
+    const idToken = firebaseAuthz.toLowerCase().startsWith("bearer ")
+      ? firebaseAuthz.slice(7).trim()
+      : firebaseAuthz.trim();
     if (!idToken) return json({ errorCode: "ERR_MISSING_TOKEN" }, 401);
     const caller = await verifyFirebaseIdToken(idToken, sa.project_id);
 
-    // Authorization: only allow admin/supervisor (matched by uid doc id OR by email field).
+    // We already verified the Firebase ID token signature and claims.
+    // Do not additionally restrict by Firestore role, because notifications are
+    // triggered by multiple app roles (employees/clients/etc).
     const accessToken = await getAccessToken(sa);
-    const role = await getEmployeeRole({
-      accessToken,
-      projectId: sa.project_id,
-      uid: caller.uid,
-      email: caller.email,
-    });
-    if (role !== "admin" && role !== "supervisor") {
-      return json({ errorCode: "ERR_FORBIDDEN" }, 403);
-    }
+    void caller; // keep variable referenced (useful for future audits/logging)
 
     const { token, topic, title, body, data } = await req.json().catch(() => ({})) as {
       token?: string;
@@ -144,7 +144,7 @@ function base64url(input: string | Uint8Array): string {
 function corsHeaders() {
   return {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "authorization, content-type",
+    "Access-Control-Allow-Headers": "authorization, x-firebase-id-token, content-type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
   };
 }
@@ -207,14 +207,83 @@ async function importX509(pem: string): Promise<CryptoKey> {
     .replace(/-----BEGIN CERTIFICATE-----/g, "")
     .replace(/-----END CERTIFICATE-----/g, "")
     .replace(/\s+/g, "");
-  const der = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)).buffer;
+  // `crypto.subtle.importKey("spki", ...)` يحتاج DER الخاص بـ SubjectPublicKeyInfo،
+  // بينما PEM هنا يحتوي على X509 Certificate كامل (Certificate SEQUENCE).
+  // لذلك نستخرج subjectPublicKeyInfo من شهادة X509 ثم نستوردها كـ SPKI.
+  const certDer = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+  const spkiDer = extractSubjectPublicKeyInfoDer(certDer);
   return await crypto.subtle.importKey(
     "spki",
-    der,
+    spkiDer.buffer,
     { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
     false,
     ["verify"],
   );
+}
+
+function extractSubjectPublicKeyInfoDer(certDer: Uint8Array): Uint8Array {
+  // Minimal DER reader that assumes standard X509 certificate structure:
+  // Certificate ::= SEQUENCE { tbsCertificate SEQUENCE, signatureAlgorithm, signatureValue }
+  // tbsCertificate ends with: ... subject SEQUENCE, subjectPublicKeyInfo SEQUENCE ...
+  const readLength = (der: Uint8Array, offset: number) => {
+    const first = der[offset];
+    if (first < 0x80) return { len: first, lenBytes: 1 };
+    const numBytes = first & 0x7f;
+    let len = 0;
+    for (let i = 0; i < numBytes; i++) {
+      len = (len << 8) | der[offset + 1 + i];
+    }
+    return { len, lenBytes: 1 + numBytes };
+  };
+
+  const readElement = (der: Uint8Array, offset: number) => {
+    const tag = der[offset];
+    const { len, lenBytes } = readLength(der, offset + 1);
+    const headerBytes = 1 + lenBytes;
+    const start = offset;
+    const end = offset + headerBytes + len;
+    return { tag, start, end };
+  };
+
+  // Outer Certificate SEQUENCE
+  const certSeq = readElement(certDer, 0);
+  if (certSeq.tag !== 0x30) {
+    throw new Error("Invalid certificate DER (expected SEQUENCE)");
+  }
+
+  // Outer SEQUENCE content starts after its header bytes
+  const { lenBytes: outerLenBytes } = readLength(certDer, 1);
+  const outerContentStart = 1 + outerLenBytes;
+
+  // First element inside outer SEQUENCE is tbsCertificate SEQUENCE
+  const tbs = readElement(certDer, outerContentStart);
+  if (tbs.tag !== 0x30) throw new Error("Invalid certificate DER (expected tbsCertificate SEQUENCE)");
+
+  // tbsCertificate SEQUENCE content starts after its header
+  const { len: tbsLen, lenBytes: tbsLenBytes } = readLength(certDer, tbs.start + 1);
+  const tbsHeaderBytes = 1 + tbsLenBytes;
+  let tbsOff = tbs.start + tbsHeaderBytes;
+
+  // Optional version: [0] EXPLICIT tag 0xA0
+  const firstEl = readElement(certDer, tbsOff);
+  if (firstEl.tag === 0xa0) {
+    tbsOff = firstEl.end;
+  }
+
+  // Skip: serialNumber(INTEGER=0x02), signature(SEQUENCE=0x30), issuer(SEQUENCE=0x30),
+  // validity(SEQUENCE=0x30), subject(SEQUENCE=0x30)
+  tbsOff = readElement(certDer, tbsOff).end; // serialNumber
+  tbsOff = readElement(certDer, tbsOff).end; // signature
+  tbsOff = readElement(certDer, tbsOff).end; // issuer
+  tbsOff = readElement(certDer, tbsOff).end; // validity
+  tbsOff = readElement(certDer, tbsOff).end; // subject
+
+  // Next element must be subjectPublicKeyInfo: SEQUENCE (0x30)
+  const spki = readElement(certDer, tbsOff);
+  if (spki.tag !== 0x30) throw new Error("Invalid certificate DER (expected subjectPublicKeyInfo SEQUENCE)");
+
+  // Copy bytes to a new Uint8Array so `buffer` starts at offset 0
+  return certDer.slice(spki.start, spki.end);
 }
 
 async function getEmployeeRole(args: {

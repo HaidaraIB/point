@@ -18,7 +18,7 @@ class TaskFormDialogHeader extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
-          SvgPicture.asset('assets/svgs/Check_circle.svg'),
+          SvgPicture.asset('assets/svgs/icon_check_circle.svg'),
           const SizedBox(width: 10),
           Expanded(
             child: Column(

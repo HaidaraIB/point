@@ -520,7 +520,7 @@ class _ContentDialogDetailsState extends State<ContentDialogDetails> {
       // Fall through to snackbar.
     }
 
-    FunHelper.showsnackbar(
+    FunHelper.showSnackbar(
       AppLocaleKeys.errorTitle.tr,
       AppLocaleKeys.contentDialogOpenLinkFailed.tr,
       snackPosition: SnackPosition.TOP,

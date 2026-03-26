@@ -1,6 +1,7 @@
 import 'dart:developer';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:point/Utils/EdgeFunctionRateLimiter.dart';
 
 /// إرسال إشعارات البريد عبر Supabase Edge Function (يتجنب CORS على الويب).
 /// المفتاح يُخزّن في Supabase فقط: Dashboard → Edge Functions → Secrets → RESEND_API_KEY
@@ -27,15 +28,17 @@ class EmailNotificationService {
 
     try {
       final client = Supabase.instance.client;
-      final res = await client.functions.invoke(
-        _functionName,
-        body: {
-          'toEmail': toEmail.trim(),
-          'subject': subject,
-          'body': body,
-          'isHtml': isHtml,
-        },
-      );
+      final res = await EdgeFunctionRateLimiter.instance.run(() {
+        return client.functions.invoke(
+          _functionName,
+          body: {
+            'toEmail': toEmail.trim(),
+            'subject': subject,
+            'body': body,
+            'isHtml': isHtml,
+          },
+        );
+      });
 
       if (res.status == 200 && res.data != null) {
         final data = res.data as Map<String, dynamic>?;
@@ -44,10 +47,12 @@ class EmailNotificationService {
           return;
         }
       }
-      log("❌ Email error ${res.status}: ${res.data}");
+      log(
+        "❌ Email edge invoke failed for $toEmail. status=${res.status}, data=${res.data}",
+      );
     } catch (e, st) {
-      log("❌ EmailNotificationService error: $e");
-      log("$st");
+      log("❌ EmailNotificationService error for $toEmail: $e");
+      log("StackTrace: $st");
     }
   }
 

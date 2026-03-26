@@ -71,7 +71,7 @@ class RefuseRequestSheet extends StatelessWidget {
                               .then((v) {
                                 Get.back();
                                 controller.notesController.clear();
-                                FunHelper.showsnackbar(
+                                FunHelper.showSnackbar(
                                   'success'.tr,
                                   'requests.reject_sent'.tr,
                                   snackPosition: SnackPosition.TOP,

@@ -9,6 +9,7 @@ import 'package:point/View/Auth/EnterCode.dart';
 import 'package:point/View/Auth/ForgetPassword.dart';
 import 'package:point/View/Auth/Login.dart';
 import 'package:point/View/Auth/ResetPassword.dart';
+import 'package:point/View/Auth/SessionSetupScreen.dart';
 import 'package:point/View/Clients/ClientsTable.dart';
 import 'package:point/View/Contents/ContentsTable.dart';
 import 'package:point/View/EmployeeDashboard/EmployeeDashBord.dart';
@@ -47,6 +48,10 @@ class AppRouting {
       page: () {
         return ClientHome();
       },
+    ),
+    GetPage(
+      name: '/sessionSetup',
+      page: () => const SessionSetupScreen(),
     ),
 
     GetPage(

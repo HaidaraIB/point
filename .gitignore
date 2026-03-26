@@ -45,6 +45,7 @@ app.*.map.json
 /android/app/release
 
 # Secrets - never commit
+scripts/build-release-apk.local.ps1
 .env
 .env.old
 .env.new

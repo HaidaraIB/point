@@ -143,10 +143,10 @@ Widget _buildDesktopLayout() {
                         load: Get.find<HomeController>().isLoading.value,
                         icon: false,
                         height: 40,
-                        bordersize: 10,
+                        borderSize: 10,
                         margin: EdgeInsets.all(0),
                     // lineargrad: ,
-                    lineargrad: LinearGradient(
+                    linearGradient: LinearGradient(
                       colors: [
                         Color(0xff19133F),
                         Color(0xff19133F),
@@ -165,7 +165,7 @@ Widget _buildDesktopLayout() {
                       end: Alignment.bottomRight,
                     ),
                         title: 'createaccount'.tr,
-                        onpress: () async {
+                        onPressed: () async {
                           if (_key.currentState!.validate()) {
                             await Get.find<HomeController>()
                                 .addClient(
@@ -183,7 +183,7 @@ Widget _buildDesktopLayout() {
                                 )
                                 .then((v) {
                                   if (v == true) {
-                                    FunHelper.showsnackbar(
+                                    FunHelper.showSnackbar(
                                       'success'.tr,
                                       'accountcreatedsuccessfully'.tr,
                                       snackPosition: SnackPosition.TOP,

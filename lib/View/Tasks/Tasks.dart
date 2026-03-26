@@ -71,9 +71,9 @@ class Tasks extends StatelessWidget {
                                   MainButton(
                                     width: 178,
                                     height: 45,
-                                    bordersize: 35,
-                                    fontcolor: Colors.white,
-                                    backgroundcolor: AppColors.primary,
+                                    borderSize: 35,
+                                    fontColor: Colors.white,
+                                    backgroundColor: AppColors.primary,
                                     widget: Row(
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
@@ -92,7 +92,7 @@ class Tasks extends StatelessWidget {
                                         ),
                                       ],
                                     ),
-                                    onpress: () {
+                                    onPressed: () {
                                       controller.uploadedFilesPaths.clear();
 
                                       switch (int.parse(
@@ -264,7 +264,7 @@ class Tasks extends StatelessWidget {
                                             controller.filterTasks();
                                           },
                                           child: SvgPicture.asset(
-                                            'assets/svgs/Menu.svg',
+                                            'assets/svgs/icon_menu.svg',
                                             height: 42,
                                           ),
                                         ),

@@ -70,7 +70,7 @@ class _ResetPasswordState extends State<ResetPassword> {
   Future<void> _resetPassword() async {
     if (!_key.currentState!.validate()) return;
     if (_newPassController.text.trim() != _confirmPassController.text.trim()) {
-      FunHelper.showsnackbar('error'.tr, 'passwordmustmatch'.tr);
+      FunHelper.showSnackbar('error'.tr, 'passwordmustmatch'.tr);
       return;
     }
     setState(() => _isLoading = true);
@@ -81,7 +81,7 @@ class _ResetPasswordState extends State<ResetPassword> {
       );
       final isClientFlow = Get.isRegistered<ClientController>() &&
           Get.find<ClientController>().currentClient.value != null;
-      FunHelper.showsnackbar(
+      FunHelper.showSnackbar(
         'success'.tr,
         'auth.password_changed_success'.tr,
         backgroundColor: Colors.green,
@@ -96,12 +96,12 @@ class _ResetPasswordState extends State<ResetPassword> {
         Get.find<ClientController>().currentClient.value = null;
       }
       await FirestoreServices().signOut();
-      await FunHelper.removelogindata();
+      await FunHelper.removeLoginData();
       Get.offAllNamed(
         isClientFlow ? '/auth/LoginUserAccount' : '/auth/login',
       );
     } on FirebaseAuthException catch (e) {
-      FunHelper.showsnackbar(
+      FunHelper.showSnackbar(
         'error'.tr,
         e.message ?? 'auth.reset_password_failed'.tr,
       );
@@ -276,9 +276,9 @@ Widget _buildDesktopLayout(
                 MainButton(
                   icon: false,
                   height: 40,
-                  bordersize: 10,
+                  borderSize: 10,
                   margin: EdgeInsets.all(0),
-                  lineargrad: LinearGradient(
+                  linearGradient: LinearGradient(
                     colors: [
                       Color(0xff19133F),
                       Color(0xff19133F),
@@ -295,7 +295,7 @@ Widget _buildDesktopLayout(
                   ),
                   title: 'login'.tr,
                   load: isLoading,
-                  onpress: onSubmit,
+                  onPressed: onSubmit,
                 ),
                 buildRightsSection(),
               ],

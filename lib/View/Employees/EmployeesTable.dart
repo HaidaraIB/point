@@ -75,9 +75,9 @@ class _EmployeeTableState extends State<EmployeeTable> {
                             MainButton(
                               width: 180,
                               height: 45,
-                              bordersize: 35,
-                              fontcolor: Colors.white,
-                              backgroundcolor: AppColors.primary,
+                              borderSize: 35,
+                              fontColor: Colors.white,
+                              backgroundColor: AppColors.primary,
                               widget: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
@@ -95,7 +95,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                   ),
                                 ],
                               ),
-                              onpress: () {
+                              onPressed: () {
                                 showAddEmployeeDialog(context);
                               },
                             ),
@@ -118,18 +118,6 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                 ),
                                 dividerThickness: 0.5,
                                 columns: [
-                                  DataColumn(
-                                    headingRowAlignment:
-                                        MainAxisAlignment.center,
-
-                                    label: Text(
-                                      "ID",
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
-                                      ),
-                                    ),
-                                  ),
                                   DataColumn(
                                     headingRowAlignment:
                                         MainAxisAlignment.center,
@@ -182,18 +170,6 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                     controller.employees.map((emp) {
                                       return DataRow(
                                         cells: [
-                                          DataCell(
-                                            TableCellCenter(
-                                              child: Text(
-                                                emp.id.toString(),
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  color:
-                                                      AppColors.fontColorGrey,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
                                           DataCell(
                                             TableCellCenter(
                                               child: Text(
@@ -289,7 +265,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                                                 .value
                                                                 ?.role !=
                                                             'accountholder') {
-                                                      FunHelper.showsnackbar(
+                                                      FunHelper.showSnackbar(
                                                         'error'.tr,
                                                         'errors.no_permission'
                                                             .tr,
@@ -314,7 +290,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                                                 .value
                                                                 ?.role !=
                                                             'accountholder') {
-                                                      FunHelper.showsnackbar(
+                                                      FunHelper.showSnackbar(
                                                         'error'.tr,
                                                         'errors.no_permission'
                                                             .tr,
@@ -422,7 +398,7 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                             child: Row(
                               children: [
                                 SvgPicture.asset(
-                                  'assets/svgs/Check_circle.svg',
+                                  'assets/svgs/icon_check_circle.svg',
                                 ),
                                 SizedBox(width: 10),
                                 Column(

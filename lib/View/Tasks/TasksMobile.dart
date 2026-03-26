@@ -113,9 +113,9 @@ class TasksMobile extends StatelessWidget {
         MainButton(
           width: 178,
           height: 45,
-          bordersize: 35,
-          fontcolor: Colors.white,
-          backgroundcolor: AppColors.primary,
+          borderSize: 35,
+          fontColor: Colors.white,
+          backgroundColor: AppColors.primary,
           widget: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -130,7 +130,7 @@ class TasksMobile extends StatelessWidget {
               const Icon(Icons.add_circle_outline_rounded, color: Colors.white),
             ],
           ),
-          onpress: () {
+          onPressed: () {
             controller.uploadedFilesPaths.clear();
             switch (selectedIndex) {
               case 0:
@@ -309,7 +309,7 @@ class TasksMobile extends StatelessWidget {
                   controller.selectedExecutor.value = '';
                   controller.filterTasks();
                 },
-                child: SvgPicture.asset('assets/svgs/Menu.svg', height: 42),
+                child: SvgPicture.asset('assets/svgs/icon_menu.svg', height: 42),
               ),
               const SizedBox(width: 24),
               _buildDropdown<String>(

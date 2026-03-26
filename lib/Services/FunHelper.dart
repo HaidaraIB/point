@@ -223,9 +223,9 @@ class FunHelper {
     return trStored(platform.toString(), kind: StoredValueKind.platform);
   }
 
-  static errorsnackbar(error) {
+  static errorSnackbar(error) {
     final messageKey = mapErrorToKey(error);
-    return FunHelper.showsnackbar(
+    return FunHelper.showSnackbar(
       AppLocaleKeys.errorTitle.tr,
       messageKey.tr,
       backgroundColor: Colors.red,
@@ -234,8 +234,8 @@ class FunHelper {
     );
   }
 
-  static succssessnackbar(Succsses) {
-    return FunHelper.showsnackbar(
+  static successSnackbar(Succsses) {
+    return FunHelper.showSnackbar(
       AppLocaleKeys.successTitle.tr,
       Succsses?.toString().isNotEmpty == true
           ? Succsses.toString()
@@ -268,13 +268,13 @@ class FunHelper {
     return base64Encode(byteList);
   }
 
-  static animatedNavigate(Widget page, {Function()? thenMehode}) {
+  static animatedNavigate(Widget page, {Function()? thenMethod}) {
     Get.to(
       () => page,
       transition: Transition.fadeIn,
       duration: Duration(milliseconds: 500),
     )?.then((v) {
-      if (thenMehode != null) thenMehode();
+      if (thenMethod != null) thenMethod();
     });
   }
 
@@ -383,12 +383,12 @@ class FunHelper {
               MainButton(
                 icon: false,
                 title: cancelText ?? 'cancel'.tr,
-                fontcolor: Colors.white,
-                backgroundcolor: cancelColor,
+                fontColor: Colors.white,
+                backgroundColor: cancelColor,
                 width: 126,
-                bordersize: 5,
+                borderSize: 5,
                 height: 38,
-                onpress: () {
+                onPressed: () {
                   Get.back();
                 },
               ),
@@ -396,12 +396,12 @@ class FunHelper {
               MainButton(
                 icon: false,
                 title: resolvedConfirm,
-                fontcolor: Colors.white,
-                backgroundcolor: confirmColor ?? AppColors.primary,
+                fontColor: Colors.white,
+                backgroundColor: confirmColor ?? AppColors.primary,
                 width: 126,
-                bordersize: 5,
+                borderSize: 5,
                 height: 38,
-                onpress: () async {
+                onPressed: () async {
                   await Future.sync(onTap);
                   Get.back();
                 },
@@ -416,7 +416,7 @@ class FunHelper {
     return uri.pathSegments.isNotEmpty ? uri.pathSegments.last : '';
   }
 
-  String formatTimeAgo(DateTime dateTime) {
+  static String formatTimeAgo(DateTime dateTime) {
     final now = DateTime.now();
     final diff = now.difference(dateTime);
 
@@ -437,42 +437,52 @@ class FunHelper {
     }
   }
 
-  static showsnackbar(
+  static showSnackbar(
     String? title,
     String? subtitle, {
     snackPosition = SnackPosition.TOP,
     backgroundColor = Colors.red,
     colorText = Colors.white,
+    Duration autoHideAfter = const Duration(seconds: 4),
   }) {
-    ScaffoldMessenger.of(Get.context!).showMaterialBanner(
+    final context = Get.context;
+    if (context == null) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showMaterialBanner(
       MaterialBanner(
         backgroundColor: backgroundColor,
         content: Text(
           '$title: $subtitle',
-          style: const TextStyle(color: Colors.white),
+          style: TextStyle(color: colorText),
         ),
         actions: [
           TextButton(
             onPressed: () {
-              ScaffoldMessenger.of(Get.context!).hideCurrentMaterialBanner();
+              messenger.hideCurrentMaterialBanner();
             },
             child: Text(
               AppLocaleKeys.appClose.tr,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: colorText),
             ),
           ),
         ],
       ),
     );
+    if (autoHideAfter > Duration.zero) {
+      Future.delayed(autoHideAfter, () {
+        if (!messenger.mounted) return;
+        messenger.hideCurrentMaterialBanner();
+      });
+    }
   }
 
-  static savelogindata(email) async {
+  static saveLoginData(email) async {
     SharedPreferences pref = await SharedPreferences.getInstance();
     await pref.setBool('isLoggedIn', true);
     await pref.setString('email', email);
   }
 
-  static removelogindata() async {
+  static removeLoginData() async {
     SharedPreferences pref = await SharedPreferences.getInstance();
     await pref.remove('isLoggedIn');
     await pref.remove('email');

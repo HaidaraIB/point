@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Services/EmailNotificationService.dart';
+import 'package:point/Services/FcmServices.dart' as fcm;
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
@@ -13,6 +14,7 @@ import 'package:point/View/Clients/ClientsTable.dart';
 import 'package:point/View/Contents/ContentDialogDetails.dart';
 import 'package:point/View/Home/Shared/MonthlyClientContentChart.dart';
 import 'package:point/View/Home/Shared/ReviewContentShared.dart';
+import 'package:point/View/Shared/CustomCheckBox.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 import 'package:point/View/Shared/button.dart';
@@ -120,9 +122,9 @@ class Home extends StatelessWidget {
                 child: MainButton(
                   width: null,
                   height: _kMobileMinTouchHeight,
-                  bordersize: 35,
-                  fontcolor: Colors.white,
-                  backgroundcolor: AppColors.primary,
+                  borderSize: 35,
+                  fontColor: Colors.white,
+                  backgroundColor: AppColors.primary,
                   widget: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -140,43 +142,17 @@ class Home extends StatelessWidget {
                       ),
                     ],
                   ),
-                  onpress: () => showaddNotifications(context),
+                  onPressed: () => showAddNotifications(context),
                 ),
               ),
-              // SizedBox(width: 12),
-              // Expanded(
-              //   child: MainButton(
-              //     width: null,
-              //     height: _kMobileMinTouchHeight,
-              //     bordersize: 35,
-              //     fontcolor: Colors.white,
-              //     backgroundcolor: AppColors.primary,
-              //     widget: Row(
-              //       mainAxisAlignment: MainAxisAlignment.center,
-              //       children: [
-              //         Icon(Icons.email_outlined, color: Colors.white, size: 18),
-              //         SizedBox(width: 6),
-              //         Text(
-              //           'بريد تجريبي',
-              //           style: TextStyle(
-              //             color: Colors.white,
-              //             fontWeight: FontWeight.bold,
-              //             fontSize: 12,
-              //           ),
-              //         ),
-              //       ],
-              //     ),
-              //     onpress: () => showSendTestEmailDialog(context),
-              //   ),
-              // ),
             ] else ...[
               const Spacer(),
               MainButton(
                 width: 180,
                 height: 45,
-                bordersize: 35,
-                fontcolor: Colors.white,
-                backgroundcolor: AppColors.primary,
+                borderSize: 35,
+                fontColor: Colors.white,
+                backgroundColor: AppColors.primary,
                 widget: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -191,32 +167,8 @@ class Home extends StatelessWidget {
                     Icon(Icons.add_circle_outline_rounded, color: Colors.white),
                   ],
                 ),
-                onpress: () => showaddNotifications(context),
+                onPressed: () => showAddNotifications(context),
               ),
-              // SizedBox(width: 12),
-              // MainButton(
-              //   width: 160,
-              //   height: 45,
-              //   bordersize: 35,
-              //   fontcolor: Colors.white,
-              //   backgroundcolor: AppColors.primary,
-              //   widget: Row(
-              //     mainAxisAlignment: MainAxisAlignment.center,
-              //     children: [
-              //       Icon(Icons.email_outlined, color: Colors.white, size: 20),
-              //       SizedBox(width: 8),
-              //       Text(
-              //         'بريد تجريبي',
-              //         style: TextStyle(
-              //           color: Colors.white,
-              //           fontWeight: FontWeight.bold,
-              //           fontSize: 13,
-              //         ),
-              //       ),
-              //     ],
-              //   ),
-              //   onpress: () => showSendTestEmailDialog(context),
-              // ),
             ],
           ],
         ),
@@ -1022,11 +974,13 @@ Widget tasksUnderProcessing(BuildContext context) {
   );
 }
 
-void showaddNotifications(BuildContext context) {
+void showAddNotifications(BuildContext context) {
   final title = TextEditingController();
   final body = TextEditingController();
-  final datectr = TextEditingController();
-  DateTime? date;
+  DateTime date = DateTime.now();
+  final datectr = TextEditingController(
+    text: DateFormat('dd MM yyyy - hh:mm a').format(date.toLocal()),
+  );
   // final passwordController = TextEditingController(text: model?.password);
 
   final _key = GlobalKey<FormState>();
@@ -1098,34 +1052,86 @@ void showaddNotifications(BuildContext context) {
                         padding: const EdgeInsets.all(16),
                         child: Column(
                           children: [
-                            Obx(() {
-                              final selected =
-                                  controller.selectedTypeNotifications.value;
-                              return Row(
-                                children: [
-                                  _userTypeButton(
-                                    AppLocaleKeys.homeUserTypeClients.tr,
-                                    'clients',
-                                    selected,
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  AppLocaleKeys.homeNotificationTarget.tr,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
                                   ),
-                                  _userTypeButton(
-                                    AppLocaleKeys.homeUserTypeEmployees.tr,
-                                    'employees',
-                                    selected,
-                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Obx(() {
+                                  final selected =
+                                      controller
+                                          .selectedTypeNotifications
+                                          .value;
+                                  final isMobile = Responsive.isMobile(context);
+                                  if (isMobile) {
+                                    return Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        _userTypeButton(
+                                          AppLocaleKeys.homeUserTypeClients.tr,
+                                          'clients',
+                                          selected,
+                                        ),
+                                        const SizedBox(height: 10),
+                                        _userTypeButton(
+                                          AppLocaleKeys
+                                              .homeUserTypeEmployees
+                                              .tr,
+                                          'employees',
+                                          selected,
+                                        ),
+                                        const SizedBox(height: 10),
+                                        _userTypeButton(
+                                          AppLocaleKeys.homeUserTypeAll.tr,
+                                          'all',
+                                          selected,
+                                        ),
+                                      ],
+                                    );
+                                  }
 
-                                  _userTypeButton(
-                                    AppLocaleKeys.homeUserTypeAll.tr,
-                                    'all',
-                                    selected,
-                                  ),
-                                ],
-                              );
-                            }),
+                                  return Row(
+                                    children: [
+                                      Expanded(
+                                        child: _userTypeButton(
+                                          AppLocaleKeys.homeUserTypeClients.tr,
+                                          'clients',
+                                          selected,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: _userTypeButton(
+                                          AppLocaleKeys
+                                              .homeUserTypeEmployees
+                                              .tr,
+                                          'employees',
+                                          selected,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: _userTypeButton(
+                                          AppLocaleKeys.homeUserTypeAll.tr,
+                                          'all',
+                                          selected,
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                }),
+                              ],
+                            ),
 
                             InputText(
                               labelText: AppLocaleKeys.homeNotificationTitle.tr,
-                              hintText: AppLocaleKeys.homeNotificationTitleHint.tr,
+                              hintText:
+                                  AppLocaleKeys.homeNotificationTitleHint.tr,
                               height: 42,
                               fillColor: Colors.white,
                               controller: title,
@@ -1170,13 +1176,62 @@ void showaddNotifications(BuildContext context) {
                             ),
                             InputText(
                               labelText: AppLocaleKeys.homeNotificationBody.tr,
-                              hintText: AppLocaleKeys.homeNotificationBodyHint.tr,
-                              height: 100,
+                              hintText:
+                                  AppLocaleKeys.homeNotificationBodyHint.tr,
+                              height: 42,
                               fillColor: Colors.white,
                               controller: body,
                               expanded: true,
+                              validator: (v) {
+                                if (v == null || v.isEmpty) {
+                                  return ' ';
+                                }
+                                return null;
+                              },
                               borderRadius: 5,
                               borderColor: Colors.grey.shade300,
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  AppLocaleKeys
+                                      .homeNotificationSendChannelsTitle
+                                      .tr,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: DynamicCheckbox(
+                                        label:
+                                            AppLocaleKeys
+                                                .homeNotificationSendPush
+                                                .tr,
+                                        rxValue:
+                                            controller.sendPushNotifications,
+                                        activeColor: AppColors.primary,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: DynamicCheckbox(
+                                        label:
+                                            AppLocaleKeys
+                                                .homeNotificationSendEmail
+                                                .tr,
+                                        rxValue:
+                                            controller.sendEmailNotifications,
+                                        activeColor: AppColors.primary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -1185,169 +1240,536 @@ void showaddNotifications(BuildContext context) {
                       // Actions
                       Padding(
                         padding: const EdgeInsets.all(16),
-                        child: Responsive.isDesktop(Get.context!)
-                            ? Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                children: [
-                                  Obx(
-                                    () => SizedBox(
-                                      width: Get.width * 0.4 - 260,
-                                      child: ElevatedButton(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Color(0xFF5C5589),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              24,
+                        child:
+                            Responsive.isDesktop(Get.context!)
+                                ? Column(
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceEvenly,
+                                      children: [
+                                        Obx(
+                                          () => SizedBox(
+                                            width: Get.width * 0.4 - 260,
+                                            child: ElevatedButton(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: const Color(
+                                                  0xFF5C5589,
+                                                ),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(24),
+                                                ),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 48,
+                                                      vertical: 20,
+                                                    ),
+                                              ),
+                                              onPressed: () async {
+                                                if (_key.currentState!
+                                                        .validate() ==
+                                                    true) {
+                                                  final sendPush =
+                                                      controller
+                                                          .sendPushNotifications
+                                                          .value;
+                                                  final sendEmail =
+                                                      controller
+                                                          .sendEmailNotifications
+                                                          .value;
+                                                  if (!sendPush && !sendEmail) {
+                                                    FunHelper.showSnackbar(
+                                                      'error'.tr,
+                                                      AppLocaleKeys
+                                                          .homeNotificationSelectChannelsError
+                                                          .tr,
+                                                      snackPosition:
+                                                          SnackPosition.TOP,
+                                                      backgroundColor:
+                                                          Colors.red,
+                                                      colorText: Colors.white,
+                                                    );
+                                                    return;
+                                                  }
+                                                  controller.isLoading.value =
+                                                      true;
+                                                  await FirestoreServices.sendFcmTopic(
+                                                    scheduledAt:
+                                                        date.toString(),
+                                                    topic:
+                                                        controller
+                                                            .selectedTypeNotifications
+                                                            .value,
+                                                    title: title.text,
+                                                    body: body.text,
+                                                    sendPush: sendPush,
+                                                    sendEmail: sendEmail,
+                                                  ).then((value) {
+                                                    Navigator.pop(context);
+                                                    FunHelper.showSnackbar(
+                                                      'success'.tr,
+                                                      AppLocaleKeys
+                                                          .homeNotificationSent
+                                                          .tr,
+                                                      snackPosition:
+                                                          SnackPosition.TOP,
+                                                      backgroundColor:
+                                                          Colors.green,
+                                                      colorText: Colors.white,
+                                                    );
+                                                    controller.isLoading.value =
+                                                        false;
+                                                  });
+                                                }
+                                              },
+                                              child:
+                                                  controller.isLoading.value
+                                                      ? const Center(
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                              color:
+                                                                  Colors.white,
+                                                            ),
+                                                      )
+                                                      : Text(
+                                                        AppLocaleKeys
+                                                            .commonConfirm
+                                                            .tr,
+                                                        style: const TextStyle(
+                                                          color: Colors.white,
+                                                        ),
+                                                      ),
                                             ),
                                           ),
-                                          padding: EdgeInsets.symmetric(
-                                            horizontal: 48,
-                                            vertical: 20,
-                                          ),
                                         ),
-                                        onPressed: () async {
-                                          if (_key.currentState!.validate()) {
-                                            controller.isLoading.value = true;
-                                            await FirestoreServices.sendFcmTopic(
-                                              scheduledAt: date.toString(),
-                                              topic:
-                                                  controller
-                                                      .selectedTypeNotifications
-                                                      .value,
-                                              title: title.text,
-                                              body: body.text,
-                                            ).then((value) {
-                                              Navigator.pop(context);
-                                              FunHelper.showsnackbar(
-                                                'success'.tr,
-                                                AppLocaleKeys.homeNotificationSent
-                                                    .tr,
-                                                snackPosition:
-                                                    SnackPosition.TOP,
-                                                backgroundColor: Colors.green,
-                                                colorText: Colors.white,
-                                              );
-                                              controller.isLoading.value = false;
-                                            });
-                                          }
-                                        },
-                                        child:
-                                            controller.isLoading.value
-                                                ? Center(
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                        color: Colors.white,
-                                                      ),
-                                                )
-                                                : Text(
-                                                  AppLocaleKeys.commonConfirm.tr,
-                                                  style: TextStyle(
-                                                    color: Colors.white,
+                                        SizedBox(
+                                          width: 190,
+                                          child: OutlinedButton(
+                                            style: OutlinedButton.styleFrom(
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(24),
+                                              ),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 32,
+                                                    vertical: 20,
                                                   ),
-                                                ),
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    width: 190,
-                                    child: OutlinedButton(
-                                      style: OutlinedButton.styleFrom(
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            24,
-                                          ),
-                                        ),
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 32,
-                                          vertical: 20,
-                                        ),
-                                      ),
-                                      onPressed: () => Navigator.pop(context),
-                                      child: Text(AppLocaleKeys.commonCancel.tr),
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : Row(
-                                children: [
-                                  Expanded(
-                                    child: Obx(
-                                      () => ElevatedButton(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Color(0xFF5C5589),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              24,
+                                            ),
+                                            onPressed:
+                                                () => Navigator.pop(context),
+                                            child: Text(
+                                              AppLocaleKeys.commonCancel.tr,
                                             ),
                                           ),
-                                          padding: EdgeInsets.symmetric(
-                                            horizontal: 16,
-                                            vertical: 20,
-                                          ),
                                         ),
-                                        onPressed: () async {
-                                          if (_key.currentState!.validate()) {
-                                            controller.isLoading.value = true;
-                                            await FirestoreServices.sendFcmTopic(
-                                              scheduledAt: date.toString(),
-                                              topic:
-                                                  controller
-                                                      .selectedTypeNotifications
-                                                      .value,
-                                              title: title.text,
-                                              body: body.text,
-                                            ).then((value) {
-                                              Navigator.pop(context);
-                                              FunHelper.showsnackbar(
-                                                'success'.tr,
-                                                AppLocaleKeys.homeNotificationSent
-                                                    .tr,
-                                                snackPosition:
-                                                    SnackPosition.TOP,
-                                                backgroundColor: Colors.green,
-                                                colorText: Colors.white,
-                                              );
-                                              controller.isLoading.value = false;
-                                            });
-                                          }
-                                        },
-                                        child:
-                                            controller.isLoading.value
-                                                ? Center(
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                        color: Colors.white,
-                                                      ),
-                                                )
-                                                : Text(
-                                                  AppLocaleKeys.commonConfirm.tr,
-                                                  style: TextStyle(
-                                                    color: Colors.white,
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceEvenly,
+                                      children: [
+                                        SizedBox(
+                                          width: 260,
+                                          child: OutlinedButton(
+                                            style: OutlinedButton.styleFrom(
+                                              side: const BorderSide(
+                                                color: Colors.green,
+                                              ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(24),
+                                              ),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 16,
+                                                    vertical: 20,
                                                   ),
-                                                ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: OutlinedButton(
-                                      style: OutlinedButton.styleFrom(
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            24,
+                                            ),
+                                            onPressed: () async {
+                                              if (_key.currentState!
+                                                      .validate() ==
+                                                  true) {
+                                                await fcm.NotificationService()
+                                                    .showTestLocalNotification(
+                                                      title: title.text.trim(),
+                                                      body: body.text.trim(),
+                                                    );
+                                                if (context.mounted) {
+                                                  FunHelper.showSnackbar(
+                                                    'success'.tr,
+                                                    'تم عرض إشعار محلي (Local).',
+                                                    snackPosition:
+                                                        SnackPosition.TOP,
+                                                    backgroundColor:
+                                                        Colors.green,
+                                                    colorText: Colors.white,
+                                                  );
+                                                }
+                                              }
+                                            },
+                                            child: const Text(
+                                              'اختبار إشعار محلي (Local)',
+                                              textAlign: TextAlign.center,
+                                            ),
                                           ),
                                         ),
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 20,
+                                        SizedBox(
+                                          width: 260,
+                                          child: OutlinedButton(
+                                            style: OutlinedButton.styleFrom(
+                                              side: const BorderSide(
+                                                color: Colors.blueAccent,
+                                              ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(24),
+                                              ),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 16,
+                                                    vertical: 20,
+                                                  ),
+                                            ),
+                                            onPressed: () async {
+                                              if (_key.currentState!
+                                                      .validate() ==
+                                                  true) {
+                                                final sendPush =
+                                                    controller
+                                                        .sendPushNotifications
+                                                        .value;
+                                                final sendEmail =
+                                                    controller
+                                                        .sendEmailNotifications
+                                                        .value;
+                                                if (!sendPush && !sendEmail) {
+                                                  FunHelper.showSnackbar(
+                                                    'error'.tr,
+                                                    AppLocaleKeys
+                                                        .homeNotificationSelectChannelsError
+                                                        .tr,
+                                                    snackPosition:
+                                                        SnackPosition.TOP,
+                                                    backgroundColor: Colors.red,
+                                                    colorText: Colors.white,
+                                                  );
+                                                  return;
+                                                }
+                                                final empId =
+                                                    controller
+                                                        .currentemployee
+                                                        .value
+                                                        ?.id;
+                                                if (empId == null ||
+                                                    empId.isEmpty) {
+                                                  FunHelper.showSnackbar(
+                                                    'error'.tr,
+                                                    'لا يوجد موظف متاح لإرسال Push.',
+                                                    snackPosition:
+                                                        SnackPosition.TOP,
+                                                    backgroundColor: Colors.red,
+                                                    colorText: Colors.white,
+                                                  );
+                                                  return;
+                                                }
+
+                                                await FirestoreServices.sendFcm(
+                                                  userId: empId,
+                                                  title: title.text.trim(),
+                                                  body: body.text.trim(),
+                                                  sendPush: sendPush,
+                                                  sendEmail: sendEmail,
+                                                );
+
+                                                if (context.mounted) {
+                                                  FunHelper.showSnackbar(
+                                                    'success'.tr,
+                                                    'تم إرسال Push إلى هاتفي الآن.',
+                                                    snackPosition:
+                                                        SnackPosition.TOP,
+                                                    backgroundColor:
+                                                        Colors.green,
+                                                    colorText: Colors.white,
+                                                  );
+                                                }
+                                              }
+                                            },
+                                            child: const Text(
+                                              'إرسال Push إلى هاتفي الآن',
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                      onPressed: () => Navigator.pop(context),
-                                      child: Text(AppLocaleKeys.commonCancel.tr),
+                                      ],
                                     ),
-                                  ),
-                                ],
-                              ),
+                                  ],
+                                )
+                                : Column(
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Obx(
+                                            () => ElevatedButton(
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: const Color(
+                                                  0xFF5C5589,
+                                                ),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(24),
+                                                ),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 16,
+                                                      vertical: 20,
+                                                    ),
+                                              ),
+                                              onPressed: () async {
+                                                if (_key.currentState!
+                                                        .validate() ==
+                                                    true) {
+                                                  final sendPush =
+                                                      controller
+                                                          .sendPushNotifications
+                                                          .value;
+                                                  final sendEmail =
+                                                      controller
+                                                          .sendEmailNotifications
+                                                          .value;
+                                                  if (!sendPush && !sendEmail) {
+                                                    FunHelper.showSnackbar(
+                                                      'error'.tr,
+                                                      AppLocaleKeys
+                                                          .homeNotificationSelectChannelsError
+                                                          .tr,
+                                                      snackPosition:
+                                                          SnackPosition.TOP,
+                                                      backgroundColor:
+                                                          Colors.red,
+                                                      colorText: Colors.white,
+                                                    );
+                                                    return;
+                                                  }
+                                                  controller.isLoading.value =
+                                                      true;
+                                                  await FirestoreServices.sendFcmTopic(
+                                                    scheduledAt:
+                                                        date.toString(),
+                                                    topic:
+                                                        controller
+                                                            .selectedTypeNotifications
+                                                            .value,
+                                                    title: title.text,
+                                                    body: body.text,
+                                                    sendPush: sendPush,
+                                                    sendEmail: sendEmail,
+                                                  ).then((value) {
+                                                    Navigator.pop(context);
+                                                    FunHelper.showSnackbar(
+                                                      'success'.tr,
+                                                      AppLocaleKeys
+                                                          .homeNotificationSent
+                                                          .tr,
+                                                      snackPosition:
+                                                          SnackPosition.TOP,
+                                                      backgroundColor:
+                                                          Colors.green,
+                                                      colorText: Colors.white,
+                                                    );
+                                                    controller.isLoading.value =
+                                                        false;
+                                                  });
+                                                }
+                                              },
+                                              child:
+                                                  controller.isLoading.value
+                                                      ? const Center(
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                              color:
+                                                                  Colors.white,
+                                                            ),
+                                                      )
+                                                      : Text(
+                                                        AppLocaleKeys
+                                                            .commonConfirm
+                                                            .tr,
+                                                        style: const TextStyle(
+                                                          color: Colors.white,
+                                                        ),
+                                                      ),
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: OutlinedButton(
+                                            style: OutlinedButton.styleFrom(
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(24),
+                                              ),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 16,
+                                                    vertical: 20,
+                                                  ),
+                                            ),
+                                            onPressed:
+                                                () => Navigator.pop(context),
+                                            child: Text(
+                                              AppLocaleKeys.commonCancel.tr,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: OutlinedButton(
+                                            style: OutlinedButton.styleFrom(
+                                              side: const BorderSide(
+                                                color: Colors.green,
+                                              ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(24),
+                                              ),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 16,
+                                                    vertical: 18,
+                                                  ),
+                                            ),
+                                            onPressed: () async {
+                                              if (_key.currentState!
+                                                      .validate() ==
+                                                  true) {
+                                                await fcm.NotificationService()
+                                                    .showTestLocalNotification(
+                                                      title: title.text.trim(),
+                                                      body: body.text.trim(),
+                                                    );
+                                                if (context.mounted) {
+                                                  FunHelper.showSnackbar(
+                                                    'success'.tr,
+                                                    'تم عرض إشعار محلي (Local).',
+                                                    snackPosition:
+                                                        SnackPosition.TOP,
+                                                    backgroundColor:
+                                                        Colors.green,
+                                                    colorText: Colors.white,
+                                                  );
+                                                }
+                                              }
+                                            },
+                                            child: const Text(
+                                              'اختبار إشعار محلي (Local)',
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: OutlinedButton(
+                                            style: OutlinedButton.styleFrom(
+                                              side: const BorderSide(
+                                                color: Colors.blueAccent,
+                                              ),
+                                              shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(24),
+                                              ),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 16,
+                                                    vertical: 18,
+                                                  ),
+                                            ),
+                                            onPressed: () async {
+                                              if (_key.currentState!
+                                                      .validate() ==
+                                                  true) {
+                                                final sendPush =
+                                                    controller
+                                                        .sendPushNotifications
+                                                        .value;
+                                                final sendEmail =
+                                                    controller
+                                                        .sendEmailNotifications
+                                                        .value;
+                                                if (!sendPush && !sendEmail) {
+                                                  FunHelper.showSnackbar(
+                                                    'error'.tr,
+                                                    AppLocaleKeys
+                                                        .homeNotificationSelectChannelsError
+                                                        .tr,
+                                                    snackPosition:
+                                                        SnackPosition.TOP,
+                                                    backgroundColor: Colors.red,
+                                                    colorText: Colors.white,
+                                                  );
+                                                  return;
+                                                }
+                                                final empId =
+                                                    controller
+                                                        .currentemployee
+                                                        .value
+                                                        ?.id;
+                                                if (empId == null ||
+                                                    empId.isEmpty) {
+                                                  FunHelper.showSnackbar(
+                                                    'error'.tr,
+                                                    'لا يوجد موظف متاح لإرسال Push.',
+                                                    snackPosition:
+                                                        SnackPosition.TOP,
+                                                    backgroundColor: Colors.red,
+                                                    colorText: Colors.white,
+                                                  );
+                                                  return;
+                                                }
+
+                                                await FirestoreServices.sendFcm(
+                                                  userId: empId,
+                                                  title: title.text.trim(),
+                                                  body: body.text.trim(),
+                                                  sendPush: sendPush,
+                                                  sendEmail: sendEmail,
+                                                );
+
+                                                if (context.mounted) {
+                                                  FunHelper.showSnackbar(
+                                                    'success'.tr,
+                                                    'تم إرسال Push إلى هاتفي الآن.',
+                                                    snackPosition:
+                                                        SnackPosition.TOP,
+                                                    backgroundColor:
+                                                        Colors.green,
+                                                    colorText: Colors.white,
+                                                  );
+                                                }
+                                              }
+                                            },
+                                            child: const Text(
+                                              'إرسال Push إلى هاتفي الآن',
+                                              textAlign: TextAlign.center,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                       ),
                     ],
                   ),
@@ -1516,7 +1938,7 @@ void showSendTestEmailDialog(BuildContext context) {
                                         isLoading.value = false;
                                         if (context.mounted)
                                           Navigator.pop(context);
-                                        FunHelper.showsnackbar(
+                                        FunHelper.showSnackbar(
                                           'success'.tr,
                                           'home.test_email.success_snackbar'.tr,
                                           snackPosition: SnackPosition.TOP,
@@ -1574,44 +1996,43 @@ Widget _userTypeButton(String label, String type, String selected) {
   final controller = Get.find<HomeController>();
   final isSelected = selected == type;
 
-  return Expanded(
-    child: GestureDetector(
-      onTap: () => controller.changeType(type),
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 4),
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-        decoration: BoxDecoration(
-          border: Border.all(
-            color: Colors.grey.shade300,
-            // width: 1.5,
-          ),
-          borderRadius: BorderRadius.circular(12),
-          // color: isSelected ? Colors.deepPurple.withValues(alpha: 0.1) : Colors.white,
+  return GestureDetector(
+    onTap: () => controller.changeType(type),
+    child: Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: Colors.grey.shade300,
+          // width: 1.5,
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  // color: isSelected ? Colors.deepPurple : Colors.black,
-                  fontWeight: FontWeight.w500,
-                ),
+        borderRadius: BorderRadius.circular(12),
+        // color: isSelected ? Colors.deepPurple.withValues(alpha: 0.1) : Colors.white,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                // color: isSelected ? Colors.deepPurple : Colors.black,
+                fontWeight: FontWeight.w500,
               ),
             ),
-            const SizedBox(width: 6),
-            Icon(
-              isSelected
-                  ? Icons.radio_button_checked
-                  : Icons.radio_button_unchecked,
-              color: isSelected ? Colors.deepPurple : Colors.grey,
-              size: 22,
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(width: 6),
+          Icon(
+            isSelected
+                ? Icons.radio_button_checked
+                : Icons.radio_button_unchecked,
+            color: isSelected ? Colors.deepPurple : Colors.grey,
+            size: 22,
+          ),
+        ],
       ),
     ),
   );
