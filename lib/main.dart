@@ -124,7 +124,6 @@ class App extends StatelessWidget {
           ),
         ),
         initialRoute: AppRouting.initailPage,
-        // home: MyHomePage(),
         locale: lc.currentLocale.value,
         fallbackLocale: const Locale('ar'),
         translations: AppTranslations(),
