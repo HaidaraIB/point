@@ -112,17 +112,64 @@ class FirestoreServices {
   }
 
   static bool _isInvalidOrExpiredTokenError(Object error) {
-    if (error is! FcmSendException) return false;
-    final details = (error.details?.toString() ?? '').toLowerCase();
-    final fcmStatus = (error.fcmErrorStatus ?? '').toLowerCase();
-    final fcmMessage = (error.fcmErrorMessage ?? '').toLowerCase();
-    final combined = '$details $fcmStatus $fcmMessage';
-    return combined.contains('registration-token-not-registered') ||
-        combined.contains('invalid-registration-token') ||
-        combined.contains('invalid_argument') ||
-        combined.contains('unregistered') ||
-        combined.contains('not registered') ||
-        combined.contains('token-not-registered');
+    if (error is FcmSendException) {
+      final details = (error.details?.toString() ?? '').toLowerCase();
+      final fcmStatus = (error.fcmErrorStatus ?? '').toLowerCase();
+      final fcmMessage = (error.fcmErrorMessage ?? '').toLowerCase();
+      final combined = '$details $fcmStatus $fcmMessage';
+      return combined.contains('registration-token-not-registered') ||
+          combined.contains('invalid-registration-token') ||
+          combined.contains('invalid_argument') ||
+          combined.contains('unregistered') ||
+          combined.contains('not registered') ||
+          combined.contains('token-not-registered');
+    }
+    if (error is FunctionException) {
+      return _fcmPayloadImpliesInvalidToken(error.details);
+    }
+    return false;
+  }
+
+  static bool _fcmPayloadImpliesInvalidToken(Object? details) {
+    final s = details?.toString().toLowerCase() ?? '';
+    return s.contains('unregistered') ||
+        s.contains('registration-token-not-registered') ||
+        s.contains('invalid-registration-token') ||
+        s.contains('invalid_argument') ||
+        s.contains('not registered') ||
+        s.contains('token-not-registered');
+  }
+
+  /// When Supabase `functions.invoke` gets a non-2xx response it throws
+  /// [FunctionException] instead of returning [FunctionResponse], so FCM errors
+  /// must be normalized to [FcmSendException] for callers and token cleanup.
+  static FcmSendException _fcmSendExceptionFromFunctionException(
+    FunctionException e,
+  ) {
+    final responseData = _normalizeDetailsMap(e.details);
+    final code = responseData?['errorCode']?.toString();
+    final nestedDetails = responseData?['details'];
+    Map<String, dynamic>? fcmError;
+    final nestedMap = _normalizeDetailsMap(nestedDetails);
+    if (nestedMap != null) {
+      fcmError = _normalizeDetailsMap(nestedMap['error']);
+    }
+    return FcmSendException(
+      status: e.status,
+      errorCode: code,
+      details: nestedDetails ?? responseData,
+      fcmErrorStatus: fcmError?['status']?.toString(),
+      fcmErrorMessage: fcmError?['message']?.toString(),
+    );
+  }
+
+  static Map<String, dynamic>? _normalizeDetailsMap(Object? value) {
+    if (value == null) return null;
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) {
+      return value.map((k, dynamic v) => MapEntry(k.toString(), v));
+    }
+    return null;
   }
 
   static Future<void> addEmployeeFcmToken({
@@ -316,47 +363,36 @@ class FirestoreServices {
       '➡️ FCM invoke start. target=$targetLabel title="$title" bodyLen=${body.length}',
     );
 
-    final res = await Supabase.instance.client.functions.invoke(
-      'send-fcm',
-      // IMPORTANT: keep `authorization` for Supabase; pass Firebase token via a
-      // dedicated header so the Edge Function can verify it.
-      headers: <String, String>{
-        'x-firebase-id-token': 'Bearer $firebaseIdToken',
-      },
-      body: <String, dynamic>{
-        if (token != null) 'token': token,
-        if (topic != null) 'topic': topic,
-        'title': title,
-        'body': body,
-        if (data != null) 'data': data,
-        'requestId': requestId,
-        if (recipientId != null) 'recipientId': recipientId,
-        if (recipientType != null) 'recipientType': recipientType,
-        if (notificationType != null) 'notificationType': notificationType,
-      },
-    );
+    try {
+      final res = await Supabase.instance.client.functions.invoke(
+        'send-fcm',
+        // IMPORTANT: keep `authorization` for Supabase; pass Firebase token via a
+        // dedicated header so the Edge Function can verify it.
+        headers: <String, String>{
+          'x-firebase-id-token': 'Bearer $firebaseIdToken',
+        },
+        body: <String, dynamic>{
+          if (token != null) 'token': token,
+          if (topic != null) 'topic': topic,
+          'title': title,
+          'body': body,
+          if (data != null) 'data': data,
+          'requestId': requestId,
+          if (recipientId != null) 'recipientId': recipientId,
+          if (recipientType != null) 'recipientType': recipientType,
+          if (notificationType != null) 'notificationType': notificationType,
+        },
+      );
 
-    if (res.status != 200) {
-      final responseData = res.data as Map<String, dynamic>?;
-      final code = responseData?['errorCode']?.toString();
-      final details = responseData?['details'];
-      final fcmError = details is Map<String, dynamic>
-          ? details['error'] as Map<String, dynamic>?
-          : null;
-      log(
-        '❌ FCM invoke failed. target=$targetLabel status=${res.status} errorCode=$code details=$details',
-      );
-      throw FcmSendException(
-        status: res.status,
-        errorCode: code,
-        details: details,
-        fcmErrorStatus: fcmError?['status']?.toString(),
-        fcmErrorMessage: fcmError?['message']?.toString(),
-      );
-    } else {
       log(
         '✅ FCM invoke success. target=$targetLabel status=${res.status} data=${res.data}',
       );
+    } on FunctionException catch (e) {
+      final ex = _fcmSendExceptionFromFunctionException(e);
+      log(
+        '❌ FCM invoke failed. target=$targetLabel status=${ex.status} errorCode=${ex.errorCode} details=${ex.details}',
+      );
+      throw ex;
     }
   }
 

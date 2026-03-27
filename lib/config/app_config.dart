@@ -1,3 +1,5 @@
+import 'package:point/firebase_options.dart';
+
 class AppConfig {
   /// Public (safe to ship in client builds)
   static const String supabaseUrl =
@@ -10,5 +12,11 @@ class AppConfig {
   /// Dev-only convenience. Do NOT pass this in production builds.
   static const String testAccountholderPassword =
       String.fromEnvironment('TEST_ACCOUNTHOLDER_PASSWORD', defaultValue: '');
+
+  /// Firebase project for this build. The Supabase secret for Edge Function
+  /// `send-fcm` must be a service account whose `project_id` equals this value
+  /// (FCM `messages:send` URL uses that project).
+  static String get firebaseProjectId =>
+      DefaultFirebaseOptions.currentPlatform.projectId;
 }
 

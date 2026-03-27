@@ -5,6 +5,7 @@ import 'package:point/Utils/AppColors.dart';
 
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 import 'package:point/View/Shared/responsive.dart';
+import 'package:point/View/Statistics/Mobile/StatisticsMobileScreen.dart';
 import 'package:point/View/Statistics/StatistcsCard.dart';
 
 class Statistics extends StatelessWidget {
@@ -17,7 +18,7 @@ class Statistics extends StatelessWidget {
         builder: (controller) {
           return Obx(
             () => Responsive(
-              mobile: Container(),
+              mobile: const StatisticsMobileScreen(),
               desktop: Row(
                 children: [
                   SingleChildScrollView(

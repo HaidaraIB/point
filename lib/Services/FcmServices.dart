@@ -30,11 +30,21 @@ class NotificationService {
       if (_isInitialized) return;
       _isInitialized = true;
 
+      await _configureForegroundPresentation();
       await _initLocalNotifications();
       await _setupInteractedMessage();
       _listenToForegroundMessages();
     }();
     return _initFuture!;
+  }
+
+  Future<void> _configureForegroundPresentation() async {
+    // iOS does not show foreground banners by default.
+    await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
   }
 
   // تهيئة flutter_local_notifications
@@ -59,20 +69,7 @@ class NotificationService {
     log('Notification clicked with payload: ${response.data}');
     final payload = response.payload;
     if (payload != null) {
-
-      // if (data['type'] == 'internal') {
-      //   final id = data['id'];
-      //   Get.to(() => TaskDetails(
-      //         missionmodel: Get.find<HomeController>()
-      //             .missions
-      //             .firstWhere((a) => a.id == id),
-      //       ));
-      // } else if (data['type'] == 'external') {
-      //   final url = data['url'];
-      //   if (url != null) {
-      //     launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-      //   }
-      // }
+      // TODO: Handle the notification response
     }
   }
 
@@ -179,6 +176,9 @@ class NotificationService {
   void _listenToForegroundMessages() {
     _foregroundSub ??= FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       log('Received a message in foreground: ${message.notification?.title}');
+      // On iOS, if FCM includes `notification`, the system banner is already shown.
+      // Skip local display to avoid duplicate notifications.
+      if (Platform.isIOS && message.notification != null) return;
       _showLocalNotification(message);
     });
   }

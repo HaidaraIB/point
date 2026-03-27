@@ -11,6 +11,7 @@ import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/ReadOnlyAccountEmailField.dart';
 import 'package:point/View/Clients/ClientFormMobilePage.dart';
+import 'package:point/View/Clients/Mobile/ClientsMobileScreen.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/HorizontalScroll.dart';
@@ -40,7 +41,31 @@ class ClientsTable extends StatelessWidget {
       body: GetBuilder<HomeController>(
         builder: (controller) {
           return Responsive(
-            // mobile: Container(),
+            mobile: Obx(
+              () => ClientsMobileScreen(
+                clients: controller.clients.toList(),
+                onAdd: () => showAddEmployeeDialog(context),
+                onEdit: (client) => showAddEmployeeDialog(context, model: client),
+                onDelete: (client) {
+                  FunHelper.showConfirmDailog(
+                    context,
+                    onTap: () async => await controller.deleteClient(client.id!),
+                  );
+                },
+                onToggleStatus: (client) {
+                  FunHelper.showConfirmDailog(
+                    context,
+                    onTap: () async {
+                      await controller.updateClient(
+                        client.copyWith(
+                          status: client.status == 'active' ? 'inactive' : 'active',
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
             desktop: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
 

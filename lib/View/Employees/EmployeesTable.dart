@@ -16,6 +16,7 @@ import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/HorizontalScroll.dart';
 import 'package:point/View/Shared/TableCellCenter.dart';
 import 'package:point/View/Employees/Mobile/EmployeeFormMobilePage.dart';
+import 'package:point/View/Employees/Mobile/EmployeesMobileScreen.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/table_actions_menu_row.dart';
 import 'package:uuid/uuid.dart';
@@ -45,6 +46,45 @@ class _EmployeeTableState extends State<EmployeeTable> {
       body: GetBuilder<HomeController>(
         builder: (controller) {
           return Responsive(
+            mobile: Obx(
+              () => EmployeesMobileScreen(
+                employees: controller.employees.toList(),
+                onAdd: () => showAddEmployeeDialog(context),
+                onEdit: (emp) {
+                  if (emp.role == 'accountholder' &&
+                      controller.currentemployee.value?.role !=
+                          'accountholder') {
+                    FunHelper.showSnackbar(
+                      'error'.tr,
+                      'errors.no_permission'.tr,
+                      snackPosition: SnackPosition.TOP,
+                      backgroundColor: Colors.red,
+                      colorText: Colors.white,
+                    );
+                    return;
+                  }
+                  showAddEmployeeDialog(context, model: emp);
+                },
+                onDelete: (emp) {
+                  if (emp.role == 'accountholder' &&
+                      controller.currentemployee.value?.role !=
+                          'accountholder') {
+                    FunHelper.showSnackbar(
+                      'error'.tr,
+                      'errors.no_permission'.tr,
+                      snackPosition: SnackPosition.TOP,
+                      backgroundColor: Colors.red,
+                      colorText: Colors.white,
+                    );
+                    return;
+                  }
+                  FunHelper.showConfirmDailog(
+                    context,
+                    onTap: () => controller.deleteEmployee(emp.id ?? ''),
+                  );
+                },
+              ),
+            ),
             desktop: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -197,29 +237,29 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                           DataCell(
                                             TableCellCenter(
                                               child: Container(
-                                              alignment: Alignment.center,
-                                              height: 40,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 8,
+                                                alignment: Alignment.center,
+                                                height: 40,
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.purple.shade50,
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
+                                                child: Text(
+                                                  emp.role == 'employee'
+                                                      ? '${emp.role}\n(${StorageKeys.semanticDepartmentLabelKey(emp.department).tr})'
+                                                      : '${emp.role}',
+                                                  textAlign: TextAlign.center,
+                                                  style: TextStyle(
+                                                    color: Colors.purple,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 13,
                                                   ),
-                                              decoration: BoxDecoration(
-                                                color: Colors.purple.shade50,
-                                                borderRadius:
-                                                    BorderRadius.circular(12),
-                                              ),
-                                              child: Text(
-                                                emp.role == 'employee'
-                                                    ? '${emp.role}\n(${StorageKeys.semanticDepartmentLabelKey(emp.department).tr})'
-                                                    : '${emp.role}',
-                                                textAlign: TextAlign.center,
-                                                style: TextStyle(
-                                                  color: Colors.purple,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 13,
                                                 ),
                                               ),
-                                            ),
                                             ),
                                           ),
 
@@ -235,27 +275,32 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                                 ),
                                                 color: Colors.white,
                                                 elevation: 4,
-                                                itemBuilder: (context) => [
-                                                  PopupMenuItem(
-                                                    value: 0,
-                                                    child: tableActionsMenuRow(
-                                                      label: 'edit'.tr,
-                                                      icon: Icons.edit_outlined,
-                                                      iconColor:
-                                                          AppColors.success,
-                                                    ),
-                                                  ),
-                                                  PopupMenuItem(
-                                                    value: 1,
-                                                    child: tableActionsMenuRow(
-                                                      label: 'delete'.tr,
-                                                      icon:
-                                                          Icons.delete_outline,
-                                                      iconColor:
-                                                          AppColors.destructive,
-                                                    ),
-                                                  ),
-                                                ],
+                                                itemBuilder:
+                                                    (context) => [
+                                                      PopupMenuItem(
+                                                        value: 0,
+                                                        child: tableActionsMenuRow(
+                                                          label: 'edit'.tr,
+                                                          icon:
+                                                              Icons
+                                                                  .edit_outlined,
+                                                          iconColor:
+                                                              AppColors.success,
+                                                        ),
+                                                      ),
+                                                      PopupMenuItem(
+                                                        value: 1,
+                                                        child: tableActionsMenuRow(
+                                                          label: 'delete'.tr,
+                                                          icon:
+                                                              Icons
+                                                                  .delete_outline,
+                                                          iconColor:
+                                                              AppColors
+                                                                  .destructive,
+                                                        ),
+                                                      ),
+                                                    ],
                                                 onSelected: (value) {
                                                   if (value == 0) {
                                                     if (emp.role ==
@@ -273,8 +318,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                                             SnackPosition.TOP,
                                                         backgroundColor:
                                                             Colors.red,
-                                                        colorText:
-                                                            Colors.white,
+                                                        colorText: Colors.white,
                                                       );
                                                       return;
                                                     }
@@ -298,8 +342,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                                             SnackPosition.TOP,
                                                         backgroundColor:
                                                             Colors.red,
-                                                        colorText:
-                                                            Colors.white,
+                                                        colorText: Colors.white,
                                                       );
                                                       return;
                                                     }
@@ -315,12 +358,14 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                                   }
                                                 },
                                                 child: Padding(
-                                                  padding:
-                                                      const EdgeInsets.all(8),
+                                                  padding: const EdgeInsets.all(
+                                                    8,
+                                                  ),
                                                   child: Icon(
                                                     Icons.more_vert,
                                                     color:
-                                                        AppColors.primaryfontColor,
+                                                        AppColors
+                                                            .primaryfontColor,
                                                   ),
                                                 ),
                                               ),
@@ -360,8 +405,7 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
 
   String selectedRole = model?.role ?? "employee";
   String selectedDepartment =
-      model?.department ??
-      StorageKeys.departmentPromotion;
+      model?.department ?? StorageKeys.departmentPromotion;
   List<String> roles = ["supervisor", "admin", "employee"];
   Get.find<HomeController>().uploadedFilesPaths.assignAll(
     model != null && model.image != null ? [model.image!] : [],
@@ -589,11 +633,9 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                               (role) => DropdownMenuItem(
                                                 value: role,
                                                 child: Text(
-                                                  StorageKeys
-                                                      .semanticDepartmentLabelKey(
-                                                        role,
-                                                      )
-                                                      .tr,
+                                                  StorageKeys.semanticDepartmentLabelKey(
+                                                    role,
+                                                  ).tr,
                                                 ),
                                               ),
                                             )
@@ -646,16 +688,20 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                             controller
                                                 .addEmployee(
                                                   password:
-                                                      passwordController.text.trim().isEmpty
+                                                      passwordController.text
+                                                              .trim()
+                                                              .isEmpty
                                                           ? 'TempPass@123'
-                                                          : passwordController.text.trim(),
+                                                          : passwordController
+                                                              .text
+                                                              .trim(),
                                                   EmployeeModel(
-                                                    id:
-                                                        const Uuid().v4(),
+                                                    id: const Uuid().v4(),
                                                     name: nameController.text,
                                                     email: emailController.text,
                                                     role: selectedRole,
-                                                    department: departmentToSave,
+                                                    department:
+                                                        departmentToSave,
                                                     status: 'active',
                                                     createdAt: DateTime.now(),
                                                     image:
@@ -683,10 +729,13 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                                     name: nameController.text,
                                                     email:
                                                         canEditCredentials
-                                                            ? emailController.text
-                                                            : (model.email ?? ''),
+                                                            ? emailController
+                                                                .text
+                                                            : (model.email ??
+                                                                ''),
                                                     role: selectedRole,
-                                                    department: departmentToSave,
+                                                    department:
+                                                        departmentToSave,
                                                     image:
                                                         controller
                                                                 .uploadedFilesPaths
@@ -698,9 +747,14 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                                   ),
                                                   newPassword:
                                                       !canEditCredentials ||
-                                                              passwordController.text.trim().isEmpty
+                                                              passwordController
+                                                                  .text
+                                                                  .trim()
+                                                                  .isEmpty
                                                           ? null
-                                                          : passwordController.text.trim(),
+                                                          : passwordController
+                                                              .text
+                                                              .trim(),
                                                 )
                                                 .then((v) {
                                                   if (v) {

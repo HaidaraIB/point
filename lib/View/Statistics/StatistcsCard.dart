@@ -37,68 +37,98 @@ class _StatisticsCardState extends State<StatisticsCard> {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.all(16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: Colors.white,
-      elevation: 0,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // العنوان + زر التصدير
-            Row(
-              // mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 700;
+        return Card(
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          color: Colors.white,
+          elevation: 0,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'statistics.title'.tr,
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(width: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children:
-                      _periodKeys.map((key) {
-                        final isActive = key == selectedPeriodKey;
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 6),
-                          child: GestureDetector(
-                            onTap: () =>
-                                setState(() => selectedPeriodKey = key),
-                            child: Text(
-                              key.tr,
-                              style: TextStyle(
-                                fontWeight:
-                                    isActive
-                                        ? FontWeight.bold
-                                        : FontWeight.normal,
-                                color:
-                                    isActive
-                                        ? AppColors.fontColorGrey
-                                        : Colors.grey,
-                                decoration:
-                                    isActive ? TextDecoration.underline : null,
+                if (isNarrow) ...[
+                  Text(
+                    'statistics.title'.tr,
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 10),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children:
+                          _periodKeys.map((key) {
+                            final isActive = key == selectedPeriodKey;
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 6),
+                              child: GestureDetector(
+                                onTap: () => setState(() => selectedPeriodKey = key),
+                                child: Text(
+                                  key.tr,
+                                  style: TextStyle(
+                                    fontWeight:
+                                        isActive ? FontWeight.bold : FontWeight.normal,
+                                    color:
+                                        isActive
+                                            ? AppColors.fontColorGrey
+                                            : Colors.grey,
+                                    decoration:
+                                        isActive ? TextDecoration.underline : null,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                ),
-                Spacer(),
-                OutlinedButton(
-                  onPressed: () {},
-                  child: Text('statistics.export'.tr),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            // التبويبات
-            const SizedBox(height: 12),
-
-            // الرسم البياني
-            SfCartesianChart(
+                            );
+                          }).toList(),
+                    ),
+                  ),
+                ] else ...[
+                  Row(
+                    children: [
+                      Text(
+                        'statistics.title'.tr,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children:
+                            _periodKeys.map((key) {
+                              final isActive = key == selectedPeriodKey;
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6),
+                                child: GestureDetector(
+                                  onTap:
+                                      () => setState(() => selectedPeriodKey = key),
+                                  child: Text(
+                                    key.tr,
+                                    style: TextStyle(
+                                      fontWeight:
+                                          isActive
+                                              ? FontWeight.bold
+                                              : FontWeight.normal,
+                                      color:
+                                          isActive
+                                              ? AppColors.fontColorGrey
+                                              : Colors.grey,
+                                      decoration:
+                                          isActive ? TextDecoration.underline : null,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                      ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 12),
+                SfCartesianChart(
               primaryYAxis: NumericAxis(isVisible: false),
               primaryXAxis: CategoryAxis(),
               legend: Legend(isVisible: true, position: LegendPosition.bottom),
@@ -132,10 +162,12 @@ class _StatisticsCardState extends State<StatisticsCard> {
                   yValueMapper: (d, _) => d.content,
                 ),
               ],
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }
