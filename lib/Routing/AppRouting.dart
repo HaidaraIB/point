@@ -12,7 +12,8 @@ import 'package:point/View/Auth/ResetPassword.dart';
 import 'package:point/View/Auth/SessionSetupScreen.dart';
 import 'package:point/View/Clients/ClientsTable.dart';
 import 'package:point/View/Contents/ContentsTable.dart';
-import 'package:point/View/EmployeeDashboard/EmployeeDashBord.dart';
+import 'package:point/View/EmployeeDashboard/EmployeeContentDashboard.dart';
+import 'package:point/View/EmployeeDashboard/EmployeeDashoard.dart';
 import 'package:point/View/Employees/EmployeesTable.dart';
 import 'package:point/View/History/History.dart';
 import 'package:point/View/History/TaskHistory.dart';
@@ -184,6 +185,13 @@ class AppRouting {
       name: '/employeeDashboard',
       page: () {
         return EmployeeDashBord();
+      },
+      middlewares: [AuthMiddleware()],
+    ),
+    GetPage(
+      name: '/employeeContent',
+      page: () {
+        return const EmployeeContentDashboard();
       },
       middlewares: [AuthMiddleware()],
     ),

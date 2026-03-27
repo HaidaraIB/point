@@ -5,6 +5,8 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/ContentModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
+import 'package:point/View/Contents/Mobile/ContentDetailsMobilePage.dart';
+import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -12,6 +14,10 @@ void showContentDialogDetails(
   BuildContext context, {
   required ContentModel task,
 }) {
+  if (Responsive.isMobile(context)) {
+    Get.to(() => ContentDetailsMobilePage(task: task));
+    return;
+  }
   showDialog(
     context: context,
     builder: (context) {

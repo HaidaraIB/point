@@ -14,6 +14,7 @@ import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Clients/ClientsTable.dart';
 import 'package:point/View/Contents/ContentDialogDetails.dart';
 import 'package:point/View/Contents/Mobile/ContentFormMobilePage.dart';
+import 'package:point/View/EmployeeDashboard/EmployeeContentDashboard.dart';
 import 'package:point/View/Mobile/ContentStatusCard.dart';
 
 import 'package:point/View/Shared/CustomDropDown.dart';
@@ -30,6 +31,10 @@ import 'package:url_launcher/url_launcher.dart';
 class ContentsTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final emp = Get.find<HomeController>().currentemployee.value;
+    if (emp?.role == 'employee') {
+      return const EmployeeContentDashboard();
+    }
     return ResponsiveScaffold(
       selectedTab: 3,
       sideMenu:
