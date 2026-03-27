@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -94,6 +95,7 @@ class ClientController extends GetxController {
   }
 
   final _clientCollection = FirebaseFirestore.instance.collection("clients");
+  StreamSubscription<String>? _fcmTokenRefreshSub;
 
   void listenToClient(String clientId) {
     _clientCollection.doc(clientId).snapshots().listen((snapshot) async {
@@ -116,6 +118,19 @@ class ClientController extends GetxController {
       if (model != null && token != null) {
         await FirestoreServices.addClientFcmToken(clientId: model.id!, token: token);
       }
+
+      _fcmTokenRefreshSub?.cancel();
+      _fcmTokenRefreshSub = FirebaseMessaging.instance.onTokenRefresh.listen((
+        refreshedToken,
+      ) async {
+        final clientId = currentClient.value?.id ?? model?.id;
+        if (clientId == null || clientId.trim().isEmpty) return;
+        await FirestoreServices.addClientFcmToken(
+          clientId: clientId,
+          token: refreshedToken,
+        );
+        debugPrint('FCM token refreshed for client $clientId');
+      });
     } catch (e) {
       // على الويب قد يفشل FCM لغياب OAuth/Service Worker
       debugPrint('getFCMToken: $e');
@@ -141,5 +156,12 @@ class ClientController extends GetxController {
     // fetchContents();
 
     super.onInit();
+  }
+
+  @override
+  void onClose() {
+    _fcmTokenRefreshSub?.cancel();
+    _fcmTokenRefreshSub = null;
+    super.onClose();
   }
 }

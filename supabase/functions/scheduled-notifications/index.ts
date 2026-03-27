@@ -167,7 +167,7 @@ async function sendEmailIfPossible(toEmail: string | null, subject: string, body
   if (!toEmail) return;
   const apiKey = Deno.env.get("RESEND_API_KEY");
   if (!apiKey) return;
-  await fetch(RESEND_URL, {
+  const res = await fetch(RESEND_URL, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -180,7 +180,15 @@ async function sendEmailIfPossible(toEmail: string | null, subject: string, body
       text: body,
       html: buildEmailHtml(body),
     }),
-  }).catch(() => {});
+  }).catch((err) => {
+    console.error("sendEmailIfPossible network error", String(err));
+    return null;
+  });
+  if (!res) return;
+  if (!res.ok) {
+    const out = await res.text().catch(() => "");
+    console.error("sendEmailIfPossible failed", res.status, out.slice(0, 1400));
+  }
 }
 
 async function sendFcm({
@@ -197,7 +205,7 @@ async function sendFcm({
   body: string;
 }) {
   if (!token) return;
-  await fetch(fcmUrl, {
+  const res = await fetch(fcmUrl, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -207,9 +215,28 @@ async function sendFcm({
       message: {
         token,
         notification: { title, body },
+        apns: {
+          headers: {
+            "apns-push-type": "alert",
+            "apns-priority": "10",
+          },
+          payload: {
+            aps: {
+              sound: "default",
+            },
+          },
+        },
       },
     }),
-  }).catch(() => {});
+  }).catch((err) => {
+    console.error("sendFcm network error", String(err));
+    return null;
+  });
+  if (!res) return;
+  if (!res.ok) {
+    const out = await res.text().catch(() => "");
+    console.error("sendFcm failed", res.status, out.slice(0, 1400));
+  }
 }
 
 async function patchTaskStringFields(

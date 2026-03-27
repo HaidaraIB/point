@@ -22,6 +22,7 @@ type PushDiagnosticPayload = {
   notificationType?: string;
   functionVersion: string;
   fcmHttpStatus?: number;
+  fcmMessageId?: string;
   fcmErrorCode?: string;
   fcmErrorStatus?: string;
   fcmErrorMessage?: string;
@@ -153,6 +154,25 @@ Deno.serve(async (req: Request) => {
 
     const fcmUrl = `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`;
 
+    const fcmMessage = {
+      ...(token ? { token } : {}),
+      ...(topic ? { topic } : {}),
+      notification: { title, body },
+      // Ensure iOS/APNs delivery behavior is explicit (especially TestFlight/production).
+      apns: {
+        headers: {
+          "apns-push-type": "alert",
+          "apns-priority": "10",
+        },
+        payload: {
+          aps: {
+            sound: "default",
+          },
+        },
+      },
+      ...(data ? { data } : {}),
+    };
+
     const res = await fetch(fcmUrl, {
       method: "POST",
       headers: {
@@ -160,16 +180,19 @@ Deno.serve(async (req: Request) => {
         Authorization: `Bearer ${accessToken}`,
       },
       body: JSON.stringify({
-        message: {
-          ...(token ? { token } : {}),
-          ...(topic ? { topic } : {}),
-          notification: { title, body },
-          ...(data ? { data } : {}),
-        },
+        message: fcmMessage,
       }),
     });
 
-    const out = await res.json().catch(() => ({}));
+    const outRaw = await res.text().catch(() => "");
+    const out = (() => {
+      if (!outRaw) return {};
+      try {
+        return JSON.parse(outRaw);
+      } catch (_) {
+        return { raw: outRaw.slice(0, 1400) };
+      }
+    })();
     if (!res.ok) {
       const fcmError = (out as any)?.error;
       await writePushDiagnostic({
@@ -191,6 +214,7 @@ Deno.serve(async (req: Request) => {
           notificationType,
           functionVersion: FUNCTION_VERSION,
           fcmHttpStatus: res.status,
+          fcmMessageId: typeof (out as any)?.name === "string" ? (out as any).name : undefined,
           fcmErrorCode: fcmError?.code?.toString(),
           fcmErrorStatus: fcmError?.status?.toString(),
           fcmErrorMessage: fcmError?.message?.toString(),
@@ -218,6 +242,7 @@ Deno.serve(async (req: Request) => {
         notificationType,
         functionVersion: FUNCTION_VERSION,
         fcmHttpStatus: res.status,
+        fcmMessageId: typeof (out as any)?.name === "string" ? (out as any).name : undefined,
         details: out,
       },
     });
@@ -261,6 +286,7 @@ async function writePushDiagnostic(args: {
     if (typeof p.fcmHttpStatus === "number") {
       fields.fcmHttpStatus = { integerValue: String(p.fcmHttpStatus) };
     }
+    if (p.fcmMessageId) fields.fcmMessageId = { stringValue: p.fcmMessageId };
     if (p.fcmErrorCode) fields.fcmErrorCode = { stringValue: p.fcmErrorCode };
     if (p.fcmErrorStatus) fields.fcmErrorStatus = { stringValue: p.fcmErrorStatus };
     if (p.fcmErrorMessage) fields.fcmErrorMessage = { stringValue: p.fcmErrorMessage };

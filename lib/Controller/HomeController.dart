@@ -1500,6 +1500,7 @@ class HomeController extends GetxController {
   /// Total unread messages across all chats (for header badge).
   RxInt totalUnreadMessages = 0.obs;
   StreamSubscription<int>? _totalUnreadSub;
+  StreamSubscription<String>? _fcmTokenRefreshSub;
 
   void _startTotalUnreadStream(String userId) {
     _totalUnreadSub?.cancel();
@@ -1548,6 +1549,19 @@ class HomeController extends GetxController {
           );
           print("FCM Registration Token: ${kIsWeb ? 'Web' : ''} $token");
         }
+
+        _fcmTokenRefreshSub?.cancel();
+        _fcmTokenRefreshSub = FirebaseMessaging.instance.onTokenRefresh.listen((
+          refreshedToken,
+        ) async {
+          final employeeId = currentemployee.value?.id ?? userId;
+          if (employeeId == null || employeeId.toString().trim().isEmpty) return;
+          await FirestoreServices.addEmployeeFcmToken(
+            employeeId: employeeId.toString(),
+            token: refreshedToken,
+          );
+          log('FCM token refreshed for employee $employeeId');
+        });
 
         // 3. الاستماع لرسائل المقدمة (عندما يكون التطبيق مفتوحًا)
         FirebaseMessaging.onMessage.listen((RemoteMessage message) {
@@ -1697,6 +1711,8 @@ class HomeController extends GetxController {
     _employeeDocSub?.cancel();
     _employeeDocSub = null;
     _stopTotalUnreadStream();
+    _fcmTokenRefreshSub?.cancel();
+    _fcmTokenRefreshSub = null;
     super.onClose();
   }
 
