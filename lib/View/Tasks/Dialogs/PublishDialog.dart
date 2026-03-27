@@ -17,7 +17,7 @@ import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/t.dart';
 import 'package:point/View/Tasks/Mobile/GenericTaskFormMobilePage.dart';
 
-void publishDilaog(BuildContext context, {TaskModel? model}) {
+void publishDialog(BuildContext context, {TaskModel? model}) {
   const otherClientValue = '__other_client__';
   final ctx = Get.context;
   if (ctx != null && Responsive.isMobile(ctx)) {
@@ -138,7 +138,10 @@ void publishDilaog(BuildContext context, {TaskModel? model}) {
                                     items:
                                         controller.employees
                                             .where(
-                                              (a) => a.department == 'cat6',
+                                              (a) => StorageKeys.matchesDepartment(
+                                                a.department,
+                                                StorageKeys.departmentPublishing,
+                                              ),
                                             )
                                             .map(
                                               (v) => DropdownMenuItem(

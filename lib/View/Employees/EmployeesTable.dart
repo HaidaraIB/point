@@ -13,7 +13,7 @@ import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/ReadOnlyAccountEmailField.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 import 'package:point/View/Shared/button.dart';
-import 'package:point/View/Shared/HorizantalScroll.dart';
+import 'package:point/View/Shared/HorizontalScroll.dart';
 import 'package:point/View/Shared/TableCellCenter.dart';
 import 'package:point/View/Employees/Mobile/EmployeeFormMobilePage.dart';
 import 'package:point/View/Shared/responsive.dart';
@@ -210,7 +210,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                               ),
                                               child: Text(
                                                 emp.role == 'employee'
-                                                    ? '${emp.role}\n(${emp.department?.tr ?? ''})'
+                                                    ? '${emp.role}\n(${StorageKeys.semanticDepartmentLabelKey(emp.department).tr})'
                                                     : '${emp.role}',
                                                 textAlign: TextAlign.center,
                                                 style: TextStyle(
@@ -359,7 +359,9 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
   bool obscurePassword = true;
 
   String selectedRole = model?.role ?? "employee";
-  String selectedDepartment = model?.department ?? "cat1";
+  String selectedDepartment =
+      model?.department ??
+      StorageKeys.departmentPromotion;
   List<String> roles = ["supervisor", "admin", "employee"];
   Get.find<HomeController>().uploadedFilesPaths.assignAll(
     model != null && model.image != null ? [model.image!] : [],
@@ -572,7 +574,8 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                     if (value != null) {
                                       selectedRole = value;
                                       if (selectedRole != 'employee') {
-                                        selectedDepartment = 'cat1';
+                                        selectedDepartment =
+                                            StorageKeys.departmentPromotion;
                                       }
                                       newstate(() {});
                                     }
@@ -585,7 +588,13 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                             .map(
                                               (role) => DropdownMenuItem(
                                                 value: role,
-                                                child: Text(role.tr),
+                                                child: Text(
+                                                  StorageKeys
+                                                      .semanticDepartmentLabelKey(
+                                                        role,
+                                                      )
+                                                      .tr,
+                                                ),
                                               ),
                                             )
                                             .toList(),

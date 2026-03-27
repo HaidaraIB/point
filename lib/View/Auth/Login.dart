@@ -85,190 +85,190 @@ Widget _buildDesktopLayout() {
         key: _key,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final showAuthSplit =
-                Responsive.showAuthSplitLayout(constraints.maxWidth);
-            final viewportMinHeight = constraints.hasBoundedHeight
-                ? constraints.maxHeight
-                : 0.0;
+            final showAuthSplit = Responsive.showAuthSplitLayout(
+              constraints.maxWidth,
+            );
+            final viewportMinHeight =
+                constraints.hasBoundedHeight ? constraints.maxHeight : 0.0;
             final formColumn = Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'login_employee_title'.tr,
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w600,
-                          wordSpacing: 1.2,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      SizedBox(height: 10),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'login_employee_title'.tr,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w600,
+                    wordSpacing: 1.2,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                SizedBox(height: 10),
 
-                      Text(
-                        'enteremailandpassword'.tr,
-                        style: TextStyle(color: Colors.grey, fontSize: 13),
-                      ),
-                      InputText(
-                        hintText: 'email'.tr,
-                        labelText: 'email'.tr,
-                        textInputType: TextInputType.emailAddress,
-                        controller: controller.email,
-                        height: 42,
-                        fillColor: Colors.white,
+                Text(
+                  'enteremailandpassword'.tr,
+                  style: TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+                InputText(
+                  hintText: 'email'.tr,
+                  labelText: 'email'.tr,
+                  textInputType: TextInputType.emailAddress,
+                  controller: controller.email,
+                  height: 42,
+                  fillColor: Colors.white,
 
-                        validator: (v) {
-                          if (v == null || v.isEmpty) {
-                            return ' ';
-                          }
-                          return null;
-                        },
+                  validator: (v) {
+                    if (v == null || v.isEmpty) {
+                      return ' ';
+                    }
+                    return null;
+                  },
 
-                        borderRadius: 5,
-                        borderColor: Colors.grey.shade300,
-                      ),
-                      InputText(
-                        hintText: 'password'.tr,
-                        labelText: 'password'.tr,
-                        controller: controller.pass,
-                        obscureText: controller.obSecure,
-                        height: 42,
-                        fillColor: Colors.white,
-                        textInputType: TextInputType.visiblePassword,
-                        suffixIcon: InkWell(
-                          onTap: () {
-                            controller.changeObsecure();
-                          },
-                          child: Icon(
-                            controller.obSecure
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                            color: Colors.grey,
-                            size: 12,
-                          ),
-                        ),
-                        // require: true,
-                        validator: (v) {
-                          if (v == null || v.isEmpty) {
-                            return ' ';
-                          }
-                          return null;
-                        },
-                        borderRadius: 5,
-                        borderColor: Colors.grey.shade300,
-                      ),
-                      SizedBox(height: 10),
-                      InkWell(
-                        onTap: () {
-                          Get.toNamed('/auth/forgetpassword');
-                        },
-                        child: Text(
-                          'forgotpassword'.tr,
-                          style: TextStyle(color: Colors.grey, fontSize: 13),
-                        ),
-                      ),
-                      SizedBox(height: 25),
-                      Obx(
-                        () => MainButton(
-                          icon: false,
-                          height: 40,
-                          borderSize: 10,
-                          load: Get.find<HomeController>().isLoading.value,
-                          margin: EdgeInsets.all(0),
-                          onPressed: () async {
-                            if (_key.currentState!.validate()) {
-                              try {
-                                final v = await Get.find<HomeController>()
-                                    .loginClient(
-                                      controller.email.text.trim(),
-                                      controller.pass.text.trim(),
-                                    );
-                                if (v != null) {
-                                  log("✅ تم تسجيل دخول الموظف: ${v.email}");
-                                  log(v.status.toString());
-                                  if (v.status == 'active') {
-                                    // الجلسة مفعّلة في loginClient؛ باقي الإعداد في SessionSetupScreen.
-                                    Get.offAllNamed('/sessionSetup');
-                                  } else {
-                                    FunHelper.showSnackbar(
-                                      'error'.tr,
-                                      'account_not_active_contact_support'.tr,
-                                      snackPosition: SnackPosition.TOP,
-                                      backgroundColor: Colors.red,
-                                      colorText: Colors.white,
-                                    );
-                                  }
-                                } else {
-                                  FunHelper.showSnackbar(
-                                    'error'.tr,
-                                    'invalid_email_or_password'.tr,
-                                    snackPosition: SnackPosition.TOP,
-                                    backgroundColor: Colors.red,
-                                    colorText: Colors.white,
-                                  );
-                                }
-                              } catch (e, st) {
-                                final code = _extractDiagnosticCode(e);
-                                log(
-                                  'Employee login failed: type=${e.runtimeType}, message=$e',
-                                  stackTrace: st,
-                                );
-                                await FirestoreServices.logClientDiagnosticError(
-                                  source: 'LoginView.employeeLogin',
-                                  code: code,
-                                  error: e,
-                                  stackTrace: st,
-                                  extra: {
-                                    'platform': defaultTargetPlatform.name,
-                                    'isWeb': kIsWeb,
-                                    'email': controller.email.text.trim(),
-                                  },
-                                );
-                                FunHelper.showSnackbar(
-                                  'error'.tr,
-                                  _buildLoginErrorMessage(e),
-                                  snackPosition: SnackPosition.TOP,
-                                  backgroundColor: Colors.red,
-                                  colorText: Colors.white,
-                                );
-                              }
+                  borderRadius: 5,
+                  borderColor: Colors.grey.shade300,
+                ),
+                InputText(
+                  hintText: 'password'.tr,
+                  labelText: 'password'.tr,
+                  controller: controller.pass,
+                  obscureText: controller.obSecure,
+                  height: 42,
+                  fillColor: Colors.white,
+                  textInputType: TextInputType.visiblePassword,
+                  suffixIcon: InkWell(
+                    onTap: () {
+                      controller.changeObsecure();
+                    },
+                    child: Icon(
+                      controller.obSecure
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                      color: Colors.grey,
+                      size: 12,
+                    ),
+                  ),
+                  // require: true,
+                  validator: (v) {
+                    if (v == null || v.isEmpty) {
+                      return ' ';
+                    }
+                    return null;
+                  },
+                  borderRadius: 5,
+                  borderColor: Colors.grey.shade300,
+                ),
+                SizedBox(height: 10),
+                InkWell(
+                  onTap: () {
+                    Get.toNamed('/auth/forgetPassword');
+                  },
+                  child: Text(
+                    'forgotpassword'.tr,
+                    style: TextStyle(color: Colors.grey, fontSize: 13),
+                  ),
+                ),
+                SizedBox(height: 25),
+                Obx(
+                  () => MainButton(
+                    icon: false,
+                    height: 40,
+                    borderSize: 10,
+                    load: Get.find<HomeController>().isLoading.value,
+                    margin: EdgeInsets.all(0),
+                    onPressed: () async {
+                      if (_key.currentState!.validate()) {
+                        try {
+                          final v = await Get.find<HomeController>()
+                              .loginClient(
+                                controller.email.text.trim(),
+                                controller.pass.text.trim(),
+                              );
+                          if (v != null) {
+                            log("✅ تم تسجيل دخول الموظف: ${v.email}");
+                            log(v.status.toString());
+                            if (v.status == 'active') {
+                              // الجلسة مفعّلة في loginClient؛ باقي الإعداد في SessionSetupScreen.
+                              Get.offAllNamed('/sessionSetup');
+                            } else {
+                              FunHelper.showSnackbar(
+                                'error'.tr,
+                                'account_not_active_contact_support'.tr,
+                                snackPosition: SnackPosition.TOP,
+                                backgroundColor: Colors.red,
+                                colorText: Colors.white,
+                              );
                             }
-                          },
-                          // lineargrad: ,
-                          linearGradient: LinearGradient(
-                            colors: [
-                              Color(0xff19133F),
-                              Color(0xff19133F),
-                              Color(0xff19133F),
-                              Color(0xff19133F),
-                              Color(0xff19133F),
-                              Color.fromARGB(255, 47, 19, 63),
-                              Color.fromARGB(255, 47, 19, 63),
-                              Color.fromARGB(255, 47, 19, 63),
-                              Color.fromARGB(255, 47, 19, 63),
+                          } else {
+                            FunHelper.showSnackbar(
+                              'error'.tr,
+                              'invalid_email_or_password'.tr,
+                              snackPosition: SnackPosition.TOP,
+                              backgroundColor: Colors.red,
+                              colorText: Colors.white,
+                            );
+                          }
+                        } catch (e, st) {
+                          final code = _extractDiagnosticCode(e);
+                          log(
+                            'Employee login failed: type=${e.runtimeType}, message=$e',
+                            stackTrace: st,
+                          );
+                          await FirestoreServices.logClientDiagnosticError(
+                            source: 'LoginView.employeeLogin',
+                            code: code,
+                            error: e,
+                            stackTrace: st,
+                            extra: {
+                              'platform': defaultTargetPlatform.name,
+                              'isWeb': kIsWeb,
+                              'email': controller.email.text.trim(),
+                            },
+                          );
+                          FunHelper.showSnackbar(
+                            'error'.tr,
+                            _buildLoginErrorMessage(e),
+                            snackPosition: SnackPosition.TOP,
+                            backgroundColor: Colors.red,
+                            colorText: Colors.white,
+                          );
+                        }
+                      }
+                    },
+                    // lineargrad: ,
+                    linearGradient: LinearGradient(
+                      colors: [
+                        Color(0xff19133F),
+                        Color(0xff19133F),
+                        Color(0xff19133F),
+                        Color(0xff19133F),
+                        Color(0xff19133F),
+                        Color.fromARGB(255, 47, 19, 63),
+                        Color.fromARGB(255, 47, 19, 63),
+                        Color.fromARGB(255, 47, 19, 63),
+                        Color.fromARGB(255, 47, 19, 63),
 
-                              // Color(0xff5B0E4E),
-                            ],
+                        // Color(0xff5B0E4E),
+                      ],
 
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomRight,
-                          ),
-                          title: 'login'.tr,
-                        ),
-                      ),
-                      SizedBox(height: 10),
-                      InkWell(
-                        onTap: () => Get.toNamed('/auth/LoginUserAccount'),
-                        child: Center(
-                          child: Text(
-                            'are_you_client'.tr,
-                            style: TextStyle(color: Colors.grey, fontSize: 13),
-                          ),
-                        ),
-                      ),
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomRight,
+                    ),
+                    title: 'login'.tr,
+                  ),
+                ),
+                SizedBox(height: 10),
+                InkWell(
+                  onTap: () => Get.toNamed('/auth/LoginUserAccount'),
+                  child: Center(
+                    child: Text(
+                      'are_you_client'.tr,
+                      style: TextStyle(color: Colors.grey, fontSize: 13),
+                    ),
+                  ),
+                ),
 
-                      buildRightsSection(),
-                    ],
+                buildRightsSection(),
+              ],
             );
 
             if (!showAuthSplit) {
@@ -309,10 +309,10 @@ Widget _buildDesktopLayout() {
                   child: LayoutBuilder(
                     builder: (context, colConstraints) {
                       const verticalPad = 50.0;
-                      final minScrollChildHeight = colConstraints.maxHeight >
-                              verticalPad * 2
-                          ? colConstraints.maxHeight - verticalPad * 2
-                          : colConstraints.maxHeight;
+                      final minScrollChildHeight =
+                          colConstraints.maxHeight > verticalPad * 2
+                              ? colConstraints.maxHeight - verticalPad * 2
+                              : colConstraints.maxHeight;
                       return SingleChildScrollView(
                         padding: EdgeInsets.symmetric(
                           vertical: verticalPad,

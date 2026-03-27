@@ -13,7 +13,7 @@ import 'package:point/View/Shared/ReadOnlyAccountEmailField.dart';
 import 'package:point/View/Clients/ClientFormMobilePage.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 import 'package:point/View/Shared/button.dart';
-import 'package:point/View/Shared/HorizantalScroll.dart';
+import 'package:point/View/Shared/HorizontalScroll.dart';
 import 'package:point/View/Shared/TableCellCenter.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/table_actions_menu_row.dart';

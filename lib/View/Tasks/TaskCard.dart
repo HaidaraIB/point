@@ -7,7 +7,7 @@ import 'package:point/Services/StorageKeys.dart';
 import 'package:point/View/Tasks/Dialogs/ContentWriteDialog.dart';
 import 'package:point/View/Tasks/Dialogs/DesignDialog.dart';
 import 'package:point/View/Tasks/Dialogs/MontageDialog.dart';
-import 'package:point/View/Tasks/Dialogs/PhotoGraphyDialog.dart';
+import 'package:point/View/Tasks/Dialogs/PhotographyDialog.dart';
 import 'package:point/View/Tasks/Dialogs/ProgrammingDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PromotionDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PublishDialog.dart';
@@ -159,19 +159,19 @@ class TaskCard extends StatelessWidget {
                                   designDialog(context, model: task);
                                   break;
                                 case '2':
-                                  photoGraphyDialog(context, model: task);
+                                  photographyDialog(context, model: task);
                                   break;
                                 case '3':
-                                  contentWriteDiloag(context, model: task);
+                                  contentWriteDialog(context, model: task);
                                   break;
                                 case '4':
-                                  montageDiloag(context, model: task);
+                                  montageDialog(context, model: task);
                                   break;
                                 case '5':
-                                  publishDilaog(context, model: task);
+                                  publishDialog(context, model: task);
                                   break;
                                 case '6':
-                                  programmingDiloag(context, model: task);
+                                  programmingDialog(context, model: task);
                                   break;
                                 default:
                               }

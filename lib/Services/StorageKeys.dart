@@ -132,15 +132,47 @@ class StorageKeys {
     'design_idea', // فكرة تصميم
     'other', // أخري
   ];
-  static var departments = [
-    'cat1',
-    'cat2',
-    'cat3',
-    'cat4',
-    'cat5',
-    'cat6',
-    'cat7',
+  // Semantic department keys (preferred in code).
+  static const String departmentPromotion = 'promotion';
+  static const String departmentDesign = 'design';
+  static const String departmentPhotography = 'photography';
+  static const String departmentContentWriting = 'content-writing';
+  static const String departmentMontage = 'montage';
+  static const String departmentPublishing = 'publishing';
+  static const String departmentProgramming = 'programming';
+
+  static const List<String> departmentSlugs = [
+    departmentPromotion,
+    departmentDesign,
+    departmentPhotography,
+    departmentContentWriting,
+    departmentMontage,
+    departmentPublishing,
+    departmentProgramming,
   ];
+
+  /// Canonical department values for new writes.
+  static const List<String> departments = departmentSlugs;
+
+  /// Converts stored department value to semantic key.
+  static String normalizeDepartment(String? department) {
+    final value = (department ?? '').trim().toLowerCase();
+    if (value.isEmpty) return '';
+    if (departmentSlugs.contains(value)) return value;
+    return '';
+  }
+
+  /// Preferred translation key for UI labels.
+  static String semanticDepartmentLabelKey(String? department) {
+    final normalized = normalizeDepartment(department);
+    if (normalized.isEmpty) {
+      return 'department.$departmentPromotion';
+    }
+    return 'department.$normalized';
+  }
+
+  static bool matchesDepartment(String? value, String semanticDepartment) =>
+      normalizeDepartment(value) == normalizeDepartment(semanticDepartment);
 
   static var designTypes = [
     'monthly_plan_design', // تصميم خطة شهرية

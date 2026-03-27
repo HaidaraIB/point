@@ -5,7 +5,7 @@ import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/ClientModel.dart';
 import 'package:point/Models/ContentWriteModel.dart';
 import 'package:point/Models/EmployeeModel.dart';
-import 'package:point/Models/MonatageModel.dart';
+import 'package:point/Models/MontageModel.dart';
 import 'package:point/Models/PhotographyModel.dart';
 import 'package:point/Models/ProgrammingModel.dart';
 import 'package:point/Models/PromotionModel.dart';
@@ -212,7 +212,10 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
 
   String _departmentForType(String type) {
     final i = int.tryParse(type) ?? 0;
-    return 'cat${i + 1}';
+    if (i < 0 || i >= StorageKeys.departmentSlugs.length) {
+      return StorageKeys.departmentPromotion;
+    }
+    return StorageKeys.departmentSlugs[i];
   }
 
   Future<void> _submit() async {
@@ -607,7 +610,11 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             customClientController.text = clientController.text;
           }
           final department = _departmentForType(taskType);
-          final filteredEmployees = safeEmployees.where((a) => a.department == department).toList();
+          final filteredEmployees = safeEmployees
+              .where(
+                (a) => StorageKeys.matchesDepartment(a.department, department),
+              )
+              .toList();
 
           return Form(
             key: _formKey,

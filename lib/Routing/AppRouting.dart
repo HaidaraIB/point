@@ -13,7 +13,7 @@ import 'package:point/View/Auth/SessionSetupScreen.dart';
 import 'package:point/View/Clients/ClientsTable.dart';
 import 'package:point/View/Contents/ContentsTable.dart';
 import 'package:point/View/EmployeeDashboard/EmployeeContentDashboard.dart';
-import 'package:point/View/EmployeeDashboard/EmployeeDashoard.dart';
+import 'package:point/View/EmployeeDashboard/EmployeeDashboard.dart';
 import 'package:point/View/Employees/EmployeesTable.dart';
 import 'package:point/View/History/History.dart';
 import 'package:point/View/History/TaskHistory.dart';
@@ -37,23 +37,17 @@ class AuthMiddleware extends GetMiddleware {
 }
 
 class AppRouting {
-  static var initailPage = kIsWeb ? '/auth/login' : '/mobileSplash';
+  static var initialPage = kIsWeb ? '/auth/login' : '/mobileSplash';
 
   static final routing = [
-    GetPage(
-      name: '/mobileSplash',
-      page: () => const MobileSplashDecider(),
-    ),
+    GetPage(name: '/mobileSplash', page: () => const MobileSplashDecider()),
     GetPage(
       name: '/ClientHome',
       page: () {
         return ClientHome();
       },
     ),
-    GetPage(
-      name: '/sessionSetup',
-      page: () => const SessionSetupScreen(),
-    ),
+    GetPage(name: '/sessionSetup', page: () => const SessionSetupScreen()),
 
     GetPage(
       name: '/auth',
@@ -61,10 +55,7 @@ class AppRouting {
         return LoginView();
       },
       children: [
-        GetPage(
-          name: '/ChooseUserType',
-          page: () => ChooseUserType(),
-        ),
+        GetPage(name: '/ChooseUserType', page: () => ChooseUserType()),
         GetPage(
           name: '/CreateUserAccountMobileVersion',
           page: () {
@@ -94,7 +85,7 @@ class AppRouting {
           // middlewares: [AuthMiddleware()],
         ),
         GetPage(
-          name: '/forgetpassword',
+          name: '/forgetPassword',
           page: () {
             return ForgetPassword();
           },
@@ -172,19 +163,12 @@ class AppRouting {
           },
           middlewares: [AuthMiddleware()],
         ),
-        // GetPage(
-        //   name: '/conversation',
-        //   page: () {
-        //     return ChatScreen();
-        //   },
-        //   // middlewares: [AuthMiddleware()],
-        // ),
       ],
     ),
     GetPage(
       name: '/employeeDashboard',
       page: () {
-        return EmployeeDashBord();
+        return EmployeeDashboard();
       },
       middlewares: [AuthMiddleware()],
     ),

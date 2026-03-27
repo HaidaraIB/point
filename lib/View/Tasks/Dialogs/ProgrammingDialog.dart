@@ -16,7 +16,7 @@ import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Tasks/Mobile/GenericTaskFormMobilePage.dart';
 
-void programmingDiloag(BuildContext context, {TaskModel? model}) {
+void programmingDialog(BuildContext context, {TaskModel? model}) {
   const otherClientValue = '__other_client__';
   final ctx = Get.context;
   if (ctx != null && Responsive.isMobile(ctx)) {
@@ -132,7 +132,10 @@ void programmingDiloag(BuildContext context, {TaskModel? model}) {
                                     items:
                                         controller.employees
                                             .where(
-                                              (a) => a.department == 'cat7',
+                                              (a) => StorageKeys.matchesDepartment(
+                                                a.department,
+                                                StorageKeys.departmentProgramming,
+                                              ),
                                             )
                                             .map(
                                               (v) => DropdownMenuItem(

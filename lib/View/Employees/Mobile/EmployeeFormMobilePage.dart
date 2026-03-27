@@ -30,7 +30,7 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
 
   bool obscurePassword = true;
   String selectedRole = "employee";
-  String selectedDepartment = "cat1";
+  String selectedDepartment = StorageKeys.departmentPromotion;
   static const List<String> _roles = ["supervisor", "admin", "employee"];
 
   bool get _canEditCredentials {
@@ -53,7 +53,7 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
     emailController = TextEditingController(text: m?.email);
     passwordController = TextEditingController();
     selectedRole = m?.role ?? "employee";
-    selectedDepartment = m?.department ?? "cat1";
+    selectedDepartment = m?.department ?? StorageKeys.departmentPromotion;
     final controller = Get.find<HomeController>();
     controller.uploadedFilesPaths.assignAll(
       m != null && m.image != null ? [m.image!] : [],
@@ -284,7 +284,7 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                         setState(() {
                           selectedRole = value;
                           if (selectedRole != 'employee') {
-                            selectedDepartment = "cat1";
+                            selectedDepartment = StorageKeys.departmentPromotion;
                           }
                         });
                       }
@@ -298,7 +298,11 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                               .map(
                                 (d) => DropdownMenuItem(
                                   value: d,
-                                  child: Text(d.tr),
+                                  child: Text(
+                                    StorageKeys.semanticDepartmentLabelKey(
+                                      d,
+                                    ).tr,
+                                  ),
                                 ),
                               )
                               .toList(),

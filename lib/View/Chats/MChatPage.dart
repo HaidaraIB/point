@@ -10,6 +10,7 @@ import 'package:point/Controller/HomeController.dart';
 import 'package:point/Services/ChatAudioFocus.dart';
 import 'package:point/Services/ChatIncomingMessageSound.dart';
 import 'package:point/Services/FireStoreServices.dart';
+import 'package:point/Services/StorageKeys.dart';
 
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
@@ -80,7 +81,9 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
           homecontroller.currentemployee.value?.name ??
           homecontroller.currentemployee.value?.email ??
           AppLocaleKeys.me.tr;
-      _currentUserDept = homecontroller.currentemployee.value?.department;
+      _currentUserDept = StorageKeys.normalizeDepartment(
+        homecontroller.currentemployee.value?.department,
+      );
     } else {
       _currentUserId = 'temp_current_user';
       _currentUserName = AppLocaleKeys.me.tr;
@@ -161,7 +164,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
       final empDept = emp['dept']; // تم تعديلها لتتوافق مع الكاش
       final empRole = emp['role'] as String;
 
-      final isSameDept = empDept == deptGroupName;
+      final isSameDept = StorageKeys.matchesDepartment(empDept, deptGroupName);
 
       final isSpecialRole =
           empRole == _kRoleAdmin || empRole == _kRoleSupervisor;

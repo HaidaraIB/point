@@ -10,6 +10,7 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Services/ChatAudioFocus.dart';
 import 'package:point/Services/ChatIncomingMessageSound.dart';
 import 'package:point/Services/FireStoreServices.dart';
+import 'package:point/Services/StorageKeys.dart';
 
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -85,7 +86,9 @@ class _ChatScreenState extends State<ChatScreen> {
           homecontroller.currentemployee.value?.email ??
           'Me'.tr;
       // **جلب بيانات القسم والدور للمستخدم الحالي**
-      _currentUserDept = homecontroller.currentemployee.value?.department;
+      _currentUserDept = StorageKeys.normalizeDepartment(
+        homecontroller.currentemployee.value?.department,
+      );
     } else {
       // if no users at all, create a temporary id (but better to have employees collection)
       _currentUserId = 'temp_current_user';
@@ -172,7 +175,7 @@ class _ChatScreenState extends State<ChatScreen> {
       final empRole = emp['role'] as String;
 
       // تحقق إذا كان موظف من نفس القسم (ويستثنى الموظف الحالي الذي أضفناه بالفعل)
-      final isSameDept = empDept == deptGroupName;
+      final isSameDept = StorageKeys.matchesDepartment(empDept, deptGroupName);
 
       // تحقق إذا كان أدمن أو سوبر فايزر
       final isSpecialRole =

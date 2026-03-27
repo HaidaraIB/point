@@ -9,7 +9,7 @@ import 'package:point/View/Tasks/DetailsDialogs/GenericTaskDetailsDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 import 'package:point/View/Tasks/Mobile/TaskDetailsMobile.dart';
 
-void showMoantageDialog(BuildContext context, {required TaskModel task}) {
+void showMontageDialog(BuildContext context, {required TaskModel task}) {
   Responsive.isMobile(context)
       ? showTaskDetailsMobile(context, task: task)
       : showDialog(

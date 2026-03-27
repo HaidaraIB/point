@@ -123,7 +123,7 @@ class App extends StatelessWidget {
                 ?.copyWith(color: AppColors.primaryfontColor),
           ),
         ),
-        initialRoute: AppRouting.initailPage,
+        initialRoute: AppRouting.initialPage,
         locale: lc.currentLocale.value,
         fallbackLocale: const Locale('ar'),
         translations: AppTranslations(),

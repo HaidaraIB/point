@@ -19,7 +19,7 @@ import 'package:point/View/Tasks/DetailsDialogs/DPublishDialog.dart';
 import 'package:point/View/Tasks/Dialogs/ContentWriteDialog.dart';
 import 'package:point/View/Tasks/Dialogs/DesignDialog.dart';
 import 'package:point/View/Tasks/Dialogs/MontageDialog.dart';
-import 'package:point/View/Tasks/Dialogs/PhotoGraphyDialog.dart';
+import 'package:point/View/Tasks/Dialogs/PhotographyDialog.dart';
 import 'package:point/View/Tasks/Dialogs/ProgrammingDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PromotionDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PublishDialog.dart';
@@ -27,18 +27,48 @@ import 'package:point/View/Tasks/TaskCard.dart';
 import 'package:point/View/Tasks/TasksMobile.dart';
 
 class Tasks extends StatelessWidget {
-  final subselected = Get.parameters;
+  static const List<String> _departmentRouteSlugs = <String>[
+    StorageKeys.departmentPromotion,
+    StorageKeys.departmentDesign,
+    StorageKeys.departmentPhotography,
+    StorageKeys.departmentContentWriting,
+    StorageKeys.departmentMontage,
+    StorageKeys.departmentPublishing,
+    StorageKeys.departmentProgramming,
+  ];
+
+  int _resolveSelectedIndex() {
+    final params = Get.parameters;
+
+    final departmentSlug = params['department']?.toLowerCase();
+    if (departmentSlug != null && departmentSlug.isNotEmpty) {
+      final slugIndex = _departmentRouteSlugs.indexOf(departmentSlug);
+      if (slugIndex >= 0) return slugIndex;
+    }
+
+    final id = int.tryParse(params['id'] ?? '');
+    if (id != null && id >= 0 && id < _departmentRouteSlugs.length) {
+      return id;
+    }
+
+    return 0;
+  }
+
+  String _departmentTranslationKey(int selectedIndex) =>
+      StorageKeys.semanticDepartmentLabelKey(
+        _departmentRouteSlugs[selectedIndex],
+      );
+
   @override
   Widget build(BuildContext context) {
+    final selectedIndex = _resolveSelectedIndex();
     return ResponsiveScaffold(
       selectedTab: 40,
-      subSelected: int.parse(subselected['id'].toString()),
+      subSelected: selectedIndex,
       body: GetBuilder<HomeController>(
         builder: (controller) {
           return Responsive(
-            mobile: TasksMobile(
-              selectedIndex: int.parse(subselected['id'].toString()),
-            ),
+            mobile: TasksMobile(selectedIndex: selectedIndex),
             desktop: GetBuilder<HomeController>(
               builder: (controller) {
                 return Obx(
@@ -59,8 +89,7 @@ class Tasks extends StatelessWidget {
                               Row(
                                 children: [
                                   Text(
-                                    'cat${(int.parse(subselected['id'].toString()) + 1).toString()}'
-                                        .tr,
+                                    _departmentTranslationKey(selectedIndex).tr,
                                     style: TextStyle(
                                       color: AppColors.fontColorGrey,
                                       fontSize: 15,
@@ -95,9 +124,7 @@ class Tasks extends StatelessWidget {
                                     onPressed: () {
                                       controller.uploadedFilesPaths.clear();
 
-                                      switch (int.parse(
-                                        subselected['id'].toString(),
-                                      )) {
+                                      switch (selectedIndex) {
                                         case 0:
                                           showPromotionDialog(context);
                                           break;
@@ -105,19 +132,19 @@ class Tasks extends StatelessWidget {
                                           designDialog(context);
                                           break;
                                         case 2:
-                                          photoGraphyDialog(context);
+                                          photographyDialog(context);
                                           break;
                                         case 3:
-                                          contentWriteDiloag(context);
+                                          contentWriteDialog(context);
                                           break;
                                         case 4:
-                                          montageDiloag(context);
+                                          montageDialog(context);
                                           break;
                                         case 5:
-                                          publishDilaog(context);
+                                          publishDialog(context);
                                           break;
                                         case 6:
-                                          programmingDiloag(context);
+                                          programmingDialog(context);
                                           break;
                                         default:
                                       }
@@ -132,7 +159,7 @@ class Tasks extends StatelessWidget {
                                         .where(
                                           (a) =>
                                               a.type ==
-                                              subselected['id'].toString(),
+                                              selectedIndex.toString(),
                                         )
                                         .toList();
                                 final isDesktop = Responsive.isDesktop(
@@ -480,29 +507,6 @@ class Tasks extends StatelessWidget {
                                           ),
                                         ),
                                         const SizedBox(width: 10),
-
-                                        // 🔍 مربع البحث
-                                        // Expanded(
-                                        //   flex: 3,
-                                        //   child: TextField(
-                                        //     controller: controller.searchController,
-                                        //     decoration: InputDecoration(
-                                        //       hintText:
-                                        //           'ابحث عن مهمة، عنوان، موظف...',
-                                        //       prefixIcon: Icon(Icons.search),
-                                        //       border: OutlineInputBorder(
-                                        //         borderRadius: BorderRadius.circular(
-                                        //           10,
-                                        //         ),
-                                        //         borderSide: BorderSide(
-                                        //           color: Colors.grey.shade300,
-                                        //         ),
-                                        //       ),
-                                        //     ),
-                                        //     onChanged:
-                                        //         (value) => controller.filterTasks(),
-                                        //   ),
-                                        // ),
                                       ],
                                     ),
                                   ),
@@ -524,9 +528,7 @@ class Tasks extends StatelessWidget {
                                         : Get.width,
                                 height: 620,
                                 child: TasksGridPage(
-                                  selectedIndex: int.parse(
-                                    subselected['id'].toString(),
-                                  ),
+                                  selectedIndex: selectedIndex,
                                 ),
                               ),
                             ],
@@ -642,7 +644,7 @@ class TasksGridPage extends StatelessWidget {
                         showContentWriteDialog(context, task: tasks[index]);
                         break;
                       case 4:
-                        showMoantageDialog(context, task: tasks[index]);
+                        showMontageDialog(context, task: tasks[index]);
                         break;
                       case 5:
                         showPublishDialog(context, task: tasks[index]);

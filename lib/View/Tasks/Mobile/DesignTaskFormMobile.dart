@@ -242,7 +242,20 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                   ),
                   const SizedBox(height: 16),
                   DynamicDropdown<EmployeeModel>(
-                    items: safeEmployees.where((a) => a.department == 'cat2').map((v) => DropdownMenuItem(value: v, child: Text('${v.name} (${v.role})'))).toList(),
+                    items: safeEmployees
+                        .where(
+                          (a) => StorageKeys.matchesDepartment(
+                            a.department,
+                            StorageKeys.departmentDesign,
+                          ),
+                        )
+                        .map(
+                          (v) => DropdownMenuItem(
+                            value: v,
+                            child: Text('${v.name} (${v.role})'),
+                          ),
+                        )
+                        .toList(),
                     value: executorController.text.isEmpty ? null : safeEmployees.firstWhereOrNull((a) => a.id == executorController.text),
                     label: 'content.dialog.executor'.tr,
                     borderRadius: 8,

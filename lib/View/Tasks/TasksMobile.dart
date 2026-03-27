@@ -18,7 +18,7 @@ import 'package:point/View/Tasks/DetailsDialogs/DPublishDialog.dart';
 import 'package:point/View/Tasks/Dialogs/ContentWriteDialog.dart';
 import 'package:point/View/Tasks/Dialogs/DesignDialog.dart';
 import 'package:point/View/Tasks/Dialogs/MontageDialog.dart';
-import 'package:point/View/Tasks/Dialogs/PhotoGraphyDialog.dart';
+import 'package:point/View/Tasks/Dialogs/PhotographyDialog.dart';
 import 'package:point/View/Tasks/Dialogs/ProgrammingDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PromotionDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PublishDialog.dart';
@@ -26,6 +26,16 @@ import 'package:point/View/Tasks/TaskCard.dart';
 
 /// Mobile-only tasks screen with a single scroll so the last item is fully visible.
 class TasksMobile extends StatelessWidget {
+  static const List<String> _departmentRouteSlugs = <String>[
+    StorageKeys.departmentPromotion,
+    StorageKeys.departmentDesign,
+    StorageKeys.departmentPhotography,
+    StorageKeys.departmentContentWriting,
+    StorageKeys.departmentMontage,
+    StorageKeys.departmentPublishing,
+    StorageKeys.departmentProgramming,
+  ];
+
   final int selectedIndex;
 
   const TasksMobile({super.key, required this.selectedIndex});
@@ -99,10 +109,18 @@ class TasksMobile extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context, HomeController controller) {
+    final safeIndex = selectedIndex < 0
+        ? 0
+        : (selectedIndex >= _departmentRouteSlugs.length
+            ? _departmentRouteSlugs.length - 1
+            : selectedIndex);
+    final labelKey = StorageKeys.semanticDepartmentLabelKey(
+      _departmentRouteSlugs[safeIndex],
+    );
     return Row(
       children: [
         Text(
-          'cat${selectedIndex + 1}'.tr,
+          labelKey.tr,
           style: const TextStyle(
             color: AppColors.fontColorGrey,
             fontSize: 15,
@@ -140,19 +158,19 @@ class TasksMobile extends StatelessWidget {
                 designDialog(context);
                 break;
               case 2:
-                photoGraphyDialog(context);
+                photographyDialog(context);
                 break;
               case 3:
-                contentWriteDiloag(context);
+                contentWriteDialog(context);
                 break;
               case 4:
-                montageDiloag(context);
+                montageDialog(context);
                 break;
               case 5:
-                publishDilaog(context);
+                publishDialog(context);
                 break;
               case 6:
-                programmingDiloag(context);
+                programmingDialog(context);
                 break;
               default:
             }
@@ -476,7 +494,7 @@ class TasksMobile extends StatelessWidget {
         showContentWriteDialog(context, task: task);
         break;
       case 4:
-        showMoantageDialog(context, task: task);
+        showMontageDialog(context, task: task);
         break;
       case 5:
         showPublishDialog(context, task: task);

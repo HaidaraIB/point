@@ -17,7 +17,7 @@ import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/t.dart';
 import 'package:point/View/Tasks/Mobile/GenericTaskFormMobilePage.dart';
 
-void photoGraphyDialog(BuildContext context, {TaskModel? model}) {
+void photographyDialog(BuildContext context, {TaskModel? model}) {
   const otherClientValue = '__other_client__';
   final ctx = Get.context;
   if (ctx != null && Responsive.isMobile(ctx)) {
@@ -149,7 +149,10 @@ void photoGraphyDialog(BuildContext context, {TaskModel? model}) {
                                     items:
                                         controller.employees
                                             .where(
-                                              (a) => a.department == 'cat3',
+                                              (a) => StorageKeys.matchesDepartment(
+                                                a.department,
+                                                StorageKeys.departmentPhotography,
+                                              ),
                                             )
                                             .map(
                                               (v) => DropdownMenuItem(

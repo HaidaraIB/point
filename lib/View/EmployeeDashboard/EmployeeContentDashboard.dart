@@ -13,7 +13,7 @@ import 'package:point/View/Shared/CustomHeader.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/responsive.dart';
 
-/// Content management for employees (Promotion/Publishing): same shell as [EmployeeDashBord],
+/// Content management for employees (Promotion/Publishing): same shell as [EmployeeDashboard],
 /// responsive mobile vs desktop/web — no [ResponsiveScaffold] drawer.
 class EmployeeContentDashboard extends StatelessWidget {
   const EmployeeContentDashboard({super.key});

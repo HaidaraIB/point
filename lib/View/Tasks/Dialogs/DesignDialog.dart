@@ -120,7 +120,10 @@ void designDialog(BuildContext context, {TaskModel? model}) {
                                     items:
                                         controller.employees
                                             .where(
-                                              (a) => a.department == 'cat2',
+                                              (a) => StorageKeys.matchesDepartment(
+                                                a.department,
+                                                StorageKeys.departmentDesign,
+                                              ),
                                             )
                                             .map(
                                               (v) => DropdownMenuItem(

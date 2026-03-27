@@ -26,18 +26,18 @@ class TasksHistory extends StatefulWidget {
 }
 
 class _TasksHistoryState extends State<TasksHistory> {
-  int subselected = 0;
-  late final TextEditingController catController;
+  int selectedDepartmentIndex = 0;
+  late final TextEditingController departmentController;
 
   @override
   void initState() {
     super.initState();
-    catController = TextEditingController();
+    departmentController = TextEditingController();
   }
 
   @override
   void dispose() {
-    catController.dispose();
+    departmentController.dispose();
     super.dispose();
   }
 
@@ -45,16 +45,16 @@ class _TasksHistoryState extends State<TasksHistory> {
   Widget build(BuildContext context) {
     return ResponsiveScaffold(
       selectedTab: 8,
-      subSelected: subselected,
+      subSelected: selectedDepartmentIndex,
       body: GetBuilder<HomeController>(
         builder: (controller) {
           return Responsive(
             mobile: TasksHistoryMobile(
-              selectedIndex: subselected,
+              selectedIndex: selectedDepartmentIndex,
               onDepartmentChanged: (int newIndex) {
                 setState(() {
-                  subselected = newIndex;
-                  catController.text = StorageKeys.departments[newIndex];
+                  selectedDepartmentIndex = newIndex;
+                  departmentController.text = StorageKeys.departments[newIndex];
                 });
               },
             ),
@@ -78,7 +78,9 @@ class _TasksHistoryState extends State<TasksHistory> {
                               Row(
                                 children: [
                                   Text(
-                                    'cat${(subselected + 1).toString()}'.tr,
+                                    StorageKeys.semanticDepartmentLabelKey(
+                                      StorageKeys.departments[selectedDepartmentIndex],
+                                    ).tr,
                                     style: TextStyle(
                                       color: AppColors.fontColorGrey,
                                       fontSize: 15,
@@ -94,14 +96,20 @@ class _TasksHistoryState extends State<TasksHistory> {
                                               .map(
                                                 (v) => DropdownMenuItem(
                                                   value: v,
-                                                  child: Text('$v'.tr),
+                                                  child: Text(
+                                                    StorageKeys
+                                                        .semanticDepartmentLabelKey(
+                                                          v,
+                                                        )
+                                                        .tr,
+                                                  ),
                                                 ),
                                               )
                                               .toList(),
                                       value:
-                                          catController.text.isEmpty
+                                          departmentController.text.isEmpty
                                               ? null
-                                              : catController.text,
+                                              : departmentController.text,
                                       label: 'history.select_department'.tr,
                                       borderRadius: 5,
                                       borderColor: Colors.grey.shade300,
@@ -110,9 +118,9 @@ class _TasksHistoryState extends State<TasksHistory> {
                                       onChanged: (value) {
                                         if (value != null) {
                                           setState(() {
-                                            catController.text =
+                                            departmentController.text =
                                                 value.toString();
-                                            subselected = StorageKeys
+                                            selectedDepartmentIndex = StorageKeys
                                                 .departments
                                                 .indexOf(value.toString());
                                           });
@@ -123,8 +131,8 @@ class _TasksHistoryState extends State<TasksHistory> {
                                           );
                                         } else {
                                           setState(() {
-                                            catController.clear();
-                                            subselected = 0;
+                                            departmentController.clear();
+                                            selectedDepartmentIndex = 0;
                                           });
                                         }
                                       },
@@ -142,7 +150,8 @@ class _TasksHistoryState extends State<TasksHistory> {
                                     controller.tasksHistory
                                         .where(
                                           (a) =>
-                                              a.type == subselected.toString(),
+                                              a.type ==
+                                              selectedDepartmentIndex.toString(),
                                         )
                                         .toList();
                                 return Row(
@@ -440,7 +449,7 @@ class _TasksHistoryState extends State<TasksHistory> {
                                         : Get.width,
                                 height: 620,
                                 child: TasksGridPage(
-                                  selectedIndex: subselected,
+                                  selectedIndex: selectedDepartmentIndex,
                                 ),
                               ),
                             ],
@@ -550,7 +559,7 @@ class TasksGridPage extends StatelessWidget {
                         showContentWriteDialog(context, task: tasks[index]);
                         break;
                       case 4:
-                        showMoantageDialog(context, task: tasks[index]);
+                        showMontageDialog(context, task: tasks[index]);
                         break;
                       case 5:
                         showPublishDialog(context, task: tasks[index]);

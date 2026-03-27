@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
+import 'package:point/Services/StorageKeys.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Tasks/DetailsDialogs/GenericTaskDetailsDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
@@ -46,10 +47,14 @@ class PromotionDetailsSection extends StatelessWidget {
     String normalizeDepartmentId(String? value) {
       final v = value?.trim() ?? '';
       if (v.isEmpty) return '-';
-      // Sometimes data is stored like `c2` instead of `cat2`.
       final match = RegExp(r'^c(\d+)$').firstMatch(v);
       if (match != null) {
-        return 'cat${match.group(1)}';
+        final legacyIndex = int.tryParse(match.group(1) ?? '');
+        if (legacyIndex != null &&
+            legacyIndex > 0 &&
+            legacyIndex <= StorageKeys.departmentSlugs.length) {
+          return StorageKeys.departmentSlugs[legacyIndex - 1];
+        }
       }
       return v;
     }

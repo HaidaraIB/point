@@ -20,6 +20,16 @@ import 'package:point/View/Tasks/TaskCard.dart';
 /// Mobile-only task history screen: same layout as TasksMobile but uses
 /// tasksHistory, filterTasksHistory(), and statusListEnded for filters.
 class TasksHistoryMobile extends StatelessWidget {
+  static const List<String> _departmentRouteSlugs = <String>[
+    StorageKeys.departmentPromotion,
+    StorageKeys.departmentDesign,
+    StorageKeys.departmentPhotography,
+    StorageKeys.departmentContentWriting,
+    StorageKeys.departmentMontage,
+    StorageKeys.departmentPublishing,
+    StorageKeys.departmentProgramming,
+  ];
+
   final int selectedIndex;
   final ValueChanged<int> onDepartmentChanged;
 
@@ -96,10 +106,17 @@ class TasksHistoryMobile extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
+    final safeIndex = selectedIndex < 0
+        ? 0
+        : (selectedIndex >= _departmentRouteSlugs.length
+            ? _departmentRouteSlugs.length - 1
+            : selectedIndex);
     return Row(
       children: [
         Text(
-          'cat${selectedIndex + 1}'.tr,
+          StorageKeys.semanticDepartmentLabelKey(
+            _departmentRouteSlugs[safeIndex],
+          ).tr,
           style: const TextStyle(
             color: AppColors.fontColorGrey,
             fontSize: 15,
@@ -111,9 +128,16 @@ class TasksHistoryMobile extends StatelessWidget {
           child: DynamicDropdown<String>(
             items:
                 StorageKeys.departments
-                    .map((v) => DropdownMenuItem(value: v, child: Text(v.tr)))
+                    .map(
+                      (v) => DropdownMenuItem(
+                        value: v,
+                        child: Text(
+                          StorageKeys.semanticDepartmentLabelKey(v).tr,
+                        ),
+                      ),
+                    )
                     .toList(),
-            value: StorageKeys.departments[selectedIndex],
+            value: StorageKeys.departments[safeIndex],
             label: 'history.select_department'.tr,
             borderRadius: 5,
             borderColor: Colors.grey.shade300,
@@ -416,7 +440,7 @@ class TasksHistoryMobile extends StatelessWidget {
         showContentWriteDialog(context, task: task);
         break;
       case 4:
-        showMoantageDialog(context, task: task);
+        showMontageDialog(context, task: task);
         break;
       case 5:
         showPublishDialog(context, task: task);

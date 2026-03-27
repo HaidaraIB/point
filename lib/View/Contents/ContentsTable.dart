@@ -22,7 +22,7 @@ import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/ContentStatusPromotionDropdownChip.dart';
-import 'package:point/View/Shared/HorizantalScroll.dart';
+import 'package:point/View/Shared/HorizontalScroll.dart';
 import 'package:point/View/Shared/TableCellCenter.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/t.dart';
@@ -117,10 +117,14 @@ class ContentsTable extends StatelessWidget {
                               },
                             ),
                             SizedBox(width: 10),
-                            if (controller.currentemployee.value?.department ==
-                                    'cat1' ||
-                                controller.currentemployee.value?.department ==
-                                    'cat6')
+                            if (StorageKeys.matchesDepartment(
+                                  controller.currentemployee.value?.department,
+                                  StorageKeys.departmentPromotion,
+                                ) ||
+                                StorageKeys.matchesDepartment(
+                                  controller.currentemployee.value?.department,
+                                  StorageKeys.departmentPublishing,
+                                ))
                               MainButton(
                                 width: 180,
                                 height: 45,
@@ -721,11 +725,14 @@ class ContentsTable extends StatelessWidget {
                                                                       .value
                                                                       ?.role !=
                                                                   'supervisor' &&
-                                                              controller
-                                                                      .currentemployee
-                                                                      .value
-                                                                      ?.department !=
-                                                                  'cat1') {
+                                                          !StorageKeys.matchesDepartment(
+                                                            controller
+                                                                .currentemployee
+                                                                .value
+                                                                ?.department,
+                                                            StorageKeys
+                                                                .departmentPromotion,
+                                                          )) {
                                                             FunHelper.showSnackbar(
                                                               'error'.tr,
                                                               'errors.no_promotion_permission'
@@ -1309,8 +1316,14 @@ class ContentsTable extends StatelessWidget {
                     );
                   },
                 ),
-                if (controller.currentemployee.value?.department == 'cat1' ||
-                    controller.currentemployee.value?.department == 'cat6') ...[
+                if (StorageKeys.matchesDepartment(
+                      controller.currentemployee.value?.department,
+                      StorageKeys.departmentPromotion,
+                    ) ||
+                    StorageKeys.matchesDepartment(
+                      controller.currentemployee.value?.department,
+                      StorageKeys.departmentPublishing,
+                    )) ...[
                   const SizedBox(width: 8),
                   MainButton(
                     width: 140,

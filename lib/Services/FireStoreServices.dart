@@ -11,6 +11,7 @@ import 'package:point/Models/NotificationModel.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Models/ChatMetaData.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Services/EmailNotificationService.dart';
 import 'package:point/config/app_config.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -1861,16 +1862,18 @@ class FirestoreServices {
     }
   }
 
-  /// جلب معرفات الموظفين حسب القسم (مثل cat6 للنشر، cat1 للترويج).
+  /// جلب معرفات الموظفين حسب القسم الدلالي (مثل publishing, promotion).
   static Future<List<String>> getEmployeeIdsByDepartment(
     String department,
   ) async {
     if (department.isEmpty) return [];
     try {
+      final normalized = StorageKeys.normalizeDepartment(department);
+      if (normalized.isEmpty) return [];
       final snap =
           await FirebaseFirestore.instance
               .collection('employees')
-              .where('department', isEqualTo: department)
+              .where('department', isEqualTo: normalized)
               .get();
       return snap.docs.map((d) => d.id).where((id) => id.isNotEmpty).toList();
     } catch (e) {

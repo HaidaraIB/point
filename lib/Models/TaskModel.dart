@@ -1,6 +1,6 @@
 import 'package:point/Models/ContentWriteModel.dart';
 import 'package:point/Models/DesignTaskModel.dart';
-import 'package:point/Models/MonatageModel.dart';
+import 'package:point/Models/MontageModel.dart';
 import 'package:point/Models/PhotographyModel.dart';
 import 'package:point/Models/ProgrammingModel.dart';
 import 'package:point/Models/PromotionModel.dart';

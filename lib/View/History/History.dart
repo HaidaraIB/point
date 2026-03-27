@@ -16,7 +16,7 @@ import 'package:point/View/Mobile/ContentStatusCard.dart' show getFileType;
 import 'package:point/View/Shared/ContentStatusPromotionDropdownChip.dart';
 import 'package:point/View/Shared/CustomDropDown.dart';
 import 'package:point/View/Shared/InputText.dart';
-import 'package:point/View/Shared/HorizantalScroll.dart';
+import 'package:point/View/Shared/HorizontalScroll.dart';
 import 'package:point/View/Shared/TableCellCenter.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 import 'package:point/View/Shared/button.dart';
@@ -623,11 +623,14 @@ class History extends StatelessWidget {
                                                                   .value
                                                                   ?.role !=
                                                               'supervisor' &&
-                                                          controller
-                                                                  .currentemployee
-                                                                  .value
-                                                                  ?.department !=
-                                                              'cat1') {
+                                                          !StorageKeys.matchesDepartment(
+                                                            controller
+                                                                .currentemployee
+                                                                .value
+                                                                ?.department,
+                                                            StorageKeys
+                                                                .departmentPromotion,
+                                                          )) {
                                                         FunHelper.showSnackbar(
                                                           'error'.tr,
                                                           'errors.no_promotion_permission'

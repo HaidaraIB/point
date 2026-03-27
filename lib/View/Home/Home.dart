@@ -836,7 +836,7 @@ Widget tasksUnderProcessing(BuildContext context) {
                             showContentWriteDialog(context, task: content);
                             break;
                           case '4':
-                            showMoantageDialog(context, task: content);
+                            showMontageDialog(context, task: content);
                             break;
                           case '5':
                             showPublishDialog(context, task: content);

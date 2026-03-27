@@ -4,6 +4,7 @@ import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Localization/LanguageController.dart';
 import 'package:point/Services/FireStoreServices.dart';
+import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/AppConstants.dart';
 import 'package:point/Utils/AppImages.dart';
@@ -20,9 +21,12 @@ class CustomSidebar extends StatefulWidget {
 class _CustomSidebarState extends State<CustomSidebar> {
   Map<String, bool> openMenus = {};
   bool isCollapsed = false;
-  late int _selectedtab;
-  int? _subseletedtab;
+  late int _selectedTab;
+  int? _selectedSubTab;
   final LanguageController _languageController = Get.find<LanguageController>();
+
+  String _departmentText(String slug) =>
+      StorageKeys.semanticDepartmentLabelKey(slug).tr;
 
   Future<bool> _confirmLogout() async {
     final isArabic = Get.locale?.languageCode == 'ar';
@@ -58,17 +62,17 @@ class _CustomSidebarState extends State<CustomSidebar> {
   @override
   void initState() {
     super.initState();
-    _selectedtab = widget.selectedTab;
-    _subseletedtab = widget.subSelected;
+    _selectedTab = widget.selectedTab;
+    _selectedSubTab = widget.subSelected;
   }
 
   @override
   void didUpdateWidget(covariant CustomSidebar oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.selectedTab != widget.selectedTab)
-      _selectedtab = widget.selectedTab;
+      _selectedTab = widget.selectedTab;
     if (oldWidget.subSelected != widget.subSelected)
-      _subseletedtab = widget.subSelected;
+      _selectedSubTab = widget.subSelected;
   }
 
   @override
@@ -214,7 +218,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                 text: "home".tr,
                                 onTap: () {
                                   setState(() {
-                                    _selectedtab = 0;
+                                    _selectedTab = 0;
                                   });
                                   WidgetsBinding.instance.addPostFrameCallback((
                                     _,
@@ -230,7 +234,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                 text: "employees".tr,
                                 onTap: () {
                                   setState(() {
-                                    _selectedtab = 1;
+                                    _selectedTab = 1;
                                   });
                                   WidgetsBinding.instance.addPostFrameCallback((
                                     _,
@@ -246,7 +250,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                 text: "clients".tr,
                                 onTap: () {
                                   setState(() {
-                                    _selectedtab = 2;
+                                    _selectedTab = 2;
                                   });
                                   WidgetsBinding.instance.addPostFrameCallback((
                                     _,
@@ -262,7 +266,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                 text: "content".tr,
                                 onTap: () {
                                   setState(() {
-                                    _selectedtab = 3;
+                                    _selectedTab = 3;
                                   });
                                   WidgetsBinding.instance.addPostFrameCallback((
                                     _,
@@ -283,15 +287,17 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                 children: [
                                   _buildSubTile(
                                     selectedTab: 0,
-                                    text: "cat1".tr,
+                                    text: _departmentText(
+                                      StorageKeys.departmentPromotion,
+                                    ),
                                     onTap: () {
                                       setState(() {
-                                        _subseletedtab = 0;
+                                        _selectedSubTab = 0;
                                       });
                                       WidgetsBinding.instance
                                           .addPostFrameCallback((_) {
                                             Get.toNamed(
-                                              '/tasks?id=0',
+                                              '/tasks?department=promotion&id=0',
                                               arguments: 0,
                                               preventDuplicates: false,
                                             );
@@ -301,15 +307,17 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                   _buildSubTile(
                                     selectedTab: 1,
 
-                                    text: "cat2".tr,
+                                    text: _departmentText(
+                                      StorageKeys.departmentDesign,
+                                    ),
                                     onTap: () {
                                       setState(() {
-                                        _subseletedtab = 1;
+                                        _selectedSubTab = 1;
                                       });
                                       WidgetsBinding.instance
                                           .addPostFrameCallback((_) {
                                             Get.toNamed(
-                                              '/tasks?id=1',
+                                              '/tasks?department=design&id=1',
                                               arguments: 1,
                                               preventDuplicates: false,
                                             );
@@ -319,15 +327,17 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                   _buildSubTile(
                                     selectedTab: 2,
 
-                                    text: "cat3".tr,
+                                    text: _departmentText(
+                                      StorageKeys.departmentPhotography,
+                                    ),
                                     onTap: () {
                                       setState(() {
-                                        _subseletedtab = 2;
+                                        _selectedSubTab = 2;
                                       });
                                       WidgetsBinding.instance
                                           .addPostFrameCallback((_) {
                                             Get.toNamed(
-                                              '/tasks?id=2',
+                                              '/tasks?department=photography&id=2',
                                               arguments: 2,
                                               preventDuplicates: false,
                                             );
@@ -337,15 +347,17 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                   _buildSubTile(
                                     selectedTab: 3,
 
-                                    text: "cat4".tr,
+                                    text: _departmentText(
+                                      StorageKeys.departmentContentWriting,
+                                    ),
                                     onTap: () {
                                       setState(() {
-                                        _subseletedtab = 3;
+                                        _selectedSubTab = 3;
                                       });
                                       WidgetsBinding.instance
                                           .addPostFrameCallback((_) {
                                             Get.toNamed(
-                                              '/tasks?id=3',
+                                              '/tasks?department=content-writing&id=3',
                                               arguments: 2,
                                               preventDuplicates: false,
                                             );
@@ -355,15 +367,17 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                   _buildSubTile(
                                     selectedTab: 4,
 
-                                    text: "cat5".tr,
+                                    text: _departmentText(
+                                      StorageKeys.departmentMontage,
+                                    ),
                                     onTap: () {
                                       setState(() {
-                                        _subseletedtab = 4;
+                                        _selectedSubTab = 4;
                                       });
                                       WidgetsBinding.instance
                                           .addPostFrameCallback((_) {
                                             Get.toNamed(
-                                              '/tasks?id=4',
+                                              '/tasks?department=montage&id=4',
                                               arguments: 2,
                                               preventDuplicates: false,
                                             );
@@ -373,15 +387,17 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                   _buildSubTile(
                                     selectedTab: 5,
 
-                                    text: "cat6".tr,
+                                    text: _departmentText(
+                                      StorageKeys.departmentPublishing,
+                                    ),
                                     onTap: () {
                                       setState(() {
-                                        _subseletedtab = 5;
+                                        _selectedSubTab = 5;
                                       });
                                       WidgetsBinding.instance
                                           .addPostFrameCallback((_) {
                                             Get.toNamed(
-                                              '/tasks?id=5',
+                                              '/tasks?department=publishing&id=5',
                                               arguments: 2,
                                               preventDuplicates: false,
                                             );
@@ -391,15 +407,17 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                   _buildSubTile(
                                     selectedTab: 6,
 
-                                    text: "cat7".tr,
+                                    text: _departmentText(
+                                      StorageKeys.departmentProgramming,
+                                    ),
                                     onTap: () {
                                       setState(() {
-                                        _subseletedtab = 6;
+                                        _selectedSubTab = 6;
                                       });
                                       WidgetsBinding.instance
                                           .addPostFrameCallback((_) {
                                             Get.toNamed(
-                                              '/tasks?id=6',
+                                              '/tasks?department=programming&id=6',
                                               arguments: 2,
                                               preventDuplicates: false,
                                             );
@@ -414,7 +432,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                 text: "statistcs".tr,
                                 onTap: () {
                                   setState(() {
-                                    _selectedtab = 6;
+                                    _selectedTab = 6;
                                   });
                                   WidgetsBinding.instance.addPostFrameCallback((
                                     _,
@@ -431,7 +449,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                 iconData: Icons.history_rounded,
                                 onTap: () {
                                   setState(() {
-                                    _selectedtab = 7;
+                                    _selectedTab = 7;
                                   });
                                   WidgetsBinding.instance.addPostFrameCallback((
                                     _,
@@ -448,7 +466,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                 iconData: Icons.assignment_outlined,
                                 onTap: () {
                                   setState(() {
-                                    _selectedtab = 8;
+                                    _selectedTab = 8;
                                   });
                                   WidgetsBinding.instance.addPostFrameCallback((
                                     _,
@@ -468,7 +486,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                 text: "content".tr,
                                 onTap: () {
                                   setState(() {
-                                    _selectedtab = 3;
+                                    _selectedTab = 3;
                                   });
                                   WidgetsBinding.instance.addPostFrameCallback((
                                     _,
@@ -489,15 +507,17 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                 children: [
                                   _buildSubTile(
                                     selectedTab: 0,
-                                    text: "cat1".tr,
+                                    text: _departmentText(
+                                      StorageKeys.departmentPromotion,
+                                    ),
                                     onTap: () {
                                       setState(() {
-                                        _subseletedtab = 0;
+                                        _selectedSubTab = 0;
                                       });
                                       WidgetsBinding.instance
                                           .addPostFrameCallback((_) {
                                             Get.toNamed(
-                                              '/tasks?id=0',
+                                              '/tasks?department=promotion&id=0',
                                               arguments: 0,
                                               preventDuplicates: false,
                                             );
@@ -507,15 +527,17 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                   _buildSubTile(
                                     selectedTab: 1,
 
-                                    text: "cat2".tr,
+                                    text: _departmentText(
+                                      StorageKeys.departmentDesign,
+                                    ),
                                     onTap: () {
                                       setState(() {
-                                        _subseletedtab = 1;
+                                        _selectedSubTab = 1;
                                       });
                                       WidgetsBinding.instance
                                           .addPostFrameCallback((_) {
                                             Get.toNamed(
-                                              '/tasks?id=1',
+                                              '/tasks?department=design&id=1',
                                               arguments: 1,
                                               preventDuplicates: false,
                                             );
@@ -525,15 +547,17 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                   _buildSubTile(
                                     selectedTab: 2,
 
-                                    text: "cat3".tr,
+                                    text: _departmentText(
+                                      StorageKeys.departmentPhotography,
+                                    ),
                                     onTap: () {
                                       setState(() {
-                                        _subseletedtab = 2;
+                                        _selectedSubTab = 2;
                                       });
                                       WidgetsBinding.instance
                                           .addPostFrameCallback((_) {
                                             Get.toNamed(
-                                              '/tasks?id=2',
+                                              '/tasks?department=photography&id=2',
                                               arguments: 2,
                                               preventDuplicates: false,
                                             );
@@ -543,15 +567,17 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                   _buildSubTile(
                                     selectedTab: 3,
 
-                                    text: "cat4".tr,
+                                    text: _departmentText(
+                                      StorageKeys.departmentContentWriting,
+                                    ),
                                     onTap: () {
                                       setState(() {
-                                        _subseletedtab = 3;
+                                        _selectedSubTab = 3;
                                       });
                                       WidgetsBinding.instance
                                           .addPostFrameCallback((_) {
                                             Get.toNamed(
-                                              '/tasks?id=3',
+                                              '/tasks?department=content-writing&id=3',
                                               arguments: 2,
                                               preventDuplicates: false,
                                             );
@@ -561,15 +587,17 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                   _buildSubTile(
                                     selectedTab: 4,
 
-                                    text: "cat5".tr,
+                                    text: _departmentText(
+                                      StorageKeys.departmentMontage,
+                                    ),
                                     onTap: () {
                                       setState(() {
-                                        _subseletedtab = 4;
+                                        _selectedSubTab = 4;
                                       });
                                       WidgetsBinding.instance
                                           .addPostFrameCallback((_) {
                                             Get.toNamed(
-                                              '/tasks?id=4',
+                                              '/tasks?department=montage&id=4',
                                               arguments: 2,
                                               preventDuplicates: false,
                                             );
@@ -579,15 +607,17 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                   _buildSubTile(
                                     selectedTab: 5,
 
-                                    text: "cat6".tr,
+                                    text: _departmentText(
+                                      StorageKeys.departmentPublishing,
+                                    ),
                                     onTap: () {
                                       setState(() {
-                                        _subseletedtab = 5;
+                                        _selectedSubTab = 5;
                                       });
                                       WidgetsBinding.instance
                                           .addPostFrameCallback((_) {
                                             Get.toNamed(
-                                              '/tasks?id=5',
+                                              '/tasks?department=publishing&id=5',
                                               arguments: 2,
                                               preventDuplicates: false,
                                             );
@@ -597,15 +627,17 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                   _buildSubTile(
                                     selectedTab: 6,
 
-                                    text: "cat7".tr,
+                                    text: _departmentText(
+                                      StorageKeys.departmentProgramming,
+                                    ),
                                     onTap: () {
                                       setState(() {
-                                        _subseletedtab = 6;
+                                        _selectedSubTab = 6;
                                       });
                                       WidgetsBinding.instance
                                           .addPostFrameCallback((_) {
                                             Get.toNamed(
-                                              '/tasks?id=6',
+                                              '/tasks?department=programming&id=6',
                                               arguments: 2,
                                               preventDuplicates: false,
                                             );
@@ -736,9 +768,9 @@ class _CustomSidebarState extends State<CustomSidebar> {
     final tileColor = customColor;
     final color =
         tileColor ??
-        (selectedTab == _selectedtab ? AppColors.fontColorGrey : Colors.white);
+        (selectedTab == _selectedTab ? AppColors.fontColorGrey : Colors.white);
     final decoration =
-        selectedTab == _selectedtab
+        selectedTab == _selectedTab
             ? BoxDecoration(
               color: Color(0xffECECEC),
               borderRadius: BorderRadius.circular(3),
@@ -789,14 +821,14 @@ class _CustomSidebarState extends State<CustomSidebar> {
             fontSize: 14,
             color:
                 tileColor ??
-                (selectedTab == _selectedtab
+                (selectedTab == _selectedTab
                     ? AppColors.fontColorGrey
                     : Colors.white),
             fontWeight: FontWeight.w500,
           ),
         ),
         onTap: onTap,
-        trailing: selectedTab == _selectedtab ? Icon(Icons.arrow_forward) : null,
+        trailing: selectedTab == _selectedTab ? Icon(Icons.arrow_forward) : null,
       ),
     );
   }
@@ -811,7 +843,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
       height: 30,
       alignment: Alignment.center,
       decoration:
-          selectedTab == _subseletedtab
+          selectedTab == _selectedSubTab
               ? BoxDecoration(
                 color: Color(0xffECECEC),
                 borderRadius: BorderRadius.circular(3),
@@ -823,7 +855,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
           Icons.circle,
           size: 9,
           color:
-              selectedTab == _subseletedtab
+              selectedTab == _selectedSubTab
                   ? AppColors.fontColorGrey
                   : Colors.white,
         ),
@@ -835,7 +867,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
                   style: TextStyle(
                     fontSize: 14,
                     color:
-                        selectedTab == _subseletedtab
+                        selectedTab == _selectedSubTab
                             ? AppColors.fontColorGrey
                             : Colors.white,
                     fontWeight: FontWeight.w500,
@@ -844,7 +876,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
         onTap: onTap,
         contentPadding: EdgeInsets.symmetric(horizontal: 10),
         //   trailing:
-        //       selectedtab == _subseletedtab
+        //       selectedTab == _selectedSubTab
         //           ? Icon(Icons.arrow_forward)
         //           : null,
       ),
@@ -859,11 +891,11 @@ class _CustomSidebarState extends State<CustomSidebar> {
     required List<Widget> children,
   }) {
     final iconColor =
-        selectedTab == _selectedtab
+        selectedTab == _selectedTab
             ? AppColors.fontColorGrey
             : Colors.white;
     final decoration =
-        selectedTab == _selectedtab
+        selectedTab == _selectedTab
             ? BoxDecoration(
               color: Color(0xffECECEC),
               borderRadius: BorderRadius.circular(3),
@@ -916,7 +948,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
           style: TextStyle(
             fontSize: 14,
             color:
-                selectedTab == _selectedtab
+                selectedTab == _selectedTab
                     ? AppColors.fontColorGrey
                     : Colors.white,
             fontWeight: FontWeight.w500,

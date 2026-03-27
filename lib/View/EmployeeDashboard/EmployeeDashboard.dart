@@ -23,8 +23,7 @@ import 'package:point/View/Tasks/DetailsDialogs/DPromotionDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPublishDialog.dart';
 import 'package:point/View/Tasks/Dialogs/ProgrammingDialog.dart';
 
-class EmployeeDashBord extends StatelessWidget {
-  // final subselected = Get.parameters;
+class EmployeeDashboard extends StatelessWidget {
   final LanguageController _languageController = Get.find<LanguageController>();
   @override
   Widget build(BuildContext context) {
@@ -33,7 +32,8 @@ class EmployeeDashBord extends StatelessWidget {
         final isMobile = Responsive.isMobile(context);
         return Scaffold(
           backgroundColor: Colors.grey.shade100,
-          appBar: isMobile ? EmployeeMobileAppBar(controller: controller) : null,
+          appBar:
+              isMobile ? EmployeeMobileAppBar(controller: controller) : null,
           body: Responsive(mobile: _buildMobile(), desktop: _buildDesktop()),
         );
       },
@@ -70,15 +70,6 @@ class EmployeeDashBord extends StatelessWidget {
 
                       Row(
                         children: [
-                          // Text(
-                          //   'cat${(int.parse(subselected['id'].toString()) + 1).toString()}'
-                          //       .tr,
-                          //   style: TextStyle(
-                          //     color: AppColors.fontColorGrey,
-                          //     fontSize: 15,
-                          //     fontWeight: FontWeight.bold,
-                          //   ),
-                          // ),
                           Text(
                             'employee.dashboard.tasks_assigned_to_you'.tr,
                             style: TextStyle(
@@ -115,10 +106,14 @@ class EmployeeDashBord extends StatelessWidget {
                                 ],
                           ),
                           Spacer(),
-                          if (controller.currentemployee.value?.department ==
-                                  'cat1' ||
-                              controller.currentemployee.value?.department ==
-                                  'cat6')
+                          if (StorageKeys.matchesDepartment(
+                                controller.currentemployee.value?.department,
+                                StorageKeys.departmentPromotion,
+                              ) ||
+                              StorageKeys.matchesDepartment(
+                                controller.currentemployee.value?.department,
+                                StorageKeys.departmentPublishing,
+                              ))
                             MainButton(
                               width: 180,
                               height: 45,
@@ -159,11 +154,14 @@ class EmployeeDashBord extends StatelessWidget {
                                       controller.currentemployee.value?.id,
                                 )
                                 .toList();
-                        final isDesktop =
-                            Responsive.isDesktop(Get.context!);
-                        final boxWidth = isDesktop
-                            ? null
-                            : (Get.width / 5 - 30).clamp(88.0, double.infinity);
+                        final isDesktop = Responsive.isDesktop(Get.context!);
+                        final boxWidth =
+                            isDesktop
+                                ? null
+                                : (Get.width / 5 - 30).clamp(
+                                  88.0,
+                                  double.infinity,
+                                );
                         final statRow = Row(
                           mainAxisSize: MainAxisSize.min,
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -229,9 +227,9 @@ class EmployeeDashBord extends StatelessWidget {
                         return isDesktop
                             ? statRow
                             : SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: statRow,
-                              );
+                              scrollDirection: Axis.horizontal,
+                              child: statRow,
+                            );
                       }),
 
                       SizedBox(height: 15),
@@ -421,10 +419,14 @@ class EmployeeDashBord extends StatelessWidget {
                             ),
                           ),
                           Spacer(),
-                          if (controller.currentemployee.value?.department ==
-                                  'cat1' ||
-                              controller.currentemployee.value?.department ==
-                                  'cat6')
+                          if (StorageKeys.matchesDepartment(
+                                controller.currentemployee.value?.department,
+                                StorageKeys.departmentPromotion,
+                              ) ||
+                              StorageKeys.matchesDepartment(
+                                controller.currentemployee.value?.department,
+                                StorageKeys.departmentPublishing,
+                              ))
                             MainButton(
                               width: 180,
                               height: 45,
@@ -741,7 +743,8 @@ class EmployeeDashBord extends StatelessWidget {
     double? width,
   }) {
     final isDesktop = Responsive.isDesktop(Get.context!);
-    final boxWidth = width ?? (isDesktop ? Get.width / 5 - 78 : Get.width / 5 - 30);
+    final boxWidth =
+        width ?? (isDesktop ? Get.width / 5 - 78 : Get.width / 5 - 30);
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -831,7 +834,7 @@ class TasksGridPage extends StatelessWidget {
                         showContentWriteDialog(context, task: tasks[index]);
                         break;
                       case '4':
-                        showMoantageDialog(context, task: tasks[index]);
+                        showMontageDialog(context, task: tasks[index]);
                         break;
                       case '5':
                         showPublishDialog(context, task: tasks[index]);
@@ -889,13 +892,13 @@ class TasksListPage extends StatelessWidget {
                         showContentWriteDialog(context, task: tasks[index]);
                         break;
                       case '4':
-                        showMoantageDialog(context, task: tasks[index]);
+                        showMontageDialog(context, task: tasks[index]);
                         break;
                       case '5':
                         showPublishDialog(context, task: tasks[index]);
                         break;
                       case '6':
-                        programmingDiloag(context);
+                        programmingDialog(context);
                         break;
                       default:
                     }

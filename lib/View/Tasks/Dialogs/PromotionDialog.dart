@@ -299,7 +299,10 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                         items:
                                             controller.employees
                                                 .where(
-                                                  (a) => a.department == 'cat1',
+                                                  (a) => StorageKeys.matchesDepartment(
+                                                    a.department,
+                                                    StorageKeys.departmentPromotion,
+                                                  ),
                                                 )
                                                 .map(
                                                   (v) => DropdownMenuItem(

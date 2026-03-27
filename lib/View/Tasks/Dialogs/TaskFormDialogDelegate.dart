@@ -41,7 +41,7 @@ abstract class TaskFormDialogDelegate {
   /// Task type string, e.g. '0' (Promotion), '3' (ContentWrite).
   String get taskType;
 
-  /// Department key for executor dropdown, e.g. 'cat4' for content.
+  /// Semantic department key for executor dropdown, e.g. 'content-writing'.
   String get executorDepartment;
 
   /// FCM title when a new task is assigned.

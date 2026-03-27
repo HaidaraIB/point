@@ -141,8 +141,18 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
           width: w.clamp(60.0, double.infinity),
           child: DynamicDropdown(
             items: controller.employees
-                .where((a) => a.department == widget.delegate.executorDepartment)
-                .map((v) => DropdownMenuItem(value: v, child: Text('${v.name} (${v.role})')))
+                .where(
+                  (a) => StorageKeys.matchesDepartment(
+                    a.department,
+                    widget.delegate.executorDepartment,
+                  ),
+                )
+                .map(
+                  (v) => DropdownMenuItem(
+                    value: v,
+                    child: Text('${v.name} (${v.role})'),
+                  ),
+                )
                 .toList(),
             value: _executorController.text.isEmpty
                 ? null

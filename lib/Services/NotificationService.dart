@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:point/Services/FireStoreServices.dart';
+import 'package:point/Services/StorageKeys.dart';
 
 /// ما أضافه المكلَّف عند بقاء حالة المهمة كما هي (إشعار المشرف).
 enum ManagerTaskEditKind {
@@ -19,14 +20,14 @@ class NotificationService {
     for (final e in fields.entries) e.key.tr: e.value,
   };
 
-  /// Task type index 0–6 → localized department name (cat1…cat7).
+  /// Task type index 0–6 → localized department name.
   static String departmentNameFromTaskType(String type) {
     final idx = int.tryParse(type);
     if (idx == null || idx < 0 || idx > 6) {
       return 'notify.department_unknown'.tr;
     }
-    final key = 'cat${idx + 1}';
-    return key.tr;
+    final semantic = StorageKeys.departmentSlugs[idx];
+    return StorageKeys.semanticDepartmentLabelKey(semantic).tr;
   }
 
   /// Content / task status storage key → localized label.
@@ -447,7 +448,9 @@ class NotificationService {
     final adminIds = await FirestoreServices.getEmployeeIdsByRole(
       ['admin', 'supervisor'],
     );
-    final deptIds = await FirestoreServices.getEmployeeIdsByDepartment('cat6');
+    final deptIds = await FirestoreServices.getEmployeeIdsByDepartment(
+      StorageKeys.departmentPublishing,
+    );
     final all = <String>{...adminIds, ...deptIds};
     await FirestoreServices.sendFcmToEmployees(
       userIds: all.toList(),
@@ -476,7 +479,9 @@ class NotificationService {
     final adminIds = await FirestoreServices.getEmployeeIdsByRole(
       ['admin', 'supervisor'],
     );
-    final deptIds = await FirestoreServices.getEmployeeIdsByDepartment('cat6');
+    final deptIds = await FirestoreServices.getEmployeeIdsByDepartment(
+      StorageKeys.departmentPublishing,
+    );
     final all = <String>{...adminIds, ...deptIds};
     await FirestoreServices.sendFcmToEmployees(
       userIds: all.toList(),
@@ -496,7 +501,9 @@ class NotificationService {
     final adminIds = await FirestoreServices.getEmployeeIdsByRole(
       ['admin', 'supervisor'],
     );
-    final deptIds = await FirestoreServices.getEmployeeIdsByDepartment('cat6');
+    final deptIds = await FirestoreServices.getEmployeeIdsByDepartment(
+      StorageKeys.departmentPublishing,
+    );
     final all = <String>{...adminIds, ...deptIds};
     await FirestoreServices.sendFcmToEmployees(
       userIds: all.toList(),
@@ -520,7 +527,9 @@ class NotificationService {
     final adminIds = await FirestoreServices.getEmployeeIdsByRole(
       ['admin', 'supervisor'],
     );
-    final deptIds = await FirestoreServices.getEmployeeIdsByDepartment('cat6');
+    final deptIds = await FirestoreServices.getEmployeeIdsByDepartment(
+      StorageKeys.departmentPublishing,
+    );
     final all = <String>{...adminIds, ...deptIds};
     await FirestoreServices.sendFcmToEmployees(
       userIds: all.toList(),
@@ -700,7 +709,9 @@ class NotificationService {
     required String clientName,
     required String contentTitle,
   }) async {
-    final ids = await FirestoreServices.getEmployeeIdsByDepartment('cat1');
+    final ids = await FirestoreServices.getEmployeeIdsByDepartment(
+      StorageKeys.departmentPromotion,
+    );
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
       title: 'notify.promo.new_published.title'.tr,

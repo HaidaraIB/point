@@ -4,7 +4,7 @@ import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 
 import 'package:point/Controller/HomeController.dart';
-import 'package:point/Models/MonatageModel.dart';
+import 'package:point/Models/MontageModel.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
@@ -18,7 +18,7 @@ import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/t.dart';
 import 'package:point/View/Tasks/Mobile/GenericTaskFormMobilePage.dart';
 
-void montageDiloag(BuildContext context, {TaskModel? model}) {
+void montageDialog(BuildContext context, {TaskModel? model}) {
   const otherClientValue = '__other_client__';
   final ctx = Get.context;
   if (ctx != null && Responsive.isMobile(ctx)) {
@@ -151,7 +151,10 @@ void montageDiloag(BuildContext context, {TaskModel? model}) {
                                     items:
                                         controller.employees
                                             .where(
-                                              (a) => a.department == 'cat5',
+                                              (a) => StorageKeys.matchesDepartment(
+                                                a.department,
+                                                StorageKeys.departmentMontage,
+                                              ),
                                             )
                                             .map(
                                               (v) => DropdownMenuItem(

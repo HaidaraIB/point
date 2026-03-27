@@ -12,7 +12,7 @@ import 'package:point/View/Tasks/Dialogs/GenericTaskFormDialog.dart';
 import 'package:point/View/Tasks/Dialogs/TaskFormDialogDelegate.dart';
 import 'package:point/View/Tasks/Mobile/GenericTaskFormMobilePage.dart';
 
-void contentWriteDiloag(BuildContext context, {TaskModel? model}) {
+void contentWriteDialog(BuildContext context, {TaskModel? model}) {
   final ctx = Get.context;
   if (ctx != null && Responsive.isMobile(ctx)) {
     Get.to(() => GenericTaskFormMobilePage(model: model, typeForNew: '3'));
@@ -45,7 +45,7 @@ class ContentWriteFormDelegate extends TaskFormDialogDelegate {
   String get taskType => '3';
 
   @override
-  String get executorDepartment => 'cat4';
+  String get executorDepartment => StorageKeys.departmentContentWriting;
 
   @override
   String get fcmTitleNewTask => 'tasks.fcm.new_task_assigned'.tr;

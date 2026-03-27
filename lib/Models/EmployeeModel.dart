@@ -1,3 +1,5 @@
+import 'package:point/Services/StorageKeys.dart';
+
 class EmployeeModel {
   String? id;
   final String? name;
@@ -72,7 +74,7 @@ class EmployeeModel {
       email: json['email'],
       phone: json['phone'],
       role: json['role'],
-      department: json['department'],
+      department: StorageKeys.normalizeDepartment(json['department']),
       fcmToken: json['fcmToken'],
       onesignal: json['onesignal'],
       hireDate:
@@ -92,7 +94,8 @@ class EmployeeModel {
       "email": email,
       "phone": phone,
       "role": role,
-      "department": department,
+      "department":
+          department == null ? null : StorageKeys.normalizeDepartment(department),
       "fcmToken": fcmToken,
       'onesignal': onesignal,
       "hireDate": hireDate?.toIso8601String(),
