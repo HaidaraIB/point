@@ -70,6 +70,7 @@ class StorageKeys {
   static const List<String> statusList = [
     'status_under_revision',
     'status_ready_to_publish',
+    'status_awaiting_manager',
     'status_approved',
     'status_scheduled',
     'status_published',
@@ -88,6 +89,7 @@ class StorageKeys {
     'status_in_edit',
     'status_edit_requested',
     'status_ready_to_publish',
+    'status_awaiting_manager',
     'status_scheduled',
   ];
 
@@ -121,6 +123,7 @@ class StorageKeys {
   static const String status_in_edit = "status_in_edit";
   static const String status_edit_requested = "status_edit_requested";
   static const String status_not_start_yet = "status_not_start_yet";
+  static const String status_awaiting_manager = "status_awaiting_manager";
 
   //user
   static const String status_user_pending = "status_user_pending";
@@ -173,6 +176,12 @@ class StorageKeys {
 
   static bool matchesDepartment(String? value, String semanticDepartment) =>
       normalizeDepartment(value) == normalizeDepartment(semanticDepartment);
+
+  /// أدوار تُضاف تلقائياً إلى كل مجموعات أقسام الدردشة (مدير / مشرف).
+  static bool isChatElevatedRole(dynamic role) {
+    final r = role?.toString().trim().toLowerCase();
+    return r == 'admin' || r == 'supervisor';
+  }
 
   static var designTypes = [
     'monthly_plan_design', // تصميم خطة شهرية

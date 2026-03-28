@@ -96,15 +96,15 @@ class PromotionDetailsSection extends StatelessWidget {
     }
 
     String listOrDash(
-      List? list, {
+      dynamic list, {
       StoredValueKind kind = StoredValueKind.generic,
     }) {
-      if (list == null || list.isEmpty) return '-';
-      final sep =
-          (Get.locale?.languageCode ?? 'ar') == 'ar' ? '، ' : ', ';
-      return list
-          .map((e) => FunHelper.trStored(e.toString(), kind: kind))
-          .join(sep);
+      final ar = (Get.locale?.languageCode ?? 'ar') == 'ar';
+      return FunHelper.joinStoredListForDisplay(
+        list,
+        kind: kind,
+        localeIsArabic: ar,
+      );
     }
 
     String dateOrDash(DateTime? d) =>

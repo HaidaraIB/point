@@ -6,6 +6,11 @@ import 'package:point/Models/ProgrammingModel.dart';
 import 'package:point/Models/PromotionModel.dart';
 import 'package:point/Models/PublishModel.dart';
 
+/// خرائط Firestore على الويب قد تكون كائنات JS وليست [Map] دارتية؛
+/// [Map.from] يحوّلها حتى يعمل المشغّل [] في النماذج الفرعية.
+Map<String, dynamic> _mapFromFirestoreNested(dynamic value) =>
+    Map<String, dynamic>.from(value as Map);
+
 class TaskModel {
   String? id; // لإضافة معرف المستند من Firestore
   final String title;
@@ -85,31 +90,45 @@ class TaskModel {
       type: json['type'] ?? '',
       designDetails:
           json['designDetails'] != null
-              ? DesignTaskModel.fromJson(json['designDetails'])
+              ? DesignTaskModel.fromJson(
+                  _mapFromFirestoreNested(json['designDetails']),
+                )
               : null,
       contentWriteModel:
           json['contentWriteModel'] != null
-              ? ContentWriteModel.fromJson(json['contentWriteModel'])
+              ? ContentWriteModel.fromJson(
+                  _mapFromFirestoreNested(json['contentWriteModel']),
+                )
               : null,
       photoGrapghyModel:
           json['photoGrapghyModel'] != null
-              ? PhotographyModel.fromJson(json['photoGrapghyModel'])
+              ? PhotographyModel.fromJson(
+                  _mapFromFirestoreNested(json['photoGrapghyModel']),
+                )
               : null,
       monatageModel:
           json['monatageModel'] != null
-              ? MonatageModel.fromJson(json['monatageModel'])
+              ? MonatageModel.fromJson(
+                  _mapFromFirestoreNested(json['monatageModel']),
+                )
               : null,
       publishModel:
           json['publishModel'] != null
-              ? PublishModel.fromJson(json['publishModel'])
+              ? PublishModel.fromJson(
+                  _mapFromFirestoreNested(json['publishModel']),
+                )
               : null,
       promotionModel:
           json['promotionModel'] != null
-              ? PromotionModel.fromJson(json['promotionModel'])
+              ? PromotionModel.fromJson(
+                  _mapFromFirestoreNested(json['promotionModel']),
+                )
               : null,
       programmingModel:
           json['programmingModel'] != null
-              ? ProgrammingModel.fromJson(json['programmingModel'])
+              ? ProgrammingModel.fromJson(
+                  _mapFromFirestoreNested(json['programmingModel']),
+                )
               : null,
       files:
           (json['files'] != null)
@@ -117,14 +136,14 @@ class TaskModel {
               : <String>[], // 🆕
       notes:
           json['notes'] != null
-              ? List<Map<String, dynamic>>.from(
-                json['notes'],
-              ).map((e) => NoteModel.fromJson(e)).toList()
+              ? (json['notes'] as List)
+                  .map((e) => NoteModel.fromJson(_mapFromFirestoreNested(e)))
+                  .toList()
               : [],
       timelineEvents:
           json['timelineEvents'] != null
-              ? List<Map<String, dynamic>>.from(json['timelineEvents'])
-                  .map((e) => TaskTimelineEvent.fromJson(e))
+              ? (json['timelineEvents'] as List)
+                  .map((e) => TaskTimelineEvent.fromJson(_mapFromFirestoreNested(e)))
                   .toList()
               : [],
       dueSoonNotifiedAt24h: json['dueSoonNotifiedAt24h'] as String?,

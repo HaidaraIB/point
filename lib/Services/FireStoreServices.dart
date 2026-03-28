@@ -1138,7 +1138,11 @@ class FirestoreServices {
   Stream<List<TaskModel>> getTasks() {
     return _dbtask.snapshots().map(
       (snapshot) =>
-          snapshot.docs.map((doc) => TaskModel.fromJson(doc.data())).toList(),
+          snapshot.docs.map((doc) {
+            final raw = doc.data();
+            final map = Map<String, dynamic>.from(raw as Map);
+            return TaskModel.fromJson(map);
+          }).toList(),
     );
   }
 
@@ -1160,6 +1164,68 @@ class FirestoreServices {
         .collection('chats/$chatId/messages')
         .doc(message.id)
         .set(message.toJson());
+  }
+
+  /// يضع [isRead] = true لكل الرسائل الواردة (مرسل ليس [viewerUserId]) داخل [chatId].
+  /// يُستدعى عند فتح المحادثة أو عند وصول تحديثات أثناء بقاء الشاشة مفتوحة.
+  /// يحدّد المحادثة المفتوحة حالياً لموظف (لتخطّي FCM على الخادم عند الحاجة).
+  static Future<void> syncEmployeeActiveChatId(
+    String employeeId,
+    String? chatId,
+  ) async {
+    try {
+      final ref = FirebaseFirestore.instance.collection('employees').doc(employeeId);
+      if (chatId == null || chatId.isEmpty) {
+        await ref.update({
+          'activeChatId': FieldValue.delete(),
+          'activeChatUpdatedAt': FieldValue.serverTimestamp(),
+        });
+      } else {
+        await ref.update({
+          'activeChatId': chatId,
+          'activeChatUpdatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+    } catch (e) {
+      log('syncEmployeeActiveChatId: $e');
+    }
+  }
+
+  static Future<void> markIncomingMessagesReadInChat(
+    String chatId,
+    String viewerUserId,
+  ) async {
+    final chatRef = FirebaseFirestore.instance.collection('chats').doc(chatId);
+    try {
+      final unreadMessages =
+          await chatRef
+              .collection('messages')
+              .where('isRead', isEqualTo: false)
+              .where('senderId', isNotEqualTo: viewerUserId)
+              .get();
+
+      for (final doc in unreadMessages.docs) {
+        await doc.reference.update({'isRead': true});
+      }
+    } catch (e) {
+      if (e.toString().contains('failed-precondition') ||
+          e.toString().contains('index')) {
+        final unreadSnapshot =
+            await chatRef
+                .collection('messages')
+                .where('isRead', isEqualTo: false)
+                .get();
+        final toMark =
+            unreadSnapshot.docs
+                .where((d) => d.data()['senderId'] != viewerUserId)
+                .toList();
+        for (final doc in toMark) {
+          await doc.reference.update({'isRead': true});
+        }
+      } else {
+        rethrow;
+      }
+    }
   }
 
   static bool _shouldPersistFcmToNotificationInbox(String? notificationType) {
@@ -1299,9 +1365,7 @@ class FirestoreServices {
         .collection('messages')
         .where('isRead', isEqualTo: false)
         .snapshots()
-        .map(
-          (s) => s.docs.where((d) => d.data()['senderId'] != userId).length,
-        );
+        .map((s) => s.docs.where((d) => d.data()['senderId'] != userId).length);
   }
 
   Stream<List<NotificationModel>> getNotifications(
@@ -1397,6 +1461,7 @@ class FirestoreServices {
       final email = data?['email']?.toString().trim();
       final tokens = _extractFcmTokens(data);
       final rawRecipientName = data?['name']?.toString().trim();
+      final recipientRole = data?['role'];
       final recipientName =
           (rawRecipientName != null && rawRecipientName.isNotEmpty)
               ? rawRecipientName
@@ -1438,7 +1503,7 @@ class FirestoreServices {
           );
         } else {
           log(
-            "⚠️ Email missing for employee $userId — skipping email notification",
+            "⚠️ Email missing for $recipientRole $recipientName — skipping email notification",
           );
         }
       }
@@ -1447,19 +1512,7 @@ class FirestoreServices {
       if (!sendPush) return;
 
       if (tokens.isEmpty) {
-        log("⚠️ fcmToken missing for employee $userId — push not sent");
-        await _logPushDiagnostic(
-          requestId: _newPushRequestId(),
-          stage: 'app_pre_send',
-          status: 'error',
-          targetType: 'token',
-          recipientId: trimmedUserId,
-          recipientType: 'employee',
-          title: title,
-          bodyLen: body.length,
-          notificationType: notificationType,
-          fcmErrorCode: 'NO_FCM_TOKEN',
-        );
+        log("⚠️ fcmToken missing for $recipientRole $recipientName — push not sent");
         return;
       }
 
@@ -1468,23 +1521,11 @@ class FirestoreServices {
         if (cleanedToken.isEmpty) continue;
         if (batchSeenTokens != null && !batchSeenTokens.add(cleanedToken)) {
           log(
-            "↩️ Duplicate batch token skipped for employee $trimmedUserId (${_maskFcmToken(cleanedToken)})",
+            "↩️ Duplicate batch token skipped for $recipientRole $recipientName (${_maskFcmToken(cleanedToken)})",
           );
           continue;
         }
         final requestId = _newPushRequestId();
-        await _logPushDiagnostic(
-          requestId: requestId,
-          stage: 'app_pre_send',
-          status: 'ok',
-          targetType: 'token',
-          recipientId: trimmedUserId,
-          recipientType: 'employee',
-          tokenMasked: _maskFcmToken(cleanedToken),
-          title: title,
-          bodyLen: body.length,
-          notificationType: notificationType,
-        );
         try {
           await _sendFcmViaFunction(
             token: cleanedToken,
@@ -1502,18 +1543,6 @@ class FirestoreServices {
             requestId: requestId,
             recipientId: trimmedUserId,
             recipientType: 'employee',
-            notificationType: notificationType,
-          );
-          await _logPushDiagnostic(
-            requestId: requestId,
-            stage: 'app_result',
-            status: 'ok',
-            targetType: 'token',
-            recipientId: trimmedUserId,
-            recipientType: 'employee',
-            tokenMasked: _maskFcmToken(cleanedToken),
-            title: title,
-            bodyLen: body.length,
             notificationType: notificationType,
           );
         } catch (e) {
@@ -1541,13 +1570,13 @@ class FirestoreServices {
               employeeId: trimmedUserId,
               token: cleanedToken,
             );
-            log("🧹 Removed invalid employee token for $trimmedUserId");
+            log("🧹 Removed invalid employee token for $recipientName");
             continue;
           }
           rethrow;
         }
       }
-      log("✅ FCM Response: $userId");
+      log("✅ FCM Response: $recipientName");
     } on FcmSendException catch (e) {
       switch (e.errorCode) {
         case 'ERR_METHOD_NOT_ALLOWED':
@@ -1642,7 +1671,7 @@ class FirestoreServices {
           );
         } else {
           log(
-            "⚠️ Email missing for client $userId — skipping email notification",
+            "⚠️ Email missing for client $recipientName — skipping email notification",
           );
         }
       }
@@ -1650,19 +1679,7 @@ class FirestoreServices {
       if (!sendPush) return;
 
       if (tokens.isEmpty) {
-        log("⚠️ fcmToken missing for client $userId — push not sent");
-        await _logPushDiagnostic(
-          requestId: _newPushRequestId(),
-          stage: 'app_pre_send',
-          status: 'error',
-          targetType: 'token',
-          recipientId: trimmedUserId,
-          recipientType: 'client',
-          title: title,
-          bodyLen: body.length,
-          notificationType: notificationType,
-          fcmErrorCode: 'NO_FCM_TOKEN',
-        );
+        log("⚠️ fcmToken missing for client $recipientName — push not sent");
         return;
       }
 
@@ -1671,23 +1688,11 @@ class FirestoreServices {
         if (cleanedToken.isEmpty) continue;
         if (batchSeenTokens != null && !batchSeenTokens.add(cleanedToken)) {
           log(
-            "↩️ Duplicate batch token skipped for client $trimmedUserId (${_maskFcmToken(cleanedToken)})",
+            "↩️ Duplicate batch token skipped for client $recipientName (${_maskFcmToken(cleanedToken)})",
           );
           continue;
         }
         final requestId = _newPushRequestId();
-        await _logPushDiagnostic(
-          requestId: requestId,
-          stage: 'app_pre_send',
-          status: 'ok',
-          targetType: 'token',
-          recipientId: trimmedUserId,
-          recipientType: 'client',
-          tokenMasked: _maskFcmToken(cleanedToken),
-          title: title,
-          bodyLen: body.length,
-          notificationType: notificationType,
-        );
         try {
           await _sendFcmViaFunction(
             token: cleanedToken,
@@ -1705,18 +1710,6 @@ class FirestoreServices {
             requestId: requestId,
             recipientId: trimmedUserId,
             recipientType: 'client',
-            notificationType: notificationType,
-          );
-          await _logPushDiagnostic(
-            requestId: requestId,
-            stage: 'app_result',
-            status: 'ok',
-            targetType: 'token',
-            recipientId: trimmedUserId,
-            recipientType: 'client',
-            tokenMasked: _maskFcmToken(cleanedToken),
-            title: title,
-            bodyLen: body.length,
             notificationType: notificationType,
           );
         } catch (e) {
@@ -1744,13 +1737,13 @@ class FirestoreServices {
               clientId: trimmedUserId,
               token: cleanedToken,
             );
-            log("🧹 Removed invalid client token for $trimmedUserId");
+            log("🧹 Removed invalid client token for $recipientName");
             continue;
           }
           rethrow;
         }
       }
-      log("✅ FCM sent to client: $userId");
+      log("✅ FCM sent to client: $recipientName");
     } on FcmSendException catch (e) {
       switch (e.errorCode) {
         case 'ERR_METHOD_NOT_ALLOWED':
@@ -1791,16 +1784,6 @@ class FirestoreServices {
     final requestId = _newPushRequestId();
     try {
       if (sendPush) {
-        await _logPushDiagnostic(
-          requestId: requestId,
-          stage: 'app_pre_send',
-          status: 'ok',
-          targetType: 'topic',
-          topic: topic,
-          title: title,
-          bodyLen: body.length,
-          notificationType: notificationType,
-        );
         await _sendFcmViaFunction(
           topic: topic,
           title: title,
@@ -1813,16 +1796,6 @@ class FirestoreServices {
                   : null,
           requestId: requestId,
           recipientType: 'topic',
-          notificationType: notificationType,
-        );
-        await _logPushDiagnostic(
-          requestId: requestId,
-          stage: 'app_result',
-          status: 'ok',
-          targetType: 'topic',
-          topic: topic,
-          title: title,
-          bodyLen: body.length,
           notificationType: notificationType,
         );
         log("✅ FCM topic sent: $topic");

@@ -43,16 +43,45 @@ function soundBaseForNotificationType(notificationType: string | undefined): str
   if (!t) return null;
   const map: Record<string, string> = {
     chat_message: "notification_chat",
-    manager_task_completed: "notification_task_preview",
-    manager_task_comment: "notification_task_comment",
-    admin_content_status_changed: "notification_content_status",
-    admin_promotion_status_changed: "notification_promotion_status",
-    promotion_new_published_content: "notification_promotion_status",
+    employee_task_assigned: "notification_task_preview",
     employee_task_due_soon: "notification_task_deadline_soon",
+    employee_task_edit_requested: "notification_task_comment",
+    employee_task_rejected: "notification_content_status",
+    employee_task_reopened: "notification_task_comment",
+    employee_task_new_attachments: "notification_task_comment",
+    employee_task_status_changed: "notification_content_status",
+    manager_task_received: "notification_task_preview",
+    manager_task_completed: "notification_task_preview",
+    admin_supervisor_escalated_task: "notification_task_preview",
+    manager_task_edited: "notification_task_comment",
+    manager_task_comment: "notification_task_comment",
+    manager_content_submitted_by_client: "notification_content_status",
     manager_task_overdue: "notification_task_deadline",
-    client_approval_confirmed: "notification_task_approved",
-    publish_client_approved: "notification_task_approved",
+    manager_new_task_department: "notification_task_preview",
+    manager_client_notes: "notification_task_comment",
     manager_client_approved_content: "notification_task_approved",
+    client_content_pending_approval: "notification_content_status",
+    client_pending_over_24h: "notification_task_deadline_soon",
+    client_approval_confirmed: "notification_task_approved",
+    client_edits_done: "notification_task_comment",
+    client_content_updated: "notification_content_status",
+    client_content_scheduled: "notification_content_scheduled",
+    publish_content_added: "notification_content_status",
+    publish_client_edit_request: "notification_task_comment",
+    publish_client_approved: "notification_task_approved",
+    publish_client_rejected: "notification_content_status",
+    publish_post_one_hour: "notification_content_scheduled",
+    publish_post_not_confirmed_today: "notification_content_scheduled",
+    publish_no_posts_tomorrow: "notification_task_deadline_soon",
+    publish_post_published: "notification_promotion_status",
+    publish_link_added: "notification_task_comment",
+    publish_notes_after_publish: "notification_task_comment",
+    publish_scheduled_cancelled: "notification_content_scheduled",
+    admin_promotion_status_changed: "notification_promotion_status",
+    admin_content_status_changed: "notification_content_status",
+    promotion_new_published_content: "notification_promotion_status",
+    // FCM topic broadcast from admin Home (employees / clients / all).
+    broadcast_topic: "notification_task_preview",
   };
   return map[t] ?? null;
 }
@@ -214,6 +243,27 @@ Deno.serve(async (req: Request) => {
       return json({ errorCode: "ERR_INVALID_DATA", requestId: requestIdSafe }, 400);
     }
 
+    if (
+      notificationType?.trim() === "chat_message" &&
+      recipientId &&
+      typeof recipientId === "string" &&
+      data?.chatId
+    ) {
+      const active = await getEmployeeActiveChatId(accessToken, sa.project_id, recipientId);
+      const incomingChat = String(data.chatId).trim();
+      if (active && active === incomingChat) {
+        return json(
+          {
+            ok: true,
+            skipped: true,
+            reason: "recipient_active_same_chat",
+            requestId: requestIdSafe,
+          },
+          200,
+        );
+      }
+    }
+
     const fcmUrl = `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`;
 
     const soundBase = soundBaseForNotificationType(notificationType);
@@ -314,6 +364,23 @@ Deno.serve(async (req: Request) => {
     return json({ errorCode: "ERR_SERVER", details: String(e) }, 500);
   }
 });
+
+async function getEmployeeActiveChatId(
+  accessToken: string,
+  projectId: string,
+  employeeId: string,
+): Promise<string | null> {
+  const url =
+    `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/employees/${encodeURIComponent(employeeId)}`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) return null;
+  const j = await res.json().catch(() => ({}));
+  const v = (j as { fields?: { activeChatId?: { stringValue?: string } } })?.fields?.activeChatId
+    ?.stringValue;
+  return typeof v === "string" && v.length > 0 ? v : null;
+}
 
 function maskFcmToken(t: string): string {
   if (t.length <= 12) return "***";
@@ -438,9 +505,12 @@ function base64url(input: string | Uint8Array): string {
 }
 
 function corsHeaders() {
+  // يجب أن تطابق الترويسات التي يحقنها supabase-dart عبر AuthHttpClient + Constants
+  // (apikey، X-Client-Info، منصة الويب…) وإلا يفشل preflight على المتصفح فقط → Failed to fetch.
   return {
     "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Headers": "authorization, x-firebase-id-token, content-type",
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type, x-firebase-id-token, x-supabase-client-platform, x-supabase-client-platform-version, x-region",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
   };
 }

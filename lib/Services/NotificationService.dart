@@ -12,7 +12,8 @@ enum ManagerTaskEditKind {
   both,
 }
 
-/// Centralized push/email notifications; copy follows current [Get.locale].
+/// Push/email for **app-triggered** flows. Types sent only by Supabase Cron
+/// (`scheduled-notifications`) live in that function — no Dart wrappers here.
 class NotificationService {
   NotificationService._();
 
@@ -47,21 +48,6 @@ class NotificationService {
       actionText: 'notify.emp.assigned.action'.tr,
       referenceId: taskTitle,
       emailDetails: _emailLabels({'notify.email.task_title': taskTitle}),
-    );
-  }
-
-  static Future<void> notifyTaskDueSoon({
-    required String employeeId,
-    required String taskTitle,
-  }) async {
-    await FirestoreServices.sendFcm(
-      userId: employeeId,
-      title: 'notify.emp.due_soon.title'.tr,
-      body: 'notify.emp.due_soon.body'.trParams({'title': taskTitle}),
-      notificationType: 'employee_task_due_soon',
-      actionText: 'notify.emp.due_soon.action'.tr,
-      referenceId: taskTitle,
-      emailDetails: _emailLabels({'notify.email.task': taskTitle}),
     );
   }
 
@@ -198,6 +184,30 @@ class NotificationService {
     );
   }
 
+  /// المشرف أحال المهمة للمدير (admin) فقط.
+  static Future<void> notifyAdminsSupervisorEscalatedTask({
+    required String supervisorName,
+    required String taskTitle,
+  }) async {
+    final ids = await FirestoreServices.getEmployeeIdsByRole(['admin']);
+    if (ids.isEmpty) return;
+    await FirestoreServices.sendFcmToEmployees(
+      userIds: ids,
+      title: 'notify.admin.supervisor_escalated.title'.tr,
+      body: 'notify.admin.supervisor_escalated.body'.trParams({
+        'supervisor': supervisorName,
+        'title': taskTitle,
+      }),
+      notificationType: 'admin_supervisor_escalated_task',
+      actionText: 'notify.admin.supervisor_escalated.action'.tr,
+      referenceId: taskTitle,
+      emailDetails: _emailLabels({
+        'notify.email.employee': supervisorName,
+        'notify.email.task': taskTitle,
+      }),
+    );
+  }
+
   static Future<void> notifyManagersEmployeeEditedTask({
     required String employeeName,
     required String taskTitle,
@@ -249,28 +259,6 @@ class NotificationService {
       emailDetails: _emailLabels({
         'notify.email.client': clientName,
         'notify.email.content': contentTitle,
-      }),
-    );
-  }
-
-  static Future<void> notifyManagersTaskOverdue({
-    required String taskTitle,
-    required String employeeName,
-  }) async {
-    final ids = await FirestoreServices.getEmployeeIdsByRole(
-      ['admin', 'supervisor'],
-    );
-    await FirestoreServices.sendFcmToEmployees(
-      userIds: ids,
-      title: 'notify.mgr.overdue.title'.tr,
-      body: 'notify.mgr.overdue.body'
-          .trParams({'title': taskTitle, 'name': employeeName}),
-      notificationType: 'manager_task_overdue',
-      actionText: 'notify.mgr.overdue.action'.tr,
-      referenceId: taskTitle,
-      emailDetails: _emailLabels({
-        'notify.email.employee': employeeName,
-        'notify.email.task': taskTitle,
       }),
     );
   }
@@ -357,21 +345,6 @@ class NotificationService {
       emailDetails: _emailLabels({
         'notify.email.content_type': contentTypeLabel,
       }),
-    );
-  }
-
-  static Future<void> notifyClientContentPendingOver24h({
-    required String clientId,
-    required String contentTitle,
-  }) async {
-    await FirestoreServices.sendFcmForClient(
-      userId: clientId,
-      title: 'notify.client.pending_24h.title'.tr,
-      body: contentTitle,
-      notificationType: 'client_pending_over_24h',
-      actionText: 'notify.client.pending_24h.action'.tr,
-      referenceId: contentTitle,
-      emailDetails: _emailLabels({'notify.email.content': contentTitle}),
     );
   }
 
@@ -551,21 +524,6 @@ class NotificationService {
     );
   }
 
-  static Future<void> notifyPublishDeptPostInOneHour({
-    required String employeeId,
-    required String contentTitle,
-  }) async {
-    await FirestoreServices.sendFcm(
-      userId: employeeId,
-      title: 'notify.publish.one_hour.title'.tr,
-      body: contentTitle,
-      notificationType: 'publish_post_one_hour',
-      actionText: 'notify.publish.one_hour.action'.tr,
-      referenceId: contentTitle,
-      emailDetails: _emailLabels({'notify.email.post': contentTitle}),
-    );
-  }
-
   static Future<void> notifyPublishDeptPostScheduledTodayNotConfirmed({
     required String employeeId,
     required String contentRef,
@@ -579,22 +537,6 @@ class NotificationService {
       actionText: 'notify.publish.today_not_confirmed.action'.tr,
       referenceId: contentRef,
       emailDetails: _emailLabels({'notify.email.reference': contentRef}),
-    );
-  }
-
-  static Future<void> notifyPublishDeptNoPostsTomorrow({
-    required String employeeId,
-    required String clientName,
-  }) async {
-    await FirestoreServices.sendFcm(
-      userId: employeeId,
-      title: 'notify.publish.no_posts_tomorrow.title'.tr,
-      body: 'notify.publish.no_posts_tomorrow.body'
-          .trParams({'name': clientName}),
-      notificationType: 'publish_no_posts_tomorrow',
-      actionText: 'notify.publish.no_posts_tomorrow.action'.tr,
-      referenceId: clientName,
-      emailDetails: _emailLabels({'notify.email.client': clientName}),
     );
   }
 

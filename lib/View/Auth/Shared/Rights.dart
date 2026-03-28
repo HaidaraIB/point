@@ -12,7 +12,9 @@ Widget buildRightsSection() {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
-            AppLocaleKeys.authFooterCopyright.tr,
+            AppLocaleKeys.authFooterCopyright.trParams({
+              'year': '${DateTime.now().year}',
+            }),
             style: TextStyle(fontSize: 12, color: Colors.grey),
             textAlign: TextAlign.center,
           ),

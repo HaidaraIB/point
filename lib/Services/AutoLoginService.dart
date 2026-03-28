@@ -36,7 +36,7 @@ Future<String?> attemptSilentLogin() async {
         }
       }
 
-      homeController.fetchnotification(employee.id);
+      homeController.fetchNotification(employee.id);
       homeController.listenToClient(employee.id!);
 
       final role = employee.role;
@@ -73,4 +73,3 @@ Future<String?> attemptSilentLogin() async {
 
   return null;
 }
-

@@ -53,13 +53,20 @@ Widget MainButton({
                 : widget != null
                 ? widget
                 : !icon
-                ? Text(
-                  title ?? '',
-                  style: TextStyle(
-                    color: fontColor ?? Colors.white,
-                    fontSize: fontSize ?? 15,
-                    fontWeight: FontWeight.w500,
-                    // fontFamily: Appfonts.basicFont,
+                ? Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Text(
+                    title ?? '',
+                    textAlign: TextAlign.center,
+                    maxLines: 3,
+                    softWrap: true,
+                    overflow: TextOverflow.clip,
+                    style: TextStyle(
+                      color: fontColor ?? Colors.white,
+                      fontSize: fontSize ?? 15,
+                      fontWeight: FontWeight.w500,
+                      // fontFamily: Appfonts.basicFont,
+                    ),
                   ),
                 )
                 : Row(

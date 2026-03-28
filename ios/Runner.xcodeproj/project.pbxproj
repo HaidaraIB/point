@@ -22,6 +22,7 @@
 		A1B2C3D41CF9000F007C11B5 /* notification_task_deadline.wav in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D41CF9000F007C11A5 /* notification_task_deadline.wav */; };
 		A1B2C3D41CF9000F007C11C2 /* notification_task_deadline_soon.wav in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D41CF9000F007C11C1 /* notification_task_deadline_soon.wav */; };
 		A1B2C3D41CF9000F007C11B6 /* notification_task_approved.wav in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D41CF9000F007C11A6 /* notification_task_approved.wav */; };
+		A1B2C3D41CF9000F007C11D2 /* notification_content_scheduled.wav in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D41CF9000F007C11D1 /* notification_content_scheduled.wav */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -71,6 +72,7 @@
 		A1B2C3D41CF9000F007C11A5 /* notification_task_deadline.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = notification_task_deadline.wav; sourceTree = "<group>"; };
 		A1B2C3D41CF9000F007C11C1 /* notification_task_deadline_soon.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = notification_task_deadline_soon.wav; sourceTree = "<group>"; };
 		A1B2C3D41CF9000F007C11A6 /* notification_task_approved.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = notification_task_approved.wav; sourceTree = "<group>"; };
+		A1B2C3D41CF9000F007C11D1 /* notification_content_scheduled.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = notification_content_scheduled.wav; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -133,6 +135,7 @@
 				A1B2C3D41CF9000F007C11A5 /* notification_task_deadline.wav */,
 				A1B2C3D41CF9000F007C11C1 /* notification_task_deadline_soon.wav */,
 				A1B2C3D41CF9000F007C11A6 /* notification_task_approved.wav */,
+				A1B2C3D41CF9000F007C11D1 /* notification_content_scheduled.wav */,
 				97C146FA1CF9000F007C117D /* Main.storyboard */,
 				97C146FD1CF9000F007C117D /* Assets.xcassets */,
 				97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */,
@@ -244,6 +247,7 @@
 				A1B2C3D41CF9000F007C11B5 /* notification_task_deadline.wav in Resources */,
 				A1B2C3D41CF9000F007C11C2 /* notification_task_deadline_soon.wav in Resources */,
 				A1B2C3D41CF9000F007C11B6 /* notification_task_approved.wav in Resources */,
+				A1B2C3D41CF9000F007C11D2 /* notification_content_scheduled.wav in Resources */,
 				97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */,
 				3B3967161E833CAA004F5970 /* AppFrameworkInfo.plist in Resources */,
 				97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */,

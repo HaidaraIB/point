@@ -51,6 +51,52 @@ class FunHelper {
     'not started yet': StorageKeys.status_not_start_yet,
     'not started': StorageKeys.status_not_start_yet,
     'edit requested': StorageKeys.status_edit_requested,
+    'awaiting manager': StorageKeys.status_awaiting_manager,
+    'pending manager review': StorageKeys.status_awaiting_manager,
+  };
+
+  /// Trims and collapses whitespace so DB/UI labels match maps below.
+  static String _normalizeStoredLabel(String s) {
+    return s.trim().replaceAll(RegExp(r'\s+'), ' ');
+  }
+
+  /// Arabic/English labels (as in DB or AppTranslations) → [StorageKeys.status_*].
+  static final Map<String, String> _displayLabelToStatusKey = {
+    'قيد المراجعة': StorageKeys.status_under_revision,
+    'قيد التنفيذ': StorageKeys.status_processing,
+    'جاهز للنشر': StorageKeys.status_ready_to_publish,
+    'تمت الموافقة': StorageKeys.status_approved,
+    'تمت الجدولة': StorageKeys.status_scheduled,
+    'تم النشر': StorageKeys.status_published,
+    'مرفوض': StorageKeys.status_rejected,
+    'قيد التعديل': StorageKeys.status_in_edit,
+    'لم يبدأ بعد': StorageKeys.status_not_start_yet,
+    'طلب التعديل': StorageKeys.status_edit_requested,
+    'بانتظار المدير': StorageKeys.status_awaiting_manager,
+    'Awaiting manager': StorageKeys.status_awaiting_manager,
+    'Pending manager review': StorageKeys.status_awaiting_manager,
+    'Under review': StorageKeys.status_under_revision,
+    'In progress': StorageKeys.status_processing,
+    'Ready to publish': StorageKeys.status_ready_to_publish,
+    'Approved': StorageKeys.status_approved,
+    'Scheduled': StorageKeys.status_scheduled,
+    'Published': StorageKeys.status_published,
+    'Rejected': StorageKeys.status_rejected,
+    'In edit': StorageKeys.status_in_edit,
+    'Not started yet': StorageKeys.status_not_start_yet,
+    'Edit requested': StorageKeys.status_edit_requested,
+  };
+
+  /// Arabic/English priority labels → keys in [StorageKeys.priority].
+  static final Map<String, String> _displayLabelToPriorityKey = {
+    'عادي': 'normal',
+    'مهم': 'imp',
+    'مهم جدا': 'veryimp',
+    'عاجل': 'veryveryimp',
+    'Normal': 'normal',
+    'Important': 'imp',
+    'Very important': 'veryimp',
+    'Urgent': 'veryveryimp',
   };
 
   static final Map<String, String> _legacyContentTypeToKey = {
@@ -96,11 +142,15 @@ class FunHelper {
 
   /// Looks up [key] in the static translation map for the **app** language (not only Get.locale).
   static String? _translationForAppLanguage(String key) {
-    final code = _appLanguageCode();
-    final maps = AppTranslations().keys;
-    final v = maps[code]?[key];
-    if (v != null) return v;
-    return maps['ar']?[key] ?? maps['en']?[key];
+    try {
+      final code = _appLanguageCode();
+      final maps = AppTranslations().keys;
+      final v = maps[code]?[key];
+      if (v != null) return v;
+      return maps['ar']?[key] ?? maps['en']?[key];
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Public: translate a translation [key] using app language (sidebar / Get.locale sync).
@@ -122,6 +172,12 @@ class FunHelper {
     if (StorageKeys.priority.contains(t)) return t;
     final byLegacy = _legacyPriorityToKey[t.toLowerCase()];
     if (byLegacy != null) return byLegacy;
+    final normalized = _normalizeStoredLabel(t);
+    final byDisplay = _displayLabelToPriorityKey[normalized];
+    if (byDisplay != null) return byDisplay;
+    for (final e in _displayLabelToPriorityKey.entries) {
+      if (e.key.toLowerCase() == normalized.toLowerCase()) return e.value;
+    }
     return t;
   }
 
@@ -132,7 +188,27 @@ class FunHelper {
     if (StorageKeys.statusList.contains(t)) return t;
     final byLegacy = _legacyStatusToKey[t.toLowerCase()];
     if (byLegacy != null) return byLegacy;
+    final normalized = _normalizeStoredLabel(t);
+    final byDisplay = _displayLabelToStatusKey[normalized];
+    if (byDisplay != null) return byDisplay;
+    for (final e in _displayLabelToStatusKey.entries) {
+      if (e.key.toLowerCase() == normalized.toLowerCase()) return e.value;
+    }
     return t;
+  }
+
+  /// حالات يظهر فيها للمشرف خيارا الموافقة المباشرة أو الإرسال للمدير.
+  /// أي حالة **جارية** ما عدا [status_awaiting_manager] (المهمة عند المدير بالفعل).
+  static bool taskStatusAllowsSupervisorDirectOrEscalate(String status) {
+    final k = canonicalStoredStatus(status);
+    if (k == StorageKeys.status_awaiting_manager) return false;
+    return StorageKeys.isOngoingStatus(k);
+  }
+
+  /// المشرف لا يُنهي الموافقة عندما المهمة بانتظار قرار المدير.
+  static bool supervisorShouldHideTaskAccept(String? role, String status) {
+    if (role != 'supervisor') return false;
+    return canonicalStoredStatus(status) == StorageKeys.status_awaiting_manager;
   }
 
   /// Normalizes promotion field to canonical keys in [StorageKeys.promations].
@@ -199,28 +275,99 @@ class FunHelper {
     String? raw, {
     StoredValueKind kind = StoredValueKind.generic,
   }) {
-    final t = raw?.trim() ?? '';
-    if (t.isEmpty) return t;
-    for (final c in _candidatesForStored(t, kind)) {
-      if (c.isEmpty) continue;
-      final fromApp = _translationForAppLanguage(c);
-      if (fromApp != null && fromApp != c) return fromApp;
-      final out = c.tr;
-      if (out != c) return out;
+    try {
+      final t = raw?.trim() ?? '';
+      if (t.isEmpty) return t;
+      for (final c in _candidatesForStored(t, kind)) {
+        if (c.isEmpty) continue;
+        final fromApp = _translationForAppLanguage(c);
+        if (fromApp != null && fromApp != c) return fromApp;
+        final out = c.tr;
+        if (out != c) return out;
+      }
+      return t;
+    } catch (_) {
+      try {
+        return raw?.trim() ?? '';
+      } catch (_) {
+        return '';
+      }
     }
-    return t;
+  }
+
+  /// عنصر قائمة من Firestore/Web قد يكون نصاً أو `{platform: ...}` أو غيره.
+  static String _storedListElementToLabel(
+    dynamic e, {
+    required StoredValueKind kind,
+  }) {
+    if (e == null) return '';
+    try {
+      if (e is String) return e.trim();
+      if (e is Map) {
+        if (kind == StoredValueKind.platform) {
+          final v =
+              e['platform'] ??
+              e['name'] ??
+              e['label'] ??
+              e['id'] ??
+              e['value'];
+          if (v != null) return v.toString().trim();
+        }
+        final v = e['name'] ?? e['label'] ?? e['id'] ?? e['value'];
+        if (v != null) return v.toString().trim();
+        return '';
+      }
+      return e.toString().trim();
+    } catch (_) {
+      return '';
+    }
+  }
+
+  /// يعرض قائمة منسجلة/مترجمة مع فصل محلي (قوائم من Firestore قد تكون Map أو عناصر غير نصية على الويب).
+  static String joinStoredListForDisplay(
+    dynamic raw, {
+    required StoredValueKind kind,
+    required bool localeIsArabic,
+  }) {
+    final sep = localeIsArabic ? '، ' : ', ';
+    if (raw == null) return '-';
+    try {
+      if (raw is String) {
+        final s = raw.trim();
+        if (s.isEmpty) return '-';
+        return trStored(s, kind: kind);
+      }
+      if (raw is Map) {
+        return joinStoredListForDisplay(
+          raw.values.toList(),
+          kind: kind,
+          localeIsArabic: localeIsArabic,
+        );
+      }
+      if (raw is! List || raw.isEmpty) return '-';
+      final parts = <String>[];
+      for (final e in raw) {
+        final label = _storedListElementToLabel(e, kind: kind);
+        if (label.isEmpty) continue;
+        parts.add(trStored(label, kind: kind));
+      }
+      if (parts.isEmpty) return '-';
+      return parts.join(sep);
+    } catch (_) {
+      return '-';
+    }
   }
 
   /// Format a platform field (List or single value) for display.
   static String formatStoredPlatforms(dynamic platform) {
     if (platform == null) return '';
-    if (platform is List) {
-      if (platform.isEmpty) return '';
-      return platform
-          .map((e) => trStored(e.toString(), kind: StoredValueKind.platform))
-          .join('، ');
-    }
-    return trStored(platform.toString(), kind: StoredValueKind.platform);
+    final s = joinStoredListForDisplay(
+      platform,
+      kind: StoredValueKind.platform,
+      localeIsArabic: _isArabicAppLanguage(),
+    );
+    // السلوك السابق: قائمة فارغة تعيد نصاً فارغاً وليس شرطة.
+    return s == '-' ? '' : s;
   }
 
   static errorSnackbar(error) {
@@ -344,6 +491,8 @@ class FunHelper {
     final resolvedMessage = message ?? AppLocaleKeys.funConfirmMessage.tr;
     final resolvedConfirm = confirmText ?? AppLocaleKeys.commonConfirm.tr;
     final dialogWidth = Get.width > 900 ? 420.0 : Get.width * 0.82;
+    // عرض كافٍ لنصوص التأكيد الطويلة (عربي) دون قصّ الأحرف
+    final actionButtonWidth = ((dialogWidth - 36) / 2).clamp(88.0, 198.0);
     return showDialog<String>(
       context: context,
       builder:
@@ -395,9 +544,10 @@ class FunHelper {
                 title: cancelText ?? 'cancel'.tr,
                 fontColor: Colors.white,
                 backgroundColor: cancelColor,
-                width: 126,
+                margin: EdgeInsets.zero,
+                width: actionButtonWidth,
                 borderSize: 5,
-                height: 38,
+                height: 56,
                 onPressed: () {
                   Get.back();
                 },
@@ -408,9 +558,10 @@ class FunHelper {
                 title: resolvedConfirm,
                 fontColor: Colors.white,
                 backgroundColor: confirmColor ?? AppColors.primary,
-                width: 126,
+                margin: EdgeInsets.zero,
+                width: actionButtonWidth,
                 borderSize: 5,
-                height: 38,
+                height: 56,
                 onPressed: () async {
                   await Future.sync(onTap);
                   Get.back();

@@ -14,7 +14,8 @@ import 'package:point/Services/StorageKeys.dart';
 
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
-import 'package:point/View/Chats/ChatPage.dart';
+import 'package:point/View/Chats/chat_message_display.dart';
+import 'package:point/View/Chats/chat_voice_record_button.dart';
 
 // **********************************************
 // ********* الشاشة الجديدة 1: قائمة المحادثات *********
@@ -159,11 +160,10 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
     _employees.forEach((emp) {
       final empId = emp['id'] as String;
       final empDept = emp['dept']; // تم تعديلها لتتوافق مع الكاش
-      final empRole = emp['role'] as String;
 
       final isSameDept = StorageKeys.matchesDepartment(empDept, deptGroupName);
 
-      final isSpecialRole = empRole == 'admin' || empRole == 'supervisor';
+      final isSpecialRole = StorageKeys.isChatElevatedRole(emp['role']);
 
       if ((isSameDept || isSpecialRole) &&
           empId != _currentUserId &&
@@ -757,6 +757,8 @@ class _MessageScreenState extends State<MessageScreen> {
   Stream<QuerySnapshot<Map<String, dynamic>>>? _messagesStream;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
   _messageSoundSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+  _markReadSubscription;
   late String _chatId;
   late String _displayName;
 
@@ -775,56 +777,111 @@ class _MessageScreenState extends State<MessageScreen> {
             .snapshots();
 
     ChatAudioFocus.setForeground(_chatId);
+    unawaited(
+      FirestoreServices.syncEmployeeActiveChatId(
+        widget.currentUserId,
+        _chatId,
+      ),
+    );
     _messageSoundSubscription = attachIncomingMessageSoundSubscription(
       stream: _messagesStream!,
       chatId: _chatId,
       currentUserId: widget.currentUserId,
     );
 
-    _markMessagesAsRead(_chatId);
+    _markReadSubscription = _messagesStream!.listen((_) {
+      unawaited(
+        FirestoreServices.markIncomingMessagesReadInChat(
+          _chatId,
+          widget.currentUserId,
+        ),
+      );
+    });
+
+    unawaited(
+      FirestoreServices.markIncomingMessagesReadInChat(
+        _chatId,
+        widget.currentUserId,
+      ),
+    );
   }
 
   @override
   void dispose() {
     _messageSoundSubscription?.cancel();
+    _markReadSubscription?.cancel();
     ChatAudioFocus.clearForegroundIfEquals(_chatId);
+    unawaited(
+      FirestoreServices.syncEmployeeActiveChatId(widget.currentUserId, null),
+    );
     _messageController.dispose();
     super.dispose();
   }
 
-  // -----------// داخل الميثود send message بتاعتك
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
+    await _sendChatPayload(
+      lastMessagePreview: text,
+      messageType: 'text',
+      text: text,
+    );
+    _messageController.clear();
+    if (mounted) {
+      setState(() {
+        _isEmojiVisible = false;
+      });
+    }
+  }
+
+  Future<void> _sendChatPayload({
+    required String lastMessagePreview,
+    String messageType = 'text',
+    String text = '',
+    String? attachmentUrl,
+    String? fileName,
+    int? durationSec,
+  }) async {
+    if (messageType == 'text' && text.trim().isEmpty) return;
+    if (messageType != 'text' &&
+        (attachmentUrl == null || attachmentUrl.trim().isEmpty)) {
+      return;
+    }
+
     final isGroup = widget.chat['isGroup'] ?? false;
     final chatRef = _firestore.collection('chats').doc(_chatId);
     final msgRef = chatRef.collection('messages').doc();
 
-    await msgRef.set({
+    final payload = <String, dynamic>{
       'senderId': widget.currentUserId,
       'senderName': widget.currentUserName,
-      'text': text,
+      'text': text.isNotEmpty ? text : lastMessagePreview,
+      'messageType': messageType,
       'timestamp': FieldValue.serverTimestamp(),
       'isRead': false,
-    });
+    };
+    if (attachmentUrl != null && attachmentUrl.isNotEmpty) {
+      payload['attachmentUrl'] = attachmentUrl;
+    }
+    if (fileName != null && fileName.isNotEmpty) {
+      payload['fileName'] = fileName;
+    }
+    if (durationSec != null) {
+      payload['durationSec'] = durationSec;
+    }
+
+    await msgRef.set(payload);
 
     await chatRef.update({
-      'lastMessage': text,
+      'lastMessage': lastMessagePreview,
       'lastUpdated': FieldValue.serverTimestamp(),
     });
 
-    _messageController.clear();
-    if (mounted)
-      setState(() {
-        _isEmojiVisible = false;
-      }); // إخفاء الإيموجي بعد الإرسال
-
-    // إرسال إشعار:
     if (!isGroup && widget.otherUserId != null) {
       await FirestoreServices.sendFcm(
         userId: widget.otherUserId ?? '',
-        title: '${widget.currentUserName}',
-        body: text,
+        title: widget.currentUserName,
+        body: lastMessagePreview,
         sendEmail: false,
         notificationType: 'chat_message',
         fcmDataExtras: {'chatId': _chatId},
@@ -839,46 +896,12 @@ class _MessageScreenState extends State<MessageScreen> {
               'user': widget.currentUserName,
               'group': _displayName,
             }),
-            body: text,
+            body: lastMessagePreview,
             sendEmail: false,
             notificationType: 'chat_message',
             fcmDataExtras: {'chatId': _chatId},
           );
         }
-      }
-    }
-  }
-
-  Future<void> _markMessagesAsRead(String chatId) async {
-    final chatRef = _firestore.collection('chats').doc(chatId);
-    try {
-      final unreadMessages =
-          await chatRef
-              .collection('messages')
-              .where('isRead', isEqualTo: false)
-              .where('senderId', isNotEqualTo: widget.currentUserId)
-              .get();
-
-      for (var doc in unreadMessages.docs) {
-        await doc.reference.update({'isRead': true});
-      }
-    } catch (e) {
-      if (e.toString().contains('failed-precondition') ||
-          e.toString().contains('index')) {
-        final unreadSnapshot =
-            await chatRef
-                .collection('messages')
-                .where('isRead', isEqualTo: false)
-                .get();
-        final toMark =
-            unreadSnapshot.docs
-                .where((d) => d.data()['senderId'] != widget.currentUserId)
-                .toList();
-        for (var doc in toMark) {
-          await doc.reference.update({'isRead': true});
-        }
-      } else {
-        rethrow;
       }
     }
   }
@@ -909,6 +932,7 @@ class _MessageScreenState extends State<MessageScreen> {
   @override
   Widget build(BuildContext context) {
     final isGroup = widget.chat['isGroup'] ?? false;
+    final homeController = Get.find<HomeController>();
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -1016,9 +1040,8 @@ class _MessageScreenState extends State<MessageScreen> {
                                       ),
                                     ],
                                   ),
-                                  child: messageText(
-                                    msg['text'] ??
-                                        AppLocaleKeys.chatEmptyMessage.tr,
+                                  child: chatMessageBubbleContent(
+                                    Map<String, dynamic>.from(msg),
                                     isMe,
                                   ),
                                   // Text(
@@ -1092,6 +1115,58 @@ class _MessageScreenState extends State<MessageScreen> {
                       setState(() {
                         _isEmojiVisible = !_isEmojiVisible;
                       });
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.image_outlined, color: Colors.grey),
+                    onPressed: () async {
+                      final v = await homeController.pickoneImage();
+                      if (v.isEmpty || v.first.bytes == null) return;
+                      final url = await homeController.uploadFiles(
+                        filePathOrBytes: v.first.bytes!,
+                        fileName: v.first.name,
+                      );
+                      if (url == null) return;
+                      final cap = _messageController.text.trim();
+                      await _sendChatPayload(
+                        lastMessagePreview: cap.isNotEmpty ? cap : '📷',
+                        messageType: 'image',
+                        text: cap,
+                        attachmentUrl: url,
+                      );
+                      _messageController.clear();
+                      homeController.uploadedFilesPaths.clear();
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.attach_file, color: Colors.grey),
+                    onPressed: () async {
+                      final v = await homeController.pickOneChatFile();
+                      if (v.isEmpty || v.first.bytes == null) return;
+                      final url = await homeController.uploadFiles(
+                        filePathOrBytes: v.first.bytes!,
+                        fileName: v.first.name,
+                      );
+                      if (url == null) return;
+                      await _sendChatPayload(
+                        lastMessagePreview: v.first.name,
+                        messageType: 'file',
+                        text: '',
+                        attachmentUrl: url,
+                        fileName: v.first.name,
+                      );
+                      homeController.uploadedFilesPaths.clear();
+                    },
+                  ),
+                  ChatVoiceRecordButton(
+                    onUploaded: (url, sec) async {
+                      await _sendChatPayload(
+                        lastMessagePreview: '🎤',
+                        messageType: 'voice',
+                        text: url,
+                        attachmentUrl: url,
+                        durationSec: sec > 0 ? sec : null,
+                      );
                     },
                   ),
                   // حقل إدخال الرسالة

@@ -1331,6 +1331,8 @@ void showAddNotifications(BuildContext context) {
                                                     body: body.text,
                                                     sendPush: sendPush,
                                                     sendEmail: sendEmail,
+                                                    notificationType:
+                                                        'broadcast_topic',
                                                   ).then((value) {
                                                     Navigator.pop(context);
                                                     FunHelper.showSnackbar(
@@ -1593,6 +1595,8 @@ void showAddNotifications(BuildContext context) {
                                                     body: body.text,
                                                     sendPush: sendPush,
                                                     sendEmail: sendEmail,
+                                                    notificationType:
+                                                        'broadcast_topic',
                                                   ).then((value) {
                                                     Navigator.pop(context);
                                                     FunHelper.showSnackbar(

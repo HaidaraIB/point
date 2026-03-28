@@ -231,9 +231,7 @@ class HomeController extends GetxController {
       employee: employee,
       password: password,
     );
-    if (result &&
-        (employee.role == 'admin' ||
-            employee.role == 'supervisor')) {
+    if (result && (employee.role == 'admin' || employee.role == 'supervisor')) {
       await addToGroups(employee.id!);
     }
     isLoading.value = false;
@@ -284,9 +282,7 @@ class HomeController extends GetxController {
               updated: employee,
               newPassword: newPassword,
             );
-    if (result &&
-        (employee.role == 'admin' ||
-            employee.role == 'supervisor')) {
+    if (result && (employee.role == 'admin' || employee.role == 'supervisor')) {
       await addToGroups(employee.id!);
     }
     isLoading.value = false;
@@ -394,7 +390,7 @@ class HomeController extends GetxController {
     );
   }
 
-  fetchnotification(String? id) {
+  fetchNotification(String? id) {
     notifications.bindStream(
       _service.getNotifications(id ?? currentemployee.value!.id!, 'all'),
     );
@@ -526,6 +522,15 @@ class HomeController extends GetxController {
           assigneeId.isNotEmpty) {
         await NotificationService.notifyEmployeeEditRequestedByManagement(
           employeeId: assigneeId,
+          taskTitle: newTask.title,
+        );
+      }
+      if (oldTask.status != newTask.status &&
+          newTask.status == StorageKeys.status_awaiting_manager &&
+          emp?.role == 'supervisor') {
+        final sn = (emp?.name ?? '').trim();
+        await NotificationService.notifyAdminsSupervisorEscalatedTask(
+          supervisorName: sn.isEmpty ? 'notify.unknown_actor'.tr : sn,
           taskTitle: newTask.title,
         );
       }
@@ -804,7 +809,7 @@ class HomeController extends GetxController {
       events.add(
         TaskTimelineEvent(
           type: 'note_added',
-          label: 'تم إضافة ملاحظة',
+          label: 'timeline.comment_added',
           newValue: snippet.isEmpty ? null : snippet,
           byUserId: userId,
           byUserName: userName,
@@ -1389,6 +1394,18 @@ class HomeController extends GetxController {
     }
   }
 
+  /// ملف واحد لأي نوع (مرفقات الدردشة).
+  Future<List<PlatformFile>> pickOneChatFile() async {
+    final result = await FilePicker.platform.pickFiles(
+      allowMultiple: false,
+      withData: true,
+    );
+    if (result != null && result.files.isNotEmpty) {
+      return result.files;
+    }
+    return [];
+  }
+
   String getExtension(String fileName) {
     return fileName.split('.').last;
   }
@@ -1456,7 +1473,7 @@ class HomeController extends GetxController {
         lastKnownEmployee.value = result;
         _startTotalUnreadStream(result.id!);
         listenToClient(result.id!);
-        fetchnotification(result.id);
+        fetchNotification(result.id);
       }
       return result;
     } finally {
@@ -1746,7 +1763,7 @@ class HomeController extends GetxController {
       currentemployee.value = employee;
       lastKnownEmployee.value = employee;
       _startTotalUnreadStream(employee.id!);
-      fetchnotification(employee.id);
+      fetchNotification(employee.id);
       listenToClient(employee.id!);
       unawaited(setupFCM(employee.id));
 

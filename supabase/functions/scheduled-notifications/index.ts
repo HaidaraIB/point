@@ -197,16 +197,43 @@ function soundBaseForNotificationTypeCron(notificationType: string | undefined):
   if (!t) return null;
   const map: Record<string, string> = {
     chat_message: "notification_chat",
-    manager_task_completed: "notification_task_preview",
-    manager_task_comment: "notification_task_comment",
-    admin_content_status_changed: "notification_content_status",
-    admin_promotion_status_changed: "notification_promotion_status",
-    promotion_new_published_content: "notification_promotion_status",
+    employee_task_assigned: "notification_task_preview",
     employee_task_due_soon: "notification_task_deadline_soon",
+    employee_task_edit_requested: "notification_task_comment",
+    employee_task_rejected: "notification_content_status",
+    employee_task_reopened: "notification_task_comment",
+    employee_task_new_attachments: "notification_task_comment",
+    employee_task_status_changed: "notification_content_status",
+    manager_task_received: "notification_task_preview",
+    manager_task_completed: "notification_task_preview",
+    manager_task_edited: "notification_task_comment",
+    manager_task_comment: "notification_task_comment",
+    manager_content_submitted_by_client: "notification_content_status",
     manager_task_overdue: "notification_task_deadline",
-    client_approval_confirmed: "notification_task_approved",
-    publish_client_approved: "notification_task_approved",
+    manager_new_task_department: "notification_task_preview",
+    manager_client_notes: "notification_task_comment",
     manager_client_approved_content: "notification_task_approved",
+    client_content_pending_approval: "notification_content_status",
+    client_pending_over_24h: "notification_task_deadline_soon",
+    client_approval_confirmed: "notification_task_approved",
+    client_edits_done: "notification_task_comment",
+    client_content_updated: "notification_content_status",
+    client_content_scheduled: "notification_content_scheduled",
+    publish_content_added: "notification_content_status",
+    publish_client_edit_request: "notification_task_comment",
+    publish_client_approved: "notification_task_approved",
+    publish_client_rejected: "notification_content_status",
+    publish_post_one_hour: "notification_content_scheduled",
+    publish_post_not_confirmed_today: "notification_content_scheduled",
+    publish_no_posts_tomorrow: "notification_task_deadline_soon",
+    publish_post_published: "notification_promotion_status",
+    publish_link_added: "notification_task_comment",
+    publish_notes_after_publish: "notification_task_comment",
+    publish_scheduled_cancelled: "notification_content_scheduled",
+    admin_promotion_status_changed: "notification_promotion_status",
+    admin_content_status_changed: "notification_content_status",
+    promotion_new_published_content: "notification_promotion_status",
+    broadcast_topic: "notification_task_preview",
   };
   return map[t] ?? null;
 }
@@ -529,7 +556,14 @@ async function handleContentPendingOver24h({
     const client = byClientId.get(clientId);
     const msgTitle = "لديك محتوى بانتظار المراجعة منذ أكثر من 24 ساعة";
     await sendEmailIfPossible(client?.email ?? null, msgTitle, title);
-    await sendFcm({ accessToken, fcmUrl, token: client?.fcmToken ?? null, title: msgTitle, body: title });
+    await sendFcm({
+      accessToken,
+      fcmUrl,
+      token: client?.fcmToken ?? null,
+      title: msgTitle,
+      body: title,
+      notificationType: "client_pending_over_24h",
+    });
   }
 }
 
@@ -600,7 +634,14 @@ async function handlePublishReminders({
     if (!targetId || !target) continue;
     const msgTitle = "تذكير: لديك منشور مجدول سيتم نشره خلال ساعة";
     await sendEmailIfPossible(target.email ?? null, msgTitle, title);
-    await sendFcm({ accessToken, fcmUrl, token: target.fcmToken ?? null, title: msgTitle, body: title });
+    await sendFcm({
+      accessToken,
+      fcmUrl,
+      token: target.fcmToken ?? null,
+      title: msgTitle,
+      body: title,
+      notificationType: "publish_post_one_hour",
+    });
   }
 
   // لا منشورات غداً لكل عميل
@@ -646,7 +687,14 @@ async function handlePublishReminders({
     for (const empId of publishDept) {
       const emp = byEmpId.get(empId);
       await sendEmailIfPossible(emp?.email ?? null, msgTitle, msgBody);
-      await sendFcm({ accessToken, fcmUrl, token: emp?.fcmToken ?? null, title: msgTitle, body: msgBody });
+      await sendFcm({
+        accessToken,
+        fcmUrl,
+        token: emp?.fcmToken ?? null,
+        title: msgTitle,
+        body: msgBody,
+        notificationType: "publish_no_posts_tomorrow",
+      });
     }
   }
 }

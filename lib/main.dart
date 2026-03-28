@@ -26,6 +26,25 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // على الويب: تجنّب dumpErrorToConsole الافتراضي عندما تتضمّن سلسلة التشخيص
+  // كائنات JS interop؛ وإلا يحدث TypeError (LegacyJavaScriptObject ليس DiagnosticsNode).
+  if (kIsWeb) {
+    FlutterError.onError = (FlutterErrorDetails details) {
+      debugPrint(details.exceptionAsString());
+      if (kDebugMode && details.stack != null) {
+        debugPrint(details.stack.toString());
+      }
+    };
+    PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
+      debugPrint('Uncaught async error: $error');
+      if (kDebugMode) {
+        debugPrint(stack.toString());
+      }
+      return true;
+    };
+  }
+
   final languageController = Get.put(LanguageController(), permanent: true);
   await languageController.initialize();
 

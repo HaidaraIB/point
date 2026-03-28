@@ -213,6 +213,20 @@ class Tasks extends StatelessWidget {
                                           .where(
                                             (a) =>
                                                 a.status ==
+                                                StorageKeys
+                                                    .status_awaiting_manager,
+                                          )
+                                          .length
+                                          .toString(),
+                                      'status_awaiting_manager'.tr,
+                                      Colors.indigo,
+                                      width: boxWidth,
+                                    ),
+                                    _buildStatBox(
+                                      tasks
+                                          .where(
+                                            (a) =>
+                                                a.status ==
                                                 StorageKeys.status_approved,
                                           )
                                           .length
@@ -236,12 +250,11 @@ class Tasks extends StatelessWidget {
                                     ),
                                   ],
                                 );
-                                return isDesktop
-                                    ? statRow
-                                    : SingleChildScrollView(
-                                      scrollDirection: Axis.horizontal,
-                                      child: statRow,
-                                    );
+                                // تمرير أفقي على كل الأحجام: صناديق الإحصاءات كثيرة وقد تتجاوز عرض الشاشة.
+                                return SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: statRow,
+                                );
                               }),
 
                               SizedBox(height: 15),

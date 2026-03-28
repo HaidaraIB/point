@@ -178,34 +178,59 @@ class _InAppNotificationsPanelState extends State<InAppNotificationsPanel> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Center(
-                child: ToggleButtons(
-                  isSelected: [
-                    filterIndex == 0,
-                    filterIndex == 1,
-                    filterIndex == 2,
-                  ],
-                  onPressed: _onFilterChanged,
-                  borderRadius: const BorderRadius.all(Radius.circular(10)),
-                  constraints: BoxConstraints(
-                    minHeight: 36,
-                    minWidth: widget.toggleMinWidth,
-                  ),
-                  children: [
-                    Text(
-                      'notifications.filter.unread'.tr,
-                      style: const TextStyle(fontSize: 12),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  var maxW = constraints.maxWidth;
+                  if (!maxW.isFinite) {
+                    maxW = MediaQuery.sizeOf(context).width;
+                  }
+                  // ToggleButtons يضيف حدوداً وبادينغ بين الأقسام؛ تقسيم العرض/3 لا يكفي.
+                  // FittedBox يضمن عدم تجاوز العرض على الويب والشاشات الضيقة.
+                  return SizedBox(
+                    width: maxW,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.center,
+                      child: ToggleButtons(
+                        isSelected: [
+                          filterIndex == 0,
+                          filterIndex == 1,
+                          filterIndex == 2,
+                        ],
+                        onPressed: _onFilterChanged,
+                        borderRadius:
+                            const BorderRadius.all(Radius.circular(10)),
+                        constraints: BoxConstraints(
+                          minHeight: 36,
+                          minWidth: widget.toggleMinWidth,
+                        ),
+                        children: [
+                          Text(
+                            'notifications.filter.unread'.tr,
+                            style: const TextStyle(fontSize: 12),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                          ),
+                          Text(
+                            'notifications.filter.read'.tr,
+                            style: const TextStyle(fontSize: 12),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                          ),
+                          Text(
+                            'notifications.filter.all'.tr,
+                            style: const TextStyle(fontSize: 12),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
                     ),
-                    Text(
-                      'notifications.filter.read'.tr,
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                    Text(
-                      'notifications.filter.all'.tr,
-                      style: const TextStyle(fontSize: 12),
-                    ),
-                  ],
-                ),
+                  );
+                },
               ),
               const SizedBox(height: 6),
               Wrap(

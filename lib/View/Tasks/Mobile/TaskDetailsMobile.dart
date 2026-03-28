@@ -883,6 +883,8 @@ class TaskDetailsMobilePage extends StatelessWidget {
     switch (status) {
       case StorageKeys.status_under_revision:
         return Colors.blue;
+      case StorageKeys.status_awaiting_manager:
+        return Colors.indigo.shade700;
       case StorageKeys.status_approved:
         return Colors.green;
       case StorageKeys.status_rejected:
@@ -896,6 +898,8 @@ class TaskDetailsMobilePage extends StatelessWidget {
     switch (status) {
       case StorageKeys.status_under_revision:
         return Colors.blue.shade50;
+      case StorageKeys.status_awaiting_manager:
+        return Colors.indigo.shade50;
       case StorageKeys.status_approved:
         return Colors.green.shade50;
       case StorageKeys.status_rejected:
@@ -965,6 +969,12 @@ class TaskDetailsMobilePage extends StatelessWidget {
 
   Widget _buildActions(BuildContext context) {
     final controller = Get.find<HomeController>();
+    final role = controller.currentemployee.value?.role ?? '';
+    final canEscalate =
+        role == 'supervisor' &&
+        FunHelper.taskStatusAllowsSupervisorDirectOrEscalate(task.status);
+    final hideAccept =
+        FunHelper.supervisorShouldHideTaskAccept(role, task.status);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -989,63 +999,211 @@ class TaskDetailsMobilePage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  FunHelper.showConfirmDailog(
-                    context,
-                    title: 'tasks.confirm_reject_title'.tr,
-                    message: 'tasks.confirm_reject_message'.tr,
-                    confirmText: 'tasks.reject'.tr,
-                    confirmColor: Colors.red,
-                    onTap: () async {
-                      await controller.updateTask(
-                        task.copyWith(status: StorageKeys.status_rejected),
-                      );
-                      Get.back();
-                    },
-                  );
-                },
-                icon: const Icon(Icons.close_rounded, size: 18),
-                label: Text('tasks.reject'.tr),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.red,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        if (canEscalate) ...[
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    FunHelper.showConfirmDailog(
+                      context,
+                      title: 'tasks.confirm_reject_title'.tr,
+                      message: 'tasks.confirm_reject_message'.tr,
+                      confirmText: 'tasks.reject'.tr,
+                      confirmColor: Colors.red,
+                      onTap: () async {
+                        await controller.updateTask(
+                          task.copyWith(status: StorageKeys.status_rejected),
+                        );
+                        Get.back();
+                      },
+                    );
+                  },
+                  icon: const Icon(Icons.close_rounded, size: 18),
+                  label: Text('tasks.reject'.tr),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: FilledButton.icon(
-                onPressed: () {
-                  FunHelper.showConfirmDailog(
-                    context,
-                    title: 'tasks.confirm_accept_title'.tr,
-                    message: 'tasks.confirm_accept_message'.tr,
-                    confirmText: 'tasks.accept'.tr,
-                    confirmColor: Colors.green,
-                    onTap: () async {
-                      await controller.updateTask(
-                        task.copyWith(status: StorageKeys.status_approved),
-                      );
-                      Get.back();
-                    },
-                  );
-                },
-                icon: const Icon(Icons.check_rounded, size: 18),
-                label: Text('tasks.accept'.tr),
-                style: FilledButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: () {
+                    FunHelper.showConfirmDailog(
+                      context,
+                      title: 'tasks.confirm_supervisor_approve_direct_title'.tr,
+                      message:
+                          'tasks.confirm_supervisor_approve_direct_message'.tr,
+                      confirmText: 'tasks.supervisor_approve_direct'.tr,
+                      confirmColor: Colors.green,
+                      onTap: () async {
+                        await controller.updateTask(
+                          task.copyWith(status: StorageKeys.status_approved),
+                        );
+                        Get.back();
+                      },
+                    );
+                  },
+                  icon: const Icon(Icons.check_rounded, size: 18),
+                  label: Text('tasks.supervisor_approve_direct'.tr),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: () {
+                FunHelper.showConfirmDailog(
+                  context,
+                  title: 'tasks.confirm_send_to_manager_title'.tr,
+                  message: 'tasks.confirm_send_to_manager_message'.tr,
+                  confirmText: 'tasks.supervisor_send_to_manager'.tr,
+                  confirmColor: Colors.indigo,
+                  onTap: () async {
+                    await controller.updateTask(
+                      task.copyWith(
+                        status: StorageKeys.status_awaiting_manager,
+                      ),
+                    );
+                    Get.back();
+                  },
+                );
+              },
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.indigo.shade800,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.forward_to_inbox_rounded,
+                    size: 18,
+                    color: Colors.indigo.shade800,
+                  ),
+                  const SizedBox(width: 10),
+                  Flexible(
+                    child: Text(
+                      'tasks.supervisor_send_to_manager'.tr,
+                      textAlign: TextAlign.center,
+                      maxLines: 3,
+                      softWrap: true,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
+          ),
+        ] else if (hideAccept) ...[
+          OutlinedButton.icon(
+            onPressed: () {
+              FunHelper.showConfirmDailog(
+                context,
+                title: 'tasks.confirm_reject_title'.tr,
+                message: 'tasks.confirm_reject_message'.tr,
+                confirmText: 'tasks.reject'.tr,
+                confirmColor: Colors.red,
+                onTap: () async {
+                  await controller.updateTask(
+                    task.copyWith(status: StorageKeys.status_rejected),
+                  );
+                  Get.back();
+                },
+              );
+            },
+            icon: const Icon(Icons.close_rounded, size: 18),
+            label: Text('tasks.reject'.tr),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.red,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ] else ...[
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    FunHelper.showConfirmDailog(
+                      context,
+                      title: 'tasks.confirm_reject_title'.tr,
+                      message: 'tasks.confirm_reject_message'.tr,
+                      confirmText: 'tasks.reject'.tr,
+                      confirmColor: Colors.red,
+                      onTap: () async {
+                        await controller.updateTask(
+                          task.copyWith(status: StorageKeys.status_rejected),
+                        );
+                        Get.back();
+                      },
+                    );
+                  },
+                  icon: const Icon(Icons.close_rounded, size: 18),
+                  label: Text('tasks.reject'.tr),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: () {
+                    FunHelper.showConfirmDailog(
+                      context,
+                      title: 'tasks.confirm_accept_title'.tr,
+                      message: 'tasks.confirm_accept_message'.tr,
+                      confirmText: 'tasks.accept'.tr,
+                      confirmColor: Colors.green,
+                      onTap: () async {
+                        await controller.updateTask(
+                          task.copyWith(status: StorageKeys.status_approved),
+                        );
+                        Get.back();
+                      },
+                    );
+                  },
+                  icon: const Icon(Icons.check_rounded, size: 18),
+                  label: Text('tasks.accept'.tr),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
         const SizedBox(height: 10),
         OutlinedButton.icon(
           onPressed: () {

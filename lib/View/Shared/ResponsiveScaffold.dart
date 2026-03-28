@@ -10,8 +10,10 @@ import 'package:point/Utils/AppConstants.dart';
 import 'package:point/Utils/AppNotificationInbox.dart';
 import 'package:point/Services/ChatAudioFocus.dart';
 import 'package:point/Services/ChatIncomingMessageSound.dart';
-import 'package:point/View/Chats/ChatPage.dart';
+import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/View/Chats/MChatPage.dart';
+import 'package:point/View/Chats/chat_message_display.dart';
+import 'package:point/View/Chats/chat_voice_record_button.dart';
 import 'package:point/View/Shared/CustomHeader.dart';
 import 'package:point/View/Shared/SideMenu.dart';
 
@@ -289,27 +291,43 @@ class _ChatPopupState extends State<ChatPopup> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   Stream<QuerySnapshot<Map<String, dynamic>>>? _messagesStream;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _messageSoundSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _markReadSubscription;
   late String _chatId;
   final TextEditingController _messageController = TextEditingController();
 
   void _syncPopupSoundAndFocus() {
     _messageSoundSubscription?.cancel();
     _messageSoundSubscription = null;
+    _markReadSubscription?.cancel();
+    _markReadSubscription = null;
     final uid = Get.find<HomeController>().currentemployee.value?.id;
     final stream = _messagesStream;
     if (stream == null || uid == null) {
       ChatAudioFocus.clearForegroundIfEquals(_chatId);
+      if (uid != null) {
+        unawaited(FirestoreServices.syncEmployeeActiveChatId(uid, null));
+      }
       return;
     }
     if (!widget.chat.minimized) {
       ChatAudioFocus.setForeground(_chatId);
+      unawaited(FirestoreServices.syncEmployeeActiveChatId(uid, _chatId));
       _messageSoundSubscription = attachIncomingMessageSoundSubscription(
         stream: stream,
         chatId: _chatId,
         currentUserId: uid,
       );
+      _markReadSubscription = stream.listen((_) {
+        unawaited(
+          FirestoreServices.markIncomingMessagesReadInChat(_chatId, uid),
+        );
+      });
+      unawaited(
+        FirestoreServices.markIncomingMessagesReadInChat(_chatId, uid),
+      );
     } else {
       ChatAudioFocus.clearForegroundIfEquals(_chatId);
+      unawaited(FirestoreServices.syncEmployeeActiveChatId(uid, null));
     }
   }
 
@@ -326,8 +344,6 @@ class _ChatPopupState extends State<ChatPopup> {
             .snapshots();
 
     _syncPopupSoundAndFocus();
-
-    // _markMessagesAsRead(_chatId);
   }
 
   @override
@@ -341,7 +357,12 @@ class _ChatPopupState extends State<ChatPopup> {
   @override
   void dispose() {
     _messageSoundSubscription?.cancel();
+    _markReadSubscription?.cancel();
     ChatAudioFocus.clearForegroundIfEquals(_chatId);
+    final uid = Get.find<HomeController>().currentemployee.value?.id;
+    if (uid != null) {
+      unawaited(FirestoreServices.syncEmployeeActiveChatId(uid, null));
+    }
     _messageController.dispose();
     super.dispose();
   }
@@ -522,8 +543,8 @@ class _ChatPopupState extends State<ChatPopup> {
                                       ),
                                     ],
                                   ),
-                                  child: messageText(
-                                    msg['text'] ?? 'chat.empty_message'.tr,
+                                  child: chatMessageBubbleContent(
+                                    Map<String, dynamic>.from(msg),
                                     isMe,
                                   ),
                                   // Text(
@@ -580,9 +601,6 @@ class _ChatPopupState extends State<ChatPopup> {
               padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Row(
                 children: [
-                  // زر الإيموجي
-                  // /
-                  // حقل إدخال الرسالة
                   Expanded(
                     child: TextField(
                       controller: _messageController,
@@ -593,34 +611,60 @@ class _ChatPopupState extends State<ChatPopup> {
                         hintText: 'chat.write_message'.tr,
                         border: InputBorder.none,
                       ),
-                      onTap: () {
-                        // if (_isEmojiVisible) {
-                        //   setState(() {
-                        //     _isEmojiVisible = false;
-                        //   });
-                        // }
-                      },
                     ),
                   ),
-                  InkWell(
-                    onTap: () async {
-                      await controller.pickoneImage().then((v) async {
-                        if (v.isNotEmpty && v.first.bytes != null) {
-                          await controller.uploadFiles(
-                            filePathOrBytes: v.first.bytes!,
-                            fileName: v.first.name,
-                          );
-
-                          _messageController.text =
-                              controller.uploadedFilesPaths.last;
-                          _sendMessage();
-                          controller.uploadedFilesPaths.clear();
-                        }
-                      });
+                  IconButton(
+                    icon: const Icon(Icons.image_outlined, size: 20),
+                    onPressed: () async {
+                      final v = await controller.pickoneImage();
+                      if (v.isEmpty || v.first.bytes == null) return;
+                      final url = await controller.uploadFiles(
+                        filePathOrBytes: v.first.bytes!,
+                        fileName: v.first.name,
+                      );
+                      if (url == null) return;
+                      final cap = _messageController.text.trim();
+                      await _sendChatPayload(
+                        lastMessagePreview: cap.isNotEmpty ? cap : '📷',
+                        messageType: 'image',
+                        text: cap,
+                        attachmentUrl: url,
+                      );
+                      _messageController.clear();
+                      controller.uploadedFilesPaths.clear();
                     },
-                    child: Icon(Icons.attach_file),
                   ),
-                  // زر الإرسال
+                  IconButton(
+                    icon: const Icon(Icons.attach_file, size: 20),
+                    onPressed: () async {
+                      final v = await controller.pickOneChatFile();
+                      if (v.isEmpty || v.first.bytes == null) return;
+                      final url = await controller.uploadFiles(
+                        filePathOrBytes: v.first.bytes!,
+                        fileName: v.first.name,
+                      );
+                      if (url == null) return;
+                      await _sendChatPayload(
+                        lastMessagePreview: v.first.name,
+                        messageType: 'file',
+                        text: '',
+                        attachmentUrl: url,
+                        fileName: v.first.name,
+                      );
+                      controller.uploadedFilesPaths.clear();
+                    },
+                  ),
+                  ChatVoiceRecordButton(
+                    onUploaded: (url, sec) async {
+                      await _sendChatPayload(
+                        lastMessagePreview: '🎤',
+                        messageType: 'voice',
+                        text: url,
+                        attachmentUrl: url,
+                        durationSec: sec > 0 ? sec : null,
+                      );
+                    },
+                  ),
                   IconButton(
                     icon: const Icon(Icons.send, color: Color(0xff00A389)),
                     onPressed: _sendMessage,
@@ -637,47 +681,95 @@ class _ChatPopupState extends State<ChatPopup> {
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
+    await _sendChatPayload(
+      lastMessagePreview: text,
+      messageType: 'text',
+      text: text,
+    );
+    _messageController.clear();
+  }
+
+  Future<void> _sendChatPayload({
+    required String lastMessagePreview,
+    String messageType = 'text',
+    String text = '',
+    String? attachmentUrl,
+    String? fileName,
+    int? durationSec,
+  }) async {
+    if (messageType == 'text' && text.trim().isEmpty) return;
+    if (messageType != 'text' &&
+        (attachmentUrl == null || attachmentUrl.trim().isEmpty)) {
+      return;
+    }
+
+    final hc = Get.find<HomeController>();
+    final me = hc.currentemployee.value;
+    if (me?.id == null) return;
+
     final chatRef = _firestore.collection('chats').doc(_chatId);
     final msgRef = chatRef.collection('messages').doc();
 
-    await msgRef.set({
-      'senderId': Get.find<HomeController>().currentemployee.value?.id,
-      'senderName': Get.find<HomeController>().currentemployee.value?.name,
-      'text': text,
+    final payload = <String, dynamic>{
+      'senderId': me!.id,
+      'senderName': me.name ?? me.email ?? '',
+      'text': text.isNotEmpty ? text : lastMessagePreview,
+      'messageType': messageType,
       'timestamp': FieldValue.serverTimestamp(),
       'isRead': false,
-    });
+    };
+    if (attachmentUrl != null && attachmentUrl.isNotEmpty) {
+      payload['attachmentUrl'] = attachmentUrl;
+    }
+    if (fileName != null && fileName.isNotEmpty) {
+      payload['fileName'] = fileName;
+    }
+    if (durationSec != null) {
+      payload['durationSec'] = durationSec;
+    }
+
+    await msgRef.set(payload);
 
     await chatRef.update({
-      'lastMessage': text,
+      'lastMessage': lastMessagePreview,
       'lastUpdated': FieldValue.serverTimestamp(),
     });
 
-    _messageController.clear();
-    // if (mounted)
-    //   setState(() {
-    //     _isEmojiVisible = false;
-    //   }); // إخفاء الإيموجي بعد الإرسال
+    final chatSnap = await chatRef.get();
+    final data = chatSnap.data() ?? {};
+    final isGroup = data['isGroup'] == true;
+    final participants = List<String>.from(data['participants'] ?? []);
+    final title = data['title']?.toString() ?? widget.chat.name;
 
-    // إرسال إشعار:
-    // if (!isGroup && widget.otherUserId != null) {
-    //   await FirestoreServices.sendFcm(
-    //     userId: widget.otherUserId ?? '',
-    //     title: '${widget.currentUserName}',
-    //     body: text,
-    //   );
-    // } else if (isGroup) {
-    //   final participants = List<String>.from(widget.chat['participants'] ?? []);
-    //   for (var id in participants) {
-    //     if (id != widget.currentUserId) {
-    //       await FirestoreServices.sendFcm(
-    //         userId: id,
-    //         title: '${widget.currentUserName} في مجموعة ${_displayName}',
-    //         body: text,
-    //       );
-    //     }
-    //   }
-    // }
+    if (!isGroup) {
+      final others = participants.where((id) => id != me.id).toList();
+      if (others.isNotEmpty) {
+        await FirestoreServices.sendFcm(
+          userId: others.first,
+          title: me.name ?? me.email ?? '',
+          body: lastMessagePreview,
+          sendEmail: false,
+          notificationType: 'chat_message',
+          fcmDataExtras: {'chatId': _chatId},
+        );
+      }
+    } else {
+      for (final id in participants) {
+        if (id != me.id) {
+          await FirestoreServices.sendFcm(
+            userId: id,
+            title: 'chat.fcm_in_group_title'.trParams({
+              'user': me.name ?? '',
+              'group': title,
+            }),
+            body: lastMessagePreview,
+            sendEmail: false,
+            notificationType: 'chat_message',
+            fcmDataExtras: {'chatId': _chatId},
+          );
+        }
+      }
+    }
   }
 }
 

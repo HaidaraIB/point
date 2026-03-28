@@ -47,6 +47,8 @@
 	<true/>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>نحتاج الوصول إلى مكتبة الصور لتمكينك من اختيار الصور أو الملفات لرفعها داخل التطبيق.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>نحتاج الميكروفون لتسجيل رسائل صوتية في الدردشة.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

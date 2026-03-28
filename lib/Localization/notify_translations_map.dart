@@ -51,6 +51,12 @@ const Map<String, String> notifyTranslationsEn = {
   'notify.mgr.completed.body': 'Employee: @name — Task: @title',
   'notify.mgr.completed.action':
       'Review the deliverables and approve or request changes.',
+  'notify.admin.supervisor_escalated.title':
+      'Supervisor sent a task for your review',
+  'notify.admin.supervisor_escalated.body':
+      'Supervisor: @supervisor — Task: @title',
+  'notify.admin.supervisor_escalated.action':
+      'Open the task and approve or reject.',
   'notify.mgr.edited.title': 'Employee added a comment',
   'notify.mgr.edited.body':
       '@name added a comment on task «@title»',
@@ -214,6 +220,12 @@ const Map<String, String> notifyTranslationsAr = {
   'notify.mgr.completed.body': 'الموظف: @name — المهمة: @title',
   'notify.mgr.completed.action':
       'يرجى مراجعة المخرجات واعتماد المهمة أو طلب تعديل.',
+  'notify.admin.supervisor_escalated.title':
+      'أحال المشرف مهمة للمراجعة',
+  'notify.admin.supervisor_escalated.body':
+      'المشرف: @supervisor — المهمة: @title',
+  'notify.admin.supervisor_escalated.action':
+      'يرجى فتح المهمة والموافقة أو الرفض.',
   'notify.mgr.edited.title': 'قام الموظف بإضافة تعليق',
   'notify.mgr.edited.body':
       'أضاف @name تعليقاً على المهمة «@title»',

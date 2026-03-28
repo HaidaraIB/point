@@ -47,184 +47,293 @@ class TaskCard extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // --- العنوان + النقاط الثلاثة ---
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          task.title,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                  Builder(
+                    builder: (context) {
+                      final hc = Get.find<HomeController>();
+                      final role = hc.currentemployee.value?.role ?? '';
+                      final canEscalate =
+                          role == 'supervisor' &&
+                          FunHelper.taskStatusAllowsSupervisorDirectOrEscalate(
+                            task.status,
+                          );
+                      final hideAccept = FunHelper.supervisorShouldHideTaskAccept(
+                        role,
+                        task.status,
+                      );
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              task.title,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                      SizedBox(
-                        child: PopupMenuButton<int>(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          color: Colors.white,
-                          elevation: 4,
-                          itemBuilder:
-                              (context) => [
-                                PopupMenuItem(
-                                  value: 0,
-
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text('tasks.view'.tr),
-                                      Icon(
-                                        Icons.remove_red_eye_outlined,
-                                        color: Colors.green,
-                                        size: 20,
-                                      ),
-                                    ],
+                          SizedBox(
+                            child: PopupMenuButton<int>(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              color: Colors.white,
+                              elevation: 4,
+                              itemBuilder: (context) {
+                                final items = <PopupMenuItem<int>>[
+                                  PopupMenuItem(
+                                    value: 0,
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text('tasks.view'.tr),
+                                        Icon(
+                                          Icons.remove_red_eye_outlined,
+                                          color: Colors.green,
+                                          size: 20,
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                PopupMenuItem(
-                                  value: 1,
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text('tasks.request_edit'.tr),
-                                      Icon(
-                                        Icons.edit_outlined,
-                                        color: Colors.blueAccent,
-                                        size: 20,
-                                      ),
-                                    ],
+                                  PopupMenuItem(
+                                    value: 1,
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text('tasks.request_edit'.tr),
+                                        Icon(
+                                          Icons.edit_outlined,
+                                          color: Colors.blueAccent,
+                                          size: 20,
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                PopupMenuItem(
-                                  value: 2,
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text('delete'.tr),
-                                      Icon(
-                                        Icons.delete_outline,
-                                        color: Colors.red,
-                                        size: 20,
-                                      ),
-                                    ],
+                                  PopupMenuItem(
+                                    value: 2,
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text('delete'.tr),
+                                        Icon(
+                                          Icons.delete_outline,
+                                          color: Colors.red,
+                                          size: 20,
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                PopupMenuItem(
-                                  value: 3,
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text('tasks.reject'.tr),
-                                      Icon(
-                                        Icons.close_rounded,
-                                        color: Colors.red,
-                                        size: 20,
-                                      ),
-                                    ],
+                                  PopupMenuItem(
+                                    value: 3,
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text('tasks.reject'.tr),
+                                        Icon(
+                                          Icons.close_rounded,
+                                          color: Colors.red,
+                                          size: 20,
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                PopupMenuItem(
-                                  value: 4,
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text('tasks.accept'.tr),
-                                      Icon(
-                                        Icons.check,
-                                        color: Colors.green,
-                                        size: 20,
+                                ];
+                                if (canEscalate) {
+                                  items.add(
+                                    PopupMenuItem(
+                                      value: 4,
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            'tasks.supervisor_approve_direct'
+                                                .tr,
+                                          ),
+                                          Icon(
+                                            Icons.check,
+                                            color: Colors.green,
+                                            size: 20,
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                          onSelected: (value) {
-                            if (value == 0) {
-                              onTap();
-                            } else if (value == 1) {
-                              // controller.uploadedFilesPaths.clear();
-
-                              switch (task.type) {
-                                case '0':
-                                  showPromotionDialog(context, model: task);
-                                  break;
-                                case '1':
-                                  designDialog(context, model: task);
-                                  break;
-                                case '2':
-                                  photographyDialog(context, model: task);
-                                  break;
-                                case '3':
-                                  contentWriteDialog(context, model: task);
-                                  break;
-                                case '4':
-                                  montageDialog(context, model: task);
-                                  break;
-                                case '5':
-                                  publishDialog(context, model: task);
-                                  break;
-                                case '6':
-                                  programmingDialog(context, model: task);
-                                  break;
-                                default:
-                              }
-                            } else if (value == 2) {
-                              FunHelper.showConfirmDailog(
-                                context,
-                                title: 'tasks.confirm_delete_title'.tr,
-                                message: 'tasks.confirm_delete_message'.tr,
-                                confirmText: 'delete'.tr,
-                                confirmColor: Colors.red,
-                                onTap: () async {
-                                  await Get.find<HomeController>().deleteTask(
-                                    task.id!,
-                                  );
-                                },
-                              );
-                            } else if (value == 3) {
-                              FunHelper.showConfirmDailog(
-                                context,
-                                title: 'tasks.confirm_reject_title'.tr,
-                                message: 'tasks.confirm_reject_message'.tr,
-                                confirmText: 'tasks.reject'.tr,
-                                confirmColor: Colors.red,
-                                onTap: () async {
-                                  await Get.find<HomeController>().updateTask(
-                                    task.copyWith(
-                                      status: StorageKeys.status_rejected,
                                     ),
                                   );
-                                },
-                              );
-                            } else if (value == 4) {
-                              FunHelper.showConfirmDailog(
-                                context,
-                                title: 'tasks.confirm_accept_title'.tr,
-                                message: 'tasks.confirm_accept_message'.tr,
-                                confirmText: 'tasks.accept'.tr,
-                                confirmColor: Colors.green,
-                                onTap: () async {
-                                  await Get.find<HomeController>().updateTask(
-                                    task.copyWith(
-                                      status: StorageKeys.status_approved,
+                                  items.add(
+                                    PopupMenuItem(
+                                      value: 5,
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            'tasks.supervisor_send_to_manager'
+                                                .tr,
+                                          ),
+                                          Icon(
+                                            Icons.forward_to_inbox_rounded,
+                                            color: Colors.indigo,
+                                            size: 20,
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   );
-                                },
-                              );
-                            }
-                          },
-                          child: const Icon(Icons.more_vert),
-                          tooltip: 'tasks.options_tooltip'.tr,
-                        ),
-                      ),
-                    ],
+                                } else if (!hideAccept) {
+                                  items.add(
+                                    PopupMenuItem(
+                                      value: 4,
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text('tasks.accept'.tr),
+                                          Icon(
+                                            Icons.check,
+                                            color: Colors.green,
+                                            size: 20,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return items;
+                              },
+                              onSelected: (value) {
+                                if (value == 0) {
+                                  onTap();
+                                } else if (value == 1) {
+                                  switch (task.type) {
+                                    case '0':
+                                      showPromotionDialog(context, model: task);
+                                      break;
+                                    case '1':
+                                      designDialog(context, model: task);
+                                      break;
+                                    case '2':
+                                      photographyDialog(
+                                        context,
+                                        model: task,
+                                      );
+                                      break;
+                                    case '3':
+                                      contentWriteDialog(context, model: task);
+                                      break;
+                                    case '4':
+                                      montageDialog(context, model: task);
+                                      break;
+                                    case '5':
+                                      publishDialog(context, model: task);
+                                      break;
+                                    case '6':
+                                      programmingDialog(context, model: task);
+                                      break;
+                                    default:
+                                  }
+                                } else if (value == 2) {
+                                  FunHelper.showConfirmDailog(
+                                    context,
+                                    title: 'tasks.confirm_delete_title'.tr,
+                                    message: 'tasks.confirm_delete_message'.tr,
+                                    confirmText: 'delete'.tr,
+                                    confirmColor: Colors.red,
+                                    onTap: () async {
+                                      await Get.find<HomeController>()
+                                          .deleteTask(task.id!);
+                                    },
+                                  );
+                                } else if (value == 3) {
+                                  FunHelper.showConfirmDailog(
+                                    context,
+                                    title: 'tasks.confirm_reject_title'.tr,
+                                    message: 'tasks.confirm_reject_message'.tr,
+                                    confirmText: 'tasks.reject'.tr,
+                                    confirmColor: Colors.red,
+                                    onTap: () async {
+                                      await Get.find<HomeController>().updateTask(
+                                        task.copyWith(
+                                          status: StorageKeys.status_rejected,
+                                        ),
+                                      );
+                                    },
+                                  );
+                                } else if (value == 4) {
+                                  if (canEscalate) {
+                                    FunHelper.showConfirmDailog(
+                                      context,
+                                      title:
+                                          'tasks.confirm_supervisor_approve_direct_title'
+                                              .tr,
+                                      message:
+                                          'tasks.confirm_supervisor_approve_direct_message'
+                                              .tr,
+                                      confirmText:
+                                          'tasks.supervisor_approve_direct'.tr,
+                                      confirmColor: Colors.green,
+                                      onTap: () async {
+                                        await Get.find<HomeController>()
+                                            .updateTask(
+                                              task.copyWith(
+                                                status:
+                                                    StorageKeys.status_approved,
+                                              ),
+                                            );
+                                      },
+                                    );
+                                  } else {
+                                    FunHelper.showConfirmDailog(
+                                      context,
+                                      title: 'tasks.confirm_accept_title'.tr,
+                                      message:
+                                          'tasks.confirm_accept_message'.tr,
+                                      confirmText: 'tasks.accept'.tr,
+                                      confirmColor: Colors.green,
+                                      onTap: () async {
+                                        await Get.find<HomeController>()
+                                            .updateTask(
+                                              task.copyWith(
+                                                status:
+                                                    StorageKeys.status_approved,
+                                              ),
+                                            );
+                                      },
+                                    );
+                                  }
+                                } else if (value == 5) {
+                                  FunHelper.showConfirmDailog(
+                                    context,
+                                    title:
+                                        'tasks.confirm_send_to_manager_title'.tr,
+                                    message:
+                                        'tasks.confirm_send_to_manager_message'
+                                            .tr,
+                                    confirmText:
+                                        'tasks.supervisor_send_to_manager'.tr,
+                                    confirmColor: Colors.indigo,
+                                    onTap: () async {
+                                      await Get.find<HomeController>()
+                                          .updateTask(
+                                            task.copyWith(
+                                              status: StorageKeys
+                                                  .status_awaiting_manager,
+                                            ),
+                                          );
+                                    },
+                                  );
+                                }
+                              },
+                              child: const Icon(Icons.more_vert),
+                              tooltip: 'tasks.options_tooltip'.tr,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                   const SizedBox(height: 6),
 
@@ -479,6 +588,8 @@ Color _getStatusColor(String status) {
   switch (status) {
     case StorageKeys.status_under_revision:
       return Colors.blue;
+    case StorageKeys.status_awaiting_manager:
+      return Colors.indigo.shade700;
     case StorageKeys.status_ready_to_publish:
       return Colors.teal;
     case StorageKeys.status_approved:
@@ -506,6 +617,8 @@ Color _getStatusbgColor(String status) {
   switch (status) {
     case StorageKeys.status_under_revision:
       return Colors.blue.shade50;
+    case StorageKeys.status_awaiting_manager:
+      return Colors.indigo.shade50;
     case StorageKeys.status_ready_to_publish:
       return Colors.teal.shade50;
     case StorageKeys.status_approved:

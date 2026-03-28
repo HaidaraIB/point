@@ -215,6 +215,15 @@ class TasksMobile extends StatelessWidget {
         ),
         _buildStatBox(
           tasks
+              .where((a) => a.status == StorageKeys.status_awaiting_manager)
+              .length
+              .toString(),
+          'status_awaiting_manager'.tr,
+          Colors.indigo,
+          width: boxWidth,
+        ),
+        _buildStatBox(
+          tasks
               .where((a) => a.status == StorageKeys.status_approved)
               .length
               .toString(),

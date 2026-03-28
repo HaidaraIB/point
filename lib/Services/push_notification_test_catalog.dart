@@ -1,4 +1,4 @@
-/// أنواع الإشعارات المستخدمة في الاختبار (تطابق [NotificationService] والدردشة).
+/// أنواع الإشعارات في الاختبار (تطابق مفاتيح FCM؛ بعضها Cron-only بدون دالة في [NotificationService]).
 enum PushTestAudience {
   /// [FirestoreServices.sendFcm]
   employee,
@@ -254,6 +254,12 @@ const List<PushNotificationTestDefinition> kPushNotificationTestCatalog =
         audience: PushTestAudience.employee,
         sortOrder: 60,
         categoryKey: 'push_test.category.admin_meta',
+      ),
+      PushNotificationTestDefinition(
+        notificationType: 'broadcast_topic',
+        audience: PushTestAudience.employee,
+        sortOrder: 70,
+        categoryKey: 'push_test.category.broadcast',
       ),
     ];
 

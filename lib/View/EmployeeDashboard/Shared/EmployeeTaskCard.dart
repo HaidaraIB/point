@@ -174,17 +174,9 @@ class EmployeeTaskCard extends StatelessWidget {
                       // --- الحالة و الأولوية ---
                       Row(
                         children: [
-                          _buildstatusTag(
-                            task.status,
-                            Colors.amber.shade700,
-                            Colors.amber.shade50,
-                          ),
+                          _buildStatusTag(task.status),
                           const SizedBox(width: 8),
-                          _buildpriortyTag(
-                            task.priority,
-                            Colors.red.shade700,
-                            Colors.red.shade50,
-                          ),
+                          _buildPriorityTag(task.priority),
                         ],
                       ),
                       const SizedBox(height: 8),
@@ -206,24 +198,6 @@ class EmployeeTaskCard extends StatelessWidget {
                         style: TextStyle(color: Colors.grey.shade600),
                       ),
                       const SizedBox(height: 4),
-                      // Row(
-                      //   children: [
-                      //     Expanded(
-                      //       child: LinearProgressIndicator(
-                      //         value: task.progress ?? 0,
-                      //         color: Colors.blue,
-                      //         backgroundColor: Colors.grey.shade200,
-                      //         minHeight: 6,
-                      //         borderRadius: BorderRadius.circular(10),
-                      //       ),
-                      //     ),
-                      //     const SizedBox(width: 8),
-                      //     Text(
-                      //       '${(task.progress ?? 0.0 * 100).toInt()}%',
-                      //       style: const TextStyle(fontSize: 12),
-                      //     ),
-                      //   ],
-                      // ),
                       SizedBox(
                         width: constraints.maxWidth,
                         height: 56,
@@ -531,17 +505,18 @@ class EmployeeTaskCard extends StatelessWidget {
     return 'time.ago_years'.trParams({'count': '$years'});
   }
 
-  Widget _buildpriortyTag(String text, Color color, Color bg) {
+  Widget _buildPriorityTag(String raw) {
+    final key = FunHelper.canonicalStoredPriority(raw);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: _getprioritybgColor(text),
+        color: _getPriorityBgColor(key),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
-        text.toString().tr,
+        FunHelper.trStored(raw, kind: StoredValueKind.priority),
         style: TextStyle(
-          color: _getPriorityColor(text),
+          color: _getPriorityColor(key),
           fontSize: 11,
           fontWeight: FontWeight.bold,
         ),
@@ -587,17 +562,18 @@ Widget employeeTaskCardActionRows({
   );
 }
 
-Widget _buildstatusTag(String text, Color color, Color bg) {
+Widget _buildStatusTag(String raw) {
+  final key = FunHelper.canonicalStoredStatus(raw);
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
     decoration: BoxDecoration(
-      color: _getStatusbgColor(text),
+      color: _getStatusBgColor(key),
       borderRadius: BorderRadius.circular(8),
     ),
     child: Text(
-      text.toString().tr,
+      FunHelper.trStored(raw, kind: StoredValueKind.taskStatus),
       style: TextStyle(
-        color: _getStatusColor(text),
+        color: _getStatusColor(key),
         fontSize: 11,
         fontWeight: FontWeight.bold,
       ),
@@ -608,45 +584,77 @@ Widget _buildstatusTag(String text, Color color, Color bg) {
 Color _getPriorityColor(String priority) {
   switch (priority) {
     case 'normal':
-      return Colors.blue;
+      return Colors.blue.shade700;
     case 'imp':
-      return Colors.orange;
+      return Colors.orange.shade800;
     case 'veryimp':
-      return Colors.red;
+      return Colors.red.shade700;
     case 'veryveryimp':
       return Colors.red.shade900;
     default:
-      return Colors.green;
+      return Colors.blueGrey.shade700;
   }
 }
 
 Color _getStatusColor(String status) {
   switch (status) {
-    case 'قيد المراجعة':
-      return Colors.blue;
-    case 'مكتملة':
-      return Colors.green;
-    case 'ملغاة':
-      return Colors.red;
+    case StorageKeys.status_under_revision:
+      return Colors.blue.shade700;
+    case StorageKeys.status_awaiting_manager:
+      return Colors.indigo.shade700;
+    case StorageKeys.status_ready_to_publish:
+      return Colors.teal.shade700;
+    case StorageKeys.status_approved:
+      return Colors.green.shade700;
+    case StorageKeys.status_scheduled:
+      return Colors.orange.shade800;
+    case StorageKeys.status_processing:
+      return Colors.amber.shade900;
+    case StorageKeys.status_published:
+      return Colors.lightGreen.shade800;
+    case StorageKeys.status_rejected:
+      return Colors.red.shade700;
+    case StorageKeys.status_in_edit:
+      return Colors.purple.shade700;
+    case StorageKeys.status_edit_requested:
+      return Colors.deepOrange.shade700;
+    case StorageKeys.status_not_start_yet:
+      return Colors.grey.shade700;
     default:
-      return Colors.grey;
+      return Colors.blueGrey.shade700;
   }
 }
 
-Color _getStatusbgColor(String status) {
+Color _getStatusBgColor(String status) {
   switch (status) {
-    case 'قيد المراجعة':
+    case StorageKeys.status_under_revision:
       return Colors.blue.shade50;
-    case 'مكتملة':
+    case StorageKeys.status_awaiting_manager:
+      return Colors.indigo.shade50;
+    case StorageKeys.status_ready_to_publish:
+      return Colors.teal.shade50;
+    case StorageKeys.status_approved:
       return Colors.green.shade50;
-    case 'ملغاة':
+    case StorageKeys.status_scheduled:
+      return Colors.orange.shade50;
+    case StorageKeys.status_processing:
+      return Colors.amber.shade50;
+    case StorageKeys.status_published:
+      return Colors.lightGreen.shade50;
+    case StorageKeys.status_rejected:
       return Colors.red.shade50;
-    default:
+    case StorageKeys.status_in_edit:
+      return Colors.purple.shade50;
+    case StorageKeys.status_edit_requested:
+      return Colors.deepOrange.shade50;
+    case StorageKeys.status_not_start_yet:
       return Colors.grey.shade200;
+    default:
+      return Colors.blueGrey.shade50;
   }
 }
 
-Color _getprioritybgColor(String priority) {
+Color _getPriorityBgColor(String priority) {
   switch (priority) {
     case 'normal':
       return Colors.blue.shade50;
@@ -657,7 +665,7 @@ Color _getprioritybgColor(String priority) {
     case 'veryveryimp':
       return Colors.red.shade100;
     default:
-      return Colors.green.shade50;
+      return Colors.blueGrey.shade50;
   }
 }
 

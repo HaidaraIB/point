@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -11,9 +10,10 @@ import 'package:point/Services/ChatAudioFocus.dart';
 import 'package:point/Services/ChatIncomingMessageSound.dart';
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/StorageKeys.dart';
+import 'package:point/View/Chats/chat_message_display.dart';
+import 'package:point/View/Chats/chat_voice_record_button.dart';
 
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class ChatScreen extends StatefulWidget {
   final VoidCallback onMinimize;
@@ -58,6 +58,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _chatsSubscription;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _messageSoundSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _markReadSubscription;
   /// يمنع إلغاء اشتراك الصوت عند كل تحديث لقائمة المحادثات (كان يُرمى أول snapshot فيه الرسائل الجديدة).
   String? _messageSoundBoundChatId;
 
@@ -168,14 +169,12 @@ class _ChatScreenState extends State<ChatScreen> {
     _employees.forEach((emp) {
       final empId = emp['id'] as String;
       final empDept = emp['department'];
-      final empRole = emp['role'] as String;
 
       // تحقق إذا كان موظف من نفس القسم (ويستثنى الموظف الحالي الذي أضفناه بالفعل)
       final isSameDept = StorageKeys.matchesDepartment(empDept, deptGroupName);
 
       // تحقق إذا كان أدمن أو سوبر فايزر
-      final isSpecialRole =
-          empRole == 'admin' || empRole == 'supervisor';
+      final isSpecialRole = StorageKeys.isChatElevatedRole(emp['role']);
 
       if ((isSameDept || isSpecialRole) &&
           empId != _currentUserId &&
@@ -230,7 +229,12 @@ class _ChatScreenState extends State<ChatScreen> {
       _messageSoundSubscription?.cancel();
       _messageSoundSubscription = null;
       _messageSoundBoundChatId = null;
+      _markReadSubscription?.cancel();
+      _markReadSubscription = null;
       ChatAudioFocus.clearForeground();
+      if (uid != null) {
+        unawaited(FirestoreServices.syncEmployeeActiveChatId(uid, null));
+      }
       return;
     }
     final chatId = sel['id'] as String;
@@ -240,12 +244,20 @@ class _ChatScreenState extends State<ChatScreen> {
     }
     _messageSoundSubscription?.cancel();
     _messageSoundSubscription = null;
+    _markReadSubscription?.cancel();
+    _markReadSubscription = null;
     _messageSoundBoundChatId = chatId;
     _messageSoundSubscription = attachIncomingMessageSoundSubscription(
       stream: stream,
       chatId: chatId,
       currentUserId: uid,
     );
+    unawaited(FirestoreServices.syncEmployeeActiveChatId(uid, chatId));
+    _markReadSubscription = stream.listen((_) {
+      unawaited(
+        FirestoreServices.markIncomingMessagesReadInChat(chatId, uid),
+      );
+    });
   }
 
   // **---------------- Chats (Private & Group) ----------------**
@@ -296,8 +308,14 @@ class _ChatScreenState extends State<ChatScreen> {
     _chatsSubscription = null; // أي callback قادم من الـ stream سيرى null ولن يستدعي setState
     sub?.cancel();
     _messageSoundSubscription?.cancel();
+    _markReadSubscription?.cancel();
     _messageSoundBoundChatId = null;
     ChatAudioFocus.clearForeground();
+    if (_currentUserId != null) {
+      unawaited(
+        FirestoreServices.syncEmployeeActiveChatId(_currentUserId!, null),
+      );
+    }
     _messageController.dispose();
     _searchController.dispose();
     super.dispose();
@@ -405,17 +423,38 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  // -----------// داخل الميثود send message بتاعتك
+  // -----------// إرسال رسالة (نص أو مرفق)
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
-    if (_selectedChat == null) return;
+    await _sendChatPayload(
+      lastMessagePreview: text,
+      messageType: 'text',
+      text: text,
+    );
+    _messageController.clear();
+  }
 
-    final chatId = _selectedChat!['id'];
+  Future<void> _sendChatPayload({
+    required String lastMessagePreview,
+    String messageType = 'text',
+    String text = '',
+    String? attachmentUrl,
+    String? fileName,
+    int? durationSec,
+  }) async {
+    if (_selectedChat == null || _currentUserId == null) return;
+    if (messageType == 'text' && text.trim().isEmpty) return;
+    if (messageType != 'text' &&
+        (attachmentUrl == null || attachmentUrl.trim().isEmpty)) {
+      return;
+    }
 
+    final chatId = _selectedChat!['id'] as String;
     final isGroup = _selectedChat!['isGroup'] ?? false;
     final chatRef = _firestore.collection('chats').doc(chatId);
     final msgRef = chatRef.collection('messages').doc();
+
     Get.find<HomeController>().openChat(
       OpenChatModel(
         id: chatId,
@@ -432,51 +471,53 @@ class _ChatScreenState extends State<ChatScreen> {
       orElse: () => 'N/A',
     );
 
-    await msgRef.set({
+    final payload = <String, dynamic>{
       'senderId': _currentUserId,
-      'senderName': _currentUserName, // **إضافة اسم المرسل للمجموعة**
-      'text': text,
+      'senderName': _currentUserName,
+      'text': text.isNotEmpty ? text : lastMessagePreview,
+      'messageType': messageType,
       'timestamp': FieldValue.serverTimestamp(),
       'isRead': false,
-    });
+    };
+    if (attachmentUrl != null && attachmentUrl.isNotEmpty) {
+      payload['attachmentUrl'] = attachmentUrl;
+    }
+    if (fileName != null && fileName.isNotEmpty) {
+      payload['fileName'] = fileName;
+    }
+    if (durationSec != null) {
+      payload['durationSec'] = durationSec;
+    }
+
+    await msgRef.set(payload);
 
     await chatRef.update({
-      'lastMessage': text,
+      'lastMessage': lastMessagePreview,
       'lastUpdated': FieldValue.serverTimestamp(),
     });
 
-    _messageController.clear();
-
-    // إرسال إشعار: إذا كانت محادثة فردية نرسل للـ _otherUserId
-    // إذا كانت مجموعة يجب أن يتم إرسال الإشعار لجميع المشاركين باستثناء المرسل
-    if (!isGroup && otherId.isNotEmpty) {
+    if (!isGroup && otherId.isNotEmpty && otherId != 'N/A') {
       await FirestoreServices.sendFcm(
         userId: otherId,
         title: '$_currentUserName',
-        body: text,
+        body: lastMessagePreview,
         sendEmail: false,
         notificationType: 'chat_message',
-        fcmDataExtras: {'chatId': '$chatId'},
-        // token: token,
+        fcmDataExtras: {'chatId': chatId},
       );
     } else if (isGroup) {
-      final participants = List<String>.from(
-        _selectedChat!['participants'] ?? [],
-      );
       for (var id in participants) {
         if (id != _currentUserId) {
-          // يمكن هنا إرسال الإشعار لكل مشارك بشكل فردي (إذا كنت تخزن الـ FCM token للموظفين)
           await FirestoreServices.sendFcm(
             userId: id,
             title: 'chat.fcm_in_group_title'.trParams({
               'user': _currentUserName ?? '',
               'group': '${_selectedChat!['title']}',
             }),
-            body: text,
+            body: lastMessagePreview,
             sendEmail: false,
             notificationType: 'chat_message',
-            fcmDataExtras: {'chatId': '$chatId'},
-            // token: token,
+            fcmDataExtras: {'chatId': chatId},
           );
         }
       }
@@ -484,36 +525,11 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _markMessagesAsRead(String chatId) async {
-    final chatRef = _firestore.collection('chats').doc(chatId);
-    try {
-      final unreadMessages =
-          await chatRef
-              .collection('messages')
-              .where('isRead', isEqualTo: false)
-              .where('senderId', isNotEqualTo: _currentUserId)
-              .get();
-
-      for (var doc in unreadMessages.docs) {
-        await doc.reference.update({'isRead': true});
-      }
-    } catch (e) {
-      if (e.toString().contains('failed-precondition') ||
-          e.toString().contains('index')) {
-        final unreadSnapshot =
-            await chatRef
-                .collection('messages')
-                .where('isRead', isEqualTo: false)
-                .get();
-        final toMark = unreadSnapshot.docs
-            .where((d) => d.data()['senderId'] != _currentUserId)
-            .toList();
-        for (var doc in toMark) {
-          await doc.reference.update({'isRead': true});
-        }
-      } else {
-        rethrow;
-      }
-    }
+    if (_currentUserId == null) return;
+    await FirestoreServices.markIncomingMessagesReadInChat(
+      chatId,
+      _currentUserId!,
+    );
   }
 
   // ---------------- Helpers ----------------
@@ -1197,9 +1213,13 @@ class _ChatScreenState extends State<ChatScreen> {
                                                                           ),
                                                                         ),
                                                                       ),
-                                                                    messageText(
-                                                                      d['text'] ??
-                                                                          '',
+                                                                    chatMessageBubbleContent(
+                                                                      Map<
+                                                                        String,
+                                                                        dynamic
+                                                                      >.from(
+                                                                        d,
+                                                                      ),
                                                                       isMe,
                                                                     ),
                                                                     // Text(
@@ -1259,36 +1279,86 @@ class _ChatScreenState extends State<ChatScreen> {
                                                     });
                                                   },
                                                 ),
-                                                InkWell(
-                                                  onTap: () async {
-                                                    await controller.pickoneImage().then((
-                                                      v,
-                                                    ) async {
-                                                      if (v.isNotEmpty) {
+                                                IconButton(
+                                                  tooltip: 'Image',
+                                                  icon: const Icon(
+                                                    Icons.image_outlined,
+                                                  ),
+                                                  onPressed: () async {
+                                                    final v =
                                                         await controller
-                                                            .uploadFiles(
-                                                              filePathOrBytes:
-                                                                  v
-                                                                      .first
-                                                                      .bytes!,
-                                                              fileName:
-                                                                  v.first.name,
-                                                            );
-
-                                                        _messageController
-                                                            .text = controller
-                                                                .uploadedFilesPaths
-                                                                .last;
-                                                        _sendMessage();
-                                                        controller
-                                                            .uploadedFilesPaths
-                                                            .clear();
-                                                      }
-                                                    });
+                                                            .pickoneImage();
+                                                    if (v.isEmpty ||
+                                                        v.first.bytes == null) {
+                                                      return;
+                                                    }
+                                                    final url = await controller
+                                                        .uploadFiles(
+                                                          filePathOrBytes:
+                                                              v.first.bytes!,
+                                                          fileName: v.first.name,
+                                                        );
+                                                    if (url == null) return;
+                                                    final cap =
+                                                        _messageController.text
+                                                            .trim();
+                                                    await _sendChatPayload(
+                                                      lastMessagePreview:
+                                                          cap.isNotEmpty
+                                                              ? cap
+                                                              : '📷',
+                                                      messageType: 'image',
+                                                      text: cap,
+                                                      attachmentUrl: url,
+                                                    );
+                                                    _messageController.clear();
+                                                    controller.uploadedFilesPaths
+                                                        .clear();
                                                   },
-                                                  child: Icon(
+                                                ),
+                                                IconButton(
+                                                  tooltip: 'File',
+                                                  icon: const Icon(
                                                     Icons.attach_file,
                                                   ),
+                                                  onPressed: () async {
+                                                    final v =
+                                                        await controller
+                                                            .pickOneChatFile();
+                                                    if (v.isEmpty ||
+                                                        v.first.bytes == null) {
+                                                      return;
+                                                    }
+                                                    final url = await controller
+                                                        .uploadFiles(
+                                                          filePathOrBytes:
+                                                              v.first.bytes!,
+                                                          fileName: v.first.name,
+                                                        );
+                                                    if (url == null) return;
+                                                    await _sendChatPayload(
+                                                      lastMessagePreview:
+                                                          v.first.name,
+                                                      messageType: 'file',
+                                                      text: '',
+                                                      attachmentUrl: url,
+                                                      fileName: v.first.name,
+                                                    );
+                                                    controller.uploadedFilesPaths
+                                                        .clear();
+                                                  },
+                                                ),
+                                                ChatVoiceRecordButton(
+                                                  onUploaded: (url, sec) async {
+                                                    await _sendChatPayload(
+                                                      lastMessagePreview: '🎤',
+                                                      messageType: 'voice',
+                                                      text: url,
+                                                      attachmentUrl: url,
+                                                      durationSec:
+                                                          sec > 0 ? sec : null,
+                                                    );
+                                                  },
                                                 ),
                                                 Expanded(
                                                   child: TextField(
@@ -1408,112 +1478,4 @@ class _ChatScreenState extends State<ChatScreen> {
       },
     );
   }
-}
-
-final urlRegex = RegExp(r'(https?:\/\/[^\s]+)', caseSensitive: false);
-Widget messageText(String text, bool isme) {
-  final matches = urlRegex.allMatches(text);
-
-  if (matches.isEmpty) {
-    // رسالة عادية
-    return Text(
-      text,
-      style: TextStyle(fontSize: 15, color: isme ? Colors.white : Colors.black),
-    );
-  }
-
-  // رسالة فيها لينك
-  return RichText(
-    text: TextSpan(
-      children: buildMessageSpans(text),
-      style: TextStyle(fontSize: 15, color: Colors.black),
-    ),
-  );
-}
-
-bool isImageUrl(String url) {
-  return url.toLowerCase().endsWith('.png') ||
-      url.toLowerCase().endsWith('.jpg') ||
-      url.toLowerCase().endsWith('.jpeg') ||
-      url.toLowerCase().endsWith('.gif') ||
-      url.toLowerCase().endsWith('.webp');
-}
-
-List<InlineSpan> buildMessageSpans(String text) {
-  final spans = <InlineSpan>[];
-  int lastIndex = 0;
-
-  for (final match in urlRegex.allMatches(text)) {
-    // نص قبل الرابط
-    if (match.start > lastIndex) {
-      spans.add(TextSpan(text: text.substring(lastIndex, match.start)));
-    }
-
-    final url = match.group(0)!;
-
-    if (isImageUrl(url)) {
-      // 👇 لو الرابط صورة
-      spans.add(
-        WidgetSpan(
-          alignment: PlaceholderAlignment.middle,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: InkWell(
-                onTap: () async {
-                  final uri = Uri.parse(url);
-                  if (await canLaunchUrl(uri)) {
-                    await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  }
-                },
-                child: Image.network(
-                  url,
-                  width: 200,
-                  fit: BoxFit.cover,
-                  loadingBuilder: (c, w, p) {
-                    if (p == null) return w;
-                    return SizedBox(
-                      height: 150,
-                      child: Center(child: CircularProgressIndicator()),
-                    );
-                  },
-                  errorBuilder:
-                      (_, __, ___) => Icon(Icons.broken_image, size: 40),
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-    } else {
-      // 👇 رابط عادي
-      spans.add(
-        TextSpan(
-          text: url,
-          style: TextStyle(
-            color: Colors.blue,
-            decoration: TextDecoration.underline,
-          ),
-          recognizer:
-              TapGestureRecognizer()
-                ..onTap = () async {
-                  final uri = Uri.parse(url);
-                  if (await canLaunchUrl(uri)) {
-                    await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  }
-                },
-        ),
-      );
-    }
-
-    lastIndex = match.end;
-  }
-
-  // النص بعد آخر عنصر
-  if (lastIndex < text.length) {
-    spans.add(TextSpan(text: text.substring(lastIndex)));
-  }
-
-  return spans;
 }
