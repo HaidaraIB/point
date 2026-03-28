@@ -7,6 +7,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'package:path_provider/path_provider.dart';
+import 'package:point/Services/push_notification_sound.dart';
 // import 'package:mohmacash/Services/googleApis.dart';
 import 'package:http/http.dart' as http;
 
@@ -62,6 +63,38 @@ class NotificationService {
       initSettings,
       onDidReceiveNotificationResponse: _onNotificationResponse,
     );
+    await _ensureAndroidNotificationChannels();
+  }
+
+  Future<void> _ensureAndroidNotificationChannels() async {
+    if (!Platform.isAndroid) return;
+    final android = _localNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>();
+    if (android == null) return;
+
+    await android.createNotificationChannel(
+      const AndroidNotificationChannel(
+        kPushDefaultChannelId,
+        'إشعارات عامة',
+        description: 'صوت النظام الافتراضي',
+        importance: Importance.max,
+        playSound: true,
+      ),
+    );
+
+    for (final base in kPushCustomSoundBases) {
+      await android.createNotificationChannel(
+        AndroidNotificationChannel(
+          pushChannelIdForSoundBase(base),
+          'Point: $base',
+          description: 'صوت مخصص للتطبيق',
+          importance: Importance.max,
+          playSound: true,
+          sound: RawResourceAndroidNotificationSound(base),
+        ),
+      );
+    }
   }
 
   // لما المستخدم يضغط على الإشعار
@@ -82,6 +115,17 @@ class NotificationService {
 
     if (title == null || title.isEmpty) return;
 
+    final rawFromData = message.data['pushSoundBase']?.toString();
+    final notificationType = message.data['notificationType']?.toString();
+    final soundBase = (rawFromData != null && rawFromData.isNotEmpty)
+        ? rawFromData
+        : pushSoundBaseForNotificationType(notificationType);
+
+    final channelId = pushChannelIdForSoundBase(soundBase);
+    final channelName =
+        soundBase != null ? 'Point: $soundBase' : 'General Notifications';
+    final iosSoundFile = iosPushSoundFile(soundBase);
+
     final imageUrl = notification?.android?.imageUrl ?? message.data['image'];
 
     BigPictureStyleInformation? bigPicture;
@@ -95,20 +139,21 @@ class NotificationService {
       );
     }
 
-    AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-      'default_channel',
-      'General Notifications',
+    final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      channelId,
+      channelName,
       styleInformation: bigPicture,
-      channelDescription: 'This channel is used for general notifications.',
+      channelDescription: 'Point push notifications',
       importance: Importance.max,
       priority: Priority.high,
       icon: '@drawable/ic_launcher_monochrome',
     );
 
-    const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+    final DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
       presentAlert: true,
       presentBadge: true,
       presentSound: true,
+      sound: iosSoundFile,
     );
 
     NotificationDetails notificationDetails = NotificationDetails(
@@ -133,7 +178,7 @@ class NotificationService {
     await init();
 
     const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-      'default_channel',
+      kPushDefaultChannelId,
       'General Notifications',
       channelDescription: 'This channel is used for general notifications.',
       importance: Importance.max,

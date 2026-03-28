@@ -191,20 +191,93 @@ async function sendEmailIfPossible(toEmail: string | null, subject: string, body
   }
 }
 
+function soundBaseForNotificationTypeCron(notificationType: string | undefined): string | null {
+  if (!notificationType) return null;
+  const t = notificationType.trim();
+  if (!t) return null;
+  const map: Record<string, string> = {
+    chat_message: "notification_chat",
+    manager_task_completed: "notification_task_preview",
+    manager_task_comment: "notification_task_comment",
+    admin_content_status_changed: "notification_content_status",
+    admin_promotion_status_changed: "notification_promotion_status",
+    promotion_new_published_content: "notification_promotion_status",
+    employee_task_due_soon: "notification_task_deadline_soon",
+    manager_task_overdue: "notification_task_deadline",
+    client_approval_confirmed: "notification_task_approved",
+    publish_client_approved: "notification_task_approved",
+    manager_client_approved_content: "notification_task_approved",
+  };
+  return map[t] ?? null;
+}
+
+function fcmPlatformSoundPayloadsCron(soundBase: string | null): {
+  apns: Record<string, unknown>;
+  android?: Record<string, unknown>;
+} {
+  if (!soundBase) {
+    return {
+      apns: {
+        headers: {
+          "apns-push-type": "alert",
+          "apns-priority": "10",
+        },
+        payload: {
+          aps: {
+            sound: "default",
+          },
+        },
+      },
+    };
+  }
+  const iosFile = `${soundBase}.wav`;
+  const channelId = `point_sound_${soundBase}`;
+  return {
+    apns: {
+      headers: {
+        "apns-push-type": "alert",
+        "apns-priority": "10",
+      },
+      payload: {
+        aps: {
+          sound: iosFile,
+        },
+      },
+    },
+    android: {
+      notification: {
+        channel_id: channelId,
+        sound: soundBase,
+      },
+    },
+  };
+}
+
 async function sendFcm({
   accessToken,
   fcmUrl,
   token,
   title,
   body,
+  notificationType,
 }: {
   accessToken: string;
   fcmUrl: string;
   token: string | null;
   title: string;
   body: string;
+  notificationType?: string;
 }) {
   if (!token) return;
+  const soundBase = soundBaseForNotificationTypeCron(notificationType);
+  const platformSounds = fcmPlatformSoundPayloadsCron(soundBase);
+  const dataPayload: Record<string, string> = {};
+  if (notificationType && notificationType.trim().length > 0) {
+    dataPayload.notificationType = notificationType.trim();
+  }
+  if (soundBase) {
+    dataPayload.pushSoundBase = soundBase;
+  }
   const res = await fetch(fcmUrl, {
     method: "POST",
     headers: {
@@ -215,17 +288,8 @@ async function sendFcm({
       message: {
         token,
         notification: { title, body },
-        apns: {
-          headers: {
-            "apns-push-type": "alert",
-            "apns-priority": "10",
-          },
-          payload: {
-            aps: {
-              sound: "default",
-            },
-          },
-        },
+        ...platformSounds,
+        ...(Object.keys(dataPayload).length > 0 ? { data: dataPayload } : {}),
       },
     }),
   }).catch((err) => {
@@ -334,7 +398,14 @@ async function handleTaskReminders({
     for (const id of managers) {
       const m = byEmpId.get(id);
       await sendEmailIfPossible(m?.email ?? null, "مهمة متأخرة", msgBody);
-      await sendFcm({ accessToken, fcmUrl, token: m?.fcmToken ?? null, title: "مهمة متأخرة", body: msgBody });
+      await sendFcm({
+        accessToken,
+        fcmUrl,
+        token: m?.fcmToken ?? null,
+        title: "مهمة متأخرة",
+        body: msgBody,
+        notificationType: "manager_task_overdue",
+      });
     }
   }
 
@@ -380,7 +451,14 @@ async function handleTaskReminders({
       const msgTitle = "⏳ اقتراب موعد التسليم (24 ساعة)";
       const msgBody = `المهمة: ${title}`;
       await sendEmailIfPossible(emp?.email ?? null, msgTitle, msgBody);
-      await sendFcm({ accessToken, fcmUrl, token: emp?.fcmToken ?? null, title: msgTitle, body: msgBody });
+      await sendFcm({
+        accessToken,
+        fcmUrl,
+        token: emp?.fcmToken ?? null,
+        title: msgTitle,
+        body: msgBody,
+        notificationType: "employee_task_due_soon",
+      });
       await patchTaskStringFields(accessToken, t.name, { dueSoonNotifiedAt24h: notifyStamp });
     }
 
@@ -388,7 +466,14 @@ async function handleTaskReminders({
       const msgTitle = "⏳ اقتراب موعد التسليم (6 ساعات)";
       const msgBody = `المهمة: ${title}`;
       await sendEmailIfPossible(emp?.email ?? null, msgTitle, msgBody);
-      await sendFcm({ accessToken, fcmUrl, token: emp?.fcmToken ?? null, title: msgTitle, body: msgBody });
+      await sendFcm({
+        accessToken,
+        fcmUrl,
+        token: emp?.fcmToken ?? null,
+        title: msgTitle,
+        body: msgBody,
+        notificationType: "employee_task_due_soon",
+      });
       await patchTaskStringFields(accessToken, t.name, { dueSoonNotifiedAt6h: notifyStamp });
     }
   }

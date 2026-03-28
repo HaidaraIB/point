@@ -617,11 +617,6 @@ class History extends StatelessWidget {
                                                                   .currentemployee
                                                                   .value
                                                                   ?.role !=
-                                                              'accountholder' &&
-                                                          controller
-                                                                  .currentemployee
-                                                                  .value
-                                                                  ?.role !=
                                                               'supervisor' &&
                                                           !StorageKeys.matchesDepartment(
                                                             controller
@@ -1031,12 +1026,7 @@ class History extends StatelessWidget {
                                                                     .currentemployee
                                                                     .value
                                                                     ?.role ==
-                                                                'admin' ||
-                                                            controller
-                                                                    .currentemployee
-                                                                    .value
-                                                                    ?.role ==
-                                                                'accountholder')
+                                                                'admin')
                                                           PopupMenuItem(
                                                             value: 1,
 

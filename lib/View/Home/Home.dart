@@ -8,6 +8,7 @@ import 'package:point/Services/EmailNotificationService.dart';
 import 'package:point/Services/FcmServices.dart' as fcm;
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
+import 'package:point/Services/push_notification_test_catalog.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Clients/ClientsTable.dart';
@@ -16,6 +17,7 @@ import 'package:point/View/Home/Shared/MonthlyClientContentChart.dart';
 import 'package:point/View/Home/Shared/ReviewContentShared.dart';
 import 'package:point/View/Shared/CustomCheckBox.dart';
 import 'package:point/View/Shared/InputText.dart';
+import 'package:point/View/Home/PushNotificationTestDialog.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/responsive.dart';
@@ -172,6 +174,30 @@ class Home extends StatelessWidget {
             ],
           ],
         ),
+        if (canOpenPushNotificationTester(
+              controller.effectiveEmployee?.role,
+            )) ...[
+          SizedBox(height: isMobile ? 8 : 10),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primary,
+                side: BorderSide(color: AppColors.primary.withValues(alpha: 0.5)),
+                padding: EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: isMobile ? 12 : 14,
+                ),
+              ),
+              onPressed: () => showPushNotificationTestDialog(context),
+              icon: const Icon(Icons.notifications_active_outlined, size: 20),
+              label: Text(
+                AppLocaleKeys.pushTestOpenButton.tr,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        ],
         SizedBox(height: isMobile ? _kMobileSectionSpacing : 20),
         ReviewContentWidget(),
         SizedBox(height: isMobile ? _kMobileSectionSpacing : 20),

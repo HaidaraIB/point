@@ -72,7 +72,7 @@ Root folders of note: `android/`, `ios/`, `web/`, `windows/`, `macos/`, `linux/`
     Do not commit real API keys. For Codemagic / iOS, see `codemagic-ios-config.example.env` for variable names (e.g. plist content, Supabase keys).
 
 6.  **Debug-only helpers**  
-    In debug builds, `TEST_ACCOUNTHOLDER_PASSWORD` can be supplied via `--dart-define` for test account flows (see `AppConfig`).
+    In debug builds, `TEST_ADMIN_PASSWORD` can be supplied via `--dart-define` for test account flows (see `AppConfig`). Test users are created as **`admin`** (`ensureTestAdminUser` in `FirestoreServices`).
 
 7.  **Run the app:**
     ```sh

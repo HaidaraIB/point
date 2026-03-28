@@ -35,7 +35,69 @@ const FCM_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const FIREBASE_ID_TOKEN_CERTS_URL =
   "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com";
-const FUNCTION_VERSION = "send-fcm-v2-diag";
+const FUNCTION_VERSION = "send-fcm-v3-sound";
+
+function soundBaseForNotificationType(notificationType: string | undefined): string | null {
+  if (!notificationType) return null;
+  const t = notificationType.trim();
+  if (!t) return null;
+  const map: Record<string, string> = {
+    chat_message: "notification_chat",
+    manager_task_completed: "notification_task_preview",
+    manager_task_comment: "notification_task_comment",
+    admin_content_status_changed: "notification_content_status",
+    admin_promotion_status_changed: "notification_promotion_status",
+    promotion_new_published_content: "notification_promotion_status",
+    employee_task_due_soon: "notification_task_deadline_soon",
+    manager_task_overdue: "notification_task_deadline",
+    client_approval_confirmed: "notification_task_approved",
+    publish_client_approved: "notification_task_approved",
+    manager_client_approved_content: "notification_task_approved",
+  };
+  return map[t] ?? null;
+}
+
+function fcmPlatformSoundPayloads(soundBase: string | null): {
+  apns: Record<string, unknown>;
+  android?: Record<string, unknown>;
+} {
+  if (!soundBase) {
+    return {
+      apns: {
+        headers: {
+          "apns-push-type": "alert",
+          "apns-priority": "10",
+        },
+        payload: {
+          aps: {
+            sound: "default",
+          },
+        },
+      },
+    };
+  }
+  const iosFile = `${soundBase}.wav`;
+  const channelId = `point_sound_${soundBase}`;
+  return {
+    apns: {
+      headers: {
+        "apns-push-type": "alert",
+        "apns-priority": "10",
+      },
+      payload: {
+        aps: {
+          sound: iosFile,
+        },
+      },
+    },
+    android: {
+      notification: {
+        channel_id: channelId,
+        sound: soundBase,
+      },
+    },
+  };
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { status: 200, headers: corsHeaders() });
@@ -154,23 +216,24 @@ Deno.serve(async (req: Request) => {
 
     const fcmUrl = `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`;
 
+    const soundBase = soundBaseForNotificationType(notificationType);
+    const platformSounds = fcmPlatformSoundPayloads(soundBase);
+    const dataPayload: Record<string, string> = {
+      ...(data ?? {}),
+    };
+    if (notificationType && notificationType.trim().length > 0) {
+      dataPayload.notificationType = notificationType.trim();
+    }
+    if (soundBase) {
+      dataPayload.pushSoundBase = soundBase;
+    }
+
     const fcmMessage = {
       ...(token ? { token } : {}),
       ...(topic ? { topic } : {}),
       notification: { title, body },
-      // Ensure iOS/APNs delivery behavior is explicit (especially TestFlight/production).
-      apns: {
-        headers: {
-          "apns-push-type": "alert",
-          "apns-priority": "10",
-        },
-        payload: {
-          aps: {
-            sound: "default",
-          },
-        },
-      },
-      ...(data ? { data } : {}),
+      ...platformSounds,
+      ...(Object.keys(dataPayload).length > 0 ? { data: dataPayload } : {}),
     };
 
     const res = await fetch(fcmUrl, {

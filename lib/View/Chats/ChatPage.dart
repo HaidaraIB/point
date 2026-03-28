@@ -15,10 +15,6 @@ import 'package:point/Services/StorageKeys.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-// تعريف ثوابت الأدوار
-const String _kRoleAdmin = 'accountholder';
-const String _kRoleSupervisor = 'supervisor';
-
 class ChatScreen extends StatefulWidget {
   final VoidCallback onMinimize;
   final bool isFloatingPopUp; // <--- المتغير الجديد
@@ -179,9 +175,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
       // تحقق إذا كان أدمن أو سوبر فايزر
       final isSpecialRole =
-          empRole == 'admin' ||
-          empRole == _kRoleAdmin ||
-          empRole == _kRoleSupervisor;
+          empRole == 'admin' || empRole == 'supervisor';
 
       if ((isSameDept || isSpecialRole) &&
           empId != _currentUserId &&
@@ -461,6 +455,7 @@ class _ChatScreenState extends State<ChatScreen> {
         title: '$_currentUserName',
         body: text,
         sendEmail: false,
+        notificationType: 'chat_message',
         // token: token,
       );
     } else if (isGroup) {
@@ -478,6 +473,7 @@ class _ChatScreenState extends State<ChatScreen> {
             }),
             body: text,
             sendEmail: false,
+            notificationType: 'chat_message',
             // token: token,
           );
         }

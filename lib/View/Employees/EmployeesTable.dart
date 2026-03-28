@@ -51,9 +51,8 @@ class _EmployeeTableState extends State<EmployeeTable> {
                 employees: controller.employees.toList(),
                 onAdd: () => showAddEmployeeDialog(context),
                 onEdit: (emp) {
-                  if (emp.role == 'accountholder' &&
-                      controller.currentemployee.value?.role !=
-                          'accountholder') {
+                  if (emp.role == 'admin' &&
+                      controller.effectiveEmployee?.role != 'admin') {
                     FunHelper.showSnackbar(
                       'error'.tr,
                       'errors.no_permission'.tr,
@@ -66,9 +65,8 @@ class _EmployeeTableState extends State<EmployeeTable> {
                   showAddEmployeeDialog(context, model: emp);
                 },
                 onDelete: (emp) {
-                  if (emp.role == 'accountholder' &&
-                      controller.currentemployee.value?.role !=
-                          'accountholder') {
+                  if (emp.role == 'admin' &&
+                      controller.effectiveEmployee?.role != 'admin') {
                     FunHelper.showSnackbar(
                       'error'.tr,
                       'errors.no_permission'.tr,
@@ -250,8 +248,8 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                                 ),
                                                 child: Text(
                                                   emp.role == 'employee'
-                                                      ? '${emp.role}\n(${StorageKeys.semanticDepartmentLabelKey(emp.department).tr})'
-                                                      : '${emp.role}',
+                                                      ? '${emp.role.tr}\n(${StorageKeys.semanticDepartmentLabelKey(emp.department).tr})'
+                                                      : emp.role.tr,
                                                   textAlign: TextAlign.center,
                                                   style: TextStyle(
                                                     color: Colors.purple,
@@ -303,13 +301,11 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                                     ],
                                                 onSelected: (value) {
                                                   if (value == 0) {
-                                                    if (emp.role ==
-                                                            'accountholder' &&
+                                                    if (emp.role == 'admin' &&
                                                         controller
-                                                                .currentemployee
-                                                                .value
+                                                                .effectiveEmployee
                                                                 ?.role !=
-                                                            'accountholder') {
+                                                            'admin') {
                                                       FunHelper.showSnackbar(
                                                         'error'.tr,
                                                         'errors.no_permission'
@@ -327,13 +323,11 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                                       model: emp,
                                                     );
                                                   } else if (value == 1) {
-                                                    if (emp.role ==
-                                                            'accountholder' &&
+                                                    if (emp.role == 'admin' &&
                                                         controller
-                                                                .currentemployee
-                                                                .value
+                                                                .effectiveEmployee
                                                                 ?.role !=
-                                                            'accountholder') {
+                                                            'admin') {
                                                       FunHelper.showSnackbar(
                                                         'error'.tr,
                                                         'errors.no_permission'
@@ -404,6 +398,7 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
   bool obscurePassword = true;
 
   String selectedRole = model?.role ?? "employee";
+  if (selectedRole == 'accountholder') selectedRole = 'admin';
   String selectedDepartment =
       model?.department ?? StorageKeys.departmentPromotion;
   List<String> roles = ["supervisor", "admin", "employee"];
@@ -604,7 +599,7 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                           .map(
                                             (role) => DropdownMenuItem(
                                               value: role,
-                                              child: Text(role),
+                                              child: Text(role.tr),
                                             ),
                                           )
                                           .toList(),

@@ -719,11 +719,6 @@ class ContentsTable extends StatelessWidget {
                                                                       .currentemployee
                                                                       .value
                                                                       ?.role !=
-                                                                  'accountholder' &&
-                                                              controller
-                                                                      .currentemployee
-                                                                      .value
-                                                                      ?.role !=
                                                                   'supervisor' &&
                                                           !StorageKeys.matchesDepartment(
                                                             controller
@@ -1130,7 +1125,6 @@ class ContentsTable extends StatelessWidget {
                                                               if ([
                                                                 'supervisor',
                                                                 'admin',
-                                                                'accountholder',
                                                               ].contains(
                                                                 (controller
                                                                             .currentemployee

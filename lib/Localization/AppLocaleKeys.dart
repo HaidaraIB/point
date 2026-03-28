@@ -102,4 +102,33 @@ class AppLocaleKeys {
   static const contentDialogNoDate = 'content.dialog.no_date';
   static const contentDialogUnknown = 'content.dialog.unknown';
   static const contentDialogOpenLinkFailed = 'content.dialog.open_link_failed';
+
+  static const pushTestOpenButton = 'push_test.open_button';
+  static const pushTestTitle = 'push_test.title';
+  static const pushTestSubtitle = 'push_test.subtitle';
+  static const pushTestFilterTypes = 'push_test.filter_types';
+  static const pushTestSelectType = 'push_test.select_type';
+  static const pushTestAudienceHint = 'push_test.audience_hint';
+  static const pushTestEmployees = 'push_test.employees';
+  static const pushTestClients = 'push_test.clients';
+  static const pushTestSearchRecipients = 'push_test.search_recipients';
+  static const pushTestSelectMe = 'push_test.select_me';
+  static const pushTestSelectAllEmployees = 'push_test.select_all_employees';
+  static const pushTestSelectAllClients = 'push_test.select_all_clients';
+  static const pushTestClearRecipients = 'push_test.clear_recipients';
+  static const pushTestSendPush = 'push_test.send_push';
+  static const pushTestSendEmail = 'push_test.send_email';
+  static const pushTestSend = 'push_test.send';
+  static const pushTestNoTargetsClosed = 'push_test.no_targets_closed';
+  static const pushTestNoRecipients = 'push_test.no_recipients';
+  static const pushTestNoType = 'push_test.no_type';
+  static const pushTestNoMatches = 'push_test.no_matches';
+  static const pushTestNoChannel = 'push_test.no_channel';
+  static const pushTestDone = 'push_test.done';
+  static const pushTestCategoryChat = 'push_test.category.chat';
+  static const pushTestCategoryEmployee = 'push_test.category.employee';
+  static const pushTestCategoryManager = 'push_test.category.manager';
+  static const pushTestCategoryClient = 'push_test.category.client';
+  static const pushTestCategoryPublish = 'push_test.category.publish';
+  static const pushTestCategoryAdminMeta = 'push_test.category.admin_meta';
 }

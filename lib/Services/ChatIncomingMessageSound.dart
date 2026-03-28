@@ -1,11 +1,13 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 
 import 'AudioService.dart';
 
 /// Listens to Firestore message snapshots and triggers [AudioService.playNotificationSound]
-/// for newly added messages from other users (not [currentUserId]).
+/// for newly added messages from other users (not [currentUserId]) — **web only**;
+/// على الموبايل يُعتمد على صوت Push / الإشعار المحلي.
 ///
 /// Skips the first emission so the initial full snapshot does not trigger sounds.
 StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
@@ -25,6 +27,7 @@ attachIncomingMessageSoundSubscription({
       final data = change.doc.data();
       if (data == null) continue;
       if (data['senderId'] == currentUserId) continue;
+      if (!kIsWeb) continue;
       AudioService.instance.playNotificationSound(chatId: chatId);
     }
   });

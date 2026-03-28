@@ -5,17 +5,15 @@ import 'package:point/config/app_config.dart';
 
 class AuthController extends GetxController {
   var name = TextEditingController();
-  var email = TextEditingController(
-    text: kDebugMode ? 'point@accountholder.app' : "",
-  );
+  var email = TextEditingController(text: kDebugMode ? 'point@admin.app' : "");
   bool obSecure = true;
 
   var mobile = TextEditingController();
   var pass = TextEditingController(
-    text: kDebugMode ? AppConfig.testAccountholderPassword : '',
+    text: kDebugMode ? AppConfig.testAdminPassword : '',
   );
   var repass = TextEditingController(
-    text: kDebugMode ? AppConfig.testAccountholderPassword : '',
+    text: kDebugMode ? AppConfig.testAdminPassword : '',
   );
   List<TextEditingController> controllersForOtp = List.generate(
     6,

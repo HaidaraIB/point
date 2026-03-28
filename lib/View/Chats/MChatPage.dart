@@ -16,10 +16,6 @@ import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/View/Chats/ChatPage.dart';
 
-// تعريف ثوابت الأدوار
-const String _kRoleAdmin = 'accountholder';
-const String _kRoleSupervisor = 'supervisor';
-
 // **********************************************
 // ********* الشاشة الجديدة 1: قائمة المحادثات *********
 // **********************************************
@@ -167,7 +163,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
       final isSameDept = StorageKeys.matchesDepartment(empDept, deptGroupName);
 
       final isSpecialRole =
-          empRole == _kRoleAdmin || empRole == _kRoleSupervisor;
+          empRole == 'admin' || empRole == 'supervisor';
 
       if ((isSameDept || isSpecialRole) &&
           empId != _currentUserId &&
@@ -853,6 +849,7 @@ class _MessageScreenState extends State<MessageScreen> {
         title: '${widget.currentUserName}',
         body: text,
         sendEmail: false,
+        notificationType: 'chat_message',
       );
     } else if (isGroup) {
       final participants = List<String>.from(widget.chat['participants'] ?? []);
@@ -866,6 +863,7 @@ class _MessageScreenState extends State<MessageScreen> {
             }),
             body: text,
             sendEmail: false,
+            notificationType: 'chat_message',
           );
         }
       }

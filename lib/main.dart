@@ -51,7 +51,7 @@ void main(List<String> args) async {
     await NotificationService().init();
   }
   if (kDebugMode) {
-    await FirestoreServices().ensureAccountholderTestUser();
+    await FirestoreServices().ensureTestAdminUser();
     final storageOk = await FirebaseStorageService.checkConnection();
     log(
       storageOk

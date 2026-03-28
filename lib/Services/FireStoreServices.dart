@@ -179,10 +179,13 @@ class FirestoreServices {
     final cleanedId = employeeId.trim();
     final cleanedToken = token.trim();
     if (cleanedId.isEmpty || cleanedToken.isEmpty) return;
-    await FirebaseFirestore.instance.collection('employees').doc(cleanedId).update({
-      'fcmToken': cleanedToken,
-      'fcmTokens': FieldValue.arrayUnion([cleanedToken]),
-    });
+    await FirebaseFirestore.instance
+        .collection('employees')
+        .doc(cleanedId)
+        .update({
+          'fcmToken': cleanedToken,
+          'fcmTokens': FieldValue.arrayUnion([cleanedToken]),
+        });
   }
 
   static Future<void> addClientFcmToken({
@@ -192,10 +195,13 @@ class FirestoreServices {
     final cleanedId = clientId.trim();
     final cleanedToken = token.trim();
     if (cleanedId.isEmpty || cleanedToken.isEmpty) return;
-    await FirebaseFirestore.instance.collection('clients').doc(cleanedId).update({
-      'fcmToken': cleanedToken,
-      'fcmTokens': FieldValue.arrayUnion([cleanedToken]),
-    });
+    await FirebaseFirestore.instance
+        .collection('clients')
+        .doc(cleanedId)
+        .update({
+          'fcmToken': cleanedToken,
+          'fcmTokens': FieldValue.arrayUnion([cleanedToken]),
+        });
   }
 
   static Future<void> _removeEmployeeFcmToken({
@@ -205,7 +211,9 @@ class FirestoreServices {
     final cleanedId = employeeId.trim();
     final cleanedToken = token.trim();
     if (cleanedId.isEmpty || cleanedToken.isEmpty) return;
-    final ref = FirebaseFirestore.instance.collection('employees').doc(cleanedId);
+    final ref = FirebaseFirestore.instance
+        .collection('employees')
+        .doc(cleanedId);
     final snap = await ref.get();
     if (!snap.exists) return;
     final data = snap.data();
@@ -349,9 +357,10 @@ class FirestoreServices {
     String? recipientType,
     String? notificationType,
   }) async {
-    final targetLabel = token != null
-        ? 'token=${_maskFcmToken(token)}'
-        : 'topic=${topic ?? "(null)"}';
+    final targetLabel =
+        token != null
+            ? 'token=${_maskFcmToken(token)}'
+            : 'topic=${topic ?? "(null)"}';
 
     final firebaseIdToken =
         await FirebaseAuth.instance.currentUser?.getIdToken();
@@ -465,9 +474,12 @@ class FirestoreServices {
       await _employeeCollection
           .doc(normalizedEmployee.id)
           .set(
-            normalizedEmployee.copyWith(
-              authStatus: normalizedEmployee.authStatus ?? 'pendingActivation',
-            ).toJson(),
+            normalizedEmployee
+                .copyWith(
+                  authStatus:
+                      normalizedEmployee.authStatus ?? 'pendingActivation',
+                )
+                .toJson(),
           );
       log("✅ createEmployeeWithAuth: ${normalizedEmployee.name}");
       return true;
@@ -643,43 +655,38 @@ class FirestoreServices {
     }
   }
 
-  /// إضافة حساب اختباري point@accountholder.app إن لم يكن موجوداً (للتطوير فقط).
-  /// كلمة المرور تُمرّر عبر `--dart-define` في وضع التطوير فقط.
-  static const String _kTestAccountholderEmail = 'point@accountholder.app';
-  static const String _kTestAccountholderId = 'accountholder-test';
+  /// إضافة حساب اختباري point@admin.app بدور admin إن لم يكن موجوداً (للتطوير فقط).
+  /// كلمة المرور تُمرّر عبر `--dart-define=TEST_ADMIN_PASSWORD` في وضع التطوير فقط.
+  static const String _kTestAdminDevEmail = 'point@admin.app';
+  static const String _kTestAdminDevId = 'admin-test';
 
-  String get _testAccountholderPassword => AppConfig.testAccountholderPassword;
+  String get _testAdminDevPassword => AppConfig.testAdminPassword;
 
-  Future<void> ensureAccountholderTestUser() async {
+  Future<void> ensureTestAdminUser() async {
     // Safety: never auto-create a test user unless explicitly enabled.
-    if (!const bool.fromEnvironment(
-      'ENABLE_TEST_ACCOUNTHOLDER',
-      defaultValue: false,
-    )) {
+    if (!const bool.fromEnvironment('ENABLE_TEST_ADMIN', defaultValue: false)) {
       return;
     }
-    if (_testAccountholderPassword.isEmpty) {
-      log(
-        '⚠️ TEST_ACCOUNTHOLDER_PASSWORD غير معرّف — تخطي إنشاء الحساب الاختباري',
-      );
+    if (_testAdminDevPassword.isEmpty) {
+      log('⚠️ TEST_ADMIN_PASSWORD غير معرّف — تخطي إنشاء الحساب الاختباري');
       return;
     }
     try {
       final existing =
           await _employeeCollection
-              .where("email", isEqualTo: _kTestAccountholderEmail)
+              .where("email", isEqualTo: _kTestAdminDevEmail)
               .limit(1)
               .get();
       if (existing.docs.isNotEmpty) {
-        log("✅ حساب point@accountholder.app موجود مسبقاً");
+        log("✅ حساب $_kTestAdminDevEmail موجود مسبقاً");
         return;
       }
       final employee = EmployeeModel(
-        id: _kTestAccountholderId,
-        name: 'Point Test (Accountholder)',
-        email: _kTestAccountholderEmail,
+        id: _kTestAdminDevId,
+        name: 'Point Test (Admin)',
+        email: _kTestAdminDevEmail,
         phone: null,
-        role: 'accountholder',
+        role: 'admin',
         department: null,
         fcmToken: null,
         onesignal: null,
@@ -691,41 +698,37 @@ class FirestoreServices {
       );
       await _employeeCollection.doc(employee.id).set(employee.toJson());
       log(
-        "✅ تم إضافة الحساب الاختباري point@accountholder.app إلى قاعدة البيانات",
+        "✅ تم إضافة الحساب الاختباري $_kTestAdminDevEmail إلى قاعدة البيانات (admin)",
       );
 
       // تأكد من وجود حساب مطابق في FirebaseAuth بنفس البريد وكلمة المرور.
       try {
         await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: _kTestAccountholderEmail,
-          password: _testAccountholderPassword,
+          email: _kTestAdminDevEmail,
+          password: _testAdminDevPassword,
         );
-        log(
-          '✅ FirebaseAuth session/creation successful for test accountholder',
-        );
+        log('✅ FirebaseAuth session/creation successful for test admin');
       } on FirebaseAuthException catch (e, s) {
         log(
-          '❌ ensureAccountholderTestUser FirebaseAuthException code=${e.code}, message=${e.message}',
+          '❌ ensureTestAdminUser FirebaseAuthException code=${e.code}, message=${e.message}',
         );
         log('StackTrace: $s');
       } catch (e, s) {
-        log('❌ ensureAccountholderTestUser unexpected error: $e');
+        log('❌ ensureTestAdminUser unexpected error: $e');
         log('StackTrace: $s');
       }
       return;
     } catch (e) {
-      log("❌ ensureAccountholderTestUser: $e");
+      log("❌ ensureTestAdminUser: $e");
       return;
     }
   }
 
-  // 📡 قراءة كل الموظفين (Stream)
+  // 📡 قراءة كل الموظفين (Stream) — يشمل admin وsupervisor وemployee.
   Stream<List<EmployeeModel>> getEmployees() {
     try {
       return _employeeCollection.snapshots().map((snapshot) {
-        return snapshot.docs.where((a) => a['role'] != 'accountholder').map((
-          doc,
-        ) {
+        return snapshot.docs.map((doc) {
           final raw = doc.data();
           final map = Map<String, dynamic>.from(raw as Map);
           return EmployeeModel.fromJson(map);
@@ -752,7 +755,11 @@ class FirestoreServices {
     try {
       await _clientCollection
           .doc(client.id)
-          .set(client.copyWith(authStatus: client.authStatus ?? 'pendingActivation').toJson());
+          .set(
+            client
+                .copyWith(authStatus: client.authStatus ?? 'pendingActivation')
+                .toJson(),
+          );
       log("✅ createClientWithAuth: ${client.name}");
       return true;
     } catch (e, s) {
@@ -898,7 +905,10 @@ class FirestoreServices {
       if (cleanedToken.isEmpty) return;
 
       final employeeSnap =
-          await _employeeCollection.where('authUid', isEqualTo: user.uid).limit(1).get();
+          await _employeeCollection
+              .where('authUid', isEqualTo: user.uid)
+              .limit(1)
+              .get();
       if (employeeSnap.docs.isNotEmpty) {
         final ref = employeeSnap.docs.first.reference;
         final employeeData = employeeSnap.docs.first.data();
@@ -912,7 +922,10 @@ class FirestoreServices {
       }
 
       final clientSnap =
-          await _clientCollection.where('authUid', isEqualTo: user.uid).limit(1).get();
+          await _clientCollection
+              .where('authUid', isEqualTo: user.uid)
+              .limit(1)
+              .get();
       if (clientSnap.docs.isNotEmpty) {
         final ref = clientSnap.docs.first.reference;
         final clientData = clientSnap.docs.first.data();
@@ -932,28 +945,32 @@ class FirestoreServices {
     if (current == null) return null;
     final uid = current.uid;
     final byUid =
-        await _employeeCollection.where('authUid', isEqualTo: uid).limit(1).get();
+        await _employeeCollection
+            .where('authUid', isEqualTo: uid)
+            .limit(1)
+            .get();
     if (byUid.docs.isNotEmpty) {
       final doc = byUid.docs.first;
-      return EmployeeModel.fromJson(doc.data() as Map<String, dynamic>).copyWith(
-        id: doc.id,
-      );
+      return EmployeeModel.fromJson(
+        doc.data() as Map<String, dynamic>,
+      ).copyWith(id: doc.id);
     }
     final email = current.email?.trim().toLowerCase();
     if (email == null || email.isEmpty) return null;
     final byEmail =
-        await _employeeCollection.where('email', isEqualTo: email).limit(1).get();
+        await _employeeCollection
+            .where('email', isEqualTo: email)
+            .limit(1)
+            .get();
     if (byEmail.docs.isEmpty) return null;
     final doc = byEmail.docs.first;
     await _employeeCollection.doc(doc.id).update({
       'authUid': uid,
       'authStatus': 'active',
     });
-    return EmployeeModel.fromJson(doc.data() as Map<String, dynamic>).copyWith(
-      id: doc.id,
-      authUid: uid,
-      authStatus: 'active',
-    );
+    return EmployeeModel.fromJson(
+      doc.data() as Map<String, dynamic>,
+    ).copyWith(id: doc.id, authUid: uid, authStatus: 'active');
   }
 
   Future<ClientModel?> getCurrentClientByAuth() async {
@@ -976,10 +993,10 @@ class FirestoreServices {
       'authUid': uid,
       'authStatus': 'active',
     });
-    return ClientModel.fromJson(doc.data(), doc.id).copyWith(
-      authUid: uid,
-      authStatus: 'active',
-    );
+    return ClientModel.fromJson(
+      doc.data(),
+      doc.id,
+    ).copyWith(authUid: uid, authStatus: 'active');
   }
 
   Future<bool> addClient(ClientModel client) async {
@@ -1145,6 +1162,10 @@ class FirestoreServices {
         .set(message.toJson());
   }
 
+  static bool _shouldPersistFcmToNotificationInbox(String? notificationType) {
+    return notificationType?.trim() != 'chat_message';
+  }
+
   static Future<void> addNotification(NotificationModel model) async {
     final data = Map<String, dynamic>.from(model.toJson())..remove('id');
     data['isRead'] = model.isRead ?? false;
@@ -1171,9 +1192,7 @@ class FirestoreServices {
   /// Delete in-app notifications by Firestore document ids.
   ///
   /// Uses chunking to stay under Firestore batch limits.
-  static Future<void> deleteInAppNotifications(
-    Iterable<String> docIds,
-  ) async {
+  static Future<void> deleteInAppNotifications(Iterable<String> docIds) async {
     final ids = docIds.where((id) => id.isNotEmpty).toList();
     if (ids.isEmpty) return;
     final coll = FirebaseFirestore.instance.collection('notifications');
@@ -1285,10 +1304,8 @@ class FirestoreServices {
                 .snapshots()) {
           yield snapshot.docs
               .map(
-                (doc) => NotificationModel.fromJson({
-                  ...doc.data(),
-                  'id': doc.id,
-                }),
+                (doc) =>
+                    NotificationModel.fromJson({...doc.data(), 'id': doc.id}),
               )
               .toList();
         }
@@ -1302,9 +1319,8 @@ class FirestoreServices {
   }
 
   /// Diagnostics query by request id.
-  static Stream<QuerySnapshot<Map<String, dynamic>>> watchPushDiagnosticsByRequestId(
-    String requestId,
-  ) {
+  static Stream<QuerySnapshot<Map<String, dynamic>>>
+  watchPushDiagnosticsByRequestId(String requestId) {
     return FirebaseFirestore.instance
         .collection('push_diagnostics')
         .where('requestId', isEqualTo: requestId)
@@ -1313,9 +1329,8 @@ class FirestoreServices {
   }
 
   /// Diagnostics query by recipient user id.
-  static Stream<QuerySnapshot<Map<String, dynamic>>> watchPushDiagnosticsByRecipient(
-    String recipientId,
-  ) {
+  static Stream<QuerySnapshot<Map<String, dynamic>>>
+  watchPushDiagnosticsByRecipient(String recipientId) {
     return FirebaseFirestore.instance
         .collection('push_diagnostics')
         .where('recipientId', isEqualTo: recipientId)
@@ -1325,7 +1340,8 @@ class FirestoreServices {
   }
 
   /// Diagnostics query focused on recent iOS-like failures.
-  static Stream<QuerySnapshot<Map<String, dynamic>>> watchRecentIosPushFailures() {
+  static Stream<QuerySnapshot<Map<String, dynamic>>>
+  watchRecentIosPushFailures() {
     return FirebaseFirestore.instance
         .collection('push_diagnostics')
         .where('status', isEqualTo: 'error')
@@ -1371,15 +1387,17 @@ class FirestoreServices {
               : 'الموظف';
 
       final trimmedUserId = userId.trim();
-      await addNotification(
-        NotificationModel(
-          title: title,
-          body: body,
-          recipientId: trimmedUserId,
-          createdAt: DateTime.now(),
-          isRead: false,
-        ),
-      );
+      if (_shouldPersistFcmToNotificationInbox(notificationType)) {
+        await addNotification(
+          NotificationModel(
+            title: title,
+            body: body,
+            recipientId: trimmedUserId,
+            createdAt: DateTime.now(),
+            isRead: false,
+          ),
+        );
+      }
 
       // إرسال بريد (اختياري حسب اختيار القناة)
       if (sendEmail) {
@@ -1460,6 +1478,9 @@ class FirestoreServices {
               'type': 'internal',
               'id': trimmedUserId,
               'url': 'https://example.com',
+              if (notificationType != null &&
+                  notificationType.trim().isNotEmpty)
+                'notificationType': notificationType.trim(),
             },
             requestId: requestId,
             recipientId: trimmedUserId,
@@ -1503,9 +1524,7 @@ class FirestoreServices {
               employeeId: trimmedUserId,
               token: cleanedToken,
             );
-            log(
-              "🧹 Removed invalid employee token for $trimmedUserId",
-            );
+            log("🧹 Removed invalid employee token for $trimmedUserId");
             continue;
           }
           rethrow;
@@ -1545,6 +1564,8 @@ class FirestoreServices {
     String? actionText,
     String? referenceId,
     Map<String, String>? emailDetails,
+    bool sendPush = true,
+    bool sendEmail = true,
     Set<String>? batchSeenTokens,
   }) async {
     try {
@@ -1570,40 +1591,45 @@ class FirestoreServices {
               : 'العميل';
 
       final trimmedUserId = userId.trim();
-      await addNotification(
-        NotificationModel(
-          title: title,
-          body: body,
-          recipientId: trimmedUserId,
-          createdAt: DateTime.now(),
-          isRead: false,
-        ),
-      );
-
-      // إرسال إيميل حتى عند غياب FCM (من لم يثبت التطبيق أو عطّل الإشعارات يظل يحصل على الإيميل)
-      if (email != null && email.isNotEmpty) {
-        final details = <String, String>{
-          'المستلم': recipientName,
-          'معرف المستلم': trimmedUserId,
-          if (emailDetails != null) ...emailDetails,
-        };
-        unawaited(
-          EmailNotificationService.sendDetailedNotification(
-            toEmail: email,
+      if (_shouldPersistFcmToNotificationInbox(notificationType)) {
+        await addNotification(
+          NotificationModel(
             title: title,
             body: body,
-            recipientLabel: recipientName,
-            notificationType: notificationType ?? 'إشعار عميل',
-            actionText: actionText,
-            referenceId: referenceId ?? trimmedUserId,
-            details: details,
+            recipientId: trimmedUserId,
+            createdAt: DateTime.now(),
+            isRead: false,
           ),
         );
-      } else {
-        log(
-          "⚠️ Email missing for client $userId — skipping email notification",
-        );
       }
+
+      if (sendEmail) {
+        if (email != null && email.isNotEmpty) {
+          final details = <String, String>{
+            'المستلم': recipientName,
+            'معرف المستلم': trimmedUserId,
+            if (emailDetails != null) ...emailDetails,
+          };
+          unawaited(
+            EmailNotificationService.sendDetailedNotification(
+              toEmail: email,
+              title: title,
+              body: body,
+              recipientLabel: recipientName,
+              notificationType: notificationType ?? 'إشعار عميل',
+              actionText: actionText,
+              referenceId: referenceId ?? trimmedUserId,
+              details: details,
+            ),
+          );
+        } else {
+          log(
+            "⚠️ Email missing for client $userId — skipping email notification",
+          );
+        }
+      }
+
+      if (!sendPush) return;
 
       if (tokens.isEmpty) {
         log("⚠️ fcmToken missing for client $userId — push not sent");
@@ -1653,6 +1679,9 @@ class FirestoreServices {
               'type': 'internal',
               'id': trimmedUserId,
               'url': 'https://example.com',
+              if (notificationType != null &&
+                  notificationType.trim().isNotEmpty)
+                'notificationType': notificationType.trim(),
             },
             requestId: requestId,
             recipientId: trimmedUserId,
@@ -1692,7 +1721,10 @@ class FirestoreServices {
             );
           }
           if (_isInvalidOrExpiredTokenError(e)) {
-            await _removeClientFcmToken(clientId: trimmedUserId, token: cleanedToken);
+            await _removeClientFcmToken(
+              clientId: trimmedUserId,
+              token: cleanedToken,
+            );
             log("🧹 Removed invalid client token for $trimmedUserId");
             continue;
           }
@@ -1754,6 +1786,12 @@ class FirestoreServices {
           topic: topic,
           title: title,
           body: body,
+          data:
+              notificationType != null && notificationType.trim().isNotEmpty
+                  ? <String, String>{
+                    'notificationType': notificationType.trim(),
+                  }
+                  : null,
           requestId: requestId,
           recipientType: 'topic',
           notificationType: notificationType,

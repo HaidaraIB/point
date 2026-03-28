@@ -41,7 +41,7 @@ Future<String?> attemptSilentLogin() async {
 
       final role = employee.role;
       if (role == 'employee') return '/employeeDashboard';
-      if (role == 'supervisor' || role == 'admin' || role == 'accountholder') {
+      if (role == 'supervisor' || role == 'admin') {
         return '/';
       }
       return '/';

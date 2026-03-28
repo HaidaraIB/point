@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/AppImages.dart';
 import 'package:point/View/Auth/Shared/Rights.dart';
 
@@ -41,6 +42,7 @@ class ChooseUserType extends StatelessWidget {
                 // زر عميل
                 _UserTypeButton(
                   label: 'user_type_client'.tr,
+                  gradient: AppColors.authLoginButtonGradient,
                   onTap: () => Get.toNamed('/auth/LoginUserAccount'),
                 ),
                 SizedBox(height: 14),
@@ -63,27 +65,34 @@ class ChooseUserType extends StatelessWidget {
 class _UserTypeButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
+  final LinearGradient? gradient;
 
   const _UserTypeButton({
     Key? key,
     required this.label,
     required this.onTap,
+    this.gradient,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(12);
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: radius,
         child: Container(
           width: double.infinity,
           padding: EdgeInsets.symmetric(vertical: 18, horizontal: 24),
           decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade300, width: 1),
+            gradient: gradient,
+            color: gradient == null ? Colors.grey.shade100 : null,
+            borderRadius: radius,
+            border:
+                gradient == null
+                    ? Border.all(color: Colors.grey.shade300, width: 1)
+                    : null,
           ),
           child: Center(
             child: Text(
@@ -91,7 +100,7 @@ class _UserTypeButton extends StatelessWidget {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: Colors.black87,
+                color: gradient == null ? Colors.black87 : Colors.white,
               ),
             ),
           ),

@@ -1,6 +1,23 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
+  /// تدرج أزرار تسجيل الدخول (عميل / موظف) — نفس `MainButton` في شاشات المصادقة
+  static LinearGradient get authLoginButtonGradient => const LinearGradient(
+        colors: [
+          Color(0xff19133F),
+          Color(0xff19133F),
+          Color(0xff19133F),
+          Color(0xff19133F),
+          Color(0xff19133F),
+          Color(0xff2F133F),
+          Color(0xff2F133F),
+          Color(0xff2F133F),
+          Color(0xff2F133F),
+        ],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomRight,
+      );
+
   static const Color primary = Color(0xff6736AE);
   // static const Color primaryFontColor = Color(0xff34AD93);
   static const Color primaryfontColor = Color(0xff344054);

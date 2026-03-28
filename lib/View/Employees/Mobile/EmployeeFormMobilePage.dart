@@ -31,7 +31,11 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
   bool obscurePassword = true;
   String selectedRole = "employee";
   String selectedDepartment = StorageKeys.departmentPromotion;
-  static const List<String> _roles = ["supervisor", "admin", "employee"];
+  static const List<String> _roles = [
+    "supervisor",
+    "admin",
+    "employee",
+  ];
 
   bool get _canEditCredentials {
     final m = widget.model;
@@ -269,7 +273,7 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                             .map(
                               (role) => DropdownMenuItem(
                                 value: role,
-                                child: Text(role),
+                                child: Text(role.tr),
                               ),
                             )
                             .toList(),

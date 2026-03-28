@@ -211,11 +211,16 @@ class NotificationService {
       ManagerTaskEditKind.attachment => 'notify.mgr.edited_files',
       ManagerTaskEditKind.both => 'notify.mgr.edited_both',
     };
+    final String pushType = switch (kind) {
+      ManagerTaskEditKind.comment || ManagerTaskEditKind.both =>
+        'manager_task_comment',
+      ManagerTaskEditKind.attachment => 'manager_task_edited',
+    };
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
       title: '$prefix.title'.tr,
       body: '$prefix.body'.trParams({'name': employeeName, 'title': taskTitle}),
-      notificationType: 'manager_task_edited',
+      notificationType: pushType,
       actionText: '$prefix.action'.tr,
       referenceId: taskTitle,
       emailDetails: _emailLabels({

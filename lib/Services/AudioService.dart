@@ -19,9 +19,7 @@ class AudioService {
   static final AudioService instance = AudioService._();
 
   /// Keys كما في [pubspec] (مسار كامل تحت `assets/`).
-  static String get _bundleAssetKey => kIsWeb
-      ? 'assets/sounds/notification_web.wav'
-      : 'assets/sounds/notification_message.mp3';
+  static String get _bundleAssetKey => 'assets/sounds/notification_chat.wav';
   static const Duration _minPlayInterval = Duration(seconds: 1);
 
   final AudioPlayer _player = AudioPlayer();
@@ -44,9 +42,10 @@ class AudioService {
   /// يعيد 404؛ نجرّب نفس المسار عبر HTTP ثم مساراً بديلاً.
   Future<ByteData> _loadAssetBytes(String manifestKey) async {
     if (kIsWeb) {
-      final rest = manifestKey.startsWith('assets/')
-          ? manifestKey.substring('assets/'.length)
-          : manifestKey;
+      final rest =
+          manifestKey.startsWith('assets/')
+              ? manifestKey.substring('assets/'.length)
+              : manifestKey;
       final candidates = <Uri>[
         Uri.base.resolve('assets/assets/$rest'),
         Uri.base.resolve('assets/$rest'),
@@ -75,7 +74,8 @@ class AudioService {
     final key = _bundleAssetKey;
     final bd = await _loadAssetBytes(key);
     final bytes = bd.buffer.asUint8List(bd.offsetInBytes, bd.lengthInBytes);
-    final mime = key.toLowerCase().endsWith('.wav') ? 'audio/wav' : 'audio/mpeg';
+    final mime =
+        key.toLowerCase().endsWith('.wav') ? 'audio/wav' : 'audio/mpeg';
     await _player
         .setSource(BytesSource(bytes, mimeType: mime))
         .timeout(_setSourceTimeout);

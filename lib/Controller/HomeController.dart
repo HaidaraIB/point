@@ -231,7 +231,9 @@ class HomeController extends GetxController {
       employee: employee,
       password: password,
     );
-    if (result && (employee.role == 'admin' || employee.role == 'supervisor')) {
+    if (result &&
+        (employee.role == 'admin' ||
+            employee.role == 'supervisor')) {
       await addToGroups(employee.id!);
     }
     isLoading.value = false;
@@ -282,7 +284,9 @@ class HomeController extends GetxController {
               updated: employee,
               newPassword: newPassword,
             );
-    if (result && (employee.role == 'admin' || employee.role == 'supervisor')) {
+    if (result &&
+        (employee.role == 'admin' ||
+            employee.role == 'supervisor')) {
       await addToGroups(employee.id!);
     }
     isLoading.value = false;
@@ -546,16 +550,14 @@ class HomeController extends GetxController {
         oldTask.status == newTask.status &&
         (newTask.notes.length > oldTask.notes.length ||
             newTask.files.length > oldTask.files.length)) {
-      final addedNotes =
-          newTask.notes.length > oldTask.notes.length;
-      final addedFiles =
-          newTask.files.length > oldTask.files.length;
+      final addedNotes = newTask.notes.length > oldTask.notes.length;
+      final addedFiles = newTask.files.length > oldTask.files.length;
       final editKind =
           addedNotes && addedFiles
               ? ManagerTaskEditKind.both
               : addedNotes
-                  ? ManagerTaskEditKind.comment
-                  : ManagerTaskEditKind.attachment;
+              ? ManagerTaskEditKind.comment
+              : ManagerTaskEditKind.attachment;
       await NotificationService.notifyManagersEmployeeEditedTask(
         employeeName: assigneeName,
         taskTitle: newTask.title,
@@ -1471,19 +1473,22 @@ class HomeController extends GetxController {
 
   void listenToClient(String empid) async {
     _employeeDocSub?.cancel();
-    _employeeDocSub = _clientCollection.doc(empid).snapshots().listen(
-      (snapshot) async {
-        if (snapshot.exists && snapshot.data() != null) {
-          final employee = EmployeeModel.fromJson(snapshot.data()!);
-          currentemployee.value = employee;
-          lastKnownEmployee.value = employee;
-          _startTotalUnreadStream(empid);
-        }
-      },
-      onError: (e, s) {
-        log('listenToClient stream error for $empid: $e');
-      },
-    );
+    _employeeDocSub = _clientCollection
+        .doc(empid)
+        .snapshots()
+        .listen(
+          (snapshot) async {
+            if (snapshot.exists && snapshot.data() != null) {
+              final employee = EmployeeModel.fromJson(snapshot.data()!);
+              currentemployee.value = employee;
+              lastKnownEmployee.value = employee;
+              _startTotalUnreadStream(empid);
+            }
+          },
+          onError: (e, s) {
+            log('listenToClient stream error for $empid: $e');
+          },
+        );
     fetchContents();
     // fetchnotification(currentemployee.value?.id);
   }
@@ -1508,6 +1513,7 @@ class HomeController extends GetxController {
         .getTotalUnreadMessagesStream(
           userId,
           onPerChatUnreadIncrease: (chatId) {
+            if (!kIsWeb) return;
             unawaited(
               AudioService.instance.playNotificationSound(chatId: chatId),
             );
@@ -1555,7 +1561,8 @@ class HomeController extends GetxController {
           refreshedToken,
         ) async {
           final employeeId = currentemployee.value?.id ?? userId;
-          if (employeeId == null || employeeId.toString().trim().isEmpty) return;
+          if (employeeId == null || employeeId.toString().trim().isEmpty)
+            return;
           await FirestoreServices.addEmployeeFcmToken(
             employeeId: employeeId.toString(),
             token: refreshedToken,
@@ -1759,10 +1766,9 @@ class HomeController extends GetxController {
   Future<void> _waitForFirebaseAuthHydrationOnWeb() async {
     if (FirebaseAuth.instance.currentUser != null) return;
     try {
-      await FirebaseAuth.instance
-          .authStateChanges()
-          .first
-          .timeout(const Duration(seconds: 1));
+      await FirebaseAuth.instance.authStateChanges().first.timeout(
+        const Duration(seconds: 1),
+      );
     } catch (_) {
       // نكمل بالاستعلام عن currentUser أدناه.
     }
