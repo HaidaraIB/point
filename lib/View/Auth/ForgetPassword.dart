@@ -1,8 +1,9 @@
+import 'dart:math' show min;
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:get/get_navigation/src/extension_navigation.dart';
-import 'package:get/get_utils/src/extensions/internacionalization.dart';
-import 'package:get/instance_manager.dart';
+import 'package:get/get.dart';
+import 'package:point/Controller/ClientController.dart';
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppImages.dart';
@@ -28,6 +29,36 @@ class _ForgetPasswordState extends State<ForgetPassword> {
     super.dispose();
   }
 
+  void _goBack() {
+    if (Navigator.of(context).canPop()) {
+      Get.back();
+      return;
+    }
+    final isClientFlow = Get.isRegistered<ClientController>() &&
+        Get.find<ClientController>().currentClient.value != null;
+    Get.offAllNamed(isClientFlow ? '/auth/LoginUserAccount' : '/auth/login');
+  }
+
+  PreferredSizeWidget _buildForgetPasswordAppBar() {
+    return AppBar(
+      backgroundColor: Colors.white,
+      elevation: 0,
+      leading: IconButton(
+        icon: Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+        onPressed: _goBack,
+      ),
+      title: Text(
+        'forgotpassword'.tr,
+        style: TextStyle(
+          color: Colors.black87,
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      centerTitle: true,
+    );
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isLoading = true);
@@ -48,55 +79,17 @@ class _ForgetPasswordState extends State<ForgetPassword> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Responsive(
-      mobile: Scaffold(
-        body: _buildDesktopLayout(
-          _formKey,
-          _emailController,
-          _isLoading,
-          _submit,
-        ),
-      ),
-      tablet: Scaffold(
-        body: _buildDesktopLayout(
-          _formKey,
-          _emailController,
-          _isLoading,
-          _submit,
-        ),
-      ),
-      desktop: Scaffold(body: _buildDesktopLayout(_formKey, _emailController, _isLoading, _submit)),
-    );
-  }
-}
-
-// --- IGNORE ---
-Widget _buildDesktopLayout(
-  GlobalKey<FormState> formKey,
-  TextEditingController emailController,
-  bool isLoading,
-  VoidCallback onSubmit,
-) {
-  return Row(
-    children: [
-      Image.asset(
-        AppImages.images.authcover,
-        // width: Get.width / 2 - 50,
-        // height: Get.height,
-        // fit: BoxFit.fitWidth,
-      ),
-
-      Center(
-        child: Container(
-          alignment: Alignment.center,
-          // color: Colors.yellow,
-          margin: EdgeInsets.symmetric(vertical: 50, horizontal: 100),
-          width: Get.width / 2 - 50,
-          child: Form(
-            key: formKey,
-            child: Column(
+  Widget _buildBody() {
+    return Form(
+      key: _formKey,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final showAuthSplit =
+              Responsive.showAuthSplitLayout(constraints.maxWidth);
+          final viewportMinHeight = constraints.hasBoundedHeight
+              ? constraints.maxHeight
+              : 0.0;
+          final formColumn = Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -110,7 +103,6 @@ Widget _buildDesktopLayout(
                 ),
               ),
               SizedBox(height: 10),
-
               Text(
                 'enteremailandwaitcode'.tr,
                 style: TextStyle(color: Colors.grey, fontSize: 13),
@@ -118,28 +110,24 @@ Widget _buildDesktopLayout(
               InputText(
                 hintText: 'example@gmail.com'.tr,
                 labelText: 'email'.tr,
-                controller: emailController,
+                controller: _emailController,
                 height: 42,
                 fillColor: Colors.white,
-
                 validator: (v) {
                   if (v == null || v.isEmpty) {
                     return ' ';
                   }
                   return null;
                 },
-
                 borderRadius: 5,
                 borderColor: Colors.grey.shade300,
               ),
-
               SizedBox(height: 25),
               MainButton(
                 icon: false,
                 height: 40,
                 borderSize: 10,
                 margin: EdgeInsets.all(0),
-                // lineargrad: ,
                 linearGradient: LinearGradient(
                   colors: [
                     Color(0xff19133F),
@@ -151,22 +139,101 @@ Widget _buildDesktopLayout(
                     Color.fromARGB(255, 47, 19, 63),
                     Color.fromARGB(255, 47, 19, 63),
                     Color.fromARGB(255, 47, 19, 63),
-
-                    // Color(0xff5B0E4E),
                   ],
-
                   begin: Alignment.topCenter,
                   end: Alignment.bottomRight,
                 ),
                 title: 'confirm'.tr,
-                load: isLoading,
-                onPressed: onSubmit,
+                load: _isLoading,
+                onPressed: _submit,
               ),
             ],
-            ),
-          ),
-        ),
+          );
+
+          if (!showAuthSplit) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: viewportMinHeight),
+                child: Padding(
+                  padding: EdgeInsets.all(10),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: min(480, constraints.maxWidth - 20),
+                      ),
+                      child: formColumn,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                flex: Responsive.authSplitCoverFlex,
+                child: Image.asset(
+                  AppImages.images.authcover,
+                  fit: BoxFit.cover,
+                  alignment: Alignment.center,
+                  errorBuilder: (context, error, stackTrace) {
+                    return ColoredBox(color: Colors.grey.shade200);
+                  },
+                ),
+              ),
+              Expanded(
+                flex: Responsive.authSplitFormFlex,
+                child: LayoutBuilder(
+                  builder: (context, colConstraints) {
+                    const verticalPad = 50.0;
+                    final minScrollChildHeight = colConstraints.maxHeight >
+                            verticalPad * 2
+                        ? colConstraints.maxHeight - verticalPad * 2
+                        : colConstraints.maxHeight;
+                    return SingleChildScrollView(
+                      padding: EdgeInsets.symmetric(
+                        vertical: verticalPad,
+                        horizontal: 40,
+                      ),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: minScrollChildHeight,
+                        ),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: min(
+                                480,
+                                colConstraints.maxWidth - 80,
+                              ),
+                            ),
+                            child: formColumn,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          );
+        },
       ),
-    ],
-  );
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scaffold = Scaffold(
+      appBar: _buildForgetPasswordAppBar(),
+      body: _buildBody(),
+    );
+    return Responsive(
+      mobile: scaffold,
+      tablet: scaffold,
+      desktop: scaffold,
+    );
+  }
 }

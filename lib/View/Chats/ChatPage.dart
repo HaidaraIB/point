@@ -456,6 +456,7 @@ class _ChatScreenState extends State<ChatScreen> {
         body: text,
         sendEmail: false,
         notificationType: 'chat_message',
+        fcmDataExtras: {'chatId': '$chatId'},
         // token: token,
       );
     } else if (isGroup) {
@@ -474,6 +475,7 @@ class _ChatScreenState extends State<ChatScreen> {
             body: text,
             sendEmail: false,
             notificationType: 'chat_message',
+            fcmDataExtras: {'chatId': '$chatId'},
             // token: token,
           );
         }

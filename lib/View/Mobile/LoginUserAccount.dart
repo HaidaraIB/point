@@ -338,9 +338,9 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
         ),
         SizedBox(height: afterPasswordGap),
         InkWell(
-          onTap: () => Get.toNamed('/auth/resetPassword'),
+          onTap: () => Get.toNamed('/auth/forgetPassword'),
           child: Text(
-            'resetpassword'.tr,
+            'forgotpassword'.tr,
             style: TextStyle(color: Colors.grey, fontSize: linkSize),
           ),
         ),

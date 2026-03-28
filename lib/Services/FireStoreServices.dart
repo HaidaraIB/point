@@ -1290,6 +1290,20 @@ class FirestoreServices {
     return controller.stream;
   }
 
+  /// عدد الرسائل غير المقروءة الواردة من غير [userId] داخل محادثة [chatId].
+  /// يتبع نفس منطق [getTotalUnreadMessagesStream] لكل محادثة.
+  Stream<int> unreadIncomingCountStream(String chatId, String userId) {
+    return db
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .where('isRead', isEqualTo: false)
+        .snapshots()
+        .map(
+          (s) => s.docs.where((d) => d.data()['senderId'] != userId).length,
+        );
+  }
+
   Stream<List<NotificationModel>> getNotifications(
     String userId,
     String otherId,
@@ -1360,6 +1374,8 @@ class FirestoreServices {
     String? actionText,
     String? referenceId,
     Map<String, String>? emailDetails,
+    /// يُدمج في حمولة `data` لـ FCM (مثل `chatId` لإشعارات الدردشة).
+    Map<String, String>? fcmDataExtras,
     bool sendPush = true,
     bool sendEmail = true,
     Set<String>? batchSeenTokens,
@@ -1481,6 +1497,7 @@ class FirestoreServices {
               if (notificationType != null &&
                   notificationType.trim().isNotEmpty)
                 'notificationType': notificationType.trim(),
+              if (fcmDataExtras != null) ...fcmDataExtras,
             },
             requestId: requestId,
             recipientId: trimmedUserId,
@@ -1564,6 +1581,7 @@ class FirestoreServices {
     String? actionText,
     String? referenceId,
     Map<String, String>? emailDetails,
+    Map<String, String>? fcmDataExtras,
     bool sendPush = true,
     bool sendEmail = true,
     Set<String>? batchSeenTokens,
@@ -1682,6 +1700,7 @@ class FirestoreServices {
               if (notificationType != null &&
                   notificationType.trim().isNotEmpty)
                 'notificationType': notificationType.trim(),
+              if (fcmDataExtras != null) ...fcmDataExtras,
             },
             requestId: requestId,
             recipientId: trimmedUserId,
@@ -1965,6 +1984,7 @@ class FirestoreServices {
     String? actionText,
     String? referenceId,
     Map<String, String>? emailDetails,
+    Map<String, String>? fcmDataExtras,
   }) async {
     final seen = <String>{};
     final batchSeenTokens = <String>{};
@@ -1981,6 +2001,7 @@ class FirestoreServices {
           actionText: actionText,
           referenceId: referenceId,
           emailDetails: emailDetails,
+          fcmDataExtras: fcmDataExtras,
           batchSeenTokens: batchSeenTokens,
         ),
       );

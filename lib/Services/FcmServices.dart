@@ -7,6 +7,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'package:path_provider/path_provider.dart';
+import 'package:point/Services/ChatAudioFocus.dart';
 import 'package:point/Services/push_notification_sound.dart';
 // import 'package:mohmacash/Services/googleApis.dart';
 import 'package:http/http.dart' as http;
@@ -40,11 +41,12 @@ class NotificationService {
   }
 
   Future<void> _configureForegroundPresentation() async {
-    // iOS does not show foreground banners by default.
+    // iOS: عطّل العرض/الصوت التلقائيين في المقدّمة؛ نعرض عبر [_showLocalNotification]
+    // حتى نتمكن من عدم إظهار إشعار الدردشة والمستخدم داخل نفس المحادثة.
     await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
-      alert: true,
+      alert: false,
       badge: true,
-      sound: true,
+      sound: false,
     );
   }
 
@@ -208,6 +210,18 @@ class NotificationService {
     );
   }
 
+  /// لا نُظهر إشعاراً في المقدّمة لرسالة دردشة تخص المحادثة المفتوحة حالياً.
+  bool _suppressForegroundChatNotification(RemoteMessage message) {
+    final type = message.data['notificationType']?.toString().trim();
+    if (type != 'chat_message') return false;
+    final openId = ChatAudioFocus.foregroundChatId;
+    if (openId == null || openId.isEmpty) return false;
+    final incoming =
+        message.data['chatId']?.toString().trim() ?? '';
+    if (incoming.isEmpty) return false;
+    return incoming == openId;
+  }
+
   Future<String> _downloadAndSaveFile(String url, String fileName) async {
     final directory = await getApplicationDocumentsDirectory();
     final filePath = '${directory.path}/$fileName';
@@ -221,9 +235,7 @@ class NotificationService {
   void _listenToForegroundMessages() {
     _foregroundSub ??= FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       log('Received a message in foreground: ${message.notification?.title}');
-      // On iOS, if FCM includes `notification`, the system banner is already shown.
-      // Skip local display to avoid duplicate notifications.
-      if (Platform.isIOS && message.notification != null) return;
+      if (_suppressForegroundChatNotification(message)) return;
       _showLocalNotification(message);
     });
   }

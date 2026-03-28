@@ -40,6 +40,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
   final TextEditingController _searchController = TextEditingController();
   // Firebase instances
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirestoreServices _firestoreServices = FirestoreServices();
 
   // local caches
   String? _currentUserId;
@@ -162,8 +163,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
 
       final isSameDept = StorageKeys.matchesDepartment(empDept, deptGroupName);
 
-      final isSpecialRole =
-          empRole == 'admin' || empRole == 'supervisor';
+      final isSpecialRole = empRole == 'admin' || empRole == 'supervisor';
 
       if ((isSameDept || isSpecialRole) &&
           empId != _currentUserId &&
@@ -270,7 +270,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
     };
 
     // الانتقال إلى شاشة الرسائل (MessageScreen)
-    Get.to(
+    await Get.to(
       () => MessageScreen(
         chat: selectedChatData,
         currentUserId: _currentUserId!,
@@ -278,6 +278,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
         otherUserId: otherUserId,
       ),
     );
+    if (mounted) setState(() {});
   }
 
   // لفتح مجموعة القسم والانتقال لشاشة الرسائل
@@ -297,11 +298,12 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
         'isGroup': chatData['isGroup'] ?? false,
         'title': chatData['title'],
         // اسم العرض للمجموعة
-        'displayName': chatData['title'] ?? AppLocaleKeys.chatDepartmentGroup.tr,
+        'displayName':
+            chatData['title'] ?? AppLocaleKeys.chatDepartmentGroup.tr,
       };
 
       // الانتقال إلى شاشة الرسائل (MessageScreen)
-      Get.to(
+      await Get.to(
         () => MessageScreen(
           chat: selectedChatData,
           currentUserId: _currentUserId!,
@@ -309,11 +311,12 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
           otherUserId: null, // لا يوجد طرف آخر محدد في المجموعة
         ),
       );
+      if (mounted) setState(() {});
     }
   }
 
   // لفتح محادثة موجودة والانتقال لشاشة الرسائل
-  void _openExistingChat(Map<String, dynamic> chat) async {
+  Future<void> _openExistingChat(Map<String, dynamic> chat) async {
     String displayName;
     String? otherId;
 
@@ -341,7 +344,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
       ..['displayName'] = displayName;
 
     // الانتقال إلى شاشة الرسائل (MessageScreen)
-    Get.to(
+    await Get.to(
       () => MessageScreen(
         chat: selectedChatData,
         currentUserId: _currentUserId!,
@@ -349,6 +352,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
         otherUserId: otherId,
       ),
     );
+    if (mounted) setState(() {});
   }
 
   // ---------------- UI dialogs ----------------
@@ -451,34 +455,6 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
     return parts.first[0].toUpperCase();
   }
 
-  // **مُحسّن لإحصاء الرسائل غير المقروءة في المجموعات والمحادثات الفردية**
-  Future<int> getUnreadCount(String chatId, String currentUserId) async {
-    final chatRef = _firestore.collection('chats').doc(chatId);
-    try {
-      final countSnapshot =
-          await chatRef
-              .collection('messages')
-              .where('isRead', isEqualTo: false)
-              .where('senderId', isNotEqualTo: currentUserId)
-              .count()
-              .get();
-      return countSnapshot.count ?? 0;
-    } catch (e) {
-      if (e.toString().contains('failed-precondition') ||
-          e.toString().contains('index')) {
-        final snapshot =
-            await chatRef
-                .collection('messages')
-                .where('isRead', isEqualTo: false)
-                .get();
-        return snapshot.docs
-            .where((d) => d.data()['senderId'] != currentUserId)
-            .length;
-      }
-      rethrow;
-    }
-  }
-
   // ---------------- build ----------------
   @override
   Widget build(BuildContext context) {
@@ -556,8 +532,8 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
 
                   // **عرض مجموعة القسم أولاً**
                   if (_currentUserDept != null && _currentUserDept!.isNotEmpty)
-                    FutureBuilder<int>(
-                      future: getUnreadCount(
+                    StreamBuilder<int>(
+                      stream: _firestoreServices.unreadIncomingCountStream(
                         'group_$_currentUserDept',
                         _currentUserId ?? '',
                       ),
@@ -583,8 +559,9 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                             ),
                           ),
                           title: Text(
-                            'newchat.group_title'
-                                .trParams({'name': _currentUserDept!.tr}),
+                            'newchat.group_title'.trParams({
+                              'name': _currentUserDept!.tr,
+                            }),
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Colors.blue.shade700,
@@ -625,9 +602,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                         _loadingChats
                             ? const Center(child: CircularProgressIndicator())
                             : _chats.isEmpty
-                            ? Center(
-                              child: Text('chat.no_chats'.tr),
-                            )
+                            ? Center(child: Text('chat.no_chats'.tr))
                             : ListView.builder(
                               itemCount: _chats.length,
                               itemBuilder: (context, index) {
@@ -679,11 +654,12 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                   titleColor = Colors.black;
                                 }
 
-                                return FutureBuilder<int>(
-                                  future: getUnreadCount(
-                                    chatId,
-                                    _currentUserId ?? '',
-                                  ),
+                                return StreamBuilder<int>(
+                                  stream: _firestoreServices
+                                      .unreadIncomingCountStream(
+                                        chatId,
+                                        _currentUserId ?? '',
+                                      ),
                                   builder: (context, snapshot) {
                                     final unreadCount = snapshot.data ?? 0;
                                     return ListTile(
@@ -779,7 +755,8 @@ class _MessageScreenState extends State<MessageScreen> {
   bool _isEmojiVisible = false;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   Stream<QuerySnapshot<Map<String, dynamic>>>? _messagesStream;
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _messageSoundSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+  _messageSoundSubscription;
   late String _chatId;
   late String _displayName;
 
@@ -850,6 +827,7 @@ class _MessageScreenState extends State<MessageScreen> {
         body: text,
         sendEmail: false,
         notificationType: 'chat_message',
+        fcmDataExtras: {'chatId': _chatId},
       );
     } else if (isGroup) {
       final participants = List<String>.from(widget.chat['participants'] ?? []);
@@ -864,6 +842,7 @@ class _MessageScreenState extends State<MessageScreen> {
             body: text,
             sendEmail: false,
             notificationType: 'chat_message',
+            fcmDataExtras: {'chatId': _chatId},
           );
         }
       }
@@ -891,9 +870,10 @@ class _MessageScreenState extends State<MessageScreen> {
                 .collection('messages')
                 .where('isRead', isEqualTo: false)
                 .get();
-        final toMark = unreadSnapshot.docs
-            .where((d) => d.data()['senderId'] != widget.currentUserId)
-            .toList();
+        final toMark =
+            unreadSnapshot.docs
+                .where((d) => d.data()['senderId'] != widget.currentUserId)
+                .toList();
         for (var doc in toMark) {
           await doc.reference.update({'isRead': true});
         }
@@ -901,8 +881,6 @@ class _MessageScreenState extends State<MessageScreen> {
         rethrow;
       }
     }
-    // يجب استدعاء setState في شاشة القائمة لتحديث عداد الرسائل غير المقروءة هناك
-    // لكن هذا يتطلب تمرير دالة تحديث، ولأجل التبسيط نتركها لـ listener الخاص بشاشة القائمة
   }
 
   String _formatTimestamp(Timestamp? ts) {
@@ -914,11 +892,13 @@ class _MessageScreenState extends State<MessageScreen> {
     if (diff.inSeconds < 60) {
       return 'time.seconds_ago'.tr;
     } else if (diff.inMinutes < 60) {
-      return AppLocaleKeys.commonMinutesAgo
-          .trParams({'count': '${diff.inMinutes}'});
+      return AppLocaleKeys.commonMinutesAgo.trParams({
+        'count': '${diff.inMinutes}',
+      });
     } else if (diff.inHours < 24) {
-      return AppLocaleKeys.commonHoursAgo
-          .trParams({'count': '${diff.inHours}'});
+      return AppLocaleKeys.commonHoursAgo.trParams({
+        'count': '${diff.inHours}',
+      });
     } else if (diff.inDays < 7) {
       return 'time.ago_days'.trParams({'count': '${diff.inDays}'});
     } else {
@@ -1028,7 +1008,9 @@ class _MessageScreenState extends State<MessageScreen> {
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.05),
+                                        color: Colors.black.withValues(
+                                          alpha: 0.05,
+                                        ),
                                         blurRadius: 4,
                                         offset: const Offset(0, 2),
                                       ),
