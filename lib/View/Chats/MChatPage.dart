@@ -16,6 +16,7 @@ import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/View/Chats/chat_message_display.dart';
 import 'package:point/View/Chats/chat_voice_record_button.dart';
+import 'package:point/View/Chats/telegram_style_attachment_menu.dart';
 
 // **********************************************
 // ********* الشاشة الجديدة 1: قائمة المحادثات *********
@@ -752,6 +753,7 @@ class MessageScreen extends StatefulWidget {
 
 class _MessageScreenState extends State<MessageScreen> {
   final TextEditingController _messageController = TextEditingController();
+  final FocusNode _messageFocusNode = FocusNode();
   bool _isEmojiVisible = false;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   Stream<QuerySnapshot<Map<String, dynamic>>>? _messagesStream;
@@ -804,6 +806,116 @@ class _MessageScreenState extends State<MessageScreen> {
         widget.currentUserId,
       ),
     );
+
+    _messageFocusNode.addListener(_onMessageFocusChanged);
+  }
+
+  void _onMessageFocusChanged() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _showAttachmentMenu(BuildContext anchorContext) async {
+    final homeController = Get.find<HomeController>();
+    if (!mounted) return;
+
+    final action = await showTelegramStyleAttachmentMenu(
+      context: context,
+      anchorContext: anchorContext,
+      photoLabel: AppLocaleKeys.chatAttachPhoto.tr,
+      fileLabel: AppLocaleKeys.chatAttachFile.tr,
+      voiceLabel: AppLocaleKeys.chatAttachVoice.tr,
+    );
+    if (!mounted || action == null) return;
+
+    switch (action) {
+      case ChatAttachmentMenuAction.photo:
+        final v = await homeController.pickoneImage();
+        if (!mounted || v.isEmpty || v.first.bytes == null) return;
+        final url = await homeController.uploadFiles(
+          filePathOrBytes: v.first.bytes!,
+          fileName: v.first.name,
+        );
+        if (url == null || !mounted) return;
+        final cap = _messageController.text.trim();
+        await _sendChatPayload(
+          lastMessagePreview: cap.isNotEmpty ? cap : '📷',
+          messageType: 'image',
+          text: cap,
+          attachmentUrl: url,
+        );
+        _messageController.clear();
+        homeController.uploadedFilesPaths.clear();
+        return;
+      case ChatAttachmentMenuAction.file:
+        final v = await homeController.pickOneChatFile();
+        if (!mounted || v.isEmpty || v.first.bytes == null) return;
+        final url = await homeController.uploadFiles(
+          filePathOrBytes: v.first.bytes!,
+          fileName: v.first.name,
+        );
+        if (url == null || !mounted) return;
+        await _sendChatPayload(
+          lastMessagePreview: v.first.name,
+          messageType: 'file',
+          text: '',
+          attachmentUrl: url,
+          fileName: v.first.name,
+        );
+        homeController.uploadedFilesPaths.clear();
+        return;
+      case ChatAttachmentMenuAction.voice:
+        await _showVoiceAttachmentSheet();
+        return;
+    }
+  }
+
+  Future<void> _showVoiceAttachmentSheet() async {
+    if (!mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF2C2F3E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  AppLocaleKeys.chatAttachVoice.tr,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Theme(
+                  data: Theme.of(context).copyWith(
+                    iconTheme: const IconThemeData(color: Colors.white),
+                  ),
+                  child: ChatVoiceRecordButton(
+                    onUploaded: (url, sec) async {
+                      if (Navigator.of(ctx).canPop()) Navigator.pop(ctx);
+                      await _sendChatPayload(
+                        lastMessagePreview: '🎤',
+                        messageType: 'voice',
+                        text: url,
+                        attachmentUrl: url,
+                        durationSec: sec > 0 ? sec : null,
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -814,6 +926,8 @@ class _MessageScreenState extends State<MessageScreen> {
     unawaited(
       FirestoreServices.syncEmployeeActiveChatId(widget.currentUserId, null),
     );
+    _messageFocusNode.removeListener(_onMessageFocusChanged);
+    _messageFocusNode.dispose();
     _messageController.dispose();
     super.dispose();
   }
@@ -932,7 +1046,6 @@ class _MessageScreenState extends State<MessageScreen> {
   @override
   Widget build(BuildContext context) {
     final isGroup = widget.chat['isGroup'] ?? false;
-    final homeController = Get.find<HomeController>();
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
@@ -1088,110 +1201,125 @@ class _MessageScreenState extends State<MessageScreen> {
             ),
 
             // 2. إدخال الرسالة والإيموجي
-            Container(
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              margin: EdgeInsets.fromLTRB(
+                10,
+                6,
+                10,
+                _messageFocusNode.hasFocus ? 14 : 10,
+              ),
+              padding: EdgeInsets.symmetric(
+                horizontal: _messageFocusNode.hasFocus ? 4 : 8,
+                vertical: _messageFocusNode.hasFocus ? 6 : 4,
+              ),
+              constraints: BoxConstraints(
+                minHeight: _messageFocusNode.hasFocus ? 54 : 50,
+              ),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.grey.shade200),
+                borderRadius: BorderRadius.circular(
+                  _messageFocusNode.hasFocus ? 26 : 24,
+                ),
+                border: Border.all(
+                  color:
+                      _messageFocusNode.hasFocus
+                          ? const Color(0xff00A389).withValues(alpha: 0.35)
+                          : Colors.grey.shade200,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: _messageFocusNode.hasFocus ? 12 : 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              margin: const EdgeInsets.all(12),
-              padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  // زر الإيموجي
                   IconButton(
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 44,
+                      minHeight: 48,
+                    ),
                     icon: Icon(
                       _isEmojiVisible ? Icons.keyboard : Icons.emoji_emotions,
-                      color: Colors.grey,
+                      color: Colors.grey.shade700,
+                      size: 26,
                     ),
                     onPressed: () {
-                      if (_isEmojiVisible) {
-                        FocusScope.of(context).unfocus(); // إخفاء لوحة المفاتيح
+                      final showEmoji = !_isEmojiVisible;
+                      setState(() => _isEmojiVisible = showEmoji);
+                      if (showEmoji) {
+                        FocusScope.of(context).unfocus();
                       } else {
-                        FocusScope.of(
-                          context,
-                        ).requestFocus(FocusNode()); // إظهار لوحة المفاتيح
+                        _messageFocusNode.requestFocus();
                       }
-                      setState(() {
-                        _isEmojiVisible = !_isEmojiVisible;
-                      });
                     },
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.image_outlined, color: Colors.grey),
-                    onPressed: () async {
-                      final v = await homeController.pickoneImage();
-                      if (v.isEmpty || v.first.bytes == null) return;
-                      final url = await homeController.uploadFiles(
-                        filePathOrBytes: v.first.bytes!,
-                        fileName: v.first.name,
-                      );
-                      if (url == null) return;
-                      final cap = _messageController.text.trim();
-                      await _sendChatPayload(
-                        lastMessagePreview: cap.isNotEmpty ? cap : '📷',
-                        messageType: 'image',
-                        text: cap,
-                        attachmentUrl: url,
-                      );
-                      _messageController.clear();
-                      homeController.uploadedFilesPaths.clear();
-                    },
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.attach_file, color: Colors.grey),
-                    onPressed: () async {
-                      final v = await homeController.pickOneChatFile();
-                      if (v.isEmpty || v.first.bytes == null) return;
-                      final url = await homeController.uploadFiles(
-                        filePathOrBytes: v.first.bytes!,
-                        fileName: v.first.name,
-                      );
-                      if (url == null) return;
-                      await _sendChatPayload(
-                        lastMessagePreview: v.first.name,
-                        messageType: 'file',
-                        text: '',
-                        attachmentUrl: url,
-                        fileName: v.first.name,
-                      );
-                      homeController.uploadedFilesPaths.clear();
-                    },
-                  ),
-                  ChatVoiceRecordButton(
-                    onUploaded: (url, sec) async {
-                      await _sendChatPayload(
-                        lastMessagePreview: '🎤',
-                        messageType: 'voice',
-                        text: url,
-                        attachmentUrl: url,
-                        durationSec: sec > 0 ? sec : null,
+                  Builder(
+                    builder: (buttonContext) {
+                      return IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 44,
+                          minHeight: 48,
+                        ),
+                        tooltip: AppLocaleKeys.chatAttachSheetTitle.tr,
+                        icon: Icon(
+                          Icons.add_circle_outline,
+                          color: Colors.grey.shade700,
+                          size: 28,
+                        ),
+                        onPressed: () => _showAttachmentMenu(buttonContext),
                       );
                     },
                   ),
-                  // حقل إدخال الرسالة
                   Expanded(
                     child: TextField(
                       controller: _messageController,
+                      focusNode: _messageFocusNode,
                       minLines: 1,
-                      maxLines: 5,
+                      maxLines: 6,
                       keyboardType: TextInputType.multiline,
+                      style: TextStyle(
+                        fontSize: _messageFocusNode.hasFocus ? 17 : 16,
+                        height: 1.35,
+                      ),
                       decoration: InputDecoration(
                         hintText: AppLocaleKeys.chatWriteMessage.tr,
+                        hintStyle: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 16,
+                        ),
                         border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 12,
+                        ),
                       ),
                       onTap: () {
                         if (_isEmojiVisible) {
-                          setState(() {
-                            _isEmojiVisible = false;
-                          });
+                          setState(() => _isEmojiVisible = false);
                         }
                       },
                     ),
                   ),
-                  // زر الإرسال
                   IconButton(
-                    icon: const Icon(Icons.send, color: Color(0xff00A389)),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 48,
+                      minHeight: 48,
+                    ),
+                    icon: const Icon(
+                      Icons.send_rounded,
+                      color: Color(0xff00A389),
+                      size: 28,
+                    ),
                     onPressed: _sendMessage,
                   ),
                 ],

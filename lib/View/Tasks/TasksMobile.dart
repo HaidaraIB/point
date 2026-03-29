@@ -303,25 +303,30 @@ class TasksMobile extends StatelessWidget {
   }
 
   Widget _buildFilters(BuildContext context, HomeController controller) {
-    return SizedBox(
-      height: 62,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              SizedBox(
-                width: (Get.width * 0.7 / 3) - 25,
+              Expanded(
                 child: InputText(
                   prefixIcon: Icon(CupertinoIcons.search, color: Colors.grey),
                   hintText: 'tasks.search_hint_extended'.tr,
                   height: 42,
                   fillColor: Colors.white,
                   controller: controller.searchController,
+                  textInputAction: TextInputAction.search,
                   onchange: (value) {
                     controller.filterTasks();
                     return null;
+                  },
+                  onFieldSubmitted: (_) {
+                    controller.filterTasks();
+                    FocusManager.instance.primaryFocus?.unfocus();
                   },
                   borderRadius: 5,
                   borderColor: Colors.grey.shade300,
@@ -338,54 +343,65 @@ class TasksMobile extends StatelessWidget {
                 },
                 child: SvgPicture.asset('assets/svgs/icon_menu.svg', height: 42),
               ),
-              const SizedBox(width: 24),
-              _buildDropdown<String>(
-                width: 150,
-                hint: 'tasks.filter_priority'.tr,
-                value:
-                    controller.selectedPriority.value.isEmpty
-                        ? null
-                        : controller.selectedPriority.value,
-                items:
-                    StorageKeys.priority
-                        .map(
-                          (e) => DropdownMenuItem(value: e, child: Text(e.tr)),
-                        )
-                        .toList(),
-                onChanged: (value) {
-                  controller.selectedPriority.value = value ?? '';
-                  controller.filterTasks();
-                },
-              ),
-              const SizedBox(width: 10),
-              _buildStatusDropdown(controller),
-              const SizedBox(width: 10),
-              _buildDropdown<String>(
-                width: 150,
-                hint: 'tasks.filter_assignee'.tr,
-                value:
-                    controller.selectedExecutor.value.isEmpty
-                        ? null
-                        : controller.selectedExecutor.value,
-                items:
-                    controller.employees
-                        .map(
-                          (e) => DropdownMenuItem(
-                            value: e.id ?? e.name ?? '',
-                            child: Text(
-                              (e.name ?? '').split(' ').take(2).join(' '),
-                            ),
-                          ),
-                        )
-                        .toList(),
-                onChanged: (value) {
-                  controller.selectedExecutor.value = value ?? '';
-                  controller.filterTasks();
-                },
-              ),
             ],
           ),
-        ),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 42,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _buildDropdown<String>(
+                    width: 150,
+                    hint: 'tasks.filter_priority'.tr,
+                    value:
+                        controller.selectedPriority.value.isEmpty
+                            ? null
+                            : controller.selectedPriority.value,
+                    items:
+                        StorageKeys.priority
+                            .map(
+                              (e) =>
+                                  DropdownMenuItem(value: e, child: Text(e.tr)),
+                            )
+                            .toList(),
+                    onChanged: (value) {
+                      controller.selectedPriority.value = value ?? '';
+                      controller.filterTasks();
+                    },
+                  ),
+                  const SizedBox(width: 10),
+                  _buildStatusDropdown(controller),
+                  const SizedBox(width: 10),
+                  _buildDropdown<String>(
+                    width: 150,
+                    hint: 'tasks.filter_assignee'.tr,
+                    value:
+                        controller.selectedExecutor.value.isEmpty
+                            ? null
+                            : controller.selectedExecutor.value,
+                    items:
+                        controller.employees
+                            .map(
+                              (e) => DropdownMenuItem(
+                                value: e.id ?? e.name ?? '',
+                                child: Text(
+                                  (e.name ?? '').split(' ').take(2).join(' '),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                    onChanged: (value) {
+                      controller.selectedExecutor.value = value ?? '';
+                      controller.filterTasks();
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -407,10 +423,13 @@ class TasksMobile extends StatelessWidget {
         ),
         child: DropdownButtonHideUnderline(
           child: DropdownButton<T>(
+            isExpanded: true,
             hint: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Text(
                 hint,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontSize: 13,
                   color: AppColors.primaryfontColor,
@@ -438,10 +457,13 @@ class TasksMobile extends StatelessWidget {
         ),
         child: DropdownButtonHideUnderline(
           child: DropdownButton<String>(
+            isExpanded: true,
             hint: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Text(
                 'tasks.filter_status'.tr,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 13,
                   color: AppColors.primaryfontColor,

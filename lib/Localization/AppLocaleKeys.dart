@@ -53,6 +53,12 @@ class AppLocaleKeys {
   static const chatNoMessages = 'chat.no_messages';
   static const chatSenderFallback = 'chat.sender_fallback';
   static const chatWriteMessage = 'chat.write_message';
+  static const chatAttachSheetTitle = 'chat.attach_sheet_title';
+  static const chatAttachPhoto = 'chat.attach_photo';
+  static const chatAttachFile = 'chat.attach_file';
+  static const chatAttachVoice = 'chat.attach_voice';
+  static const chatVoiceDiscard = 'chat.voice_discard';
+  static const chatVoiceSaveFailed = 'chat.voice_save_failed';
   static const chatPickEmployee = 'chat.pick_employee';
   static const chatUnknownUser = 'chat.unknown_user';
 

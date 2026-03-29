@@ -27,6 +27,8 @@ class InputText extends StatelessWidget {
   final List<TextInputFormatter>? inputFormatters;
   final bool? require;
   final VoidCallback? onTap;
+  final ValueChanged<String>? onFieldSubmitted;
+  final TextInputAction? textInputAction;
 
   InputText({
     super.key,
@@ -53,6 +55,8 @@ class InputText extends StatelessWidget {
     this.require,
     this.onTap,
     this.readOnly,
+    this.onFieldSubmitted,
+    this.textInputAction,
   });
 
   @override
@@ -96,6 +100,8 @@ class InputText extends StatelessWidget {
             controller: controller,
             validator: validator,
             onChanged: onchange,
+            onFieldSubmitted: onFieldSubmitted,
+            textInputAction: textInputAction,
             obscureText: obscureText,
             enabled: enable,
             readOnly: readOnly ?? false,

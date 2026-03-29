@@ -14,6 +14,7 @@ import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/View/Chats/MChatPage.dart';
 import 'package:point/View/Chats/chat_message_display.dart';
 import 'package:point/View/Chats/chat_voice_record_button.dart';
+import 'package:point/View/Chats/telegram_style_attachment_menu.dart';
 import 'package:point/View/Shared/CustomHeader.dart';
 import 'package:point/View/Shared/SideMenu.dart';
 
@@ -294,6 +295,115 @@ class _ChatPopupState extends State<ChatPopup> {
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _markReadSubscription;
   late String _chatId;
   final TextEditingController _messageController = TextEditingController();
+  final FocusNode _messageFocusNode = FocusNode();
+
+  void _onPopupInputFocus() {
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _showPopupAttachmentMenu(BuildContext anchorContext) async {
+    final controller = Get.find<HomeController>();
+    if (!mounted) return;
+
+    final action = await showTelegramStyleAttachmentMenu(
+      context: context,
+      anchorContext: anchorContext,
+      photoLabel: 'chat.attach_photo'.tr,
+      fileLabel: 'chat.attach_file'.tr,
+      voiceLabel: 'chat.attach_voice'.tr,
+    );
+    if (!mounted || action == null) return;
+
+    switch (action) {
+      case ChatAttachmentMenuAction.photo:
+        final v = await controller.pickoneImage();
+        if (!mounted || v.isEmpty || v.first.bytes == null) return;
+        final url = await controller.uploadFiles(
+          filePathOrBytes: v.first.bytes!,
+          fileName: v.first.name,
+        );
+        if (url == null || !mounted) return;
+        final cap = _messageController.text.trim();
+        await _sendChatPayload(
+          lastMessagePreview: cap.isNotEmpty ? cap : '📷',
+          messageType: 'image',
+          text: cap,
+          attachmentUrl: url,
+        );
+        _messageController.clear();
+        controller.uploadedFilesPaths.clear();
+        return;
+      case ChatAttachmentMenuAction.file:
+        final v = await controller.pickOneChatFile();
+        if (!mounted || v.isEmpty || v.first.bytes == null) return;
+        final url = await controller.uploadFiles(
+          filePathOrBytes: v.first.bytes!,
+          fileName: v.first.name,
+        );
+        if (url == null || !mounted) return;
+        await _sendChatPayload(
+          lastMessagePreview: v.first.name,
+          messageType: 'file',
+          text: '',
+          attachmentUrl: url,
+          fileName: v.first.name,
+        );
+        controller.uploadedFilesPaths.clear();
+        return;
+      case ChatAttachmentMenuAction.voice:
+        await _showPopupVoiceAttachmentSheet();
+        return;
+    }
+  }
+
+  Future<void> _showPopupVoiceAttachmentSheet() async {
+    if (!mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF2C2F3E),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'chat.attach_voice'.tr,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Theme(
+                  data: Theme.of(context).copyWith(
+                    iconTheme: const IconThemeData(color: Colors.white),
+                  ),
+                  child: ChatVoiceRecordButton(
+                    onUploaded: (url, sec) async {
+                      if (Navigator.of(ctx).canPop()) Navigator.pop(ctx);
+                      await _sendChatPayload(
+                        lastMessagePreview: '🎤',
+                        messageType: 'voice',
+                        text: url,
+                        attachmentUrl: url,
+                        durationSec: sec > 0 ? sec : null,
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   void _syncPopupSoundAndFocus() {
     _messageSoundSubscription?.cancel();
@@ -344,6 +454,7 @@ class _ChatPopupState extends State<ChatPopup> {
             .snapshots();
 
     _syncPopupSoundAndFocus();
+    _messageFocusNode.addListener(_onPopupInputFocus);
   }
 
   @override
@@ -363,6 +474,8 @@ class _ChatPopupState extends State<ChatPopup> {
     if (uid != null) {
       unawaited(FirestoreServices.syncEmployeeActiveChatId(uid, null));
     }
+    _messageFocusNode.removeListener(_onPopupInputFocus);
+    _messageFocusNode.dispose();
     _messageController.dispose();
     super.dispose();
   }
@@ -591,82 +704,100 @@ class _ChatPopupState extends State<ChatPopup> {
             ),
 
             /// INPUT
-            Container(
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              margin: EdgeInsets.fromLTRB(
+                8,
+                4,
+                8,
+                _messageFocusNode.hasFocus ? 10 : 8,
+              ),
+              padding: EdgeInsets.symmetric(
+                horizontal: _messageFocusNode.hasFocus ? 2 : 6,
+                vertical: _messageFocusNode.hasFocus ? 4 : 2,
+              ),
+              constraints: BoxConstraints(
+                minHeight: _messageFocusNode.hasFocus ? 50 : 46,
+              ),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.grey.shade200),
+                borderRadius: BorderRadius.circular(
+                  _messageFocusNode.hasFocus ? 24 : 22,
+                ),
+                border: Border.all(
+                  color:
+                      _messageFocusNode.hasFocus
+                          ? const Color(0xff00A389).withValues(alpha: 0.35)
+                          : Colors.grey.shade200,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: _messageFocusNode.hasFocus ? 10 : 5,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              margin: const EdgeInsets.all(12),
-              padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
+                  Builder(
+                    builder: (buttonContext) {
+                      return IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(
+                          minWidth: 36,
+                          minHeight: 44,
+                        ),
+                        tooltip: 'chat.attach_sheet_title'.tr,
+                        icon: Icon(
+                          Icons.add_circle_outline,
+                          color: Colors.grey.shade700,
+                          size: 24,
+                        ),
+                        onPressed:
+                            () => _showPopupAttachmentMenu(buttonContext),
+                      );
+                    },
+                  ),
                   Expanded(
                     child: TextField(
                       controller: _messageController,
+                      focusNode: _messageFocusNode,
                       minLines: 1,
                       maxLines: 5,
                       keyboardType: TextInputType.multiline,
+                      style: TextStyle(
+                        fontSize: _messageFocusNode.hasFocus ? 15.5 : 14.5,
+                        height: 1.35,
+                      ),
                       decoration: InputDecoration(
                         hintText: 'chat.write_message'.tr,
+                        hintStyle: TextStyle(
+                          color: Colors.grey.shade500,
+                          fontSize: 14,
+                        ),
                         border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 10,
+                        ),
                       ),
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.image_outlined, size: 20),
-                    onPressed: () async {
-                      final v = await controller.pickoneImage();
-                      if (v.isEmpty || v.first.bytes == null) return;
-                      final url = await controller.uploadFiles(
-                        filePathOrBytes: v.first.bytes!,
-                        fileName: v.first.name,
-                      );
-                      if (url == null) return;
-                      final cap = _messageController.text.trim();
-                      await _sendChatPayload(
-                        lastMessagePreview: cap.isNotEmpty ? cap : '📷',
-                        messageType: 'image',
-                        text: cap,
-                        attachmentUrl: url,
-                      );
-                      _messageController.clear();
-                      controller.uploadedFilesPaths.clear();
-                    },
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.attach_file, size: 20),
-                    onPressed: () async {
-                      final v = await controller.pickOneChatFile();
-                      if (v.isEmpty || v.first.bytes == null) return;
-                      final url = await controller.uploadFiles(
-                        filePathOrBytes: v.first.bytes!,
-                        fileName: v.first.name,
-                      );
-                      if (url == null) return;
-                      await _sendChatPayload(
-                        lastMessagePreview: v.first.name,
-                        messageType: 'file',
-                        text: '',
-                        attachmentUrl: url,
-                        fileName: v.first.name,
-                      );
-                      controller.uploadedFilesPaths.clear();
-                    },
-                  ),
-                  ChatVoiceRecordButton(
-                    onUploaded: (url, sec) async {
-                      await _sendChatPayload(
-                        lastMessagePreview: '🎤',
-                        messageType: 'voice',
-                        text: url,
-                        attachmentUrl: url,
-                        durationSec: sec > 0 ? sec : null,
-                      );
-                    },
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.send, color: Color(0xff00A389)),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(
+                      minWidth: 40,
+                      minHeight: 44,
+                    ),
+                    icon: const Icon(
+                      Icons.send_rounded,
+                      color: Color(0xff00A389),
+                      size: 24,
+                    ),
                     onPressed: _sendMessage,
                   ),
                 ],
