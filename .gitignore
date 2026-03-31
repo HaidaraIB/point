@@ -71,11 +71,16 @@ functions/package-lock.json
 # Backup / old config (لا تتبع نسخ احتياطية)
 **/google-services.old.json
 **/google-services.new.json
+**/google-services.test.json
 **/GoogleService-Info.old.plist
 **/GoogleService-Info.new.plist
+**/GoogleService-Info.test.plist
 firebase-messaging-sw.old.js
 firebase-messaging-sw.new.js
+firebase-messaging-sw.test.js
 *.old.json
+*.new.json
+*.test.json
 
 # Supabase CLI temp (ملفات مؤقتة من Supabase CLI)
 supabase/.temp/

@@ -33,6 +33,7 @@ jobs:
           --dart-define=SUPABASE_URL="${{ secrets.SUPABASE_URL }}"
           --dart-define=SUPABASE_ANON_KEY="${{ secrets.SUPABASE_ANON_KEY }}"
           --dart-define=SUPABASE_STORAGE_BASE_URL="${{ secrets.SUPABASE_STORAGE_BASE_URL }}"
+          --dart-define=USE_FIREBASE_TEST=false
 
       - name: Install Firebase CLI
         run: npm install -g firebase-tools

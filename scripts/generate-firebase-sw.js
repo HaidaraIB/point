@@ -1,7 +1,9 @@
 /**
- * يولّد web/firebase-messaging-sw.js من القالب اعتمادًا على lib/firebase_options.dart (بدون .env).
- * التشغيل من جذر المشروع: node scripts/generate-firebase-sw.js
- * يُنصح بتشغيله قبل: flutter build web
+ * يولّد web/firebase-messaging-sw.js من القالب اعتمادًا على ملف Firebase (Dart).
+ * التشغيل من جذر المشروع:
+ *   node scripts/generate-firebase-sw.js              → إنتاج (lib/firebase_options.dart)
+ *   node scripts/generate-firebase-sw.js --test       → اختبار (lib/firebase_options.test.dart) لمطابقة flutter run (debug)
+ * يُنصح بتشغيل الإنتاج قبل: flutter build web --release
  */
 const fs = require('fs');
 const path = require('path');
@@ -9,17 +11,26 @@ const path = require('path');
 const root = path.resolve(__dirname, '..');
 const templatePath = path.join(root, 'web', 'firebase-messaging-sw.example.js');
 const outputPath = path.join(root, 'web', 'firebase-messaging-sw.js');
-const firebaseOptionsPath = path.join(root, 'lib', 'firebase_options.dart');
+const useTest = process.argv.includes('--test');
+const firebaseOptionsPath = path.join(
+  root,
+  'lib',
+  useTest ? 'firebase_options.test.dart' : 'firebase_options.dart',
+);
 
 function extractWebFirebaseConfig(dartContent) {
-  const blockMatch = dartContent.match(/static const FirebaseOptions web = FirebaseOptions\\(([\\s\\S]*?)\\);/);
+  const blockMatch = dartContent.match(
+    /static const FirebaseOptions web = FirebaseOptions\(([\s\S]*?)\);/,
+  );
   if (!blockMatch) {
-    throw new Error('Could not find "static const FirebaseOptions web" block in lib/firebase_options.dart');
+    throw new Error(
+      `Could not find "static const FirebaseOptions web" block in ${path.basename(firebaseOptionsPath)}`,
+    );
   }
   const block = blockMatch[1];
 
   function readField(name) {
-    const m = block.match(new RegExp(String.raw`${name}\\s*:\\s*'([^']*)'`));
+    const m = block.match(new RegExp(String.raw`${name}\s*:\s*'([^']*)'`));
     return m ? m[1] : '';
   }
 
@@ -57,4 +68,4 @@ for (const [placeholder, value] of Object.entries(mapping)) {
 }
 
 fs.writeFileSync(outputPath, template, 'utf8');
-console.log('Generated', outputPath);
+console.log('Generated', outputPath, useTest ? '(test project)' : '(production)');

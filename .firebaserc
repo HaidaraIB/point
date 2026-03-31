@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "point-f33cb"
+    "default": "point-agency-production",
+    "legacy": "point-f33cb"
   }
 }

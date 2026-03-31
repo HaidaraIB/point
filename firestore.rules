@@ -241,6 +241,36 @@ service cloud.firestore {
         && (employeeAuthUidLooksUnset(resource.data) || emailMatchesJwt);
     }
 
+    // ensureTestAdminUser (kDebug + ENABLE_TEST_ADMIN): إنشاء employees/admin-test قبل أي جلسة.
+    // يقتصر على قيم ثابتة ومفاتيح مطابقة لـ EmployeeModel.toJson دون authUid.
+    function testAdminDevEmployeeBootstrapCreate(employeeId) {
+      let d = request.resource.data;
+      return !isSignedIn()
+        && employeeId == 'admin-test'
+        && d.id == 'admin-test'
+        && d.email == 'point@admin.app'
+        && d.role == 'admin'
+        && d.status == 'active'
+        && d.name == 'Point Test (Admin)'
+        && d.authStatus == 'active'
+        && (!d.keys().hasAny(['authUid']) || d.authUid == null)
+        && d.keys().hasOnly([
+          'id',
+          'name',
+          'email',
+          'phone',
+          'role',
+          'department',
+          'fcmToken',
+          'onesignal',
+          'hireDate',
+          'status',
+          'createdAt',
+          'authStatus',
+          'image',
+        ]);
+    }
+
     match /authRoles/{uid} {
       allow read: if isSignedIn() && request.auth.uid == uid;
       allow create, update: if isSignedIn() && request.auth.uid == uid && validateAuthRoleWrite();
@@ -250,7 +280,8 @@ service cloud.firestore {
     match /employees/{employeeId} {
       allow read: if canReadEmployeesDoc();
 
-      allow create: if isSignedIn() && hasAuthRole() && isManager();
+      allow create: if isSignedIn() && hasAuthRole() && isManager()
+        || testAdminDevEmployeeBootstrapCreate(employeeId);
 
       allow delete: if isSignedIn() && hasAuthRole() && isAdmin();
 

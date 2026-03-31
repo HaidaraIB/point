@@ -1,4 +1,4 @@
-import 'package:point/firebase_options.dart';
+import 'package:point/firebase_app_options.dart';
 
 class AppConfig {
   /// Public (safe to ship in client builds)
@@ -25,5 +25,5 @@ class AppConfig {
   /// `send-fcm` must be a service account whose `project_id` equals this value
   /// (FCM `messages:send` URL uses that project).
   static String get firebaseProjectId =>
-      DefaultFirebaseOptions.currentPlatform.projectId;
+      FirebaseAppOptions.currentPlatform.projectId;
 }

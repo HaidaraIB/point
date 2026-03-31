@@ -20,7 +20,7 @@ import 'package:point/config/app_config.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'firebase_options.dart';
+import 'package:point/firebase_app_options.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -66,7 +66,7 @@ void main(List<String> args) async {
   if (Firebase.apps.isEmpty) {
     try {
       await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
+        options: FirebaseAppOptions.currentPlatform,
       );
     } on FirebaseException catch (e) {
       if (!e.code.contains('duplicate-app')) rethrow;
