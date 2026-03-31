@@ -65,6 +65,69 @@ class InputText extends StatelessWidget {
     final double fieldVerticalPadding =
         isCompactHeight ? (kIsWeb ? 8.0 : 5.0) : 12.0;
 
+    final BoxConstraints boxConstraints =
+        height != null
+            ? (!kIsWeb
+                ? BoxConstraints(minHeight: height!, maxHeight: height!)
+                : BoxConstraints(minHeight: height!))
+            : const BoxConstraints();
+
+    /// [TextFormField] path keeps the original web min-only behavior; custom
+    /// [body] needs bounded height so inner [ScrollView]s get a finite viewport.
+    final BoxConstraints bodyBoxConstraints =
+        height != null
+            ? BoxConstraints(minHeight: height!, maxHeight: height!)
+            : const BoxConstraints();
+
+    final borderRadiusValue = borderRadius ?? 15.0;
+    final outlineColor = borderColor ?? fillColor ?? const Color(0xffF1F5F9);
+
+    /// Custom content (e.g. notes log, drag-drop zone). Must not use
+    /// [InputDecoration.label], which would stack all children as one floating label.
+    if (body != null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (labelText != null) const SizedBox(height: 8),
+          if (labelText != null)
+            Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    labelText ?? '',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (require == true)
+                  const Text(' * ', style: TextStyle(color: Colors.red)),
+              ],
+            ),
+          if (labelText != null) const SizedBox(height: 8),
+          Container(
+            constraints: bodyBoxConstraints,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: fillColor ?? const Color(0xffF1F5F9),
+              borderRadius: BorderRadius.circular(borderRadiusValue),
+              border: Border.all(color: outlineColor, width: 1.2),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: fieldVerticalPadding,
+              ),
+              child: body,
+            ),
+          ),
+        ],
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -85,16 +148,11 @@ class InputText extends StatelessWidget {
           ),
         if (labelText != null) SizedBox(height: 8),
         Container(
-          constraints:
-              height != null
-                  ? (!kIsWeb
-                      ? BoxConstraints(minHeight: height!, maxHeight: height!)
-                      : BoxConstraints(minHeight: height!))
-                  : const BoxConstraints(),
+          constraints: boxConstraints,
           width: double.infinity,
           decoration: BoxDecoration(
             color: fillColor ?? Color(0xffF1F5F9),
-            borderRadius: BorderRadius.circular(borderRadius ?? 15.0),
+            borderRadius: BorderRadius.circular(borderRadiusValue),
           ),
           child: TextFormField(
             controller: controller,
@@ -125,7 +183,6 @@ class InputText extends StatelessWidget {
                     fontWeight: FontWeight.w500,
                     color: AppColors.primaryfontColor,
                   ),
-              label: body,
               contentPadding: EdgeInsets.symmetric(
                 horizontal: 16,
                 vertical: fieldVerticalPadding,

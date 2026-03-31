@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -48,6 +49,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
   String? _currentUserId;
   String? _currentUserName;
   String? _currentUserDept;
+  String? _currentUserRole;
 
   List<Map<String, dynamic>> _employees = []; // all employees
   List<Map<String, dynamic>> _filteredEmployees = [];
@@ -80,6 +82,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
           homecontroller.currentemployee.value?.name ??
           homecontroller.currentemployee.value?.email ??
           AppLocaleKeys.me.tr;
+      _currentUserRole = homecontroller.currentemployee.value?.role;
       _currentUserDept = StorageKeys.normalizeDepartment(
         homecontroller.currentemployee.value?.department,
       );
@@ -87,6 +90,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
       _currentUserId = 'temp_current_user';
       _currentUserName = AppLocaleKeys.me.tr;
       _currentUserDept = null;
+      _currentUserRole = null;
     }
 
     await _loadEmployees();
@@ -99,23 +103,42 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
     _loadingEmployees = true;
     if (mounted) setState(() {});
     final snapshot = await _firestore.collection('employees').get();
-    _employees =
-        snapshot.docs
-            .where(
-              (d) => d.id != _currentUserId,
-            ) // exclude current user from 1:1 chat list
-            .map((d) {
-              final data = d.data();
-              return {
-                'id': d.id,
-                'name': data['name'] ?? '',
-                'email': data['email'] ?? '',
-                'image': data['image'] ?? '',
-                'dept': data['department'] ?? '',
-                'role': data['role'] ?? '',
-              };
-            })
-            .toList();
+    final all = snapshot.docs
+        .where((d) => d.id != _currentUserId)
+        // exclude current user from 1:1 chat list
+        .map((d) {
+          final data = d.data();
+          return {
+            'id': d.id,
+            'name': data['name'] ?? '',
+            'email': data['email'] ?? '',
+            'image': data['image'] ?? '',
+            'dept': data['department'] ?? '',
+            'role': data['role'] ?? '',
+          };
+        })
+        .toList();
+
+    // For employee role: allow chat target only when it is either:
+    // - elevated role (admin/supervisor)
+    // - same department as current user
+    // This is a UX constraint; final enforcement is done in Firestore rules.
+    if (_currentUserRole == 'employee') {
+      final myDept = _currentUserDept;
+      _employees = all.where((e) {
+        final targetRole = e['role'];
+        final targetDept = e['dept'];
+        final isSpecialRole = StorageKeys.isChatElevatedRole(targetRole);
+        final isSameDept =
+            myDept != null && myDept.isNotEmpty
+                ? StorageKeys.matchesDepartment(targetDept, myDept)
+                : false;
+        return isSpecialRole || isSameDept;
+      }).toList();
+    } else {
+      _employees = all;
+    }
+
     _filteredEmployees = List.from(_employees);
     _loadingEmployees = false;
     if (mounted) setState(() {});
@@ -187,16 +210,14 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
         'createdAt': FieldValue.serverTimestamp(),
       });
     } else {
+      // Keep group participants controlled by backfill; at runtime we only
+      // ensure the current user exists inside the department group.
       final existingParticipants = List<String>.from(
         groupSnapshot.data()?['participants'] ?? [],
       );
-      final currentParticipantsSet = participantsIds.toSet();
-      final mergedParticipants =
-          existingParticipants.toSet().union(currentParticipantsSet).toList();
-
-      if (mergedParticipants.length != existingParticipants.length) {
+      if (!existingParticipants.contains(_currentUserId)) {
         await groupRef.update({
-          'participants': mergedParticipants,
+          'participants': [...existingParticipants, _currentUserId!],
           'lastUpdated': FieldValue.serverTimestamp(),
         });
       }
@@ -232,7 +253,13 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
 
           _loadingChats = false;
           if (mounted) setState(() {});
-        });
+        }, onError: (Object e, StackTrace st) {
+          log('⚠️ MChatPage _listenChats: $e');
+          if (!mounted) return;
+          setState(() {
+            _loadingChats = false;
+          });
+        }, cancelOnError: false);
   }
 
   // ---------------- Navigation ----------------
@@ -245,16 +272,22 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
     final chatId = ids.join('_');
 
     final chatRef = _firestore.collection('chats').doc(chatId);
-    final snapshot = await chatRef.get();
 
-    if (!snapshot.exists) {
-      // create chat doc
-      await chatRef.set({
-        'participants': ids,
+    try {
+      await chatRef.set(
+        {
+          'participants': ids,
+          'lastMessage': '',
+          'lastUpdated': FieldValue.serverTimestamp(),
+          'isGroup': false,
+        },
+        SetOptions(merge: true),
+      );
+    } catch (e) {
+      if (!e.toString().contains('permission-denied')) rethrow;
+      await chatRef.update({
         'lastMessage': '',
         'lastUpdated': FieldValue.serverTimestamp(),
-        'createdAt': FieldValue.serverTimestamp(),
-        'isGroup': false,
       });
     }
 
@@ -514,16 +547,19 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          GestureDetector(
-                            onTap: _showAddChatDialog,
-                            child: Container(
-                              width: 45,
-                              height: 45,
-                              decoration: BoxDecoration(
-                                color: const Color(0xff00A389),
-                                borderRadius: BorderRadius.circular(15),
+                          MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: GestureDetector(
+                              onTap: _showAddChatDialog,
+                              child: Container(
+                                width: 45,
+                                height: 45,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xff00A389),
+                                  borderRadius: BorderRadius.circular(15),
+                                ),
+                                child: const Icon(Icons.add, color: Colors.white),
                               ),
-                              child: const Icon(Icons.add, color: Colors.white),
                             ),
                           ),
                         ],

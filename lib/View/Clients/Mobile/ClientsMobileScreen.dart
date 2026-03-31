@@ -12,6 +12,8 @@ class ClientsMobileScreen extends StatelessWidget {
   final ValueChanged<ClientModel> onEdit;
   final ValueChanged<ClientModel> onDelete;
   final ValueChanged<ClientModel> onToggleStatus;
+  /// حذف العملاء مسموح لـ admin فقط (قواعد Firestore).
+  final bool canDelete;
 
   const ClientsMobileScreen({
     super.key,
@@ -20,6 +22,7 @@ class ClientsMobileScreen extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
     required this.onToggleStatus,
+    this.canDelete = false,
   });
 
   @override
@@ -135,16 +138,18 @@ class ClientsMobileScreen extends StatelessWidget {
                             ),
                             color: Colors.white,
                             elevation: 4,
-                            itemBuilder:
-                                (context) => [
-                                  PopupMenuItem(
-                                    value: 0,
-                                    child: tableActionsMenuRow(
-                                      label: 'edit'.tr,
-                                      icon: Icons.edit_outlined,
-                                      iconColor: AppColors.success,
-                                    ),
+                            itemBuilder: (context) {
+                              final toggleVal = canDelete ? 2 : 1;
+                              return [
+                                PopupMenuItem(
+                                  value: 0,
+                                  child: tableActionsMenuRow(
+                                    label: 'edit'.tr,
+                                    icon: Icons.edit_outlined,
+                                    iconColor: AppColors.success,
                                   ),
+                                ),
+                                if (canDelete)
                                   PopupMenuItem(
                                     value: 1,
                                     child: tableActionsMenuRow(
@@ -153,30 +158,31 @@ class ClientsMobileScreen extends StatelessWidget {
                                       iconColor: AppColors.destructive,
                                     ),
                                   ),
-                                  PopupMenuItem(
-                                    value: 2,
-                                    child: tableActionsMenuRow(
-                                      label:
-                                          active
-                                              ? 'common.disable'.tr
-                                              : 'common.enable'.tr,
-                                      icon:
-                                          active
-                                              ? Icons.pause_circle_outline
-                                              : Icons.play_circle_outline,
-                                      iconColor:
-                                          active
-                                              ? AppColors.caution
-                                              : AppColors.success,
-                                    ),
+                                PopupMenuItem(
+                                  value: toggleVal,
+                                  child: tableActionsMenuRow(
+                                    label:
+                                        active
+                                            ? 'common.disable'.tr
+                                            : 'common.enable'.tr,
+                                    icon:
+                                        active
+                                            ? Icons.pause_circle_outline
+                                            : Icons.play_circle_outline,
+                                    iconColor:
+                                        active
+                                            ? AppColors.caution
+                                            : AppColors.success,
                                   ),
-                                ],
+                                ),
+                              ];
+                            },
                             onSelected: (value) {
                               if (value == 0) {
                                 onEdit(client);
-                              } else if (value == 1) {
+                              } else if (canDelete && value == 1) {
                                 onDelete(client);
-                              } else if (value == 2) {
+                              } else if (value == (canDelete ? 2 : 1)) {
                                 onToggleStatus(client);
                               }
                             },

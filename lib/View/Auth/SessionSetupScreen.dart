@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -55,6 +56,18 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
     }
   }
 
+  /// يؤجّل التنقل خطوة بعد الإطار الحالي لتقليل تعارض Flutter Web مع
+  /// `EngineFlutterView disposed` عند إزالة `/sessionSetup` مباشرة بعد async.
+  void _navigateAfterFrame(String route) {
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.microtask(() {
+        if (!mounted) return;
+        Get.offAllNamed(route);
+      });
+    });
+  }
+
   Future<void> _bootstrap() async {
     final hc = Get.find<HomeController>();
     final v = hc.currentemployee.value ?? hc.lastKnownEmployee.value;
@@ -63,7 +76,7 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
         v.id == null ||
         v.id!.isEmpty ||
         v.status != 'active') {
-      Get.offAllNamed('/auth/login');
+      _navigateAfterFrame('/auth/login');
       return;
     }
 
@@ -106,6 +119,14 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
       return;
     }
 
+    // ربط Firestore بـ JWT + authRoles قبل أي استعلام/تحديث يحتاج hasAuthRole().
+    try {
+      await FirebaseAuth.instance.currentUser?.getIdToken(true);
+      await FirestoreServices.syncAuthRoleForEmployee(v);
+    } catch (e, st) {
+      log('SessionSetup: auth sync before FCM: $e', stackTrace: st);
+    }
+
     try {
       await hc.setupFCM(v.id);
       await _applyTopicSubscriptions(v.role);
@@ -139,7 +160,7 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
     }
 
     final next = _destinationForRole(v.role);
-    Get.offAllNamed(next);
+    _navigateAfterFrame(next);
   }
 
   Future<void> _abortSetup(HomeController hc) async {
@@ -148,7 +169,7 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
     try {
       await FirestoreServices().signOut();
     } catch (_) {}
-    Get.offAllNamed('/auth/login');
+    _navigateAfterFrame('/auth/login');
   }
 
   @override

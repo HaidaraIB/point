@@ -12,6 +12,7 @@ import 'package:point/View/Shared/CustomDropDown.dart';
 import 'package:point/View/Shared/CustomHeader.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/responsive.dart';
+import 'package:point/Utils/ContentPermissions.dart';
 
 /// Content management for employees (Promotion/Publishing): same shell as [EmployeeDashboard],
 /// responsive mobile vs desktop/web — no [ResponsiveScaffold] drawer.
@@ -58,33 +59,40 @@ class EmployeeContentDashboard extends StatelessWidget {
             runSpacing: 8,
             alignment: WrapAlignment.start,
             children: [
-              MainButton(
-                width: 160,
-                height: 45,
-                borderSize: 35,
-                fontColor: Colors.white,
-                backgroundColor: AppColors.primary,
-                widget: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'addnewcontent'.tr,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
+              Obx(() {
+                if (!ContentPermissions.canAddOrEditContent(
+                      controller.currentemployee.value,
+                    )) {
+                  return const SizedBox.shrink();
+                }
+                return MainButton(
+                  width: 160,
+                  height: 45,
+                  borderSize: 35,
+                  fontColor: Colors.white,
+                  backgroundColor: AppColors.primary,
+                  widget: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'addnewcontent'.tr,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 5),
-                    const Icon(
-                      Icons.add_circle_outline_rounded,
-                      color: Colors.white,
-                    ),
-                  ],
-                ),
-                onPressed: () => _onAddContent(controller),
-              ),
+                      const SizedBox(width: 5),
+                      const Icon(
+                        Icons.add_circle_outline_rounded,
+                        color: Colors.white,
+                      ),
+                    ],
+                  ),
+                  onPressed: () => _onAddContent(controller),
+                );
+              }),
               MainButton(
                 width: 160,
                 height: 45,
@@ -155,33 +163,45 @@ class EmployeeContentDashboard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  MainButton(
-                    width: 180,
-                    height: 45,
-                    borderSize: 35,
-                    fontColor: Colors.white,
-                    backgroundColor: AppColors.primary,
-                    widget: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                  Obx(() {
+                    if (!ContentPermissions.canAddOrEditContent(
+                          controller.currentemployee.value,
+                        )) {
+                      return const SizedBox.shrink();
+                    }
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          'addnewcontent'.tr,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
+                        MainButton(
+                          width: 180,
+                          height: 45,
+                          borderSize: 35,
+                          fontColor: Colors.white,
+                          backgroundColor: AppColors.primary,
+                          widget: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'addnewcontent'.tr,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              const SizedBox(width: 5),
+                              const Icon(
+                                Icons.add_circle_outline_rounded,
+                                color: Colors.white,
+                              ),
+                            ],
                           ),
+                          onPressed: () => _onAddContent(controller),
                         ),
-                        const SizedBox(width: 5),
-                        const Icon(
-                          Icons.add_circle_outline_rounded,
-                          color: Colors.white,
-                        ),
+                        const SizedBox(width: 10),
                       ],
-                    ),
-                    onPressed: () => _onAddContent(controller),
-                  ),
-                  const SizedBox(width: 10),
+                    );
+                  }),
                   MainButton(
                     width: 180,
                     height: 45,
@@ -230,6 +250,18 @@ class EmployeeContentDashboard extends StatelessWidget {
   }
 
   void _onAddContent(HomeController controller) {
+    if (!ContentPermissions.canAddOrEditContent(
+          controller.currentemployee.value,
+        )) {
+      FunHelper.showSnackbar(
+        'error'.tr,
+        'errors.forbidden'.tr,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
     if (controller.clientController.text.isEmpty) {
       FunHelper.showSnackbar(
         'error'.tr,
@@ -265,7 +297,7 @@ class EmployeeContentDashboard extends StatelessWidget {
         value:
             controller.clientController.text.isEmpty
                 ? null
-                : clients.firstWhere(
+                : clients.firstWhereOrNull(
                   (a) => a.id == controller.clientController.text,
                 ),
         label: 'chooseclient'.tr,

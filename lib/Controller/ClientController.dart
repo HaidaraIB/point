@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -22,6 +23,23 @@ class ClientController extends GetxController {
   }
   final FirestoreServices _service = FirestoreServices();
   FirestoreServices get service => _service;
+  Stream<List<ClientModel>> _safeClientsStream() async* {
+    while (true) {
+      try {
+        await for (
+          final items in _service.getClientsStreamForCurrentAuthEmail()
+        ) {
+          yield items;
+        }
+        return;
+      } catch (e) {
+        debugPrint('⚠️ fetchClients stream error: $e');
+        yield const <ClientModel>[];
+        await Future<void>.delayed(const Duration(seconds: 2));
+      }
+    }
+  }
+
   Future<bool> addClient(ClientModel client) async {
     final normalizedEmail = (client.email ?? '').trim().toLowerCase();
     final exists = clients.any(
@@ -89,27 +107,42 @@ class ClientController extends GetxController {
   }
 
   fetchClients() {
-    clients.bindStream(_service.getClientsStream());
+    if (FirebaseAuth.instance.currentUser == null) {
+      clients.bindStream(Stream<List<ClientModel>>.value(const []));
+      update();
+      return;
+    }
+    clients.bindStream(_safeClientsStream());
 
     update();
   }
 
   final _clientCollection = FirebaseFirestore.instance.collection("clients");
   StreamSubscription<String>? _fcmTokenRefreshSub;
+  StreamSubscription<User?>? _authStateSub;
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _clientDocSub;
 
   void listenToClient(String clientId) {
-    _clientCollection.doc(clientId).snapshots().listen((snapshot) async {
-      if (snapshot.exists) {
-        currentClient.value = ClientModel.fromJson(
-          snapshot.data()!,
-          snapshot.id,
-        );
-        getFCMToken(currentClient.value);
-        fetchContents();
-      } else {
-        currentClient.value = null;
-      }
-    });
+    _clientDocSub?.cancel();
+    _clientDocSub = _clientCollection.doc(clientId).snapshots().listen(
+      (snapshot) async {
+        if (snapshot.exists) {
+          final cl = ClientModel.fromJson(
+            snapshot.data()!,
+            snapshot.id,
+          );
+          currentClient.value = cl;
+          unawaited(FirestoreServices.syncAuthRoleForClient(cl));
+          getFCMToken(currentClient.value);
+          fetchContents();
+        } else {
+          currentClient.value = null;
+        }
+      },
+      onError: (Object e, StackTrace st) {
+        debugPrint('⚠️ listenToClient(doc): $e');
+      },
+    );
   }
 
   void getFCMToken(ClientModel? model) async {
@@ -147,12 +180,30 @@ class ClientController extends GetxController {
     isLoading.value = true;
     final result = await _service.updateContent(content);
     isLoading.value = false;
+    if (result && content.id != null) {
+      final i = contents.indexWhere((c) => c.id == content.id);
+      if (i >= 0) {
+        contents[i] = content;
+      }
+    }
+    update();
     return result;
   }
 
   @override
   void onInit() {
     fetchClients();
+    _authStateSub = FirebaseAuth.instance.authStateChanges().listen((user) {
+      if (user == null) {
+        _clientDocSub?.cancel();
+        _clientDocSub = null;
+        currentClient.value = null;
+        clients.bindStream(Stream<List<ClientModel>>.value(const []));
+        update();
+        return;
+      }
+      fetchClients();
+    });
     // fetchContents();
 
     super.onInit();
@@ -160,6 +211,10 @@ class ClientController extends GetxController {
 
   @override
   void onClose() {
+    _clientDocSub?.cancel();
+    _clientDocSub = null;
+    _authStateSub?.cancel();
+    _authStateSub = null;
     _fcmTokenRefreshSub?.cancel();
     _fcmTokenRefreshSub = null;
     super.onClose();

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:get/get_navigation/get_navigation.dart';
-import 'package:get/instance_manager.dart';
+import 'package:get/get.dart';
 import 'package:point/Models/ContentModel.dart';
 import 'package:point/View/Mobile/Shared/PdfViewr.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -24,7 +23,7 @@ class VideoCard extends StatelessWidget {
           border: Border.all(color: Colors.grey.shade100),
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // ClipRRect(
             //   borderRadius: BorderRadius.circular(12),
@@ -61,11 +60,11 @@ class VideoCard extends StatelessWidget {
 
             const SizedBox(height: 12),
 
-            // عنوان الفيديو
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Text(
-                "العنوان",
+                'title'.tr,
+                textAlign: TextAlign.start,
                 style: TextStyle(
                   color: Colors.blueAccent,
                   fontWeight: FontWeight.bold,
@@ -75,11 +74,11 @@ class VideoCard extends StatelessWidget {
 
             const SizedBox(height: 4),
 
-            // اسم المؤسسة
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Text(
                 model.title,
+                textAlign: TextAlign.start,
                 style: TextStyle(fontSize: 13, color: Colors.grey[700]),
               ),
             ),
@@ -89,18 +88,19 @@ class VideoCard extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Text(
-                  "الملاحظات",
+                  'notes'.tr,
+                  textAlign: TextAlign.start,
                   style: TextStyle(
                     color: Colors.blueAccent,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-            // الوصف
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Text(
                 model.notes ?? '',
+                textAlign: TextAlign.start,
                 style: TextStyle(fontSize: 13, color: Colors.grey[800]),
               ),
             ),

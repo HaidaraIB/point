@@ -1,8 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Localization/LanguageController.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
@@ -20,6 +23,28 @@ String _localizedStoredRole(String raw) {
   final s = raw.trim();
   if (s.isEmpty) return raw;
   return s.tr;
+}
+
+/// زر اللغة في شريط الويب لموظفي الأقسام (بجانب الإشعارات والمحادثات).
+Widget _webEmployeeLanguageMenuButton() {
+  final lc = Get.find<LanguageController>();
+  return PopupMenuButton<String>(
+    tooltip: AppLocaleKeys.appLanguage.tr,
+    padding: EdgeInsets.zero,
+    icon: const Icon(Icons.language, color: AppColors.primary),
+    onSelected: (value) => lc.changeLanguage(value),
+    itemBuilder:
+        (context) => [
+          PopupMenuItem(
+            value: 'ar',
+            child: Text(AppLocaleKeys.appLanguageArabic.tr),
+          ),
+          PopupMenuItem(
+            value: 'en',
+            child: Text(AppLocaleKeys.appLanguageEnglish.tr),
+          ),
+        ],
+  );
 }
 
 Widget _buildAvatar(String url, {required double radius}) {
@@ -410,6 +435,18 @@ class HeaderWidget extends StatelessWidget {
       children: [
         if (!isMobile && client != true) NotificationDropdown(),
         if (!isMobile && employee == true && client != true) _chats(),
+        if (!isMobile && employee == true && client != true && kIsWeb)
+          Obx(() {
+            final r =
+                (Get.find<HomeController>().currentemployee.value?.role ?? '')
+                    .trim()
+                    .toLowerCase();
+            if (r != 'employee') return const SizedBox.shrink();
+            return Padding(
+              padding: const EdgeInsetsDirectional.only(start: 4, end: 8),
+              child: _webEmployeeLanguageMenuButton(),
+            );
+          }),
         _buildAvatar(avatarUrl, radius: isMobile ? 18 : 20),
         SizedBox(width: isMobile ? 6 : 15),
         Flexible(
@@ -612,10 +649,14 @@ class NotificationDropdown extends StatelessWidget {
             IconButton(
               icon: const Icon(Icons.notifications_outlined),
               onPressed: () {
-                final RenderBox button =
-                    context.findRenderObject() as RenderBox;
-                final RenderBox overlay =
-                    Overlay.of(context).context.findRenderObject() as RenderBox;
+                final buttonObject = context.findRenderObject();
+                final overlayObject =
+                    Overlay.of(context).context.findRenderObject();
+                if (buttonObject is! RenderBox || overlayObject is! RenderBox) {
+                  return;
+                }
+                final RenderBox button = buttonObject;
+                final RenderBox overlay = overlayObject;
 
                 final position = RelativeRect.fromRect(
                   Rect.fromPoints(

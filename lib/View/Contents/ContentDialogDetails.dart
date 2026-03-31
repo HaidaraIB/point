@@ -7,6 +7,7 @@ import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/View/Contents/Mobile/ContentDetailsMobilePage.dart';
 import 'package:point/View/Shared/responsive.dart';
+import 'package:point/Utils/ContentPermissions.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -95,6 +96,15 @@ class _ContentDialogDetailsState extends State<ContentDialogDetails> {
                       icon: Icons.info_outline,
                       child: _buildMetaSection(context, dialogWidth),
                     ),
+                    if (_clientRevisionAttachmentUrls().isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      _buildSectionShell(
+                        context: context,
+                        title: 'client_revisions'.tr,
+                        icon: Icons.edit_note_outlined,
+                        child: _buildClientRevisionsGrid(context, dialogWidth),
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     _buildSectionShell(
                       context: context,
@@ -217,6 +227,10 @@ class _ContentDialogDetailsState extends State<ContentDialogDetails> {
 
   Widget _buildMetaSection(BuildContext context, double dialogWidth) {
     final colorScheme = Theme.of(context).colorScheme;
+    final emp = Get.find<HomeController>().currentemployee.value;
+    final showStatus = ContentPermissions.showContentStatusUi(emp);
+    final showPromotion = ContentPermissions.showContentPromotionUi(emp);
+    final showPublishDate = ContentPermissions.showContentPublishDateUi(emp);
     final clientName =
         Get.find<HomeController>().clients
             .firstWhereOrNull((client) => client.id == widget.task.clientId)
@@ -265,23 +279,25 @@ class _ContentDialogDetailsState extends State<ContentDialogDetails> {
           width: tileWidth,
           colorScheme: colorScheme,
         ),
-        _buildMetaTile(
-          label: AppLocaleKeys.status.tr,
-          value: FunHelper.trStored(
-            widget.task.status,
-            kind: StoredValueKind.taskStatus,
+        if (showStatus)
+          _buildMetaTile(
+            label: AppLocaleKeys.status.tr,
+            value: FunHelper.trStored(
+              widget.task.status,
+              kind: StoredValueKind.taskStatus,
+            ),
+            icon: Icons.flag_outlined,
+            width: tileWidth,
+            colorScheme: colorScheme,
           ),
-          icon: Icons.flag_outlined,
-          width: tileWidth,
-          colorScheme: colorScheme,
-        ),
-        _buildMetaTile(
-          label: AppLocaleKeys.promotion.tr,
-          value: promotionValue,
-          icon: Icons.campaign_outlined,
-          width: tileWidth,
-          colorScheme: colorScheme,
-        ),
+        if (showPromotion)
+          _buildMetaTile(
+            label: AppLocaleKeys.promotion.tr,
+            value: promotionValue,
+            icon: Icons.campaign_outlined,
+            width: tileWidth,
+            colorScheme: colorScheme,
+          ),
         _buildMetaTile(
           label: AppLocaleKeys.clientNotes.tr,
           value:
@@ -292,13 +308,14 @@ class _ContentDialogDetailsState extends State<ContentDialogDetails> {
           width: tileWidth,
           colorScheme: colorScheme,
         ),
-        _buildMetaTile(
-          label: AppLocaleKeys.publishDate.tr,
-          value: publishDate,
-          icon: Icons.calendar_today_outlined,
-          width: tileWidth,
-          colorScheme: colorScheme,
-        ),
+        if (showPublishDate)
+          _buildMetaTile(
+            label: AppLocaleKeys.publishDate.tr,
+            value: publishDate,
+            icon: Icons.calendar_today_outlined,
+            width: tileWidth,
+            colorScheme: colorScheme,
+          ),
       ],
     );
   }
@@ -499,6 +516,37 @@ class _ContentDialogDetailsState extends State<ContentDialogDetails> {
           ),
         ],
       ),
+    );
+  }
+
+  /// مرفقات طلب التعديل من العميل (`clientEdits`) — تُخزَّن في Firestore وتُعرض في الجدول فقط سابقاً.
+  List<String> _clientRevisionAttachmentUrls() {
+    return (widget.task.clientEdits ?? [])
+        .map((e) => e.toString())
+        .where((s) => s.trim().isNotEmpty)
+        .toList();
+  }
+
+  Widget _buildClientRevisionsGrid(BuildContext context, double dialogWidth) {
+    final urls = _clientRevisionAttachmentUrls();
+    final contentWidth = (dialogWidth - 92).clamp(240.0, 780.0);
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: urls.length,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: contentWidth < 340 ? 1 : (contentWidth < 560 ? 2 : 3),
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        mainAxisExtent: 84,
+      ),
+      itemBuilder: (context, index) {
+        final rawUrl = urls[index];
+        return TaskDetailsDialogHelpers.attachmentThumbnail(
+          rawUrl,
+          onOpen: () => _launchAttachment(rawUrl),
+        );
+      },
     );
   }
 

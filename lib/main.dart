@@ -37,6 +37,13 @@ void main(List<String> args) async {
       }
     };
     PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
+      // بعد تسجيل الخروج قد تُلغى الاشتراكات متأخرًا؛ Firestore يرمي permission-denied
+      // بدون سطر في مشروعك — نعتبره معالجًا حتى لا يظهر RethrownDartError في الـ console.
+      final msg = error.toString();
+      if (msg.contains('cloud_firestore') &&
+          msg.contains('permission-denied')) {
+        return true;
+      }
       debugPrint('Uncaught async error: $error');
       if (kDebugMode) {
         debugPrint(stack.toString());

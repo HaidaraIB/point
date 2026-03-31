@@ -1,9 +1,12 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get_utils/get_utils.dart';
+import 'package:get/get.dart';
+import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/ContentModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
+import 'package:point/Utils/ContentPermissions.dart';
+import 'package:point/View/Shared/ContentStatusPromotionDropdownChip.dart';
 
 class ContentStatusCard extends StatelessWidget {
   final ContentModel? model;
@@ -19,6 +22,10 @@ class ContentStatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final emp = Get.find<HomeController>().currentemployee.value;
+    final showPubDate = ContentPermissions.showContentPublishDateUi(emp);
+    final showStatus = ContentPermissions.showContentStatusUi(emp);
+    final showPromo = ContentPermissions.showContentPromotionUi(emp);
     final firstFile =
         (model?.files != null && model!.files!.isNotEmpty)
             ? model!.files!.first
@@ -83,16 +90,18 @@ class ContentStatusCard extends StatelessWidget {
                             const SizedBox(width: 3),
                           ],
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          FunHelper.formatdate(model?.publishDate) ?? '',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+                        if (showPubDate) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            FunHelper.formatdate(model?.publishDate) ?? '',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        ],
                       ],
                     ),
                   ),
@@ -100,8 +109,14 @@ class ContentStatusCard extends StatelessWidget {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      _buildstatusTag(model!.status),
-                      const SizedBox(width: 6),
+                      if (showStatus) ...[
+                        _buildstatusTag(model!.status),
+                        const SizedBox(width: 6),
+                      ],
+                      if (!showStatus && showPromo) ...[
+                        _buildPromotionTag(model!.promotion),
+                        const SizedBox(width: 6),
+                      ],
                       const Icon(
                         Icons.arrow_forward_ios,
                         size: 16,
@@ -208,6 +223,32 @@ Widget _buildIcon(String? url) {
         fit: BoxFit.cover,
       );
   }
+}
+
+Widget _buildPromotionTag(String? promotion) {
+  final key = FunHelper.canonicalStoredPromotion(promotion);
+  final label =
+      promotion == null || promotion.trim().isEmpty
+          ? '--'
+          : FunHelper.trStored(
+            promotion,
+            kind: StoredValueKind.promotion,
+          );
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    decoration: BoxDecoration(
+      color: getContentPromotionBgColor(key),
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Text(
+      label,
+      style: TextStyle(
+        color: getContentPromotionColor(key),
+        fontSize: 11,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+  );
 }
 
 Widget _buildstatusTag(String text) {

@@ -2,12 +2,33 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/responsive.dart';
+import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+Future<void> _openAddContentEmployeeFile(String rawUrl) async {
+  final uri = Uri.tryParse(rawUrl);
+  if (uri == null) {
+    FunHelper.showSnackbar(
+      'error'.tr,
+      AppLocaleKeys.contentDialogOpenLinkFailed.tr,
+    );
+    return;
+  }
+  final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+  if (!ok) {
+    FunHelper.showSnackbar(
+      'error'.tr,
+      AppLocaleKeys.contentDialogOpenLinkFailed.tr,
+    );
+  }
+}
 
 void addContentEmployeeDialog(
   BuildContext context, {
@@ -208,40 +229,93 @@ void addContentEmployeeDialog(
                                             ? (Get.width / 2) - 100
                                             : Get.width - 20,
                                     child: Obx(
-                                      () => Column(
-                                        children: [
-                                          for (var filePath
-                                              in controller.uploadedFilesPaths)
-                                            Row(
-                                              children: [
-                                                InkWell(
-                                                  onTap: () {
-                                                    controller
-                                                        .uploadedFilesPaths
-                                                        .remove(filePath);
-                                                  },
-                                                  child: Icon(
-                                                    Icons.cancel,
-                                                    color: Colors.red,
-                                                  ),
-                                                ),
-                                                SizedBox(width: 5),
-                                                Text(
-                                                  FunHelper.getFileNameFromUrl(
-                                                    filePath,
-                                                  ),
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    color: Colors.blue,
-                                                    decoration:
-                                                        TextDecoration
-                                                            .underline,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                        ],
-                                      ),
+                                      () =>
+                                          controller.uploadedFilesPaths.isEmpty
+                                              ? const SizedBox.shrink()
+                                              : GridView.builder(
+                                                shrinkWrap: true,
+                                                physics:
+                                                    const NeverScrollableScrollPhysics(),
+                                                itemCount: controller
+                                                    .uploadedFilesPaths
+                                                    .length,
+                                                gridDelegate:
+                                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                                      crossAxisCount:
+                                                          Responsive.isMobile(
+                                                                context,
+                                                              )
+                                                              ? 3
+                                                              : 4,
+                                                      crossAxisSpacing: 10,
+                                                      mainAxisSpacing: 10,
+                                                      mainAxisExtent: 96,
+                                                    ),
+                                                itemBuilder: (context, i) {
+                                                  final filePath =
+                                                      controller
+                                                          .uploadedFilesPaths[i]
+                                                          .toString();
+                                                  return Center(
+                                                    child: SizedBox(
+                                                      width: 88,
+                                                      height: 88,
+                                                      child: Stack(
+                                                        clipBehavior: Clip.none,
+                                                        children: [
+                                                          Positioned.fill(
+                                                            child:
+                                                                TaskDetailsDialogHelpers.attachmentThumbnail(
+                                                                  filePath,
+                                                                  onOpen: () =>
+                                                                      _openAddContentEmployeeFile(
+                                                                        filePath,
+                                                                      ),
+                                                                ),
+                                                          ),
+                                                          PositionedDirectional(
+                                                            top: 4,
+                                                            end: 4,
+                                                            child: Material(
+                                                              color:
+                                                                  Colors
+                                                                      .transparent,
+                                                              child: InkWell(
+                                                                onTap: () {
+                                                                  controller
+                                                                      .uploadedFilesPaths
+                                                                      .remove(
+                                                                        filePath,
+                                                                      );
+                                                                },
+                                                                child: Container(
+                                                                  width: 22,
+                                                                  height: 22,
+                                                                  decoration: BoxDecoration(
+                                                                    color: Colors
+                                                                        .black54,
+                                                                    borderRadius:
+                                                                        BorderRadius.circular(
+                                                                          11,
+                                                                        ),
+                                                                  ),
+                                                                  child: const Icon(
+                                                                    Icons.close,
+                                                                    color:
+                                                                        Colors
+                                                                            .white,
+                                                                    size: 14,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  );
+                                                },
+                                              ),
                                     ),
                                   ),
                                 ],

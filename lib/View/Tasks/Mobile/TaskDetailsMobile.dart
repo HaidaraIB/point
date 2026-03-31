@@ -9,6 +9,8 @@ import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Shared/TaskTimelineWidget.dart';
+import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:point/View/Tasks/Dialogs/ContentWriteDialog.dart';
 import 'package:point/View/Tasks/Dialogs/DesignDialog.dart';
 import 'package:point/View/Tasks/Dialogs/MontageDialog.dart';
@@ -212,7 +214,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
               const SizedBox(height: 12),
               _buildTypeDetailsCard(context),
               const SizedBox(height: 12),
-              _buildLatestCommentCard(context),
+              _buildNotesAndAttachmentsCard(context),
               if (task.timelineEvents.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 TaskTimelineWidget(events: task.timelineEvents),
@@ -295,20 +297,311 @@ class TaskDetailsMobilePage extends StatelessWidget {
     );
   }
 
+  String _clientDisplayName(BuildContext context) {
+    final controller = Get.find<HomeController>();
+    final client = controller.clients.firstWhereOrNull(
+      (c) => c.id == task.clientName,
+    );
+    return client?.name ?? task.clientName;
+  }
+
+  void _appendTaskDateRows(BuildContext context, List<Widget> fields) {
+    fields.add(
+      _fieldRow(
+        context,
+        'task_details.date_start_task'.tr,
+        FunHelper.formatdate(task.fromDate) ?? '-',
+      ),
+    );
+    fields.add(
+      _fieldRow(
+        context,
+        'task_details.date_end_task'.tr,
+        FunHelper.formatdate(task.toDate) ?? '-',
+      ),
+    );
+  }
+
+  Uri _normalizeAttachmentUri(String rawUrl) {
+    final trimmed = rawUrl.trim();
+    final parsed = Uri.tryParse(trimmed);
+    if (parsed != null && parsed.hasScheme) return parsed;
+    return Uri.parse('https://$trimmed');
+  }
+
+  Future<void> _launchAttachmentUrl(String rawUrl) async {
+    try {
+      final uri = _normalizeAttachmentUri(rawUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        return;
+      }
+    } catch (_) {}
+
+    FunHelper.showSnackbar(
+      AppLocaleKeys.errorTitle.tr,
+      AppLocaleKeys.contentDialogOpenLinkFailed.tr,
+      snackPosition: SnackPosition.TOP,
+      backgroundColor: Colors.orange,
+      colorText: Colors.white,
+    );
+  }
+
+  Widget _linkFieldRow(BuildContext context, String label, String? raw) {
+    final value = raw?.trim() ?? '';
+    if (value.isEmpty || value == '-') {
+      return _fieldRow(context, label, '-');
+    }
+    final lower = value.toLowerCase();
+    final looksUrl =
+        lower.startsWith('http://') ||
+        lower.startsWith('https://') ||
+        lower.startsWith('www.');
+    if (!looksUrl) {
+      return _fieldRow(context, label, value);
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          InkWell(
+            onTap: () => _launchAttachmentUrl(value),
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Colors.blue,
+                fontWeight: FontWeight.w600,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNotesAndAttachmentsCard(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final latestNote =
+        task.notes.isNotEmpty ? task.notes.last : null;
+    final screenW = MediaQuery.sizeOf(context).width;
+    final contentW = (screenW - 64).clamp(240.0, 800.0);
+    final crossCount = contentW < 340 ? 1 : (contentW < 560 ? 2 : 3);
+
+    return _buildCard(
+      context,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.attach_file_outlined, size: 18, color: Colors.grey.shade800),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'content.dialog.notes_attachments_section'.tr,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Text('tasks.notes_section'.tr, style: textTheme.titleSmall),
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(minHeight: 120),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (latestNote != null) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF7F6FF),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFD9D4FF)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'tasks.latest_comment'.tr,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF5C5589),
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                        Text(
+                          latestNote.note,
+                          maxLines: 4,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primaryfontColor,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _buildNoteMeta(latestNote.byWho, latestNote.timestamp),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.green,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                if (task.notes.isEmpty)
+                  Center(
+                    child: Text(
+                      'content.dialog.no_notes'.tr,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  )
+                else
+                  ...task.notes.map(
+                    (note) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SelectableText(
+                            note.note,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primaryfontColor,
+                            ),
+                          ),
+                          Text(
+                            '${note.byWho} • ${_formatRelativeTime(note.timestamp)}',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.green,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text('content.dialog.attachments'.tr, style: textTheme.titleSmall),
+          const SizedBox(height: 8),
+          Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(minHeight: 100),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            padding: const EdgeInsets.all(10),
+            child:
+                task.files.isEmpty
+                    ? Center(
+                      child: Text(
+                        'content.dialog.no_attachments'.tr,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    )
+                    : GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: task.files.length,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossCount,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                        mainAxisExtent: 84,
+                      ),
+                      itemBuilder: (context, index) {
+                        final att = task.files[index];
+                        return TaskDetailsDialogHelpers.attachmentThumbnail(
+                          att,
+                          onOpen: () => _launchAttachmentUrl(att),
+                        );
+                      },
+                    ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTypeDetailsCard(BuildContext context) {
+    final localeIsArabic = (Get.locale?.languageCode ?? 'ar') == 'ar';
+
     String listOrDash(
-      List? list, {
+      dynamic list, {
       StoredValueKind kind = StoredValueKind.generic,
-    }) =>
-        (list == null || list.isEmpty)
-            ? '-'
-            : list
-                .map((e) => FunHelper.trStored(e.toString(), kind: kind))
-                .join('، ');
+    }) {
+      return FunHelper.joinStoredListForDisplay(
+        list,
+        kind: kind,
+        localeIsArabic: localeIsArabic,
+      );
+    }
+
+    String platformOrDash(dynamic platform) {
+      final s = FunHelper.formatStoredPlatforms(platform);
+      return s.isEmpty ? '-' : s;
+    }
     String dateOrDash(DateTime? d) =>
         d == null ? '-' : (FunHelper.formatdate(d) ?? '-');
 
     final List<Widget> fields = [];
+
+    fields.add(
+      _fieldRow(
+        context,
+        'tasks.form.client_label'.tr,
+        _clientDisplayName(context),
+      ),
+    );
 
     switch (task.type) {
       // 0: Promotion/Campaign
@@ -457,10 +750,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
           _fieldRow(
             context,
             'platform'.tr,
-            listOrDash(
-              promo?.platforms,
-              kind: StoredValueKind.platform,
-            ),
+            platformOrDash(promo?.platforms),
           ),
         );
         fields.add(
@@ -513,10 +803,10 @@ class TaskDetailsMobilePage extends StatelessWidget {
           ),
         );
         fields.add(
-          _fieldRow(
+          _linkFieldRow(
             context,
             'task_details.files_link'.tr,
-            promo?.attachementurl ?? '-',
+            promo?.attachementurl,
           ),
         );
         fields.add(
@@ -526,6 +816,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
             promo == null ? '-' : dateOrDash(promo.createdAt),
           ),
         );
+        _appendTaskDateRows(context, fields);
         break;
 
       // 1: Design
@@ -553,10 +844,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
           _fieldRow(
             context,
             'platform'.tr,
-            listOrDash(
-              m?.platform.cast<String>().toList(),
-              kind: StoredValueKind.platform,
-            ),
+            platformOrDash(m?.platform),
           ),
         );
         fields.add(
@@ -573,6 +861,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
             m?.designsDimensions ?? '-',
           ),
         );
+        _appendTaskDateRows(context, fields);
         break;
 
       // 2: Photography
@@ -591,10 +880,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
           _fieldRow(
             context,
             'platform'.tr,
-            listOrDash(
-              m?.platform.cast<String>().toList(),
-              kind: StoredValueKind.platform,
-            ),
+            platformOrDash(m?.platform),
           ),
         );
         fields.add(
@@ -620,6 +906,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
             m?.duration ?? '-',
           ),
         );
+        _appendTaskDateRows(context, fields);
         break;
 
       // 3: ContentWrite
@@ -638,10 +925,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
           _fieldRow(
             context,
             'platform'.tr,
-            listOrDash(
-              m?.platform.cast<String>().toList(),
-              kind: StoredValueKind.platform,
-            ),
+            platformOrDash(m?.platform),
           ),
         );
         fields.add(
@@ -658,6 +942,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
             m?.designsDimensions ?? '-',
           ),
         );
+        _appendTaskDateRows(context, fields);
         break;
 
       // 4: Montage
@@ -674,10 +959,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
           _fieldRow(
             context,
             'platform'.tr,
-            listOrDash(
-              m?.platform.cast<String>().toList(),
-              kind: StoredValueKind.platform,
-            ),
+            platformOrDash(m?.platform),
           ),
         );
         fields.add(
@@ -690,10 +972,10 @@ class TaskDetailsMobilePage extends StatelessWidget {
           ),
         );
         fields.add(
-          _fieldRow(
+          _linkFieldRow(
             context,
             'task_details.attachment_link'.tr,
-            m?.attachementurl ?? '-',
+            m?.attachementurl,
           ),
         );
         fields.add(
@@ -703,26 +985,24 @@ class TaskDetailsMobilePage extends StatelessWidget {
             m?.duration ?? '-',
           ),
         );
+        _appendTaskDateRows(context, fields);
         break;
 
       // 5: Publish
       case '5':
         final m = task.publishModel;
         fields.add(
-          _fieldRow(
+          _linkFieldRow(
             context,
             'task_details.content_link'.tr,
-            m?.contenturl ?? '-',
+            m?.contenturl,
           ),
         );
         fields.add(
           _fieldRow(
             context,
             'platform'.tr,
-            listOrDash(
-              m?.platform.cast<String>().toList(),
-              kind: StoredValueKind.platform,
-            ),
+            platformOrDash(m?.platform),
           ),
         );
         fields.add(
@@ -733,10 +1013,10 @@ class TaskDetailsMobilePage extends StatelessWidget {
           ),
         );
         fields.add(
-          _fieldRow(
+          _linkFieldRow(
             context,
             'task_details.files_link'.tr,
-            m?.fileurl ?? '-',
+            m?.fileurl,
           ),
         );
         fields.add(
@@ -746,16 +1026,17 @@ class TaskDetailsMobilePage extends StatelessWidget {
             m?.designsDimensions ?? '-',
           ),
         );
+        _appendTaskDateRows(context, fields);
         break;
 
       // 6: Programming
       case '6':
         final m = task.programmingModel;
         fields.add(
-          _fieldRow(
+          _linkFieldRow(
             context,
             'task_details.content_link'.tr,
-            m?.contenturl ?? '-',
+            m?.contenturl,
           ),
         );
         fields.add(
@@ -766,10 +1047,10 @@ class TaskDetailsMobilePage extends StatelessWidget {
           ),
         );
         fields.add(
-          _fieldRow(
+          _linkFieldRow(
             context,
             'task_details.files_link'.tr,
-            m?.fileurl ?? '-',
+            m?.fileurl,
           ),
         );
         fields.add(
@@ -779,12 +1060,14 @@ class TaskDetailsMobilePage extends StatelessWidget {
             m?.designsDimensions ?? '-',
           ),
         );
+        _appendTaskDateRows(context, fields);
         break;
 
       default:
         fields.add(
           _fieldRow(context, 'task_details.section_fallback'.tr, '-'),
         );
+        _appendTaskDateRows(context, fields);
     }
 
     return _buildCard(
@@ -802,57 +1085,6 @@ class TaskDetailsMobilePage extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           ...fields,
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLatestCommentCard(BuildContext context) {
-    final latestNote = task.notes.isNotEmpty ? task.notes.last : null;
-    return _buildCard(
-      context,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'tasks.latest_comment'.tr,
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: Colors.grey.shade700,
-            ),
-          ),
-          const SizedBox(height: 8),
-          if (latestNote == null)
-            Text(
-              'tasks.no_comments_yet'.tr,
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey.shade600,
-                fontWeight: FontWeight.w500,
-              ),
-            )
-          else ...[
-            SelectableText(
-              latestNote.note,
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppColors.primaryfontColor,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              _buildNoteMeta(latestNote.byWho, latestNote.timestamp),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey.shade600,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -970,6 +1202,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
   Widget _buildActions(BuildContext context) {
     final controller = Get.find<HomeController>();
     final role = controller.currentemployee.value?.role ?? '';
+    final isEmployee = role == 'employee';
     final canEscalate =
         role == 'supervisor' &&
         FunHelper.taskStatusAllowsSupervisorDirectOrEscalate(task.status);
@@ -999,6 +1232,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
+        if (!isEmployee) ...[
         if (canEscalate) ...[
           Row(
             children: [
@@ -1227,6 +1461,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
+        ],
       ],
     );
   }

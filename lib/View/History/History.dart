@@ -1,4 +1,5 @@
 import 'dart:developer';
+import 'dart:math' as math;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -10,6 +11,7 @@ import 'package:point/Services/NotificationService.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/ContentPermissions.dart';
 import 'package:point/View/Clients/ClientsTable.dart';
 import 'package:point/View/History/HistoryMobile.dart';
 import 'package:point/View/Mobile/ContentStatusCard.dart' show getFileType;
@@ -741,90 +743,20 @@ class History extends StatelessWidget {
                                             TableCellCenter(
                                               child: Container(
                                                 constraints: BoxConstraints(
-                                                  maxWidth:
-                                                      (Get.width - 280) / 9,
+                                                  maxWidth: math.max(
+                                                    (Get.width - 280) / 9,
+                                                    120,
+                                                  ),
                                                 ),
-                                                child: Column(
-                                                  children: [
-                                                    for (var file
-                                                        in emp.files ?? [])
-                                                      InkWell(
-                                                        onTap: () async {
-                                                          if (getFileType(
-                                                                file.toString(),
-                                                              ) ==
-                                                              'image') {
-                                                            Get.dialog(
-                                                              AlertDialog(
-                                                                actions: [
-                                                                  MainButton(
-                                                                    icon: false,
-                                                                    title:
-                                                                        'app.close'
-                                                                            .tr,
-                                                                    fontColor:
-                                                                        Colors
-                                                                            .white,
-                                                                    backgroundColor:
-                                                                        AppColors
-                                                                            .primary,
-                                                                    width: 100,
-                                                                    borderSize:
-                                                                        5,
-                                                                    height: 30,
-                                                                    onPressed: () {
-                                                                      Get.back();
-                                                                    },
-                                                                  ),
-                                                                ],
-                                                                content:
-                                                                    Image.network(
-                                                                      file,
-                                                                      fit:
-                                                                          BoxFit
-                                                                              .contain,
-                                                                    ),
-                                                              ),
-                                                            );
-                                                            return;
-                                                          }
-                                                          if (await canLaunchUrl(
-                                                            Uri.parse(file),
-                                                          )) {
-                                                            await launchUrl(
-                                                              Uri.parse(file),
-                                                              mode:
-                                                                  LaunchMode
-                                                                      .externalApplication,
-                                                            );
-                                                          } else {
-                                                            FunHelper.showSnackbar(
-                                                              'error'.tr,
-                                                              'errors.cannot_open_link_param'
-                                                                  .trParams({
-                                                                    'url': file,
-                                                                  }),
-                                                            );
-                                                            return;
-                                                          }
-                                                        },
-                                                        child: Text(
-                                                          file ?? '--',
-                                                          overflow:
-                                                              TextOverflow
-                                                                  .ellipsis,
-
-                                                          style: TextStyle(
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                            decoration:
-                                                                TextDecoration
-                                                                    .underline,
-                                                            color: Colors.blue,
-                                                          ),
-                                                        ),
+                                                child: Padding(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        vertical: 6,
                                                       ),
-                                                  ],
+                                                  child:
+                                                      _historyAttachmentFilesWrap(
+                                                        emp.files,
+                                                      ),
                                                 ),
                                               ),
                                             ),
@@ -876,91 +808,20 @@ class History extends StatelessWidget {
                                             TableCellCenter(
                                               child: Container(
                                                 constraints: BoxConstraints(
-                                                  maxWidth:
-                                                      (Get.width - 280) / 9,
+                                                  maxWidth: math.max(
+                                                    (Get.width - 280) / 9,
+                                                    120,
+                                                  ),
                                                 ),
-                                                child: Column(
-                                                  children: [
-                                                    for (var file
-                                                        in emp.clientEdits ??
-                                                            [])
-                                                      InkWell(
-                                                        onTap: () async {
-                                                          if (getFileType(
-                                                                file.toString(),
-                                                              ) ==
-                                                              'image') {
-                                                            Get.dialog(
-                                                              AlertDialog(
-                                                                actions: [
-                                                                  MainButton(
-                                                                    icon: false,
-                                                                    title:
-                                                                        'app.close'
-                                                                            .tr,
-                                                                    fontColor:
-                                                                        Colors
-                                                                            .white,
-                                                                    backgroundColor:
-                                                                        AppColors
-                                                                            .primary,
-                                                                    width: 100,
-                                                                    borderSize:
-                                                                        5,
-                                                                    height: 30,
-                                                                    onPressed: () {
-                                                                      Get.back();
-                                                                    },
-                                                                  ),
-                                                                ],
-                                                                content:
-                                                                    Image.network(
-                                                                      file,
-                                                                      fit:
-                                                                          BoxFit
-                                                                              .contain,
-                                                                    ),
-                                                              ),
-                                                            );
-                                                            return;
-                                                          }
-                                                          if (await canLaunchUrl(
-                                                            Uri.parse(file),
-                                                          )) {
-                                                            await launchUrl(
-                                                              Uri.parse(file),
-                                                              mode:
-                                                                  LaunchMode
-                                                                      .externalApplication,
-                                                            );
-                                                          } else {
-                                                            FunHelper.showSnackbar(
-                                                              'error'.tr,
-                                                              'errors.cannot_open_link_param'
-                                                                  .trParams({
-                                                                    'url': file,
-                                                                  }),
-                                                            );
-                                                            return;
-                                                          }
-                                                        },
-                                                        child: Text(
-                                                          file ?? '--',
-                                                          overflow:
-                                                              TextOverflow
-                                                                  .ellipsis,
-
-                                                          style: TextStyle(
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                            decoration:
-                                                                TextDecoration
-                                                                    .underline,
-                                                            color: Colors.blue,
-                                                          ),
-                                                        ),
+                                                child: Padding(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        vertical: 6,
                                                       ),
-                                                  ],
+                                                  child:
+                                                      _historyAttachmentFilesWrap(
+                                                        emp.clientEdits,
+                                                      ),
                                                 ),
                                               ),
                                             ),
@@ -1120,12 +981,123 @@ class History extends StatelessWidget {
   }
 }
 
+Uri _historyNormalizeAttachmentUri(String rawUrl) {
+  final trimmed = rawUrl.trim();
+  final parsed = Uri.tryParse(trimmed);
+  if (parsed != null && parsed.hasScheme) {
+    return parsed;
+  }
+  return Uri.parse('https://$trimmed');
+}
+
+Future<void> historyOpenAttachmentUrl(String rawUrl) async {
+  try {
+    final uri = _historyNormalizeAttachmentUri(rawUrl);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+      return;
+    }
+  } catch (_) {}
+  FunHelper.showSnackbar(
+    'validation.title'.tr,
+    'errors.cannot_open_link'.tr,
+    snackPosition: SnackPosition.TOP,
+    backgroundColor: Colors.orange,
+    colorText: Colors.white,
+  );
+}
+
+Widget _historyAttachmentPreviewTile(String url) {
+  final bool isImage = getFileType(url) == 'image';
+  return ClipRRect(
+    borderRadius: BorderRadius.circular(8),
+    child:
+        isImage
+            ? Image.network(
+              url,
+              width: 56,
+              height: 56,
+              fit: BoxFit.cover,
+              errorBuilder:
+                  (_, __, ___) => _historyAttachmentPlaceholder(
+                    Icons.broken_image_outlined,
+                  ),
+            )
+            : _historyAttachmentPlaceholder(Icons.link_outlined),
+  );
+}
+
+Widget _historyAttachmentPlaceholder(IconData icon) {
+  return Container(
+    width: 56,
+    height: 56,
+    decoration: BoxDecoration(
+      color: Colors.blueGrey.shade100,
+      border: Border.all(color: Colors.blueGrey.shade200),
+    ),
+    child: Icon(icon, size: 22, color: Colors.blueGrey.shade700),
+  );
+}
+
+Widget _historyAttachmentFilesWrap(List<dynamic>? files) {
+  final list = files ?? [];
+  if (list.isEmpty) {
+    return const SizedBox.shrink();
+  }
+  return Wrap(
+    spacing: 10,
+    runSpacing: 10,
+    children: [
+      for (final file in list)
+        InkWell(
+          onTap: () async {
+            final s = file?.toString() ?? '';
+            if (s.isEmpty) return;
+            if (getFileType(s) == 'image') {
+              Get.dialog(
+                AlertDialog(
+                  actions: [
+                    MainButton(
+                      icon: false,
+                      title: 'app.close'.tr,
+                      fontColor: Colors.white,
+                      backgroundColor: AppColors.primary,
+                      width: 100,
+                      borderSize: 5,
+                      height: 30,
+                      onPressed: () => Get.back(),
+                    ),
+                  ],
+                  content: Image.network(s, fit: BoxFit.contain),
+                ),
+              );
+              return;
+            }
+            await historyOpenAttachmentUrl(s);
+          },
+          child: _historyAttachmentPreviewTile(file?.toString() ?? ''),
+        ),
+    ],
+  );
+}
+
 void showAddContentDialog(
   BuildContext context, {
   ContentModel? model,
   required String clientId,
   bool? view,
 }) {
+  final hc = Get.find<HomeController>();
+  if (!ContentPermissions.canAddOrEditContent(hc.currentemployee.value)) {
+    FunHelper.showSnackbar(
+      'error'.tr,
+      'errors.forbidden'.tr,
+      snackPosition: SnackPosition.TOP,
+      backgroundColor: Colors.red,
+      colorText: Colors.white,
+    );
+    return;
+  }
   final titleController = TextEditingController(text: model?.title);
   RxList platforms = (model?.platform ?? []).obs;
 
@@ -1276,7 +1248,7 @@ void showAddContentDialog(
                                     value:
                                         executorController.text.isEmpty
                                             ? null
-                                            : controller.employees.firstWhere(
+                                            : controller.employees.firstWhereOrNull(
                                               (a) =>
                                                   a.id ==
                                                   executorController.text,

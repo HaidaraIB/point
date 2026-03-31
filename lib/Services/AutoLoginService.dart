@@ -1,10 +1,12 @@
 import 'dart:developer';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/ClientController.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Models/ClientModel.dart';
 
 /// Attempts silent login using FirebaseAuth existing session.
 ///
@@ -49,7 +51,21 @@ Future<String?> attemptSilentLogin() async {
     return null;
   }
 
-  final client = await clientController.service.getCurrentClientByAuth();
+  ClientModel? client;
+  try {
+    client = await clientController.service.getCurrentClientByAuth();
+  } on FirebaseException catch (e) {
+    if (e.code == 'permission-denied') {
+      log('attemptSilentLogin: getCurrentClientByAuth permission-denied');
+    } else {
+      log('attemptSilentLogin: getCurrentClientByAuth $e');
+    }
+    client = null;
+  } catch (e, s) {
+    log('attemptSilentLogin: getCurrentClientByAuth $e');
+    log('$s');
+    client = null;
+  }
 
   if (client != null) {
     log("✅ تم تسجيل دخول العميل: ${client.email}");

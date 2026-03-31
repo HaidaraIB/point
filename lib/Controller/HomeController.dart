@@ -28,6 +28,9 @@ import 'package:uuid/uuid.dart';
 class HomeController extends GetxController {
   final FirestoreServices _service = FirestoreServices();
   FirestoreServices get service => _service;
+
+  /// يمنع ربطاً مزدوجاً متزامناً لـ clients/tasks عند استدعاء fetchClients وfetchTasks معاً.
+  int _clientsTasksRebindGeneration = 0;
   int selectedIndex = 0;
 
   var clientController = TextEditingController();
@@ -197,15 +200,137 @@ class HomeController extends GetxController {
   }
 
   fetchEmployees() {
+    if (FirebaseAuth.instance.currentUser == null) {
+      employees.bindStream(Stream<List<EmployeeModel>>.value([]));
+      update();
+      return;
+    }
     employees.bindStream(_service.getEmployees());
 
     update();
   }
 
-  fetchClients() {
-    clients.bindStream(_service.getClientsStream());
+  void fetchClients() {
+    _rebindClientsAndTasksStreams();
+  }
 
-    update();
+  /// يربط تيار العملاء والمهام حسب الدور: العميل لا يستطيع استعلامات المجموعة الكاملة.
+  void _rebindClientsAndTasksStreams() {
+    if (FirebaseAuth.instance.currentUser == null) {
+      clients.bindStream(Stream<List<ClientModel>>.value([]));
+      tasks.bindStream(Stream<List<TaskModel>>.value([]));
+      update();
+      return;
+    }
+    final gen = ++_clientsTasksRebindGeneration;
+    unawaited(_rebindClientsAndTasksStreamsAsync(gen));
+  }
+
+  Future<void> _rebindClientsAndTasksStreamsAsync(int gen) async {
+    final u = FirebaseAuth.instance.currentUser;
+    if (u == null) return;
+
+    try {
+      final roleSnap =
+          await FirebaseFirestore.instance
+              .collection('authRoles')
+              .doc(u.uid)
+              .get();
+      if (gen != _clientsTasksRebindGeneration) return;
+
+      String? role;
+      if (roleSnap.exists) {
+        role = roleSnap.data()?['role']?.toString();
+      }
+
+      if (role == 'client') {
+        clients.bindStream(_service.getClientsStreamForCurrentAuthEmail());
+        tasks.bindStream(Stream<List<TaskModel>>.value([]));
+        update();
+        return;
+      }
+
+      if (role == 'admin' || role == 'supervisor') {
+        clients.bindStream(_service.getClientsStream());
+        tasks.bindStream(_service.getTasks());
+        update();
+        return;
+      }
+
+      if (role == 'employee') {
+        final employeeId =
+            roleSnap.data()?['employeeId']?.toString().trim() ?? '';
+        final department = roleSnap.data()?['department']?.toString();
+        clients.bindStream(_service.getClientsStream());
+        if (employeeId.isNotEmpty) {
+          tasks.bindStream(
+            _service.getTasksStreamForEmployee(
+              employeeId: employeeId,
+              departmentRaw: department,
+            ),
+          );
+        } else {
+          tasks.bindStream(Stream<List<TaskModel>>.value([]));
+        }
+        update();
+        return;
+      }
+
+      if (role != null) {
+        clients.bindStream(_service.getClientsStream());
+        tasks.bindStream(_service.getTasks());
+        update();
+        return;
+      }
+
+      final email = u.email?.trim().toLowerCase();
+      if (email == null || email.isEmpty) {
+        clients.bindStream(Stream<List<ClientModel>>.value([]));
+        tasks.bindStream(Stream<List<TaskModel>>.value([]));
+        update();
+        return;
+      }
+
+      final empByEmail =
+          await FirebaseFirestore.instance
+              .collection('employees')
+              .where('email', isEqualTo: email)
+              .limit(1)
+              .get();
+      if (gen != _clientsTasksRebindGeneration) return;
+
+      if (empByEmail.docs.isNotEmpty) {
+        final empDoc = empByEmail.docs.first;
+        final empData = empDoc.data();
+        final empRole = empData['role']?.toString().trim() ?? '';
+        final empId = empDoc.id;
+        final dept = empData['department']?.toString();
+        clients.bindStream(_service.getClientsStream());
+        if (empRole == 'admin' || empRole == 'supervisor') {
+          tasks.bindStream(_service.getTasks());
+        } else if (empRole == 'employee') {
+          tasks.bindStream(
+            _service.getTasksStreamForEmployee(
+              employeeId: empId,
+              departmentRaw: dept,
+            ),
+          );
+        } else {
+          tasks.bindStream(_service.getTasks());
+        }
+      } else {
+        clients.bindStream(_service.getClientsStreamForCurrentAuthEmail());
+        tasks.bindStream(Stream<List<TaskModel>>.value([]));
+      }
+      update();
+    } catch (e, s) {
+      log('_rebindClientsAndTasksStreamsAsync: $e');
+      log('$s');
+      if (gen != _clientsTasksRebindGeneration) return;
+      clients.bindStream(_service.getClientsStreamForCurrentAuthEmail());
+      tasks.bindStream(Stream<List<TaskModel>>.value([]));
+      update();
+    }
   }
 
   Future<bool> addEmployee(
@@ -362,18 +487,74 @@ class HomeController extends GetxController {
     isLoading.value = false;
     if (result) {
       clients.removeWhere((c) => c.id == id);
+      if (clientController.text.trim() == id) {
+        clientController.clear();
+        selectedDate.value = '';
+        searchedContents.assignAll(List<ContentModel>.from(contents));
+      }
+      update();
     }
     return result;
   }
 
   void fetchContents() {
-    contents.bindStream(_service.getContents());
+    if (FirebaseAuth.instance.currentUser == null) {
+      contents.bindStream(Stream<List<ContentModel>>.value([]));
+      return;
+    }
+    final emp = effectiveEmployee;
+    if (emp == null) {
+      contents.bindStream(Stream<List<ContentModel>>.value([]));
+      return;
+    }
+    final r = emp.role;
+    if (r == 'admin' || r == 'supervisor') {
+      contents.bindStream(_service.getContents());
+      return;
+    }
+    if (r == 'employee') {
+      final d = StorageKeys.normalizeDepartment(emp.department);
+      if (d == StorageKeys.departmentPromotion ||
+          d == StorageKeys.departmentPublishing) {
+        contents.bindStream(_service.getContents());
+        return;
+      }
+    }
+    contents.bindStream(Stream<List<ContentModel>>.value([]));
+  }
+
+  void clearEmployeeWebContentFilters() {
+    employeeWebContentSearchController.clear();
+    employeeWebContentStatusFilter.value = '';
+    employeeWebContentTypeFilter.value = '';
+    update(['employeeWebContent']);
+  }
+
+  List<ContentModel> filteredContentsForEmployeeWeb() {
+    var list = searchedContents.toList();
+    final q = employeeWebContentSearchController.text.trim().toLowerCase();
+    if (q.isNotEmpty) {
+      list =
+          list
+              .where((c) => c.title.toLowerCase().contains(q))
+              .toList();
+    }
+    final ct = employeeWebContentTypeFilter.value;
+    if (ct.isNotEmpty) {
+      list = list.where((c) => c.contentType == ct).toList();
+    }
+    final st = employeeWebContentStatusFilter.value;
+    if (st.isNotEmpty) {
+      list = list.where((c) => c.status == st).toList();
+    }
+    return list;
   }
 
   void refreshFilteredContents({String? clientId, bool onlyUpcoming = false}) {
     final selectedClientId = (clientId ?? clientController.text).trim();
     if (selectedClientId.isEmpty) {
       searchedContents.clear();
+      clearEmployeeWebContentFilters();
       return;
     }
 
@@ -391,8 +572,18 @@ class HomeController extends GetxController {
   }
 
   fetchNotification(String? id) {
+    final uid = id?.trim();
+    if (FirebaseAuth.instance.currentUser == null ||
+        uid == null ||
+        uid.isEmpty) {
+      notifications.bindStream(Stream<List<NotificationModel>>.value([]));
+      return;
+    }
     notifications.bindStream(
-      _service.getNotifications(id ?? currentemployee.value!.id!, 'all'),
+      _service.getNotifications(uid, 'all').handleError((Object e, StackTrace st) {
+        // تسجيل خروج أو انتهاء الجلسة: قد يُرفض الاستعلام — لا نُعيد رمي الخطأ (RethrownDartError).
+        log('⚠️ notifications stream: $e');
+      }),
     );
   }
 
@@ -410,6 +601,13 @@ class HomeController extends GetxController {
     return result;
   }
 
+  Future<bool> updateContentPromotionField(String contentId, String promotion) async {
+    isLoading.value = true;
+    final result = await _service.updateContentPromotionField(contentId, promotion);
+    isLoading.value = false;
+    return result;
+  }
+
   Future<bool> deleteContent(String id) async {
     isLoading.value = true;
     final result = await _service.deleteContent(id);
@@ -423,8 +621,7 @@ class HomeController extends GetxController {
   }
 
   void fetchTasks() {
-    tasks.bindStream(_service.getTasks());
-    update();
+    _rebindClientsAndTasksStreams();
   }
 
   Future<bool> addTask(TaskModel task) async {
@@ -472,6 +669,15 @@ class HomeController extends GetxController {
     }
     final result = await _service.updateTask(taskToSave);
     isLoading.value = false;
+    if (!result) {
+      FunHelper.showSnackbar(
+        'error'.tr,
+        'errors.forbidden'.tr,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
     if (result && oldTask != null) {
       unawaited(_triggerTaskNotifications(oldTask, taskToSave));
     }
@@ -1361,6 +1567,15 @@ class HomeController extends GetxController {
     isLoading.value = true;
     final result = await _service.deleteTask(id);
     isLoading.value = false;
+    if (!result) {
+      FunHelper.showSnackbar(
+        'error'.tr,
+        'errors.forbidden'.tr,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
     return result;
   }
 
@@ -1471,6 +1686,9 @@ class HomeController extends GetxController {
       if (result != null && result.id != null) {
         currentemployee.value = result;
         lastKnownEmployee.value = result;
+        fetchEmployees();
+        _rebindClientsAndTasksStreams();
+        fetchContents();
         _startTotalUnreadStream(result.id!);
         listenToClient(result.id!);
         fetchNotification(result.id);
@@ -1499,6 +1717,7 @@ class HomeController extends GetxController {
               final employee = EmployeeModel.fromJson(snapshot.data()!);
               currentemployee.value = employee;
               lastKnownEmployee.value = employee;
+              unawaited(FirestoreServices.syncAuthRoleForEmployee(employee));
               _startTotalUnreadStream(empid);
             }
           },
@@ -1514,6 +1733,13 @@ class HomeController extends GetxController {
   var clients = <ClientModel>[].obs;
   var contents = <ContentModel>[].obs;
   var searchedContents = <ContentModel>[].obs;
+
+  /// تصفية قائمة المحتوى في واجهة موظف الويب (مثل شاشة المهام).
+  final TextEditingController employeeWebContentSearchController =
+      TextEditingController();
+  final RxString employeeWebContentStatusFilter = ''.obs;
+  final RxString employeeWebContentTypeFilter = ''.obs;
+
   RxString selectedDate = ''.obs;
   var notifications = <NotificationModel>[].obs;
   var tasks = <TaskModel>[].obs;
@@ -1536,7 +1762,18 @@ class HomeController extends GetxController {
             );
           },
         )
-        .listen((count) => totalUnreadMessages.value = count);
+        .listen(
+          (count) => totalUnreadMessages.value = count,
+          onError: (Object e, StackTrace st) {
+            // بعد تسجيل الخروج قد تُرفض استعلامات chats/messages — لا نُعيد رمي الخطأ.
+            if (FirebaseAuth.instance.currentUser == null) {
+              totalUnreadMessages.value = 0;
+              return;
+            }
+            log('⚠️ totalUnread stream: $e');
+            totalUnreadMessages.value = 0;
+          },
+        );
   }
 
   void _stopTotalUnreadStream() {
@@ -1718,10 +1955,9 @@ class HomeController extends GetxController {
   void onInit() {
     // currentemployee.value?.id = '3';
     fetchEmployees();
-    fetchClients();
+    _rebindClientsAndTasksStreams();
     fetchContents();
     ever(contents, (_) => refreshFilteredContents());
-    fetchTasks();
     ever(tasks, (_) {
       filterTasks();
       filterTasksHistory();
@@ -1732,6 +1968,7 @@ class HomeController extends GetxController {
 
   @override
   void onClose() {
+    employeeWebContentSearchController.dispose();
     _employeeDocSub?.cancel();
     _employeeDocSub = null;
     _stopTotalUnreadStream();
@@ -1762,6 +1999,9 @@ class HomeController extends GetxController {
       // Keep employee state alive after browser refresh/deep-link.
       currentemployee.value = employee;
       lastKnownEmployee.value = employee;
+      fetchEmployees();
+      _rebindClientsAndTasksStreams();
+      fetchContents();
       _startTotalUnreadStream(employee.id!);
       fetchNotification(employee.id);
       listenToClient(employee.id!);
@@ -1813,7 +2053,17 @@ class HomeController extends GetxController {
   void clearEmployeeSession() {
     currentemployee.value = null;
     lastKnownEmployee.value = null;
+    _employeeDocSub?.cancel();
+    _employeeDocSub = null;
     _stopTotalUnreadStream();
+    employees.bindStream(Stream<List<EmployeeModel>>.value([]));
+    clients.bindStream(Stream<List<ClientModel>>.value([]));
+    contents.bindStream(Stream<List<ContentModel>>.value([]));
+    tasks.bindStream(Stream<List<TaskModel>>.value([]));
+    notifications.bindStream(Stream<List<NotificationModel>>.value([]));
+    searchedContents.clear();
+    clearEmployeeWebContentFilters();
+    openChats.clear();
   }
 }
 

@@ -5,8 +5,17 @@ class Responsive extends StatelessWidget {
   final Widget? tablet;
   final Widget desktop;
 
-  const Responsive({Key? key, this.mobile, this.tablet, required this.desktop})
-    : super(key: key);
+  /// Below this width, [mobile] is used (when not null). Default 850.
+  /// Use a lower value (e.g. 600) on web when a wide data table should replace card layout sooner.
+  final double mobileBreakpoint;
+
+  const Responsive({
+    Key? key,
+    this.mobile,
+    this.tablet,
+    required this.desktop,
+    this.mobileBreakpoint = 850,
+  }) : super(key: key);
 
   // This size work fine on my design, maybe you need some customization depends on your design
 
@@ -39,8 +48,8 @@ class Responsive extends StatelessWidget {
     if (_size.width >= 1100) {
       return desktop;
     }
-    // If width it less then 1100 and more then 850 we consider it as tablet
-    else if (_size.width >= 850) {
+    // If width it less then 1100 and more then [mobileBreakpoint] we consider it as tablet
+    else if (_size.width >= mobileBreakpoint) {
       return tablet ?? desktop;
     }
     // Or less then that we called it mobile

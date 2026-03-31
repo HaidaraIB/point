@@ -45,6 +45,7 @@ class _ChatScreenState extends State<ChatScreen> {
   String? _currentUserName;
   // **إضافة لتخزين بيانات الموظف الحالي**
   String? _currentUserDept;
+  String? _currentUserRole;
 
   List<Map<String, dynamic>> _employees = []; // all employees
   List<Map<String, dynamic>> _filteredEmployees = [];
@@ -86,11 +87,13 @@ class _ChatScreenState extends State<ChatScreen> {
       _currentUserDept = StorageKeys.normalizeDepartment(
         homecontroller.currentemployee.value?.department,
       );
+      _currentUserRole = homecontroller.currentemployee.value?.role;
     } else {
       // if no users at all, create a temporary id (but better to have employees collection)
       _currentUserId = 'temp_current_user';
       _currentUserName = 'Me'.tr;
       _currentUserDept = null;
+      _currentUserRole = null;
     }
 
     await _loadEmployees();
@@ -120,6 +123,22 @@ class _ChatScreenState extends State<ChatScreen> {
               };
             })
             .toList();
+
+    // For employee role: show only allowed chat targets.
+    // Managers can still chat with anyone.
+    if (_currentUserRole == 'employee') {
+      final myDept = _currentUserDept;
+      _employees = _employees.where((e) {
+        final targetRole = e['role'];
+        final targetDept = e['dept'];
+        final isSpecialRole = StorageKeys.isChatElevatedRole(targetRole);
+        final isSameDept = myDept != null && myDept.isNotEmpty
+            ? StorageKeys.matchesDepartment(targetDept, myDept)
+            : false;
+        return isSpecialRole || isSameDept;
+      }).toList();
+    }
+
     _filteredEmployees = List.from(_employees);
     _loadingEmployees = false;
     setState(() {});
@@ -168,7 +187,7 @@ class _ChatScreenState extends State<ChatScreen> {
     // إضافة الموظفين من نفس القسم والموظفين ذوي الأدوار الخاصة (Admin/Supervisor)
     _employees.forEach((emp) {
       final empId = emp['id'] as String;
-      final empDept = emp['department'];
+      final empDept = emp['dept'];
 
       // تحقق إذا كان موظف من نفس القسم (ويستثنى الموظف الحالي الذي أضفناه بالفعل)
       final isSameDept = StorageKeys.matchesDepartment(empDept, deptGroupName);
@@ -205,13 +224,11 @@ class _ChatScreenState extends State<ChatScreen> {
       final existingParticipants = List<String>.from(
         groupSnapshot.data()?['participants'] ?? [],
       );
-      final currentParticipantsSet = participantsIds.toSet();
-      final mergedParticipants =
-          existingParticipants.toSet().union(currentParticipantsSet).toList();
-
-      if (mergedParticipants.length != existingParticipants.length) {
+      // Runtime: فقط تأكد أن الموظف الحالي موجود داخل المجموعة.
+      // باقي الأعضاء يتم ضبطهم عبر backfill/عمليات المديرين.
+      if (!existingParticipants.contains(_currentUserId)) {
         await groupRef.update({
-          'participants': mergedParticipants,
+          'participants': [...existingParticipants, _currentUserId!],
           'lastUpdated': FieldValue.serverTimestamp(),
         });
       }
@@ -299,7 +316,13 @@ class _ChatScreenState extends State<ChatScreen> {
           if (!mounted || _chatsSubscription == null) return;
           setState(() {});
           _syncMessageSoundListener();
-        });
+        }, onError: (Object e, StackTrace st) {
+          log('⚠️ ChatScreen _listenChats: $e');
+          if (!mounted || _chatsSubscription == null) return;
+          setState(() {
+            _loadingChats = false;
+          });
+        }, cancelOnError: false);
   }
 
   @override
@@ -354,16 +377,23 @@ class _ChatScreenState extends State<ChatScreen> {
 
     final chatRef = _firestore.collection('chats').doc(chatId);
 
-    final snapshot = await chatRef.get();
-
-    if (!snapshot.exists) {
-      // create chat doc
-      await chatRef.set({
-        'participants': ids,
+    // لا get() قبل إنشاء مستند جديد. إن وُجد المستند، قد يفشل merge إن شمل الحقول
+    // غير المسموحة في allow update — نُسقط إلى update(lastMessage, lastUpdated) فقط.
+    try {
+      await chatRef.set(
+        {
+          'participants': ids,
+          'lastMessage': '',
+          'lastUpdated': FieldValue.serverTimestamp(),
+          'isGroup': false, // **محادثة فردية**
+        },
+        SetOptions(merge: true),
+      );
+    } catch (e) {
+      if (!e.toString().contains('permission-denied')) rethrow;
+      await chatRef.update({
         'lastMessage': '',
         'lastUpdated': FieldValue.serverTimestamp(),
-        'createdAt': FieldValue.serverTimestamp(),
-        'isGroup': false, // **محادثة فردية**
       });
     }
 
@@ -754,16 +784,19 @@ class _ChatScreenState extends State<ChatScreen> {
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                GestureDetector(
-                                  onTap: _showAddChatDialog,
-                                  child: Container(
-                                    width: 45,
-                                    height: 45,
-                                    decoration: BoxDecoration(
-                                      color: Color(0xff00A389),
-                                      borderRadius: BorderRadius.circular(15),
+                                MouseRegion(
+                                  cursor: SystemMouseCursors.click,
+                                  child: GestureDetector(
+                                    onTap: _showAddChatDialog,
+                                    child: Container(
+                                      width: 45,
+                                      height: 45,
+                                      decoration: BoxDecoration(
+                                        color: Color(0xff00A389),
+                                        borderRadius: BorderRadius.circular(15),
+                                      ),
+                                      child: Icon(Icons.add, color: Colors.white),
                                     ),
-                                    child: Icon(Icons.add, color: Colors.white),
                                   ),
                                 ),
                               ],
@@ -1397,22 +1430,25 @@ class _ChatScreenState extends State<ChatScreen> {
                                                 ),
                                                 const SizedBox(width: 8),
 
-                                                GestureDetector(
-                                                  onTap: _sendMessage,
-                                                  child: Container(
-                                                    width: 45,
-                                                    height: 45,
-                                                    decoration: BoxDecoration(
-                                                      color: Color(0xff465FFF),
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            15,
-                                                          ),
-                                                    ),
-                                                    child: Icon(
-                                                      Icons.send,
-                                                      color: Colors.white,
-                                                      size: 20,
+                                                MouseRegion(
+                                                  cursor: SystemMouseCursors.click,
+                                                  child: GestureDetector(
+                                                    onTap: _sendMessage,
+                                                    child: Container(
+                                                      width: 45,
+                                                      height: 45,
+                                                      decoration: BoxDecoration(
+                                                        color: Color(0xff465FFF),
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              15,
+                                                            ),
+                                                      ),
+                                                      child: Icon(
+                                                        Icons.send,
+                                                        color: Colors.white,
+                                                        size: 20,
+                                                      ),
                                                     ),
                                                   ),
                                                 ),

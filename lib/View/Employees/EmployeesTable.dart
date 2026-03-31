@@ -45,10 +45,13 @@ class _EmployeeTableState extends State<EmployeeTable> {
 
       body: GetBuilder<HomeController>(
         builder: (controller) {
+          final canDeleteEmployees =
+              controller.effectiveEmployee?.role == 'admin';
           return Responsive(
             mobile: Obx(
               () => EmployeesMobileScreen(
                 employees: controller.employees.toList(),
+                canDelete: canDeleteEmployees,
                 onAdd: () => showAddEmployeeDialog(context),
                 onEdit: (emp) {
                   if (emp.role == 'admin' &&
@@ -273,32 +276,32 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                                 ),
                                                 color: Colors.white,
                                                 elevation: 4,
-                                                itemBuilder:
-                                                    (context) => [
-                                                      PopupMenuItem(
-                                                        value: 0,
-                                                        child: tableActionsMenuRow(
-                                                          label: 'edit'.tr,
-                                                          icon:
-                                                              Icons
-                                                                  .edit_outlined,
-                                                          iconColor:
-                                                              AppColors.success,
-                                                        ),
+                                                itemBuilder: (context) => [
+                                                  PopupMenuItem(
+                                                    value: 0,
+                                                    child: tableActionsMenuRow(
+                                                      label: 'edit'.tr,
+                                                      icon:
+                                                          Icons
+                                                              .edit_outlined,
+                                                      iconColor:
+                                                          AppColors.success,
+                                                    ),
+                                                  ),
+                                                  if (canDeleteEmployees)
+                                                    PopupMenuItem(
+                                                      value: 1,
+                                                      child: tableActionsMenuRow(
+                                                        label: 'delete'.tr,
+                                                        icon:
+                                                            Icons
+                                                                .delete_outline,
+                                                        iconColor:
+                                                            AppColors
+                                                                .destructive,
                                                       ),
-                                                      PopupMenuItem(
-                                                        value: 1,
-                                                        child: tableActionsMenuRow(
-                                                          label: 'delete'.tr,
-                                                          icon:
-                                                              Icons
-                                                                  .delete_outline,
-                                                          iconColor:
-                                                              AppColors
-                                                                  .destructive,
-                                                        ),
-                                                      ),
-                                                    ],
+                                                    ),
+                                                ],
                                                 onSelected: (value) {
                                                   if (value == 0) {
                                                     if (emp.role == 'admin' &&
@@ -322,7 +325,8 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                                       context,
                                                       model: emp,
                                                     );
-                                                  } else if (value == 1) {
+                                                  } else if (canDeleteEmployees &&
+                                                      value == 1) {
                                                     if (emp.role == 'admin' &&
                                                         controller
                                                                 .effectiveEmployee

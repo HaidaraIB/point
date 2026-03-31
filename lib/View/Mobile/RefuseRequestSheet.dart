@@ -55,46 +55,69 @@ class RefuseRequestSheet extends StatelessWidget {
                 ),
 
                 const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          await controller
-                              .updateContent(
-                                model.copyWith(
-                                  status: StorageKeys.status_rejected,
-                                  clientNotes: controller.notesController.text,
-                                  // ignore: invalid_use_of_protected_member
-                                ),
-                              )
-                              .then((v) {
-                                Get.back();
-                                controller.notesController.clear();
-                                FunHelper.showSnackbar(
-                                  'success'.tr,
-                                  'requests.reject_sent'.tr,
-                                  snackPosition: SnackPosition.TOP,
-                                  backgroundColor: Colors.green,
-                                  colorText: Colors.white,
-                                );
-                              });
-                          final clientName = Get.find<HomeController>().clients.firstWhereOrNull((c) => c.id == model.clientId)?.name ?? model.clientId;
-                          await NotificationService.notifyPublishDeptClientRejected(contentTitle: model.title, clientName: clientName);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                Obx(
+                  () => Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: controller.isLoading.value
+                              ? null
+                              : () async {
+                                  final ok = await controller.updateContent(
+                                    model.copyWith(
+                                      status: StorageKeys.status_rejected,
+                                      clientNotes: controller.notesController.text,
+                                    ),
+                                  );
+                                  if (!ok) {
+                                    FunHelper.showSnackbar(
+                                      'feedback.error_title'.tr,
+                                      'errors.network_failed'.tr,
+                                      snackPosition: SnackPosition.TOP,
+                                      backgroundColor: Colors.red,
+                                      colorText: Colors.white,
+                                    );
+                                    return;
+                                  }
+                                  Get.back();
+                                  controller.notesController.clear();
+                                  FunHelper.showSnackbar(
+                                    'success'.tr,
+                                    'requests.reject_sent'.tr,
+                                    snackPosition: SnackPosition.TOP,
+                                    backgroundColor: Colors.green,
+                                    colorText: Colors.white,
+                                  );
+                                  final clientName =
+                                      Get.find<HomeController>()
+                                          .clients
+                                          .firstWhereOrNull(
+                                            (c) => c.id == model.clientId,
+                                          )
+                                          ?.name ??
+                                      model.clientId;
+                                  await NotificationService.notifyPublishDeptClientRejected(contentTitle: model.title, clientName: clientName);
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                        ),
-                        child: Text(
-                          'confirm'.tr,
-                          style: const TextStyle(color: Colors.white),
+                          child:
+                              controller.isLoading.value
+                                  ? const Center(
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                  : Text(
+                                    'confirm'.tr,
+                                    style: const TextStyle(color: Colors.white),
+                                  ),
                         ),
                       ),
-                    ),
                     const SizedBox(width: 12),
 
                     Expanded(
@@ -114,6 +137,7 @@ class RefuseRequestSheet extends StatelessWidget {
                       ),
                     ),
                   ],
+                ),
                 ),
                 SizedBox(height: 50),
               ],

@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:point/Controller/ClientController.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/ContentModel.dart';
 import 'package:point/Services/NotificationService.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/View/Shared/InputText.dart';
+import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 
 class EditRequestSheet extends StatelessWidget {
   final ContentModel model;
@@ -74,41 +77,82 @@ class EditRequestSheet extends StatelessWidget {
                     ),
                   ),
                   GetBuilder<HomeController>(
-                    builder: (controller) {
-                      return SizedBox(
-                        width: (Get.width * 0.9) - 30,
-                        child: Obx(
-                          () => Column(
-                            children: [
-                              for (var filePath
-                                  in controller.uploadedFilesPaths)
-                                Row(
-                                  children: [
-                                    InkWell(
-                                      onTap: () {
-                                        controller.uploadedFilesPaths.remove(
-                                          filePath,
-                                        );
-                                      },
-                                      child: Icon(
-                                        Icons.cancel,
-                                        color: Colors.red,
-                                      ),
-                                    ),
-                                    SizedBox(width: 5),
-                                    Text(
-                                      FunHelper.getFileNameFromUrl(filePath),
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.blue,
-                                        decoration: TextDecoration.underline,
-                                      ),
-                                    ),
-                                  ],
+                    builder: (home) {
+                      return Obx(
+                        () =>
+                            home.uploadedFilesPaths.isEmpty
+                                ? const SizedBox.shrink()
+                                : Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: GridView.builder(
+                                    shrinkWrap: true,
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    itemCount: home.uploadedFilesPaths.length,
+                                    gridDelegate:
+                                        const SliverGridDelegateWithFixedCrossAxisCount(
+                                          crossAxisCount: 3,
+                                          crossAxisSpacing: 10,
+                                          mainAxisSpacing: 10,
+                                          mainAxisExtent: 96,
+                                        ),
+                                    itemBuilder: (context, i) {
+                                      final filePath =
+                                          home.uploadedFilesPaths[i]
+                                              .toString();
+                                      return Center(
+                                        child: SizedBox(
+                                          width: 88,
+                                          height: 88,
+                                          child: Stack(
+                                            clipBehavior: Clip.none,
+                                            children: [
+                                              Positioned.fill(
+                                                child:
+                                                    TaskDetailsDialogHelpers.attachmentThumbnail(
+                                                      filePath,
+                                                      onOpen: () =>
+                                                          _openEditAttachment(
+                                                            filePath,
+                                                          ),
+                                                    ),
+                                              ),
+                                              PositionedDirectional(
+                                                top: 4,
+                                                end: 4,
+                                                child: Material(
+                                                  color: Colors.transparent,
+                                                  child: InkWell(
+                                                    onTap: () {
+                                                      home.uploadedFilesPaths
+                                                          .remove(filePath);
+                                                    },
+                                                    child: Container(
+                                                      width: 22,
+                                                      height: 22,
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.black54,
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              11,
+                                                            ),
+                                                      ),
+                                                      child: const Icon(
+                                                        Icons.close,
+                                                        color: Colors.white,
+                                                        size: 14,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
                                 ),
-                            ],
-                          ),
-                        ),
                       );
                     },
                   ),
@@ -118,23 +162,36 @@ class EditRequestSheet extends StatelessWidget {
                       children: [
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: () async {
-                              await controller
-                                  .updateContent(
-                                    model.copyWith(
-                                      status: StorageKeys.status_edit_requested,
-                                      // ignore: invalid_use_of_protected_member
-                                      clientEdits:
-                                          Get.find<HomeController>()
-                                              .uploadedFilesPaths,
-                                      clientNotes:
-                                          controller.notesController.text,
-                                    ),
-                                  )
-                                  .then((v) {
+                            onPressed: controller.isLoading.value
+                                ? null
+                                : () async {
+                                    final home = Get.find<HomeController>();
+                                    final edits =
+                                        List<dynamic>.from(
+                                          home.uploadedFilesPaths,
+                                        );
+                                    final ok = await controller.updateContent(
+                                      model.copyWith(
+                                        status:
+                                            StorageKeys.status_edit_requested,
+                                        clientEdits: edits,
+                                        clientNotes:
+                                            controller.notesController.text,
+                                      ),
+                                    );
+                                    if (!ok) {
+                                      FunHelper.showSnackbar(
+                                        'feedback.error_title'.tr,
+                                        'errors.network_failed'.tr,
+                                        snackPosition: SnackPosition.TOP,
+                                        backgroundColor: Colors.red,
+                                        colorText: Colors.white,
+                                      );
+                                      return;
+                                    }
+                                    home.uploadedFilesPaths.clear();
                                     Get.back();
                                     controller.notesController.clear();
-
                                     FunHelper.showSnackbar(
                                       'success'.tr,
                                       'requests.edit_sent'.tr,
@@ -142,11 +199,16 @@ class EditRequestSheet extends StatelessWidget {
                                       backgroundColor: Colors.green,
                                       colorText: Colors.white,
                                     );
-                                  });
-                              final clientName = Get.find<HomeController>().clients.firstWhereOrNull((c) => c.id == model.clientId)?.name ?? model.clientId;
-                              await NotificationService.notifyPublishDeptClientEditRequest(contentTitle: model.title);
-                              await NotificationService.notifyManagersClientNotesOnContent(clientName: clientName, contentTitle: model.title);
-                            },
+                                    final clientName =
+                                        home.clients
+                                            .firstWhereOrNull(
+                                              (c) => c.id == model.clientId,
+                                            )
+                                            ?.name ??
+                                        model.clientId;
+                                    await NotificationService.notifyPublishDeptClientEditRequest(contentTitle: model.title);
+                                    await NotificationService.notifyManagersClientNotesOnContent(clientName: clientName, contentTitle: model.title);
+                                  },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.green,
                               shape: RoundedRectangleBorder(
@@ -155,8 +217,12 @@ class EditRequestSheet extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(vertical: 14),
                             ),
                             child:
-                                Get.find<HomeController>().isLoading.value
-                                    ? Center(child: CircularProgressIndicator())
+                                controller.isLoading.value
+                                    ? const Center(
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                      ),
+                                    )
                                     : Text(
                                       'confirm'.tr,
                                       style: const TextStyle(color: Colors.white),
@@ -191,6 +257,24 @@ class EditRequestSheet extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+Future<void> _openEditAttachment(String rawUrl) async {
+  final uri = Uri.tryParse(rawUrl);
+  if (uri == null) {
+    FunHelper.showSnackbar(
+      'error'.tr,
+      AppLocaleKeys.contentDialogOpenLinkFailed.tr,
+    );
+    return;
+  }
+  final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+  if (!ok) {
+    FunHelper.showSnackbar(
+      'error'.tr,
+      AppLocaleKeys.contentDialogOpenLinkFailed.tr,
     );
   }
 }

@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
-import 'package:point/Localization/AppLocaleKeys.dart';
-import 'package:point/Localization/LanguageController.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/AppConstants.dart';
@@ -24,7 +22,6 @@ import 'package:point/View/Tasks/DetailsDialogs/DPublishDialog.dart';
 import 'package:point/View/Tasks/Dialogs/ProgrammingDialog.dart';
 
 class EmployeeDashboard extends StatelessWidget {
-  final LanguageController _languageController = Get.find<LanguageController>();
   @override
   Widget build(BuildContext context) {
     return GetBuilder<HomeController>(
@@ -77,33 +74,6 @@ class EmployeeDashboard extends StatelessWidget {
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          PopupMenuButton<String>(
-                            tooltip: AppLocaleKeys.appLanguage.tr,
-                            padding: EdgeInsets.zero,
-                            icon: const Icon(
-                              Icons.language,
-                              color: AppColors.primary,
-                            ),
-                            onSelected:
-                                (value) =>
-                                    _languageController.changeLanguage(value),
-                            itemBuilder:
-                                (context) => [
-                                  PopupMenuItem(
-                                    value: 'ar',
-                                    child: Text(
-                                      AppLocaleKeys.appLanguageArabic.tr,
-                                    ),
-                                  ),
-                                  PopupMenuItem(
-                                    value: 'en',
-                                    child: Text(
-                                      AppLocaleKeys.appLanguageEnglish.tr,
-                                    ),
-                                  ),
-                                ],
                           ),
                           Spacer(),
                           if (StorageKeys.matchesDepartment(

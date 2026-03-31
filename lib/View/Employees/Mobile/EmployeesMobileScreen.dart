@@ -11,6 +11,8 @@ class EmployeesMobileScreen extends StatelessWidget {
   final VoidCallback onAdd;
   final ValueChanged<EmployeeModel> onEdit;
   final ValueChanged<EmployeeModel> onDelete;
+  /// حذف الموظفين مسموح لـ admin فقط (قواعد Firestore).
+  final bool canDelete;
 
   const EmployeesMobileScreen({
     super.key,
@@ -18,6 +20,7 @@ class EmployeesMobileScreen extends StatelessWidget {
     required this.onAdd,
     required this.onEdit,
     required this.onDelete,
+    this.canDelete = false,
   });
 
   @override
@@ -132,29 +135,29 @@ class EmployeesMobileScreen extends StatelessWidget {
                             ),
                             color: Colors.white,
                             elevation: 4,
-                            itemBuilder:
-                                (context) => [
-                                  PopupMenuItem(
-                                    value: 0,
-                                    child: tableActionsMenuRow(
-                                      label: 'edit'.tr,
-                                      icon: Icons.edit_outlined,
-                                      iconColor: AppColors.success,
-                                    ),
+                            itemBuilder: (context) => [
+                              PopupMenuItem(
+                                value: 0,
+                                child: tableActionsMenuRow(
+                                  label: 'edit'.tr,
+                                  icon: Icons.edit_outlined,
+                                  iconColor: AppColors.success,
+                                ),
+                              ),
+                              if (canDelete)
+                                PopupMenuItem(
+                                  value: 1,
+                                  child: tableActionsMenuRow(
+                                    label: 'delete'.tr,
+                                    icon: Icons.delete_outline,
+                                    iconColor: AppColors.destructive,
                                   ),
-                                  PopupMenuItem(
-                                    value: 1,
-                                    child: tableActionsMenuRow(
-                                      label: 'delete'.tr,
-                                      icon: Icons.delete_outline,
-                                      iconColor: AppColors.destructive,
-                                    ),
-                                  ),
-                                ],
+                                ),
+                            ],
                             onSelected: (value) {
                               if (value == 0) {
                                 onEdit(emp);
-                              } else if (value == 1) {
+                              } else if (canDelete && value == 1) {
                                 onDelete(emp);
                               }
                             },

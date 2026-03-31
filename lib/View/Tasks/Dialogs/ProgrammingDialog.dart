@@ -6,7 +6,6 @@ import 'package:intl/intl.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/ProgrammingModel.dart';
 import 'package:point/Models/TaskModel.dart';
-import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Clients/ClientsTable.dart';
@@ -47,6 +46,10 @@ void programmingDialog(BuildContext context, {TaskModel? model}) {
 
   DateTime? startAt;
   DateTime? endAt;
+
+  Get.find<HomeController>().uploadedFilesPaths.assignAll(
+    List.from(model?.files ?? []),
+  );
 
   showDialog(
     barrierDismissible: false,
@@ -538,29 +541,112 @@ void programmingDialog(BuildContext context, {TaskModel? model}) {
                             SizedBox(
                               width: Get.width * 0.7 - 32,
                               child: Obx(
-                                () => Column(
-                                  children: [
-                                    for (var filePath in controller.uploadedFilesPaths)
-                                      Row(
-                                        children: [
-                                          InkWell(
-                                            onTap:
-                                                () => controller.uploadedFilesPaths.remove(filePath),
-                                            child: const Icon(Icons.cancel, color: Colors.red),
+                                () {
+                                  final files =
+                                      controller.uploadedFilesPaths.toList();
+                                  if (files.isEmpty) {
+                                    return const SizedBox.shrink();
+                                  }
+                                  return GridView.builder(
+                                    shrinkWrap: true,
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    itemCount: files.length,
+                                    gridDelegate:
+                                        const SliverGridDelegateWithFixedCrossAxisCount(
+                                          crossAxisCount: 2,
+                                          crossAxisSpacing: 10,
+                                          mainAxisSpacing: 10,
+                                          mainAxisExtent: 96,
+                                        ),
+                                    itemBuilder: (_, i) {
+                                      final filePath = files[i];
+                                      final lower =
+                                          filePath.toString().toLowerCase();
+                                      final isImage =
+                                          lower.endsWith('.jpg') ||
+                                          lower.endsWith('.jpeg') ||
+                                          lower.endsWith('.png') ||
+                                          lower.endsWith('.webp') ||
+                                          lower.endsWith('.gif');
+                                      return Center(
+                                        child: SizedBox(
+                                          width: 88,
+                                          height: 88,
+                                          child: Stack(
+                                            children: [
+                                              Positioned.fill(
+                                                child: ClipRRect(
+                                                  borderRadius:
+                                                      BorderRadius.circular(10),
+                                                  child:
+                                                      isImage
+                                                          ? Image.network(
+                                                            filePath,
+                                                            fit: BoxFit.cover,
+                                                            errorBuilder:
+                                                                (
+                                                                  _,
+                                                                  __,
+                                                                  ___,
+                                                                ) => Container(
+                                                                  color: Colors
+                                                                      .blueGrey
+                                                                      .shade100,
+                                                                  child: Icon(
+                                                                    Icons.link,
+                                                                    color: Colors
+                                                                        .blueGrey
+                                                                        .shade700,
+                                                                  ),
+                                                                ),
+                                                          )
+                                                          : Container(
+                                                            color: Colors
+                                                                .blueGrey
+                                                                .shade100,
+                                                            child: Icon(
+                                                              Icons.link,
+                                                              color: Colors
+                                                                  .blueGrey
+                                                                  .shade700,
+                                                            ),
+                                                          ),
+                                                ),
+                                              ),
+                                              Positioned(
+                                                top: 4,
+                                                right: 4,
+                                                child: InkWell(
+                                                  onTap:
+                                                      () => controller
+                                                          .uploadedFilesPaths
+                                                          .remove(filePath),
+                                                  child: Container(
+                                                    width: 20,
+                                                    height: 20,
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.black54,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            10,
+                                                          ),
+                                                    ),
+                                                    child: const Icon(
+                                                      Icons.close,
+                                                      color: Colors.white,
+                                                      size: 13,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                          const SizedBox(width: 5),
-                                          Text(
-                                            FunHelper.getFileNameFromUrl(filePath),
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.blue,
-                                              decoration: TextDecoration.underline,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                  ],
-                                ),
+                                        ),
+                                      );
+                                    },
+                                  );
+                                },
                               ),
                             ),
                           ],

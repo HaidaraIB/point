@@ -40,10 +40,13 @@ class ClientsTable extends StatelessWidget {
 
       body: GetBuilder<HomeController>(
         builder: (controller) {
+          final canDeleteClients =
+              controller.effectiveEmployee?.role == 'admin';
           return Responsive(
             mobile: Obx(
               () => ClientsMobileScreen(
                 clients: controller.clients.toList(),
+                canDelete: canDeleteClients,
                 onAdd: () => showAddEmployeeDialog(context),
                 onEdit: (client) => showAddEmployeeDialog(context, model: client),
                 onDelete: (client) {
@@ -280,6 +283,8 @@ class ClientsTable extends StatelessWidget {
                                                 itemBuilder: (context) {
                                                   final active =
                                                       emp.status == 'active';
+                                                  final toggleVal =
+                                                      canDeleteClients ? 2 : 1;
                                                   return [
                                                     PopupMenuItem(
                                                       value: 0,
@@ -292,19 +297,20 @@ class ClientsTable extends StatelessWidget {
                                                             AppColors.success,
                                                       ),
                                                     ),
-                                                    PopupMenuItem(
-                                                      value: 1,
-                                                      child:
-                                                          tableActionsMenuRow(
-                                                        label: 'delete'.tr,
-                                                        icon: Icons
-                                                            .delete_outline,
-                                                        iconColor: AppColors
-                                                            .destructive,
+                                                    if (canDeleteClients)
+                                                      PopupMenuItem(
+                                                        value: 1,
+                                                        child:
+                                                            tableActionsMenuRow(
+                                                          label: 'delete'.tr,
+                                                          icon: Icons
+                                                              .delete_outline,
+                                                          iconColor: AppColors
+                                                              .destructive,
+                                                        ),
                                                       ),
-                                                    ),
                                                     PopupMenuItem(
-                                                      value: 2,
+                                                      value: toggleVal,
                                                       child:
                                                           tableActionsMenuRow(
                                                         label: active
@@ -331,7 +337,8 @@ class ClientsTable extends StatelessWidget {
                                                       context,
                                                       model: emp,
                                                     );
-                                                  } else if (value == 1) {
+                                                  } else if (canDeleteClients &&
+                                                      value == 1) {
                                                     FunHelper.showConfirmDailog(
                                                       context,
                                                       onTap: () async {
@@ -341,7 +348,10 @@ class ClientsTable extends StatelessWidget {
                                                             );
                                                       },
                                                     );
-                                                  } else if (value == 2) {
+                                                  } else if (value ==
+                                                      (canDeleteClients
+                                                          ? 2
+                                                          : 1)) {
                                                     FunHelper.showConfirmDailog(
                                                       context,
                                                       onTap: () async {

@@ -3,17 +3,20 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/ContentModel.dart';
 import 'package:point/Models/EmployeeModel.dart';
 import 'package:point/Services/NotificationService.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/ContentPermissions.dart';
 import 'package:point/View/Clients/ClientsTable.dart' show customDatePicker;
 import 'package:point/View/Shared/CustomDropDown.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/t.dart';
+import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Mobile-only full-screen form for add/edit content. Desktop keeps using [showAddContentDialog].
@@ -56,6 +59,20 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
     notesController = TextEditingController(text: m?.clientNotes);
     fileController = TextEditingController();
     platforms = (m?.platform ?? []).obs;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final hc = Get.find<HomeController>();
+      if (!ContentPermissions.canAddOrEditContent(hc.currentemployee.value)) {
+        FunHelper.showSnackbar(
+          'error'.tr,
+          'errors.forbidden'.tr,
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        Get.back();
+      }
+    });
   }
 
   @override
@@ -67,6 +84,24 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
     notesController.dispose();
     fileController.dispose();
     super.dispose();
+  }
+
+  Future<void> _openUploadedFile(String rawUrl) async {
+    final uri = Uri.tryParse(rawUrl);
+    if (uri == null) {
+      FunHelper.showSnackbar(
+        'error'.tr,
+        AppLocaleKeys.contentDialogOpenLinkFailed.tr,
+      );
+      return;
+    }
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok && mounted) {
+      FunHelper.showSnackbar(
+        'error'.tr,
+        AppLocaleKeys.contentDialogOpenLinkFailed.tr,
+      );
+    }
   }
 
   Future<void> _pickPublishDate() async {
@@ -363,68 +398,79 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                     ),
                   ),
                   Obx(
-                    () => controller.uploadedFilesPaths.isEmpty
-                        ? const SizedBox.shrink()
-                        : Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 12),
-                              ...controller.uploadedFilesPaths.map(
-                                (filePath) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 8),
-                                  child: Row(
-                                    children: [
-                                      InkWell(
-                                        onTap: () => controller
-                                            .uploadedFilesPaths
-                                            .remove(filePath),
-                                        child: const Icon(
-                                          Icons.cancel,
-                                          color: Colors.red,
-                                          size: 22,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: InkWell(
-                                          onTap: () async {
-                                            if (await canLaunchUrl(
-                                              Uri.parse(filePath),
-                                            )) {
-                                              await launchUrl(
-                                                Uri.parse(filePath),
-                                                mode: LaunchMode
-                                                    .externalApplication,
-                                              );
-                                            } else {
-                                              if (context.mounted) {
-                                                FunHelper.showSnackbar(
-                                                  'error'.tr,
-                                                  'errors.cannot_open_link'.tr,
-                                                );
-                                              }
-                                            }
-                                          },
-                                          child: Text(
-                                            FunHelper.getFileNameFromUrl(
-                                              filePath,
-                                            ),
-                                            style: const TextStyle(
-                                              fontSize: 13,
-                                              color: Colors.blue,
-                                              decoration:
-                                                  TextDecoration.underline,
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
+                    () =>
+                        controller.uploadedFilesPaths.isEmpty
+                            ? const SizedBox.shrink()
+                            : Padding(
+                              padding: const EdgeInsets.only(top: 12),
+                              child: GridView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: controller.uploadedFilesPaths.length,
+                                gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 3,
+                                      crossAxisSpacing: 10,
+                                      mainAxisSpacing: 10,
+                                      mainAxisExtent: 96,
+                                    ),
+                                itemBuilder: (context, i) {
+                                  final filePath =
+                                      controller.uploadedFilesPaths[i]
+                                          .toString();
+                                  return Center(
+                                    child: SizedBox(
+                                      width: 88,
+                                      height: 88,
+                                      child: Stack(
+                                        clipBehavior: Clip.none,
+                                        children: [
+                                          Positioned.fill(
+                                            child:
+                                                TaskDetailsDialogHelpers.attachmentThumbnail(
+                                                  filePath,
+                                                  onOpen: () =>
+                                                      _openUploadedFile(
+                                                        filePath,
+                                                      ),
+                                                ),
                                           ),
-                                        ),
+                                          PositionedDirectional(
+                                            top: 4,
+                                            end: 4,
+                                            child: Material(
+                                              color: Colors.transparent,
+                                              child: InkWell(
+                                                onTap: () {
+                                                  controller.uploadedFilesPaths
+                                                      .remove(filePath);
+                                                },
+                                                child: Container(
+                                                  width: 22,
+                                                  height: 22,
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.black54,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          11,
+                                                        ),
+                                                  ),
+                                                  child: const Icon(
+                                                    Icons.close,
+                                                    color: Colors.white,
+                                                    size: 14,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                    ],
-                                  ),
-                                ),
+                                    ),
+                                  );
+                                },
                               ),
-                            ],
-                          ),
+                            ),
                   ),
                   const SizedBox(height: 32),
                   Obx(

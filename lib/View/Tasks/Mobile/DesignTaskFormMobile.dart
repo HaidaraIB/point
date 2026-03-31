@@ -66,6 +66,9 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
     notesController = TextEditingController();
     startAt = m?.fromDate;
     endAt = m?.toDate;
+    Get.find<HomeController>().uploadedFilesPaths.assignAll(
+      List.from(m?.files ?? []),
+    );
   }
 
   @override

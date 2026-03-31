@@ -1,43 +1,494 @@
 rules_version = '2';
-// قواعد Firestore لمشروع point
-// التطبيق يستخدم تسجيل دخول مخصص (email/password في Firestore) وليس Firebase Auth،
-// لذلك request.auth يكون null. القواعد التالية تسمح بالقراءة/الكتابة للمجموعات المستخدمة.
-// للإنتاج: يُفضّل تفعيل Firebase Authentication ثم تقييد الوصول حسب request.auth.uid
+// قواعد Firestore: تتطلب Firebase Auth + مستند authRoles/{uid} للموظفين/العملاء.
+// يزامن التطبيق authRoles عبر FirestoreServices.syncAuthRoleForEmployee / syncAuthRoleForClient.
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // الموظفون - تسجيل الدخول والبيانات
-    match /employees/{docId} {
-      allow read, write: if true;
+    function isSignedIn() {
+      return request.auth != null && request.auth.uid != null;
     }
 
-    // العملاء
-    match /clients/{docId} {
-      allow read, write: if true;
+    function authRoleDoc() {
+      return get(/databases/$(database)/documents/authRoles/$(request.auth.uid));
     }
 
-    // المحتوى
-    match /contents/{docId} {
-      allow read, write: if true;
+    function authRoleData() {
+      return authRoleDoc().data;
     }
 
-    // المهام
-    match /tasks/{docId} {
-      allow read, write: if true;
+    function hasAuthRole() {
+      return isSignedIn() && exists(/databases/$(database)/documents/authRoles/$(request.auth.uid));
     }
 
-    // المحادثات والرسائل (مجموعة فرعية)
+    function isAdmin() {
+      return hasAuthRole() && authRoleData().role == 'admin';
+    }
+
+    function isSupervisor() {
+      return hasAuthRole() && authRoleData().role == 'supervisor';
+    }
+
+    function isManager() {
+      return isAdmin() || isSupervisor();
+    }
+
+    function isEmployeeRole() {
+      return hasAuthRole() && authRoleData().role == 'employee';
+    }
+
+    function isClientRole() {
+      return hasAuthRole() && authRoleData().role == 'client';
+    }
+
+    function myEmployeeId() {
+      return authRoleData().employeeId;
+    }
+
+    function myClientId() {
+      return authRoleData().clientId;
+    }
+
+    function myDepartment() {
+      return authRoleData().department;
+    }
+
+    function actorParticipantId() {
+      return isClientRole() ? myClientId() : myEmployeeId();
+    }
+
+    function authRoleDeptMatchesEmployee(emp, dDept) {
+      let d = dDept == null ? '' : dDept;
+      let r = emp.role;
+      let ed = emp.department == null ? '' : emp.department;
+      return (r == 'admin' || r == 'supervisor') ? (d == '' || d == null) : (ed == d);
+    }
+
+    function validateEmployeeAuthRolePayload() {
+      let d = request.resource.data;
+      let emp = get(/databases/$(database)/documents/employees/$(d.employeeId)).data;
+      return emp.authUid == request.auth.uid
+        && emp.role == d.role
+        && authRoleDeptMatchesEmployee(emp, d.department);
+    }
+
+    function validateClientAuthRolePayload() {
+      let d = request.resource.data;
+      let cl = get(/databases/$(database)/documents/clients/$(d.clientId)).data;
+      return d.role == 'client'
+        && d.employeeId == null
+        && cl.authUid == request.auth.uid;
+    }
+
+    function authRoleDocKeysAllowed() {
+      return request.resource.data.keys().hasOnly(['role', 'employeeId', 'clientId', 'department', 'updatedAt']);
+    }
+
+    function validateAuthRoleWrite() {
+      let d = request.resource.data;
+      return authRoleDocKeysAllowed()
+        && ((d.role == 'client' && validateClientAuthRolePayload())
+            || (d.role != 'client' && validateEmployeeAuthRolePayload()));
+    }
+
+    function taskTypeMatchesDepartment(taskType, dept) {
+      return (dept == 'promotion' && taskType == '0')
+        || (dept == 'design' && taskType == '1')
+        || (dept == 'photography' && taskType == '2')
+        || (dept == 'content-writing' && taskType == '3')
+        || (dept == 'montage' && taskType == '4')
+        || (dept == 'publishing' && taskType == '5')
+        || (dept == 'programming' && taskType == '6');
+    }
+
+    function canReadTaskDoc() {
+      return isManager()
+        || (isEmployeeRole() && (
+          taskTypeMatchesDepartment(resource.data.type, myDepartment())
+          || resource.data.assignedTo == myEmployeeId()
+        ));
+    }
+
+    function employeeTaskUpdateForbidden() {
+      return (request.resource.data.status == 'status_approved'
+          || request.resource.data.status == 'status_rejected')
+        && request.resource.data.status != resource.data.status;
+    }
+
+    function employeeTaskUpdateAllowed() {
+      return request.resource.data.assignedTo == resource.data.assignedTo
+        && !employeeTaskUpdateForbidden();
+    }
+
+    function canReadContentsDoc() {
+      return isManager()
+        || (isEmployeeRole() && (myDepartment() == 'promotion' || myDepartment() == 'publishing'))
+        || (isClientRole() && resource.data.clientId == myClientId());
+    }
+
+    // موظف ترويج: يعدّل حقل promotion فقط.
+    function promotionEmployeeContentUpdateAllowed() {
+      return isEmployeeRole() && myDepartment() == 'promotion'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['promotion']);
+    }
+
+    // موظف نشر: يعدّل دون لمس promotion (لا حذف — allow delete منفصل).
+    function publishingEmployeeContentUpdateAllowed() {
+      return isEmployeeRole() && myDepartment() == 'publishing'
+        && request.resource.data.clientId == resource.data.clientId
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['promotion']);
+    }
+
+    // قراءة clients: موظفون/مديرون؛ عميل لمستنده؛ أو مستخدم مسجّل بريده يطابق المستند (تسجيل دخول قبل authRoles)
+    // أو غير مسجّل (استعلام loginClient/loginEmployee قبل signIn).
+    function canReadClientsDoc() {
+      return !isSignedIn()
+        || isManager()
+        || (isClientRole() && resource.id == myClientId())
+        || isEmployeeRole()
+        || (isSignedIn()
+          && request.auth.token.email != null
+          && resource.data.email == request.auth.token.email);
+    }
+
+    function canReadEmployeesDoc() {
+      return !isSignedIn() || isSignedIn();
+    }
+
+    function isMyDepartmentGroupChat(chatIdParam) {
+      return isEmployeeRole()
+        && myDepartment() != null
+        && myDepartment() != ''
+        && chatIdParam == ('group_' + myDepartment());
+    }
+
+    // محادثات مجموعة الأقسام: معرّفات group_<slug> (انظر StorageKeys.departmentSlugs).
+    // للقراءة/الاستعلام: لا نعتمد على مطابقة نصية لـ authRoles.department مع slug المستند
+    // (قد يكون الحقل عربيًا أو بأحرف مختلفة) — يكفي أن يكون المستخدم ضمن participants.
+    function isDepartmentGroupChatId(chatIdParam) {
+      return chatIdParam.matches('group_.+');
+    }
+
+    function employeeCanReadDepartmentGroupChatDoc(chatIdParam) {
+      return resource.data.isGroup == true
+        && actorParticipantId() in resource.data.participants
+        && isDepartmentGroupChatId(chatIdParam);
+    }
+
+    function chatGet(chatIdParam) {
+      return get(/databases/$(database)/documents/chats/$(chatIdParam));
+    }
+
+    function employeeCanReadGroupChatMessages(chatIdParam) {
+      let c = chatGet(chatIdParam);
+      return c.data.isGroup == true
+        && actorParticipantId() in c.data.participants
+        && isDepartmentGroupChatId(chatIdParam);
+    }
+
+    function expectedPrivateChatId(otherId) {
+      let myId = myEmployeeId();
+      return myId < otherId ? (myId + '_' + otherId) : (otherId + '_' + myId);
+    }
+
+    // للإنشاء/التحديث: التحقق من الطرف الآخر عبر employees.
+    // يجب exists قبل get — وإلا تفشل القاعدة إن لم يوجد المستند.
+    function employeeOtherAllowedInPrivateChat(participants) {
+      let myId = myEmployeeId();
+      let otherId = participants[0] == myId ? participants[1] : participants[0];
+      let otherPath = /databases/$(database)/documents/employees/$(otherId);
+      return participants.size() == 2
+        && participants.hasAny([myId])
+        && exists(otherPath)
+        && (
+          get(otherPath).data.role == 'admin'
+          || get(otherPath).data.role == 'supervisor'
+          || get(otherPath).data.department == myDepartment()
+        );
+    }
+
+    // للقراءة + استعلامات chats (arrayContains): بدون get(employees) —
+    // لا تُشترط participants.size()==2 هنا: الاستعلام يضمن arrayContains فقط،
+    // فإن اشترطنا الحجم ترفض Firestore الاستعلام كاملاً (أي مستند مطابق محتمل يفشل القاعدة).
+    // حجم 2 وسياسة الطرف الآخر تبقى على create/update للرسائل.
+    function employeeCanReadPrivateChatDoc() {
+      return resource.data.isGroup != true
+        && actorParticipantId() in resource.data.participants;
+    }
+
+    // ربط أول تسجيل دخول: authUid/authStatus (قبل وجود authRoles).
+    // يُسمح بتغيير authUid/authStatus فقط، مع إما عدم وجود authUid أو مطابقة البريد مع JWT.
+    function employeeAuthUidLooksUnset(emp) {
+      return !(emp.keys().hasAny(['authUid']))
+        || emp.authUid == null
+        || emp.authUid == '';
+    }
+
+    function employeeAuthBootstrapUpdate() {
+      let affected =
+        request.resource.data.diff(resource.data).affectedKeys();
+      let onlyAuthFields =
+        affected.hasOnly(['authUid', 'authStatus'])
+        || affected.hasOnly(['authUid'])
+        || affected.hasOnly(['authStatus']);
+      let emailMatchesJwt =
+        request.auth.token.email != null
+        && resource.data.email == request.auth.token.email;
+      return isSignedIn()
+        && request.resource.data.authUid == request.auth.uid
+        && request.resource.data.authStatus == 'active'
+        && onlyAuthFields
+        && (employeeAuthUidLooksUnset(resource.data) || emailMatchesJwt);
+    }
+
+    match /authRoles/{uid} {
+      allow read: if isSignedIn() && request.auth.uid == uid;
+      allow create, update: if isSignedIn() && request.auth.uid == uid && validateAuthRoleWrite();
+      allow delete: if false;
+    }
+
+    match /employees/{employeeId} {
+      allow read: if canReadEmployeesDoc();
+
+      allow create: if isSignedIn() && hasAuthRole() && isManager();
+
+      allow delete: if isSignedIn() && hasAuthRole() && isAdmin();
+
+      allow update: if isSignedIn() && hasAuthRole() && isManager()
+        || employeeAuthBootstrapUpdate()
+        || (isSignedIn() && hasAuthRole() && isEmployeeRole()
+          && resource.id == myEmployeeId()
+          && resource.data.authUid == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['fcmToken', 'fcmTokens', 'activeChatId', 'activeChatUpdatedAt']));
+    }
+
+    // ربط حساب Firebase Auth بمستند العميل عند أول تسجيل دخول — يجب أن يطابق البريد JWT مستند clients.email
+    // (فرع authUid فارغ وحده غير كافٍ إذا كان الحقل موجودًا بقيمة قديمة أو اختلاف diff في القواعد).
+    function clientAuthUidLinkUpdate() {
+      return isSignedIn()
+        && request.auth.token.email != null
+        && resource.data.email == request.auth.token.email
+        && request.resource.data.authUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['authUid', 'authStatus']);
+    }
+
+    match /clients/{clientId} {
+      allow read: if canReadClientsDoc();
+
+      allow create: if isSignedIn() && hasAuthRole() && isManager();
+
+      allow delete: if isSignedIn() && hasAuthRole() && isAdmin();
+
+      allow update: if isSignedIn() && hasAuthRole() && isManager()
+        || clientAuthUidLinkUpdate()
+        || (isSignedIn() && hasAuthRole() && isClientRole()
+          && clientId == myClientId()
+          && resource.data.authUid == request.auth.uid);
+    }
+
+    match /contents/{contentId} {
+      allow read: if isSignedIn() && hasAuthRole() && canReadContentsDoc();
+
+      allow create: if isSignedIn() && hasAuthRole()
+        && (isManager()
+          || (isEmployeeRole() && myDepartment() == 'publishing'));
+
+      allow delete: if isSignedIn() && hasAuthRole() && isManager();
+
+      allow update: if isSignedIn() && hasAuthRole() && (
+        isManager()
+        || (isClientRole()
+          && resource.data.clientId == myClientId()
+          && request.resource.data.clientId == resource.data.clientId)
+        || promotionEmployeeContentUpdateAllowed()
+        || publishingEmployeeContentUpdateAllowed()
+      );
+    }
+
+    match /tasks/{taskId} {
+      allow read: if isSignedIn() && hasAuthRole() && canReadTaskDoc();
+
+      allow create: if isSignedIn() && hasAuthRole() && isManager();
+
+      allow delete: if isSignedIn() && hasAuthRole() && isManager();
+
+      allow update: if isSignedIn() && hasAuthRole() && isManager()
+        || (isSignedIn() && hasAuthRole() && isEmployeeRole()
+          && canReadTaskDoc()
+          && employeeTaskUpdateAllowed());
+    }
+
+    match /notifications/{docId} {
+      allow read: if isSignedIn() && hasAuthRole()
+        && (isManager()
+          || resource.data.recipientId == 'all'
+          || resource.data.recipientId == myEmployeeId()
+          || resource.data.recipientId == myClientId());
+
+      allow create: if isSignedIn() && hasAuthRole();
+
+      allow update, delete: if isSignedIn() && hasAuthRole()
+        && (isManager()
+          || resource.data.recipientId == myEmployeeId()
+          || resource.data.recipientId == myClientId());
+    }
+
     match /chats/{chatId} {
-      allow read, write: if true;
+      // قراءة مستند غير موجود: لا يوجد resource.data.participants — يجب السماح لمجموعة القسم
+      // حتى يعمل groupRef.get() قبل الإنشاء (نفس فكرة المحادثة الخاصة + set merge).
+      allow read: if isSignedIn() && hasAuthRole()
+        && (
+          isManager()
+          || (
+            isEmployeeRole()
+            && (
+              (!exists(/databases/$(database)/documents/chats/$(chatId))
+                && isDepartmentGroupChatId(chatId))
+              || employeeCanReadDepartmentGroupChatDoc(chatId)
+              || employeeCanReadPrivateChatDoc()
+            )
+          )
+          || (
+            isClientRole()
+            && actorParticipantId() in resource.data.participants
+          )
+        );
+
+      allow create: if isSignedIn() && hasAuthRole()
+        && (
+          isManager()
+          || (
+            isEmployeeRole()
+            && (
+              (
+                request.resource.data.isGroup == true
+                && isMyDepartmentGroupChat(chatId)
+                && actorParticipantId() in request.resource.data.participants
+              )
+              || (
+                request.resource.data.isGroup != true
+                && request.resource.data.participants.size() == 2
+                && actorParticipantId() in request.resource.data.participants
+                && employeeOtherAllowedInPrivateChat(request.resource.data.participants)
+                && chatId == expectedPrivateChatId(
+                  (request.resource.data.participants[0] == myEmployeeId()
+                    ? request.resource.data.participants[1]
+                    : request.resource.data.participants[0])
+                )
+              )
+            )
+          )
+          || (
+            isClientRole()
+            && actorParticipantId() in request.resource.data.participants
+          )
+        );
+
+      // تحديث المحادثة: المدير كامل؛ الموظف داخل participants يحدّث lastMessage/lastUpdated فقط؛
+      // أو ينضم لمجموعة قسمه إن لم يكن في participants بعد (لا يُربط بشرط "داخل participants" لأنه تعارض منطقي).
+      allow update: if isSignedIn() && hasAuthRole()
+        && (
+          isManager()
+          || (
+            isEmployeeRole()
+            && actorParticipantId() in resource.data.participants
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage', 'lastUpdated'])
+          )
+          || (
+            isEmployeeRole()
+            && resource.data.isGroup == true
+            && isMyDepartmentGroupChat(chatId)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants', 'lastUpdated'])
+            && request.resource.data.participants.hasAll(resource.data.participants)
+            && request.resource.data.participants.hasAny([myEmployeeId()])
+            && request.resource.data.participants.size() == resource.data.participants.size() + 1
+            && !resource.data.participants.hasAny([myEmployeeId()])
+          )
+          || (
+            isClientRole()
+            && actorParticipantId() in resource.data.participants
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage', 'lastUpdated', 'participants', 'isGroup', 'title'])
+          )
+        );
+
+      allow delete: if isSignedIn() && hasAuthRole() && isManager();
+
       match /messages/{messageId} {
-        allow read, write: if true;
+        allow read: if isSignedIn() && hasAuthRole()
+          && (
+            isManager()
+            || (
+              isEmployeeRole()
+              && (
+                employeeCanReadGroupChatMessages(chatId)
+                || (
+                  get(/databases/$(database)/documents/chats/$(chatId)).data.isGroup != true
+                  && actorParticipantId() in get(/databases/$(database)/documents/chats/$(chatId)).data.participants
+                )
+              )
+            )
+            || (
+              isClientRole()
+              && actorParticipantId() in get(/databases/$(database)/documents/chats/$(chatId)).data.participants
+            )
+          );
+
+        allow create: if isSignedIn() && hasAuthRole()
+          && request.resource.data.senderId == actorParticipantId()
+          && (
+            isManager()
+            || (
+              isEmployeeRole()
+              && (
+                (
+                  employeeCanReadGroupChatMessages(chatId)
+                )
+                || (
+                  get(/databases/$(database)/documents/chats/$(chatId)).data.isGroup != true
+                  && actorParticipantId() in get(/databases/$(database)/documents/chats/$(chatId)).data.participants
+                  && employeeOtherAllowedInPrivateChat(get(/databases/$(database)/documents/chats/$(chatId)).data.participants)
+                )
+              )
+            )
+            || (
+              isClientRole()
+              && actorParticipantId() in get(/databases/$(database)/documents/chats/$(chatId)).data.participants
+            )
+          );
+
+        allow update, delete: if isSignedIn() && hasAuthRole()
+          && actorParticipantId() in get(/databases/$(database)/documents/chats/$(chatId)).data.participants
+          && (
+            isManager()
+            || isClientRole()
+            || (
+              isEmployeeRole()
+              && (
+                employeeCanReadGroupChatMessages(chatId)
+                || (
+                  get(/databases/$(database)/documents/chats/$(chatId)).data.isGroup != true
+                  && employeeOtherAllowedInPrivateChat(get(/databases/$(database)/documents/chats/$(chatId)).data.participants)
+                )
+              )
+            )
+          );
       }
     }
 
-    // الإشعارات
-    match /notifications/{docId} {
-      allow read, write: if true;
+    match /push_diagnostics/{docId} {
+      allow create: if isSignedIn();
+      allow read: if isSignedIn() && hasAuthRole() && isManager();
+      allow update, delete: if false;
+    }
+
+    match /app_error_logs/{docId} {
+      allow create: if isSignedIn();
+      allow read, update, delete: if isSignedIn() && hasAuthRole() && isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

@@ -159,9 +159,32 @@ class StorageKeys {
 
   /// Converts stored department value to semantic key.
   static String normalizeDepartment(String? department) {
-    final value = (department ?? '').trim().toLowerCase();
-    if (value.isEmpty) return '';
+    final raw = (department ?? '').trim();
+    if (raw.isEmpty) return '';
+    final value = raw.toLowerCase();
     if (departmentSlugs.contains(value)) return value;
+
+    // Latin / shorthand (legacy or manual entry)
+    const Map<String, String> aliases = {
+      'promotions': departmentPromotion,
+      'promo': departmentPromotion,
+      'publishing': departmentPublishing,
+      'publish': departmentPublishing,
+    };
+    if (aliases.containsKey(value)) return aliases[value]!;
+
+    // Arabic or mixed labels often stored in Firestore instead of slugs
+    if (raw.contains('ترويج')) return departmentPromotion;
+    if (raw.contains('النشر') || raw.contains('قسم النشر')) {
+      return departmentPublishing;
+    }
+    if (value.contains('promotion') || value.contains('promo')) {
+      return departmentPromotion;
+    }
+    if (value.contains('publishing') || value.contains('publish')) {
+      return departmentPublishing;
+    }
+
     return '';
   }
 

@@ -50,6 +50,11 @@ scripts/build-release-apk.local.ps1
 .env.old
 .env.new
 firebase-adminsdk.json
+# مفتاح الخدمة المحلي لسكربتات Node (انظر scripts/*.mjs)
+scripts/serviceAccount.json
+
+# Firebase CLI / Emulator (كاش؛ سجلات *.log مغطاة أعلاه)
+.firebase/
 # Web: يُنشأ عبر node scripts/generate-firebase-sw.js
 web/firebase-messaging-sw.js
 
@@ -57,8 +62,10 @@ web/firebase-messaging-sw.js
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
 
+# Node (سكربتات الجذر: firebase-admin، backfill — يغطي أيضاً functions/)
+node_modules/
+
 # Firebase Functions (تم تعطيلها لتجنب Blaze)
-functions/node_modules/
 functions/package-lock.json
 
 # Backup / old config (لا تتبع نسخ احتياطية)
@@ -77,4 +84,9 @@ supabase/.temp/
 analyze_output.txt
 *.analyze_output.txt
 
+# تغطية الاختبارات
+coverage/
+
 .vscode/
+
+.cursor/

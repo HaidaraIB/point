@@ -108,6 +108,7 @@ class AppLocaleKeys {
   static const contentDialogNoDate = 'content.dialog.no_date';
   static const contentDialogUnknown = 'content.dialog.unknown';
   static const contentDialogOpenLinkFailed = 'content.dialog.open_link_failed';
+  static const contentDialogTapToChange = 'content.dialog.tap_to_change';
 
   static const pushTestOpenButton = 'push_test.open_button';
   static const pushTestTitle = 'push_test.title';

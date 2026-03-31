@@ -39,6 +39,30 @@ class FcmSendException implements Exception {
 class FirestoreServices {
   static final Random _random = Random();
 
+  /// يمنع تسرب أخطاء `permission-denied` إلى [Rx.bindStream] / الـ zone بعد تسجيل الخروج.
+  static Stream<List<T>> _safeFirestoreListStream<T>(
+    Stream<List<T>> source,
+    String label,
+  ) {
+    return source.transform(
+      StreamTransformer<List<T>, List<T>>.fromHandlers(
+        handleError: (Object error, StackTrace stackTrace, EventSink<List<T>> sink) {
+          if (FirebaseAuth.instance.currentUser == null) {
+            sink.add(<T>[]);
+            return;
+          }
+          final msg = error.toString();
+          if (msg.contains('permission-denied')) {
+            sink.add(<T>[]);
+            return;
+          }
+          log('⚠️ Firestore stream [$label]: $error');
+          sink.add(<T>[]);
+        },
+      ),
+    );
+  }
+
   static String _newPushRequestId() {
     final ms = DateTime.now().millisecondsSinceEpoch;
     final rand = _random.nextInt(1 << 20).toRadixString(16);
@@ -326,10 +350,73 @@ class FirestoreServices {
     }
   }
 
+  static const String authRolesCollection = 'authRoles';
+
+  /// يزامن مستند [authRoles] لـ Firebase Auth uid مع بيانات الموظف في Firestore.
+  /// تُستخدم قواعد الأمان للتحقق من أن الحقول تطابق `employees/{employeeId}`.
+  static Future<void> syncAuthRoleForEmployee(EmployeeModel employee) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final eid = employee.id?.trim();
+    if (uid == null || uid.isEmpty || eid == null || eid.isEmpty) return;
+    try {
+      await FirebaseFirestore.instance.collection(authRolesCollection).doc(uid).set(
+        {
+          'role': employee.role,
+          'employeeId': eid,
+          'clientId': null,
+          'department': employee.department,
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+    } catch (e, s) {
+      log('⚠️ syncAuthRoleForEmployee failed: $e');
+      log('$s');
+    }
+  }
+
+  /// يزامن [authRoles] لحساب عميل بعد تسجيل الدخول.
+  static Future<void> syncAuthRoleForClient(ClientModel client) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final cid = client.id?.trim();
+    if (uid == null || uid.isEmpty || cid == null || cid.isEmpty) return;
+    try {
+      await FirebaseFirestore.instance.collection(authRolesCollection).doc(uid).set(
+        {
+          'role': 'client',
+          'employeeId': null,
+          'clientId': cid,
+          'department': null,
+          'updatedAt': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+    } catch (e, s) {
+      log('⚠️ syncAuthRoleForClient failed: $e');
+      log('$s');
+    }
+  }
+
   Future<void> _updateAuthFieldsWithRetry({
     required DocumentReference docRef,
     required String uid,
   }) async {
+    // On web, Firestore request auth context may lag briefly right after
+    // signIn/createUser; wait until FirebaseAuth is fully hydrated.
+    const hydrationMaxAttempts = 20;
+    for (var i = 0; i < hydrationMaxAttempts; i++) {
+      final cu = FirebaseAuth.instance.currentUser;
+      if (cu != null && cu.uid == uid) {
+        try {
+          await cu.getIdToken();
+          break;
+        } catch (_) {
+          // keep retrying until token is ready
+        }
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+
     const maxAttempts = 3;
     for (var attempt = 0; attempt < maxAttempts; attempt++) {
       try {
@@ -642,6 +729,7 @@ class FirestoreServices {
 
       await _updateAuthFieldsWithRetry(docRef: doc.reference, uid: uid);
       employee = employee.copyWith(authUid: uid, authStatus: 'active');
+      await FirestoreServices.syncAuthRoleForEmployee(employee);
       return employee;
     } on FirebaseAuthException catch (e, s) {
       log(
@@ -727,13 +815,16 @@ class FirestoreServices {
   // 📡 قراءة كل الموظفين (Stream) — يشمل admin وsupervisor وemployee.
   Stream<List<EmployeeModel>> getEmployees() {
     try {
-      return _employeeCollection.snapshots().map((snapshot) {
-        return snapshot.docs.map((doc) {
-          final raw = doc.data();
-          final map = Map<String, dynamic>.from(raw as Map);
-          return EmployeeModel.fromJson(map);
-        }).toList();
-      });
+      return _safeFirestoreListStream(
+        _employeeCollection.snapshots().map((snapshot) {
+          return snapshot.docs.map((doc) {
+            final raw = doc.data();
+            final map = Map<String, dynamic>.from(raw as Map);
+            return EmployeeModel.fromJson(map);
+          }).toList();
+        }),
+        'employees',
+      );
     } catch (e, s) {
       log("❌ خطأ أثناء جلب كل الموظفين: $e");
       log("StackTrace: $s");
@@ -811,6 +902,9 @@ class FirestoreServices {
   Future<ClientModel?> loginClient(String email, String password) async {
     final normalizedEmail = email.trim().toLowerCase();
     try {
+      // جلسة Firebase قديمة (بدون authRoles مناسب) ترفض قراءة clients — نبدأ من دون مستخدم.
+      await FirebaseAuth.instance.signOut();
+
       // 1) Fetch profile from Firestore by email.
       final query =
           await _clientCollection
@@ -854,6 +948,7 @@ class FirestoreServices {
 
       await _updateAuthFieldsWithRetry(docRef: doc.reference, uid: uid);
       client = client.copyWith(authUid: uid, authStatus: 'active');
+      await FirestoreServices.syncAuthRoleForClient(client);
       return client;
     } on FirebaseAuthException catch (e, s) {
       log(
@@ -892,8 +987,58 @@ class FirestoreServices {
   }
 
   Future<void> signOut() async {
-    await _removeCurrentDeviceFcmToken();
+    try {
+      await _removeCurrentDeviceFcmToken();
+    } catch (e) {
+      log("⚠️ signOut: FCM cleanup failed (ignored): $e");
+    }
     await FirebaseAuth.instance.signOut();
+  }
+
+  /// يزيل توكن الجهاز من [fcmToken]/[fcmTokens] فقط (متوافق مع قواعد Firestore).
+  Future<void> _stripFcmTokenFromUserDoc(
+    DocumentReference ref,
+    String cleanedToken,
+  ) async {
+    final snap = await ref.get();
+    if (!snap.exists) return;
+    final raw = snap.data();
+    final m = raw is Map<String, dynamic> ? raw : null;
+    final currentSingle = m?['fcmToken']?.toString().trim() ?? '';
+    await ref.update({
+      'fcmTokens': FieldValue.arrayRemove([cleanedToken]),
+      if (currentSingle == cleanedToken) 'fcmToken': null,
+    });
+  }
+
+  /// بدون authRoles: استعلام authUid (قد يفشل التحديث إن لم يطابق documentId الـ employeeId في القواعد).
+  Future<void> _removeCurrentDeviceFcmTokenLegacyQuery(
+    String authUid,
+    String cleanedToken,
+  ) async {
+    final employeeSnap =
+        await _employeeCollection
+            .where('authUid', isEqualTo: authUid)
+            .limit(1)
+            .get();
+    if (employeeSnap.docs.isNotEmpty) {
+      await _stripFcmTokenFromUserDoc(
+        employeeSnap.docs.first.reference,
+        cleanedToken,
+      );
+    }
+
+    final clientSnap =
+        await _clientCollection
+            .where('authUid', isEqualTo: authUid)
+            .limit(1)
+            .get();
+    if (clientSnap.docs.isNotEmpty) {
+      await _stripFcmTokenFromUserDoc(
+        clientSnap.docs.first.reference,
+        cleanedToken,
+      );
+    }
   }
 
   Future<void> _removeCurrentDeviceFcmToken() async {
@@ -904,37 +1049,36 @@ class FirestoreServices {
       final cleanedToken = token?.trim() ?? '';
       if (cleanedToken.isEmpty) return;
 
-      final employeeSnap =
-          await _employeeCollection
-              .where('authUid', isEqualTo: user.uid)
-              .limit(1)
+      // تحديث الموظف مسموح فقط على employees/{myEmployeeId} — نقرأ المعرف من authRoles.
+      final roleSnap =
+          await FirebaseFirestore.instance
+              .collection(authRolesCollection)
+              .doc(user.uid)
               .get();
-      if (employeeSnap.docs.isNotEmpty) {
-        final ref = employeeSnap.docs.first.reference;
-        final employeeData = employeeSnap.docs.first.data();
-        final employeeMap =
-            employeeData is Map<String, dynamic> ? employeeData : null;
-        final currentSingle = employeeMap?['fcmToken']?.toString().trim() ?? '';
-        await ref.update({
-          'fcmTokens': FieldValue.arrayRemove([cleanedToken]),
-          if (currentSingle == cleanedToken) 'fcmToken': null,
-        });
+
+      if (roleSnap.exists && roleSnap.data() != null) {
+        final rd = roleSnap.data()!;
+        final role = rd['role']?.toString();
+        final employeeId = rd['employeeId']?.toString().trim();
+        final clientId = rd['clientId']?.toString().trim();
+
+        if (role == 'client' && clientId != null && clientId.isNotEmpty) {
+          await _stripFcmTokenFromUserDoc(
+            _clientCollection.doc(clientId),
+            cleanedToken,
+          );
+          return;
+        }
+        if (employeeId != null && employeeId.isNotEmpty) {
+          await _stripFcmTokenFromUserDoc(
+            _employeeCollection.doc(employeeId),
+            cleanedToken,
+          );
+          return;
+        }
       }
 
-      final clientSnap =
-          await _clientCollection
-              .where('authUid', isEqualTo: user.uid)
-              .limit(1)
-              .get();
-      if (clientSnap.docs.isNotEmpty) {
-        final ref = clientSnap.docs.first.reference;
-        final clientData = clientSnap.docs.first.data();
-        final currentSingle = clientData['fcmToken']?.toString().trim() ?? '';
-        await ref.update({
-          'fcmTokens': FieldValue.arrayRemove([cleanedToken]),
-          if (currentSingle == cleanedToken) 'fcmToken': null,
-        });
-      }
+      await _removeCurrentDeviceFcmTokenLegacyQuery(user.uid, cleanedToken);
     } catch (e) {
       log("⚠️ remove current device token before signOut failed: $e");
     }
@@ -951,9 +1095,11 @@ class FirestoreServices {
             .get();
     if (byUid.docs.isNotEmpty) {
       final doc = byUid.docs.first;
-      return EmployeeModel.fromJson(
+      final emp = EmployeeModel.fromJson(
         doc.data() as Map<String, dynamic>,
       ).copyWith(id: doc.id);
+      await FirestoreServices.syncAuthRoleForEmployee(emp);
+      return emp;
     }
     final email = current.email?.trim().toLowerCase();
     if (email == null || email.isEmpty) return null;
@@ -968,35 +1114,45 @@ class FirestoreServices {
       'authUid': uid,
       'authStatus': 'active',
     });
-    return EmployeeModel.fromJson(
+    final restored = EmployeeModel.fromJson(
       doc.data() as Map<String, dynamic>,
     ).copyWith(id: doc.id, authUid: uid, authStatus: 'active');
+    await FirestoreServices.syncAuthRoleForEmployee(restored);
+    return restored;
   }
 
   Future<ClientModel?> getCurrentClientByAuth() async {
     final current = FirebaseAuth.instance.currentUser;
     if (current == null) return null;
     final uid = current.uid;
-    final byUid =
-        await _clientCollection.where('authUid', isEqualTo: uid).limit(1).get();
-    if (byUid.docs.isNotEmpty) {
-      final doc = byUid.docs.first;
-      return ClientModel.fromJson(doc.data(), doc.id);
-    }
     final email = current.email?.trim().toLowerCase();
     if (email == null || email.isEmpty) return null;
+
+    // استعلام بالبريد فقط: قواعد Firestore تسمح بـ canReadClientsDoc عندما يطابق
+    // المستند request.auth.token.email. استعلام authUid أولاً يُرفض كاملاً قبل وجود authRoles.
     final byEmail =
         await _clientCollection.where('email', isEqualTo: email).limit(1).get();
     if (byEmail.docs.isEmpty) return null;
+
     final doc = byEmail.docs.first;
-    await _clientCollection.doc(doc.id).update({
-      'authUid': uid,
-      'authStatus': 'active',
-    });
-    return ClientModel.fromJson(
-      doc.data(),
-      doc.id,
-    ).copyWith(authUid: uid, authStatus: 'active');
+    var client = ClientModel.fromJson(doc.data(), doc.id);
+
+    if (client.authUid != null &&
+        client.authUid!.trim().isNotEmpty &&
+        client.authUid != uid) {
+      return null;
+    }
+
+    if (client.authUid == uid) {
+      await FirestoreServices.syncAuthRoleForClient(client);
+      return client;
+    }
+
+    await _updateAuthFieldsWithRetry(docRef: doc.reference, uid: uid);
+    final restored =
+        client.copyWith(authUid: uid, authStatus: 'active');
+    await FirestoreServices.syncAuthRoleForClient(restored);
+    return restored;
   }
 
   Future<bool> addClient(ClientModel client) async {
@@ -1031,15 +1187,43 @@ class FirestoreServices {
   }
 
   Stream<List<ClientModel>> getClientsStream() {
-    return _clientCollection
-        .orderBy("createdAt", descending: true)
-        .snapshots()
-        .map(
-          (snapshot) =>
-              snapshot.docs
-                  .map((doc) => ClientModel.fromJson(doc.data(), doc.id))
-                  .toList(),
-        );
+    return _safeFirestoreListStream(
+      _clientCollection
+          .orderBy("createdAt", descending: true)
+          .snapshots()
+          .map(
+            (snapshot) =>
+                snapshot.docs
+                    .map((doc) => ClientModel.fromJson(doc.data(), doc.id))
+                    .toList(),
+          ),
+      'clients',
+    );
+  }
+
+  /// للعميل بعد تسجيل الدخول: لا يقرأ إلا مستنده (استعلام بالبريد يتوافق مع canReadClientsDoc + JWT).
+  Stream<List<ClientModel>> getClientsStreamForCurrentAuthEmail() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return Stream<List<ClientModel>>.value(const <ClientModel>[]);
+    }
+    final email = user.email?.trim().toLowerCase();
+    if (email == null || email.isEmpty) {
+      return Stream<List<ClientModel>>.value(const <ClientModel>[]);
+    }
+    return _safeFirestoreListStream(
+      _clientCollection
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .snapshots()
+          .map(
+            (snapshot) =>
+                snapshot.docs
+                    .map((doc) => ClientModel.fromJson(doc.data(), doc.id))
+                    .toList(),
+          ),
+      'clientsForEmail',
+    );
   }
 
   final _db = FirebaseFirestore.instance.collection("contents");
@@ -1066,6 +1250,17 @@ class FirestoreServices {
     }
   }
 
+  /// تحديث حقل الترويج فقط — يتوافق مع قواعد موظف الترويج في Firestore.
+  Future<bool> updateContentPromotionField(String contentId, String promotion) async {
+    try {
+      await _db.doc(contentId).update({'promotion': promotion});
+      return true;
+    } catch (e) {
+      log("❌ Error updateContentPromotionField: $e");
+      return false;
+    }
+  }
+
   Future<bool> deleteContent(String id) async {
     try {
       await _db.doc(id).delete();
@@ -1077,28 +1272,34 @@ class FirestoreServices {
   }
 
   Stream<List<ContentModel>> getContents() {
-    return _db
-        .orderBy("createdAt", descending: true)
-        .snapshots()
-        .map(
-          (snapshot) =>
-              snapshot.docs
-                  .map((doc) => ContentModel.fromJson(doc.data(), doc.id))
-                  .toList(),
-        );
+    return _safeFirestoreListStream(
+      _db
+          .orderBy("createdAt", descending: true)
+          .snapshots()
+          .map(
+            (snapshot) =>
+                snapshot.docs
+                    .map((doc) => ContentModel.fromJson(doc.data(), doc.id))
+                    .toList(),
+          ),
+      'contents',
+    );
   }
 
   Stream<List<ContentModel>> getContentsForClient(clientId) {
-    return _db
-        .where('clientId', isEqualTo: clientId)
-        .orderBy("createdAt", descending: true)
-        .snapshots()
-        .map(
-          (snapshot) =>
-              snapshot.docs
-                  .map((doc) => ContentModel.fromJson(doc.data(), doc.id))
-                  .toList(),
-        );
+    return _safeFirestoreListStream(
+      _db
+          .where('clientId', isEqualTo: clientId)
+          .orderBy("createdAt", descending: true)
+          .snapshots()
+          .map(
+            (snapshot) =>
+                snapshot.docs
+                    .map((doc) => ContentModel.fromJson(doc.data(), doc.id))
+                    .toList(),
+          ),
+      'contentsForClient',
+    );
   }
 
   final _dbtask = FirebaseFirestore.instance.collection("tasks");
@@ -1136,27 +1337,96 @@ class FirestoreServices {
   }
 
   Stream<List<TaskModel>> getTasks() {
-    return _dbtask.snapshots().map(
-      (snapshot) =>
-          snapshot.docs.map((doc) {
-            final raw = doc.data();
-            final map = Map<String, dynamic>.from(raw as Map);
-            return TaskModel.fromJson(map);
-          }).toList(),
+    return _safeFirestoreListStream(
+      _dbtask.snapshots().map(
+        (snapshot) =>
+            snapshot.docs.map((doc) {
+              final raw = doc.data();
+              final map = Map<String, dynamic>.from(raw as Map);
+              return TaskModel.fromJson(map);
+            }).toList(),
+      ),
+      'tasks',
+    );
+  }
+
+  /// يطابق [canReadTaskDoc] في firestore.rules: مهام القسم (`type`) أو المعيّنة للموظف.
+  /// الاستعلام على المجموعة كاملة يُرفض للموظف لأن القواعد لا تضمن قراءة كل المستندات.
+  static String? _taskTypeCodeForNormalizedDepartment(String normalizedDept) {
+    switch (normalizedDept) {
+      case StorageKeys.departmentPromotion:
+        return '0';
+      case StorageKeys.departmentDesign:
+        return '1';
+      case StorageKeys.departmentPhotography:
+        return '2';
+      case StorageKeys.departmentContentWriting:
+        return '3';
+      case StorageKeys.departmentMontage:
+        return '4';
+      case StorageKeys.departmentPublishing:
+        return '5';
+      case StorageKeys.departmentProgramming:
+        return '6';
+      default:
+        return null;
+    }
+  }
+
+  /// تيار مهام موظف عادي (ليس مشرفاً/مديراً): `assignedTo` أو `type` حسب القسم.
+  Stream<List<TaskModel>> getTasksStreamForEmployee({
+    required String employeeId,
+    String? departmentRaw,
+  }) {
+    final trimmedId = employeeId.trim();
+    if (trimmedId.isEmpty) {
+      return Stream<List<TaskModel>>.value(const <TaskModel>[]);
+    }
+    final dept = StorageKeys.normalizeDepartment(departmentRaw);
+    final typeCode = _taskTypeCodeForNormalizedDepartment(dept);
+
+    Query<Map<String, dynamic>> q;
+    if (typeCode != null) {
+      q = _dbtask.where(
+        Filter.or(
+          Filter('assignedTo', isEqualTo: trimmedId),
+          Filter('type', isEqualTo: typeCode),
+        ),
+      );
+    } else {
+      q = _dbtask.where('assignedTo', isEqualTo: trimmedId);
+    }
+
+    return _safeFirestoreListStream(
+      q.snapshots().map((snapshot) {
+        final list =
+            snapshot.docs.map((doc) {
+              final raw = doc.data();
+              final map = Map<String, dynamic>.from(raw);
+              map['id'] = doc.id;
+              return TaskModel.fromJson(map);
+            }).toList();
+        list.sort((a, b) => a.fromDate.compareTo(b.fromDate));
+        return list;
+      }),
+      'tasksForEmployee',
     );
   }
 
   Stream<List<MessageModel>> getMessages(String chatId) {
-    return db
-        .collection('chats/$chatId/messages')
-        .orderBy('timestamp', descending: false)
-        .snapshots()
-        .map(
-          (snapshot) =>
-              snapshot.docs
-                  .map((e) => MessageModel.fromJson(e.data()))
-                  .toList(),
-        );
+    return _safeFirestoreListStream(
+      db
+          .collection('chats/$chatId/messages')
+          .orderBy('timestamp', descending: false)
+          .snapshots()
+          .map(
+            (snapshot) =>
+                snapshot.docs
+                    .map((e) => MessageModel.fromJson(e.data()))
+                    .toList(),
+          ),
+      'chatMessages',
+    );
   }
 
   Future<void> sendMessage(String chatId, MessageModel message) async {
@@ -1286,6 +1556,34 @@ class FirestoreServices {
     StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? chatsSub;
     final Map<String, StreamSubscription<int>> unreadSubs = {};
 
+    void onUnreadSubError(Object e, StackTrace st) {
+      // أثناء تسجيل الخروج تُلغى صلاحيات Firestore؛ لا نُمرّر الخطأ للمستمع (RethrownDartError).
+      if (FirebaseAuth.instance.currentUser == null) return;
+      final msg = e.toString();
+      if (msg.contains('permission-denied')) return;
+      log('⚠️ getTotalUnreadMessagesStream (messages sub): $e');
+    }
+
+    void onChatsSubError(Object e, StackTrace st) {
+      if (FirebaseAuth.instance.currentUser == null) {
+        try {
+          controller.add(0);
+        } catch (_) {}
+        return;
+      }
+      final msg = e.toString();
+      if (msg.contains('permission-denied')) {
+        try {
+          controller.add(0);
+        } catch (_) {}
+        return;
+      }
+      log('⚠️ getTotalUnreadMessagesStream (chats): $e');
+      try {
+        controller.add(0);
+      } catch (_) {}
+    }
+
     void cancelUnreadSubs() {
       for (final sub in unreadSubs.values) {
         sub.cancel();
@@ -1336,7 +1634,7 @@ class FirestoreServices {
             }
             emitTotal();
           },
-          onError: controller.addError,
+          onError: onUnreadSubError,
           cancelOnError: false,
         );
       }
@@ -1346,7 +1644,7 @@ class FirestoreServices {
         .collection('chats')
         .where('participants', arrayContains: userId)
         .snapshots()
-        .listen(onChatsUpdate, onError: controller.addError);
+        .listen(onChatsUpdate, onError: onChatsSubError);
 
     controller.onCancel = () {
       chatsSub?.cancel();
@@ -1371,29 +1669,24 @@ class FirestoreServices {
   Stream<List<NotificationModel>> getNotifications(
     String userId,
     String otherId,
-  ) async* {
-    while (true) {
-      try {
-        await for (final snapshot
-            in FirebaseFirestore.instance
-                .collection('notifications')
-                .where('recipientId', whereIn: [userId, otherId])
-                .orderBy('createdAt', descending: true)
-                .snapshots()) {
-          yield snapshot.docs
+  ) {
+    if (FirebaseAuth.instance.currentUser == null) {
+      return Stream<List<NotificationModel>>.value(const <NotificationModel>[]);
+    }
+    final mapped = FirebaseFirestore.instance
+        .collection('notifications')
+        .where('recipientId', whereIn: [userId, otherId])
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
               .map(
                 (doc) =>
                     NotificationModel.fromJson({...doc.data(), 'id': doc.id}),
               )
-              .toList();
-        }
-      } catch (e) {
-        // الفهرس قد يكون قيد البناء (failed-precondition) — نعرض قائمة فارغة ونعيد المحاولة لاحقاً
-        log("⚠️ getNotifications (index may be building): $e");
-        yield [];
-        await Future<void>.delayed(const Duration(seconds: 15));
-      }
-    }
+              .toList(),
+        );
+    return _safeFirestoreListStream(mapped, 'notifications');
   }
 
   /// Diagnostics query by request id.

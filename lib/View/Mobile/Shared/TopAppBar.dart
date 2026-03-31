@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Utils/AppColors.dart';
 
-Widget TopAppBar(title) {
+Widget TopAppBar(BuildContext context, String title) {
+  final backIcon =
+      Directionality.of(context) == TextDirection.rtl
+          ? Icons.arrow_forward
+          : Icons.arrow_back;
   return Container(
     child: Row(
       // mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -12,7 +16,7 @@ Widget TopAppBar(title) {
           onTap: () {
             Get.back();
           },
-          child: Icon(Icons.arrow_back),
+          child: Icon(backIcon),
         ),
         Spacer(),
         Text(

@@ -37,6 +37,9 @@ const double _kMobileEmptyIconSize = 40.0;
 const double _kMobileMinTouchHeight = 48.0;
 const double _kMobileAccentBarHeight = 4.0;
 
+/// إظهار زر «اختبار أنواع الإشعارات» في الصفحة الرئيسية (معطّل حالياً).
+const bool _kShowPushNotificationTestButton = false;
+
 /// Wraps a ListView.builder with a Scrollbar using a dedicated ScrollController
 /// so the scroll position is attached (fixes "ScrollController has no ScrollPosition" on web).
 class _ScrollableHomeList extends StatefulWidget {
@@ -174,7 +177,8 @@ class Home extends StatelessWidget {
             ],
           ],
         ),
-        if (canOpenPushNotificationTester(
+        if (_kShowPushNotificationTestButton &&
+            canOpenPushNotificationTester(
               controller.effectiveEmployee?.role,
             )) ...[
           SizedBox(height: isMobile ? 8 : 10),

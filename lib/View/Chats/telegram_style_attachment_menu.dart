@@ -12,10 +12,17 @@ Future<ChatAttachmentMenuAction?> showTelegramStyleAttachmentMenu({
   required String fileLabel,
   required String voiceLabel,
 }) {
-  final RenderBox button = anchorContext.findRenderObject()! as RenderBox;
+  final buttonObject = anchorContext.findRenderObject();
+  if (buttonObject is! RenderBox) {
+    return Future<ChatAttachmentMenuAction?>.value(null);
+  }
   final OverlayState overlayState = Overlay.of(anchorContext);
-  final RenderBox overlayBox =
-      overlayState.context.findRenderObject()! as RenderBox;
+  final overlayObject = overlayState.context.findRenderObject();
+  if (overlayObject is! RenderBox) {
+    return Future<ChatAttachmentMenuAction?>.value(null);
+  }
+  final RenderBox button = buttonObject;
+  final RenderBox overlayBox = overlayObject;
   final RelativeRect position = RelativeRect.fromRect(
     Rect.fromPoints(
       button.localToGlobal(Offset.zero, ancestor: overlayBox),

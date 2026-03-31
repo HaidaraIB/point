@@ -12,7 +12,6 @@ import 'package:point/View/Auth/ResetPassword.dart';
 import 'package:point/View/Auth/SessionSetupScreen.dart';
 import 'package:point/View/Clients/ClientsTable.dart';
 import 'package:point/View/Contents/ContentsTable.dart';
-import 'package:point/View/EmployeeDashboard/EmployeeContentDashboard.dart';
 import 'package:point/View/EmployeeDashboard/EmployeeDashboard.dart';
 import 'package:point/View/Employees/EmployeesTable.dart';
 import 'package:point/View/History/History.dart';
@@ -175,7 +174,9 @@ class AppRouting {
     GetPage(
       name: '/employeeContent',
       page: () {
-        return const EmployeeContentDashboard();
+        // نفس منطق `/content`: لا نستخدم EmployeeContentDashboard هنا وإلا يُتجاوز
+        // فرع موظفي النشر/الترويج على الويب (جدول الأدمن + الشريط الجانبي).
+        return ContentsTable();
       },
       middlewares: [AuthMiddleware()],
     ),

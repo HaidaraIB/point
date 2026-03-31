@@ -65,6 +65,10 @@ void photographyDialog(BuildContext context, {TaskModel? model}) {
   DateTime? startAt = model?.fromDate;
   DateTime? endAt = model?.toDate;
 
+  Get.find<HomeController>().uploadedFilesPaths.assignAll(
+    List.from(model?.files ?? []),
+  );
+
   showDialog(
     barrierDismissible: false,
     context: context,
