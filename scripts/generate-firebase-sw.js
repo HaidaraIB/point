@@ -2,7 +2,7 @@
  * يولّد web/firebase-messaging-sw.js من القالب اعتمادًا على ملف Firebase (Dart).
  * التشغيل من جذر المشروع:
  *   node scripts/generate-firebase-sw.js              → إنتاج (lib/firebase_options.dart)
- *   node scripts/generate-firebase-sw.js --test       → اختبار (lib/firebase_options.test.dart) لمطابقة flutter run (debug)
+ *   node scripts/generate-firebase-sw.js --test       → اختبار (lib/firebase_options_test.dart) لمطابقة flutter run (debug)
  * يُنصح بتشغيل الإنتاج قبل: flutter build web --release
  */
 const fs = require('fs');
@@ -15,7 +15,7 @@ const useTest = process.argv.includes('--test');
 const firebaseOptionsPath = path.join(
   root,
   'lib',
-  useTest ? 'firebase_options.test.dart' : 'firebase_options.dart',
+  useTest ? 'firebase_options_test.dart' : 'firebase_options.dart',
 );
 
 function extractWebFirebaseConfig(dartContent) {

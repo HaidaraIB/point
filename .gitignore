@@ -48,40 +48,27 @@ app.*.map.json
 dart_defines.local.json
 scripts/build-release-apk.local.ps1
 .env
-.env.old
-.env.new
 firebase-adminsdk.json
+firebase-adminsdk.test.json
 # مفتاح الخدمة المحلي لسكربتات Node (انظر scripts/*.mjs)
 scripts/serviceAccount.json
 
 # Firebase CLI / Emulator (كاش؛ سجلات *.log مغطاة أعلاه)
 .firebase/
-# Web: يُنشأ عبر node scripts/generate-firebase-sw.js
-web/firebase-messaging-sw.js
 
 # Firebase native config (نستخدم ملفات .example داخل الريبو)
 android/app/google-services.json
+android/app/google-services.test.json
 ios/Runner/GoogleService-Info.plist
+ios/Runner/GoogleService-Info.test.plist
+web/firebase-messaging-sw.js
+web/firebase-messaging-sw.test.js
 
 # Node (سكربتات الجذر: firebase-admin، backfill — يغطي أيضاً functions/)
 node_modules/
 
 # Firebase Functions (تم تعطيلها لتجنب Blaze)
 functions/package-lock.json
-
-# Backup / old config (لا تتبع نسخ احتياطية)
-**/google-services.old.json
-**/google-services.new.json
-**/google-services.test.json
-**/GoogleService-Info.old.plist
-**/GoogleService-Info.new.plist
-**/GoogleService-Info.test.plist
-firebase-messaging-sw.old.js
-firebase-messaging-sw.new.js
-firebase-messaging-sw.test.js
-*.old.json
-*.new.json
-*.test.json
 
 # Supabase CLI temp (ملفات مؤقتة من Supabase CLI)
 supabase/.temp/
