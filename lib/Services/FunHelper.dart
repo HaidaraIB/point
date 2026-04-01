@@ -40,7 +40,7 @@ class FunHelper {
   };
 
   static final Map<String, String> _legacyStatusToKey = {
-    'under review': StorageKeys.status_under_revision,
+    'send for review': StorageKeys.status_under_revision,
     'in progress': StorageKeys.status_processing,
     'ready to publish': StorageKeys.status_ready_to_publish,
     'approved': StorageKeys.status_approved,
@@ -62,7 +62,7 @@ class FunHelper {
 
   /// Arabic/English labels (as in DB or AppTranslations) → [StorageKeys.status_*].
   static final Map<String, String> _displayLabelToStatusKey = {
-    'قيد المراجعة': StorageKeys.status_under_revision,
+    'إرسال للمراجعة': StorageKeys.status_under_revision,
     'قيد التنفيذ': StorageKeys.status_processing,
     'جاهز للنشر': StorageKeys.status_ready_to_publish,
     'تمت الموافقة': StorageKeys.status_approved,
@@ -75,7 +75,7 @@ class FunHelper {
     'بانتظار المدير': StorageKeys.status_awaiting_manager,
     'Awaiting manager': StorageKeys.status_awaiting_manager,
     'Pending manager review': StorageKeys.status_awaiting_manager,
-    'Under review': StorageKeys.status_under_revision,
+    'Send for review': StorageKeys.status_under_revision,
     'In progress': StorageKeys.status_processing,
     'Ready to publish': StorageKeys.status_ready_to_publish,
     'Approved': StorageKeys.status_approved,

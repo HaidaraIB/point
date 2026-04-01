@@ -1,0 +1,67 @@
+# نشر Flutter Web على Hostinger عبر FTP من GitHub Actions.
+# الإجراء يبني المشروع ثم يزامن build/web مع السيرفر (عادةً يرفع التغييرات فقط، وليس كل الملفات في كل مرة).
+#
+# الإعداد في GitHub → Settings → Secrets and variables → Actions:
+#   FTP_SERVER        — مثال: ftp.example.com (من hPanel → Files → FTP Accounts)
+#   FTP_USERNAME
+#   FTP_PASSWORD
+# إن كان الموقع في مجلد فرعي، عدّل server-dir في الخطوة الأخيرة (مثلاً /public_html/app/)
+# وأسرار Supabase نفسها المستخدمة في deploy-firebase-hosting.yml:
+#   SUPABASE_URL
+#   SUPABASE_ANON_KEY
+#   SUPABASE_STORAGE_BASE_URL
+#
+# تشغيل يدوي: Actions → Deploy web to Hostinger (FTP) → Run workflow
+name: Deploy web to Hostinger (FTP)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main, master]
+    paths:
+      - 'lib/**'
+      - 'web/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - '.github/workflows/deploy-hostinger-web.yml'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Generate firebase-messaging-sw.js (production)
+        run: node scripts/generate-firebase-sw.js
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.1'
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build web (release, production Firebase)
+        run: >
+          flutter build web --release
+          --dart-define=USE_FIREBASE_PROD=true
+          --dart-define=SUPABASE_URL="${{ secrets.SUPABASE_URL }}"
+          --dart-define=SUPABASE_ANON_KEY="${{ secrets.SUPABASE_ANON_KEY }}"
+          --dart-define=SUPABASE_STORAGE_BASE_URL="${{ secrets.SUPABASE_STORAGE_BASE_URL }}"
+
+      - name: Deploy to Hostinger via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./build/web/
+          server-dir: /public_html/
+          # لا تحذف ملفات على السيرفر غير الموجودة محلياً (احذف هذا السطر إن أردت مرآة كاملة)
+          dangerous-clean-slate: false
