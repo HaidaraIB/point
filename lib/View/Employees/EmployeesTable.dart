@@ -52,6 +52,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
               () => EmployeesMobileScreen(
                 employees: controller.employees.toList(),
                 canDelete: canDeleteEmployees,
+                selfEmployeeId: controller.effectiveEmployee?.id,
                 onAdd: () => showAddEmployeeDialog(context),
                 onEdit: (emp) {
                   if (emp.role == 'admin' &&
@@ -288,7 +289,11 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                                           AppColors.success,
                                                     ),
                                                   ),
-                                                  if (canDeleteEmployees)
+                                                  if (canDeleteEmployees &&
+                                                      emp.id !=
+                                                          controller
+                                                              .effectiveEmployee
+                                                              ?.id)
                                                     PopupMenuItem(
                                                       value: 1,
                                                       child: tableActionsMenuRow(

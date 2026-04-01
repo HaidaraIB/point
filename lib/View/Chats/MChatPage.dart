@@ -61,10 +61,19 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
   bool _loadingChats = true;
   bool _isLoadingGroup = false;
 
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _chatsListSub;
+
   @override
   void initState() {
     super.initState();
     _initUserThenLoad();
+  }
+
+  @override
+  void dispose() {
+    _chatsListSub?.cancel();
+    _searchController.dispose();
+    super.dispose();
   }
 
   // يتم استدعاؤها عند تغيير الشاشة إلى وضع الـ Full Screen
@@ -231,7 +240,8 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
   void _listenChats() {
     if (_currentUserId == null) return;
 
-    _firestore
+    _chatsListSub?.cancel();
+    _chatsListSub = _firestore
         .collection('chats')
         .where('participants', arrayContains: _currentUserId)
         .orderBy('lastUpdated', descending: true)
@@ -971,17 +981,19 @@ class _MessageScreenState extends State<MessageScreen> {
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
-    await _sendChatPayload(
-      lastMessagePreview: text,
-      messageType: 'text',
-      text: text,
-    );
     _messageController.clear();
     if (mounted) {
       setState(() {
         _isEmojiVisible = false;
       });
     }
+    unawaited(
+      _sendChatPayload(
+        lastMessagePreview: text,
+        messageType: 'text',
+        text: text,
+      ),
+    );
   }
 
   Future<void> _sendChatPayload({

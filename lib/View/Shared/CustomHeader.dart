@@ -8,6 +8,7 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Localization/LanguageController.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Services/FireStoreServices.dart';
+import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/AppImages.dart';
@@ -23,6 +24,15 @@ String _localizedStoredRole(String raw) {
   final s = raw.trim();
   if (s.isEmpty) return raw;
   return s.tr;
+}
+
+/// Role plus optional department (e.g. `موظف · ترويج`) for app bars.
+String localizedRoleWithDepartment(String role, String? department) {
+  final rolePart = _localizedStoredRole(role);
+  final d = (department ?? '').trim();
+  if (d.isEmpty) return rolePart;
+  final deptKey = StorageKeys.semanticDepartmentLabelKey(d);
+  return '$rolePart · ${deptKey.tr}';
 }
 
 /// زر اللغة في شريط الويب لموظفي الأقسام (بجانب الإشعارات والمحادثات).
@@ -380,6 +390,8 @@ class HeaderWidget extends StatelessWidget {
   final String name;
   final String role;
   final String avatarUrl;
+  /// When set, shown after the role (e.g. `role · department`).
+  final String? department;
   final bool? employee;
   final bool? client;
 
@@ -388,6 +400,7 @@ class HeaderWidget extends StatelessWidget {
     required this.name,
     required this.role,
     required this.avatarUrl,
+    this.department,
     this.employee,
     this.client,
   });
@@ -466,12 +479,12 @@ class HeaderWidget extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
               Text(
-                _localizedStoredRole(role),
+                localizedRoleWithDepartment(role, department),
                 style: TextStyle(
                   color: Colors.grey,
                   fontSize: isMobile ? 11 : null,
                 ),
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
             ],

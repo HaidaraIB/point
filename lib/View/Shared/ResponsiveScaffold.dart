@@ -73,6 +73,8 @@ class ResponsiveScaffold extends StatelessWidget {
                                     role:
                                         controller.effectiveEmployee?.role ??
                                         '',
+                                    department:
+                                        controller.effectiveEmployee?.department,
                                     avatarUrl:
                                         controller.effectiveEmployee?.image ??
                                         kDefaultAvatarUrl,

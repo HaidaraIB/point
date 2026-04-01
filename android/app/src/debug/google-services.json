@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "YOUR_PROJECT_NUMBER",
-    "project_id": "YOUR_PROJECT_ID",
-    "storage_bucket": "YOUR_PROJECT_ID.firebasestorage.app"
+    "project_number": "409073451750",
+    "project_id": "point-f33cb",
+    "storage_bucket": "point-f33cb.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:YOUR_PROJECT_NUMBER:android:YOUR_APP_ID",
+        "mobilesdk_app_id": "1:409073451750:android:f2d29d9519d63b7f7c3127",
         "android_client_info": {
           "package_name": "com.point.agency"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "YOUR_ANDROID_API_KEY"
+          "current_key": "AIzaSyAh7eHmFzw-LSPQwU6vL0-ryEgTu3TT9sU"
         }
       ],
       "services": {

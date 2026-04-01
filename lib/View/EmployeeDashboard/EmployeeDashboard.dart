@@ -19,8 +19,6 @@ import 'package:point/View/Tasks/DetailsDialogs/DPhotographyDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DProgrammingDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPromotionDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPublishDialog.dart';
-import 'package:point/View/Tasks/Dialogs/ProgrammingDialog.dart';
-
 class EmployeeDashboard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -57,6 +55,8 @@ class EmployeeDashboard extends StatelessWidget {
                             employee: true,
                             name: controller.currentemployee.value?.name ?? '',
                             role: controller.currentemployee.value?.role ?? '',
+                            department:
+                                controller.currentemployee.value?.department,
                             avatarUrl:
                                 controller.currentemployee.value?.image ??
                                 kDefaultAvatarUrl,
@@ -868,7 +868,7 @@ class TasksListPage extends StatelessWidget {
                         showPublishDialog(context, task: tasks[index]);
                         break;
                       case '6':
-                        programmingDialog(context);
+                        showProgrammingDialog(context, task: tasks[index]);
                         break;
                       default:
                     }

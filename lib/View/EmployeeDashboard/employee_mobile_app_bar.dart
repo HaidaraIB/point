@@ -118,8 +118,11 @@ class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidge
                         if (displayRole.isNotEmpty) ...[
                           if (displayName.isNotEmpty) const SizedBox(height: 2),
                           Text(
-                            displayRole.tr,
-                            maxLines: 1,
+                            localizedRoleWithDepartment(
+                              displayRole,
+                              emp?.department,
+                            ),
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             textAlign: TextAlign.end,
                             style: TextStyle(
@@ -151,10 +154,30 @@ class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidge
                         Get.offAllNamed('/auth/login');
                       } else if (value == 1) {
                         Get.toNamed('/auth/resetPassword');
+                      } else if (value == 2) {
+                        Get.toNamed('/employeeProfile');
                       }
                     },
                     itemBuilder:
                         (context) => [
+                          PopupMenuItem(
+                            value: 2,
+                            child: Row(
+                              children: [
+                                Text(
+                                  'employee.profile.menu'.tr,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                const Icon(
+                                  Icons.person_outline,
+                                  color: AppColors.primary,
+                                ),
+                              ],
+                            ),
+                          ),
                           PopupMenuItem(
                             value: 1,
                             child: Row(

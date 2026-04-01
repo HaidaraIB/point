@@ -68,6 +68,13 @@ void main(List<String> args) async {
       await Firebase.initializeApp(
         options: FirebaseAppOptions.currentPlatform,
       );
+      if (kDebugMode) {
+        log(
+          'Firebase: projectId=${Firebase.app().options.projectId} '
+          '(استخدم point (debug mode) أو USE_FIREBASE_TEST للاختبار؛ '
+          'USE_FIREBASE_PROD للإنتاج)',
+        );
+      }
     } on FirebaseException catch (e) {
       if (!e.code.contains('duplicate-app')) rethrow;
     }

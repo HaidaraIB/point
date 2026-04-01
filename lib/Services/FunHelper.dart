@@ -491,8 +491,6 @@ class FunHelper {
     final resolvedMessage = message ?? AppLocaleKeys.funConfirmMessage.tr;
     final resolvedConfirm = confirmText ?? AppLocaleKeys.commonConfirm.tr;
     final dialogWidth = Get.width > 900 ? 420.0 : Get.width * 0.82;
-    // عرض كافٍ لنصوص التأكيد الطويلة (عربي) دون قصّ الأحرف
-    final actionButtonWidth = ((dialogWidth - 36) / 2).clamp(88.0, 198.0);
     return showDialog<String>(
       context: context,
       builder:
@@ -503,10 +501,8 @@ class FunHelper {
               vertical: 24,
             ),
             contentPadding: const EdgeInsets.fromLTRB(28, 24, 28, 12),
-            actionsPadding: const EdgeInsets.fromLTRB(20, 6, 20, 20),
+            actionsPadding: EdgeInsets.zero,
             actionsAlignment: MainAxisAlignment.center,
-            actionsOverflowAlignment: OverflowBarAlignment.center,
-            actionsOverflowDirection: VerticalDirection.down,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(15),
             ),
@@ -539,33 +535,45 @@ class FunHelper {
             ),
 
             actions: [
-              MainButton(
-                icon: false,
-                title: cancelText ?? 'cancel'.tr,
-                fontColor: Colors.white,
-                backgroundColor: cancelColor,
-                margin: EdgeInsets.zero,
-                width: actionButtonWidth,
-                borderSize: 5,
-                height: 56,
-                onPressed: () {
-                  Get.back();
-                },
-              ),
-              const SizedBox(width: 10),
-              MainButton(
-                icon: false,
-                title: resolvedConfirm,
-                fontColor: Colors.white,
-                backgroundColor: confirmColor ?? AppColors.primary,
-                margin: EdgeInsets.zero,
-                width: actionButtonWidth,
-                borderSize: 5,
-                height: 56,
-                onPressed: () async {
-                  await Future.sync(onTap);
-                  Get.back();
-                },
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 6, 20, 20),
+                // لا نستخدم LayoutBuilder هنا: AlertDialog يمرّ بقياس intrinsic وLayoutBuilder لا يدعمه (تجمّد/خطأ).
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: MainButton(
+                        icon: false,
+                        title: cancelText ?? 'cancel'.tr,
+                        fontColor: Colors.white,
+                        backgroundColor: cancelColor,
+                        margin: EdgeInsets.zero,
+                        width: double.infinity,
+                        borderSize: 12,
+                        height: 56,
+                        onPressed: () {
+                          Get.back();
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: MainButton(
+                        icon: false,
+                        title: resolvedConfirm,
+                        fontColor: Colors.white,
+                        backgroundColor: confirmColor ?? AppColors.primary,
+                        margin: EdgeInsets.zero,
+                        width: double.infinity,
+                        borderSize: 12,
+                        height: 56,
+                        onPressed: () async {
+                          await Future.sync(onTap);
+                          Get.back();
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

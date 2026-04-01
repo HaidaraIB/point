@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -37,6 +38,7 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isEmojiVisible = false;
   // Firebase instances
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirestoreServices _firestoreServices = FirestoreServices();
   // final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // local caches
@@ -457,12 +459,35 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
-    await _sendChatPayload(
-      lastMessagePreview: text,
-      messageType: 'text',
-      text: text,
-    );
     _messageController.clear();
+    unawaited(
+      _sendChatPayload(
+        lastMessagePreview: text,
+        messageType: 'text',
+        text: text,
+      ),
+    );
+  }
+
+  /// تحديث معاينة آخر رسالة في القائمة فور الإرسال (قبل اكتمال Firestore).
+  void _optimisticPatchLastMessage(String chatId, String preview) {
+    if (!mounted) return;
+    setState(() {
+      for (var i = 0; i < _chats.length; i++) {
+        if (_chats[i]['id'] == chatId) {
+          final m = Map<String, dynamic>.from(_chats[i]);
+          m['lastMessage'] = preview;
+          _chats[i] = m;
+          break;
+        }
+      }
+      if (_selectedChat != null && _selectedChat!['id'] == chatId) {
+        _selectedChat = Map<String, dynamic>.from(_selectedChat!)
+          ..['lastMessage'] = preview;
+        Get.find<HomeController>().selectedChat =
+            Map<String, dynamic>.from(_selectedChat!);
+      }
+    });
   }
 
   Future<void> _sendChatPayload({
@@ -482,6 +507,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     final chatId = _selectedChat!['id'] as String;
     final isGroup = _selectedChat!['isGroup'] ?? false;
+    _optimisticPatchLastMessage(chatId, lastMessagePreview);
     final chatRef = _firestore.collection('chats').doc(chatId);
     final msgRef = chatRef.collection('messages').doc();
 
@@ -585,34 +611,6 @@ class _ChatScreenState extends State<ChatScreen> {
       return 'chat.days_ago'.trParams({'count': '${diff.inDays}'});
     } else {
       return DateFormat('dd/MM/yyyy').format(dt);
-    }
-  }
-
-  // **مُحسّن لإحصاء الرسائل غير المقروءة في المجموعات والمحادثات الفردية**
-  Future<int> getUnreadCount(String chatId, String currentUserId) async {
-    final chatRef = _firestore.collection('chats').doc(chatId);
-    try {
-      final countSnapshot =
-          await chatRef
-              .collection('messages')
-              .where('isRead', isEqualTo: false)
-              .where('senderId', isNotEqualTo: currentUserId)
-              .count()
-              .get();
-      return countSnapshot.count ?? 0;
-    } catch (e) {
-      if (e.toString().contains('failed-precondition') ||
-          e.toString().contains('index')) {
-        final snapshot =
-            await chatRef
-                .collection('messages')
-                .where('isRead', isEqualTo: false)
-                .get();
-        return snapshot.docs
-            .where((d) => d.data()['senderId'] != currentUserId)
-            .length;
-      }
-      rethrow;
     }
   }
 
@@ -1002,11 +1000,12 @@ class _ChatScreenState extends State<ChatScreen> {
                                           ),
                                         ),
                                         //counter
-                                        trailing: FutureBuilder(
-                                          future: getUnreadCount(
-                                            chatId,
-                                            _currentUserId ?? '',
-                                          ),
+                                        trailing: StreamBuilder<int>(
+                                          stream: _firestoreServices
+                                              .unreadIncomingCountStream(
+                                                chatId,
+                                                _currentUserId ?? '',
+                                              ),
                                           builder: (context, snap) {
                                             final count = snap.data ?? 0;
                                             if (count > 0) {
@@ -1397,6 +1396,16 @@ class _ChatScreenState extends State<ChatScreen> {
                                                   child: TextField(
                                                     controller:
                                                         _messageController,
+                                                    textInputAction:
+                                                        kIsWeb
+                                                            ? TextInputAction
+                                                                .send
+                                                            : null,
+                                                    onSubmitted:
+                                                        kIsWeb
+                                                            ? (_) =>
+                                                                _sendMessage()
+                                                            : null,
                                                     decoration: InputDecoration(
                                                       hintText:
                                                           AppLocaleKeys.chatWriteMessage.tr,

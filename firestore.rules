@@ -283,15 +283,25 @@ service cloud.firestore {
       allow create: if isSignedIn() && hasAuthRole() && isManager()
         || testAdminDevEmployeeBootstrapCreate(employeeId);
 
-      allow delete: if isSignedIn() && hasAuthRole() && isAdmin();
+      // لا يحذف المسؤول مستند موظفه الخاص (يُمنع قفل الحساب بالخطأ).
+      allow delete: if isSignedIn() && hasAuthRole() && isAdmin()
+        && employeeId != myEmployeeId();
 
+      // موظف عادي: توكن/دردشة، أو تعديل name/image على مستنده فقط (لا role/department/email).
       allow update: if isSignedIn() && hasAuthRole() && isManager()
         || employeeAuthBootstrapUpdate()
         || (isSignedIn() && hasAuthRole() && isEmployeeRole()
           && resource.id == myEmployeeId()
           && resource.data.authUid == request.auth.uid
           && request.resource.data.diff(resource.data).affectedKeys()
-            .hasOnly(['fcmToken', 'fcmTokens', 'activeChatId', 'activeChatUpdatedAt']));
+            .hasOnly([
+              'fcmToken',
+              'fcmTokens',
+              'activeChatId',
+              'activeChatUpdatedAt',
+              'name',
+              'image',
+            ]));
     }
 
     // ربط حساب Firebase Auth بمستند العميل عند أول تسجيل دخول — يجب أن يطابق البريد JWT مستند clients.email

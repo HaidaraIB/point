@@ -13,6 +13,8 @@ class EmployeesMobileScreen extends StatelessWidget {
   final ValueChanged<EmployeeModel> onDelete;
   /// حذف الموظفين مسموح لـ admin فقط (قواعد Firestore).
   final bool canDelete;
+  /// لا يُعرض حذف صف المستخدم الحالي (لا يمكن للمسؤول حذف نفسه).
+  final String? selfEmployeeId;
 
   const EmployeesMobileScreen({
     super.key,
@@ -21,6 +23,7 @@ class EmployeesMobileScreen extends StatelessWidget {
     required this.onEdit,
     required this.onDelete,
     this.canDelete = false,
+    this.selfEmployeeId,
   });
 
   @override
@@ -101,6 +104,10 @@ class EmployeesMobileScreen extends StatelessWidget {
               separatorBuilder: (_, __) => const SizedBox(height: 10),
               itemBuilder: (_, index) {
                 final emp = employees[index];
+                final isSelf =
+                    selfEmployeeId != null &&
+                    selfEmployeeId!.isNotEmpty &&
+                    (emp.id ?? '') == selfEmployeeId;
                 return Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -144,7 +151,7 @@ class EmployeesMobileScreen extends StatelessWidget {
                                   iconColor: AppColors.success,
                                 ),
                               ),
-                              if (canDelete)
+                              if (canDelete && !isSelf)
                                 PopupMenuItem(
                                   value: 1,
                                   child: tableActionsMenuRow(

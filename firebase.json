@@ -9,7 +9,7 @@
                 "default": {
                     "projectId": "point-agency-production",
                     "appId": "1:801208232022:android:2e2f793727332909df73f7",
-                    "fileOutput": "android/app/google-services.json"
+                    "fileOutput": "android/app/src/release/google-services.json"
                 }
             },
             "dart": {

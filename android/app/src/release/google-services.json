@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "801208232022",
+    "project_id": "point-agency-production",
+    "storage_bucket": "point-agency-production.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:801208232022:android:2e2f793727332909df73f7",
+        "android_client_info": {
+          "package_name": "com.point.agency"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCzRtPj4CjJc8Ssdq4wMuOzYaeVNlY-bD0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

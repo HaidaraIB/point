@@ -145,6 +145,8 @@ class EmployeeContentDashboard extends StatelessWidget {
                   employee: true,
                   name: controller.currentemployee.value?.name ?? '',
                   role: controller.currentemployee.value?.role ?? '',
+                  department:
+                      controller.currentemployee.value?.department,
                   avatarUrl:
                       controller.currentemployee.value?.image ??
                       kDefaultAvatarUrl,

@@ -414,7 +414,80 @@ class HomeController extends GetxController {
     return result;
   }
 
+  /// تحديث الاسم/الصورة للمستخدم الحالي (لوحة الموظف) دون الاعتماد على قائمة [employees].
+  Future<bool> updateMyProfile({
+    required String name,
+    String? imageUrl,
+  }) async {
+    final existing = currentemployee.value;
+    if (existing == null || existing.id == null || existing.id!.trim().isEmpty) {
+      FunHelper.showSnackbar(
+        'error'.tr,
+        'employee.profile.error_no_session'.tr,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return false;
+    }
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) {
+      FunHelper.showSnackbar(
+        'error'.tr,
+        'employee.profile.error_name_empty'.tr,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return false;
+    }
+    isLoading.value = true;
+    final updated = existing.copyWith(
+      name: trimmed,
+      image: imageUrl ?? existing.image,
+    );
+    final result = await _service.updateEmployeeWithAuth(
+      existing: existing,
+      updated: updated,
+      newPassword: null,
+    );
+    isLoading.value = false;
+    if (result) {
+      FunHelper.showSnackbar(
+        'success'.tr,
+        'employee.profile.saved'.tr,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+    } else {
+      FunHelper.showSnackbar(
+        'error'.tr,
+        'employee.profile.save_failed'.tr,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+    return result;
+  }
+
   Future<bool> deleteEmployee(String id) async {
+    final trimmed = id.trim();
+    final meId = currentemployee.value?.id?.trim();
+    if (meId != null &&
+        meId.isNotEmpty &&
+        trimmed.isNotEmpty &&
+        trimmed == meId) {
+      FunHelper.showSnackbar(
+        'error'.tr,
+        'employees.cannot_delete_self'.tr,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return false;
+    }
     isLoading.value = true;
     final result = await _service.deleteEmployee(id);
     isLoading.value = false;
@@ -1822,11 +1895,6 @@ class HomeController extends GetxController {
             token: refreshedToken,
           );
           log('FCM token refreshed for employee $employeeId');
-        });
-
-        // 3. الاستماع لرسائل المقدمة (عندما يكون التطبيق مفتوحًا)
-        FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-          print('Got a message whilst in the foreground!');
         });
       } else {
         print('User declined or has not yet granted permission');

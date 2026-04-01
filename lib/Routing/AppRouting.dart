@@ -13,6 +13,7 @@ import 'package:point/View/Auth/SessionSetupScreen.dart';
 import 'package:point/View/Clients/ClientsTable.dart';
 import 'package:point/View/Contents/ContentsTable.dart';
 import 'package:point/View/EmployeeDashboard/EmployeeDashboard.dart';
+import 'package:point/View/EmployeeDashboard/employee_profile_screen.dart';
 import 'package:point/View/Employees/EmployeesTable.dart';
 import 'package:point/View/History/History.dart';
 import 'package:point/View/History/TaskHistory.dart';
@@ -169,6 +170,11 @@ class AppRouting {
       page: () {
         return EmployeeDashboard();
       },
+      middlewares: [AuthMiddleware()],
+    ),
+    GetPage(
+      name: '/employeeProfile',
+      page: () => const EmployeeProfileScreen(),
       middlewares: [AuthMiddleware()],
     ),
     GetPage(
