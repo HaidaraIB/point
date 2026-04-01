@@ -2,10 +2,12 @@
 # بيئة الاختبار على Firebase Hosting: deploy-firebase-hosting.yml
 #
 # الإعداد في GitHub → Settings → Secrets and variables → Actions:
-#   FTP_SERVER        — مثال: ftp.example.com (من hPanel → Files → FTP Accounts)
-#   FTP_USERNAME
+#   FTP_SERVER — Hostinger: إما اسم المضيف من لوحة FTP أو عنوان IP (مثلاً 37.44.245.153)
+#             إذا فشل حلّ اسم مثل ftp.point-iq.app استخدم IP من صفحة «FTP Access».
+#   FTP_USERNAME — لحساب فرعي مثل agency استخدم الاسم الكامل: u....agency وليس حساب FTP الرئيسي فقط.
 #   FTP_PASSWORD
-# إن كان الموقع في مجلد فرعي، عدّل server-dir في الخطوة الأخيرة (مثلاً /public_html/app/)
+# server-dir أدناه مضبوط لحساب FTP مربوط بمجلد .../public_html/agency (جذر الدخول = مجلد agency).
+#   إن استخدمتَ الحساب الرئيسي (u427966831) بدلاً من .agency غيّر server-dir إلى /public_html/agency/
 # وأسرار Supabase نفسها المستخدمة في deploy-firebase-hosting.yml:
 #   SUPABASE_URL
 #   SUPABASE_ANON_KEY
@@ -62,6 +64,7 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./build/web/
-          server-dir: /public_html/
+          # حساب FTP الفرعي (.agency): الجذر هو مجلد agency — ارفع إلى /
+          server-dir: /
           # لا تحذف ملفات على السيرفر غير الموجودة محلياً (احذف هذا السطر إن أردت مرآة كاملة)
           dangerous-clean-slate: false
