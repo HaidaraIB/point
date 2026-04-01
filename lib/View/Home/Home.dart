@@ -1492,7 +1492,7 @@ void showAddNotifications(BuildContext context) {
                                                 }
                                                 final empId =
                                                     controller
-                                                        .currentemployee
+                                                        .currentEmployee
                                                         .value
                                                         ?.id;
                                                 if (empId == null ||
@@ -1757,7 +1757,7 @@ void showAddNotifications(BuildContext context) {
                                                 }
                                                 final empId =
                                                     controller
-                                                        .currentemployee
+                                                        .currentEmployee
                                                         .value
                                                         ?.id;
                                                 if (empId == null ||

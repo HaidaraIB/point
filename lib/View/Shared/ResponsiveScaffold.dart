@@ -412,7 +412,7 @@ class _ChatPopupState extends State<ChatPopup> {
     _messageSoundSubscription = null;
     _markReadSubscription?.cancel();
     _markReadSubscription = null;
-    final uid = Get.find<HomeController>().currentemployee.value?.id;
+    final uid = Get.find<HomeController>().currentEmployee.value?.id;
     final stream = _messagesStream;
     if (stream == null || uid == null) {
       ChatAudioFocus.clearForegroundIfEquals(_chatId);
@@ -472,7 +472,7 @@ class _ChatPopupState extends State<ChatPopup> {
     _messageSoundSubscription?.cancel();
     _markReadSubscription?.cancel();
     ChatAudioFocus.clearForegroundIfEquals(_chatId);
-    final uid = Get.find<HomeController>().currentemployee.value?.id;
+    final uid = Get.find<HomeController>().currentEmployee.value?.id;
     if (uid != null) {
       unawaited(FirestoreServices.syncEmployeeActiveChatId(uid, null));
     }
@@ -591,7 +591,7 @@ class _ChatPopupState extends State<ChatPopup> {
                         final msg = messages[index].data();
                         final isMe =
                             msg['senderId'] ==
-                            controller.currentemployee.value?.id;
+                            controller.currentEmployee.value?.id;
                         final senderName =
                             msg['senderName'] ?? 'chat.unknown_sender'.tr;
                         final timestamp = msg['timestamp'] as Timestamp?;
@@ -837,7 +837,7 @@ class _ChatPopupState extends State<ChatPopup> {
     }
 
     final hc = Get.find<HomeController>();
-    final me = hc.currentemployee.value;
+    final me = hc.currentEmployee.value;
     if (me?.id == null) return;
 
     final chatRef = _firestore.collection('chats').doc(_chatId);

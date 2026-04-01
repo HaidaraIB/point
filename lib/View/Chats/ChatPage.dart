@@ -62,6 +62,8 @@ class _ChatScreenState extends State<ChatScreen> {
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _chatsSubscription;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _messageSoundSubscription;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _markReadSubscription;
+  /// يمنع تطبيق دمج معاينات قديم بعد snapshot أحدث.
+  int _chatsEnrichGen = 0;
   /// يمنع إلغاء اشتراك الصوت عند كل تحديث لقائمة المحادثات (كان يُرمى أول snapshot فيه الرسائل الجديدة).
   String? _messageSoundBoundChatId;
 
@@ -76,20 +78,20 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _initUserThenLoad() async {
-    final homecontroller = Get.find<HomeController>();
+    final homeController = Get.find<HomeController>();
     // try to get current user from FirebaseAuth
     // final user = _auth.currentUser;
-    if (homecontroller.currentemployee.value != null) {
-      _currentUserId = homecontroller.currentemployee.value?.id;
+    if (homeController.currentEmployee.value != null) {
+      _currentUserId = homeController.currentEmployee.value?.id;
       _currentUserName =
-          homecontroller.currentemployee.value?.name ??
-          homecontroller.currentemployee.value?.email ??
+          homeController.currentEmployee.value?.name ??
+          homeController.currentEmployee.value?.email ??
           'Me'.tr;
       // **جلب بيانات القسم والدور للمستخدم الحالي**
       _currentUserDept = StorageKeys.normalizeDepartment(
-        homecontroller.currentemployee.value?.department,
+        homeController.currentEmployee.value?.department,
       );
-      _currentUserRole = homecontroller.currentemployee.value?.role;
+      _currentUserRole = homeController.currentEmployee.value?.role;
     } else {
       // if no users at all, create a temporary id (but better to have employees collection)
       _currentUserId = 'temp_current_user';
@@ -294,7 +296,7 @@ class _ChatScreenState extends State<ChatScreen> {
         .listen((snap) {
           // تجنّب setState بعد الـ dispose (مهم عند إرسال رسالة ثم إغلاق الشاشة بسرعة)
           if (!mounted || _chatsSubscription == null) return;
-          _chats.clear();
+          final built = <Map<String, dynamic>>[];
           for (var doc in snap.docs) {
             final data = doc.data();
             final chat = {
@@ -305,19 +307,13 @@ class _ChatScreenState extends State<ChatScreen> {
               'isGroup': data['isGroup'] ?? false, // **قراءة علامة المجموعة**
               'title': data['title'], // **قراءة اسم المجموعة**
             };
-            _chats.add(chat);
+            built.add(chat);
           }
 
-          _loadingChats = false;
-          // if currently selected chat is removed, clear selection
-          if (_selectedChat != null &&
-              !_chats.any((c) => c['id'] == _selectedChat!['id'])) {
-            _selectedChat = null;
-            _messagesStream = null;
-          }
+          _chatsEnrichGen++;
+          final gen = _chatsEnrichGen;
           if (!mounted || _chatsSubscription == null) return;
-          setState(() {});
-          _syncMessageSoundListener();
+          unawaited(_applySnapshotAndEnrich(gen, built));
         }, onError: (Object e, StackTrace st) {
           log('⚠️ ChatScreen _listenChats: $e');
           if (!mounted || _chatsSubscription == null) return;
@@ -325,6 +321,105 @@ class _ChatScreenState extends State<ChatScreen> {
             _loadingChats = false;
           });
         }, cancelOnError: false);
+  }
+
+  /// دمج قائمة المحادثات مع آخر رسالة من `messages` وإخفاء الفردية بلا أي رسالة.
+  Future<void> _applySnapshotAndEnrich(
+    int gen,
+    List<Map<String, dynamic>> built,
+  ) async {
+    if (built.isEmpty) {
+      if (!mounted || gen != _chatsEnrichGen) return;
+      _chats = [];
+      _loadingChats = false;
+      if (_selectedChat != null) {
+        _selectedChat = null;
+        _messagesStream = null;
+      }
+      if (!mounted || _chatsSubscription == null) return;
+      setState(() {});
+      _syncMessageSoundListener();
+      return;
+    }
+
+    final ids = built.map((c) => c['id'] as String).toList();
+    final previews =
+        await FirestoreServices.fetchLatestMessagePreviewsForChatIds(
+          _firestore,
+          ids,
+        );
+    if (!mounted || gen != _chatsEnrichGen) return;
+
+    final merged = _mergeChatsWithPreviews(built, previews);
+
+    if (_selectedChat != null &&
+        !merged.any((c) => c['id'] == _selectedChat!['id'])) {
+      _selectedChat = null;
+      _messagesStream = null;
+    } else if (_selectedChat != null) {
+      final sid = _selectedChat!['id'] as String;
+      try {
+        final row = merged.firstWhere((c) => c['id'] == sid);
+        _selectedChat = Map<String, dynamic>.from(row);
+        Get.find<HomeController>().selectedChat =
+            Map<String, dynamic>.from(row);
+      } catch (_) {}
+    }
+
+    _chats = merged;
+    _loadingChats = false;
+    if (!mounted || _chatsSubscription == null) return;
+    setState(() {});
+    _syncMessageSoundListener();
+  }
+
+  List<Map<String, dynamic>> _mergeChatsWithPreviews(
+    List<Map<String, dynamic>> built,
+    Map<String, String?> previews,
+  ) {
+    final out = <Map<String, dynamic>>[];
+    for (final c in built) {
+      final id = c['id'] as String;
+      final isGroup = c['isGroup'] == true;
+      final fromSub = previews[id];
+      final docLm = (c['lastMessage'] ?? '').toString();
+
+      if (!isGroup) {
+        final preview =
+            (fromSub != null && fromSub.trim().isNotEmpty)
+                ? fromSub.trim()
+                : docLm.trim();
+        if (preview.isEmpty) continue;
+        if (fromSub != null && fromSub.trim().isNotEmpty) {
+          unawaited(
+            FirestoreServices.patchChatLastMessageIfStale(
+              _firestore,
+              id,
+              fromSub.trim(),
+              docLm,
+            ),
+          );
+        }
+        out.add(Map<String, dynamic>.from(c)..['lastMessage'] = preview);
+      } else {
+        final display =
+            (fromSub != null && fromSub.trim().isNotEmpty)
+                ? fromSub.trim()
+                : docLm.trim();
+        if (fromSub != null && fromSub.trim().isNotEmpty) {
+          unawaited(
+            FirestoreServices.patchChatLastMessageIfStale(
+              _firestore,
+              id,
+              fromSub.trim(),
+              docLm,
+            ),
+          );
+        }
+        out.add(Map<String, dynamic>.from(c)..['lastMessage'] = display);
+      }
+    }
+    return out;
   }
 
   @override
@@ -614,6 +709,22 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  /// آخر رسالة لمجموعة القسم في القائمة (يُملأ من `_chats` بعد الدمج مع `messages`).
+  String _subtitleForDepartmentGroupChat() {
+    final dept = _currentUserDept;
+    if (dept == null || dept.isEmpty) {
+      return AppLocaleKeys.chatGroupConversation.tr;
+    }
+    final gid = 'group_$dept';
+    for (final c in _chats) {
+      if (c['id'] == gid) {
+        final lm = (c['lastMessage'] ?? '').toString().trim();
+        return lm.isNotEmpty ? lm : AppLocaleKeys.chatGroupConversation.tr;
+      }
+    }
+    return AppLocaleKeys.chatGroupConversation.tr;
+  }
+
   // ---------------- UI dialogs ----------------
   Future<void> _showAddChatDialog() async {
     _searchController.clear();
@@ -818,7 +929,11 @@ class _ChatScreenState extends State<ChatScreen> {
                                 color: Colors.blue.shade700,
                               ),
                             ),
-                            subtitle: Text(AppLocaleKeys.chatGroupConversation.tr),
+                            subtitle: Text(
+                              _subtitleForDepartmentGroupChat(),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                             tileColor:
                                 _selectedChat != null &&
                                         _selectedChat!['id'] ==
@@ -857,8 +972,13 @@ class _ChatScreenState extends State<ChatScreen> {
 
                                       if (isGroup) {
                                         displayName = ch['title'] ?? AppLocaleKeys.chatDepartmentGroup.tr;
-                                        subtitle =
-                                            '${'chat.group_prefix'.tr} ${ch['lastMessage'] ?? ''}';
+                                        final lm =
+                                            (ch['lastMessage'] ?? '')
+                                                .toString()
+                                                .trim();
+                                        subtitle = lm.isNotEmpty
+                                            ? lm
+                                            : AppLocaleKeys.chatGroupConversation.tr;
                                         initial = _initialFromName(displayName);
                                         avatarColor = Colors.blueGrey.shade100;
                                         avatarIcon = Icons.group;

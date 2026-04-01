@@ -70,7 +70,7 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
 
   Future<void> _bootstrap() async {
     final hc = Get.find<HomeController>();
-    final v = hc.currentemployee.value ?? hc.lastKnownEmployee.value;
+    final v = hc.currentEmployee.value ?? hc.lastKnownEmployee.value;
 
     if (v == null ||
         v.id == null ||

@@ -50,7 +50,7 @@ class TaskCard extends StatelessWidget {
                   Builder(
                     builder: (context) {
                       final hc = Get.find<HomeController>();
-                      final role = hc.currentemployee.value?.role ?? '';
+                      final role = hc.currentEmployee.value?.role ?? '';
                       final canEscalate =
                           role == 'supervisor' &&
                           FunHelper.taskStatusAllowsSupervisorDirectOrEscalate(

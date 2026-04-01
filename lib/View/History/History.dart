@@ -65,7 +65,7 @@ class History extends StatelessWidget {
     return ResponsiveScaffold(
       selectedTab: 7,
       sideMenu:
-          Get.find<HomeController>().currentemployee.value?.role != 'employee'
+          Get.find<HomeController>().currentEmployee.value?.role != 'employee'
               ? true
               : false,
 
@@ -611,18 +611,18 @@ class History extends StatelessWidget {
                                                     key: actionKey,
                                                     onTap: () {
                                                       if (controller
-                                                                  .currentemployee
+                                                                  .currentEmployee
                                                                   .value
                                                                   ?.role !=
                                                               'admin' &&
                                                           controller
-                                                                  .currentemployee
+                                                                  .currentEmployee
                                                                   .value
                                                                   ?.role !=
                                                               'supervisor' &&
                                                           !StorageKeys.matchesDepartment(
                                                             controller
-                                                                .currentemployee
+                                                                .currentEmployee
                                                                 .value
                                                                 ?.department,
                                                             StorageKeys
@@ -879,12 +879,12 @@ class History extends StatelessWidget {
                                                           ),
                                                         ),
                                                         if (controller
-                                                                    .currentemployee
+                                                                    .currentEmployee
                                                                     .value
                                                                     ?.role ==
                                                                 'supervisor' ||
                                                             controller
-                                                                    .currentemployee
+                                                                    .currentEmployee
                                                                     .value
                                                                     ?.role ==
                                                                 'admin')
@@ -1088,7 +1088,7 @@ void showAddContentDialog(
   bool? view,
 }) {
   final hc = Get.find<HomeController>();
-  if (!ContentPermissions.canAddOrEditContent(hc.currentemployee.value)) {
+  if (!ContentPermissions.canAddOrEditContent(hc.currentEmployee.value)) {
     FunHelper.showSnackbar(
       'error'.tr,
       'errors.forbidden'.tr,

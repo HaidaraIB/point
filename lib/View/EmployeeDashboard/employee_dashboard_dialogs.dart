@@ -64,7 +64,6 @@ void showEmployeeNotificationsDialog(
               Flexible(
                 child: InAppNotificationsPanel(
                   controller: controller,
-                  toggleMinWidth: 88,
                   listPadding: const EdgeInsets.symmetric(horizontal: 12),
                 ),
               ),

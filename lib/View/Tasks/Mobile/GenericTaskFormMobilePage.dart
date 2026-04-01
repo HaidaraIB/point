@@ -245,7 +245,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
               : [
                   NoteModel(
                     note: notesController.text,
-                    byWho: controller.currentemployee.value?.name ?? '',
+                    byWho: controller.currentEmployee.value?.name ?? '',
                     timestamp: DateTime.now(),
                   ),
                 ]);
@@ -423,7 +423,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
     final effectiveEndAt = endAt ?? effectiveStartAt;
     final files = controller.uploadedFilesPaths.cast<String>().toList();
     final notesList = notesController.text.isEmpty ? <NoteModel>[] : <NoteModel>[
-      NoteModel(note: notesController.text, byWho: controller.currentemployee.value?.name ?? '', timestamp: now),
+      NoteModel(note: notesController.text, byWho: controller.currentEmployee.value?.name ?? '', timestamp: now),
     ];
     switch (taskType) {
       case '0':

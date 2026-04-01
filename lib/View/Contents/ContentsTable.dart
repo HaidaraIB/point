@@ -53,7 +53,7 @@ bool _useEmployeeContentDashboard(EmployeeModel? emp) {
 
 List<ContentModel> _contentsListForDesktopTable(BuildContext context, HomeController c) {
   if (kIsWeb &&
-      _isWebPublishingOrPromotionEmployee(c.currentemployee.value) &&
+      _isWebPublishingOrPromotionEmployee(c.currentEmployee.value) &&
       !Responsive.isMobile(context)) {
     return c.filteredContentsForEmployeeWeb();
   }
@@ -179,7 +179,7 @@ Widget _EmployeeWebContentTitleRow(
       const Spacer(),
       Obx(() {
         if (!ContentPermissions.canAddOrEditContent(
-              controller.currentemployee.value,
+              controller.currentEmployee.value,
             )) {
           return const SizedBox.shrink();
         }
@@ -478,7 +478,7 @@ Widget _EmployeeWebContentFiltersRow(HomeController controller, BuildContext con
 class ContentsTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final emp = Get.find<HomeController>().currentemployee.value;
+    final emp = Get.find<HomeController>().currentEmployee.value;
     if (_useEmployeeContentDashboard(emp)) {
       return const EmployeeContentDashboard();
     }
@@ -497,7 +497,7 @@ class ContentsTable extends StatelessWidget {
         builder: (controller) {
           final webPubPromo = kIsWeb &&
               _isWebPublishingOrPromotionEmployee(
-                controller.currentemployee.value,
+                controller.currentEmployee.value,
               );
           return Responsive(
             mobileBreakpoint: webPubPromo ? 600 : 850,
@@ -532,7 +532,7 @@ class ContentsTable extends StatelessWidget {
                             Spacer(),
                             Obx(() {
                               if (!ContentPermissions.canAddOrEditContent(
-                                    controller.currentemployee.value,
+                                    controller.currentEmployee.value,
                                   )) {
                                 return const SizedBox.shrink();
                               }
@@ -586,11 +586,11 @@ class ContentsTable extends StatelessWidget {
                               );
                             }),
                             if (StorageKeys.matchesDepartment(
-                                  controller.currentemployee.value?.department,
+                                  controller.currentEmployee.value?.department,
                                   StorageKeys.departmentPromotion,
                                 ) ||
                                 StorageKeys.matchesDepartment(
-                                  controller.currentemployee.value?.department,
+                                  controller.currentEmployee.value?.department,
                                   StorageKeys.departmentPublishing,
                                 ))
                               MainButton(
@@ -645,7 +645,7 @@ class ContentsTable extends StatelessWidget {
         return GetX<HomeController>(
           builder: (c) {
           final controller = c;
-          final emp = controller.currentemployee.value;
+          final emp = controller.currentEmployee.value;
           final showStatusCol = ContentPermissions.showContentStatusUi(emp);
           final showPromotionCol = ContentPermissions.showContentPromotionUi(emp);
           final showPublishDateCol =
@@ -1044,7 +1044,7 @@ class ContentsTable extends StatelessWidget {
                                           ),
                                     );
                                     if (!ContentPermissions.canChangePostStatus(
-                                      controller.currentemployee.value,
+                                      controller.currentEmployee.value,
                                     )) {
                                       return statusChip;
                                     }
@@ -1109,7 +1109,7 @@ class ContentsTable extends StatelessWidget {
                                                 );
                                             final actorName =
                                                 (controller
-                                                            .currentemployee
+                                                            .currentEmployee
                                                             .value
                                                             ?.name ??
                                                         '')
@@ -1191,7 +1191,7 @@ class ContentsTable extends StatelessWidget {
                                           ),
                                     );
                                     if (!ContentPermissions.canChangePromotionField(
-                                      controller.currentemployee.value,
+                                      controller.currentEmployee.value,
                                     )) {
                                       return promotionChip;
                                     }
@@ -1248,7 +1248,7 @@ class ContentsTable extends StatelessWidget {
                                                 ContentPermissions
                                                         .isPromotionEmployee(
                                                   controller
-                                                      .currentemployee
+                                                      .currentEmployee
                                                       .value,
                                                 )
                                                     ? await controller
@@ -1505,7 +1505,7 @@ class ContentsTable extends StatelessWidget {
                                       builder: (context) {
                                         final cur =
                                             controller
-                                                .currentemployee
+                                                .currentEmployee
                                                 .value;
                                         final canEdit =
                                             ContentPermissions
@@ -1719,7 +1719,7 @@ class ContentsTable extends StatelessWidget {
                 ),
                 Obx(() {
                   if (!ContentPermissions.canAddOrEditContent(
-                        controller.currentemployee.value,
+                        controller.currentEmployee.value,
                       )) {
                     return const SizedBox.shrink();
                   }
@@ -1769,11 +1769,11 @@ class ContentsTable extends StatelessWidget {
                   );
                 }),
                 if (StorageKeys.matchesDepartment(
-                      controller.currentemployee.value?.department,
+                      controller.currentEmployee.value?.department,
                       StorageKeys.departmentPromotion,
                     ) ||
                     StorageKeys.matchesDepartment(
-                      controller.currentemployee.value?.department,
+                        controller.currentEmployee.value?.department,
                       StorageKeys.departmentPublishing,
                     )) ...[
                   const SizedBox(width: 8),
@@ -1993,7 +1993,7 @@ void showAddContentDialog(
   bool? view,
 }) {
   final hc = Get.find<HomeController>();
-  if (!ContentPermissions.canAddOrEditContent(hc.currentemployee.value)) {
+  if (!ContentPermissions.canAddOrEditContent(hc.currentEmployee.value)) {
     FunHelper.showSnackbar(
       'error'.tr,
       'errors.forbidden'.tr,
@@ -2722,12 +2722,12 @@ class _EmployeeWebDesktopContentShell extends StatelessWidget {
                   Obx(
                     () => HeaderWidget(
                       employee: true,
-                      name: controller.currentemployee.value?.name ?? '',
-                      role: controller.currentemployee.value?.role ?? '',
+                      name: controller.currentEmployee.value?.name ?? '',
+                      role: controller.currentEmployee.value?.role ?? '',
                       department:
-                          controller.currentemployee.value?.department,
+                          controller.currentEmployee.value?.department,
                       avatarUrl:
-                          controller.currentemployee.value?.image ??
+                          controller.currentEmployee.value?.image ??
                           kDefaultAvatarUrl,
                     ),
                   ),

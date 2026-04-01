@@ -28,7 +28,7 @@ import 'package:point/View/Tasks/Tasks.dart';
 class AuthMiddleware extends GetMiddleware {
   @override
   RouteSettings? redirect(String? route) {
-    final user = Get.find<HomeController>().currentemployee.value;
+    final user = Get.find<HomeController>().currentEmployee.value;
     if (user == null) {
       return const RouteSettings(name: '/auth/login');
     }

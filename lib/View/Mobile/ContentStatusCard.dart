@@ -22,7 +22,7 @@ class ContentStatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final emp = Get.find<HomeController>().currentemployee.value;
+    final emp = Get.find<HomeController>().currentEmployee.value;
     final showPubDate = ContentPermissions.showContentPublishDateUi(emp);
     final showStatus = ContentPermissions.showContentStatusUi(emp);
     final showPromo = ContentPermissions.showContentPromotionUi(emp);

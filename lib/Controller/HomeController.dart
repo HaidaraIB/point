@@ -419,7 +419,7 @@ class HomeController extends GetxController {
     required String name,
     String? imageUrl,
   }) async {
-    final existing = currentemployee.value;
+    final existing = currentEmployee.value;
     if (existing == null || existing.id == null || existing.id!.trim().isEmpty) {
       FunHelper.showSnackbar(
         'error'.tr,
@@ -442,14 +442,10 @@ class HomeController extends GetxController {
       return false;
     }
     isLoading.value = true;
-    final updated = existing.copyWith(
+    final result = await _service.updateEmployeeProfileFields(
+      employeeId: existing.id!,
       name: trimmed,
-      image: imageUrl ?? existing.image,
-    );
-    final result = await _service.updateEmployeeWithAuth(
-      existing: existing,
-      updated: updated,
-      newPassword: null,
+      imageUrl: imageUrl ?? existing.image,
     );
     isLoading.value = false;
     if (result) {
@@ -474,7 +470,7 @@ class HomeController extends GetxController {
 
   Future<bool> deleteEmployee(String id) async {
     final trimmed = id.trim();
-    final meId = currentemployee.value?.id?.trim();
+    final meId = currentEmployee.value?.id?.trim();
     if (meId != null &&
         meId.isNotEmpty &&
         trimmed.isNotEmpty &&
@@ -699,7 +695,7 @@ class HomeController extends GetxController {
 
   Future<bool> addTask(TaskModel task) async {
     isLoading.value = true;
-    final emp = currentemployee.value;
+    final emp = currentEmployee.value;
     final createdEvent = TaskTimelineEvent(
       type: 'created',
       label: 'تم إنشاء المهمة',
@@ -761,7 +757,7 @@ class HomeController extends GetxController {
     TaskModel oldTask,
     TaskModel newTask,
   ) async {
-    final emp = currentemployee.value;
+    final emp = currentEmployee.value;
     final assigneeId = newTask.assignedTo.trim();
     final assigneeName =
         employees.firstWhereOrNull((e) => e.id == assigneeId)?.name ??
@@ -929,7 +925,7 @@ class HomeController extends GetxController {
     TaskModel oldTask,
     TaskModel newTask,
   ) {
-    final emp = currentemployee.value;
+    final emp = currentEmployee.value;
     final userId = emp?.id ?? '';
     final userName = emp?.name ?? 'system.user';
     final now = DateTime.now();
@@ -1757,7 +1753,7 @@ class HomeController extends GetxController {
       // يجب تعبئة الجلسة هنا فورًا: AuthMiddleware يعتمد على currentemployee قبل التنقل،
       // بينما listenToClient يحدّثه فقط عند وصول أول snapshot من Firestore (متأخر عن أول إطار).
       if (result != null && result.id != null) {
-        currentemployee.value = result;
+        currentEmployee.value = result;
         lastKnownEmployee.value = result;
         fetchEmployees();
         _rebindClientsAndTasksStreams();
@@ -1773,11 +1769,11 @@ class HomeController extends GetxController {
   }
 
   final _clientCollection = FirebaseFirestore.instance.collection("employees");
-  Rxn<EmployeeModel> currentemployee = Rxn<EmployeeModel>();
+  Rxn<EmployeeModel> currentEmployee = Rxn<EmployeeModel>();
   Rxn<EmployeeModel> lastKnownEmployee = Rxn<EmployeeModel>();
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _employeeDocSub;
   EmployeeModel? get effectiveEmployee =>
-      currentemployee.value ?? lastKnownEmployee.value;
+      currentEmployee.value ?? lastKnownEmployee.value;
 
   void listenToClient(String empid) async {
     _employeeDocSub?.cancel();
@@ -1788,7 +1784,7 @@ class HomeController extends GetxController {
           (snapshot) async {
             if (snapshot.exists && snapshot.data() != null) {
               final employee = EmployeeModel.fromJson(snapshot.data()!);
-              currentemployee.value = employee;
+              currentEmployee.value = employee;
               lastKnownEmployee.value = employee;
               unawaited(FirestoreServices.syncAuthRoleForEmployee(employee));
               _startTotalUnreadStream(empid);
@@ -1875,9 +1871,9 @@ class HomeController extends GetxController {
         // 2. الحصول على التوكن (على الويب قد يفشل لغياب Service Worker / إعدادات المشروع)
         // لا نستخدم VAPID — getToken بدون vapidKey
         String? token = await messaging.getToken();
-        if (token != null && currentemployee.value != null) {
+        if (token != null && currentEmployee.value != null) {
           await FirestoreServices.addEmployeeFcmToken(
-            employeeId: currentemployee.value!.id ?? userId,
+            employeeId: currentEmployee.value!.id ?? userId,
             token: token,
           );
           print("FCM Registration Token: ${kIsWeb ? 'Web' : ''} $token");
@@ -1887,7 +1883,7 @@ class HomeController extends GetxController {
         _fcmTokenRefreshSub = FirebaseMessaging.instance.onTokenRefresh.listen((
           refreshedToken,
         ) async {
-          final employeeId = currentemployee.value?.id ?? userId;
+          final employeeId = currentEmployee.value?.id ?? userId;
           if (employeeId == null || employeeId.toString().trim().isEmpty)
             return;
           await FirestoreServices.addEmployeeFcmToken(
@@ -2065,7 +2061,7 @@ class HomeController extends GetxController {
       if (employee.status != 'active') return;
 
       // Keep employee state alive after browser refresh/deep-link.
-      currentemployee.value = employee;
+      currentEmployee.value = employee;
       lastKnownEmployee.value = employee;
       fetchEmployees();
       _rebindClientsAndTasksStreams();
@@ -2119,7 +2115,7 @@ class HomeController extends GetxController {
   }
 
   void clearEmployeeSession() {
-    currentemployee.value = null;
+    currentEmployee.value = null;
     lastKnownEmployee.value = null;
     _employeeDocSub?.cancel();
     _employeeDocSub = null;

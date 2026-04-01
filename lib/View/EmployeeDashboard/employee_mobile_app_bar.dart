@@ -91,7 +91,7 @@ class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidge
           ),
           Expanded(
             child: Obx(() {
-              final emp = controller.currentemployee.value;
+              final emp = controller.currentEmployee.value;
               final displayName = (emp?.name ?? '').trim();
               final displayRole = (emp?.role ?? '').trim();
               final avatarUrl = emp?.image ?? kDefaultAvatarUrl;

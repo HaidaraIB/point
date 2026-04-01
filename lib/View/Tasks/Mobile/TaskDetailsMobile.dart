@@ -1201,7 +1201,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
 
   Widget _buildActions(BuildContext context) {
     final controller = Get.find<HomeController>();
-    final role = controller.currentemployee.value?.role ?? '';
+    final role = controller.currentEmployee.value?.role ?? '';
     final isEmployee = role == 'employee';
     final canEscalate =
         role == 'supervisor' &&

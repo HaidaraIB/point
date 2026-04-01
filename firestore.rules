@@ -53,6 +53,16 @@ service cloud.firestore {
       return authRoleData().department;
     }
 
+    // مستند employees: تطابق صاحب الحساب (authUid أو بريد JWT عند غياب authUid في البيانات القديمة).
+    function employeeDocOwnedByCaller() {
+      return resource.data.authUid == request.auth.uid
+        || (
+          (resource.data.authUid == null || resource.data.authUid == '')
+          && request.auth.token.email != null
+          && resource.data.email == request.auth.token.email
+        );
+    }
+
     function actorParticipantId() {
       return isClientRole() ? myClientId() : myEmployeeId();
     }
@@ -291,8 +301,8 @@ service cloud.firestore {
       allow update: if isSignedIn() && hasAuthRole() && isManager()
         || employeeAuthBootstrapUpdate()
         || (isSignedIn() && hasAuthRole() && isEmployeeRole()
-          && resource.id == myEmployeeId()
-          && resource.data.authUid == request.auth.uid
+          && employeeId == myEmployeeId()
+          && employeeDocOwnedByCaller()
           && request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly([
               'fcmToken',

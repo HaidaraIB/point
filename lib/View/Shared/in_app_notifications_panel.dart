@@ -7,17 +7,15 @@ import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/AppNotificationInbox.dart';
 
-/// لوحة إشعارات صندوق التطبيق: فلاتر، تعليم الكل كمقروء عند أول فتح، واختيار متعدد للحذف.
+/// لوحة إشعارات صندوق التطبيق: تعليم الكل كمقروء عند أول فتح، واختيار متعدد للحذف.
 class InAppNotificationsPanel extends StatefulWidget {
   const InAppNotificationsPanel({
     super.key,
     required this.controller,
-    this.toggleMinWidth = 88,
     this.listPadding = const EdgeInsets.all(12),
   });
 
   final HomeController controller;
-  final double toggleMinWidth;
   final EdgeInsets listPadding;
 
   @override
@@ -26,7 +24,6 @@ class InAppNotificationsPanel extends StatefulWidget {
 }
 
 class _InAppNotificationsPanelState extends State<InAppNotificationsPanel> {
-  int filterIndex = 2;
   bool selectionMode = false;
   final Set<String> selectedIds = {};
   bool _markedReadOnOpen = false;
@@ -53,38 +50,10 @@ class _InAppNotificationsPanelState extends State<InAppNotificationsPanel> {
     FirestoreServices.markInAppNotificationsAsRead(ids);
   }
 
-  List<NotificationModel> _filteredListFrom(List<NotificationModel> inbox) {
-    return inbox.where((n) {
-      switch (filterIndex) {
-        case 0:
-          return isInAppNotificationUnread(n);
-        case 1:
-          return n.isRead == true;
-        case 2:
-        default:
-          return true;
-      }
-    }).toList();
-  }
-
   void _toggleSelectionMode() {
     setState(() {
       selectionMode = !selectionMode;
       if (!selectionMode) selectedIds.clear();
-    });
-  }
-
-  void _onFilterChanged(int i) {
-    setState(() {
-      filterIndex = i;
-      if (selectionMode) {
-        final allowed = _filteredListFrom(
-          widget.controller.notifications
-              .where((n) => isAppInboxNotification(n))
-              .toList(),
-        ).map((n) => n.id).whereType<String>().where((id) => id.isNotEmpty).toSet();
-        selectedIds.removeWhere((id) => !allowed.contains(id));
-      }
     });
   }
 
@@ -175,112 +144,52 @@ class _InAppNotificationsPanelState extends State<InAppNotificationsPanel> {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          child: Wrap(
+            spacing: 0,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  var maxW = constraints.maxWidth;
-                  if (!maxW.isFinite) {
-                    maxW = MediaQuery.sizeOf(context).width;
-                  }
-                  // ToggleButtons يضيف حدوداً وبادينغ بين الأقسام؛ تقسيم العرض/3 لا يكفي.
-                  // FittedBox يضمن عدم تجاوز العرض على الويب والشاشات الضيقة.
-                  return SizedBox(
-                    width: maxW,
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.center,
-                      child: ToggleButtons(
-                        isSelected: [
-                          filterIndex == 0,
-                          filterIndex == 1,
-                          filterIndex == 2,
-                        ],
-                        onPressed: _onFilterChanged,
-                        borderRadius:
-                            const BorderRadius.all(Radius.circular(10)),
-                        constraints: BoxConstraints(
-                          minHeight: 36,
-                          minWidth: widget.toggleMinWidth,
-                        ),
-                        children: [
-                          Text(
-                            'notifications.filter.unread'.tr,
-                            style: const TextStyle(fontSize: 12),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
-                          ),
-                          Text(
-                            'notifications.filter.read'.tr,
-                            style: const TextStyle(fontSize: 12),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
-                          ),
-                          Text(
-                            'notifications.filter.all'.tr,
-                            style: const TextStyle(fontSize: 12),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
+              IconButton(
+                tooltip: selectionMode
+                    ? 'notifications.action.exit_selection'.tr
+                    : 'notifications.action.selection_mode'.tr,
+                icon: Icon(
+                  selectionMode ? Icons.close : Icons.checklist_outlined,
+                ),
+                onPressed: _toggleSelectionMode,
               ),
-              const SizedBox(height: 6),
-              Wrap(
-                spacing: 0,
-                runSpacing: 4,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  IconButton(
-                    tooltip: selectionMode
-                        ? 'notifications.action.exit_selection'.tr
-                        : 'notifications.action.selection_mode'.tr,
-                    icon: Icon(
-                      selectionMode ? Icons.close : Icons.checklist_outlined,
+              if (selectionMode) ...[
+                TextButton(
+                  onPressed: () {
+                    final inbox = widget.controller.notifications
+                        .where((n) => isAppInboxNotification(n))
+                        .toList();
+                    _selectAllFiltered(inbox);
+                  },
+                  child: Text('notifications.action.select_all'.tr),
+                ),
+                TextButton(
+                  onPressed: _deselectAll,
+                  child: Text('notifications.action.deselect_all'.tr),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(left: 4),
+                  child: FilledButton.icon(
+                    onPressed: selectedIds.isEmpty
+                        ? null
+                        : () => _confirmDeleteBulk(
+                              context,
+                              selectedIds.toList(),
+                            ),
+                    icon: const Icon(Icons.delete_outline, size: 20),
+                    label: Text('notifications.action.delete_selected'.tr),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
                     ),
-                    onPressed: _toggleSelectionMode,
                   ),
-                  if (selectionMode) ...[
-                    TextButton(
-                      onPressed: () {
-                        final inbox = widget.controller.notifications
-                            .where((n) => isAppInboxNotification(n))
-                            .toList();
-                        _selectAllFiltered(_filteredListFrom(inbox));
-                      },
-                      child: Text('notifications.action.select_all'.tr),
-                    ),
-                    TextButton(
-                      onPressed: _deselectAll,
-                      child: Text('notifications.action.deselect_all'.tr),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 4),
-                      child: FilledButton.icon(
-                        onPressed: selectedIds.isEmpty
-                            ? null
-                            : () => _confirmDeleteBulk(
-                                  context,
-                                  selectedIds.toList(),
-                                ),
-                        icon: const Icon(Icons.delete_outline, size: 20),
-                        label: Text('notifications.action.delete_selected'.tr),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
+                ),
+              ],
             ],
           ),
         ),
@@ -290,14 +199,13 @@ class _InAppNotificationsPanelState extends State<InAppNotificationsPanel> {
             final inbox = widget.controller.notifications
                 .where((n) => isAppInboxNotification(n))
                 .toList();
-            final filtered = _filteredListFrom(inbox);
 
             return ListView.separated(
               padding: widget.listPadding,
-              itemCount: filtered.length,
+              itemCount: inbox.length,
               separatorBuilder: (_, __) => const Divider(height: 10),
               itemBuilder: (context, index) {
-                final n = filtered[index];
+                final n = inbox[index];
                 final bgColors = [
                   Colors.pink.shade100,
                   Colors.green.shade100,
@@ -341,6 +249,7 @@ class _InAppNotificationsPanelState extends State<InAppNotificationsPanel> {
                 }
 
                 return ListTile(
+                  titleAlignment: ListTileTitleAlignment.top,
                   contentPadding: EdgeInsets.zero,
                   leading: leading,
                   onTap: selectionMode && hasId
@@ -356,6 +265,7 @@ class _InAppNotificationsPanelState extends State<InAppNotificationsPanel> {
                       : null,
                   title: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         n.title ?? '',
@@ -365,15 +275,12 @@ class _InAppNotificationsPanelState extends State<InAppNotificationsPanel> {
                           fontWeight: FontWeight.bold,
                           color: AppColors.primary,
                         ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                       ),
+                      const SizedBox(height: 4),
                       Text(
                         n.body ?? '',
                         textDirection: TextDirection.rtl,
                         style: const TextStyle(fontSize: 13),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),

@@ -17,6 +17,7 @@ import 'package:point/View/Chats/ChatPage.dart';
 import 'package:point/View/Chats/MChatPage.dart';
 import 'package:point/View/Shared/in_app_notifications_panel.dart';
 import 'package:point/View/Shared/InputText.dart';
+import 'package:point/View/EmployeeDashboard/employee_profile_form.dart';
 import 'package:point/View/Shared/responsive.dart';
 
 /// Firestore role slug (e.g. employee, admin) shown in headers.
@@ -143,7 +144,6 @@ void _showNotificationsDialog(BuildContext context) {
                 child: GetBuilder<HomeController>(
                   builder: (controller) => InAppNotificationsPanel(
                     controller: controller,
-                    toggleMinWidth: 88,
                     listPadding:
                         const EdgeInsets.symmetric(horizontal: 12),
                   ),
@@ -451,7 +451,7 @@ class HeaderWidget extends StatelessWidget {
         if (!isMobile && employee == true && client != true && kIsWeb)
           Obx(() {
             final r =
-                (Get.find<HomeController>().currentemployee.value?.role ?? '')
+                (Get.find<HomeController>().currentEmployee.value?.role ?? '')
                     .trim()
                     .toLowerCase();
             if (r != 'employee') return const SizedBox.shrink();
@@ -532,6 +532,23 @@ class HeaderWidget extends StatelessWidget {
                     ),
                 ]);
               }
+              if (employee == true && kIsWeb) {
+                items.add(
+                  PopupMenuItem(
+                    value: 4,
+                    child: Row(
+                      children: [
+                        Text(
+                          'employee.profile.menu'.tr,
+                          style: TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        SizedBox(width: 8),
+                        Icon(Icons.person_outline, color: AppColors.primary),
+                      ],
+                    ),
+                  ),
+                );
+              }
               items.add(
                 PopupMenuItem(
                   value: 3,
@@ -588,6 +605,8 @@ class HeaderWidget extends StatelessWidget {
                 _openChatFromMobile(context);
               } else if (value == 3) {
                 Get.toNamed('/auth/resetPassword');
+              } else if (value == 4) {
+                showEmployeeProfileDialog(context);
               }
             },
             child: Icon(Icons.keyboard_arrow_down_rounded),
@@ -660,7 +679,7 @@ class NotificationDropdown extends StatelessWidget {
           clipBehavior: Clip.none,
           children: [
             IconButton(
-              icon: const Icon(Icons.notifications_outlined),
+              icon: const Icon(Icons.notifications_outlined, color: AppColors.primary),
               onPressed: () {
                 final buttonObject = context.findRenderObject();
                 final overlayObject =
@@ -702,7 +721,6 @@ class NotificationDropdown extends StatelessWidget {
                             Expanded(
                               child: InAppNotificationsPanel(
                                 controller: controller,
-                                toggleMinWidth: 100,
                               ),
                             ),
                           ],
@@ -752,7 +770,7 @@ class _chats extends StatelessWidget {
           clipBehavior: Clip.none,
           children: [
             IconButton(
-              icon: Icon(Icons.chat_bubble_outline),
+              icon: const Icon(Icons.chat_bubble_outline, color: AppColors.primary),
               onPressed: () {
                 Responsive.isMobile(context)
                     ? Get.to(() => ChatsListScreen(onMinimize: () {}))

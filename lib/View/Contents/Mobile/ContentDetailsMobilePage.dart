@@ -50,7 +50,7 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
     if (!mounted) return;
     if (!ok) return;
     final actorName =
-        (controller.currentemployee.value?.name ?? '').trim();
+        (controller.currentEmployee.value?.name ?? '').trim();
     await NotificationService.notifyAdminContentStatusChanged(
       contentTitle: emp.title,
       statusLabelAr: statusLabelAr,
@@ -78,7 +78,7 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
     final emp = _task;
     if (emp.id == null) return;
     final ok =
-        ContentPermissions.isPromotionEmployee(controller.currentemployee.value)
+        ContentPermissions.isPromotionEmployee(controller.currentEmployee.value)
             ? await controller.updateContentPromotionField(emp.id!, value)
             : await controller.updateContent(emp.copyWith(promotion: value));
     if (!mounted) return;
@@ -219,7 +219,7 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
   @override
   Widget build(BuildContext context) {
     final hc = Get.find<HomeController>();
-    final emp = hc.currentemployee.value;
+    final emp = hc.currentEmployee.value;
 
     final canEdit = ContentPermissions.canAddOrEditContent(emp);
     final canDelete = ContentPermissions.canDeleteContent(emp);

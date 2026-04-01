@@ -976,7 +976,7 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                                           notesController.text,
                                                       byWho:
                                                           controller
-                                                              .currentemployee
+                                                              .currentEmployee
                                                               .value
                                                               ?.name ??
                                                           '',
@@ -1055,7 +1055,7 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                                                   .text,
                                                           byWho:
                                                               controller
-                                                                  .currentemployee
+                                                                  .currentEmployee
                                                                   .value
                                                                   ?.name ??
                                                               '',

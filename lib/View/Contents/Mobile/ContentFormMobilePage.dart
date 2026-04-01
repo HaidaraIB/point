@@ -62,7 +62,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final hc = Get.find<HomeController>();
-      if (!ContentPermissions.canAddOrEditContent(hc.currentemployee.value)) {
+      if (!ContentPermissions.canAddOrEditContent(hc.currentEmployee.value)) {
         FunHelper.showSnackbar(
           'error'.tr,
           'errors.forbidden'.tr,

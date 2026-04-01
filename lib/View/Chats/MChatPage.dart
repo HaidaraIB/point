@@ -62,6 +62,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
   bool _isLoadingGroup = false;
 
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _chatsListSub;
+  int _chatsEnrichGen = 0;
 
   @override
   void initState() {
@@ -85,15 +86,15 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
 
   Future<void> _initUserThenLoad() async {
     final homecontroller = Get.find<HomeController>();
-    if (homecontroller.currentemployee.value != null) {
-      _currentUserId = homecontroller.currentemployee.value?.id;
+    if (homecontroller.currentEmployee.value != null) {
+      _currentUserId = homecontroller.currentEmployee.value?.id;
       _currentUserName =
-          homecontroller.currentemployee.value?.name ??
-          homecontroller.currentemployee.value?.email ??
+          homecontroller.currentEmployee.value?.name ??
+          homecontroller.currentEmployee.value?.email ??
           AppLocaleKeys.me.tr;
-      _currentUserRole = homecontroller.currentemployee.value?.role;
+      _currentUserRole = homecontroller.currentEmployee.value?.role;
       _currentUserDept = StorageKeys.normalizeDepartment(
-        homecontroller.currentemployee.value?.department,
+        homecontroller.currentEmployee.value?.department,
       );
     } else {
       _currentUserId = 'temp_current_user';
@@ -247,7 +248,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
         .orderBy('lastUpdated', descending: true)
         .snapshots()
         .listen((snap) {
-          _chats.clear();
+          final built = <Map<String, dynamic>>[];
           for (var doc in snap.docs) {
             final data = doc.data();
             final chat = {
@@ -258,11 +259,13 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
               'isGroup': data['isGroup'] ?? false,
               'title': data['title'],
             };
-            _chats.add(chat);
+            built.add(chat);
           }
 
-          _loadingChats = false;
-          if (mounted) setState(() {});
+          _chatsEnrichGen++;
+          final gen = _chatsEnrichGen;
+          if (!mounted) return;
+          unawaited(_applySnapshotAndEnrich(gen, built));
         }, onError: (Object e, StackTrace st) {
           log('⚠️ MChatPage _listenChats: $e');
           if (!mounted) return;
@@ -270,6 +273,80 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
             _loadingChats = false;
           });
         }, cancelOnError: false);
+  }
+
+  Future<void> _applySnapshotAndEnrich(
+    int gen,
+    List<Map<String, dynamic>> built,
+  ) async {
+    if (built.isEmpty) {
+      if (!mounted || gen != _chatsEnrichGen) return;
+      _chats = [];
+      _loadingChats = false;
+      if (mounted) setState(() {});
+      return;
+    }
+
+    final ids = built.map((c) => c['id'] as String).toList();
+    final previews =
+        await FirestoreServices.fetchLatestMessagePreviewsForChatIds(
+          _firestore,
+          ids,
+        );
+    if (!mounted || gen != _chatsEnrichGen) return;
+
+    _chats = _mergeChatsWithPreviews(built, previews);
+    _loadingChats = false;
+    if (mounted) setState(() {});
+  }
+
+  List<Map<String, dynamic>> _mergeChatsWithPreviews(
+    List<Map<String, dynamic>> built,
+    Map<String, String?> previews,
+  ) {
+    final out = <Map<String, dynamic>>[];
+    for (final c in built) {
+      final id = c['id'] as String;
+      final isGroup = c['isGroup'] == true;
+      final fromSub = previews[id];
+      final docLm = (c['lastMessage'] ?? '').toString();
+
+      if (!isGroup) {
+        final preview =
+            (fromSub != null && fromSub.trim().isNotEmpty)
+                ? fromSub.trim()
+                : docLm.trim();
+        if (preview.isEmpty) continue;
+        if (fromSub != null && fromSub.trim().isNotEmpty) {
+          unawaited(
+            FirestoreServices.patchChatLastMessageIfStale(
+              _firestore,
+              id,
+              fromSub.trim(),
+              docLm,
+            ),
+          );
+        }
+        out.add(Map<String, dynamic>.from(c)..['lastMessage'] = preview);
+      } else {
+        final display =
+            (fromSub != null && fromSub.trim().isNotEmpty)
+                ? fromSub.trim()
+                : docLm.trim();
+        if (fromSub != null && fromSub.trim().isNotEmpty) {
+          unawaited(
+            FirestoreServices.patchChatLastMessageIfStale(
+              _firestore,
+              id,
+              fromSub.trim(),
+              docLm,
+            ),
+          );
+        }
+        out.add(Map<String, dynamic>.from(c)..['lastMessage'] = display);
+      }
+    }
+    return out;
   }
 
   // ---------------- Navigation ----------------
@@ -618,6 +695,8 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                             lastGroupMsg.isEmpty
                                 ? AppLocaleKeys.chatGroupConversation.tr
                                 : lastGroupMsg,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
                           trailing:
                               unreadCount > 0
@@ -669,9 +748,17 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                 IconData? avatarIcon;
                                 Color? titleColor;
 
+                                late final String listSubtitle;
                                 if (isGroup) {
                                   displayName =
                                       ch['title'] ?? 'chat.group_default'.tr;
+                                  final lm =
+                                      (ch['lastMessage'] ?? '')
+                                          .toString()
+                                          .trim();
+                                  listSubtitle = lm.isNotEmpty
+                                      ? lm
+                                      : AppLocaleKeys.chatGroupConversation.tr;
                                   initial = _initialFromName(displayName);
                                   avatarColor = Colors.blueGrey.shade100;
                                   avatarIcon = Icons.group;
@@ -699,6 +786,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                   avatarColor = Colors.grey.shade200;
                                   avatarIcon = null;
                                   titleColor = Colors.black;
+                                  listSubtitle = ch['lastMessage'] ?? '';
                                 }
 
                                 return StreamBuilder<int>(
@@ -735,8 +823,8 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                         ),
                                       ),
                                       subtitle: Text(
-                                        ch['lastMessage'] ?? '',
-                                        maxLines: 1,
+                                        listSubtitle,
+                                        maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                       trailing:

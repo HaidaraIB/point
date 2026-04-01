@@ -136,7 +136,7 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
               : [
                   NoteModel(
                     note: notesController.text,
-                    byWho: controller.currentemployee.value?.name ?? '',
+                    byWho: controller.currentEmployee.value?.name ?? '',
                     timestamp: DateTime.now(),
                   ),
                 ],
@@ -176,7 +176,7 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                   : [
                       NoteModel(
                         note: notesController.text,
-                        byWho: controller.currentemployee.value?.name ?? '',
+                        byWho: controller.currentEmployee.value?.name ?? '',
                         timestamp: DateTime.now(),
                       ),
                     ]),

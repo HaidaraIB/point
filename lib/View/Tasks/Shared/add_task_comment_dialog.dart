@@ -70,9 +70,9 @@ Future<void> showAddTaskCommentDialog({
             onPressed: () async {
               if (!formKey.currentState!.validate()) return;
               final author =
-                  controller.currentemployee.value?.name?.trim().isNotEmpty ==
+                  controller.currentEmployee.value?.name?.trim().isNotEmpty ==
                           true
-                      ? controller.currentemployee.value!.name!.trim()
+                      ? controller.currentEmployee.value!.name!.trim()
                       : 'employee.fallback_name'.tr;
               final note = NoteModel(
                 note: commentController.text.trim(),

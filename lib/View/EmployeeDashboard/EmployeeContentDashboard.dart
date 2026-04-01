@@ -61,7 +61,7 @@ class EmployeeContentDashboard extends StatelessWidget {
             children: [
               Obx(() {
                 if (!ContentPermissions.canAddOrEditContent(
-                      controller.currentemployee.value,
+                      controller.currentEmployee.value,
                     )) {
                   return const SizedBox.shrink();
                 }
@@ -143,12 +143,12 @@ class EmployeeContentDashboard extends StatelessWidget {
               Obx(
                 () => HeaderWidget(
                   employee: true,
-                  name: controller.currentemployee.value?.name ?? '',
-                  role: controller.currentemployee.value?.role ?? '',
+                  name: controller.currentEmployee.value?.name ?? '',
+                  role: controller.currentEmployee.value?.role ?? '',
                   department:
-                      controller.currentemployee.value?.department,
+                      controller.currentEmployee.value?.department,
                   avatarUrl:
-                      controller.currentemployee.value?.image ??
+                      controller.currentEmployee.value?.image ??
                       kDefaultAvatarUrl,
                 ),
               ),
@@ -167,7 +167,7 @@ class EmployeeContentDashboard extends StatelessWidget {
                   ),
                   Obx(() {
                     if (!ContentPermissions.canAddOrEditContent(
-                          controller.currentemployee.value,
+                          controller.currentEmployee.value,
                         )) {
                       return const SizedBox.shrink();
                     }
@@ -253,7 +253,7 @@ class EmployeeContentDashboard extends StatelessWidget {
 
   void _onAddContent(HomeController controller) {
     if (!ContentPermissions.canAddOrEditContent(
-          controller.currentemployee.value,
+          controller.currentEmployee.value,
         )) {
       FunHelper.showSnackbar(
         'error'.tr,

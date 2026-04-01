@@ -805,7 +805,7 @@ void designDialog(BuildContext context, {TaskModel? model}) {
                                                   note: notesController.text,
                                                   byWho:
                                                       controller
-                                                          .currentemployee
+                                                          .currentEmployee
                                                           .value
                                                           ?.name ??
                                                       '',
@@ -871,7 +871,7 @@ void designDialog(BuildContext context, {TaskModel? model}) {
                                                           notesController.text,
                                                       byWho:
                                                           controller
-                                                              .currentemployee
+                                                              .currentEmployee
                                                               .value
                                                               ?.name ??
                                                           '',

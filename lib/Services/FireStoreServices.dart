@@ -618,6 +618,31 @@ class FirestoreServices {
     }
   }
 
+  /// تحديث [name] و/أو [image] فقط (بدون بقية حقول [EmployeeModel.toJson]).
+  /// يُستخدم لملف الموظف الشخصي حتى تطابق قواعد الأمان `affectedKeys` لدور employee.
+  Future<bool> updateEmployeeProfileFields({
+    required String employeeId,
+    required String name,
+    String? imageUrl,
+  }) async {
+    try {
+      final payload = <String, dynamic>{
+        'name': name,
+      };
+      final img = imageUrl?.trim();
+      if (img != null && img.isNotEmpty) {
+        payload['image'] = img;
+      }
+      await _employeeCollection.doc(employeeId).update(payload);
+      log("✅ updateEmployeeProfileFields: $employeeId");
+      return true;
+    } catch (e, s) {
+      log("❌ updateEmployeeProfileFields error: $e");
+      log("StackTrace: $s");
+      return false;
+    }
+  }
+
   // 🟢 إضافة موظف
   Future<bool> addEmployee(EmployeeModel employee) async {
     try {
@@ -1495,6 +1520,78 @@ class FirestoreServices {
       } else {
         rethrow;
       }
+    }
+  }
+
+  /// نص معاينة لقائمة المحادثات من مستند في `chats/.../messages`.
+  static String chatListPreviewFromMessageData(Map<String, dynamic> data) {
+    final type = (data['messageType'] as String?)?.trim() ?? 'text';
+    final text = (data['text'] ?? '') as String;
+    switch (type) {
+      case 'voice':
+        return '🎤';
+      case 'image':
+        return '📷';
+      case 'file':
+        final fn = (data['fileName'] as String?)?.trim();
+        return fn != null && fn.isNotEmpty ? '📎 $fn' : '📎';
+      default:
+        return text;
+    }
+  }
+
+  /// آخر رسالة فعلية من المجموعة الفرعية (مصدر موثوق عند تعارض حقل المحادثة).
+  static Future<String?> fetchLatestMessagePreviewForChat(
+    FirebaseFirestore fs,
+    String chatId,
+  ) async {
+    try {
+      final q =
+          await fs
+              .collection('chats')
+              .doc(chatId)
+              .collection('messages')
+              .orderBy('timestamp', descending: true)
+              .limit(1)
+              .get();
+      if (q.docs.isEmpty) return null;
+      return chatListPreviewFromMessageData(q.docs.first.data());
+    } catch (e, st) {
+      log('fetchLatestMessagePreviewForChat $chatId: $e\n$st');
+      return null;
+    }
+  }
+
+  /// جلب معاينات متوازية لعدة محادثات عند فتح القائمة أو تحديثها.
+  static Future<Map<String, String?>> fetchLatestMessagePreviewsForChatIds(
+    FirebaseFirestore fs,
+    Iterable<String> chatIds,
+  ) async {
+    final ids = chatIds.where((id) => id.isNotEmpty).toList();
+    if (ids.isEmpty) return {};
+    final entries = await Future.wait(
+      ids.map((id) async {
+        final p = await fetchLatestMessagePreviewForChat(fs, id);
+        return MapEntry(id, p);
+      }),
+    );
+    return Map.fromEntries(entries);
+  }
+
+  /// مزامنة حقل [lastMessage] على مستند المحادثة إن كان فارغاً أو قديماً (بدون تعديل [lastUpdated]).
+  static Future<void> patchChatLastMessageIfStale(
+    FirebaseFirestore fs,
+    String chatId,
+    String previewFromMessages,
+    String currentDocLastMessage,
+  ) async {
+    final a = previewFromMessages.trim();
+    if (a.isEmpty) return;
+    if (a == currentDocLastMessage.trim()) return;
+    try {
+      await fs.collection('chats').doc(chatId).update({'lastMessage': a});
+    } catch (e) {
+      log('patchChatLastMessageIfStale $chatId: $e');
     }
   }
 

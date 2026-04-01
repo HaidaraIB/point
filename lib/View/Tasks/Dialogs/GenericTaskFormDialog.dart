@@ -631,7 +631,7 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
           '',
       notes: notes,
       newNoteText: _notesController.text.isEmpty ? null : _notesController.text,
-      newNoteAuthor: controller.currentemployee.value?.name,
+      newNoteAuthor: controller.currentEmployee.value?.name,
       files: controller.uploadedFilesPaths.cast<String>().toList(),
     );
     final task = widget.delegate.buildTask(common, widget.model, controller);

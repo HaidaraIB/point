@@ -53,12 +53,12 @@ class EmployeeDashboard extends StatelessWidget {
                         child: Obx(
                           () => HeaderWidget(
                             employee: true,
-                            name: controller.currentemployee.value?.name ?? '',
-                            role: controller.currentemployee.value?.role ?? '',
+                            name: controller.currentEmployee.value?.name ?? '',
+                            role: controller.currentEmployee.value?.role ?? '',
                             department:
-                                controller.currentemployee.value?.department,
+                                controller.currentEmployee.value?.department,
                             avatarUrl:
-                                controller.currentemployee.value?.image ??
+                                controller.currentEmployee.value?.image ??
                                 kDefaultAvatarUrl,
                           ),
                         ),
@@ -77,11 +77,11 @@ class EmployeeDashboard extends StatelessWidget {
                           ),
                           Spacer(),
                           if (StorageKeys.matchesDepartment(
-                                controller.currentemployee.value?.department,
+                                controller.currentEmployee.value?.department,
                                 StorageKeys.departmentPromotion,
                               ) ||
                               StorageKeys.matchesDepartment(
-                                controller.currentemployee.value?.department,
+                                controller.currentEmployee.value?.department,
                                 StorageKeys.departmentPublishing,
                               ))
                             MainButton(
@@ -121,7 +121,7 @@ class EmployeeDashboard extends StatelessWidget {
                                 .where(
                                   (a) =>
                                       a.assignedTo ==
-                                      controller.currentemployee.value?.id,
+                                      controller.currentEmployee.value?.id,
                                 )
                                 .toList();
                         final isDesktop = Responsive.isDesktop(Get.context!);
@@ -390,11 +390,11 @@ class EmployeeDashboard extends StatelessWidget {
                           ),
                           Spacer(),
                           if (StorageKeys.matchesDepartment(
-                                controller.currentemployee.value?.department,
+                                controller.currentEmployee.value?.department,
                                 StorageKeys.departmentPromotion,
                               ) ||
                               StorageKeys.matchesDepartment(
-                                controller.currentemployee.value?.department,
+                                controller.currentEmployee.value?.department,
                                 StorageKeys.departmentPublishing,
                               ))
                             MainButton(
@@ -434,7 +434,7 @@ class EmployeeDashboard extends StatelessWidget {
                                 .where(
                                   (a) =>
                                       a.assignedTo ==
-                                      controller.currentemployee.value?.id,
+                                      controller.currentEmployee.value?.id,
                                 )
                                 .toList();
                         return Column(
@@ -774,7 +774,7 @@ class TasksGridPage extends StatelessWidget {
                 controller.tasksSearched
                     .where(
                       (a) =>
-                          a.assignedTo == controller.currentemployee.value?.id,
+                          a.assignedTo == controller.currentEmployee.value?.id,
                     )
                     .toList();
             return GridView.builder(
@@ -836,7 +836,7 @@ class TasksListPage extends StatelessWidget {
                 controller.tasksSearched
                     .where(
                       (a) =>
-                          a.assignedTo == controller.currentemployee.value?.id,
+                          a.assignedTo == controller.currentEmployee.value?.id,
                     )
                     .toList();
             return ListView.builder(

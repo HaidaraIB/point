@@ -227,7 +227,7 @@ class _ContentDialogDetailsState extends State<ContentDialogDetails> {
 
   Widget _buildMetaSection(BuildContext context, double dialogWidth) {
     final colorScheme = Theme.of(context).colorScheme;
-    final emp = Get.find<HomeController>().currentemployee.value;
+    final emp = Get.find<HomeController>().currentEmployee.value;
     final showStatus = ContentPermissions.showContentStatusUi(emp);
     final showPromotion = ContentPermissions.showContentPromotionUi(emp);
     final showPublishDate = ContentPermissions.showContentPublishDateUi(emp);
