@@ -6,8 +6,8 @@
 #             إذا فشل حلّ اسم مثل ftp.point-iq.app استخدم IP من صفحة «FTP Access».
 #   FTP_USERNAME — لحساب فرعي مثل agency استخدم الاسم الكامل: u....agency وليس حساب FTP الرئيسي فقط.
 #   FTP_PASSWORD
-# server-dir أدناه مضبوط لحساب FTP مربوط بمجلد .../public_html/agency (جذر الدخول = مجلد agency).
-#   إن استخدمتَ الحساب الرئيسي (u427966831) بدلاً من .agency غيّر server-dir إلى /public_html/agency/
+# النطاق الفرعي agency.point-iq.app يشير عادةً لمجلد agency — جذر FTP = جذر الموقع على ذلك النطاق (مسار URL = /).
+# --base-href يجب أن يكون / وليس /agency/ عند استخدام نطاق فرعي، وإلا تُحمّل الأصول من مسار خاطئ.
 # وأسرار Supabase نفسها المستخدمة في deploy-firebase-hosting.yml:
 #   SUPABASE_URL
 #   SUPABASE_ANON_KEY
@@ -49,9 +49,13 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # نطاق فرعي agency.point-iq.app → base-href = / (جذر النطاق)
+      # --pwa-strategy none يقلّل تخزين نسخة قديمة من التطبيق عبر service worker الافتراضي (offline-first)
       - name: Build web (release, production Firebase)
         run: >
           flutter build web --release
+          --base-href /
+          --pwa-strategy none
           --dart-define=USE_FIREBASE_PROD=true
           --dart-define=SUPABASE_URL="${{ secrets.SUPABASE_URL }}"
           --dart-define=SUPABASE_ANON_KEY="${{ secrets.SUPABASE_ANON_KEY }}"
