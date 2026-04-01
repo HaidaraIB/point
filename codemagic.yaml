@@ -2,8 +2,9 @@
 # 1) أنشئ تطبيقاً في Codemagic يشير لهذا الريبو واختر الفرع (مثل master) وworkflow: ios-workflow
 # 2) Integrations → App Store Connect: اسم التكامل يجب أن يطابق السطر integrations.app_store_connect أدناه (حالياً: Point)
 # 3) Environment → مجموعة ios_config: انظر codemagic-ios-config.example.env
-# 4) Apple Developer: App ID com.point.agency مع Push + provisioning profile App Store يحتوي aps-environment (السكربت يفضّل اسماً Point)
-# 5) رقم البناء: يُشتق من pubspec + FCI_BUILD_NUMBER/CM_BUILD_NUMBER/BUILD_NUMBER عند التوفر (فعّل زيادة رقم البناء في إعدادات التطبيق على Codemagic إن رغبت)
+# 4) Firebase الإنتاج: GOOGLE_SERVICE_INFO_PLIST يجب أن يكون من مشروع point-agency-production (ليس الاختبار). أمر البناء يمرّر USE_FIREBASE_PROD=true.
+# 5) Apple Developer: App ID com.point.agency مع Push + provisioning profile App Store يحتوي aps-environment (السكربت يفضّل اسماً Point)
+# 6) رقم البناء: يُشتق من pubspec + FCI_BUILD_NUMBER/CM_BUILD_NUMBER/BUILD_NUMBER عند التوفر (فعّل زيادة رقم البناء في إعدادات التطبيق على Codemagic إن رغبت)
 workflows:
   ios-workflow:
     name: iOS Workflow
@@ -76,6 +77,11 @@ workflows:
               echo "❌ GoogleService-Info.plist invalid: missing BUNDLE_ID or GOOGLE_APP_ID"
               exit 1
             fi
+            if ! grep -q "point-agency-production" "$PLIST_PATH"; then
+              echo "❌ GoogleService-Info.plist must be for Firebase prod (PROJECT_ID point-agency-production), not the test project."
+              exit 1
+            fi
+            echo "✅ GoogleService-Info.plist matches Firebase production project"
           fi
       - name: Set up code signing settings on Xcode project
         script: |
