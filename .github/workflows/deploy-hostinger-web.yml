@@ -1,5 +1,5 @@
-# نشر Flutter Web على Hostinger عبر FTP من GitHub Actions.
-# الإجراء يبني المشروع ثم يزامن build/web مع السيرفر (عادةً يرفع التغييرات فقط، وليس كل الملفات في كل مرة).
+# نشر Flutter Web على Hostinger — مشروع Firebase الإنتاج فقط (point-agency-production).
+# بيئة الاختبار على Firebase Hosting: deploy-firebase-hosting.yml
 #
 # الإعداد في GitHub → Settings → Secrets and variables → Actions:
 #   FTP_SERVER        — مثال: ftp.example.com (من hPanel → Files → FTP Accounts)
