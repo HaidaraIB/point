@@ -1132,7 +1132,6 @@ class _MessageScreenState extends State<MessageScreen> {
         userId: widget.otherUserId ?? '',
         title: widget.currentUserName,
         body: lastMessagePreview,
-        sendEmail: false,
         notificationType: 'chat_message',
         fcmDataExtras: {'chatId': _chatId},
       );
@@ -1147,7 +1146,6 @@ class _MessageScreenState extends State<MessageScreen> {
               'group': _displayName,
             }),
             body: lastMessagePreview,
-            sendEmail: false,
             notificationType: 'chat_message',
             fcmDataExtras: {'chatId': _chatId},
           );

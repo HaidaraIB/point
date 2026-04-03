@@ -61,6 +61,8 @@ class AppLocaleKeys {
   static const chatVoiceSaveFailed = 'chat.voice_save_failed';
   static const chatPickEmployee = 'chat.pick_employee';
   static const chatUnknownUser = 'chat.unknown_user';
+  static const chatFileTapToOpen = 'chat.file_tap_to_open';
+  static const chatFileUntitled = 'chat.file_untitled';
 
   static const successTitle = 'feedback.success_title';
   static const errorTitle = 'feedback.error_title';

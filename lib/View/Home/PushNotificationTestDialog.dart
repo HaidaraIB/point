@@ -8,10 +8,12 @@ import 'package:point/Services/push_notification_test_catalog.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/responsive.dart';
+import 'package:point/firebase_app_options.dart';
 
 /// حوار لمسؤولي النظام (admin / supervisor):
 /// إرسال تجربة Push: أي [notificationType] إلى أي مزيج من الموظفين والعملاء.
 void showPushNotificationTestDialog(BuildContext context) {
+  if (!FirebaseAppOptions.isUsingTestFirebaseProject) return;
   showDialog<void>(
     context: context,
     barrierDismissible: false,
@@ -133,6 +135,8 @@ class _PushNotificationTestDialogBodyState
 
     setState(() => _sending = true);
     try {
+      final batchSeenTokens = <String>{};
+      final batchSeenEmails = <String>{};
       for (final id in _empIds) {
         await FirestoreServices.sendFcm(
           userId: id,
@@ -141,6 +145,8 @@ class _PushNotificationTestDialogBodyState
           notificationType: _selected.notificationType,
           sendPush: _sendPush,
           sendEmail: _sendEmail,
+          batchSeenTokens: batchSeenTokens,
+          batchSeenEmails: batchSeenEmails,
         );
       }
       for (final id in _clientIds) {
@@ -151,6 +157,8 @@ class _PushNotificationTestDialogBodyState
           notificationType: _selected.notificationType,
           sendPush: _sendPush,
           sendEmail: _sendEmail,
+          batchSeenTokens: batchSeenTokens,
+          batchSeenEmails: batchSeenEmails,
         );
       }
 

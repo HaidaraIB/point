@@ -11,6 +11,7 @@ import 'package:point/Models/NotificationModel.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Models/ChatMetaData.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Services/notification_email_policy.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Services/EmailNotificationService.dart';
 import 'package:point/config/app_config.dart';
@@ -135,6 +136,8 @@ class FirestoreServices {
     return tokens.toList();
   }
 
+  static String _emailDedupeKey(String email) => email.trim().toLowerCase();
+
   static bool _isInvalidOrExpiredTokenError(Object error) {
     if (error is FcmSendException) {
       final details = (error.details?.toString() ?? '').toLowerCase();
@@ -196,6 +199,54 @@ class FirestoreServices {
     return null;
   }
 
+  /// يحاول ربط توكن FCM عبر Edge Function claim-fcm-token؛ عند النجاح يُزال
+  /// التوكن من أي موظف/عميل آخر ثم يُسجَّل للمستهدف. عند الفشل يُرجع false
+  /// ليستمر المتصل بالتحديث المباشر (مثلاً قبل نشر الدالة أو بدون جلسة Firebase).
+  static Future<bool> _tryClaimFcmTokenViaSupabase({
+    required String fcmToken,
+    String? employeeId,
+    String? clientId,
+  }) async {
+    final eid = employeeId?.trim() ?? '';
+    final cid = clientId?.trim() ?? '';
+    if ((eid.isNotEmpty && cid.isNotEmpty) || (eid.isEmpty && cid.isEmpty)) {
+      return false;
+    }
+    try {
+      final firebaseIdToken =
+          await FirebaseAuth.instance.currentUser?.getIdToken();
+      if (firebaseIdToken == null || firebaseIdToken.isEmpty) return false;
+
+      final res = await Supabase.instance.client.functions.invoke(
+        'claim-fcm-token',
+        headers: <String, String>{
+          'x-firebase-id-token': 'Bearer $firebaseIdToken',
+        },
+        body: <String, dynamic>{
+          'fcmToken': fcmToken,
+          if (eid.isNotEmpty) 'employeeId': eid,
+          if (cid.isNotEmpty) 'clientId': cid,
+        },
+      );
+
+      final data = res.data;
+      if (res.status == 200 && data is Map && data['ok'] == true) {
+        return true;
+      }
+      log('claim-fcm-token non-ok: status=${res.status} data=$data');
+      return false;
+    } on FunctionException catch (e) {
+      log(
+        'claim-fcm-token FunctionException: status=${e.status} details=${e.details}',
+      );
+      return false;
+    } catch (e, st) {
+      log('claim-fcm-token error: $e');
+      log('$st');
+      return false;
+    }
+  }
+
   static Future<void> addEmployeeFcmToken({
     required String employeeId,
     required String token,
@@ -203,6 +254,13 @@ class FirestoreServices {
     final cleanedId = employeeId.trim();
     final cleanedToken = token.trim();
     if (cleanedId.isEmpty || cleanedToken.isEmpty) return;
+
+    final claimed = await _tryClaimFcmTokenViaSupabase(
+      fcmToken: cleanedToken,
+      employeeId: cleanedId,
+    );
+    if (claimed) return;
+
     await FirebaseFirestore.instance
         .collection('employees')
         .doc(cleanedId)
@@ -219,6 +277,13 @@ class FirestoreServices {
     final cleanedId = clientId.trim();
     final cleanedToken = token.trim();
     if (cleanedId.isEmpty || cleanedToken.isEmpty) return;
+
+    final claimed = await _tryClaimFcmTokenViaSupabase(
+      fcmToken: cleanedToken,
+      clientId: cleanedId,
+    );
+    if (claimed) return;
+
     await FirebaseFirestore.instance
         .collection('clients')
         .doc(cleanedId)
@@ -1831,10 +1896,16 @@ class FirestoreServices {
     /// يُدمج في حمولة `data` لـ FCM (مثل `chatId` لإشعارات الدردشة).
     Map<String, String>? fcmDataExtras,
     bool sendPush = true,
-    bool sendEmail = true,
+    /// إن وُجد يُستخدم كما هو؛ وإلا تُطبَّق [NotificationEmailPolicy] حسب [notificationType].
+    bool? sendEmail,
     Set<String>? batchSeenTokens,
+    /// يمنع إرسال أكثر من بريد لنفس العنوان ضمن دفعة واحدة (مثل [sendFcmToEmployees]).
+    Set<String>? batchSeenEmails,
   }) async {
     try {
+      final effectiveSendEmail =
+          sendEmail ?? NotificationEmailPolicy.shouldSendEmail(notificationType);
+
       // 1. هات بيانات المستخدم من Firestore
       final doc =
           await FirebaseFirestore.instance
@@ -1871,31 +1942,41 @@ class FirestoreServices {
       }
 
       // إرسال بريد (اختياري حسب اختيار القناة)
-      if (sendEmail) {
-        // إرسال إيميل حتى عند غياب FCM (من لم يثبت التطبيق أو عطّل الإشعارات يظل يحصل على الإيميل)
-        if (email != null && email.isNotEmpty) {
-          final details = <String, String>{
-            'المستلم': recipientName,
-            'معرف المستلم': trimmedUserId,
-            if (emailDetails != null) ...emailDetails,
-          };
-          unawaited(
-            EmailNotificationService.sendDetailedNotification(
-              toEmail: email,
-              title: title,
-              body: body,
-              recipientLabel: recipientName,
-              notificationType: notificationType ?? 'إشعار موظف',
-              actionText: actionText,
-              referenceId: referenceId ?? trimmedUserId,
-              details: details,
-            ),
-          );
-        } else {
+      var sendThisEmail =
+          effectiveSendEmail && email != null && email.isNotEmpty;
+      if (sendThisEmail && batchSeenEmails != null) {
+        final key = _emailDedupeKey(email);
+        if (!batchSeenEmails.add(key)) {
+          sendThisEmail = false;
           log(
-            "⚠️ Email missing for $recipientRole $recipientName — skipping email notification",
+            "↩️ Duplicate batch email skipped ($recipientName · $trimmedUserId)",
           );
         }
+      }
+      if (sendThisEmail) {
+        // إرسال إيميل حتى عند غياب FCM (من لم يثبت التطبيق أو عطّل الإشعارات يظل يحصل على الإيميل)
+        final details = <String, String>{
+          'المستلم': recipientName,
+          'معرف المستلم': trimmedUserId,
+          if (emailDetails != null) ...emailDetails,
+        };
+        unawaited(
+          EmailNotificationService.sendDetailedNotification(
+            toEmail: email!,
+            title: title,
+            body: body,
+            recipientLabel: recipientName,
+            notificationType: notificationType ?? 'إشعار موظف',
+            actionText: actionText,
+            referenceId: referenceId ?? trimmedUserId,
+            details: details,
+          ),
+        );
+      } else if (effectiveSendEmail &&
+          (email == null || email.isEmpty)) {
+        log(
+          "⚠️ Email missing for $recipientRole $recipientName — skipping email notification",
+        );
       }
 
       // إذا المستخدم لا يريد Push، ننهي بدون فحص token أو إرسال push.
@@ -2002,10 +2083,15 @@ class FirestoreServices {
     Map<String, String>? emailDetails,
     Map<String, String>? fcmDataExtras,
     bool sendPush = true,
-    bool sendEmail = true,
+    /// إن وُجد يُستخدم كما هو؛ وإلا تُطبَّق [NotificationEmailPolicy] حسب [notificationType].
+    bool? sendEmail,
     Set<String>? batchSeenTokens,
+    Set<String>? batchSeenEmails,
   }) async {
     try {
+      final effectiveSendEmail =
+          sendEmail ?? NotificationEmailPolicy.shouldSendEmail(notificationType);
+
       // 1. هات بيانات المستخدم من Firestore
       final doc =
           await FirebaseFirestore.instance
@@ -2040,30 +2126,40 @@ class FirestoreServices {
         );
       }
 
-      if (sendEmail) {
-        if (email != null && email.isNotEmpty) {
-          final details = <String, String>{
-            'المستلم': recipientName,
-            'معرف المستلم': trimmedUserId,
-            if (emailDetails != null) ...emailDetails,
-          };
-          unawaited(
-            EmailNotificationService.sendDetailedNotification(
-              toEmail: email,
-              title: title,
-              body: body,
-              recipientLabel: recipientName,
-              notificationType: notificationType ?? 'إشعار عميل',
-              actionText: actionText,
-              referenceId: referenceId ?? trimmedUserId,
-              details: details,
-            ),
-          );
-        } else {
+      var sendThisClientEmail =
+          effectiveSendEmail && email != null && email.isNotEmpty;
+      if (sendThisClientEmail && batchSeenEmails != null) {
+        final key = _emailDedupeKey(email);
+        if (!batchSeenEmails.add(key)) {
+          sendThisClientEmail = false;
           log(
-            "⚠️ Email missing for client $recipientName — skipping email notification",
+            "↩️ Duplicate batch email skipped (client $recipientName · $trimmedUserId)",
           );
         }
+      }
+      if (sendThisClientEmail) {
+        final details = <String, String>{
+          'المستلم': recipientName,
+          'معرف المستلم': trimmedUserId,
+          if (emailDetails != null) ...emailDetails,
+        };
+        unawaited(
+          EmailNotificationService.sendDetailedNotification(
+            toEmail: email!,
+            title: title,
+            body: body,
+            recipientLabel: recipientName,
+            notificationType: notificationType ?? 'إشعار عميل',
+            actionText: actionText,
+            referenceId: referenceId ?? trimmedUserId,
+            details: details,
+          ),
+        );
+      } else if (effectiveSendEmail &&
+          (email == null || email.isEmpty)) {
+        log(
+          "⚠️ Email missing for client $recipientName — skipping email notification",
+        );
       }
 
       if (!sendPush) return;
@@ -2277,7 +2373,13 @@ class FirestoreServices {
         );
       }
 
+      final seenEmailKeys = <String>{};
       for (final email in emails) {
+        final key = _emailDedupeKey(email);
+        if (!seenEmailKeys.add(key)) {
+          log("↩️ Duplicate topic email skipped (same address listed twice)");
+          continue;
+        }
         final details = <String, String>{
           'الوجهة': 'إشعار جماعي',
           'الموضوع': topic,
@@ -2351,6 +2453,7 @@ class FirestoreServices {
   }) async {
     final seen = <String>{};
     final batchSeenTokens = <String>{};
+    final batchSeenEmails = <String>{};
     for (final id in userIds) {
       final trimmed = id.trim();
       if (trimmed.isEmpty || seen.contains(trimmed)) continue;
@@ -2366,6 +2469,7 @@ class FirestoreServices {
           emailDetails: emailDetails,
           fcmDataExtras: fcmDataExtras,
           batchSeenTokens: batchSeenTokens,
+          batchSeenEmails: batchSeenEmails,
         ),
       );
     }

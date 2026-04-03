@@ -10,6 +10,7 @@ import 'package:point/View/Auth/ForgetPassword.dart';
 import 'package:point/View/Auth/Login.dart';
 import 'package:point/View/Auth/ResetPassword.dart';
 import 'package:point/View/Auth/SessionSetupScreen.dart';
+import 'package:point/View/Auth/WebAuthSplashDecider.dart';
 import 'package:point/View/Clients/ClientsTable.dart';
 import 'package:point/View/Contents/ContentsTable.dart';
 import 'package:point/View/EmployeeDashboard/EmployeeDashboard.dart';
@@ -37,9 +38,10 @@ class AuthMiddleware extends GetMiddleware {
 }
 
 class AppRouting {
-  static var initialPage = kIsWeb ? '/auth/login' : '/mobileSplash';
+  static var initialPage = kIsWeb ? '/webAuthSplash' : '/mobileSplash';
 
   static final routing = [
+    GetPage(name: '/webAuthSplash', page: () => const WebAuthSplashDecider()),
     GetPage(name: '/mobileSplash', page: () => const MobileSplashDecider()),
     GetPage(
       name: '/ClientHome',

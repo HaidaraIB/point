@@ -35,7 +35,7 @@ const FCM_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const FIREBASE_ID_TOKEN_CERTS_URL =
   "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com";
-const FUNCTION_VERSION = "send-fcm-v3-sound";
+const FUNCTION_VERSION = "send-fcm-v4-multi-project";
 
 function soundBaseForNotificationType(notificationType: string | undefined): string | null {
   if (!notificationType) return null;
@@ -82,6 +82,20 @@ function soundBaseForNotificationType(notificationType: string | undefined): str
     promotion_new_published_content: "notification_promotion_status",
     // FCM topic broadcast from admin Home (employees / clients / all).
     broadcast_topic: "notification_task_preview",
+    employee_task_start_reminder: "notification_task_deadline_soon",
+    employee_task_stale_update: "notification_task_comment",
+    employee_task_followup: "notification_task_deadline_soon",
+    employee_task_overdue: "notification_task_deadline",
+    employee_task_due_soon_1h: "notification_task_deadline_soon",
+    employee_task_no_progress_yet: "notification_task_preview",
+    manager_task_progress_updated: "notification_task_preview",
+    manager_task_no_action: "notification_content_status",
+    manager_task_progress_stalled: "notification_task_deadline",
+    employee_progress_good_start: "notification_task_approved",
+    employee_progress_quarter: "notification_task_preview",
+    employee_progress_half: "notification_task_preview",
+    employee_progress_three_quarter: "notification_task_deadline_soon",
+    employee_progress_almost: "notification_task_deadline_soon",
   };
   return map[t] ?? null;
 }
@@ -134,7 +148,6 @@ Deno.serve(async (req: Request) => {
 
   try {
     // Web-safe auth: require a Firebase Auth ID token (no shared secret in client builds).
-    const sa = getServiceAccount();
     // Firebase token passed by the Flutter app (we intentionally keep `authorization`
     // free for Supabase client JWT, if present).
     const firebaseAuthz = req.headers.get("x-firebase-id-token") ?? "";
@@ -142,13 +155,13 @@ Deno.serve(async (req: Request) => {
       ? firebaseAuthz.slice(7).trim()
       : firebaseAuthz.trim();
     if (!idToken) return json({ errorCode: "ERR_MISSING_TOKEN" }, 401);
-    const caller = await verifyFirebaseIdToken(idToken, sa.project_id);
+    const caller = await verifyFirebaseIdToken(idToken);
+    const sa = getServiceAccountForFirebaseProject(caller.firebaseProjectId);
 
     // We already verified the Firebase ID token signature and claims.
     // Do not additionally restrict by Firestore role, because notifications are
     // triggered by multiple app roles (employees/clients/etc).
     const accessToken = await getAccessToken(sa);
-    void caller; // keep variable referenced (useful for future audits/logging)
 
     const {
       token,
@@ -437,14 +450,33 @@ async function writePushDiagnostic(args: {
   }
 }
 
-function getServiceAccount(): ServiceAccountJson {
-  const raw = Deno.env.get("FIREBASE_SERVICE_ACCOUNT_JSON");
-  if (!raw) throw new Error("FIREBASE_SERVICE_ACCOUNT_JSON not set");
-  const sa = JSON.parse(raw) as ServiceAccountJson;
-  if (!sa?.project_id || !sa?.client_email || !sa?.private_key) {
+/**
+ * Prod: `FIREBASE_SERVICE_ACCOUNT_JSON` (required).
+ * Test: `FIREBASE_SERVICE_ACCOUNT_JSON_TEST` — نفس الشكل (project_id، client_email، private_key).
+ * يُختار الحساب حسب `aud` في رمز Firebase بعد التحقق من التوقيع (التطبيق على test → test SA، على prod → prod SA).
+ */
+function getServiceAccountForFirebaseProject(firebaseProjectId: string): ServiceAccountJson {
+  const prodRaw = Deno.env.get("FIREBASE_SERVICE_ACCOUNT_JSON");
+  if (!prodRaw) throw new Error("FIREBASE_SERVICE_ACCOUNT_JSON not set");
+  const prod = JSON.parse(prodRaw) as ServiceAccountJson;
+  if (!prod?.project_id || !prod?.client_email || !prod?.private_key) {
     throw new Error("Invalid FIREBASE_SERVICE_ACCOUNT_JSON");
   }
-  return sa;
+  if (prod.project_id === firebaseProjectId) return prod;
+
+  const testRaw = Deno.env.get("FIREBASE_SERVICE_ACCOUNT_JSON_TEST");
+  if (testRaw) {
+    const test = JSON.parse(testRaw) as ServiceAccountJson;
+    if (!test?.project_id || !test?.client_email || !test?.private_key) {
+      throw new Error("Invalid FIREBASE_SERVICE_ACCOUNT_JSON_TEST");
+    }
+    if (test.project_id === firebaseProjectId) return test;
+  }
+
+  throw new Error(
+    `No service account for Firebase project "${firebaseProjectId}". ` +
+      "Add Supabase secret FIREBASE_SERVICE_ACCOUNT_JSON_TEST for the test Firebase project, or use the prod app build.",
+  );
 }
 
 async function getAccessToken(sa: ServiceAccountJson): Promise<string> {
@@ -529,23 +561,15 @@ function decodeJwtPart(input: string): Record<string, unknown> {
   return JSON.parse(jsonStr) as Record<string, unknown>;
 }
 
-async function verifyFirebaseIdToken(idToken: string, projectId: string): Promise<{ uid: string; email?: string }> {
+async function verifyFirebaseIdToken(
+  idToken: string,
+): Promise<{ uid: string; email?: string; firebaseProjectId: string }> {
   const parts = idToken.split(".");
   if (parts.length !== 3) throw new Error("Invalid ID token");
   const header = decodeJwtPart(parts[0]);
   const payload = decodeJwtPart(parts[1]);
   const kid = String(header["kid"] ?? "");
   if (!kid) throw new Error("Missing kid");
-
-  const now = Math.floor(Date.now() / 1000);
-  const aud = String(payload["aud"] ?? "");
-  const iss = String(payload["iss"] ?? "");
-  const sub = String(payload["sub"] ?? "");
-  const exp = Number(payload["exp"] ?? 0);
-  if (!sub) throw new Error("Missing sub");
-  if (aud !== projectId) throw new Error("Invalid aud");
-  if (iss !== `https://securetoken.google.com/${projectId}`) throw new Error("Invalid iss");
-  if (!exp || now >= exp) throw new Error("Token expired");
 
   const certsRes = await fetch(FIREBASE_ID_TOKEN_CERTS_URL);
   const certs = await certsRes.json() as Record<string, string>;
@@ -558,8 +582,19 @@ async function verifyFirebaseIdToken(idToken: string, projectId: string): Promis
   const ok = await crypto.subtle.verify("RSASSA-PKCS1-v1_5", key, sigBytes, dataToVerify);
   if (!ok) throw new Error("Invalid signature");
 
+  const now = Math.floor(Date.now() / 1000);
+  const rawAud = payload["aud"];
+  const aud = typeof rawAud === "string" ? rawAud.trim() : "";
+  const iss = String(payload["iss"] ?? "");
+  const sub = String(payload["sub"] ?? "");
+  const exp = Number(payload["exp"] ?? 0);
+  if (!sub) throw new Error("Missing sub");
+  if (!aud) throw new Error("Invalid aud");
+  if (iss !== `https://securetoken.google.com/${aud}`) throw new Error("Invalid iss");
+  if (!exp || now >= exp) throw new Error("Token expired");
+
   const email = typeof payload["email"] === "string" ? payload["email"] : undefined;
-  return { uid: sub, email };
+  return { uid: sub, email, firebaseProjectId: aud };
 }
 
 function base64urlToBytes(input: string): Uint8Array {

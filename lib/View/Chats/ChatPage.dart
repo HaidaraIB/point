@@ -652,7 +652,6 @@ class _ChatScreenState extends State<ChatScreen> {
         userId: otherId,
         title: '$_currentUserName',
         body: lastMessagePreview,
-        sendEmail: false,
         notificationType: 'chat_message',
         fcmDataExtras: {'chatId': chatId},
       );
@@ -666,7 +665,6 @@ class _ChatScreenState extends State<ChatScreen> {
               'group': '${_selectedChat!['title']}',
             }),
             body: lastMessagePreview,
-            sendEmail: false,
             notificationType: 'chat_message',
             fcmDataExtras: {'chatId': chatId},
           );

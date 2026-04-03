@@ -7,11 +7,14 @@ import 'package:get/get.dart';
 import 'package:point/Controller/ClientController.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/ClientModel.dart';
+import 'package:point/Services/firebase_auth_web_hydration.dart';
 
 /// Attempts silent login using FirebaseAuth existing session.
 ///
 /// Returns the route name to navigate to on success, otherwise null.
 Future<String?> attemptSilentLogin() async {
+  await waitForFirebaseAuthHydrationOnWeb();
+
   final homeController = Get.find<HomeController>();
   final clientController = Get.find<ClientController>();
 
@@ -22,6 +25,8 @@ Future<String?> attemptSilentLogin() async {
   if (employee != null) {
     log("✅ تم تسجيل دخول الموظف: ${employee.email}");
     if (employee.status == 'active') {
+      homeController.applyEmployeeSessionAfterAuthRestore(employee);
+
       try {
         await homeController.setupFCM(employee.id);
       } catch (e) {
@@ -37,9 +42,6 @@ Future<String?> attemptSilentLogin() async {
           log('FCM subscribe (employee): $e');
         }
       }
-
-      homeController.fetchNotification(employee.id);
-      homeController.listenToClient(employee.id!);
 
       final role = employee.role;
       if (role == 'employee') return '/employeeDashboard';
@@ -70,7 +72,10 @@ Future<String?> attemptSilentLogin() async {
   if (client != null) {
     log("✅ تم تسجيل دخول العميل: ${client.email}");
     if (client.status == 'active') {
+      clientController.currentClient.value = client;
+      clientController.fetchClients();
       clientController.listenToClient(client.id!);
+      clientController.fetchContents();
 
       if (!kIsWeb) {
         try {

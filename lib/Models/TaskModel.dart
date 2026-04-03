@@ -39,6 +39,24 @@ class TaskModel {
   final String? dueSoonNotifiedAt24h;
   /// طابع ISO لآخر إشعار «قبل 6 ساعات».
   final String? dueSoonNotifiedAt6h;
+  /// طابع ISO لآخر إشعار «قبل ساعة» من التسليم (Cron).
+  final String? dueSoonNotifiedAt1h;
+  /// طابع ISO لآخر إشعار متابعة «≤12 ساعة» من التسليم (Cron).
+  final String? dueSoonNotifiedAt12h;
+  /// طابع ISO لتذكير تأخر البدء (مهمة لم تبدأ بعد `fromDate`) — كحد أقصى كل 24 ساعة.
+  final String? startReminderNotifiedAt;
+  /// طابع ISO لإشعار «عدم تحديث» للموظف (لا نشاط في الجدول الزمني لفترة).
+  final String? staleUpdateNotifiedAt;
+  /// طابع ISO لإشعار التأخر للموظف المكلّف (بعد تجاوز `toDate`) — كحد أقصى يومياً.
+  final String? overdueEmployeeNotifiedAt;
+  /// بتات عتبات التقدم المُرسل إشعارها (0–31): 1،2،4،8،16 لـ started،25%،50%،75%،95%+.
+  final String? progressMilestoneMask;
+  /// طابع ISO لتحذير الإدارة: لم يبدأ الموظف بعد `fromDate` + 48 ساعة.
+  final String? managerNoActionNotifiedAt;
+  /// طابع ISO لتحذير الإدارة: توقف التقدم (لا نشاط 72 ساعة).
+  final String? managerStalledNotifiedAt;
+  /// طابع ISO لتذكير الموظف: المهمة قيد التنفيذ لكن لا تقدم مسجّل بعد.
+  final String? noProgressRemindedAt;
 
   TaskModel({
     this.id,
@@ -67,7 +85,26 @@ class TaskModel {
     this.timelineEvents = const [],
     this.dueSoonNotifiedAt24h,
     this.dueSoonNotifiedAt6h,
+    this.dueSoonNotifiedAt1h,
+    this.dueSoonNotifiedAt12h,
+    this.startReminderNotifiedAt,
+    this.staleUpdateNotifiedAt,
+    this.overdueEmployeeNotifiedAt,
+    this.progressMilestoneMask,
+    this.managerNoActionNotifiedAt,
+    this.managerStalledNotifiedAt,
+    this.noProgressRemindedAt,
   });
+
+  /// قيمة عددية لـ [progressMilestoneMask] في Firestore (نص أو رقم).
+  static int parseProgressMilestoneMask(dynamic raw) {
+    if (raw == null) return 0;
+    if (raw is int) return raw.clamp(0, 31);
+    if (raw is num) return raw.toInt().clamp(0, 31);
+    final s = raw.toString().trim();
+    if (s.isEmpty) return 0;
+    return int.tryParse(s)?.clamp(0, 31) ?? 0;
+  }
 
   // ✅ fromJson
   factory TaskModel.fromJson(Map<String, dynamic> json) {
@@ -148,6 +185,17 @@ class TaskModel {
               : [],
       dueSoonNotifiedAt24h: json['dueSoonNotifiedAt24h'] as String?,
       dueSoonNotifiedAt6h: json['dueSoonNotifiedAt6h'] as String?,
+      dueSoonNotifiedAt1h: json['dueSoonNotifiedAt1h'] as String?,
+      dueSoonNotifiedAt12h: json['dueSoonNotifiedAt12h'] as String?,
+      startReminderNotifiedAt: json['startReminderNotifiedAt'] as String?,
+      staleUpdateNotifiedAt: json['staleUpdateNotifiedAt'] as String?,
+      overdueEmployeeNotifiedAt: json['overdueEmployeeNotifiedAt'] as String?,
+      progressMilestoneMask: json['progressMilestoneMask'] != null
+          ? json['progressMilestoneMask'].toString()
+          : null,
+      managerNoActionNotifiedAt: json['managerNoActionNotifiedAt'] as String?,
+      managerStalledNotifiedAt: json['managerStalledNotifiedAt'] as String?,
+      noProgressRemindedAt: json['noProgressRemindedAt'] as String?,
     );
   }
 
@@ -182,6 +230,24 @@ class TaskModel {
         'dueSoonNotifiedAt24h': dueSoonNotifiedAt24h,
       if (dueSoonNotifiedAt6h != null)
         'dueSoonNotifiedAt6h': dueSoonNotifiedAt6h,
+      if (dueSoonNotifiedAt1h != null)
+        'dueSoonNotifiedAt1h': dueSoonNotifiedAt1h,
+      if (dueSoonNotifiedAt12h != null)
+        'dueSoonNotifiedAt12h': dueSoonNotifiedAt12h,
+      if (startReminderNotifiedAt != null)
+        'startReminderNotifiedAt': startReminderNotifiedAt,
+      if (staleUpdateNotifiedAt != null)
+        'staleUpdateNotifiedAt': staleUpdateNotifiedAt,
+      if (overdueEmployeeNotifiedAt != null)
+        'overdueEmployeeNotifiedAt': overdueEmployeeNotifiedAt,
+      if (progressMilestoneMask != null)
+        'progressMilestoneMask': progressMilestoneMask,
+      if (managerNoActionNotifiedAt != null)
+        'managerNoActionNotifiedAt': managerNoActionNotifiedAt,
+      if (managerStalledNotifiedAt != null)
+        'managerStalledNotifiedAt': managerStalledNotifiedAt,
+      if (noProgressRemindedAt != null)
+        'noProgressRemindedAt': noProgressRemindedAt,
     };
   }
 
@@ -212,6 +278,15 @@ class TaskModel {
     List<TaskTimelineEvent>? timelineEvents,
     String? dueSoonNotifiedAt24h,
     String? dueSoonNotifiedAt6h,
+    String? dueSoonNotifiedAt1h,
+    String? dueSoonNotifiedAt12h,
+    String? startReminderNotifiedAt,
+    String? staleUpdateNotifiedAt,
+    String? overdueEmployeeNotifiedAt,
+    String? progressMilestoneMask,
+    String? managerNoActionNotifiedAt,
+    String? managerStalledNotifiedAt,
+    String? noProgressRemindedAt,
   }) {
     return TaskModel(
       id: id ?? this.id,
@@ -240,6 +315,23 @@ class TaskModel {
       dueSoonNotifiedAt24h:
           dueSoonNotifiedAt24h ?? this.dueSoonNotifiedAt24h,
       dueSoonNotifiedAt6h: dueSoonNotifiedAt6h ?? this.dueSoonNotifiedAt6h,
+      dueSoonNotifiedAt1h: dueSoonNotifiedAt1h ?? this.dueSoonNotifiedAt1h,
+      dueSoonNotifiedAt12h:
+          dueSoonNotifiedAt12h ?? this.dueSoonNotifiedAt12h,
+      startReminderNotifiedAt:
+          startReminderNotifiedAt ?? this.startReminderNotifiedAt,
+      staleUpdateNotifiedAt:
+          staleUpdateNotifiedAt ?? this.staleUpdateNotifiedAt,
+      overdueEmployeeNotifiedAt:
+          overdueEmployeeNotifiedAt ?? this.overdueEmployeeNotifiedAt,
+      progressMilestoneMask:
+          progressMilestoneMask ?? this.progressMilestoneMask,
+      managerNoActionNotifiedAt:
+          managerNoActionNotifiedAt ?? this.managerNoActionNotifiedAt,
+      managerStalledNotifiedAt:
+          managerStalledNotifiedAt ?? this.managerStalledNotifiedAt,
+      noProgressRemindedAt:
+          noProgressRemindedAt ?? this.noProgressRemindedAt,
     );
   }
 }

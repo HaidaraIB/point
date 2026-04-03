@@ -63,6 +63,20 @@ String? pushSoundBaseForNotificationType(String? notificationType) {
     'admin_content_status_changed': 'notification_content_status',
     'promotion_new_published_content': 'notification_promotion_status',
     'broadcast_topic': 'notification_task_preview',
+    'employee_task_start_reminder': 'notification_task_deadline_soon',
+    'employee_task_stale_update': 'notification_task_comment',
+    'employee_task_followup': 'notification_task_deadline_soon',
+    'employee_task_overdue': 'notification_task_deadline',
+    'employee_task_due_soon_1h': 'notification_task_deadline_soon',
+    'employee_task_no_progress_yet': 'notification_task_preview',
+    'manager_task_progress_updated': 'notification_task_preview',
+    'manager_task_no_action': 'notification_content_status',
+    'manager_task_progress_stalled': 'notification_task_deadline',
+    'employee_progress_good_start': 'notification_task_approved',
+    'employee_progress_quarter': 'notification_task_preview',
+    'employee_progress_half': 'notification_task_preview',
+    'employee_progress_three_quarter': 'notification_task_deadline_soon',
+    'employee_progress_almost': 'notification_task_deadline_soon',
   };
   return map[t];
 }

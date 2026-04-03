@@ -17,9 +17,12 @@ const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage(function(payload) {
   console.log('[firebase-messaging-sw.js] Received background message ', payload);
-  const notificationTitle = payload.notification.title;
-  const notificationOptions = {
-    body: payload.notification.body,
-  };
-  return self.registration.showNotification(notificationTitle, notificationOptions);
+  // إن وُجد حقل `notification` في الحمولة، يعرض FCM للويب الإشعار تلقائياً.
+  // استدعاء showNotification هنا يضاعف الإشعار (مرتين لنفس الرسالة).
+  if (payload.notification && payload.notification.title) {
+    return Promise.resolve();
+  }
+  const title = (payload.data && payload.data.title) || 'إشعار';
+  const body = (payload.data && payload.data.body) || '';
+  return self.registration.showNotification(title, { body: body });
 });

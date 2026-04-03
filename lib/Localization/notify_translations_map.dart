@@ -23,9 +23,60 @@ const Map<String, String> notifyTranslationsEn = {
   'notify.emp.assigned.title': 'You have been assigned a new task',
   'notify.emp.assigned.action':
       'Open the task and start work according to priority.',
-  'notify.emp.due_soon.title': '⏳ Approaching deadline',
-  'notify.emp.due_soon.body': 'Task: @title',
-  'notify.emp.due_soon.action': 'Finish the task before the deadline.',
+  'notify.emp.due_soon.title': '⏳ Delivery deadline approaching',
+  'notify.emp.due_soon.body': 'Little time left — @title',
+  'notify.emp.due_soon.action':
+      'Make sure you complete delivery by the set time.',
+  'notify.emp.due_soon_1h.title': '⏳ About one hour to deadline',
+  'notify.emp.due_soon_1h.body': '@title',
+  'notify.emp.due_soon_1h.action':
+      'Finish and submit before the deadline.',
+  'notify.emp.followup.title': '⏳ Follow-up: task still waiting',
+  'notify.emp.followup.body': '@title — act before the deadline.',
+  'notify.emp.followup.action': 'Please take action at the nearest time.',
+  'notify.emp.start_reminder.title': '⏰ Start reminder',
+  'notify.emp.start_reminder.body': 'Not started yet — @title',
+  'notify.emp.start_reminder.action':
+      'Open the task and begin work without further delay.',
+  'notify.emp.stale_update.title': '📝 Task update needed',
+  'notify.emp.stale_update.body': 'No update on «@title» for a while.',
+  'notify.emp.stale_update.action':
+      'Update the task status or complete it.',
+  'notify.emp.overdue.title': '❌ Overdue task',
+  'notify.emp.overdue.body': 'Deadline passed: @title',
+  'notify.emp.overdue.action': 'Please handle the task immediately.',
+  'notify.emp.no_progress_yet.title': '📌 Still no recorded progress',
+  'notify.emp.no_progress_yet.body': '@title — log your progress.',
+  'notify.emp.no_progress_yet.action':
+      'Record progress after you start work.',
+  'notify.emp.milestone.good_start.title': '🌱 Good start',
+  'notify.emp.milestone.good_start.body': '@title',
+  'notify.emp.milestone.good_start.action':
+      'Work is being logged — keep going.',
+  'notify.emp.milestone.on_track.title': '👍 Solid progress',
+  'notify.emp.milestone.on_track.body': '@title — about 25% done.',
+  'notify.emp.milestone.on_track.action': 'Keep up the good work.',
+  'notify.emp.milestone.halfway.title': '👍 Halfway there',
+  'notify.emp.milestone.halfway.body': '@title',
+  'notify.emp.milestone.halfway.action': 'Good pace — continue.',
+  'notify.emp.milestone.near_end.title': '🎯 Approaching the finish',
+  'notify.emp.milestone.near_end.body': '@title — little left.',
+  'notify.emp.milestone.near_end.action': 'Push to complete.',
+  'notify.emp.milestone.almost_done.title': '⚡ Almost done',
+  'notify.emp.milestone.almost_done.body': '@title',
+  'notify.emp.milestone.almost_done.action': 'Complete the task.',
+  'notify.mgr.progress_updated.title': '📊 Progress percentage updated',
+  'notify.mgr.progress_updated.body': '@name — @title: @pct%',
+  'notify.mgr.progress_updated.action':
+      'Review progress from the task board.',
+  'notify.mgr.no_action.title': '⚠️ No action on task',
+  'notify.mgr.no_action.body':
+      '«@title» — @name has not taken action yet.',
+  'notify.mgr.no_action.action': 'Follow up with the assignee.',
+  'notify.mgr.stalled.title': '⛔ Progress stalled',
+  'notify.mgr.stalled.body':
+      'No new progress on «@title» (@name) for some time.',
+  'notify.mgr.stalled.action': 'Please follow up on the task.',
   'notify.emp.edit_mgmt.title': 'Edit requested on the task by management',
   'notify.emp.edit_mgmt.action':
       'Apply the requested changes and resubmit.',
@@ -195,8 +246,61 @@ const Map<String, String> notifyTranslationsAr = {
   'notify.emp.assigned.action':
       'يرجى فتح المهمة والبدء بالتنفيذ حسب الأولوية.',
   'notify.emp.due_soon.title': '⏳ اقتراب موعد التسليم',
-  'notify.emp.due_soon.body': 'المهمة: @title',
-  'notify.emp.due_soon.action': 'يرجى إنهاء المهمة قبل موعد التسليم المحدد.',
+  'notify.emp.due_soon.body': 'بقي وقت قليل — @title',
+  'notify.emp.due_soon.action':
+      'تأكد من إنجاز المهمة وتسليمها في الوقت المحدد.',
+  'notify.emp.due_soon_1h.title': '⏳ متبقي حوالي ساعة على التسليم',
+  'notify.emp.due_soon_1h.body': '@title',
+  'notify.emp.due_soon_1h.action':
+      'أكمل التسليم قبل انتهاء الموعد.',
+  'notify.emp.followup.title': '⏳ متابعة: المهمة ما زالت بانتظار إجراء',
+  'notify.emp.followup.body': '@title — يرجى التصرف قبل الموعد.',
+  'notify.emp.followup.action':
+      'نرجو اتخاذ إجراء في أقرب وقت.',
+  'notify.emp.start_reminder.title': '⏰ تذكير بالبدء',
+  'notify.emp.start_reminder.body': 'لم تبدأ بعد — @title',
+  'notify.emp.start_reminder.action':
+      'افتح المهمة وابدأ العمل دون تأخير.',
+  'notify.emp.stale_update.title': '📝 تحديث المهمة مطلوب',
+  'notify.emp.stale_update.body': 'لم يُحدَّث «@title» منذ فترة.',
+  'notify.emp.stale_update.action':
+      'حدّث حالة المهمة أو أكملها.',
+  'notify.emp.overdue.title': '❌ مهمة متأخرة',
+  'notify.emp.overdue.body': 'تجاوز موعد التسليم: @title',
+  'notify.emp.overdue.action':
+      'يرجى معالجة المهمة فوراً.',
+  'notify.emp.no_progress_yet.title': '📌 لا يزال بلا تقدم مسجّل',
+  'notify.emp.no_progress_yet.body': '@title — سجّل تقدمك.',
+  'notify.emp.no_progress_yet.action':
+      'سجّل التقدم بعد أن تبدأ العمل.',
+  'notify.emp.milestone.good_start.title': '🌱 بداية جيدة',
+  'notify.emp.milestone.good_start.body': '@title',
+  'notify.emp.milestone.good_start.action':
+      'تم تسجيل بداية العمل — واصل.',
+  'notify.emp.milestone.on_track.title': '👍 أداء جيد',
+  'notify.emp.milestone.on_track.body': '@title — حوالي ربع المسار.',
+  'notify.emp.milestone.on_track.action': 'استمر على هذا المنوال.',
+  'notify.emp.milestone.halfway.title': '👍 في منتصف الطريق',
+  'notify.emp.milestone.halfway.body': '@title',
+  'notify.emp.milestone.halfway.action': 'إيقاع جيد — تابع.',
+  'notify.emp.milestone.near_end.title': '🎯 اقتربت من النهاية',
+  'notify.emp.milestone.near_end.body': '@title — بقي القليل.',
+  'notify.emp.milestone.near_end.action': 'اضغط لإنهاء المهمة.',
+  'notify.emp.milestone.almost_done.title': '⚡ تقريباً انتهيت',
+  'notify.emp.milestone.almost_done.body': '@title',
+  'notify.emp.milestone.almost_done.action': 'أكمل المهمة.',
+  'notify.mgr.progress_updated.title': '📊 تحديث نسبة الإنجاز',
+  'notify.mgr.progress_updated.body': '@name — @title: @pct%',
+  'notify.mgr.progress_updated.action':
+      'راجع التقدم من لوحة المهام.',
+  'notify.mgr.no_action.title': '⚠️ لم يتخذ موظف إجراءً على المهمة',
+  'notify.mgr.no_action.body':
+      '«@title» — @name لم يبدأ بعد تاريخ البدء.',
+  'notify.mgr.no_action.action': 'تابع مع المكلّف.',
+  'notify.mgr.stalled.title': '⛔ توقف التقدم',
+  'notify.mgr.stalled.body':
+      'لا تسجيل لتقدم جديد على «@title» (@name) منذ فترة.',
+  'notify.mgr.stalled.action': 'يرجى متابعة المهمة.',
   'notify.emp.edit_mgmt.title': 'طلب تعديل على المهمة من قبل الإدارة',
   'notify.emp.edit_mgmt.action':
       'يرجى تنفيذ التعديلات المطلوبة ثم إعادة التسليم.',

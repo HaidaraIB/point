@@ -28,6 +28,7 @@ import 'package:point/View/Tasks/DetailsDialogs/DPhotographyDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DProgrammingDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPromotionDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPublishDialog.dart';
+import 'package:point/firebase_app_options.dart';
 
 // Design tokens for mobile dashboard (clean, no overflow)
 const double _kMobileCardRadius = 20.0;
@@ -36,9 +37,10 @@ const double _kMobileCardPadding = 20.0;
 const double _kMobileEmptyIconSize = 40.0;
 const double _kMobileMinTouchHeight = 48.0;
 const double _kMobileAccentBarHeight = 4.0;
-
-/// إظهار زر «اختبار أنواع الإشعارات» في الصفحة الرئيسية (معطّل حالياً).
-const bool _kShowPushNotificationTestButton = false;
+/// زرَا «إرسال إشعار» و«اختبار الإشعارات» على سطح المكتب — نفس المقاس بالضبط.
+const double _kHomePairButtonWidth = 180.0;
+const double _kHomePairButtonHeight = 45.0;
+const double _kHomePairButtonRadius = 35.0;
 
 /// Wraps a ListView.builder with a Scrollbar using a dedicated ScrollController
 /// so the scroll position is attached (fixes "ScrollController has no ScrollPosition" on web).
@@ -117,6 +119,10 @@ class Home extends StatelessWidget {
     HomeController controller,
     bool isMobile,
   ) {
+    final showPushTest =
+        FirebaseAppOptions.isUsingTestFirebaseProject &&
+        canOpenPushNotificationTester(controller.effectiveEmployee?.role);
+
     return Column(
       children: [
         SizedBox(height: isMobile ? _kMobileSectionSpacing : 20),
@@ -125,9 +131,10 @@ class Home extends StatelessWidget {
             if (isMobile) ...[
               Expanded(
                 child: MainButton(
-                  width: null,
+                  margin: EdgeInsets.zero,
+                  width: double.infinity,
                   height: _kMobileMinTouchHeight,
-                  borderSize: 35,
+                  borderSize: _kHomePairButtonRadius,
                   fontColor: Colors.white,
                   backgroundColor: AppColors.primary,
                   widget: Row(
@@ -144,18 +151,68 @@ class Home extends StatelessWidget {
                       Icon(
                         Icons.add_circle_outline_rounded,
                         color: Colors.white,
+                        size: 20,
                       ),
                     ],
                   ),
                   onPressed: () => showAddNotifications(context),
                 ),
               ),
+              if (showPushTest) ...[
+                const SizedBox(width: 8),
+                Expanded(
+                  child: SizedBox(
+                    height: _kMobileMinTouchHeight,
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: BorderSide(
+                          color: AppColors.primary.withValues(alpha: 0.5),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 8,
+                        ),
+                        minimumSize: Size(0, _kMobileMinTouchHeight),
+                        maximumSize: Size(
+                          double.infinity,
+                          _kMobileMinTouchHeight,
+                        ),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(
+                            _kHomePairButtonRadius,
+                          ),
+                        ),
+                      ),
+                      onPressed: () => showPushNotificationTestDialog(context),
+                      icon: const Icon(
+                        Icons.notifications_active_outlined,
+                        size: 20,
+                      ),
+                      label: Text(
+                        AppLocaleKeys.pushTestOpenButton.tr,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                        maxLines: 2,
+                        textAlign: TextAlign.center,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
             ] else ...[
               const Spacer(),
               MainButton(
-                width: 180,
-                height: 45,
-                borderSize: 35,
+                margin: EdgeInsets.zero,
+                width: _kHomePairButtonWidth,
+                height: _kHomePairButtonHeight,
+                borderSize: _kHomePairButtonRadius,
                 fontColor: Colors.white,
                 backgroundColor: AppColors.primary,
                 widget: Row(
@@ -169,39 +226,66 @@ class Home extends StatelessWidget {
                         fontSize: 13,
                       ),
                     ),
-                    Icon(Icons.add_circle_outline_rounded, color: Colors.white),
+                    Icon(
+                      Icons.add_circle_outline_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ],
                 ),
                 onPressed: () => showAddNotifications(context),
               ),
+              if (showPushTest) ...[
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: _kHomePairButtonWidth,
+                  height: _kHomePairButtonHeight,
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      side: BorderSide(
+                        color: AppColors.primary.withValues(alpha: 0.5),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 8,
+                      ),
+                      minimumSize: Size(
+                        _kHomePairButtonWidth,
+                        _kHomePairButtonHeight,
+                      ),
+                      maximumSize: Size(
+                        _kHomePairButtonWidth,
+                        _kHomePairButtonHeight,
+                      ),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(
+                          _kHomePairButtonRadius,
+                        ),
+                      ),
+                    ),
+                    onPressed: () => showPushNotificationTestDialog(context),
+                    icon: const Icon(
+                      Icons.notifications_active_outlined,
+                      size: 20,
+                    ),
+                    label: Text(
+                      AppLocaleKeys.pushTestOpenButton.tr,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+              ],
             ],
           ],
         ),
-        if (_kShowPushNotificationTestButton &&
-            canOpenPushNotificationTester(
-              controller.effectiveEmployee?.role,
-            )) ...[
-          SizedBox(height: isMobile ? 8 : 10),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.primary,
-                side: BorderSide(color: AppColors.primary.withValues(alpha: 0.5)),
-                padding: EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: isMobile ? 12 : 14,
-                ),
-              ),
-              onPressed: () => showPushNotificationTestDialog(context),
-              icon: const Icon(Icons.notifications_active_outlined, size: 20),
-              label: Text(
-                AppLocaleKeys.pushTestOpenButton.tr,
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ),
-          ),
-        ],
         SizedBox(height: isMobile ? _kMobileSectionSpacing : 20),
         ReviewContentWidget(),
         SizedBox(height: isMobile ? _kMobileSectionSpacing : 20),

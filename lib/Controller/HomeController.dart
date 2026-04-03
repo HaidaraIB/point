@@ -735,6 +735,13 @@ class HomeController extends GetxController {
       // لأن النموذج قد يرسل مهمة جديدة بدون timelineEvents فيُمسح الجدول)
       final merged = [...oldTask.timelineEvents, ...newEvents];
       taskToSave = task.copyWith(timelineEvents: merged);
+      final oldM = TaskModel.parseProgressMilestoneMask(
+        oldTask.progressMilestoneMask,
+      );
+      final achieved = _milestoneBitsAchieved(taskToSave.progress);
+      taskToSave = taskToSave.copyWith(
+        progressMilestoneMask: (oldM | achieved).toString(),
+      );
     }
     final result = await _service.updateTask(taskToSave);
     isLoading.value = false;
@@ -844,6 +851,67 @@ class HomeController extends GetxController {
         kind: editKind,
       );
     }
+
+    if (isUpdateByAssignee && assigneeId.isNotEmpty) {
+      final oldM = TaskModel.parseProgressMilestoneMask(
+        oldTask.progressMilestoneMask,
+      );
+      final newM = TaskModel.parseProgressMilestoneMask(
+        newTask.progressMilestoneMask,
+      );
+      final crossed = newM & ~oldM;
+      if (crossed != 0) {
+        _enqueueProgressMilestoneNotifications(
+          employeeId: assigneeId,
+          taskTitle: newTask.title,
+          crossedBits: crossed,
+        );
+      }
+      final oldNorm = _normalizeProgressStep(oldTask.progress);
+      final newNorm = _normalizeProgressStep(newTask.progress);
+      if (oldNorm != newNorm) {
+        await NotificationService.notifyManagersTaskProgressUpdated(
+          employeeName: assigneeName,
+          taskTitle: newTask.title,
+          progressPercent: ((newNorm ?? 0) * 100).round(),
+        );
+      }
+    }
+  }
+
+  /// بتات عتبات التقدم: 1 بدء، 2 ≥25%، 4 ≥50%، 8 ≥75%، 16 ≥95%.
+  static int _milestoneBitsAchieved(double? p) {
+    if (p == null || p <= 0) return 0;
+    var m = 1;
+    if (p >= 0.25) m |= 2;
+    if (p >= 0.5) m |= 4;
+    if (p >= 0.75) m |= 8;
+    if (p >= 0.95) m |= 16;
+    return m;
+  }
+
+  void _enqueueProgressMilestoneNotifications({
+    required String employeeId,
+    required String taskTitle,
+    required int crossedBits,
+  }) {
+    void one(EmployeeProgressMilestoneKind k) {
+      unawaited(
+        NotificationService.notifyEmployeeProgressMilestone(
+          employeeId: employeeId,
+          taskTitle: taskTitle,
+          kind: k,
+        ),
+      );
+    }
+
+    if (crossedBits & 1 != 0) one(EmployeeProgressMilestoneKind.goodStart);
+    if (crossedBits & 2 != 0) one(EmployeeProgressMilestoneKind.quarter);
+    if (crossedBits & 4 != 0) one(EmployeeProgressMilestoneKind.half);
+    if (crossedBits & 8 != 0) {
+      one(EmployeeProgressMilestoneKind.threeQuarter);
+    }
+    if (crossedBits & 16 != 0) one(EmployeeProgressMilestoneKind.almost);
   }
 
   static const int _timelineValueMaxLength = 80;
@@ -1746,6 +1814,19 @@ class HomeController extends GetxController {
     }
   }
 
+  /// يملأ حالة الموظف والبثوث فورًا (تسجيل دخول صامت / استعادة جلسة) حتى يعمل [AuthMiddleware].
+  void applyEmployeeSessionAfterAuthRestore(EmployeeModel employee) {
+    if (employee.id == null || employee.id!.isEmpty) return;
+    currentEmployee.value = employee;
+    lastKnownEmployee.value = employee;
+    fetchEmployees();
+    _rebindClientsAndTasksStreams();
+    fetchContents();
+    _startTotalUnreadStream(employee.id!);
+    listenToClient(employee.id!);
+    fetchNotification(employee.id);
+  }
+
   Future<EmployeeModel?> loginClient(email, pass) async {
     isLoading.value = true;
     try {
@@ -1753,14 +1834,7 @@ class HomeController extends GetxController {
       // يجب تعبئة الجلسة هنا فورًا: AuthMiddleware يعتمد على currentemployee قبل التنقل،
       // بينما listenToClient يحدّثه فقط عند وصول أول snapshot من Firestore (متأخر عن أول إطار).
       if (result != null && result.id != null) {
-        currentEmployee.value = result;
-        lastKnownEmployee.value = result;
-        fetchEmployees();
-        _rebindClientsAndTasksStreams();
-        fetchContents();
-        _startTotalUnreadStream(result.id!);
-        listenToClient(result.id!);
-        fetchNotification(result.id);
+        applyEmployeeSessionAfterAuthRestore(result);
       }
       return result;
     } finally {
@@ -2045,72 +2119,23 @@ class HomeController extends GetxController {
     // Avoid re-login when already hydrated (normal in-app navigation).
     if (effectiveEmployee != null) return;
 
+    // الويب: التحميل البارد يمرّ بـ [WebAuthSplashDecider] وـ attemptSilentLogin.
+    if (kIsWeb) return;
+
     try {
       final pref = await SharedPreferences.getInstance();
       final isLoggedIn = (pref.getBool('isLoggedIn') ?? false) == true;
       if (!isLoggedIn) return;
 
-      // على الويب تُستعاد جلسة Firebase من IndexedDB بشكل غير متزامن؛
-      // استدعاء getCurrentEmployeeByAuth() مباشرة بعد التحديث غالبًا يجد currentUser == null.
-      if (kIsWeb) {
-        await _waitForFirebaseAuthHydrationOnWeb();
-      }
-
       final employee = await _service.getCurrentEmployeeByAuth();
       if (employee == null || employee.id == null) return;
       if (employee.status != 'active') return;
 
-      // Keep employee state alive after browser refresh/deep-link.
-      currentEmployee.value = employee;
-      lastKnownEmployee.value = employee;
-      fetchEmployees();
-      _rebindClientsAndTasksStreams();
-      fetchContents();
-      _startTotalUnreadStream(employee.id!);
-      fetchNotification(employee.id);
-      listenToClient(employee.id!);
+      applyEmployeeSessionAfterAuthRestore(employee);
       unawaited(setupFCM(employee.id));
-
-      // بعد التحديث المسار الابتدائي للويب هو /auth/login حتى مع جلسة صالحة.
-      if (kIsWeb) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _maybeNavigateWebToDashboardAfterRestore(employee);
-        });
-      }
     } catch (e, s) {
       log('restoreEmployeeSessionIfNeeded error: $e');
       log('StackTrace: $s');
-    }
-  }
-
-  /// انتظار اكتمال تهيئة Firebase Auth بعد تحديث الصفحة (ويب فقط).
-  Future<void> _waitForFirebaseAuthHydrationOnWeb() async {
-    if (FirebaseAuth.instance.currentUser != null) return;
-    try {
-      await FirebaseAuth.instance.authStateChanges().first.timeout(
-        const Duration(seconds: 1),
-      );
-    } catch (_) {
-      // نكمل بالاستعلام عن currentUser أدناه.
-    }
-    for (var i = 0; i < 80; i++) {
-      if (FirebaseAuth.instance.currentUser != null) return;
-      await Future<void>.delayed(const Duration(milliseconds: 50));
-    }
-  }
-
-  void _maybeNavigateWebToDashboardAfterRestore(EmployeeModel employee) {
-    final route = Get.currentRoute;
-    if (route == '/' || route == '/employeeDashboard') return;
-    _offAllNamedToRoleHome(employee);
-  }
-
-  void _offAllNamedToRoleHome(EmployeeModel employee) {
-    final role = employee.role;
-    if (role == 'employee') {
-      Get.offAllNamed('/employeeDashboard');
-    } else {
-      Get.offAllNamed('/');
     }
   }
 

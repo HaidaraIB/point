@@ -881,7 +881,6 @@ class _ChatPopupState extends State<ChatPopup> {
           userId: others.first,
           title: me.name ?? me.email ?? '',
           body: lastMessagePreview,
-          sendEmail: false,
           notificationType: 'chat_message',
           fcmDataExtras: {'chatId': _chatId},
         );
@@ -896,7 +895,6 @@ class _ChatPopupState extends State<ChatPopup> {
               'group': title,
             }),
             body: lastMessagePreview,
-            sendEmail: false,
             notificationType: 'chat_message',
             fcmDataExtras: {'chatId': _chatId},
           );

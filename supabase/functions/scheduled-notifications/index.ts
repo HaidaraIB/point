@@ -133,6 +133,47 @@ function getStringField(fields: Record<string, unknown>, key: string): string | 
   return typeof v === "string" ? v : null;
 }
 
+function getDoubleField(fields: Record<string, unknown>, key: string): number | null {
+  const v = fields[key] as any;
+  if (v?.doubleValue != null && typeof v.doubleValue === "number") return v.doubleValue;
+  if (v?.integerValue != null) {
+    const n = Number(v.integerValue);
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+/** أحدث نشاط: من `fromDate` أو آخر حدث في timelineEvents (نص ISO أو timestamp). */
+function getLatestActivityMs(fields: Record<string, unknown>): number {
+  const fromStr = getStringField(fields, "fromDate");
+  let max = fromStr ? new Date(fromStr).getTime() : 0;
+  if (Number.isNaN(max)) max = 0;
+  const te = (fields as any).timelineEvents?.arrayValue?.values;
+  if (!Array.isArray(te)) return max;
+  for (const item of te) {
+    const map = item?.mapValue?.fields;
+    if (!map) continue;
+    const tField = (map as any).timestamp;
+    const ts =
+      typeof tField?.stringValue === "string"
+        ? tField.stringValue
+        : typeof tField?.timestampValue === "string"
+          ? tField.timestampValue
+          : null;
+    if (!ts) continue;
+    const n = new Date(ts).getTime();
+    if (!Number.isNaN(n) && n > max) max = n;
+  }
+  return max;
+}
+
+function hoursSinceIso(iso: string | null, now: Date): number {
+  if (!iso) return 1e9;
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return 1e9;
+  return (now.getTime() - t) / (60 * 60 * 1000);
+}
+
 async function runQuery({
   accessToken,
   projectId,
@@ -161,6 +202,49 @@ async function runQuery({
     }
   }
   return out;
+}
+
+/** مُنسَّق مع [lib/Services/notification_email_policy.dart] — حافظ على التزامن يدوياً. */
+const PUSH_ONLY_NOTIFICATION_TYPES_EMAIL = new Set<string>([
+  "chat_message",
+  "employee_task_due_soon",
+  "employee_task_followup",
+  "employee_task_due_soon_1h",
+  "employee_task_start_reminder",
+  "employee_task_stale_update",
+  "employee_task_no_progress_yet",
+  "employee_progress_good_start",
+  "employee_progress_quarter",
+  "employee_progress_half",
+  "employee_progress_three_quarter",
+  "employee_progress_almost",
+  "employee_task_status_changed",
+  "manager_task_progress_updated",
+  "manager_task_edited",
+  "manager_task_comment",
+  "client_pending_over_24h",
+  "client_content_updated",
+  "publish_post_one_hour",
+  "publish_post_not_confirmed_today",
+  "publish_no_posts_tomorrow",
+  "publish_link_added",
+  "publish_notes_after_publish",
+]);
+
+function shouldSendEmailForNotificationTypeCron(notificationType: string | undefined): boolean {
+  const t = (notificationType ?? "").trim();
+  if (!t) return true;
+  return !PUSH_ONLY_NOTIFICATION_TYPES_EMAIL.has(t);
+}
+
+async function sendEmailIfPolicyAllows(
+  notificationType: string | undefined,
+  toEmail: string | null,
+  subject: string,
+  body: string,
+) {
+  if (!shouldSendEmailForNotificationTypeCron(notificationType)) return;
+  await sendEmailIfPossible(toEmail, subject, body);
 }
 
 async function sendEmailIfPossible(toEmail: string | null, subject: string, body: string) {
@@ -234,6 +318,20 @@ function soundBaseForNotificationTypeCron(notificationType: string | undefined):
     admin_content_status_changed: "notification_content_status",
     promotion_new_published_content: "notification_promotion_status",
     broadcast_topic: "notification_task_preview",
+    employee_task_start_reminder: "notification_task_deadline_soon",
+    employee_task_stale_update: "notification_task_comment",
+    employee_task_followup: "notification_task_deadline_soon",
+    employee_task_overdue: "notification_task_deadline",
+    employee_task_due_soon_1h: "notification_task_deadline_soon",
+    employee_task_no_progress_yet: "notification_task_preview",
+    manager_task_progress_updated: "notification_task_preview",
+    manager_task_no_action: "notification_content_status",
+    manager_task_progress_stalled: "notification_task_deadline",
+    employee_progress_good_start: "notification_task_approved",
+    employee_progress_quarter: "notification_task_preview",
+    employee_progress_half: "notification_task_preview",
+    employee_progress_three_quarter: "notification_task_deadline_soon",
+    employee_progress_almost: "notification_task_deadline_soon",
   };
   return map[t] ?? null;
 }
@@ -363,6 +461,18 @@ const TASK_ENDED_STATUSES = new Set([
   "status_rejected",
 ]);
 
+/** حالات جارية — للفحص عن جمود/تحديث (يتطابق مع التطبيق). */
+const TASK_ONGOING_STATUSES: string[] = [
+  "status_not_start_yet",
+  "status_processing",
+  "status_under_revision",
+  "status_in_edit",
+  "status_edit_requested",
+  "status_ready_to_publish",
+  "status_awaiting_manager",
+  "status_scheduled",
+];
+
 async function handleTaskReminders({
   accessToken,
   firestoreBase,
@@ -424,7 +534,7 @@ async function handleTaskReminders({
     const msgBody = `تجاوزت موعد التسليم: ${title} — الموظف: ${empName}`;
     for (const id of managers) {
       const m = byEmpId.get(id);
-      await sendEmailIfPossible(m?.email ?? null, "مهمة متأخرة", msgBody);
+      await sendEmailIfPolicyAllows("manager_task_overdue", m?.email ?? null, "مهمة متأخرة", msgBody);
       await sendFcm({
         accessToken,
         fcmUrl,
@@ -433,6 +543,25 @@ async function handleTaskReminders({
         body: msgBody,
         notificationType: "manager_task_overdue",
       });
+    }
+
+    const overdueEmpNotified = getStringField(f, "overdueEmployeeNotifiedAt");
+    const dayMs = 24 * 60 * 60 * 1000;
+    const lastEmp = overdueEmpNotified ? new Date(overdueEmpNotified).getTime() : 0;
+    const canEmp = !overdueEmpNotified || now.getTime() - lastEmp >= dayMs;
+    if (canEmp && emp?.fcmToken) {
+      const empTitle = "❌ مهمة متأخرة";
+      const empBody = `تجاوز موعد التسليم: ${title}`;
+      await sendEmailIfPolicyAllows("employee_task_overdue", emp.email ?? null, empTitle, empBody);
+      await sendFcm({
+        accessToken,
+        fcmUrl,
+        token: emp.fcmToken,
+        title: empTitle,
+        body: empBody,
+        notificationType: "employee_task_overdue",
+      });
+      await patchTaskStringFields(accessToken, t.name, { overdueEmployeeNotifiedAt: notifyStamp });
     }
   }
 
@@ -472,12 +601,14 @@ async function handleTaskReminders({
     const emp = byEmpId.get(assignedTo);
     const notified24 = getStringField(f, "dueSoonNotifiedAt24h");
     const notified6 = getStringField(f, "dueSoonNotifiedAt6h");
+    const notified1h = getStringField(f, "dueSoonNotifiedAt1h");
+    const notified12h = getStringField(f, "dueSoonNotifiedAt12h");
 
     // متبقي أكثر من 23 ساعة وأقل أو يساوي 24 ساعة
     if (hoursUntil <= 24 && hoursUntil > 23 && !notified24) {
-      const msgTitle = "⏳ اقتراب موعد التسليم (24 ساعة)";
-      const msgBody = `المهمة: ${title}`;
-      await sendEmailIfPossible(emp?.email ?? null, msgTitle, msgBody);
+      const msgTitle = "⏳ اقتراب موعد التسليم";
+      const msgBody = `بقي وقت قليل — ${title}`;
+      await sendEmailIfPolicyAllows("employee_task_due_soon", emp?.email ?? null, msgTitle, msgBody);
       await sendFcm({
         accessToken,
         fcmUrl,
@@ -489,10 +620,25 @@ async function handleTaskReminders({
       await patchTaskStringFields(accessToken, t.name, { dueSoonNotifiedAt24h: notifyStamp });
     }
 
+    if (hoursUntil <= 12 && hoursUntil > 11 && !notified12h) {
+      const msgTitle = "⏳ متابعة: المهمة ما زالت بانتظار إجراء";
+      const msgBody = `${title} — يرجى التصرف قبل الموعد.`;
+      await sendEmailIfPolicyAllows("employee_task_followup", emp?.email ?? null, msgTitle, msgBody);
+      await sendFcm({
+        accessToken,
+        fcmUrl,
+        token: emp?.fcmToken ?? null,
+        title: msgTitle,
+        body: msgBody,
+        notificationType: "employee_task_followup",
+      });
+      await patchTaskStringFields(accessToken, t.name, { dueSoonNotifiedAt12h: notifyStamp });
+    }
+
     if (hoursUntil <= 6 && hoursUntil > 5 && !notified6) {
       const msgTitle = "⏳ اقتراب موعد التسليم (6 ساعات)";
-      const msgBody = `المهمة: ${title}`;
-      await sendEmailIfPossible(emp?.email ?? null, msgTitle, msgBody);
+      const msgBody = `بقي وقت قليل — ${title}`;
+      await sendEmailIfPolicyAllows("employee_task_due_soon", emp?.email ?? null, msgTitle, msgBody);
       await sendFcm({
         accessToken,
         fcmUrl,
@@ -502,6 +648,219 @@ async function handleTaskReminders({
         notificationType: "employee_task_due_soon",
       });
       await patchTaskStringFields(accessToken, t.name, { dueSoonNotifiedAt6h: notifyStamp });
+    }
+
+    if (hoursUntil <= 1 && hoursUntil > 1 / 60 && !notified1h) {
+      const msgTitle = "⏳ متبقي حوالي ساعة على التسليم";
+      const msgBody = title;
+      await sendEmailIfPolicyAllows("employee_task_due_soon_1h", emp?.email ?? null, msgTitle, msgBody);
+      await sendFcm({
+        accessToken,
+        fcmUrl,
+        token: emp?.fcmToken ?? null,
+        title: msgTitle,
+        body: msgBody,
+        notificationType: "employee_task_due_soon_1h",
+      });
+      await patchTaskStringFields(accessToken, t.name, { dueSoonNotifiedAt1h: notifyStamp });
+    }
+  }
+
+  const in72hMs = 72 * 60 * 60 * 1000;
+
+  // تذكير بالبدء: لم تبدأ بعد تاريخ البدء
+  const notStartedTasks = await runQuery({
+    accessToken,
+    projectId,
+    structuredQuery: {
+      from: [{ collectionId: "tasks" }],
+      where: {
+        compositeFilter: {
+          op: "AND",
+          filters: [
+            { fieldFilter: { field: { fieldPath: "status" }, op: "EQUAL", value: { stringValue: "status_not_start_yet" } } },
+            { fieldFilter: { field: { fieldPath: "fromDate" }, op: "LESS_THAN", value: { stringValue: nowIso } } },
+            { fieldFilter: { field: { fieldPath: "assignedTo" }, op: "GREATER_THAN", value: { stringValue: "" } } },
+          ],
+        },
+      },
+      limit: 35,
+    },
+  });
+
+  for (const t of notStartedTasks) {
+    const f = t.fields as any;
+    const title = (f?.title?.stringValue as string) ?? "مهمة";
+    const assignedTo = (f?.assignedTo?.stringValue as string) ?? "";
+    if (!assignedTo) continue;
+    const startN = getStringField(f, "startReminderNotifiedAt");
+    if (hoursSinceIso(startN, now) < 24) continue;
+    const emp = byEmpId.get(assignedTo);
+    const msgTitle = "⏰ تذكير بالبدء";
+    const msgBody = `لم تبدأ بعد — ${title}`;
+    await sendEmailIfPolicyAllows("employee_task_start_reminder", emp?.email ?? null, msgTitle, msgBody);
+    await sendFcm({
+      accessToken,
+      fcmUrl,
+      token: emp?.fcmToken ?? null,
+      title: msgTitle,
+      body: msgBody,
+      notificationType: "employee_task_start_reminder",
+    });
+    await patchTaskStringFields(accessToken, t.name, { startReminderNotifiedAt: notifyStamp });
+  }
+
+  // تحذير إداري: لم يتخذ إجراء بعد مرور 48 ساعة على تاريخ البدء
+  for (const t of notStartedTasks) {
+    const f = t.fields as any;
+    const title = (f?.title?.stringValue as string) ?? "مهمة";
+    const assignedTo = (f?.assignedTo?.stringValue as string) ?? "";
+    const fromStr = getStringField(f, "fromDate");
+    if (!assignedTo || !fromStr) continue;
+    const fromD = new Date(fromStr).getTime();
+    if (Number.isNaN(fromD) || now.getTime() - fromD < 48 * 60 * 60 * 1000) continue;
+    const mgrN = getStringField(f, "managerNoActionNotifiedAt");
+    if (hoursSinceIso(mgrN, now) < 24) continue;
+    const emp = byEmpId.get(assignedTo);
+    const empName = emp?.name ?? assignedTo;
+    const msgBody = `«${title}» — ${empName} لم يبدأ بعد تاريخ البدء.`;
+    for (const id of managers) {
+      const m = byEmpId.get(id);
+      await sendEmailIfPolicyAllows("manager_task_no_action", m?.email ?? null, "⚠️ لم يتخذ موظف إجراءً على المهمة", msgBody);
+      await sendFcm({
+        accessToken,
+        fcmUrl,
+        token: m?.fcmToken ?? null,
+        title: "⚠️ لم يتخذ موظف إجراءً على المهمة",
+        body: msgBody,
+        notificationType: "manager_task_no_action",
+      });
+    }
+    await patchTaskStringFields(accessToken, t.name, { managerNoActionNotifiedAt: notifyStamp });
+  }
+
+  // مهام قيد التنفيذ دون تقدم مسجّل بعد 48 ساعة من البدء
+  const processingNoProgress = await runQuery({
+    accessToken,
+    projectId,
+    structuredQuery: {
+      from: [{ collectionId: "tasks" }],
+      where: {
+        compositeFilter: {
+          op: "AND",
+          filters: [
+            { fieldFilter: { field: { fieldPath: "status" }, op: "EQUAL", value: { stringValue: "status_processing" } } },
+            { fieldFilter: { field: { fieldPath: "assignedTo" }, op: "GREATER_THAN", value: { stringValue: "" } } },
+          ],
+        },
+      },
+      limit: 40,
+    },
+  });
+
+  for (const t of processingNoProgress) {
+    const f = t.fields as any;
+    const title = (f?.title?.stringValue as string) ?? "مهمة";
+    const assignedTo = (f?.assignedTo?.stringValue as string) ?? "";
+    const fromStr = getStringField(f, "fromDate");
+    const prog = getDoubleField(f, "progress");
+    if (!assignedTo || !fromStr) continue;
+    if (prog != null && prog > 0) continue;
+    const fromD = new Date(fromStr).getTime();
+    if (Number.isNaN(fromD) || now.getTime() - fromD < 48 * 60 * 60 * 1000) continue;
+    const np = getStringField(f, "noProgressRemindedAt");
+    if (hoursSinceIso(np, now) < 72) continue;
+    const emp = byEmpId.get(assignedTo);
+    const msgTitle = "📌 لا يزال بلا تقدم مسجّل";
+    const msgBody = `${title} — سجّل تقدمك.`;
+    await sendEmailIfPolicyAllows("employee_task_no_progress_yet", emp?.email ?? null, msgTitle, msgBody);
+    await sendFcm({
+      accessToken,
+      fcmUrl,
+      token: emp?.fcmToken ?? null,
+      title: msgTitle,
+      body: msgBody,
+      notificationType: "employee_task_no_progress_yet",
+    });
+    await patchTaskStringFields(accessToken, t.name, { noProgressRemindedAt: notifyStamp });
+  }
+
+  // جمود 72 ساعة: موظف (تحديث) + إدارة (توقف تقدم) — يتطلب `toDate` في المستقبل
+  const ongoingTasks = await runQuery({
+    accessToken,
+    projectId,
+    structuredQuery: {
+      from: [{ collectionId: "tasks" }],
+      where: {
+        compositeFilter: {
+          op: "AND",
+          filters: [
+            {
+              fieldFilter: {
+                field: { fieldPath: "status" },
+                op: "IN",
+                value: {
+                  arrayValue: {
+                    values: TASK_ONGOING_STATUSES.map((s) => ({ stringValue: s })),
+                  },
+                },
+              },
+            },
+            { fieldFilter: { field: { fieldPath: "assignedTo" }, op: "GREATER_THAN", value: { stringValue: "" } } },
+            { fieldFilter: { field: { fieldPath: "toDate" }, op: "GREATER_THAN", value: { stringValue: nowIso } } },
+          ],
+        },
+      },
+      limit: 45,
+    },
+  });
+
+  for (const t of ongoingTasks) {
+    const f = t.fields as any;
+    const title = (f?.title?.stringValue as string) ?? "مهمة";
+    const assignedTo = (f?.assignedTo?.stringValue as string) ?? "";
+    const st = getStringField(f, "status") ?? "";
+    if (!assignedTo || TASK_ENDED_STATUSES.has(st)) continue;
+    const latestMs = getLatestActivityMs(f);
+    if (latestMs === 0) continue;
+    const inactiveMs = now.getTime() - latestMs;
+    if (inactiveMs < in72hMs) continue;
+
+    const emp = byEmpId.get(assignedTo);
+    const empName = emp?.name ?? assignedTo;
+
+    const staleN = getStringField(f, "staleUpdateNotifiedAt");
+    if (hoursSinceIso(staleN, now) >= 72) {
+      const msgTitle = "📝 تحديث المهمة مطلوب";
+      const msgBody = `لم يُحدَّث «${title}» منذ فترة.`;
+      await sendEmailIfPolicyAllows("employee_task_stale_update", emp?.email ?? null, msgTitle, msgBody);
+      await sendFcm({
+        accessToken,
+        fcmUrl,
+        token: emp?.fcmToken ?? null,
+        title: msgTitle,
+        body: msgBody,
+        notificationType: "employee_task_stale_update",
+      });
+      await patchTaskStringFields(accessToken, t.name, { staleUpdateNotifiedAt: notifyStamp });
+    }
+
+    const stallN = getStringField(f, "managerStalledNotifiedAt");
+    if (hoursSinceIso(stallN, now) >= 72) {
+      const msgBody = `لا تسجيل لتقدم جديد على «${title}» (${empName}) منذ فترة.`;
+      for (const id of managers) {
+        const m = byEmpId.get(id);
+        await sendEmailIfPolicyAllows("manager_task_progress_stalled", m?.email ?? null, "⛔ توقف التقدم", msgBody);
+        await sendFcm({
+          accessToken,
+          fcmUrl,
+          token: m?.fcmToken ?? null,
+          title: "⛔ توقف التقدم",
+          body: msgBody,
+          notificationType: "manager_task_progress_stalled",
+        });
+      }
+      await patchTaskStringFields(accessToken, t.name, { managerStalledNotifiedAt: notifyStamp });
     }
   }
 }
@@ -555,7 +914,7 @@ async function handleContentPendingOver24h({
     if (!clientId) continue;
     const client = byClientId.get(clientId);
     const msgTitle = "لديك محتوى بانتظار المراجعة منذ أكثر من 24 ساعة";
-    await sendEmailIfPossible(client?.email ?? null, msgTitle, title);
+    await sendEmailIfPolicyAllows("client_pending_over_24h", client?.email ?? null, msgTitle, title);
     await sendFcm({
       accessToken,
       fcmUrl,
@@ -633,7 +992,7 @@ async function handlePublishReminders({
     const target = targetId ? byEmpId.get(targetId) : null;
     if (!targetId || !target) continue;
     const msgTitle = "تذكير: لديك منشور مجدول سيتم نشره خلال ساعة";
-    await sendEmailIfPossible(target.email ?? null, msgTitle, title);
+    await sendEmailIfPolicyAllows("publish_post_one_hour", target.email ?? null, msgTitle, title);
     await sendFcm({
       accessToken,
       fcmUrl,
@@ -686,7 +1045,7 @@ async function handlePublishReminders({
     const msgBody = `حساب العميل: ${clientName}`;
     for (const empId of publishDept) {
       const emp = byEmpId.get(empId);
-      await sendEmailIfPossible(emp?.email ?? null, msgTitle, msgBody);
+      await sendEmailIfPolicyAllows("publish_no_posts_tomorrow", emp?.email ?? null, msgTitle, msgBody);
       await sendFcm({
         accessToken,
         fcmUrl,

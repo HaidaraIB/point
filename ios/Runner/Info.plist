@@ -53,5 +53,11 @@
 	<array>
 		<string>remote-notification</string>
 	</array>
+	<!-- مطلوب لـ url_launcher: يسمح لـ canLaunchUrl بالتحقق من فتح روابط https/http (مرفقات، روابط خارجية) -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>https</string>
+		<string>http</string>
+	</array>
 </dict>
 </plist>

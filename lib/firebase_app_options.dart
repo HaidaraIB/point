@@ -26,6 +26,20 @@ class FirebaseAppOptions {
     defaultValue: false,
   );
 
+  /// يطابق اختيار [currentPlatform]: مشروع الاختبار (`firebase_options_test`) وليس الإنتاج.
+  /// يُستخدم لإخفاء أدوات التطوير (مثل زر اختبار الإشعارات) في بناءات الإنتاج.
+  static bool get isUsingTestFirebaseProject {
+    if (_forceProd && _forceTest) {
+      throw StateError(
+        'تعيين USE_FIREBASE_PROD و USE_FIREBASE_TEST معاً غير مسموح.',
+      );
+    }
+    if (_forceProd) return false;
+    if (_forceTest) return true;
+    if (kDebugMode) return true;
+    return false;
+  }
+
   static FirebaseOptions get currentPlatform {
     if (_forceProd && _forceTest) {
       throw StateError(
