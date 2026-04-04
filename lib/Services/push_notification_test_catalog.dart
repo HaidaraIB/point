@@ -118,12 +118,6 @@ const List<PushNotificationTestDefinition> kPushNotificationTestCatalog =
         categoryKey: 'push_test.category.employee',
       ),
       PushNotificationTestDefinition(
-        notificationType: 'employee_progress_good_start',
-        audience: PushTestAudience.employee,
-        sortOrder: 20,
-        categoryKey: 'push_test.category.employee',
-      ),
-      PushNotificationTestDefinition(
         notificationType: 'employee_progress_quarter',
         audience: PushTestAudience.employee,
         sortOrder: 20,
@@ -142,7 +136,43 @@ const List<PushNotificationTestDefinition> kPushNotificationTestCatalog =
         categoryKey: 'push_test.category.employee',
       ),
       PushNotificationTestDefinition(
-        notificationType: 'employee_progress_almost',
+        notificationType: 'employee_progress_finished',
+        audience: PushTestAudience.employee,
+        sortOrder: 20,
+        categoryKey: 'push_test.category.employee',
+      ),
+      PushNotificationTestDefinition(
+        notificationType: 'employee_progress_reminder_0',
+        audience: PushTestAudience.employee,
+        sortOrder: 20,
+        categoryKey: 'push_test.category.employee',
+      ),
+      PushNotificationTestDefinition(
+        notificationType: 'employee_progress_reminder_25',
+        audience: PushTestAudience.employee,
+        sortOrder: 20,
+        categoryKey: 'push_test.category.employee',
+      ),
+      PushNotificationTestDefinition(
+        notificationType: 'employee_progress_reminder_50',
+        audience: PushTestAudience.employee,
+        sortOrder: 20,
+        categoryKey: 'push_test.category.employee',
+      ),
+      PushNotificationTestDefinition(
+        notificationType: 'employee_progress_reminder_75_a',
+        audience: PushTestAudience.employee,
+        sortOrder: 20,
+        categoryKey: 'push_test.category.employee',
+      ),
+      PushNotificationTestDefinition(
+        notificationType: 'employee_progress_reminder_75_b',
+        audience: PushTestAudience.employee,
+        sortOrder: 20,
+        categoryKey: 'push_test.category.employee',
+      ),
+      PushNotificationTestDefinition(
+        notificationType: 'employee_progress_reminder_100',
         audience: PushTestAudience.employee,
         sortOrder: 20,
         categoryKey: 'push_test.category.employee',

@@ -247,10 +247,15 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
             ? AppLocaleKeys.contentDialogNoDate.tr
             : FunHelper.formatdate(_task.publishDate).toString();
     final platformValue = _platformText(_task.platform);
-    final notes =
-        (_task.clientNotes?.trim().isNotEmpty ?? false)
-            ? _task.clientNotes!.trim()
-            : AppLocaleKeys.contentDialogNoNotes.tr;
+    final bool isNotesEmpty = (_task.clientNotes?.trim().isEmpty ?? true);
+    final notes = isNotesEmpty
+            ? AppLocaleKeys.contentDialogNoNotes.tr
+            : _task.clientNotes!.trim();
+
+    final bool isMoreNotesEmpty = (_task.notes?.trim().isEmpty ?? true);
+    final moreNotes = isMoreNotesEmpty
+            ? AppLocaleKeys.contentDialogNoNotes.tr
+            : _task.notes!.trim();
 
     final statusDisplay = FunHelper.trStored(
       _task.status,
@@ -382,16 +387,17 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
                     title: AppLocaleKeys.clientNotes.tr,
                     value: notes,
                     icon: Icons.note_alt_outlined,
+                    centerValue: isNotesEmpty,
                   ),
                   if (_clientRevisionAttachmentUrls().isNotEmpty)
                     _clientRevisionsAttachmentsCard(context),
-                  if (_task.notes?.trim().isNotEmpty ?? false)
-                    _tile(
-                      context,
-                      title: AppLocaleKeys.notes.tr,
-                      value: _task.notes!.trim(),
-                      icon: Icons.sticky_note_2_outlined,
-                    ),
+                  _tile(
+                    context,
+                    title: AppLocaleKeys.notes.tr,
+                    value: moreNotes,
+                    icon: Icons.sticky_note_2_outlined,
+                    centerValue: isMoreNotesEmpty,
+                  ),
                   if (showPublishDateUi)
                     _tile(
                       context,
@@ -565,10 +571,10 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
     required String title,
     required String value,
     required IconData icon,
+    bool centerValue = false,
   }) {
-    final isRtl =
-        Directionality.of(context) == TextDirection.rtl ||
-        Get.locale?.languageCode == 'ar';
+    final isAr = Get.locale?.languageCode == 'ar';
+    final isRtl = Directionality.of(context) == TextDirection.rtl || isAr;
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 10),
@@ -603,14 +609,18 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
           ),
           const SizedBox(height: 6),
           Row(
+            mainAxisAlignment: centerValue ? MainAxisAlignment.center : MainAxisAlignment.start,
             children: [
-              Expanded(
+              Flexible(
                 child: Text(
                   value,
-                  textAlign: isRtl ? TextAlign.right : TextAlign.left,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
+                  textAlign: centerValue
+                      ? TextAlign.center
+                      : (isRtl ? TextAlign.right : TextAlign.left),
+                  style: TextStyle(
+                    fontSize: centerValue ? 16 : 20,
+                    fontWeight: centerValue ? FontWeight.w500 : FontWeight.w700,
+                    color: centerValue ? Colors.grey.shade600 : null,
                   ),
                 ),
               ),
@@ -737,12 +747,14 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
           ),
           const SizedBox(height: 10),
           if (files.isEmpty)
-            Align(
-              alignment: isRtl ? Alignment.centerRight : Alignment.centerLeft,
+            Center(
               child: Text(
                 AppLocaleKeys.contentDialogNoAttachments.tr,
-                style: TextStyle(color: Colors.grey.shade600),
-                textAlign: isRtl ? TextAlign.end : TextAlign.start,
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             )
           else

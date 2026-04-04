@@ -1,0 +1,28 @@
+import 'dart:async';
+import 'dart:developer';
+
+import 'package:firebase_auth/firebase_auth.dart';
+
+/// يمنع تسرب أخطاء `permission-denied` إلى [Rx.bindStream] / الـ zone بعد تسجيل الخروج.
+Stream<List<T>> safeFirestoreListStream<T>(
+  Stream<List<T>> source,
+  String label,
+) {
+  return source.transform(
+    StreamTransformer<List<T>, List<T>>.fromHandlers(
+      handleError: (Object error, StackTrace stackTrace, EventSink<List<T>> sink) {
+        if (FirebaseAuth.instance.currentUser == null) {
+          sink.add(<T>[]);
+          return;
+        }
+        final msg = error.toString();
+        if (msg.contains('permission-denied')) {
+          sink.add(<T>[]);
+          return;
+        }
+        log('⚠️ Firestore stream [$label]: $error');
+        sink.add(<T>[]);
+      },
+    ),
+  );
+}

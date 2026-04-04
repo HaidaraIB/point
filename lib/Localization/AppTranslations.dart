@@ -159,6 +159,7 @@ class AppTranslations extends Translations {
       'push_test.category.admin_meta': 'Admin / content / promotion',
       'push_test.category.broadcast': 'Topic broadcast',
       'header.notifications': 'Notifications',
+      'notifications.empty': 'No notifications',
       'notifications.filter.unread': 'Unread',
       'notifications.filter.read': 'Read',
       'notifications.filter.all': 'All',
@@ -715,6 +716,7 @@ class AppTranslations extends Translations {
       "password_requirements":
           "كلمة المرور لازم تحتوي على حرف كبير، حرف صغير، رقم ورمز خاص",
       'home': "الرئيسية",
+      'notifications.empty': 'لا توجد إشعارات',
       "employees": "الموظفين",
       "employees.cannot_delete_self":
           "لا يمكنك حذف حسابك من هنا.",

@@ -26,40 +26,9 @@ import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/t.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'package:point/View/History/history_date_utils.dart';
+
 class History extends StatelessWidget {
-  List<String> extractMonthsAndYears(List<ContentModel> contents) {
-    // فلترة العناصر اللي ليها publishDate
-    final dates =
-        contents
-            .where((c) => c.publishDate != null)
-            .map((c) => c.publishDate!)
-            .toList();
-
-    if (dates.isEmpty) return [];
-
-    // اول تاريخ نشر
-    final first = dates.reduce((a, b) => a.isBefore(b) ? a : b);
-
-    // اخر تاريخ نشر
-    final last = dates.reduce((a, b) => a.isAfter(b) ? a : b);
-
-    // تجميع الشهور بين أول وآخر تاريخ
-    final List<String> result = [];
-
-    DateTime current = DateTime(first.year, first.month);
-
-    while (current.isBefore(DateTime(last.year, last.month + 1))) {
-      final formatted =
-          "${current.year}-${current.month.toString().padLeft(2, '0')}";
-      result.add(formatted);
-
-      // move to next month
-      current = DateTime(current.year, current.month + 1);
-    }
-
-    return result;
-  }
-
   @override
   Widget build(BuildContext context) {
     return ResponsiveScaffold(
@@ -71,7 +40,7 @@ class History extends StatelessWidget {
 
       body: GetBuilder<HomeController>(
         builder: (controller) {
-          final months = extractMonthsAndYears(controller.contents);
+          final months = historyExtractMonthsAndYears(controller.contents);
 
           return Responsive(
             mobile: buildMobileHistory(context, controller, months),

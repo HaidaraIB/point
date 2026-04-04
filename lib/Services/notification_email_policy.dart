@@ -20,11 +20,16 @@ class NotificationEmailPolicy {
     'employee_task_no_progress_yet',
 
     // موظف — عتبات تقدم (قد تتعدد في دفعة واحدة)
-    'employee_progress_good_start',
     'employee_progress_quarter',
     'employee_progress_half',
     'employee_progress_three_quarter',
-    'employee_progress_almost',
+    'employee_progress_finished',
+    'employee_progress_reminder_0',
+    'employee_progress_reminder_25',
+    'employee_progress_reminder_50',
+    'employee_progress_reminder_75_a',
+    'employee_progress_reminder_75_b',
+    'employee_progress_reminder_100',
 
     // موظف — تغيير حالة قد يتكرر
     'employee_task_status_changed',

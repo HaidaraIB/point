@@ -12,6 +12,7 @@ import 'package:point/View/Shared/CustomDropDown.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Tasks/Dialogs/TaskFormDialogDelegate.dart';
+import 'package:point/View/Tasks/Dialogs/task_dialog_constants.dart';
 import 'package:point/View/Tasks/Dialogs/TaskFormDialogHeader.dart';
 
 /// Generic web dialog for add/edit task. Renders common fields and delegates
@@ -31,7 +32,7 @@ class GenericTaskFormDialog extends StatefulWidget {
 }
 
 class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
-  static const String _otherClientValue = '__other_client__';
+  static const String _otherClientValue = kTaskOtherClientSentinel;
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _titleController;
   late final TextEditingController _executorController;

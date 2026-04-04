@@ -346,16 +346,25 @@ class _ContentDialogDetailsState extends State<ContentDialogDetails> {
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
           ),
-          child: Text(
-            widget.task.notes?.trim().isNotEmpty == true
-                ? widget.task.notes!
-                : AppLocaleKeys.contentDialogNoNotes.tr,
-            style: TextStyle(
-              fontSize: 12,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
+          child: widget.task.notes?.trim().isNotEmpty == true
+              ? Text(
+                  widget.task.notes!,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+                )
+              : Center(
+                  child: Text(
+                    AppLocaleKeys.contentDialogNoNotes.tr,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
         ),
       ],
     );

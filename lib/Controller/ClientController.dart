@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -146,6 +147,7 @@ class ClientController extends GetxController {
   }
 
   void getFCMToken(ClientModel? model) async {
+    if (kIsWeb) return;
     try {
       String? token = await FirebaseMessaging.instance.getToken();
       if (model != null && token != null) {

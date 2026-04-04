@@ -49,8 +49,12 @@ class TaskModel {
   final String? staleUpdateNotifiedAt;
   /// طابع ISO لإشعار التأخر للموظف المكلّف (بعد تجاوز `toDate`) — كحد أقصى يومياً.
   final String? overdueEmployeeNotifiedAt;
-  /// بتات عتبات التقدم المُرسل إشعارها (0–31): 1،2،4،8،16 لـ started،25%،50%،75%،95%+.
+  /// بتات عتبات التقدم المُرسل إشعارها: 32 = 25٪، 64 = 50٪، 128 = 75٪، 256 = 100٪.
+  /// القيم 1–31 قديمة — تُحوَّل تلقائياً عند القراءة في [parseProgressMilestoneMask].
   final String? progressMilestoneMask;
+  /// بتات تذكيرات التقدّم عبر Cron: [kProgressReminder0] = 0٪، ثم 32|64|128|256 كما في العتبات.
+  /// يُحدَّث من [scheduled-notifications] فقط لمنع تكرار التذكير لنفس العتبة.
+  final String? progressReminderSentMask;
   /// طابع ISO لتحذير الإدارة: لم يبدأ الموظف بعد `fromDate` + 48 ساعة.
   final String? managerNoActionNotifiedAt;
   /// طابع ISO لتحذير الإدارة: توقف التقدم (لا نشاط 72 ساعة).
@@ -91,19 +95,46 @@ class TaskModel {
     this.staleUpdateNotifiedAt,
     this.overdueEmployeeNotifiedAt,
     this.progressMilestoneMask,
+    this.progressReminderSentMask,
     this.managerNoActionNotifiedAt,
     this.managerStalledNotifiedAt,
     this.noProgressRemindedAt,
   });
 
-  /// قيمة عددية لـ [progressMilestoneMask] في Firestore (نص أو رقم).
+  /// قيمة عددية لـ [progressMilestoneMask]؛ يُحوَّل الترميز القديم (1–31) إلى 32|64|128|256.
   static int parseProgressMilestoneMask(dynamic raw) {
+    final v = _parseProgressMilestoneMaskRaw(raw);
+    return migrateLegacyProgressMilestoneMask(v);
+  }
+
+  static int _parseProgressMilestoneMaskRaw(dynamic raw) {
     if (raw == null) return 0;
-    if (raw is int) return raw.clamp(0, 31);
-    if (raw is num) return raw.toInt().clamp(0, 31);
+    if (raw is int) return raw.clamp(0, 511);
+    if (raw is num) return raw.toInt().clamp(0, 511);
     final s = raw.toString().trim();
     if (s.isEmpty) return 0;
-    return int.tryParse(s)?.clamp(0, 31) ?? 0;
+    return int.tryParse(s)?.clamp(0, 511) ?? 0;
+  }
+
+  /// ترميز جديد: [kMilestone25]…[kMilestone100]. ترميم قديم من 1–31 (بدء/25/50/75/95٪).
+  static const int kMilestone25 = 32;
+  static const int kMilestone50 = 64;
+  static const int kMilestone75 = 128;
+  static const int kMilestone100 = 256;
+  /// تذكير Cron لعتبة 0٪ (لا يُستخدم في [progressMilestoneMask] القديم).
+  static const int kProgressReminder0 = 1;
+  static const int _kMilestoneMaskNew =
+      kMilestone25 | kMilestone50 | kMilestone75 | kMilestone100;
+
+  static int migrateLegacyProgressMilestoneMask(int raw) {
+    if (raw <= 0) return 0;
+    if (raw & _kMilestoneMaskNew != 0) return raw & _kMilestoneMaskNew;
+    var n = 0;
+    if (raw & 2 != 0) n |= kMilestone25;
+    if (raw & 4 != 0) n |= kMilestone50;
+    if (raw & 8 != 0) n |= kMilestone75;
+    if (raw & 16 != 0) n |= kMilestone100;
+    return n;
   }
 
   // ✅ fromJson
@@ -193,6 +224,9 @@ class TaskModel {
       progressMilestoneMask: json['progressMilestoneMask'] != null
           ? json['progressMilestoneMask'].toString()
           : null,
+      progressReminderSentMask: json['progressReminderSentMask'] != null
+          ? json['progressReminderSentMask'].toString()
+          : null,
       managerNoActionNotifiedAt: json['managerNoActionNotifiedAt'] as String?,
       managerStalledNotifiedAt: json['managerStalledNotifiedAt'] as String?,
       noProgressRemindedAt: json['noProgressRemindedAt'] as String?,
@@ -242,6 +276,8 @@ class TaskModel {
         'overdueEmployeeNotifiedAt': overdueEmployeeNotifiedAt,
       if (progressMilestoneMask != null)
         'progressMilestoneMask': progressMilestoneMask,
+      if (progressReminderSentMask != null)
+        'progressReminderSentMask': progressReminderSentMask,
       if (managerNoActionNotifiedAt != null)
         'managerNoActionNotifiedAt': managerNoActionNotifiedAt,
       if (managerStalledNotifiedAt != null)
@@ -284,6 +320,7 @@ class TaskModel {
     String? staleUpdateNotifiedAt,
     String? overdueEmployeeNotifiedAt,
     String? progressMilestoneMask,
+    String? progressReminderSentMask,
     String? managerNoActionNotifiedAt,
     String? managerStalledNotifiedAt,
     String? noProgressRemindedAt,
@@ -326,6 +363,8 @@ class TaskModel {
           overdueEmployeeNotifiedAt ?? this.overdueEmployeeNotifiedAt,
       progressMilestoneMask:
           progressMilestoneMask ?? this.progressMilestoneMask,
+      progressReminderSentMask:
+          progressReminderSentMask ?? this.progressReminderSentMask,
       managerNoActionNotifiedAt:
           managerNoActionNotifiedAt ?? this.managerNoActionNotifiedAt,
       managerStalledNotifiedAt:

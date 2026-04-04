@@ -16,9 +16,10 @@ import 'package:point/View/Shared/MultiSelectDropDown.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/t.dart';
 import 'package:point/View/Tasks/Mobile/GenericTaskFormMobilePage.dart';
+import 'package:point/View/Tasks/Dialogs/task_dialog_constants.dart';
 
 void showPromotionDialog(BuildContext context, {TaskModel? model}) {
-  const otherClientValue = '__other_client__';
+  const otherClientValue = kTaskOtherClientSentinel;
   final ctx = Get.context;
   if (ctx != null && Responsive.isMobile(ctx)) {
     Get.to(() => GenericTaskFormMobilePage(model: model, typeForNew: '0'));

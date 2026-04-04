@@ -18,6 +18,7 @@ import 'package:point/View/Clients/ClientsTable.dart';
 import 'package:point/View/Shared/CustomDropDown.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/t.dart';
+import 'package:point/View/Tasks/Dialogs/task_dialog_constants.dart';
 
 /// Mobile full-screen form for add/edit task. Used for all task types except Design
 /// (Design uses DesignTaskFormMobilePage). Web dialogs are not touched.
@@ -33,7 +34,7 @@ class GenericTaskFormMobilePage extends StatefulWidget {
 }
 
 class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
-  static const String _otherClientValue = '__other_client__';
+  static const String _otherClientValue = kTaskOtherClientSentinel;
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController titleController;
   late final TextEditingController clientController;

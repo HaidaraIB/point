@@ -724,134 +724,157 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
 
                   // chats list
                   Expanded(
-                    child:
-                        _loadingChats
-                            ? const Center(child: CircularProgressIndicator())
-                            : _chats.isEmpty
-                            ? Center(child: Text('chat.no_chats'.tr))
-                            : ListView.builder(
-                              itemCount: _chats.length,
-                              itemBuilder: (context, index) {
-                                final ch = _chats[index];
-                                final isGroup = ch['isGroup'] ?? false;
-                                final chatId = ch['id'] as String;
+                    child: RefreshIndicator(
+                      onRefresh: () async {
+                        await _initUserThenLoad();
+                        await Future.delayed(const Duration(seconds: 1));
+                      },
+                      child:
+                          _loadingChats
+                              ? SingleChildScrollView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                child: SizedBox(
+                                  height: Get.height * 0.5,
+                                  child: const Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                ),
+                              )
+                              : _chats.isEmpty
+                              ? SingleChildScrollView(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                child: SizedBox(
+                                  height: Get.height * 0.5,
+                                  child: Center(
+                                    child: Text('chat.no_chats'.tr),
+                                  ),
+                                ),
+                              )
+                              : ListView.builder(
+                                physics: const AlwaysScrollableScrollPhysics(),
+                                itemCount: _chats.length,
+                                itemBuilder: (context, index) {
+                                  final ch = _chats[index];
+                                  final isGroup = ch['isGroup'] ?? false;
+                                  final chatId = ch['id'] as String;
 
-                                // تخطي عرض مجموعة القسم مرة أخرى إذا تم عرضها بالفعل في الأعلى
-                                if (isGroup &&
-                                    chatId == 'group_$_currentUserDept') {
-                                  return const SizedBox.shrink();
-                                }
+                                  // تخطي عرض مجموعة القسم مرة أخرى إذا تم عرضها بالفعل في الأعلى
+                                  if (isGroup &&
+                                      chatId == 'group_$_currentUserDept') {
+                                    return const SizedBox.shrink();
+                                  }
 
-                                String displayName;
-                                String initial;
-                                Color avatarColor;
-                                IconData? avatarIcon;
-                                Color? titleColor;
+                                  String displayName;
+                                  String initial;
+                                  Color avatarColor;
+                                  IconData? avatarIcon;
+                                  Color? titleColor;
 
-                                late final String listSubtitle;
-                                if (isGroup) {
-                                  displayName =
-                                      ch['title'] ?? 'chat.group_default'.tr;
-                                  final lm =
-                                      (ch['lastMessage'] ?? '')
-                                          .toString()
-                                          .trim();
-                                  listSubtitle = lm.isNotEmpty
-                                      ? lm
-                                      : AppLocaleKeys.chatGroupConversation.tr;
-                                  initial = _initialFromName(displayName);
-                                  avatarColor = Colors.blueGrey.shade100;
-                                  avatarIcon = Icons.group;
-                                  titleColor = Colors.blue.shade700;
-                                } else {
-                                  // محادثة فردية
-                                  final participants = List<String>.from(
-                                    ch['participants'] ?? [],
-                                  );
-                                  final otherId = participants.firstWhere(
-                                    (id) => id != _currentUserId,
-                                    orElse: () => 'N/A',
-                                  );
-                                  final other = _employees.firstWhere(
-                                    (e) => e['id'] == otherId,
-                                    orElse: () => {},
-                                  );
-                                  displayName =
-                                      other.isNotEmpty
-                                          ? other['name']
-                                          : (otherId.length > 10
-                                              ? AppLocaleKeys.chatUnknownUser.tr
-                                              : otherId);
-                                  initial = _initialFromName(displayName);
-                                  avatarColor = Colors.grey.shade200;
-                                  avatarIcon = null;
-                                  titleColor = Colors.black;
-                                  listSubtitle = ch['lastMessage'] ?? '';
-                                }
-
-                                return StreamBuilder<int>(
-                                  stream: _firestoreServices
-                                      .unreadIncomingCountStream(
-                                        chatId,
-                                        _currentUserId ?? '',
-                                      ),
-                                  builder: (context, snapshot) {
-                                    final unreadCount = snapshot.data ?? 0;
-                                    return ListTile(
-                                      onTap: () => _openExistingChat(ch),
-                                      leading: CircleAvatar(
-                                        radius: 24,
-                                        backgroundColor: avatarColor,
-                                        child:
-                                            avatarIcon != null
-                                                ? Icon(
-                                                  avatarIcon,
-                                                  color: Colors.blueGrey,
-                                                )
-                                                : Text(
-                                                  initial,
-                                                  style: const TextStyle(
-                                                    color: Colors.black,
-                                                  ),
-                                                ),
-                                      ),
-                                      title: Text(
-                                        displayName,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: titleColor,
-                                        ),
-                                      ),
-                                      subtitle: Text(
-                                        listSubtitle,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      trailing:
-                                          unreadCount > 0
-                                              ? Container(
-                                                padding: const EdgeInsets.all(
-                                                  6,
-                                                ),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.red,
-                                                  borderRadius:
-                                                      BorderRadius.circular(12),
-                                                ),
-                                                child: Text(
-                                                  unreadCount.toString(),
-                                                  style: const TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 12,
-                                                  ),
-                                                ),
-                                              )
-                                              : null,
+                                  late final String listSubtitle;
+                                  if (isGroup) {
+                                    displayName =
+                                        ch['title'] ?? 'chat.group_default'.tr;
+                                    final lm =
+                                        (ch['lastMessage'] ?? '')
+                                            .toString()
+                                            .trim();
+                                    listSubtitle = lm.isNotEmpty
+                                        ? lm
+                                        : AppLocaleKeys.chatGroupConversation.tr;
+                                    initial = _initialFromName(displayName);
+                                    avatarColor = Colors.blueGrey.shade100;
+                                    avatarIcon = Icons.group;
+                                    titleColor = Colors.blue.shade700;
+                                  } else {
+                                    // محادثة فردية
+                                    final participants = List<String>.from(
+                                      ch['participants'] ?? [],
                                     );
-                                  },
-                                );
-                              },
-                            ),
+                                    final otherId = participants.firstWhere(
+                                      (id) => id != _currentUserId,
+                                      orElse: () => 'N/A',
+                                    );
+                                    final other = _employees.firstWhere(
+                                      (e) => e['id'] == otherId,
+                                      orElse: () => {},
+                                    );
+                                    displayName =
+                                        other.isNotEmpty
+                                            ? other['name']
+                                            : (otherId.length > 10
+                                                ? AppLocaleKeys.chatUnknownUser.tr
+                                                : otherId);
+                                    initial = _initialFromName(displayName);
+                                    avatarColor = Colors.grey.shade200;
+                                    avatarIcon = null;
+                                    titleColor = Colors.black;
+                                    listSubtitle = ch['lastMessage'] ?? '';
+                                  }
+
+                                  return StreamBuilder<int>(
+                                    stream: _firestoreServices
+                                        .unreadIncomingCountStream(
+                                          chatId,
+                                          _currentUserId ?? '',
+                                        ),
+                                    builder: (context, snapshot) {
+                                      final unreadCount = snapshot.data ?? 0;
+                                      return ListTile(
+                                        onTap: () => _openExistingChat(ch),
+                                        leading: CircleAvatar(
+                                          radius: 24,
+                                          backgroundColor: avatarColor,
+                                          child:
+                                              avatarIcon != null
+                                                  ? Icon(
+                                                    avatarIcon,
+                                                    color: Colors.blueGrey,
+                                                  )
+                                                  : Text(
+                                                    initial,
+                                                    style: const TextStyle(
+                                                      color: Colors.black,
+                                                    ),
+                                                  ),
+                                        ),
+                                        title: Text(
+                                          displayName,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: titleColor,
+                                          ),
+                                        ),
+                                        subtitle: Text(
+                                          listSubtitle,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        trailing:
+                                            unreadCount > 0
+                                                ? Container(
+                                                  padding: const EdgeInsets.all(
+                                                    6,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.red,
+                                                    borderRadius:
+                                                        BorderRadius.circular(12),
+                                                  ),
+                                                  child: Text(
+                                                    unreadCount.toString(),
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 12,
+                                                    ),
+                                                  ),
+                                                )
+                                                : null,
+                                      );
+                                    },
+                                  );
+                                },
+                              ),
+                    ),
                   ),
                 ],
               ),

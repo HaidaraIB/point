@@ -200,6 +200,15 @@ class _InAppNotificationsPanelState extends State<InAppNotificationsPanel> {
                 .where((n) => isAppInboxNotification(n))
                 .toList();
 
+            if (inbox.isEmpty) {
+              return Center(
+                child: Text(
+                  'notifications.empty'.tr,
+                  style: const TextStyle(fontSize: 16, color: Colors.grey),
+                ),
+              );
+            }
+
             return ListView.separated(
               padding: widget.listPadding,
               itemCount: inbox.length,
@@ -236,14 +245,9 @@ class _InAppNotificationsPanelState extends State<InAppNotificationsPanel> {
                   leading = CircleAvatar(
                     radius: 24,
                     backgroundColor: randomColor,
-                    child: Text(
-                      n.title.toString().isNotEmpty
-                          ? n.title.toString()[0]
-                          : 'N',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    child: const Icon(
+                      Icons.notifications_active_outlined,
+                      color: Colors.white,
                     ),
                   );
                 }
@@ -286,7 +290,7 @@ class _InAppNotificationsPanelState extends State<InAppNotificationsPanel> {
                   ),
                   subtitle: Text(
                     n.createdAt != null
-                        ? FunHelper.formatdateTime(n.createdAt!).toString()
+                        ? FunHelper.formatTimeAgo(n.createdAt!).toString()
                         : '',
                     textDirection: TextDirection.rtl,
                     style: TextStyle(

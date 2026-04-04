@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:async';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'package:path_provider/path_provider.dart';
@@ -32,8 +33,11 @@ class NotificationService {
       if (_isInitialized) return;
       _isInitialized = true;
 
-      await _configureForegroundPresentation();
-      await _initLocalNotifications();
+      if (!kIsWeb) {
+        await _configureForegroundPresentation();
+        await _initLocalNotifications();
+      }
+      
       await _setupInteractedMessage();
       _listenToForegroundMessages();
     }();
@@ -69,7 +73,7 @@ class NotificationService {
   }
 
   Future<void> _ensureAndroidNotificationChannels() async {
-    if (!Platform.isAndroid) return;
+    if (kIsWeb || !Platform.isAndroid) return;
     final android = _localNotificationsPlugin
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>();
@@ -177,6 +181,10 @@ class NotificationService {
     required String title,
     required String body,
   }) async {
+    if (kIsWeb) {
+      return;
+    }
+
     await init();
 
     const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
@@ -236,7 +244,9 @@ class NotificationService {
     _foregroundSub ??= FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       log('Received a message in foreground: ${message.notification?.title}');
       if (_suppressForegroundChatNotification(message)) return;
-      _showLocalNotification(message);
+      if (!kIsWeb) {
+        _showLocalNotification(message);
+      }
     });
   }
 

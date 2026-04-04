@@ -5,6 +5,7 @@ import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/table_actions_menu_row.dart';
+import 'package:point/Controller/HomeController.dart';
 
 class EmployeesMobileScreen extends StatelessWidget {
   final List<EmployeeModel> employees;
@@ -28,8 +29,14 @@ class EmployeesMobileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    return RefreshIndicator(
+      onRefresh: () async {
+        Get.find<HomeController>().fetchEmployees();
+        await Future.delayed(const Duration(seconds: 1));
+      },
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -226,6 +233,7 @@ class EmployeesMobileScreen extends StatelessWidget {
             ),
         ],
       ),
+    ),
     );
   }
 }

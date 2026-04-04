@@ -179,11 +179,6 @@ service cloud.firestore {
       return chatIdParam.matches('group_.+');
     }
 
-    function employeeCanReadDepartmentGroupChatDoc(chatIdParam) {
-      return resource.data.isGroup == true
-        && actorParticipantId() in resource.data.participants
-        && isDepartmentGroupChatId(chatIdParam);
-    }
 
     function chatGet(chatIdParam) {
       return get(/databases/$(database)/documents/chats/$(chatIdParam));
@@ -192,8 +187,7 @@ service cloud.firestore {
     function employeeCanReadGroupChatMessages(chatIdParam) {
       let c = chatGet(chatIdParam);
       return c.data.isGroup == true
-        && actorParticipantId() in c.data.participants
-        && isDepartmentGroupChatId(chatIdParam);
+        && (actorParticipantId() in c.data.participants || isMyDepartmentGroupChat(chatIdParam));
     }
 
     function expectedPrivateChatId(otherId) {
@@ -221,10 +215,6 @@ service cloud.firestore {
     // لا تُشترط participants.size()==2 هنا: الاستعلام يضمن arrayContains فقط،
     // فإن اشترطنا الحجم ترفض Firestore الاستعلام كاملاً (أي مستند مطابق محتمل يفشل القاعدة).
     // حجم 2 وسياسة الطرف الآخر تبقى على create/update للرسائل.
-    function employeeCanReadPrivateChatDoc() {
-      return resource.data.isGroup != true
-        && actorParticipantId() in resource.data.participants;
-    }
 
     // ربط أول تسجيل دخول: authUid/authStatus (قبل وجود authRoles).
     // يُسمح بتغيير authUid/authStatus فقط، مع إما عدم وجود authUid أو مطابقة البريد مع JWT.
@@ -396,8 +386,8 @@ service cloud.firestore {
             && (
               (!exists(/databases/$(database)/documents/chats/$(chatId))
                 && isDepartmentGroupChatId(chatId))
-              || employeeCanReadDepartmentGroupChatDoc(chatId)
-              || employeeCanReadPrivateChatDoc()
+              || actorParticipantId() in resource.data.participants
+              || isMyDepartmentGroupChat(chatId)
             )
           )
           || (

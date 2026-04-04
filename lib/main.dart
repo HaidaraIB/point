@@ -79,8 +79,8 @@ void main(List<String> args) async {
       if (!e.code.contains('duplicate-app')) rethrow;
     }
   }
+  // FCM + إشعارات محلية (Android/iOS فقط) — على الويب لا دفع ولا تهيئة.
   if (!kIsWeb) {
-    // تهيئة إشعارات الـPush + الـLocal مرة واحدة قبل runApp.
     await NotificationService().init();
   }
   if (kDebugMode) {
@@ -101,7 +101,7 @@ void main(List<String> args) async {
 }
 
 Future<void> onUserLogin(String userId) async {
-  // FCM token is updated in HomeController/ClientController setupFCM.
+  // على Android/iOS يُحدَّث توكن FCM من setupFCM/getFCMToken — على الويب معطّل.
 }
 
 /// Legacy auto-login entrypoint (kept for compatibility).

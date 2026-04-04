@@ -72,11 +72,16 @@ String? pushSoundBaseForNotificationType(String? notificationType) {
     'manager_task_progress_updated': 'notification_task_preview',
     'manager_task_no_action': 'notification_content_status',
     'manager_task_progress_stalled': 'notification_task_deadline',
-    'employee_progress_good_start': 'notification_task_approved',
     'employee_progress_quarter': 'notification_task_preview',
     'employee_progress_half': 'notification_task_preview',
     'employee_progress_three_quarter': 'notification_task_deadline_soon',
-    'employee_progress_almost': 'notification_task_deadline_soon',
+    'employee_progress_finished': 'notification_task_approved',
+    'employee_progress_reminder_0': 'notification_task_preview',
+    'employee_progress_reminder_25': 'notification_task_preview',
+    'employee_progress_reminder_50': 'notification_task_preview',
+    'employee_progress_reminder_75_a': 'notification_task_deadline_soon',
+    'employee_progress_reminder_75_b': 'notification_task_deadline_soon',
+    'employee_progress_reminder_100': 'notification_task_approved',
   };
   return map[t];
 }

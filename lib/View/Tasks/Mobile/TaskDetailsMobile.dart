@@ -432,58 +432,8 @@ class TaskDetailsMobilePage extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.grey.shade300),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (latestNote != null) ...[
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF7F6FF),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFFD9D4FF)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'tasks.latest_comment'.tr,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF5C5589),
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          latestNote.note,
-                          maxLines: 4,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.primaryfontColor,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          _buildNoteMeta(latestNote.byWho, latestNote.timestamp),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: Colors.green,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                ],
-                if (task.notes.isEmpty)
-                  Center(
+            child: task.notes.isEmpty
+                ? Center(
                     child: Text(
                       'content.dialog.no_notes'.tr,
                       style: TextStyle(
@@ -493,36 +443,85 @@ class TaskDetailsMobilePage extends StatelessWidget {
                       ),
                     ),
                   )
-                else
-                  ...task.notes.map(
-                    (note) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SelectableText(
-                            note.note,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primaryfontColor,
-                            ),
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (latestNote != null) ...[
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF7F6FF),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: const Color(0xFFD9D4FF)),
                           ),
-                          Text(
-                            '${note.byWho} • ${_formatRelativeTime(note.timestamp)}',
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.green,
-                            ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'tasks.latest_comment'.tr,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF5C5589),
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                latestNote.note,
+                                maxLines: 4,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.primaryfontColor,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                _buildNoteMeta(latestNote.byWho, latestNote.timestamp),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.green,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
+                        const SizedBox(height: 10),
+                      ],
+                      ...task.notes.map(
+                        (note) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SelectableText(
+                                note.note,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primaryfontColor,
+                                ),
+                              ),
+                              Text(
+                                '${note.byWho} • ${_formatRelativeTime(note.timestamp)}',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.green,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-              ],
-            ),
           ),
           const SizedBox(height: 16),
           Text('content.dialog.attachments'.tr, style: textTheme.titleSmall),

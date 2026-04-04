@@ -1,3 +1,5 @@
+library point.home_controller;
+
 import 'dart:async';
 import 'dart:developer';
 
@@ -24,6 +26,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:file_picker/file_picker.dart';
 // import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
+
+import 'package:point/config/app_config.dart';
+
+import 'package:point/Controller/home_task_filters.dart';
+
+part 'home_controller_rebind.dart';
 
 class HomeController extends GetxController {
   final FirestoreServices _service = FirestoreServices();
@@ -95,43 +103,14 @@ class HomeController extends GetxController {
       return;
     }
 
-    // تطبيق فلتر المنفذ (تحويل الاسم إلى id إن لزم)
-    String? executorId;
-    if (selectedExecutor.value.isNotEmpty) {
-      final matchUser = employees.firstWhereOrNull(
-        (u) => u.name!.toLowerCase() == selectedExecutor.value.toLowerCase(),
-      );
-      executorId = matchUser?.id;
-    }
-
     tasksSearched.assignAll(
-      baseList.where((task) {
-        final title = (task.title).toLowerCase();
-        final assigned = (task.assignedTo).toLowerCase();
-        final priority = (task.priority).toLowerCase();
-
-        final matchSearch =
-            searchText.isEmpty
-                ? true
-                : (title.contains(searchText) ||
-                    employees.any(
-                      (u) =>
-                          u.name!.toLowerCase().contains(searchText) &&
-                          u.id == task.assignedTo,
-                    ));
-
-        final matchPriority =
-            selectedPriority.value.isEmpty
-                ? true
-                : priority == selectedPriority.value.toLowerCase();
-
-        final matchExecutor =
-            selectedExecutor.value.isEmpty
-                ? true
-                : assigned == executorId?.toLowerCase();
-
-        return matchSearch && matchPriority && matchExecutor;
-      }).toList(),
+      filterTasksBySearchPriorityExecutor(
+        baseList: baseList,
+        searchText: searchText,
+        selectedPriority: selectedPriority.value,
+        selectedExecutor: selectedExecutor.value,
+        employees: employees,
+      ),
     );
   }
 
@@ -160,42 +139,14 @@ class HomeController extends GetxController {
       return;
     }
 
-    String? executorId;
-    if (selectedExecutor.value.isNotEmpty) {
-      final matchUser = employees.firstWhereOrNull(
-        (u) => u.name!.toLowerCase() == selectedExecutor.value.toLowerCase(),
-      );
-      executorId = matchUser?.id;
-    }
-
     tasksHistory.assignAll(
-      baseList.where((task) {
-        final title = (task.title).toLowerCase();
-        final assigned = (task.assignedTo).toLowerCase();
-        final priority = (task.priority).toLowerCase();
-
-        final matchSearch =
-            searchText.isEmpty
-                ? true
-                : (title.contains(searchText) ||
-                    employees.any(
-                      (u) =>
-                          u.name!.toLowerCase().contains(searchText) &&
-                          u.id == task.assignedTo,
-                    ));
-
-        final matchPriority =
-            selectedPriority.value.isEmpty
-                ? true
-                : priority == selectedPriority.value.toLowerCase();
-
-        final matchExecutor =
-            selectedExecutor.value.isEmpty
-                ? true
-                : assigned == executorId?.toLowerCase();
-
-        return matchSearch && matchPriority && matchExecutor;
-      }).toList(),
+      filterTasksBySearchPriorityExecutor(
+        baseList: baseList,
+        searchText: searchText,
+        selectedPriority: selectedPriority.value,
+        selectedExecutor: selectedExecutor.value,
+        employees: employees,
+      ),
     );
   }
 
@@ -223,114 +174,7 @@ class HomeController extends GetxController {
       return;
     }
     final gen = ++_clientsTasksRebindGeneration;
-    unawaited(_rebindClientsAndTasksStreamsAsync(gen));
-  }
-
-  Future<void> _rebindClientsAndTasksStreamsAsync(int gen) async {
-    final u = FirebaseAuth.instance.currentUser;
-    if (u == null) return;
-
-    try {
-      final roleSnap =
-          await FirebaseFirestore.instance
-              .collection('authRoles')
-              .doc(u.uid)
-              .get();
-      if (gen != _clientsTasksRebindGeneration) return;
-
-      String? role;
-      if (roleSnap.exists) {
-        role = roleSnap.data()?['role']?.toString();
-      }
-
-      if (role == 'client') {
-        clients.bindStream(_service.getClientsStreamForCurrentAuthEmail());
-        tasks.bindStream(Stream<List<TaskModel>>.value([]));
-        update();
-        return;
-      }
-
-      if (role == 'admin' || role == 'supervisor') {
-        clients.bindStream(_service.getClientsStream());
-        tasks.bindStream(_service.getTasks());
-        update();
-        return;
-      }
-
-      if (role == 'employee') {
-        final employeeId =
-            roleSnap.data()?['employeeId']?.toString().trim() ?? '';
-        final department = roleSnap.data()?['department']?.toString();
-        clients.bindStream(_service.getClientsStream());
-        if (employeeId.isNotEmpty) {
-          tasks.bindStream(
-            _service.getTasksStreamForEmployee(
-              employeeId: employeeId,
-              departmentRaw: department,
-            ),
-          );
-        } else {
-          tasks.bindStream(Stream<List<TaskModel>>.value([]));
-        }
-        update();
-        return;
-      }
-
-      if (role != null) {
-        clients.bindStream(_service.getClientsStream());
-        tasks.bindStream(_service.getTasks());
-        update();
-        return;
-      }
-
-      final email = u.email?.trim().toLowerCase();
-      if (email == null || email.isEmpty) {
-        clients.bindStream(Stream<List<ClientModel>>.value([]));
-        tasks.bindStream(Stream<List<TaskModel>>.value([]));
-        update();
-        return;
-      }
-
-      final empByEmail =
-          await FirebaseFirestore.instance
-              .collection('employees')
-              .where('email', isEqualTo: email)
-              .limit(1)
-              .get();
-      if (gen != _clientsTasksRebindGeneration) return;
-
-      if (empByEmail.docs.isNotEmpty) {
-        final empDoc = empByEmail.docs.first;
-        final empData = empDoc.data();
-        final empRole = empData['role']?.toString().trim() ?? '';
-        final empId = empDoc.id;
-        final dept = empData['department']?.toString();
-        clients.bindStream(_service.getClientsStream());
-        if (empRole == 'admin' || empRole == 'supervisor') {
-          tasks.bindStream(_service.getTasks());
-        } else if (empRole == 'employee') {
-          tasks.bindStream(
-            _service.getTasksStreamForEmployee(
-              employeeId: empId,
-              departmentRaw: dept,
-            ),
-          );
-        } else {
-          tasks.bindStream(_service.getTasks());
-        }
-      } else {
-        clients.bindStream(_service.getClientsStreamForCurrentAuthEmail());
-        tasks.bindStream(Stream<List<TaskModel>>.value([]));
-      }
-      update();
-    } catch (e, s) {
-      log('_rebindClientsAndTasksStreamsAsync: $e');
-      log('$s');
-      if (gen != _clientsTasksRebindGeneration) return;
-      clients.bindStream(_service.getClientsStreamForCurrentAuthEmail());
-      tasks.bindStream(Stream<List<TaskModel>>.value([]));
-      update();
-    }
+    unawaited(homeRebindClientsAndTasksStreamsAsync(this, gen));
   }
 
   Future<bool> addEmployee(
@@ -415,12 +259,11 @@ class HomeController extends GetxController {
   }
 
   /// تحديث الاسم/الصورة للمستخدم الحالي (لوحة الموظف) دون الاعتماد على قائمة [employees].
-  Future<bool> updateMyProfile({
-    required String name,
-    String? imageUrl,
-  }) async {
+  Future<bool> updateMyProfile({required String name, String? imageUrl}) async {
     final existing = currentEmployee.value;
-    if (existing == null || existing.id == null || existing.id!.trim().isEmpty) {
+    if (existing == null ||
+        existing.id == null ||
+        existing.id!.trim().isEmpty) {
       FunHelper.showSnackbar(
         'error'.tr,
         'employee.profile.error_no_session'.tr,
@@ -603,10 +446,7 @@ class HomeController extends GetxController {
     var list = searchedContents.toList();
     final q = employeeWebContentSearchController.text.trim().toLowerCase();
     if (q.isNotEmpty) {
-      list =
-          list
-              .where((c) => c.title.toLowerCase().contains(q))
-              .toList();
+      list = list.where((c) => c.title.toLowerCase().contains(q)).toList();
     }
     final ct = employeeWebContentTypeFilter.value;
     if (ct.isNotEmpty) {
@@ -649,7 +489,10 @@ class HomeController extends GetxController {
       return;
     }
     notifications.bindStream(
-      _service.getNotifications(uid, 'all').handleError((Object e, StackTrace st) {
+      _service.getNotifications(uid, 'all').handleError((
+        Object e,
+        StackTrace st,
+      ) {
         // تسجيل خروج أو انتهاء الجلسة: قد يُرفض الاستعلام — لا نُعيد رمي الخطأ (RethrownDartError).
         log('⚠️ notifications stream: $e');
       }),
@@ -670,9 +513,15 @@ class HomeController extends GetxController {
     return result;
   }
 
-  Future<bool> updateContentPromotionField(String contentId, String promotion) async {
+  Future<bool> updateContentPromotionField(
+    String contentId,
+    String promotion,
+  ) async {
     isLoading.value = true;
-    final result = await _service.updateContentPromotionField(contentId, promotion);
+    final result = await _service.updateContentPromotionField(
+      contentId,
+      promotion,
+    );
     isLoading.value = false;
     return result;
   }
@@ -735,13 +584,6 @@ class HomeController extends GetxController {
       // لأن النموذج قد يرسل مهمة جديدة بدون timelineEvents فيُمسح الجدول)
       final merged = [...oldTask.timelineEvents, ...newEvents];
       taskToSave = task.copyWith(timelineEvents: merged);
-      final oldM = TaskModel.parseProgressMilestoneMask(
-        oldTask.progressMilestoneMask,
-      );
-      final achieved = _milestoneBitsAchieved(taskToSave.progress);
-      taskToSave = taskToSave.copyWith(
-        progressMilestoneMask: (oldM | achieved).toString(),
-      );
     }
     final result = await _service.updateTask(taskToSave);
     isLoading.value = false;
@@ -853,20 +695,6 @@ class HomeController extends GetxController {
     }
 
     if (isUpdateByAssignee && assigneeId.isNotEmpty) {
-      final oldM = TaskModel.parseProgressMilestoneMask(
-        oldTask.progressMilestoneMask,
-      );
-      final newM = TaskModel.parseProgressMilestoneMask(
-        newTask.progressMilestoneMask,
-      );
-      final crossed = newM & ~oldM;
-      if (crossed != 0) {
-        _enqueueProgressMilestoneNotifications(
-          employeeId: assigneeId,
-          taskTitle: newTask.title,
-          crossedBits: crossed,
-        );
-      }
       final oldNorm = _normalizeProgressStep(oldTask.progress);
       final newNorm = _normalizeProgressStep(newTask.progress);
       if (oldNorm != newNorm) {
@@ -877,41 +705,6 @@ class HomeController extends GetxController {
         );
       }
     }
-  }
-
-  /// بتات عتبات التقدم: 1 بدء، 2 ≥25%، 4 ≥50%، 8 ≥75%، 16 ≥95%.
-  static int _milestoneBitsAchieved(double? p) {
-    if (p == null || p <= 0) return 0;
-    var m = 1;
-    if (p >= 0.25) m |= 2;
-    if (p >= 0.5) m |= 4;
-    if (p >= 0.75) m |= 8;
-    if (p >= 0.95) m |= 16;
-    return m;
-  }
-
-  void _enqueueProgressMilestoneNotifications({
-    required String employeeId,
-    required String taskTitle,
-    required int crossedBits,
-  }) {
-    void one(EmployeeProgressMilestoneKind k) {
-      unawaited(
-        NotificationService.notifyEmployeeProgressMilestone(
-          employeeId: employeeId,
-          taskTitle: taskTitle,
-          kind: k,
-        ),
-      );
-    }
-
-    if (crossedBits & 1 != 0) one(EmployeeProgressMilestoneKind.goodStart);
-    if (crossedBits & 2 != 0) one(EmployeeProgressMilestoneKind.quarter);
-    if (crossedBits & 4 != 0) one(EmployeeProgressMilestoneKind.half);
-    if (crossedBits & 8 != 0) {
-      one(EmployeeProgressMilestoneKind.threeQuarter);
-    }
-    if (crossedBits & 16 != 0) one(EmployeeProgressMilestoneKind.almost);
   }
 
   static const int _timelineValueMaxLength = 80;
@@ -1892,6 +1685,7 @@ class HomeController extends GetxController {
   RxInt totalUnreadMessages = 0.obs;
   StreamSubscription<int>? _totalUnreadSub;
   StreamSubscription<String>? _fcmTokenRefreshSub;
+  bool _fcmSetupInProgress = false;
 
   void _startTotalUnreadStream(String userId) {
     _totalUnreadSub?.cancel();
@@ -1926,6 +1720,11 @@ class HomeController extends GetxController {
   }
 
   setupFCM(userId) async {
+    if (_fcmSetupInProgress) return;
+    final uid = userId?.toString().trim() ?? currentEmployee.value?.id;
+    if (uid == null || uid.isEmpty) return;
+
+    _fcmSetupInProgress = true;
     try {
       FirebaseMessaging messaging = FirebaseMessaging.instance;
 
@@ -1943,8 +1742,13 @@ class HomeController extends GetxController {
         print('User granted permission');
 
         // 2. الحصول على التوكن (على الويب قد يفشل لغياب Service Worker / إعدادات المشروع)
-        // لا نستخدم VAPID — getToken بدون vapidKey
-        String? token = await messaging.getToken();
+        String? token;
+        if (kIsWeb) {
+          const isTest = bool.fromEnvironment('USE_FIREBASE_TEST', defaultValue: false);
+          token = await messaging.getToken(vapidKey: isTest ? AppConfig.fcmVapidKeyTest : AppConfig.fcmVapidKeyProd);
+        } else {
+          token = await messaging.getToken();
+        }
         if (token != null && currentEmployee.value != null) {
           await FirestoreServices.addEmployeeFcmToken(
             employeeId: currentEmployee.value!.id ?? userId,
@@ -1976,7 +1780,8 @@ class HomeController extends GetxController {
       // على الويب: token-subscribe-failed شائع لغياب OAuth/Service Worker
       log('setupFCM: $e');
       if (kIsWeb) debugPrint('FCM on web may need service worker / OAuth: $e');
-      // #endregion
+    } finally {
+      _fcmSetupInProgress = false;
     }
   }
 

@@ -2,13 +2,7 @@
 <html>
 <head>
 
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function () {
-        navigator.serviceWorker.register('firebase-messaging-sw.js');
-      });
-    }
-  </script>
+  <!-- FCM معطّل على الويب: لا نسجّل firebase-messaging-sw.js (دفع عن بُعد فقط على iOS/Android). -->
 
   <base href="$FLUTTER_BASE_HREF">
 

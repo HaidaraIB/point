@@ -14,6 +14,7 @@ import 'package:point/View/Clients/ClientsTable.dart';
 import 'package:point/View/Shared/CustomDropDown.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/t.dart';
+import 'package:point/View/Tasks/Dialogs/task_dialog_constants.dart';
 
 /// Mobile-only full-screen add/edit design task form.
 /// Opened when designDialog() is called on mobile; desktop keeps the dialog.
@@ -27,7 +28,7 @@ class DesignTaskFormMobilePage extends StatefulWidget {
 }
 
 class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
-  static const String _otherClientValue = '__other_client__';
+  static const String _otherClientValue = kTaskOtherClientSentinel;
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController titleController;
   late final TextEditingController executorController;

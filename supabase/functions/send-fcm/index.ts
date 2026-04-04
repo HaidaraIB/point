@@ -1,10 +1,9 @@
 import "https://deno.land/std@0.177.0/http/server.ts";
-
-type ServiceAccountJson = {
-  project_id: string;
-  client_email: string;
-  private_key: string;
-};
+import type { ServiceAccountJson } from "../_shared/firebase-edge.ts";
+import {
+  getServiceAccountForFirebaseProject,
+  verifyFirebaseIdToken,
+} from "../_shared/firebase-edge.ts";
 
 type PushDiagnosticPayload = {
   requestId: string;
@@ -33,8 +32,6 @@ type PushDiagnosticPayload = {
 // هذا يمنع انتقال المشكلة من `401 Invalid JWT` إلى `403` بسبب صلاحيات ناقصة.
 const FCM_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
-const FIREBASE_ID_TOKEN_CERTS_URL =
-  "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com";
 const FUNCTION_VERSION = "send-fcm-v4-multi-project";
 
 function soundBaseForNotificationType(notificationType: string | undefined): string | null {
@@ -91,11 +88,16 @@ function soundBaseForNotificationType(notificationType: string | undefined): str
     manager_task_progress_updated: "notification_task_preview",
     manager_task_no_action: "notification_content_status",
     manager_task_progress_stalled: "notification_task_deadline",
-    employee_progress_good_start: "notification_task_approved",
     employee_progress_quarter: "notification_task_preview",
     employee_progress_half: "notification_task_preview",
     employee_progress_three_quarter: "notification_task_deadline_soon",
-    employee_progress_almost: "notification_task_deadline_soon",
+    employee_progress_finished: "notification_task_approved",
+    employee_progress_reminder_0: "notification_task_preview",
+    employee_progress_reminder_25: "notification_task_preview",
+    employee_progress_reminder_50: "notification_task_preview",
+    employee_progress_reminder_75_a: "notification_task_deadline_soon",
+    employee_progress_reminder_75_b: "notification_task_deadline_soon",
+    employee_progress_reminder_100: "notification_task_approved",
   };
   return map[t] ?? null;
 }
@@ -450,35 +452,6 @@ async function writePushDiagnostic(args: {
   }
 }
 
-/**
- * Prod: `FIREBASE_SERVICE_ACCOUNT_JSON` (required).
- * Test: `FIREBASE_SERVICE_ACCOUNT_JSON_TEST` — نفس الشكل (project_id، client_email، private_key).
- * يُختار الحساب حسب `aud` في رمز Firebase بعد التحقق من التوقيع (التطبيق على test → test SA، على prod → prod SA).
- */
-function getServiceAccountForFirebaseProject(firebaseProjectId: string): ServiceAccountJson {
-  const prodRaw = Deno.env.get("FIREBASE_SERVICE_ACCOUNT_JSON");
-  if (!prodRaw) throw new Error("FIREBASE_SERVICE_ACCOUNT_JSON not set");
-  const prod = JSON.parse(prodRaw) as ServiceAccountJson;
-  if (!prod?.project_id || !prod?.client_email || !prod?.private_key) {
-    throw new Error("Invalid FIREBASE_SERVICE_ACCOUNT_JSON");
-  }
-  if (prod.project_id === firebaseProjectId) return prod;
-
-  const testRaw = Deno.env.get("FIREBASE_SERVICE_ACCOUNT_JSON_TEST");
-  if (testRaw) {
-    const test = JSON.parse(testRaw) as ServiceAccountJson;
-    if (!test?.project_id || !test?.client_email || !test?.private_key) {
-      throw new Error("Invalid FIREBASE_SERVICE_ACCOUNT_JSON_TEST");
-    }
-    if (test.project_id === firebaseProjectId) return test;
-  }
-
-  throw new Error(
-    `No service account for Firebase project "${firebaseProjectId}". ` +
-      "Add Supabase secret FIREBASE_SERVICE_ACCOUNT_JSON_TEST for the test Firebase project, or use the prod app build.",
-  );
-}
-
 async function getAccessToken(sa: ServiceAccountJson): Promise<string> {
   const header = base64url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
   const iat = Math.floor(Date.now() / 1000);
@@ -552,139 +525,6 @@ function json(payload: unknown, status = 200) {
     status,
     headers: { ...corsHeaders(), "Content-Type": "application/json" },
   });
-}
-
-function decodeJwtPart(input: string): Record<string, unknown> {
-  const pad = "=".repeat((4 - (input.length % 4)) % 4);
-  const b64 = (input + pad).replace(/-/g, "+").replace(/_/g, "/");
-  const jsonStr = new TextDecoder().decode(Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)));
-  return JSON.parse(jsonStr) as Record<string, unknown>;
-}
-
-async function verifyFirebaseIdToken(
-  idToken: string,
-): Promise<{ uid: string; email?: string; firebaseProjectId: string }> {
-  const parts = idToken.split(".");
-  if (parts.length !== 3) throw new Error("Invalid ID token");
-  const header = decodeJwtPart(parts[0]);
-  const payload = decodeJwtPart(parts[1]);
-  const kid = String(header["kid"] ?? "");
-  if (!kid) throw new Error("Missing kid");
-
-  const certsRes = await fetch(FIREBASE_ID_TOKEN_CERTS_URL);
-  const certs = await certsRes.json() as Record<string, string>;
-  const certPem = certs[kid];
-  if (!certPem) throw new Error("Unknown kid");
-
-  const dataToVerify = new TextEncoder().encode(`${parts[0]}.${parts[1]}`);
-  const sigBytes = base64urlToBytes(parts[2]);
-  const key = await importX509(certPem);
-  const ok = await crypto.subtle.verify("RSASSA-PKCS1-v1_5", key, sigBytes, dataToVerify);
-  if (!ok) throw new Error("Invalid signature");
-
-  const now = Math.floor(Date.now() / 1000);
-  const rawAud = payload["aud"];
-  const aud = typeof rawAud === "string" ? rawAud.trim() : "";
-  const iss = String(payload["iss"] ?? "");
-  const sub = String(payload["sub"] ?? "");
-  const exp = Number(payload["exp"] ?? 0);
-  if (!sub) throw new Error("Missing sub");
-  if (!aud) throw new Error("Invalid aud");
-  if (iss !== `https://securetoken.google.com/${aud}`) throw new Error("Invalid iss");
-  if (!exp || now >= exp) throw new Error("Token expired");
-
-  const email = typeof payload["email"] === "string" ? payload["email"] : undefined;
-  return { uid: sub, email, firebaseProjectId: aud };
-}
-
-function base64urlToBytes(input: string): Uint8Array {
-  const pad = "=".repeat((4 - (input.length % 4)) % 4);
-  const b64 = (input + pad).replace(/-/g, "+").replace(/_/g, "/");
-  return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-}
-
-async function importX509(pem: string): Promise<CryptoKey> {
-  const b64 = pem
-    .replace(/-----BEGIN CERTIFICATE-----/g, "")
-    .replace(/-----END CERTIFICATE-----/g, "")
-    .replace(/\s+/g, "");
-  // `crypto.subtle.importKey("spki", ...)` يحتاج DER الخاص بـ SubjectPublicKeyInfo،
-  // بينما PEM هنا يحتوي على X509 Certificate كامل (Certificate SEQUENCE).
-  // لذلك نستخرج subjectPublicKeyInfo من شهادة X509 ثم نستوردها كـ SPKI.
-  const certDer = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-  const spkiDer = extractSubjectPublicKeyInfoDer(certDer);
-  return await crypto.subtle.importKey(
-    "spki",
-    spkiDer.buffer,
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-    false,
-    ["verify"],
-  );
-}
-
-function extractSubjectPublicKeyInfoDer(certDer: Uint8Array): Uint8Array {
-  // Minimal DER reader that assumes standard X509 certificate structure:
-  // Certificate ::= SEQUENCE { tbsCertificate SEQUENCE, signatureAlgorithm, signatureValue }
-  // tbsCertificate ends with: ... subject SEQUENCE, subjectPublicKeyInfo SEQUENCE ...
-  const readLength = (der: Uint8Array, offset: number) => {
-    const first = der[offset];
-    if (first < 0x80) return { len: first, lenBytes: 1 };
-    const numBytes = first & 0x7f;
-    let len = 0;
-    for (let i = 0; i < numBytes; i++) {
-      len = (len << 8) | der[offset + 1 + i];
-    }
-    return { len, lenBytes: 1 + numBytes };
-  };
-
-  const readElement = (der: Uint8Array, offset: number) => {
-    const tag = der[offset];
-    const { len, lenBytes } = readLength(der, offset + 1);
-    const headerBytes = 1 + lenBytes;
-    const start = offset;
-    const end = offset + headerBytes + len;
-    return { tag, start, end };
-  };
-
-  // Outer Certificate SEQUENCE
-  const certSeq = readElement(certDer, 0);
-  if (certSeq.tag !== 0x30) {
-    throw new Error("Invalid certificate DER (expected SEQUENCE)");
-  }
-
-  // Outer SEQUENCE content starts after its header bytes
-  const { lenBytes: outerLenBytes } = readLength(certDer, 1);
-  const outerContentStart = 1 + outerLenBytes;
-
-  // First element inside outer SEQUENCE is tbsCertificate SEQUENCE
-  const tbs = readElement(certDer, outerContentStart);
-  if (tbs.tag !== 0x30) throw new Error("Invalid certificate DER (expected tbsCertificate SEQUENCE)");
-
-  // tbsCertificate SEQUENCE content starts after its header
-  const { len: tbsLen, lenBytes: tbsLenBytes } = readLength(certDer, tbs.start + 1);
-  const tbsHeaderBytes = 1 + tbsLenBytes;
-  let tbsOff = tbs.start + tbsHeaderBytes;
-
-  // Optional version: [0] EXPLICIT tag 0xA0
-  const firstEl = readElement(certDer, tbsOff);
-  if (firstEl.tag === 0xa0) {
-    tbsOff = firstEl.end;
-  }
-
-  // Skip: serialNumber(INTEGER=0x02), signature(SEQUENCE=0x30), issuer(SEQUENCE=0x30),
-  // validity(SEQUENCE=0x30), subject(SEQUENCE=0x30)
-  tbsOff = readElement(certDer, tbsOff).end; // serialNumber
-  tbsOff = readElement(certDer, tbsOff).end; // signature
-  tbsOff = readElement(certDer, tbsOff).end; // issuer
-  tbsOff = readElement(certDer, tbsOff).end; // validity
-  tbsOff = readElement(certDer, tbsOff).end; // subject
-
-  // Next element must be subjectPublicKeyInfo: SEQUENCE (0x30)
-  const spki = readElement(certDer, tbsOff);
-  if (spki.tag !== 0x30) throw new Error("Invalid certificate DER (expected subjectPublicKeyInfo SEQUENCE)");
-
-  // Copy bytes to a new Uint8Array so `buffer` starts at offset 0
-  return certDer.slice(spki.start, spki.end);
 }
 
 async function getEmployeeRole(args: {

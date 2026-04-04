@@ -1159,7 +1159,8 @@ class _CustomSidebarState extends State<CustomSidebar> {
             fontWeight: FontWeight.w500,
           ),
         ),
-        initiallyExpanded: openMenus[id] ?? false,
+        initiallyExpanded: openMenus[id] ??
+            (selectedTab == _selectedTab || (id == 'tasks' && _selectedTab == 40)),
         onExpansionChanged: (expanded) {
           setState(() => openMenus[id] = expanded);
         },

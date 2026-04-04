@@ -27,10 +27,12 @@ Future<String?> attemptSilentLogin() async {
     if (employee.status == 'active') {
       homeController.applyEmployeeSessionAfterAuthRestore(employee);
 
-      try {
-        await homeController.setupFCM(employee.id);
-      } catch (e) {
-        log('FCM setup: $e');
+      if (!kIsWeb) {
+        try {
+          await homeController.setupFCM(employee.id);
+        } catch (e) {
+          log('FCM setup: $e');
+        }
       }
 
       if (!kIsWeb) {

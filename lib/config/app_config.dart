@@ -26,4 +26,8 @@ class AppConfig {
   /// (FCM `messages:send` URL uses that project).
   static String get firebaseProjectId =>
       FirebaseAppOptions.currentPlatform.projectId;
+
+  /// Public VAPID keys for Web Push Notifications (safe to be public)
+  static const String fcmVapidKeyTest = 'BE5qo7OjlOYrCm57Bhw3eIOGB10llXhD1kJ8jCWQqBHfdYvfOYl7Wck6ugC1cj4BLPccwAU7AGTp35yCpiSddss';
+  static const String fcmVapidKeyProd = 'BBR3nvqnyEKzmgmV5jj8-S-nuoMiJk9osiBt5Mv4ExNfZIa5aD-T6wklMXGBRmv2jGguAmhmJ1K13r0UVgm2OQc';
 }

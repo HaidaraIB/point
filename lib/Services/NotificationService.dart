@@ -12,15 +12,6 @@ enum ManagerTaskEditKind {
   both,
 }
 
-/// عتبة تقدم لإشعار الموظف (تطابق بتات [TaskModel.progressMilestoneMask]).
-enum EmployeeProgressMilestoneKind {
-  goodStart,
-  quarter,
-  half,
-  threeQuarter,
-  almost,
-}
-
 /// Push/email for **app-triggered** flows. Types sent only by Supabase Cron
 /// (`scheduled-notifications`) live in that function — no Dart wrappers here.
 class NotificationService {
@@ -144,44 +135,6 @@ class NotificationService {
         'notify.email.task': taskTitle,
         'notify.email.new_status': label,
       }),
-    );
-  }
-
-  static Future<void> notifyEmployeeProgressMilestone({
-    required String employeeId,
-    required String taskTitle,
-    required EmployeeProgressMilestoneKind kind,
-  }) async {
-    final prefix = switch (kind) {
-      EmployeeProgressMilestoneKind.goodStart => (
-          'notify.emp.milestone.good_start',
-          'employee_progress_good_start',
-        ),
-      EmployeeProgressMilestoneKind.quarter => (
-          'notify.emp.milestone.on_track',
-          'employee_progress_quarter',
-        ),
-      EmployeeProgressMilestoneKind.half => (
-          'notify.emp.milestone.halfway',
-          'employee_progress_half',
-        ),
-      EmployeeProgressMilestoneKind.threeQuarter => (
-          'notify.emp.milestone.near_end',
-          'employee_progress_three_quarter',
-        ),
-      EmployeeProgressMilestoneKind.almost => (
-          'notify.emp.milestone.almost_done',
-          'employee_progress_almost',
-        ),
-    };
-    await FirestoreServices.sendFcm(
-      userId: employeeId,
-      title: '${prefix.$1}.title'.tr,
-      body: '${prefix.$1}.body'.trParams({'title': taskTitle}),
-      notificationType: prefix.$2,
-      actionText: '${prefix.$1}.action'.tr,
-      referenceId: taskTitle,
-      emailDetails: _emailLabels({'notify.email.task': taskTitle}),
     );
   }
 

@@ -21,9 +21,10 @@ import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Tasks/Dialogs/TaskFormDialogHeader.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/t.dart';
+import 'package:point/View/Tasks/Dialogs/task_dialog_constants.dart';
 
 void designDialog(BuildContext context, {TaskModel? model}) {
-  const otherClientValue = '__other_client__';
+  const otherClientValue = kTaskOtherClientSentinel;
   // Use current context so mobile check works when called after navigation (e.g. from TaskDetailsMobile).
   final ctx = Get.context;
   if (ctx != null && Responsive.isMobile(ctx)) {

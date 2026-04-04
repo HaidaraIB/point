@@ -319,58 +319,8 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
               color: Theme.of(context).colorScheme.outlineVariant,
             ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (latestNote != null) ...[
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF7F6FF),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFD9D4FF)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'tasks.latest_comment'.tr,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF5C5589),
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        latestNote.note,
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primaryfontColor,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        _buildNoteMeta(latestNote.byWho, latestNote.timestamp),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: Colors.green,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 10),
-              ],
-              if (widget.task.notes.isEmpty)
-                Center(
+          child: widget.task.notes.isEmpty
+              ? Center(
                   child: Text(
                     'content.dialog.no_notes'.tr,
                     style: TextStyle(
@@ -380,43 +330,92 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
                     ),
                   ),
                 )
-              else
-                ListView(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    for (var note in widget.task.notes)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
+                    if (latestNote != null) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF7F6FF),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFD9D4FF)),
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              note.note,
-                              maxLines: 4,
+                              'tasks.latest_comment'.tr,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF5C5589),
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              latestNote.note,
+                              maxLines: 3,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 fontSize: 12,
-                                fontWeight: FontWeight.bold,
+                                fontWeight: FontWeight.w700,
                                 color: AppColors.primaryfontColor,
                               ),
                             ),
+                            const SizedBox(height: 2),
                             Text(
-                              note.byWho,
+                              _buildNoteMeta(latestNote.byWho, latestNote.timestamp),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                fontSize: 12,
+                                fontSize: 11,
                                 color: Colors.green,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ],
                         ),
                       ),
+                      const SizedBox(height: 10),
+                    ],
+                    ListView(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      children: [
+                        for (var note in widget.task.notes)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  note.note,
+                                  maxLines: 4,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.primaryfontColor,
+                                  ),
+                                ),
+                                Text(
+                                  note.byWho,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.green,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
                   ],
                 ),
-            ],
-          ),
         ),
       ],
     );

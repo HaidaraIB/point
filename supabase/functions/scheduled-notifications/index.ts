@@ -1,13 +1,10 @@
 import "https://deno.land/std@0.177.0/http/server.ts";
+import type { ServiceAccountJson } from "../_shared/firebase-edge.ts";
+import { resolveServiceAccountForScheduledCron } from "../_shared/firebase-edge.ts";
 import { buildEmailHtml } from "../send-notification-email/email-template.ts";
 
-type ServiceAccountJson = {
-  project_id: string;
-  client_email: string;
-  private_key: string;
-};
-
-const FCM_SCOPE = "https://www.googleapis.com/auth/firebase.messaging";
+// نطاق يغطي Firestore REST و FCM v1؛ `firebase.messaging` وحدها تسبب 403 على list/query في Firestore.
+const GOOGLE_ACCESS_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const RESEND_URL = "https://api.resend.com/emails";
 const FROM_EMAIL = "Point Agency <no-reply@mail.point-iq.app>";
@@ -17,20 +14,31 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json({ errorCode: "ERR_METHOD_NOT_ALLOWED" }, 405);
 
   try {
+    // بوابة Supabase تتطلب JWT صالحاً في Authorization (مثل anon key). لا تضع CRON_SECRET وحده في Authorization.
+    // الطريقة الموصى بها: Authorization: Bearer <SUPABASE_ANON_KEY> + apikey + x-cron-secret: <CRON_SECRET>
+    // للتوافق: Authorization: Bearer <CRON_SECRET> فقط (قد يفشل عند البوابة).
     const authHeader = req.headers.get("authorization") ?? "";
     const expected = Deno.env.get("CRON_SECRET") ?? "";
-    if (expected && authHeader !== `Bearer ${expected}`) {
-      return json({ errorCode: "ERR_UNAUTHORIZED" }, 401);
+    if (expected) {
+      const xCron = (req.headers.get("x-cron-secret") ?? "").trim();
+      const legacyBearerOnly = authHeader === `Bearer ${expected}`;
+      const cronViaHeader = xCron === expected;
+      if (!cronViaHeader && !legacyBearerOnly) {
+        return json({ errorCode: "ERR_UNAUTHORIZED" }, 401);
+      }
     }
 
-    const sa = getServiceAccount();
+    const body = await req.json().catch(() => ({})) as {
+      mode?: string;
+      firebaseProjectId?: string;
+    };
+    const sa = resolveServiceAccountForScheduledCron(body.firebaseProjectId);
     const accessToken = await getAccessToken(sa);
     const firestoreBase = `https://firestore.googleapis.com/v1/projects/${sa.project_id}/databases/(default)/documents`;
     const fcmUrl = `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`;
 
     const now = new Date();
 
-    const body = await req.json().catch(() => ({})) as { mode?: string };
     const mode = (body?.mode ?? "all").toLowerCase();
 
     // ملاحظة: Supabase Cron قد يفرض timeout 5000ms.
@@ -52,16 +60,6 @@ Deno.serve(async (req: Request) => {
   }
 });
 
-function getServiceAccount(): ServiceAccountJson {
-  const raw = Deno.env.get("FIREBASE_SERVICE_ACCOUNT_JSON");
-  if (!raw) throw new Error("FIREBASE_SERVICE_ACCOUNT_JSON not set");
-  const sa = JSON.parse(raw) as ServiceAccountJson;
-  if (!sa?.project_id || !sa?.client_email || !sa?.private_key) {
-    throw new Error("Invalid FIREBASE_SERVICE_ACCOUNT_JSON");
-  }
-  return sa;
-}
-
 async function getAccessToken(sa: ServiceAccountJson): Promise<string> {
   // JWT manually (RS256) using WebCrypto
   const header = base64url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
@@ -69,7 +67,7 @@ async function getAccessToken(sa: ServiceAccountJson): Promise<string> {
   const exp = iat + 55 * 60;
   const claim = base64url(JSON.stringify({
     iss: sa.client_email,
-    scope: FCM_SCOPE,
+    scope: GOOGLE_ACCESS_SCOPE,
     aud: TOKEN_URL,
     iat,
     exp,
@@ -213,11 +211,16 @@ const PUSH_ONLY_NOTIFICATION_TYPES_EMAIL = new Set<string>([
   "employee_task_start_reminder",
   "employee_task_stale_update",
   "employee_task_no_progress_yet",
-  "employee_progress_good_start",
   "employee_progress_quarter",
   "employee_progress_half",
   "employee_progress_three_quarter",
-  "employee_progress_almost",
+  "employee_progress_finished",
+  "employee_progress_reminder_0",
+  "employee_progress_reminder_25",
+  "employee_progress_reminder_50",
+  "employee_progress_reminder_75_a",
+  "employee_progress_reminder_75_b",
+  "employee_progress_reminder_100",
   "employee_task_status_changed",
   "manager_task_progress_updated",
   "manager_task_edited",
@@ -327,11 +330,16 @@ function soundBaseForNotificationTypeCron(notificationType: string | undefined):
     manager_task_progress_updated: "notification_task_preview",
     manager_task_no_action: "notification_content_status",
     manager_task_progress_stalled: "notification_task_deadline",
-    employee_progress_good_start: "notification_task_approved",
     employee_progress_quarter: "notification_task_preview",
     employee_progress_half: "notification_task_preview",
     employee_progress_three_quarter: "notification_task_deadline_soon",
-    employee_progress_almost: "notification_task_deadline_soon",
+    employee_progress_finished: "notification_task_approved",
+    employee_progress_reminder_0: "notification_task_preview",
+    employee_progress_reminder_25: "notification_task_preview",
+    employee_progress_reminder_50: "notification_task_preview",
+    employee_progress_reminder_75_a: "notification_task_deadline_soon",
+    employee_progress_reminder_75_b: "notification_task_deadline_soon",
+    employee_progress_reminder_100: "notification_task_approved",
   };
   return map[t] ?? null;
 }
@@ -452,6 +460,105 @@ async function patchTaskStringFields(
   if (!res.ok) {
     console.error("patchTaskStringFields failed", documentName, await res.text());
   }
+}
+
+/** يطابق [TaskModel.normalizeProgress] / خطوات التقدم في التطبيق (0، 25٪، …). */
+const PROGRESS_REMINDER_BIT_0 = 1;
+const PROGRESS_REMINDER_BIT_25 = 32;
+const PROGRESS_REMINDER_BIT_50 = 64;
+const PROGRESS_REMINDER_BIT_75 = 128;
+const PROGRESS_REMINDER_BIT_100 = 256;
+
+function parseTaskMaskInt(raw: string | null | undefined): number {
+  if (raw == null || raw === "") return 0;
+  const n = parseInt(String(raw).trim(), 10);
+  return Number.isFinite(n) ? Math.max(0, Math.min(511, n)) : 0;
+}
+
+function migrateLegacyMilestoneMaskForReminder(raw: number): number {
+  if (raw <= 0) return 0;
+  const newBits =
+    PROGRESS_REMINDER_BIT_25 | PROGRESS_REMINDER_BIT_50 | PROGRESS_REMINDER_BIT_75 | PROGRESS_REMINDER_BIT_100;
+  if (raw & newBits) return raw & newBits;
+  let n = 0;
+  if (raw & 2) n |= PROGRESS_REMINDER_BIT_25;
+  if (raw & 4) n |= PROGRESS_REMINDER_BIT_50;
+  if (raw & 8) n |= PROGRESS_REMINDER_BIT_75;
+  if (raw & 16) n |= PROGRESS_REMINDER_BIT_100;
+  return n;
+}
+
+/** يدمج [progressReminderSentMask] مع عتبات [progressMilestoneMask] القديمة لتجنب إعادة إشعارات فورية سابقة. */
+function mergedProgressReminderMask(fields: Record<string, unknown>): number {
+  const stored = parseTaskMaskInt(getStringField(fields, "progressReminderSentMask"));
+  const legacy = migrateLegacyMilestoneMaskForReminder(
+    parseTaskMaskInt(getStringField(fields, "progressMilestoneMask")),
+  );
+  return stored | legacy;
+}
+
+function normalizeProgressStepCron(progress: number | null): number {
+  if (progress == null || progress <= 0) return 0;
+  const x = Math.min(1, Math.max(0, progress));
+  return Math.round(x * 4) / 4;
+}
+
+function progressTierReminderBit(norm: number): number {
+  if (norm <= 0) return PROGRESS_REMINDER_BIT_0;
+  if (norm === 0.25) return PROGRESS_REMINDER_BIT_25;
+  if (norm === 0.5) return PROGRESS_REMINDER_BIT_50;
+  if (norm === 0.75) return PROGRESS_REMINDER_BIT_75;
+  if (norm >= 1) return PROGRESS_REMINDER_BIT_100;
+  return 0;
+}
+
+function buildProgressTierReminderPayload(
+  taskTitle: string,
+  tierBit: number,
+): { msgTitle: string; msgBody: string; notificationType: string } | null {
+  if (tierBit === PROGRESS_REMINDER_BIT_0) {
+    return {
+      msgTitle: `📌 ${taskTitle}`,
+      msgBody: "لم يتم البدء بعد - المهمة ما زالت بدون أي تقدم.",
+      notificationType: "employee_progress_reminder_0",
+    };
+  }
+  if (tierBit === PROGRESS_REMINDER_BIT_25) {
+    return {
+      msgTitle: `🚀 ${taskTitle}`,
+      msgBody: "بداية جيدة - تم تسجيل بداية العمل.",
+      notificationType: "employee_progress_reminder_25",
+    };
+  }
+  if (tierBit === PROGRESS_REMINDER_BIT_50) {
+    return {
+      msgTitle: `📊 ${taskTitle}`,
+      msgBody: "منتصف الطريق - أداء جيد، استمر.",
+      notificationType: "employee_progress_reminder_50",
+    };
+  }
+  if (tierBit === PROGRESS_REMINDER_BIT_75) {
+    const useA = Math.random() < 0.5;
+    return useA
+      ? {
+          msgTitle: `🔥 ${taskTitle}`,
+          msgBody: "اقتربت من النهاية - باقي القليل.",
+          notificationType: "employee_progress_reminder_75_a",
+        }
+      : {
+          msgTitle: `⚡ ${taskTitle}`,
+          msgBody: "تقريبًا انتهيت - أكمل المهمة.",
+          notificationType: "employee_progress_reminder_75_b",
+        };
+  }
+  if (tierBit === PROGRESS_REMINDER_BIT_100) {
+    return {
+      msgTitle: `✅ ${taskTitle}`,
+      msgBody: "إنجاز كامل - تم إنهاء المهمة بنجاح.",
+      notificationType: "employee_progress_reminder_100",
+    };
+  }
+  return null;
 }
 
 /** مهام انتهت من ناحية سير العمل — لا نرسل تذكير اقتراب موعد. */
@@ -821,12 +928,46 @@ async function handleTaskReminders({
     const assignedTo = (f?.assignedTo?.stringValue as string) ?? "";
     const st = getStringField(f, "status") ?? "";
     if (!assignedTo || TASK_ENDED_STATUSES.has(st)) continue;
+
+    const emp = byEmpId.get(assignedTo);
+
+    {
+      const prog = getDoubleField(f, "progress");
+      const norm = normalizeProgressStepCron(prog);
+      const tierBit = progressTierReminderBit(norm);
+      if (tierBit !== 0 && emp?.fcmToken) {
+        const merged = mergedProgressReminderMask(f);
+        if ((merged & tierBit) === 0) {
+          const payload = buildProgressTierReminderPayload(title, tierBit);
+          if (payload) {
+            await sendEmailIfPolicyAllows(
+              payload.notificationType,
+              emp.email ?? null,
+              payload.msgTitle,
+              payload.msgBody,
+            );
+            await sendFcm({
+              accessToken,
+              fcmUrl,
+              token: emp.fcmToken,
+              title: payload.msgTitle,
+              body: payload.msgBody,
+              notificationType: payload.notificationType,
+            });
+            const prev = parseTaskMaskInt(getStringField(f, "progressReminderSentMask"));
+            await patchTaskStringFields(accessToken, t.name, {
+              progressReminderSentMask: String(prev | tierBit),
+            });
+          }
+        }
+      }
+    }
+
     const latestMs = getLatestActivityMs(f);
     if (latestMs === 0) continue;
     const inactiveMs = now.getTime() - latestMs;
     if (inactiveMs < in72hMs) continue;
 
-    const emp = byEmpId.get(assignedTo);
     const empName = emp?.name ?? assignedTo;
 
     const staleN = getStringField(f, "staleUpdateNotifiedAt");
@@ -1069,6 +1210,7 @@ function corsHeaders(): Record<string, string> {
   return {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type, x-cron-secret",
   };
 }

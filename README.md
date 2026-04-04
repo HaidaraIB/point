@@ -80,6 +80,21 @@ Root folders of note: `android/`, `ios/`, `web/`, `windows/`, `macos/`, `linux/`
     ```
     On **web**, the initial route is the login flow; on **mobile**, the splash decider routes users appropriately.
 
+## Refactoring hotspots (large source files)
+
+When you touch a feature, prefer **incremental splits** in the largest file in that area (extract widgets, helpers, or services) rather than a repo-wide refactor. Approximate sizes (lines) for orientation:
+
+| Area | Path |
+|------|------|
+| Contents / table UI | `lib/View/Contents/ContentsTable.dart` (shell) + `contents_table_*_part.dart` (desktop table, mobile, add-content dialog, employee web) |
+| Firestore access | `lib/Services/FireStoreServices.dart` |
+| Home screen / controller | `lib/View/Home/Home.dart`, `lib/Controller/HomeController.dart` |
+| Task dialogs | `lib/View/Tasks/Dialogs/*.dart` (several 800–1100+ lines) |
+| Chats | `lib/View/Chats/ChatPage.dart`, `MChatPage.dart` |
+| Edge Functions | `supabase/functions/scheduled-notifications/index.ts`, etc. |
+
+Employee-web content UI for `ContentsTable` lives in `lib/View/Contents/contents_table_employee_web_part.dart` (`part of` the main file).
+
 ---
 
 For internationalization conventions used in the project, see `docs/i18n_guidelines.md`.

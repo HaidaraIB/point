@@ -29,8 +29,14 @@ class ClientHome extends StatelessWidget {
           () => Scaffold(
             backgroundColor: Colors.white,
             appBar: _buildClientAppBar(controller),
-            body: SingleChildScrollView(
-              child: Column(
+            body: RefreshIndicator(
+              onRefresh: () async {
+                controller.fetchContents();
+                await Future.delayed(const Duration(seconds: 1));
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -302,6 +308,7 @@ class ClientHome extends StatelessWidget {
                             );
                       }),
                 ],
+              ),
               ),
             ),
           ),

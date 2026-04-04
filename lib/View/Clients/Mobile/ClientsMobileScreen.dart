@@ -5,6 +5,7 @@ import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/table_actions_menu_row.dart';
+import 'package:point/Controller/HomeController.dart';
 
 class ClientsMobileScreen extends StatelessWidget {
   final List<ClientModel> clients;
@@ -27,8 +28,14 @@ class ClientsMobileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    return RefreshIndicator(
+      onRefresh: () async {
+        Get.find<HomeController>().fetchClients();
+        await Future.delayed(const Duration(seconds: 1));
+      },
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -242,7 +249,8 @@ class ClientsMobileScreen extends StatelessWidget {
                 );
               },
             ),
-        ],
+          ],
+        ),
       ),
     );
   }
