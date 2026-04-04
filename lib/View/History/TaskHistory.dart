@@ -1,4 +1,4 @@
-import 'dart:developer';
+import 'package:point/Utils/app_log.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
@@ -124,7 +124,7 @@ class _TasksHistoryState extends State<TasksHistory> {
                                                 .departments
                                                 .indexOf(value.toString());
                                           });
-                                          log(
+                                          appLog(
                                             StorageKeys.departments
                                                 .indexOf(value.toString())
                                                 .toString(),

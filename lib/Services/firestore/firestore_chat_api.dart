@@ -1,4 +1,4 @@
-import 'dart:developer';
+import 'package:point/Utils/app_log.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -27,7 +27,7 @@ class FirestoreChatApi {
         });
       }
     } catch (e) {
-      log('syncEmployeeActiveChatId: $e');
+      appLog('syncEmployeeActiveChatId: $e');
     }
   }
 
@@ -102,7 +102,7 @@ class FirestoreChatApi {
       if (q.docs.isEmpty) return null;
       return chatListPreviewFromMessageData(q.docs.first.data());
     } catch (e, st) {
-      log('fetchLatestMessagePreviewForChat $chatId: $e\n$st');
+      appLog('fetchLatestMessagePreviewForChat $chatId: $e\n$st');
       return null;
     }
   }
@@ -136,7 +136,7 @@ class FirestoreChatApi {
     try {
       await fs.collection('chats').doc(chatId).update({'lastMessage': a});
     } catch (e) {
-      log('patchChatLastMessageIfStale $chatId: $e');
+      appLog('patchChatLastMessageIfStale $chatId: $e');
     }
   }
 }

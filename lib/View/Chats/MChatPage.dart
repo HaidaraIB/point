@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:developer';
+import 'package:point/Utils/app_log.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -267,7 +267,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
           if (!mounted) return;
           unawaited(_applySnapshotAndEnrich(gen, built));
         }, onError: (Object e, StackTrace st) {
-          log('⚠️ MChatPage _listenChats: $e');
+          appLog('⚠️ MChatPage _listenChats: $e');
           if (!mounted) return;
           setState(() {
             _loadingChats = false;
@@ -1545,7 +1545,7 @@ class MyApp extends StatelessWidget {
       home: ChatsListScreen(
         onMinimize: () {
           // دالة تصغير الشاشة أو إغلاقها
-          print('Minimize button pressed');
+          appLog('Minimize button pressed');
         },
       ),
     );

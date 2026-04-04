@@ -227,6 +227,9 @@ const PUSH_ONLY_NOTIFICATION_TYPES_EMAIL = new Set<string>([
   "manager_task_comment",
   "client_pending_over_24h",
   "client_content_updated",
+  "manager_content_submitted_by_client",
+  "client_content_pending_approval",
+  "publish_content_added",
   "publish_post_one_hour",
   "publish_post_not_confirmed_today",
   "publish_no_posts_tomorrow",
@@ -386,6 +389,55 @@ function fcmPlatformSoundPayloadsCron(soundBase: string | null): {
   };
 }
 
+/** نفس منطق [send-fcm/index.ts]: بدون `notification` جذري لتفادي تكرار إشعارات الويب. */
+function buildFcmV1NotificationMessageCron(
+  token: string,
+  title: string,
+  body: string,
+  dataPayload: Record<string, string>,
+  soundBase: string | null,
+  webNotificationTag: string,
+): Record<string, unknown> {
+  const platformSounds = fcmPlatformSoundPayloadsCron(soundBase);
+  const androidExtra =
+    (platformSounds.android?.notification as Record<string, unknown> | undefined) ?? {};
+  const apnsBlock = platformSounds.apns as {
+    headers?: Record<string, string>;
+    payload?: { aps?: Record<string, unknown> };
+  };
+  const prevAps = { ...(apnsBlock.payload?.aps ?? {}) };
+  const tag = webNotificationTag.slice(0, 64);
+
+  const msg: Record<string, unknown> = {
+    token,
+    android: {
+      priority: "high",
+      notification: {
+        title,
+        body,
+        ...androidExtra,
+      },
+    },
+    apns: {
+      headers: apnsBlock.headers,
+      payload: {
+        aps: {
+          ...prevAps,
+          alert: { title, body },
+        },
+      },
+    },
+    webpush: {
+      headers: { Urgency: "high" },
+      notification: { title, body, tag },
+    },
+  };
+  if (Object.keys(dataPayload).length > 0) {
+    msg.data = dataPayload;
+  }
+  return msg;
+}
+
 async function sendFcm({
   accessToken,
   fcmUrl,
@@ -403,7 +455,6 @@ async function sendFcm({
 }) {
   if (!token) return;
   const soundBase = soundBaseForNotificationTypeCron(notificationType);
-  const platformSounds = fcmPlatformSoundPayloadsCron(soundBase);
   const dataPayload: Record<string, string> = {};
   if (notificationType && notificationType.trim().length > 0) {
     dataPayload.notificationType = notificationType.trim();
@@ -411,6 +462,18 @@ async function sendFcm({
   if (soundBase) {
     dataPayload.pushSoundBase = soundBase;
   }
+  const webTag = `point-cron-${crypto.randomUUID()}`;
+  dataPayload.title = title;
+  dataPayload.body = body;
+  dataPayload.requestId = webTag;
+  const message = buildFcmV1NotificationMessageCron(
+    token,
+    title,
+    body,
+    dataPayload,
+    soundBase,
+    webTag,
+  );
   const res = await fetch(fcmUrl, {
     method: "POST",
     headers: {
@@ -418,12 +481,7 @@ async function sendFcm({
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      message: {
-        token,
-        notification: { title, body },
-        ...platformSounds,
-        ...(Object.keys(dataPayload).length > 0 ? { data: dataPayload } : {}),
-      },
+      message,
     }),
   }).catch((err) => {
     console.error("sendFcm network error", String(err));
@@ -1081,7 +1139,6 @@ async function handlePublishReminders({
   projectId: string;
 }) {
   const employees = await listDocuments(accessToken, "employees", firestoreBase);
-  const clients = await listDocuments(accessToken, "clients", firestoreBase);
 
   const byEmpId = new Map<string, { email: string | null; fcmToken: string | null; role: string | null; department: string | null }>();
   for (const e of employees) {
@@ -1096,12 +1153,6 @@ async function handlePublishReminders({
   const publishDept = [...byEmpId.entries()]
     .filter(([, v]) => v.department === "cat6" || v.role === "admin" || v.role === "supervisor")
     .map(([id]) => id);
-
-  const byClientId = new Map<string, { name: string; }>();
-  for (const c of clients) {
-    const id = c.name.split("/").pop() ?? "";
-    byClientId.set(id, { name: getStringField(c.fields, "name") ?? id });
-  }
 
   const nowIso = now.toISOString();
   const in1hIso = new Date(now.getTime() + 60 * 60 * 1000).toISOString();
@@ -1142,60 +1193,6 @@ async function handlePublishReminders({
       body: title,
       notificationType: "publish_post_one_hour",
     });
-  }
-
-  // لا منشورات غداً لكل عميل
-  const tomorrowStart = new Date(now);
-  tomorrowStart.setDate(tomorrowStart.getDate() + 1);
-  tomorrowStart.setHours(0, 0, 0, 0);
-  const tomorrowEnd = new Date(tomorrowStart.getTime() + 24 * 60 * 60 * 1000);
-
-  const tomorrowStartIso = tomorrowStart.toISOString();
-  const tomorrowEndIso = tomorrowEnd.toISOString();
-  const tomorrowDocs = await runQuery({
-    accessToken,
-    projectId,
-    structuredQuery: {
-      from: [{ collectionId: "contents" }],
-      where: {
-        compositeFilter: {
-          op: "AND",
-          filters: [
-            { fieldFilter: { field: { fieldPath: "publishDate" }, op: "GREATER_THAN_OR_EQUAL", value: { stringValue: tomorrowStartIso } } },
-            { fieldFilter: { field: { fieldPath: "publishDate" }, op: "LESS_THAN", value: { stringValue: tomorrowEndIso } } },
-          ],
-        },
-      },
-      limit: 500,
-    },
-  });
-  const clientsWithTomorrow = new Set<string>();
-  for (const doc of tomorrowDocs) {
-    const f = doc.fields as any;
-    const clientId = (f?.clientId?.stringValue as string) ?? "";
-    if (clientId) clientsWithTomorrow.add(clientId);
-  }
-
-  const allClientIds = new Set<string>();
-  for (const c of clients) allClientIds.add(c.name.split("/").pop() ?? "");
-
-  const clientsWithoutTomorrow = [...allClientIds].filter((id) => id && !clientsWithTomorrow.has(id));
-  for (const clientId of clientsWithoutTomorrow) {
-    const clientName = byClientId.get(clientId)?.name ?? clientId;
-    const msgTitle = "تنبيه: لا توجد منشورات مجدولة ليوم غد";
-    const msgBody = `حساب العميل: ${clientName}`;
-    for (const empId of publishDept) {
-      const emp = byEmpId.get(empId);
-      await sendEmailIfPolicyAllows("publish_no_posts_tomorrow", emp?.email ?? null, msgTitle, msgBody);
-      await sendFcm({
-        accessToken,
-        fcmUrl,
-        token: emp?.fcmToken ?? null,
-        title: msgTitle,
-        body: msgBody,
-        notificationType: "publish_no_posts_tomorrow",
-      });
-    }
   }
 }
 

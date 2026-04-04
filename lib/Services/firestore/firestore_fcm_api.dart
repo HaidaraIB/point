@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:developer';
+import 'package:point/Utils/app_log.dart';
 import 'dart:math' show Random;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -187,16 +187,16 @@ class FirestoreFcmApi {
       if (res.status == 200 && data is Map && data['ok'] == true) {
         return true;
       }
-      log('claim-fcm-token non-ok: status=${res.status} data=$data');
+      appLog('claim-fcm-token non-ok: status=${res.status} data=$data');
       return false;
     } on FunctionException catch (e) {
-      log(
+      appLog(
         'claim-fcm-token FunctionException: status=${e.status} details=${e.details}',
       );
       return false;
     } catch (e, st) {
-      log('claim-fcm-token error: $e');
-      log('$st');
+      appLog('claim-fcm-token error: $e');
+      appLog('$st');
       return false;
     }
   }
@@ -305,8 +305,8 @@ class FirestoreFcmApi {
         if (extra != null) 'extra': extra,
       });
     } catch (e, s) {
-      log('⚠️ logClientDiagnosticError failed: $e');
-      log('StackTrace: $s');
+      appLog('⚠️ logClientDiagnosticError failed: $e');
+      appLog('StackTrace: $s');
     }
   }
 
@@ -332,7 +332,7 @@ class FirestoreFcmApi {
       throw StateError('FirebaseAuth session required to send FCM.');
     }
 
-    log(
+    appLog(
       '➡️ FCM invoke start. target=$targetLabel title="$title" bodyLen=${body.length}',
     );
 
@@ -357,12 +357,12 @@ class FirestoreFcmApi {
         },
       );
 
-      log(
+      appLog(
         '✅ FCM invoke success. target=$targetLabel status=${res.status} data=${res.data}',
       );
     } on FunctionException catch (e) {
       final ex = _fcmSendExceptionFromFunctionException(e);
-      log(
+      appLog(
         '❌ FCM invoke failed. target=$targetLabel status=${ex.status} errorCode=${ex.errorCode} details=${ex.details}',
       );
       throw ex;
@@ -402,7 +402,7 @@ class FirestoreFcmApi {
               .get();
 
       if (!doc.exists) {
-        log("⚠️ Employee not found: $userId");
+        appLog("⚠️ Employee not found: $userId");
         return;
       }
 
@@ -436,7 +436,7 @@ class FirestoreFcmApi {
         final key = _emailDedupeKey(email);
         if (!batchSeenEmails.add(key)) {
           sendThisEmail = false;
-          log(
+          appLog(
             "↩️ Duplicate batch email skipped ($recipientName · $trimmedUserId)",
           );
         }
@@ -462,7 +462,7 @@ class FirestoreFcmApi {
         );
       } else if (effectiveSendEmail &&
           (email == null || email.isEmpty)) {
-        log(
+        appLog(
           "⚠️ Email missing for $recipientRole $recipientName — skipping email notification",
         );
       }
@@ -471,7 +471,7 @@ class FirestoreFcmApi {
       if (!sendPush) return;
 
       if (tokens.isEmpty) {
-        log("⚠️ fcmToken missing for $recipientRole $recipientName — push not sent");
+        appLog("⚠️ fcmToken missing for $recipientRole $recipientName — push not sent");
         return;
       }
 
@@ -479,7 +479,7 @@ class FirestoreFcmApi {
         final cleanedToken = token.trim();
         if (cleanedToken.isEmpty) continue;
         if (batchSeenTokens != null && !batchSeenTokens.add(cleanedToken)) {
-          log(
+          appLog(
             "↩️ Duplicate batch token skipped for $recipientRole $recipientName (${_maskFcmToken(cleanedToken)})",
           );
           continue;
@@ -529,35 +529,35 @@ class FirestoreFcmApi {
               employeeId: trimmedUserId,
               token: cleanedToken,
             );
-            log("🧹 Removed invalid employee token for $recipientName");
+            appLog("🧹 Removed invalid employee token for $recipientName");
             continue;
           }
           rethrow;
         }
       }
-      log("✅ FCM Response: $recipientName");
+      appLog("✅ FCM Response: $recipientName");
     } on FcmSendException catch (e) {
       switch (e.errorCode) {
         case 'ERR_METHOD_NOT_ALLOWED':
-          log("❌ FCM Error: ${AppLocaleKeys.errorsMethodNotAllowed}");
+          appLog("❌ FCM Error: ${AppLocaleKeys.errorsMethodNotAllowed}");
           break;
         case 'ERR_UNAUTHORIZED':
-          log("❌ FCM Error: ${AppLocaleKeys.errorsUnauthorized}");
+          appLog("❌ FCM Error: ${AppLocaleKeys.errorsUnauthorized}");
           break;
         case 'ERR_FORBIDDEN':
-          log("❌ FCM Error: ${AppLocaleKeys.errorsForbidden}");
+          appLog("❌ FCM Error: ${AppLocaleKeys.errorsForbidden}");
           break;
         case 'ERR_MISSING_TOKEN':
-          log("❌ FCM Error: ${AppLocaleKeys.errorsMissingToken}");
+          appLog("❌ FCM Error: ${AppLocaleKeys.errorsMissingToken}");
           break;
         case 'ERR_INVALID_DATA':
-          log("❌ FCM Error: ${AppLocaleKeys.errorsInvalidData}");
+          appLog("❌ FCM Error: ${AppLocaleKeys.errorsInvalidData}");
           break;
         default:
-          log("❌ FCM Error: ${AppLocaleKeys.errorsServer} | $e");
+          appLog("❌ FCM Error: ${AppLocaleKeys.errorsServer} | $e");
       }
     } catch (e) {
-      log("❌ FCM Error: $e");
+      appLog("❌ FCM Error: $e");
     }
   }
 
@@ -588,7 +588,7 @@ class FirestoreFcmApi {
               .get();
 
       if (!doc.exists) {
-        log("⚠️ Client not found: $userId");
+        appLog("⚠️ Client not found: $userId");
         return;
       }
 
@@ -620,7 +620,7 @@ class FirestoreFcmApi {
         final key = _emailDedupeKey(email);
         if (!batchSeenEmails.add(key)) {
           sendThisClientEmail = false;
-          log(
+          appLog(
             "↩️ Duplicate batch email skipped (client $recipientName · $trimmedUserId)",
           );
         }
@@ -645,7 +645,7 @@ class FirestoreFcmApi {
         );
       } else if (effectiveSendEmail &&
           (email == null || email.isEmpty)) {
-        log(
+        appLog(
           "⚠️ Email missing for client $recipientName — skipping email notification",
         );
       }
@@ -653,7 +653,7 @@ class FirestoreFcmApi {
       if (!sendPush) return;
 
       if (tokens.isEmpty) {
-        log("⚠️ fcmToken missing for client $recipientName — push not sent");
+        appLog("⚠️ fcmToken missing for client $recipientName — push not sent");
         return;
       }
 
@@ -661,7 +661,7 @@ class FirestoreFcmApi {
         final cleanedToken = token.trim();
         if (cleanedToken.isEmpty) continue;
         if (batchSeenTokens != null && !batchSeenTokens.add(cleanedToken)) {
-          log(
+          appLog(
             "↩️ Duplicate batch token skipped for client $recipientName (${_maskFcmToken(cleanedToken)})",
           );
           continue;
@@ -711,35 +711,35 @@ class FirestoreFcmApi {
               clientId: trimmedUserId,
               token: cleanedToken,
             );
-            log("🧹 Removed invalid client token for $recipientName");
+            appLog("🧹 Removed invalid client token for $recipientName");
             continue;
           }
           rethrow;
         }
       }
-      log("✅ FCM sent to client: $recipientName");
+      appLog("✅ FCM sent to client: $recipientName");
     } on FcmSendException catch (e) {
       switch (e.errorCode) {
         case 'ERR_METHOD_NOT_ALLOWED':
-          log("❌ FCM Error: ${AppLocaleKeys.errorsMethodNotAllowed}");
+          appLog("❌ FCM Error: ${AppLocaleKeys.errorsMethodNotAllowed}");
           break;
         case 'ERR_UNAUTHORIZED':
-          log("❌ FCM Error: ${AppLocaleKeys.errorsUnauthorized}");
+          appLog("❌ FCM Error: ${AppLocaleKeys.errorsUnauthorized}");
           break;
         case 'ERR_FORBIDDEN':
-          log("❌ FCM Error: ${AppLocaleKeys.errorsForbidden}");
+          appLog("❌ FCM Error: ${AppLocaleKeys.errorsForbidden}");
           break;
         case 'ERR_MISSING_TOKEN':
-          log("❌ FCM Error: ${AppLocaleKeys.errorsMissingToken}");
+          appLog("❌ FCM Error: ${AppLocaleKeys.errorsMissingToken}");
           break;
         case 'ERR_INVALID_DATA':
-          log("❌ FCM Error: ${AppLocaleKeys.errorsInvalidData}");
+          appLog("❌ FCM Error: ${AppLocaleKeys.errorsInvalidData}");
           break;
         default:
-          log("❌ FCM Error: ${AppLocaleKeys.errorsServer} | $e");
+          appLog("❌ FCM Error: ${AppLocaleKeys.errorsServer} | $e");
       }
     } catch (e) {
-      log("❌ FCM Error: $e");
+      appLog("❌ FCM Error: $e");
     }
   }
 
@@ -772,7 +772,7 @@ class FirestoreFcmApi {
           recipientType: 'topic',
           notificationType: notificationType,
         );
-        log("✅ FCM topic sent: $topic");
+        appLog("✅ FCM topic sent: $topic");
       }
 
       if (sendEmail) {
@@ -809,9 +809,9 @@ class FirestoreFcmApi {
         fcmErrorMessage: e.fcmErrorMessage,
         details: e.details,
       );
-      log("❌ FCM Error: $e");
+      appLog("❌ FCM Error: $e");
     } catch (e) {
-      log("❌ FCM Error: $e");
+      appLog("❌ FCM Error: $e");
     }
   }
 
@@ -856,7 +856,7 @@ class FirestoreFcmApi {
       }
 
       if (skippedEmployees > 0 || skippedClients > 0) {
-        log(
+        appLog(
           "⚠️ Topic $topic: skipped email for $skippedEmployees employee(s), $skippedClients client(s) with no email",
         );
       }
@@ -865,7 +865,7 @@ class FirestoreFcmApi {
       for (final email in emails) {
         final key = _emailDedupeKey(email);
         if (!seenEmailKeys.add(key)) {
-          log("↩️ Duplicate topic email skipped (same address listed twice)");
+          appLog("↩️ Duplicate topic email skipped (same address listed twice)");
           continue;
         }
         final details = <String, String>{
@@ -886,7 +886,7 @@ class FirestoreFcmApi {
         );
       }
     } catch (e) {
-      log("❌ Email for topic error: $e");
+      appLog("❌ Email for topic error: $e");
     }
   }
 
@@ -903,7 +903,7 @@ class FirestoreFcmApi {
               .get();
       return snap.docs.map((d) => d.id).where((id) => id.isNotEmpty).toList();
     } catch (e) {
-      log("❌ getEmployeeIdsByRole: $e");
+      appLog("❌ getEmployeeIdsByRole: $e");
       return [];
     }
   }
@@ -923,7 +923,7 @@ class FirestoreFcmApi {
               .get();
       return snap.docs.map((d) => d.id).where((id) => id.isNotEmpty).toList();
     } catch (e) {
-      log("❌ getEmployeeIdsByDepartment: $e");
+      appLog("❌ getEmployeeIdsByDepartment: $e");
       return [];
     }
   }

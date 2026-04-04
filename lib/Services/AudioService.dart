@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 
+import 'package:point/Utils/app_log.dart';
 import 'ChatAudioFocus.dart';
 import 'audio_tab_visibility.dart';
 
@@ -96,7 +97,7 @@ class AudioService {
       if (!kIsWeb) _audioUnlocked = true;
     } catch (e, st) {
       if (kDebugMode) {
-        debugPrint('AudioService.initialize failed: $e\n$st');
+        appDebugPrint('AudioService.initialize failed: $e\n$st');
       }
       // يُعاد المحاولة عند unlock أو عند أول تشغيل.
     }
@@ -112,7 +113,7 @@ class AudioService {
     } catch (e) {
       _unlockAttemptFinished = false;
       if (kDebugMode) {
-        debugPrint('AudioService: failed to load source ($e)');
+        appDebugPrint('AudioService: failed to load source ($e)');
       }
       return;
     }
@@ -126,7 +127,7 @@ class AudioService {
       _audioUnlocked = true;
     } catch (e, st) {
       if (kDebugMode) {
-        debugPrint('AudioService.unlockAudio gesture play failed: $e\n$st');
+        appDebugPrint('AudioService.unlockAudio gesture play failed: $e\n$st');
       }
       // Allow a later gesture to retry unlocking.
       _unlockAttemptFinished = false;
@@ -158,7 +159,7 @@ class AudioService {
       await _player.resume();
     } catch (e, st) {
       if (kDebugMode) {
-        debugPrint('AudioService.playNotificationSound failed: $e\n$st');
+        appDebugPrint('AudioService.playNotificationSound failed: $e\n$st');
       }
     }
   }

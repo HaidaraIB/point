@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:developer';
+import 'package:point/Utils/app_log.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -315,7 +315,7 @@ class _ChatScreenState extends State<ChatScreen> {
           if (!mounted || _chatsSubscription == null) return;
           unawaited(_applySnapshotAndEnrich(gen, built));
         }, onError: (Object e, StackTrace st) {
-          log('⚠️ ChatScreen _listenChats: $e');
+          appLog('⚠️ ChatScreen _listenChats: $e');
           if (!mounted || _chatsSubscription == null) return;
           setState(() {
             _loadingChats = false;
@@ -996,7 +996,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                         );
 
                                         _otherUserId = otherId;
-                                        log(_otherUserId.toString());
+                                        appLog(_otherUserId.toString());
                                         final other = _employees.firstWhere(
                                           (e) => e['id'] == otherId,
                                           orElse: () => {},
@@ -1046,7 +1046,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                                     descending: true,
                                                   )
                                                   .snapshots();
-                                          log(_otherUserId.toString());
+                                          appLog(_otherUserId.toString());
 
                                           await _markMessagesAsRead(ch['id']);
                                           if (!isGroup) {

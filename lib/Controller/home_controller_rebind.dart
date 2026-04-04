@@ -102,8 +102,8 @@ Future<void> homeRebindClientsAndTasksStreamsAsync(
     }
     c.update();
   } catch (e, s) {
-    log('_rebindClientsAndTasksStreamsAsync: $e');
-    log('$s');
+    appLog('_rebindClientsAndTasksStreamsAsync: $e');
+    appLog('$s');
     if (gen != c._clientsTasksRebindGeneration) return;
     c.clients.bindStream(c._service.getClientsStreamForCurrentAuthEmail());
     c.tasks.bindStream(Stream<List<TaskModel>>.value([]));

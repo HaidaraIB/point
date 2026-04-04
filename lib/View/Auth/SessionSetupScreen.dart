@@ -1,4 +1,4 @@
-import 'dart:developer';
+import 'package:point/Utils/app_log.dart';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -82,7 +82,7 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
 
     final email = (v.email ?? '').trim();
     if (email.isEmpty) {
-      log('SessionSetup: missing employee email');
+      appLog('SessionSetup: missing employee email');
       await _abortSetup(hc);
       return;
     }
@@ -91,7 +91,7 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
       await FunHelper.saveLoginData(email);
     } catch (e, st) {
       final code = 'SESSION_SAVE_LOGIN_DATA_FAILED';
-      log(
+      appLog(
         'SessionSetup critical step failed while saving login data: '
         'type=${e.runtimeType}, message=$e, code=$code, platform=${defaultTargetPlatform.name}',
         stackTrace: st,
@@ -124,7 +124,7 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
       await FirebaseAuth.instance.currentUser?.getIdToken(true);
       await FirestoreServices.syncAuthRoleForEmployee(v);
     } catch (e, st) {
-      log('SessionSetup: auth sync before FCM: $e', stackTrace: st);
+      appLog('SessionSetup: auth sync before FCM: $e', stackTrace: st);
     }
 
     try {
@@ -132,7 +132,7 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
       await _applyTopicSubscriptions(v.role);
     } catch (e, st) {
       final code = _compactErrorCode(e);
-      log(
+      appLog(
         'SessionSetup non-critical push setup failed: '
         'type=${e.runtimeType}, message=$e, code=$code, platform=${defaultTargetPlatform.name}',
         stackTrace: st,

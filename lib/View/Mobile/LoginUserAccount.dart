@@ -1,4 +1,4 @@
-import 'dart:developer';
+import 'package:point/Utils/app_log.dart';
 import 'dart:math' show min;
 
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -92,7 +92,7 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
         )
         .then((v) async {
       if (v != null) {
-        log("✅ تم تسجيل دخول العميل: ${v.email}");
+        appLog("✅ تم تسجيل دخول العميل: ${v.email}");
         if (v.status == 'active') {
           await FunHelper.saveLoginData(
             emailController.text.trim(),
@@ -118,12 +118,12 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
                 await fcm.subscribeToTopic('clients');
                 await fcm.subscribeToTopic('all');
               } else {
-                log(
+                appLog(
                   'Client login notification permission denied: ${settings.authorizationStatus}',
                 );
               }
             } catch (e) {
-              log('Client FCM setup failed: $e');
+              appLog('Client FCM setup failed: $e');
             }
           }
         } else {

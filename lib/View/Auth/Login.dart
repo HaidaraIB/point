@@ -1,4 +1,4 @@
-import 'dart:developer';
+import 'package:point/Utils/app_log.dart';
 import 'dart:math' show min;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -184,8 +184,8 @@ Widget _buildDesktopLayout() {
                                 controller.pass.text.trim(),
                               );
                           if (v != null) {
-                            log("✅ تم تسجيل دخول الموظف: ${v.email}");
-                            log(v.status.toString());
+                            appLog("✅ تم تسجيل دخول الموظف: ${v.email}");
+                            appLog(v.status.toString());
                             if (v.status == 'active') {
                               // الجلسة مفعّلة في loginClient؛ باقي الإعداد في SessionSetupScreen.
                               Get.offAllNamed('/sessionSetup');
@@ -209,7 +209,7 @@ Widget _buildDesktopLayout() {
                           }
                         } catch (e, st) {
                           final code = _extractDiagnosticCode(e);
-                          log(
+                          appLog(
                             'Employee login failed: type=${e.runtimeType}, message=$e',
                             stackTrace: st,
                           );

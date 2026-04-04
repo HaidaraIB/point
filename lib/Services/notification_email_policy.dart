@@ -43,6 +43,11 @@ class NotificationEmailPolicy {
     'client_pending_over_24h',
     'client_content_updated',
 
+    // محتوى — إضافة / تقديم جديد (دفع + صندوق التطبيق فقط، بدون بريد)
+    'manager_content_submitted_by_client',
+    'client_content_pending_approval',
+    'publish_content_added',
+
     // نشر — تنبيهات تشغيلية / تذكيرات
     'publish_post_one_hour',
     'publish_post_not_confirmed_today',

@@ -1,4 +1,4 @@
-import 'dart:developer';
+import 'package:point/Utils/app_log.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -23,7 +23,7 @@ Future<String?> attemptSilentLogin() async {
   final employee = await homeController.service.getCurrentEmployeeByAuth();
 
   if (employee != null) {
-    log("✅ تم تسجيل دخول الموظف: ${employee.email}");
+    appLog("✅ تم تسجيل دخول الموظف: ${employee.email}");
     if (employee.status == 'active') {
       homeController.applyEmployeeSessionAfterAuthRestore(employee);
 
@@ -31,7 +31,7 @@ Future<String?> attemptSilentLogin() async {
         try {
           await homeController.setupFCM(employee.id);
         } catch (e) {
-          log('FCM setup: $e');
+          appLog('FCM setup: $e');
         }
       }
 
@@ -41,7 +41,7 @@ Future<String?> attemptSilentLogin() async {
           await fcm.unsubscribeFromTopic('clients');
           await fcm.subscribeToTopic('employees');
         } catch (e) {
-          log('FCM subscribe (employee): $e');
+          appLog('FCM subscribe (employee): $e');
         }
       }
 
@@ -60,19 +60,19 @@ Future<String?> attemptSilentLogin() async {
     client = await clientController.service.getCurrentClientByAuth();
   } on FirebaseException catch (e) {
     if (e.code == 'permission-denied') {
-      log('attemptSilentLogin: getCurrentClientByAuth permission-denied');
+      appLog('attemptSilentLogin: getCurrentClientByAuth permission-denied');
     } else {
-      log('attemptSilentLogin: getCurrentClientByAuth $e');
+      appLog('attemptSilentLogin: getCurrentClientByAuth $e');
     }
     client = null;
   } catch (e, s) {
-    log('attemptSilentLogin: getCurrentClientByAuth $e');
-    log('$s');
+    appLog('attemptSilentLogin: getCurrentClientByAuth $e');
+    appLog('$s');
     client = null;
   }
 
   if (client != null) {
-    log("✅ تم تسجيل دخول العميل: ${client.email}");
+    appLog("✅ تم تسجيل دخول العميل: ${client.email}");
     if (client.status == 'active') {
       clientController.currentClient.value = client;
       clientController.fetchClients();
@@ -85,7 +85,7 @@ Future<String?> attemptSilentLogin() async {
           await fcm.subscribeToTopic('clients');
           await fcm.subscribeToTopic('all');
         } catch (e) {
-          log('FCM subscribe (client): $e');
+          appLog('FCM subscribe (client): $e');
         }
       }
 

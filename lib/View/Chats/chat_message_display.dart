@@ -5,6 +5,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Services/chat_voice_cache.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// روابط داخل نص الرسالة (للرسائل النصية التقليدية).
@@ -64,56 +65,271 @@ class VoiceMessageRow extends StatefulWidget {
 
 class _VoiceMessageRowState extends State<VoiceMessageRow> {
   final AudioPlayer _player = AudioPlayer();
+  StreamSubscription<Duration>? _posSub;
+  StreamSubscription<Duration>? _durSub;
+  StreamSubscription<PlayerState>? _stateSub;
   StreamSubscription<void>? _completeSub;
+
+  Duration _position = Duration.zero;
+  Duration _duration = Duration.zero;
   bool _playing = false;
+  bool _sourceReady = false;
+  int _loadCount = 0;
+  Object? _error;
+  double? _dragFraction;
 
   @override
   void initState() {
     super.initState();
+    unawaited(_player.setReleaseMode(ReleaseMode.stop));
+    final hint = widget.durationSec;
+    if (hint != null && hint > 0) {
+      _duration = Duration(seconds: hint);
+    }
+
+    _posSub = _player.onPositionChanged.listen((d) {
+      if (!mounted || _dragFraction != null) return;
+      setState(() => _position = d);
+    });
+    _durSub = _player.onDurationChanged.listen((d) {
+      if (!mounted || d <= Duration.zero) return;
+      setState(() => _duration = d);
+    });
+    _stateSub = _player.onPlayerStateChanged.listen((s) {
+      if (!mounted) return;
+      setState(() => _playing = s == PlayerState.playing);
+    });
     _completeSub = _player.onPlayerComplete.listen((_) {
-      if (mounted) setState(() => _playing = false);
+      if (!mounted) return;
+      setState(() {
+        _playing = false;
+        _position = Duration.zero;
+        _dragFraction = null;
+      });
     });
   }
 
   @override
   void dispose() {
+    unawaited(_posSub?.cancel());
+    unawaited(_durSub?.cancel());
+    unawaited(_stateSub?.cancel());
     unawaited(_completeSub?.cancel());
     unawaited(_player.dispose());
     super.dispose();
   }
 
-  Future<void> _toggle() async {
-    if (_playing) {
-      await _player.pause();
-      if (mounted) setState(() => _playing = false);
-      return;
+  Duration get _effectiveDuration {
+    if (_duration > Duration.zero) return _duration;
+    final hint = widget.durationSec;
+    if (hint != null && hint > 0) return Duration(seconds: hint);
+    return Duration.zero;
+  }
+
+  String _fmt(Duration d) {
+    final total = d.inSeconds.clamp(0, 86400);
+    final m = total ~/ 60;
+    final s = total % 60;
+    return '$m:${s.toString().padLeft(2, '0')}';
+  }
+
+  double get _sliderValue {
+    final ms = _effectiveDuration.inMilliseconds;
+    if (ms <= 0) return 0;
+    if (_dragFraction != null) return _dragFraction!.clamp(0.0, 1.0);
+    return (_position.inMilliseconds / ms).clamp(0.0, 1.0);
+  }
+
+  Future<void> _ensureSourceLoaded({required bool trackBusy}) async {
+    if (_sourceReady) return;
+    if (trackBusy && mounted) setState(() => _loadCount++);
+    try {
+      final source = await ChatVoiceCache.sourceForUrl(widget.url);
+      if (!mounted) return;
+      await _player.setSource(source);
+      if (!mounted) return;
+      setState(() {
+        _sourceReady = true;
+        _error = null;
+      });
+    } catch (e) {
+      if (mounted) setState(() => _error = e);
+      rethrow;
+    } finally {
+      if (trackBusy && mounted) {
+        setState(() {
+          if (_loadCount > 0) _loadCount--;
+        });
+      }
     }
-    await _player.play(UrlSource(widget.url));
-    if (mounted) setState(() => _playing = true);
+  }
+
+  Future<void> _toggle() async {
+    try {
+      if (_playing) {
+        await _player.pause();
+        return;
+      }
+      if (!_sourceReady) {
+        if (mounted) setState(() => _loadCount++);
+        try {
+          final source = await ChatVoiceCache.sourceForUrl(widget.url);
+          if (!mounted) return;
+          await _player.play(source);
+          if (mounted) {
+            setState(() {
+              _sourceReady = true;
+              _error = null;
+            });
+          }
+        } catch (e) {
+          if (mounted) setState(() => _error = e);
+        } finally {
+          if (mounted) {
+            setState(() {
+              if (_loadCount > 0) _loadCount--;
+            });
+          }
+        }
+        return;
+      }
+      await _player.resume();
+    } catch (e) {
+      if (mounted) setState(() => _error = e);
+    }
+  }
+
+  Future<void> _onSeekEnd(double fraction) async {
+    final ms = _effectiveDuration.inMilliseconds;
+    if (ms <= 0) return;
+    setState(() => _dragFraction = null);
+    final target = Duration(milliseconds: (fraction * ms).round());
+    try {
+      await _ensureSourceLoaded(trackBusy: !_sourceReady);
+      if (!mounted) return;
+      await _player.seek(target);
+      setState(() => _position = target);
+    } catch (e) {
+      if (mounted) setState(() => _error = e);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final dur = widget.durationSec;
-    final label =
-        dur != null ? '${dur ~/ 60}:${(dur % 60).toString().padLeft(2, '0')}' : '…';
-    final iconColor = widget.isMe ? Colors.white : Colors.black87;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton(
-          onPressed: _toggle,
-          icon: Icon(
-            _playing ? Icons.pause_circle_filled : Icons.play_circle_fill,
-            color: iconColor,
-            size: 32,
+    final primary =
+        widget.isMe ? Colors.white : Theme.of(context).colorScheme.onSurface;
+    final secondary = widget.isMe
+        ? Colors.white.withValues(alpha: 0.72)
+        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55);
+    final track = widget.isMe
+        ? Colors.white.withValues(alpha: 0.35)
+        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.18);
+    final progress = widget.isMe
+        ? Colors.white.withValues(alpha: 0.92)
+        : Theme.of(context).colorScheme.primary;
+
+    final busy = _loadCount > 0;
+    final canScrub = _effectiveDuration.inMilliseconds > 0;
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 200, maxWidth: 268),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 44,
+                height: 44,
+                child: busy
+                    ? Center(
+                        child: SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: primary,
+                          ),
+                        ),
+                      )
+                    : IconButton(
+                        padding: EdgeInsets.zero,
+                        onPressed: _toggle,
+                        icon: Icon(
+                          _playing
+                              ? Icons.pause_rounded
+                              : Icons.play_arrow_rounded,
+                          color: primary,
+                          size: 34,
+                        ),
+                      ),
+              ),
+              Expanded(
+                child: SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: 5,
+                    thumbShape:
+                        const RoundSliderThumbShape(enabledThumbRadius: 7),
+                    overlayShape:
+                        const RoundSliderOverlayShape(overlayRadius: 16),
+                    activeTrackColor: progress,
+                    inactiveTrackColor: track,
+                    thumbColor: primary,
+                    overlayColor: primary.withValues(alpha: 0.14),
+                  ),
+                  child: Slider(
+                    value: _sliderValue.clamp(0.0, 1.0),
+                    onChanged: canScrub
+                        ? (v) => setState(() => _dragFraction = v)
+                        : null,
+                    onChangeEnd: canScrub ? _onSeekEnd : null,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ),
-        Text(
-          label,
-          style: TextStyle(fontSize: 13, color: iconColor),
-        ),
-      ],
+          Padding(
+            padding: const EdgeInsetsDirectional.only(start: 44, end: 6),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _fmt(
+                    _dragFraction != null
+                        ? Duration(
+                            milliseconds:
+                                (_dragFraction! *
+                                        _effectiveDuration.inMilliseconds)
+                                    .round(),
+                          )
+                        : _position,
+                  ),
+                  style: TextStyle(fontSize: 11.5, color: secondary),
+                ),
+                Text(
+                  _fmt(_effectiveDuration),
+                  style: TextStyle(fontSize: 11.5, color: secondary),
+                ),
+              ],
+            ),
+          ),
+          if (_error != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(
+                AppLocaleKeys.errorsServer.tr,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: widget.isMe
+                      ? Colors.orange.shade100
+                      : Theme.of(context).colorScheme.error,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

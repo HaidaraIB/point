@@ -1,4 +1,4 @@
-import 'dart:developer';
+import 'package:point/Utils/app_log.dart';
 
 import 'package:firebase_storage/firebase_storage.dart';
 
@@ -14,14 +14,14 @@ class FirebaseStorageService {
     try {
       final bucket = _storage.bucket;
       if (bucket.isEmpty) {
-        log('❌ Firebase Storage: storageBucket غير مُعرّف (تحقق من .env)');
+        appLog('❌ Firebase Storage: storageBucket غير مُعرّف (تحقق من .env)');
         return false;
       }
-      log('✅ Firebase Storage: الـ bucket = $bucket');
+      appLog('✅ Firebase Storage: الـ bucket = $bucket');
       return true;
     } catch (e, s) {
-      log('❌ Firebase Storage خطأ غير متوقع: $e');
-      log('   $s');
+      appLog('❌ Firebase Storage خطأ غير متوقع: $e');
+      appLog('   $s');
       return false;
     }
   }

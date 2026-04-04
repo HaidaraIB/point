@@ -1,4 +1,3 @@
-import 'dart:developer';
 import 'package:firebase_core/firebase_core.dart'
     show Firebase, FirebaseException;
 import 'package:flutter/foundation.dart';
@@ -16,6 +15,7 @@ import 'package:point/Services/FirebaseStorageService.dart';
 import 'package:point/Services/AutoLoginService.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/app_log.dart';
 import 'package:point/config/app_config.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -31,9 +31,9 @@ void main(List<String> args) async {
   // كائنات JS interop؛ وإلا يحدث TypeError (LegacyJavaScriptObject ليس DiagnosticsNode).
   if (kIsWeb) {
     FlutterError.onError = (FlutterErrorDetails details) {
-      debugPrint(details.exceptionAsString());
-      if (kDebugMode && details.stack != null) {
-        debugPrint(details.stack.toString());
+      appDebugPrint(details.exceptionAsString());
+      if (details.stack != null) {
+        appDebugPrint(details.stack.toString());
       }
     };
     PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
@@ -44,10 +44,8 @@ void main(List<String> args) async {
           msg.contains('permission-denied')) {
         return true;
       }
-      debugPrint('Uncaught async error: $error');
-      if (kDebugMode) {
-        debugPrint(stack.toString());
-      }
+      appDebugPrint('Uncaught async error: $error');
+      appDebugPrint(stack.toString());
       return true;
     };
   }
@@ -62,19 +60,21 @@ void main(List<String> args) async {
       'Supabase config missing. Pass --dart-define=SUPABASE_URL=... and --dart-define=SUPABASE_ANON_KEY=...',
     );
   }
-  await Supabase.initialize(url: supabaseUrl, anonKey: supabaseKey);
+  await Supabase.initialize(
+    url: supabaseUrl,
+    anonKey: supabaseKey,
+    debug: kDebugMode,
+  );
   if (Firebase.apps.isEmpty) {
     try {
       await Firebase.initializeApp(
         options: FirebaseAppOptions.currentPlatform,
       );
-      if (kDebugMode) {
-        log(
-          'Firebase: projectId=${Firebase.app().options.projectId} '
-          '(استخدم point (debug mode) أو USE_FIREBASE_TEST للاختبار؛ '
-          'USE_FIREBASE_PROD للإنتاج)',
-        );
-      }
+      appLog(
+        'Firebase: projectId=${Firebase.app().options.projectId} '
+        '(استخدم point (debug mode) أو USE_FIREBASE_TEST للاختبار؛ '
+        'USE_FIREBASE_PROD للإنتاج)',
+      );
     } on FirebaseException catch (e) {
       if (!e.code.contains('duplicate-app')) rethrow;
     }
@@ -86,7 +86,7 @@ void main(List<String> args) async {
   if (kDebugMode) {
     await FirestoreServices().ensureTestAdminUser();
     final storageOk = await FirebaseStorageService.checkConnection();
-    log(
+    appLog(
       storageOk
           ? '✅ Firebase Storage متصل'
           : '⚠️ تحقق من إعداد Firebase Storage (.env و Storage rules)',
@@ -105,7 +105,6 @@ Future<void> onUserLogin(String userId) async {
 }
 
 /// Legacy auto-login entrypoint (kept for compatibility).
-///
 /// This no longer performs navigation directly to avoid double-routing flashes.
 Future<String?> checkLogin() async {
   SharedPreferences pref = await SharedPreferences.getInstance();
@@ -133,6 +132,7 @@ class App extends StatelessWidget {
         key: navigatorKey,
 
         title: 'Point Agency',
+        enableLog: kDebugMode,
         debugShowCheckedModeBanner: false,
         initialBinding: AppBindings(),
         builder: (context, child) {

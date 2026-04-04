@@ -1,4 +1,4 @@
-import 'dart:developer';
+import 'package:point/Utils/app_log.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -29,8 +29,8 @@ class FirestoreAuthApi {
         SetOptions(merge: true),
       );
     } catch (e, s) {
-      log('⚠️ syncAuthRoleForEmployee failed: $e');
-      log('$s');
+      appLog('⚠️ syncAuthRoleForEmployee failed: $e');
+      appLog('$s');
     }
   }
 
@@ -51,8 +51,8 @@ class FirestoreAuthApi {
         SetOptions(merge: true),
       );
     } catch (e, s) {
-      log('⚠️ syncAuthRoleForClient failed: $e');
-      log('$s');
+      appLog('⚠️ syncAuthRoleForClient failed: $e');
+      appLog('$s');
     }
   }
 }

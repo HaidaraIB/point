@@ -144,6 +144,68 @@ function fcmPlatformSoundPayloads(soundBase: string | null): {
   };
 }
 
+/**
+ * لا نضع `notification` على مستوى جذر الرسالة: على الويب يؤدي ذلك غالباً إلى
+ * إشعارين لنفس الحدث (مسار FCM الافتراضي + Web Push). العرض يُضبط عبر
+ * `webpush.notification` و`android.notification` و`apns.payload.aps.alert` فقط.
+ */
+function buildFcmV1NotificationMessage(args: {
+  token?: string;
+  topic?: string;
+  title: string;
+  body: string;
+  dataPayload: Record<string, string>;
+  soundBase: string | null;
+  webNotificationTag: string;
+}): Record<string, unknown> {
+  const platformSounds = fcmPlatformSoundPayloads(args.soundBase);
+  const androidExtra =
+    (platformSounds.android?.notification as Record<string, unknown> | undefined) ?? {};
+  const apnsBlock = platformSounds.apns as {
+    headers?: Record<string, string>;
+    payload?: { aps?: Record<string, unknown> };
+  };
+  const prevAps = { ...(apnsBlock.payload?.aps ?? {}) };
+  const tag = args.webNotificationTag.slice(0, 64);
+
+  const msg: Record<string, unknown> = {
+    ...(args.token ? { token: args.token } : {}),
+    ...(args.topic ? { topic: args.topic } : {}),
+    android: {
+      priority: "high",
+      notification: {
+        title: args.title,
+        body: args.body,
+        ...androidExtra,
+      },
+    },
+    apns: {
+      headers: apnsBlock.headers,
+      payload: {
+        aps: {
+          ...prevAps,
+          alert: {
+            title: args.title,
+            body: args.body,
+          },
+        },
+      },
+    },
+    webpush: {
+      headers: { Urgency: "high" },
+      notification: {
+        title: args.title,
+        body: args.body,
+        tag,
+      },
+    },
+  };
+  if (Object.keys(args.dataPayload).length > 0) {
+    msg.data = args.dataPayload;
+  }
+  return msg;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { status: 200, headers: corsHeaders() });
   if (req.method !== "POST") return json({ errorCode: "ERR_METHOD_NOT_ALLOWED" }, 405);
@@ -282,7 +344,6 @@ Deno.serve(async (req: Request) => {
     const fcmUrl = `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`;
 
     const soundBase = soundBaseForNotificationType(notificationType);
-    const platformSounds = fcmPlatformSoundPayloads(soundBase);
     const dataPayload: Record<string, string> = {
       ...(data ?? {}),
     };
@@ -292,14 +353,20 @@ Deno.serve(async (req: Request) => {
     if (soundBase) {
       dataPayload.pushSoundBase = soundBase;
     }
+    // للويب: عرض موحّد من Service Worker + tag يمنع ازدواجية لنفس الطلب.
+    dataPayload.title = title;
+    dataPayload.body = body;
+    dataPayload.requestId = requestIdSafe;
 
-    const fcmMessage = {
+    const fcmMessage = buildFcmV1NotificationMessage({
       ...(token ? { token } : {}),
       ...(topic ? { topic } : {}),
-      notification: { title, body },
-      ...platformSounds,
-      ...(Object.keys(dataPayload).length > 0 ? { data: dataPayload } : {}),
-    };
+      title,
+      body,
+      dataPayload,
+      soundBase,
+      webNotificationTag: `point-${requestIdSafe}`,
+    });
 
     const res = await fetch(fcmUrl, {
       method: "POST",

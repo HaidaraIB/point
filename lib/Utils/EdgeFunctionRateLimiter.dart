@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:developer';
+import 'package:point/Utils/app_log.dart';
 
 /// Rate limiter لتجنّب تجاوز حدود الاستدعاء (مثل 429).
 ///
@@ -29,7 +29,7 @@ class EdgeFunctionRateLimiter {
       final wait = _nextAllowed.difference(now);
       if (wait > Duration.zero) {
         // سجلات التهدئة تساعد في debug 429.
-        log('⏳ EdgeFunctionRateLimiter waiting ${wait.inMilliseconds}ms');
+        appLog('⏳ EdgeFunctionRateLimiter waiting ${wait.inMilliseconds}ms');
         await Future<void>.delayed(wait);
       }
 

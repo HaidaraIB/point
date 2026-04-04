@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:developer';
+import 'package:point/Utils/app_log.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';

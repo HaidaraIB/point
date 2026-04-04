@@ -1,7 +1,7 @@
 library point.home_controller;
 
 import 'dart:async';
-import 'dart:developer';
+import 'package:point/Utils/app_log.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -494,7 +494,7 @@ class HomeController extends GetxController {
         StackTrace st,
       ) {
         // تسجيل خروج أو انتهاء الجلسة: قد يُرفض الاستعلام — لا نُعيد رمي الخطأ (RethrownDartError).
-        log('⚠️ notifications stream: $e');
+        appLog('⚠️ notifications stream: $e');
       }),
     );
   }
@@ -1515,7 +1515,7 @@ class HomeController extends GetxController {
       allowMultiple: true,
       withData: true,
     );
-    log('Picked files: ${result?.files.map((e) => e.name).toList()}');
+    appLog('Picked files: ${result?.files.map((e) => e.name).toList()}');
 
     if (result != null && result.files.isNotEmpty) {
       return result.files;
@@ -1530,7 +1530,7 @@ class HomeController extends GetxController {
       withData: true,
       type: FileType.image,
     );
-    log('Picked files: ${result?.files.map((e) => e.name).toList()}');
+    appLog('Picked files: ${result?.files.map((e) => e.name).toList()}');
 
     if (result != null && result.files.isNotEmpty) {
       return result.files;
@@ -1600,7 +1600,7 @@ class HomeController extends GetxController {
     } catch (e) {
       isUploading.value = false;
       Get.back();
-      log("Error uploading file: $e");
+      appLog("Error uploading file: $e");
       return null;
     } finally {
       uploadProgressTimer?.cancel();
@@ -1658,7 +1658,7 @@ class HomeController extends GetxController {
             }
           },
           onError: (e, s) {
-            log('listenToClient stream error for $empid: $e');
+            appLog('listenToClient stream error for $empid: $e');
           },
         );
     fetchContents();
@@ -1707,7 +1707,7 @@ class HomeController extends GetxController {
               totalUnreadMessages.value = 0;
               return;
             }
-            log('⚠️ totalUnread stream: $e');
+            appLog('⚠️ totalUnread stream: $e');
             totalUnreadMessages.value = 0;
           },
         );
@@ -1739,7 +1739,7 @@ class HomeController extends GetxController {
           settings.authorizationStatus == AuthorizationStatus.authorized ||
           settings.authorizationStatus == AuthorizationStatus.provisional;
       if (isAllowed) {
-        print('User granted permission');
+        appLog('User granted permission');
 
         // 2. الحصول على التوكن (على الويب قد يفشل لغياب Service Worker / إعدادات المشروع)
         String? token;
@@ -1754,7 +1754,7 @@ class HomeController extends GetxController {
             employeeId: currentEmployee.value!.id ?? userId,
             token: token,
           );
-          print("FCM Registration Token: ${kIsWeb ? 'Web' : ''} $token");
+          appLog("FCM Registration Token: ${kIsWeb ? 'Web' : ''} $token");
         }
 
         _fcmTokenRefreshSub?.cancel();
@@ -1768,18 +1768,18 @@ class HomeController extends GetxController {
             employeeId: employeeId.toString(),
             token: refreshedToken,
           );
-          log('FCM token refreshed for employee $employeeId');
+          appLog('FCM token refreshed for employee $employeeId');
         });
       } else {
-        print('User declined or has not yet granted permission');
+        appLog('User declined or has not yet granted permission');
         throw StateError(
           'NOTIFICATION_PERMISSION_${settings.authorizationStatus.name.toUpperCase()}',
         );
       }
     } catch (e) {
       // على الويب: token-subscribe-failed شائع لغياب OAuth/Service Worker
-      log('setupFCM: $e');
-      if (kIsWeb) debugPrint('FCM on web may need service worker / OAuth: $e');
+      appLog('setupFCM: $e');
+      if (kIsWeb) appDebugPrint('FCM on web may need service worker / OAuth: $e');
     } finally {
       _fcmSetupInProgress = false;
     }
@@ -1939,8 +1939,8 @@ class HomeController extends GetxController {
       applyEmployeeSessionAfterAuthRestore(employee);
       unawaited(setupFCM(employee.id));
     } catch (e, s) {
-      log('restoreEmployeeSessionIfNeeded error: $e');
-      log('StackTrace: $s');
+      appLog('restoreEmployeeSessionIfNeeded error: $e');
+      appLog('StackTrace: $s');
     }
   }
 

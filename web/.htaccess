@@ -4,7 +4,7 @@
   <Files "index.html">
     Header set Cache-Control "max-age=0, no-cache, must-revalidate"
   </Files>
-  <FilesMatch "^(flutter_service_worker|flutter_bootstrap)\.js$">
+  <FilesMatch "^(flutter_service_worker|flutter_bootstrap|main\.dart)\.js$">
     Header set Cache-Control "max-age=0, no-cache, must-revalidate"
   </FilesMatch>
 </IfModule>

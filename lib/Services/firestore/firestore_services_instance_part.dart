@@ -87,10 +87,10 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
         await docRef.update({'authUid': uid, 'authStatus': 'active'});
         return;
       } catch (e, s) {
-        log(
+        appLog(
           '⚠️ _updateAuthFieldsWithRetry attempt ${attempt + 1}/$maxAttempts failed: $e',
         );
-        log('StackTrace: $s');
+        appLog('StackTrace: $s');
         if (attempt == maxAttempts - 1) rethrow;
         await Future<void>.delayed(Duration(milliseconds: 250 * (attempt + 1)));
       }
@@ -153,7 +153,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
     final normalizedEmployee = _normalizeEmployeeDepartmentByRole(employee);
     final email = normalizedEmployee.email?.trim().toLowerCase();
     if (email == null || email.isEmpty) {
-      log('❌ createEmployeeWithAuth: email is required');
+      appLog('❌ createEmployeeWithAuth: email is required');
       return false;
     }
     try {
@@ -167,11 +167,11 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
                 )
                 .toJson(),
           );
-      log("✅ createEmployeeWithAuth: ${normalizedEmployee.name}");
+      appLog("✅ createEmployeeWithAuth: ${normalizedEmployee.name}");
       return true;
     } catch (e, s) {
-      log("❌ createEmployeeWithAuth error: $e");
-      log("StackTrace: $s");
+      appLog("❌ createEmployeeWithAuth error: $e");
+      appLog("StackTrace: $s");
       return false;
     }
   }
@@ -203,16 +203,16 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
         try {
           await current.updatePassword(newPassword.trim());
         } on FirebaseAuthException catch (e) {
-          log(
+          appLog(
             "⚠️ updateEmployeeWithAuth password update skipped: code=${e.code}, message=${e.message}",
           );
         }
       }
-      log("✅ updateEmployeeWithAuth (table-only): ${merged.id}");
+      appLog("✅ updateEmployeeWithAuth (table-only): ${merged.id}");
       return true;
     } catch (e, s) {
-      log("❌ updateEmployeeWithAuth error: $e");
-      log("StackTrace: $s");
+      appLog("❌ updateEmployeeWithAuth error: $e");
+      appLog("StackTrace: $s");
       return false;
     }
   }
@@ -233,11 +233,11 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
         payload['image'] = img;
       }
       await _employeeCollection.doc(employeeId).update(payload);
-      log("✅ updateEmployeeProfileFields: $employeeId");
+      appLog("✅ updateEmployeeProfileFields: $employeeId");
       return true;
     } catch (e, s) {
-      log("❌ updateEmployeeProfileFields error: $e");
-      log("StackTrace: $s");
+      appLog("❌ updateEmployeeProfileFields error: $e");
+      appLog("StackTrace: $s");
       return false;
     }
   }
@@ -249,11 +249,11 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
       await _employeeCollection
           .doc(normalizedEmployee.id)
           .set(normalizedEmployee.toJson());
-      log("✅ تم إضافة الموظف بنجاح: ${normalizedEmployee.name}");
+      appLog("✅ تم إضافة الموظف بنجاح: ${normalizedEmployee.name}");
       return true;
     } catch (e, s) {
-      log("❌ خطأ أثناء إضافة الموظف: $e");
-      log("StackTrace: $s");
+      appLog("❌ خطأ أثناء إضافة الموظف: $e");
+      appLog("StackTrace: $s");
       return false;
     }
   }
@@ -268,11 +268,11 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
       await _employeeCollection
           .doc(normalizedEmployee.id)
           .update(normalizedEmployee.toJson());
-      log("✅ تم تحديث الموظف: ${normalizedEmployee.id}");
+      appLog("✅ تم تحديث الموظف: ${normalizedEmployee.id}");
       return true;
     } catch (e, s) {
-      log("❌ خطأ أثناء تحديث الموظف: $e");
-      log("StackTrace: $s");
+      appLog("❌ خطأ أثناء تحديث الموظف: $e");
+      appLog("StackTrace: $s");
       return false;
     }
   }
@@ -281,11 +281,11 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
   Future<bool> deleteEmployee(String id) async {
     try {
       await _employeeCollection.doc(id).delete();
-      log("✅ تم حذف الموظف: $id");
+      appLog("✅ تم حذف الموظف: $id");
       return true;
     } catch (e, s) {
-      log("❌ خطأ أثناء حذف الموظف: $e");
-      log("StackTrace: $s");
+      appLog("❌ خطأ أثناء حذف الموظف: $e");
+      appLog("StackTrace: $s");
       return false;
     }
   }
@@ -295,14 +295,14 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
     try {
       final doc = await _employeeCollection.doc(id).get();
       if (!doc.exists) {
-        log("⚠️ لا يوجد موظف بهذا الـ ID: $id");
+        appLog("⚠️ لا يوجد موظف بهذا الـ ID: $id");
         return null;
       }
-      log("✅ تم جلب بيانات الموظف: $id");
+      appLog("✅ تم جلب بيانات الموظف: $id");
       return EmployeeModel.fromJson(doc.data() as Map<String, dynamic>);
     } catch (e, s) {
-      log("❌ خطأ أثناء جلب الموظف: $e");
-      log("StackTrace: $s");
+      appLog("❌ خطأ أثناء جلب الموظف: $e");
+      appLog("StackTrace: $s");
       return null;
     }
   }
@@ -318,7 +318,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
               .get();
 
       if (query.docs.isEmpty) {
-        log("❌ loginEmployee: no employee record for $normalizedEmail");
+        appLog("❌ loginEmployee: no employee record for $normalizedEmail");
         return null;
       }
 
@@ -347,7 +347,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
       if (employee.authUid != null &&
           employee.authUid!.isNotEmpty &&
           employee.authUid != uid) {
-        log("❌ loginEmployee: authUid mismatch for ${employee.id}");
+        appLog("❌ loginEmployee: authUid mismatch for ${employee.id}");
         throw StateError('AUTH_UID_MISMATCH');
       }
 
@@ -356,13 +356,13 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
       await FirestoreAuthApi.syncAuthRoleForEmployee(employee);
       return employee;
     } on FirebaseAuthException catch (e, s) {
-      log(
+      appLog(
         "❌ loginEmployee FirebaseAuthException code=${e.code}, message=${e.message}",
       );
-      log("StackTrace: $s");
+      appLog("StackTrace: $s");
       throw StateError('FIREBASE_AUTH_${e.code.toUpperCase()}');
     } catch (e, s) {
-      log("❌ loginEmployee error: $e\n$s");
+      appLog("❌ loginEmployee error: $e\n$s");
       rethrow;
     }
   }
@@ -380,7 +380,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
       return;
     }
     if (_testAdminDevPassword.isEmpty) {
-      log('⚠️ TEST_ADMIN_PASSWORD غير معرّف — تخطي إنشاء الحساب الاختباري');
+      appLog('⚠️ TEST_ADMIN_PASSWORD غير معرّف — تخطي إنشاء الحساب الاختباري');
       return;
     }
     try {
@@ -390,7 +390,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
               .limit(1)
               .get();
       if (existing.docs.isNotEmpty) {
-        log("✅ حساب $_kTestAdminDevEmail موجود مسبقاً");
+        appLog("✅ حساب $_kTestAdminDevEmail موجود مسبقاً");
         return;
       }
       final employee = EmployeeModel(
@@ -409,7 +409,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
         image: null,
       );
       await _employeeCollection.doc(employee.id).set(employee.toJson());
-      log(
+      appLog(
         "✅ تم إضافة الحساب الاختباري $_kTestAdminDevEmail إلى قاعدة البيانات (admin)",
       );
 
@@ -419,19 +419,19 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
           email: _kTestAdminDevEmail,
           password: _testAdminDevPassword,
         );
-        log('✅ FirebaseAuth session/creation successful for test admin');
+        appLog('✅ FirebaseAuth session/creation successful for test admin');
       } on FirebaseAuthException catch (e, s) {
-        log(
+        appLog(
           '❌ ensureTestAdminUser FirebaseAuthException code=${e.code}, message=${e.message}',
         );
-        log('StackTrace: $s');
+        appLog('StackTrace: $s');
       } catch (e, s) {
-        log('❌ ensureTestAdminUser unexpected error: $e');
-        log('StackTrace: $s');
+        appLog('❌ ensureTestAdminUser unexpected error: $e');
+        appLog('StackTrace: $s');
       }
       return;
     } catch (e) {
-      log("❌ ensureTestAdminUser: $e");
+      appLog("❌ ensureTestAdminUser: $e");
       return;
     }
   }
@@ -450,8 +450,8 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
         'employees',
       );
     } catch (e, s) {
-      log("❌ خطأ أثناء جلب كل الموظفين: $e");
-      log("StackTrace: $s");
+      appLog("❌ خطأ أثناء جلب كل الموظفين: $e");
+      appLog("StackTrace: $s");
       return const Stream.empty();
     }
   }
@@ -462,7 +462,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
   }) async {
     final email = client.email?.trim().toLowerCase();
     if (email == null || email.isEmpty) {
-      log('❌ createClientWithAuth: email is required');
+      appLog('❌ createClientWithAuth: email is required');
       return false;
     }
     try {
@@ -473,11 +473,11 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
                 .copyWith(authStatus: client.authStatus ?? 'pendingActivation')
                 .toJson(),
           );
-      log("✅ createClientWithAuth: ${client.name}");
+      appLog("✅ createClientWithAuth: ${client.name}");
       return true;
     } catch (e, s) {
-      log("❌ createClientWithAuth error: $e");
-      log("StackTrace: $s");
+      appLog("❌ createClientWithAuth error: $e");
+      appLog("StackTrace: $s");
       return false;
     }
   }
@@ -507,16 +507,16 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
         try {
           await current.updatePassword(newPassword.trim());
         } on FirebaseAuthException catch (e) {
-          log(
+          appLog(
             "⚠️ updateClientWithAuth password update skipped: code=${e.code}, message=${e.message}",
           );
         }
       }
-      log("✅ updateClientWithAuth (table-only): ${merged.id}");
+      appLog("✅ updateClientWithAuth (table-only): ${merged.id}");
       return true;
     } catch (e, s) {
-      log("❌ updateClientWithAuth error: $e");
-      log("StackTrace: $s");
+      appLog("❌ updateClientWithAuth error: $e");
+      appLog("StackTrace: $s");
       return false;
     }
   }
@@ -535,7 +535,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
               .get();
 
       if (query.docs.isEmpty) {
-        log("❌ loginClient: no client record for $normalizedEmail");
+        appLog("❌ loginClient: no client record for $normalizedEmail");
         return null;
       }
 
@@ -564,7 +564,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
       if (client.authUid != null &&
           client.authUid!.isNotEmpty &&
           client.authUid != uid) {
-        log("❌ loginClient: authUid mismatch for ${client.id}");
+        appLog("❌ loginClient: authUid mismatch for ${client.id}");
         return null;
       }
 
@@ -573,13 +573,13 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
       await FirestoreAuthApi.syncAuthRoleForClient(client);
       return client;
     } on FirebaseAuthException catch (e, s) {
-      log(
+      appLog(
         "❌ loginClient FirebaseAuthException code=${e.code}, message=${e.message}",
       );
-      log("StackTrace: $s");
+      appLog("StackTrace: $s");
       return null;
     } catch (e, s) {
-      log("❌ loginClient error: $e\n$s");
+      appLog("❌ loginClient error: $e\n$s");
       return null;
     }
   }
@@ -612,7 +612,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
     try {
       await _removeCurrentDeviceFcmToken();
     } catch (e) {
-      log("⚠️ signOut: FCM cleanup failed (ignored): $e");
+      appLog("⚠️ signOut: FCM cleanup failed (ignored): $e");
     }
     await FirebaseAuth.instance.signOut();
   }
@@ -703,7 +703,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
 
       await _removeCurrentDeviceFcmTokenLegacyQuery(user.uid, cleanedToken);
     } catch (e) {
-      log("⚠️ remove current device token before signOut failed: $e");
+      appLog("⚠️ remove current device token before signOut failed: $e");
     }
   }
 
@@ -783,7 +783,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
       await _clientCollection.doc(client.id).set(client.toJson());
       return true;
     } catch (e, s) {
-      log("❌ addClient error: $e\n$s");
+      appLog("❌ addClient error: $e\n$s");
       return false;
     }
   }
@@ -794,7 +794,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
       await _clientCollection.doc(client.id).update(client.toJson());
       return true;
     } catch (e, s) {
-      log("❌ updateClient error: $e\n$s");
+      appLog("❌ updateClient error: $e\n$s");
       return false;
     }
   }
@@ -804,7 +804,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
       await _clientCollection.doc(id).delete();
       return true;
     } catch (e, s) {
-      log("❌ deleteClient error: $e\n$s");
+      appLog("❌ deleteClient error: $e\n$s");
       return false;
     }
   }
@@ -865,7 +865,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
       await docRef.set(content.copyWith(id: docRef.id).toJson());
       return true;
     } catch (e) {
-      log("❌ Error addContent: $e");
+      appLog("❌ Error addContent: $e");
       return false;
     }
   }
@@ -876,7 +876,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
       await _db.doc(content.id).update(content.toJson());
       return true;
     } catch (e) {
-      log("❌ Error updateContent: $e");
+      appLog("❌ Error updateContent: $e");
       return false;
     }
   }
@@ -887,7 +887,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
       await _db.doc(contentId).update({'promotion': promotion});
       return true;
     } catch (e) {
-      log("❌ Error updateContentPromotionField: $e");
+      appLog("❌ Error updateContentPromotionField: $e");
       return false;
     }
   }
@@ -897,7 +897,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
       await _db.doc(id).delete();
       return true;
     } catch (e) {
-      log("❌ Error deleteContent: $e");
+      appLog("❌ Error deleteContent: $e");
       return false;
     }
   }
@@ -949,7 +949,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
       await docRef.set(task.copyWith(id: docRef.id).toJson());
       return true;
     } catch (e) {
-      log("❌ Error addTask: $e");
+      appLog("❌ Error addTask: $e");
       return false;
     }
   }
@@ -960,7 +960,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
       await _dbtask.doc(task.id).update(task.toJson());
       return true;
     } catch (e) {
-      log("❌ Error updateTask: $e");
+      appLog("❌ Error updateTask: $e");
       return false;
     }
   }
@@ -970,7 +970,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
       await _dbtask.doc(id).delete();
       return true;
     } catch (e) {
-      log("❌ Error deleteTask: $e");
+      appLog("❌ Error deleteTask: $e");
       return false;
     }
   }
@@ -1069,7 +1069,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
       if (FirebaseAuth.instance.currentUser == null) return;
       final msg = e.toString();
       if (msg.contains('permission-denied')) return;
-      log('⚠️ getTotalUnreadMessagesStream (messages sub): $e');
+      appLog('⚠️ getTotalUnreadMessagesStream (messages sub): $e');
     }
 
     void onChatsSubError(Object e, StackTrace st) {
@@ -1086,7 +1086,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
         } catch (_) {}
         return;
       }
-      log('⚠️ getTotalUnreadMessagesStream (chats): $e');
+      appLog('⚠️ getTotalUnreadMessagesStream (chats): $e');
       try {
         controller.add(0);
       } catch (_) {}

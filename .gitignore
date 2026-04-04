@@ -45,9 +45,9 @@ app.*.map.json
 /android/app/release
 
 # Secrets - never commit
-dart_defines.local.json
 scripts/build-release-apk.local.ps1
 .env
+.env.local
 firebase-adminsdk.json
 firebase-adminsdk.test.json
 # مفتاح الخدمة المحلي لسكربتات Node (انظر scripts/*.mjs)

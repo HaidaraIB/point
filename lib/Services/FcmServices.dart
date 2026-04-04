@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:developer';
+import 'package:point/Utils/app_log.dart';
 import 'dart:io';
 import 'dart:async';
 
@@ -105,7 +105,7 @@ class NotificationService {
 
   // لما المستخدم يضغط على الإشعار
   void _onNotificationResponse(NotificationResponse response) {
-    log('Notification clicked with payload: ${response.data}');
+    appLog('Notification clicked with payload: ${response.data}');
     final payload = response.payload;
     if (payload != null) {
       // TODO: Handle the notification response
@@ -242,7 +242,7 @@ class NotificationService {
   // الرسائل وقت ما التطبيق شغال
   void _listenToForegroundMessages() {
     _foregroundSub ??= FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      log('Received a message in foreground: ${message.notification?.title}');
+      appLog('Received a message in foreground: ${message.notification?.title}');
       if (_suppressForegroundChatNotification(message)) return;
       if (!kIsWeb) {
         _showLocalNotification(message);
@@ -254,7 +254,7 @@ class NotificationService {
   Future<void> _setupInteractedMessage() async {
     // التطبيق مفتوح من إشعار والرسالة كانت background
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      log(
+      appLog(
         'App opened from background notification: ${message.notification?.title}',
       );
       // اعمل هنا التنقل أو حاجة حسب الداتا
@@ -264,7 +264,7 @@ class NotificationService {
     RemoteMessage? initialMessage =
         await FirebaseMessaging.instance.getInitialMessage();
     if (initialMessage != null) {
-      log(
+      appLog(
         'App opened from terminated state with message: ${initialMessage.notification?.title}',
       );
       // اعمل معالجة للرسالة هنا

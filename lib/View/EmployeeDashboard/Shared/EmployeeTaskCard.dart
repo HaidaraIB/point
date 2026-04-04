@@ -1,12 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Models/EmployeeModel.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
+import 'package:point/Utils/AppConstants.dart';
 import 'package:point/View/EmployeeDashboard/Shared/AddContentEmployeeDialog.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Tasks/Shared/add_task_comment_dialog.dart';
+
+/// صورة المكلَّف في البطاقة: الحقل المخزّن في المهمة قد يكون فارغاً لمهام قديمة،
+/// فيُستكمل من بيانات الموظف الحالية كما في الهيدر.
+String _resolvedAssignedAvatarUrl(TaskModel task, EmployeeModel? assignee) {
+  final fromTask = task.assignedImageUrl.trim();
+  if (fromTask.isNotEmpty) return fromTask;
+  final fromEmployee = assignee?.image?.trim() ?? '';
+  if (fromEmployee.isNotEmpty) return fromEmployee;
+  return kDefaultAvatarUrl;
+}
 
 class EmployeeTaskCard extends StatelessWidget {
   final TaskModel task;
@@ -19,6 +31,10 @@ class EmployeeTaskCard extends StatelessWidget {
     return GetBuilder<HomeController>(
       builder: (controller) {
         final latestNote = task.notes.isNotEmpty ? task.notes.last : null;
+        final assignee = controller.employees.firstWhereOrNull(
+          (emp) => emp.id == task.assignedTo,
+        );
+        final assignedAvatarUrl = _resolvedAssignedAvatarUrl(task, assignee);
         return Container(
           margin: const EdgeInsets.all(8),
           padding: const EdgeInsets.all(12),
@@ -277,43 +293,17 @@ class EmployeeTaskCard extends StatelessWidget {
                         children: [
                           CircleAvatar(
                             radius: 14,
-                            backgroundImage: NetworkImage(
-                              task.assignedImageUrl.isEmpty
-                                  ? '${StorageKeys.supabaseStorageBaseUrl}/Avatar.png'
-                                  : task.assignedImageUrl,
-                            ),
+                            backgroundImage: NetworkImage(assignedAvatarUrl),
                           ),
                           const SizedBox(width: 6),
                           Expanded(
                             child: Text(
-                              (Get.find<HomeController>().employees
-                                          .firstWhereOrNull(
-                                            (emp) => emp.id == task.assignedTo,
-                                          )
-                                          ?.name ??
-                                      '')
+                              (assignee?.name ?? '')
                                   .substring(
                                     0,
-                                    ((Get.find<HomeController>().employees
-                                                        .firstWhereOrNull(
-                                                          (emp) =>
-                                                              emp.id ==
-                                                              task.assignedTo,
-                                                        )
-                                                        ?.name ??
-                                                    '')
-                                                .length >
-                                            10)
+                                    ((assignee?.name ?? '').length > 10)
                                         ? 10
-                                        : ((Get.find<HomeController>().employees
-                                                    .firstWhereOrNull(
-                                                      (emp) =>
-                                                          emp.id ==
-                                                          task.assignedTo,
-                                                    )
-                                                    ?.name ??
-                                                '')
-                                            .length),
+                                        : (assignee?.name ?? '').length,
                                   ),
                               style: const TextStyle(
                                 fontSize: 13,

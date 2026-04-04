@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:developer';
+import 'package:point/Utils/app_log.dart';
 
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -20,7 +20,7 @@ Stream<List<T>> safeFirestoreListStream<T>(
           sink.add(<T>[]);
           return;
         }
-        log('⚠️ Firestore stream [$label]: $error');
+        appLog('⚠️ Firestore stream [$label]: $error');
         sink.add(<T>[]);
       },
     ),

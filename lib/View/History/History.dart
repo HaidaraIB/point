@@ -1,4 +1,4 @@
-import 'dart:developer';
+import 'package:point/Utils/app_log.dart';
 import 'dart:math' as math;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -116,7 +116,7 @@ class History extends StatelessWidget {
                                       (value).id ?? '';
                                   controller.update();
                                 }
-                                log(
+                                appLog(
                                   "Selected client ID: ${controller.clientController.text}",
                                 );
                               },
@@ -158,8 +158,8 @@ class History extends StatelessWidget {
                                     final year = int.parse(parts[0]);
                                     final month = int.parse(parts[1]);
 
-                                    print(year); // 2024
-                                    print(month); // 1
+                                    appLog('$year'); // 2024
+                                    appLog('$month'); // 1
 
                                     controller.searchedContents.assignAll(
                                       List.from(
@@ -180,7 +180,7 @@ class History extends StatelessWidget {
                                     // controller.clientController.text =
                                     //     (value as ClientModel).id ?? '';
                                   }
-                                  log(
+                                  appLog(
                                     "Selected client ID: ${controller.clientController.text}",
                                   );
                                 },

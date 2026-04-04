@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:point/Utils/app_log.dart';
 import 'package:point/Models/ClientModel.dart';
 import 'package:point/Models/ContentModel.dart';
 import 'package:point/Services/FireStoreServices.dart';
@@ -34,7 +35,7 @@ class ClientController extends GetxController {
         }
         return;
       } catch (e) {
-        debugPrint('⚠️ fetchClients stream error: $e');
+        appDebugPrint('⚠️ fetchClients stream error: $e');
         yield const <ClientModel>[];
         await Future<void>.delayed(const Duration(seconds: 2));
       }
@@ -141,7 +142,7 @@ class ClientController extends GetxController {
         }
       },
       onError: (Object e, StackTrace st) {
-        debugPrint('⚠️ listenToClient(doc): $e');
+        appDebugPrint('⚠️ listenToClient(doc): $e');
       },
     );
   }
@@ -164,11 +165,11 @@ class ClientController extends GetxController {
           clientId: clientId,
           token: refreshedToken,
         );
-        debugPrint('FCM token refreshed for client $clientId');
+        appDebugPrint('FCM token refreshed for client $clientId');
       });
     } catch (e) {
       // على الويب قد يفشل FCM لغياب OAuth/Service Worker
-      debugPrint('getFCMToken: $e');
+      appDebugPrint('getFCMToken: $e');
     }
   }
 

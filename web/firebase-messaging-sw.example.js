@@ -15,8 +15,14 @@ const firebaseConfig = {
 const app = firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
+const _kDebugSw =
+  self.location.hostname === 'localhost' ||
+  self.location.hostname === '127.0.0.1';
+
 messaging.onBackgroundMessage(function(payload) {
-  console.log('[firebase-messaging-sw.js] Received background message ', payload);
+  if (_kDebugSw) {
+    console.log('[firebase-messaging-sw.js] Received background message ', payload);
+  }
   // إن وُجد حقل `notification` في الحمولة، يعرض FCM للويب الإشعار تلقائياً.
   // استدعاء showNotification هنا يضاعف الإشعار (مرتين لنفس الرسالة).
   if (payload.notification && payload.notification.title) {

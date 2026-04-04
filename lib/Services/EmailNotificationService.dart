@@ -1,4 +1,4 @@
-import 'dart:developer';
+import 'package:point/Utils/app_log.dart';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:point/Utils/EdgeFunctionRateLimiter.dart';
@@ -43,16 +43,16 @@ class EmailNotificationService {
       if (res.status == 200 && res.data != null) {
         final data = res.data as Map<String, dynamic>?;
         if (data?['ok'] == true) {
-          log("✅ Email sent to $toEmail");
+          appLog("✅ Email sent to $toEmail");
           return;
         }
       }
-      log(
+      appLog(
         "❌ Email edge invoke failed for $toEmail. status=${res.status}, data=${res.data}",
       );
     } catch (e, st) {
-      log("❌ EmailNotificationService error for $toEmail: $e");
-      log("StackTrace: $st");
+      appLog("❌ EmailNotificationService error for $toEmail: $e");
+      appLog("StackTrace: $st");
     }
   }
 
@@ -70,8 +70,8 @@ class EmailNotificationService {
         isHtml: false,
       );
     } catch (e, st) {
-      log("❌ EmailNotificationService sendNotification error: $e");
-      log("$st");
+      appLog("❌ EmailNotificationService sendNotification error: $e");
+      appLog("$st");
     }
   }
 
@@ -107,8 +107,8 @@ class EmailNotificationService {
 
       await send(toEmail: toEmail, subject: title, body: html, isHtml: true);
     } catch (e, st) {
-      log("❌ EmailNotificationService sendDetailedNotification error: $e");
-      log("$st");
+      appLog("❌ EmailNotificationService sendDetailedNotification error: $e");
+      appLog("$st");
       await sendNotification(toEmail: toEmail, title: title, body: body);
     }
   }
