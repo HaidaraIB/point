@@ -4,6 +4,7 @@ import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Localization/LanguageController.dart';
 import 'package:point/Services/FireStoreServices.dart';
+import 'package:point/View/Shared/app_version_label.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/AppConstants.dart';
@@ -956,6 +957,23 @@ class _CustomSidebarState extends State<CustomSidebar> {
                         ),
                       ],
                     ),
+          ),
+          AppVersionLabel(
+            compact: isCollapsed,
+            padding: EdgeInsets.fromLTRB(
+              isCollapsed ? 4 : 12,
+              4,
+              isCollapsed ? 4 : 12,
+              4,
+            ),
+            textStyle: TextStyle(
+              color: Colors.white.withValues(alpha: 0.9),
+              fontSize: 12,
+              height: 1.25,
+            ),
+            iconColor: Colors.white.withValues(alpha: 0.8),
+            textAlign: TextAlign.center,
+            safeAreaBottom: true,
           ),
         ],
       ),

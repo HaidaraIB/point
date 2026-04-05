@@ -8,8 +8,10 @@ import 'package:get/get.dart';
 import 'package:point/Utils/app_log.dart';
 import 'package:point/Models/ClientModel.dart';
 import 'package:point/Models/ContentModel.dart';
+import 'package:point/Services/fcm_token_cache.dart';
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
+import 'package:point/Services/push_permissions_helper.dart';
 
 class ClientController extends GetxController {
   var clients = <ClientModel>[].obs;
@@ -150,9 +152,37 @@ class ClientController extends GetxController {
   void getFCMToken(ClientModel? model) async {
     if (kIsWeb) return;
     try {
+      final settings = await PushPermissionsHelper.ensurePushPermissionsFlow();
+      if (!PushPermissionsHelper.isNotificationAllowed(settings)) {
+        appDebugPrint('getFCMToken: notification permission not granted');
+        return;
+      }
+
       String? token = await FirebaseMessaging.instance.getToken();
-      if (model != null && token != null) {
-        await FirestoreServices.addClientFcmToken(clientId: model.id!, token: token);
+      if (model != null && token != null && model.id != null) {
+        final cid = model.id!;
+        for (var attempt = 0; attempt < 3; attempt++) {
+          try {
+            await FirestoreServices.addClientFcmToken(
+              clientId: cid,
+              token: token,
+            );
+            await FcmTokenCache.rememberSuccess(
+              token: token,
+              role: 'client',
+              userId: cid,
+            );
+            break;
+          } catch (e) {
+            if (attempt == 2) {
+              appDebugPrint('addClientFcmToken failed after retries: $e');
+            } else {
+              await Future<void>.delayed(
+                Duration(milliseconds: 350 * (attempt + 1)),
+              );
+            }
+          }
+        }
       }
 
       _fcmTokenRefreshSub?.cancel();
@@ -161,14 +191,31 @@ class ClientController extends GetxController {
       ) async {
         final clientId = currentClient.value?.id ?? model?.id;
         if (clientId == null || clientId.trim().isEmpty) return;
-        await FirestoreServices.addClientFcmToken(
-          clientId: clientId,
-          token: refreshedToken,
-        );
-        appDebugPrint('FCM token refreshed for client $clientId');
+        for (var attempt = 0; attempt < 3; attempt++) {
+          try {
+            await FirestoreServices.addClientFcmToken(
+              clientId: clientId,
+              token: refreshedToken,
+            );
+            await FcmTokenCache.rememberSuccess(
+              token: refreshedToken,
+              role: 'client',
+              userId: clientId,
+            );
+            appDebugPrint('FCM token refreshed for client $clientId');
+            return;
+          } catch (e) {
+            if (attempt == 2) {
+              appDebugPrint('FCM onTokenRefresh (client) failed: $e');
+            } else {
+              await Future<void>.delayed(
+                Duration(milliseconds: 350 * (attempt + 1)),
+              );
+            }
+          }
+        }
       });
     } catch (e) {
-      // على الويب قد يفشل FCM لغياب OAuth/Service Worker
       appDebugPrint('getFCMToken: $e');
     }
   }
@@ -177,6 +224,10 @@ class ClientController extends GetxController {
   void fetchContents() async {
     contents.bindStream(_service.getContentsForClient(currentClient.value?.id));
     update();
+  }
+
+  void refreshAfterSilentPush() {
+    fetchContents();
   }
 
   Future<bool> updateContent(ContentModel content) async {

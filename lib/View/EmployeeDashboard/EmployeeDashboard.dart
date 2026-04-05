@@ -11,6 +11,7 @@ import 'package:point/View/EmployeeDashboard/Shared/EmployeeTaskCard.dart';
 import 'package:point/View/Shared/CustomHeader.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
+import 'package:point/View/Shared/app_version_label.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DContentWriteDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DDesignDialog.dart';
@@ -351,6 +352,14 @@ class EmployeeDashboard extends StatelessWidget {
                         width: Get.width,
                         height: 620,
                         child: TasksGridPage(),
+                      ),
+                      AppVersionLabel(
+                        padding: const EdgeInsets.only(top: 16, bottom: 8),
+                        textStyle: TextStyle(
+                          fontSize: 12,
+                          height: 1.25,
+                          color: Colors.grey.shade600,
+                        ),
                       ),
                     ],
                   ),
@@ -701,6 +710,14 @@ class EmployeeDashboard extends StatelessWidget {
                             width: Get.width,
                             // height: 620,
                             child: TasksListPage(),
+                          ),
+                          AppVersionLabel(
+                            padding: const EdgeInsets.only(top: 16, bottom: 8),
+                            textStyle: TextStyle(
+                              fontSize: 12,
+                              height: 1.25,
+                              color: Colors.grey.shade600,
+                            ),
                           ),
                         ],
                       ),

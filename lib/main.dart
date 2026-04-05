@@ -1,5 +1,8 @@
+import 'dart:async' show unawaited;
+
 import 'package:firebase_core/firebase_core.dart'
     show Firebase, FirebaseException;
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:point/Services/AudioService.dart';
@@ -21,6 +24,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:point/firebase_app_options.dart';
+import 'package:point/fcm_background_handler.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -81,6 +85,7 @@ void main(List<String> args) async {
   }
   // FCM + إشعارات محلية (Android/iOS فقط) — على الويب لا دفع ولا تهيئة.
   if (!kIsWeb) {
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
     await NotificationService().init();
   }
   if (kDebugMode) {
@@ -97,7 +102,7 @@ void main(List<String> args) async {
     await AudioService.instance.initialize();
   }
 
-  runApp(App());
+  runApp(const App());
 }
 
 Future<void> onUserLogin(String userId) async {
@@ -116,7 +121,33 @@ Future<String?> checkLogin() async {
   return null;
 }
 
-class App extends StatelessWidget {
+class App extends StatefulWidget {
+  const App({super.key});
+
+  @override
+  State<App> createState() => _AppState();
+}
+
+class _AppState extends State<App> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(NotificationService().onAppResumed());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final lc = Get.find<LanguageController>();

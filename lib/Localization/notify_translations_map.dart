@@ -86,6 +86,9 @@ const Map<String, String> notifyTranslationsEn = {
   'notify.emp.attachments.title': 'New files attached to the task',
   'notify.emp.attachments.action':
       'Review the attached files and update your work.',
+  'notify.emp.new_comment.title': 'New comment on your task',
+  'notify.emp.new_comment.body': '@name added a comment on «@title»',
+  'notify.emp.new_comment.action': 'Open the task and read the comment.',
   'notify.emp.status_changed.title': 'Task status changed',
   'notify.emp.status_changed.body': '@title — to: @label',
   'notify.emp.status_changed.action': 'Follow the new task status.',
@@ -215,6 +218,11 @@ const Map<String, String> notifyTranslationsEn = {
   'notify.promo.new_published.body': 'Client: @name — Content: @title',
   'notify.promo.new_published.action':
       'Add it to the appropriate advertising campaign.',
+  'notify.battery_opt.title': 'Battery optimization',
+  'notify.battery_opt.body':
+      'To reduce delayed push notifications, allow this app to run without battery restrictions when the system asks.',
+  'notify.battery_opt.later': 'Not now',
+  'notify.battery_opt.open_settings': 'Continue',
 };
 
 const Map<String, String> notifyTranslationsAr = {
@@ -304,6 +312,9 @@ const Map<String, String> notifyTranslationsAr = {
   'notify.emp.attachments.title': 'تم إرفاق ملفات جديدة بالمهمة',
   'notify.emp.attachments.action':
       'يرجى الاطلاع على الملفات المرفقة وتحديث العمل.',
+  'notify.emp.new_comment.title': 'تعليق جديد على مهمتك',
+  'notify.emp.new_comment.body': 'أضاف @name تعليقاً على «@title»',
+  'notify.emp.new_comment.action': 'افتح المهمة واطّلع على التعليق.',
   'notify.emp.status_changed.title': 'تم تغيير حالة المهمة',
   'notify.emp.status_changed.body': '@title — إلى: @label',
   'notify.emp.status_changed.action': 'يرجى متابعة الحالة الجديدة للمهمة.',
@@ -435,4 +446,9 @@ const Map<String, String> notifyTranslationsAr = {
   'notify.promo.new_published.body': 'العميل: @name — المحتوى: @title',
   'notify.promo.new_published.action':
       'يرجى إضافته للحملة الإعلانية المناسبة.',
+  'notify.battery_opt.title': 'تحسين البطارية',
+  'notify.battery_opt.body':
+      'لتقليل تأخر الإشعارات، اسمح للتطبيق باستثناء من تحسين البطارية عند ظهور طلب النظام.',
+  'notify.battery_opt.later': 'ليس الآن',
+  'notify.battery_opt.open_settings': 'متابعة',
 };

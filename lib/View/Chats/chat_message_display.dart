@@ -6,10 +6,80 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Services/chat_voice_cache.dart';
+import 'package:point/View/Mobile/Shared/VideoCart.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:video_player/video_player.dart';
 
 /// روابط داخل نص الرسالة (للرسائل النصية التقليدية).
 final urlRegex = RegExp(r'(https?:\/\/[^\s]+)', caseSensitive: false);
+
+String _urlPathLower(String url) {
+  try {
+    return Uri.parse(url).path.toLowerCase();
+  } catch (_) {
+    return url.toLowerCase();
+  }
+}
+
+/// صورة وفق امتداد المسار (يدعم روابط تحتوي `?query`).
+bool isImageUrl(String url) {
+  final p = _urlPathLower(url);
+  return p.endsWith('.png') ||
+      p.endsWith('.jpg') ||
+      p.endsWith('.jpeg') ||
+      p.endsWith('.gif') ||
+      p.endsWith('.webp');
+}
+
+bool isVideoUrl(String url) {
+  final p = _urlPathLower(url);
+  return p.endsWith('.mp4') ||
+      p.endsWith('.mov') ||
+      p.endsWith('.webm') ||
+      p.endsWith('.m4v') ||
+      p.endsWith('.avi') ||
+      p.endsWith('.mkv');
+}
+
+/// اسم ملف مرفق (صورة/فيديو من المعرض).
+bool chatAttachmentIsVideo(String fileName) {
+  final base = fileName.trim().split('/').last.split('?').first;
+  final dot = base.lastIndexOf('.');
+  if (dot < 0 || dot >= base.length - 1) return false;
+  const v = {'mp4', 'mov', 'webm', 'm4v', 'avi', 'mkv'};
+  return v.contains(base.substring(dot + 1).toLowerCase());
+}
+
+bool _messageShowsAsVideo(
+  String? messageType,
+  String attachmentUrl,
+  String? fileName,
+) {
+  if (messageType == 'video') return true;
+  if (isVideoUrl(attachmentUrl)) return true;
+  if (fileName != null && chatAttachmentIsVideo(fileName)) return true;
+  return false;
+}
+
+/// صورة/فيديو داخل التطبيق؛ باقي الأنواع تُفتح خارجياً (متصفح / تطبيق آخر).
+Future<void> openChatMediaFromUrl(String url) async {
+  final trimmed = url.trim();
+  if (!trimmed.startsWith('http')) return;
+
+  if (isImageUrl(trimmed)) {
+    Get.to(() => ImagePreviewPage(url: trimmed));
+    return;
+  }
+  if (isVideoUrl(trimmed)) {
+    Get.to(() => VideoPlayerPage(url: trimmed));
+    return;
+  }
+
+  final uri = Uri.parse(trimmed);
+  if (await canLaunchUrl(uri)) {
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+}
 
 /// محتوى فقاعة الرسالة حسب [messageType] مع دعم الرسائل القديمة (نص + رابط فقط).
 Widget chatMessageBubbleContent(Map<String, dynamic> msg, bool isMe) {
@@ -33,6 +103,15 @@ Widget chatMessageBubbleContent(Map<String, dynamic> msg, bool isMe) {
       attachmentUrl != null &&
       attachmentUrl.isNotEmpty) {
     return _ChatImageBubble(url: attachmentUrl, isMe: isMe);
+  }
+  if (attachmentUrl != null &&
+      attachmentUrl.isNotEmpty &&
+      _messageShowsAsVideo(type, attachmentUrl, msg['fileName'] as String?)) {
+    return _ChatVideoBubble(
+      url: attachmentUrl,
+      isMe: isMe,
+      fileName: msg['fileName'] as String?,
+    );
   }
   if (type == 'file' &&
       attachmentUrl != null &&
@@ -345,12 +424,7 @@ class _ChatImageBubble extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
-        onTap: () async {
-          final uri = Uri.parse(url);
-          if (await canLaunchUrl(uri)) {
-            await launchUrl(uri, mode: LaunchMode.externalApplication);
-          }
-        },
+        onTap: () => openChatMediaFromUrl(url),
         child: Image.network(
           url,
           width: 200,
@@ -369,6 +443,152 @@ class _ChatImageBubble extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ChatVideoBubble extends StatefulWidget {
+  final String url;
+  final bool isMe;
+  final String? fileName;
+
+  const _ChatVideoBubble({
+    required this.url,
+    required this.isMe,
+    this.fileName,
+  });
+
+  @override
+  State<_ChatVideoBubble> createState() => _ChatVideoBubbleState();
+}
+
+class _ChatVideoBubbleState extends State<_ChatVideoBubble> {
+  late final VideoPlayerController _controller;
+  bool _ready = false;
+  bool _failed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.url))
+      ..setLooping(false)
+      ..setVolume(0);
+    _controller.initialize().then((_) {
+      if (!mounted) return;
+      _controller.pause();
+      setState(() => _ready = true);
+    }).catchError((_) {
+      if (mounted) setState(() => _failed = true);
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_failed) {
+      return _FileBubble(
+        url: widget.url,
+        fileName: widget.fileName,
+        isMe: widget.isMe,
+      );
+    }
+
+    const maxW = 232.0;
+    final placeholder = Container(
+      width: maxW,
+      height: maxW * 9 / 16,
+      alignment: Alignment.center,
+      color: widget.isMe
+          ? Colors.black.withValues(alpha: 0.22)
+          : Colors.black.withValues(alpha: 0.07),
+      child: SizedBox(
+        width: 30,
+        height: 30,
+        child: CircularProgressIndicator(
+          strokeWidth: 2.2,
+          color:
+              widget.isMe
+                  ? Colors.white70
+                  : Theme.of(context).colorScheme.primary,
+        ),
+      ),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: SizedBox(
+            width: maxW,
+            child:
+                _ready && _controller.value.aspectRatio > 0
+                    ? AspectRatio(
+                      aspectRatio: _controller.value.aspectRatio,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          ColoredBox(
+                            color: Colors.black,
+                            child: VideoPlayer(_controller),
+                          ),
+                          Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () => openChatMediaFromUrl(widget.url),
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      Colors.black.withValues(alpha: 0.02),
+                                      Colors.black.withValues(alpha: 0.52),
+                                    ],
+                                  ),
+                                ),
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.play_circle_rounded,
+                                    size: 58,
+                                    color: Colors.white,
+                                    shadows: [
+                                      Shadow(
+                                        blurRadius: 12,
+                                        color: Colors.black54,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                    : placeholder,
+          ),
+        ),
+        if ((widget.fileName ?? '').trim().isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              widget.fileName!.trim(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11.5,
+                color: widget.isMe ? Colors.white70 : Colors.black54,
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -428,12 +648,7 @@ class _FileBubble extends StatelessWidget {
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: () async {
-            final uri = Uri.parse(url);
-            if (await canLaunchUrl(uri)) {
-              await launchUrl(uri, mode: LaunchMode.externalApplication);
-            }
-          },
+          onTap: () => openChatMediaFromUrl(url),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             child: Row(
@@ -573,15 +788,6 @@ IconData _fileIconForExtension(String ext) {
   }
 }
 
-bool isImageUrl(String url) {
-  final u = url.toLowerCase();
-  return u.endsWith('.png') ||
-      u.endsWith('.jpg') ||
-      u.endsWith('.jpeg') ||
-      u.endsWith('.gif') ||
-      u.endsWith('.webp');
-}
-
 List<InlineSpan> buildMessageSpans(String text, bool isMe) {
   final spans = <InlineSpan>[];
   int lastIndex = 0;
@@ -603,12 +809,7 @@ List<InlineSpan> buildMessageSpans(String text, bool isMe) {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: InkWell(
-                onTap: () async {
-                  final uri = Uri.parse(url);
-                  if (await canLaunchUrl(uri)) {
-                    await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  }
-                },
+                onTap: () => openChatMediaFromUrl(url),
                 child: Image.network(
                   url,
                   width: 200,
@@ -640,12 +841,7 @@ List<InlineSpan> buildMessageSpans(String text, bool isMe) {
           ),
           recognizer:
               TapGestureRecognizer()
-                ..onTap = () async {
-                  final uri = Uri.parse(url);
-                  if (await canLaunchUrl(uri)) {
-                    await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  }
-                },
+                ..onTap = () => openChatMediaFromUrl(url),
         ),
       );
     }

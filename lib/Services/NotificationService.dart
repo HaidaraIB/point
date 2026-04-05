@@ -117,6 +117,27 @@ class NotificationService {
     );
   }
 
+  /// تعليق من غير المكلَّف (إدارة أو زميل) على مهمة مكلَّفة إليه.
+  static Future<void> notifyEmployeeTaskNewComment({
+    required String employeeId,
+    required String commenterName,
+    required String taskTitle,
+  }) async {
+    await FirestoreServices.sendFcm(
+      userId: employeeId,
+      title: 'notify.emp.new_comment.title'.tr,
+      body: 'notify.emp.new_comment.body'
+          .trParams({'name': commenterName, 'title': taskTitle}),
+      notificationType: 'employee_task_new_comment',
+      actionText: 'notify.emp.new_comment.action'.tr,
+      referenceId: taskTitle,
+      emailDetails: _emailLabels({
+        'notify.email.task': taskTitle,
+        'notify.email.changed_by': commenterName,
+      }),
+    );
+  }
+
   static Future<void> notifyEmployeeTaskStatusChanged({
     required String employeeId,
     required String taskTitle,

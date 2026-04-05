@@ -9,6 +9,7 @@ import 'package:point/View/Mobile/EditRequestSheet.dart';
 import 'package:point/View/Mobile/RefuseRequestSheet.dart';
 import 'package:point/View/Mobile/Shared/TopAppBar.dart';
 import 'package:point/View/Mobile/Shared/VideoCart.dart';
+import 'package:point/View/Shared/app_version_label.dart';
 import 'package:point/View/Shared/button.dart';
 
 class Clientcontentdetails extends StatelessWidget {
@@ -113,6 +114,14 @@ class Clientcontentdetails extends StatelessWidget {
                       borderSize: 10,
                       title: 'tasks.reject'.tr,
                     ),
+                  AppVersionLabel(
+                    padding: const EdgeInsets.fromLTRB(16, 32, 16, 24),
+                    textStyle: const TextStyle(
+                      fontSize: 12,
+                      height: 1.25,
+                      color: Color(0xFF888888),
+                    ),
+                  ),
                 ],
               ),
             ),

@@ -50,7 +50,7 @@ Future<ChatAttachmentMenuAction?> showTelegramStyleAttachmentMenu({
         height: 48,
         padding: const EdgeInsets.symmetric(horizontal: 14),
         child: _TelegramMenuRow(
-          icon: Icons.add_photo_alternate_outlined,
+          icon: Icons.perm_media_outlined,
           label: photoLabel,
           iconColor: iconColor,
         ),

@@ -13,6 +13,7 @@ import 'package:point/Services/ChatIncomingMessageSound.dart';
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/View/Chats/MChatPage.dart';
 import 'package:point/View/Chats/chat_message_display.dart';
+import 'package:point/View/Chats/chat_ui_helpers.dart';
 import 'package:point/View/Chats/chat_voice_record_button.dart';
 import 'package:point/View/Chats/telegram_style_attachment_menu.dart';
 import 'package:point/View/Shared/CustomHeader.dart';
@@ -310,7 +311,7 @@ class _ChatPopupState extends State<ChatPopup> {
     final action = await showTelegramStyleAttachmentMenu(
       context: context,
       anchorContext: anchorContext,
-      photoLabel: 'chat.attach_photo'.tr,
+      photoLabel: 'chat.attach_gallery'.tr,
       fileLabel: 'chat.attach_file'.tr,
       voiceLabel: 'chat.attach_voice'.tr,
     );
@@ -318,19 +319,23 @@ class _ChatPopupState extends State<ChatPopup> {
 
     switch (action) {
       case ChatAttachmentMenuAction.photo:
-        final v = await controller.pickoneImage();
+        final v = await controller.pickOneChatGalleryMedia();
         if (!mounted || v.isEmpty || v.first.bytes == null) return;
+        final picked = v.first;
         final url = await controller.uploadFiles(
-          filePathOrBytes: v.first.bytes!,
-          fileName: v.first.name,
+          filePathOrBytes: picked.bytes!,
+          fileName: picked.name,
+          useBlockingUploadDialog: false,
         );
         if (url == null || !mounted) return;
         final cap = _messageController.text.trim();
+        final isVid = chatAttachmentIsVideo(picked.name);
         await _sendChatPayload(
-          lastMessagePreview: cap.isNotEmpty ? cap : '📷',
-          messageType: 'image',
+          lastMessagePreview: cap.isNotEmpty ? cap : (isVid ? '🎬' : '📷'),
+          messageType: isVid ? 'video' : 'image',
           text: cap,
           attachmentUrl: url,
+          fileName: isVid ? picked.name : null,
         );
         _messageController.clear();
         controller.uploadedFilesPaths.clear();
@@ -341,6 +346,7 @@ class _ChatPopupState extends State<ChatPopup> {
         final url = await controller.uploadFiles(
           filePathOrBytes: v.first.bytes!,
           fileName: v.first.name,
+          useBlockingUploadDialog: false,
         );
         if (url == null || !mounted) return;
         await _sendChatPayload(
@@ -521,10 +527,15 @@ class _ChatPopupState extends State<ChatPopup> {
               ),
               child: Row(
                 children: [
-                  CircleAvatar(
+                  chatLeadingAvatar(
                     radius: 14,
                     backgroundColor: Colors.white24,
-                    child: Icon(Icons.person, color: Colors.white, size: 18),
+                    initial: chatInitialFromName(widget.chat.name),
+                    groupIcon: widget.chat.isGroup ? Icons.group : null,
+                    imageUrl:
+                        widget.chat.isGroup ? null : widget.chat.avatar,
+                    iconColor: Colors.white,
+                    initialTextColor: Colors.white,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
@@ -705,6 +716,8 @@ class _ChatPopupState extends State<ChatPopup> {
               ),
             ),
 
+            const ChatUploadProgressBanner(),
+
             /// INPUT
             AnimatedContainer(
               duration: const Duration(milliseconds: 220),
@@ -741,69 +754,77 @@ class _ChatPopupState extends State<ChatPopup> {
                   ),
                 ],
               ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Builder(
-                    builder: (buttonContext) {
-                      return IconButton(
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(
-                          minWidth: 36,
-                          minHeight: 44,
+              child: Obx(() {
+                final busy = Get.find<HomeController>().isUploading.value;
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Builder(
+                      builder: (buttonContext) {
+                        return IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                            minWidth: 36,
+                            minHeight: 44,
+                          ),
+                          tooltip: 'chat.attach_sheet_title'.tr,
+                          icon: Icon(
+                            Icons.add_circle_outline,
+                            color: Colors.grey.shade700,
+                            size: 24,
+                          ),
+                          onPressed:
+                              busy
+                                  ? null
+                                  : () => _showPopupAttachmentMenu(
+                                    buttonContext,
+                                  ),
+                        );
+                      },
+                    ),
+                    Expanded(
+                      child: TextField(
+                        controller: _messageController,
+                        focusNode: _messageFocusNode,
+                        minLines: 1,
+                        maxLines: 5,
+                        keyboardType: TextInputType.multiline,
+                        readOnly: busy,
+                        style: TextStyle(
+                          fontSize: _messageFocusNode.hasFocus ? 15.5 : 14.5,
+                          height: 1.35,
                         ),
-                        tooltip: 'chat.attach_sheet_title'.tr,
-                        icon: Icon(
-                          Icons.add_circle_outline,
-                          color: Colors.grey.shade700,
-                          size: 24,
+                        decoration: InputDecoration(
+                          hintText: 'chat.write_message'.tr,
+                          hintStyle: TextStyle(
+                            color: Colors.grey.shade500,
+                            fontSize: 14,
+                          ),
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 10,
+                          ),
                         ),
-                        onPressed:
-                            () => _showPopupAttachmentMenu(buttonContext),
-                      );
-                    },
-                  ),
-                  Expanded(
-                    child: TextField(
-                      controller: _messageController,
-                      focusNode: _messageFocusNode,
-                      minLines: 1,
-                      maxLines: 5,
-                      keyboardType: TextInputType.multiline,
-                      style: TextStyle(
-                        fontSize: _messageFocusNode.hasFocus ? 15.5 : 14.5,
-                        height: 1.35,
                       ),
-                      decoration: InputDecoration(
-                        hintText: 'chat.write_message'.tr,
-                        hintStyle: TextStyle(
-                          color: Colors.grey.shade500,
-                          fontSize: 14,
-                        ),
-                        border: InputBorder.none,
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 4,
-                          vertical: 10,
-                        ),
+                    ),
+                    IconButton(
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 40,
+                        minHeight: 44,
                       ),
+                      icon: const Icon(
+                        Icons.send_rounded,
+                        color: Color(0xff00A389),
+                        size: 24,
+                      ),
+                      onPressed: busy ? null : _sendMessage,
                     ),
-                  ),
-                  IconButton(
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(
-                      minWidth: 40,
-                      minHeight: 44,
-                    ),
-                    icon: const Icon(
-                      Icons.send_rounded,
-                      color: Color(0xff00A389),
-                      size: 24,
-                    ),
-                    onPressed: _sendMessage,
-                  ),
-                ],
-              ),
+                  ],
+                );
+              }),
             ),
           ],
         ],

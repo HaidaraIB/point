@@ -76,6 +76,12 @@ const List<PushNotificationTestDefinition> kPushNotificationTestCatalog =
         categoryKey: 'push_test.category.employee',
       ),
       PushNotificationTestDefinition(
+        notificationType: 'employee_task_new_comment',
+        audience: PushTestAudience.employee,
+        sortOrder: 20,
+        categoryKey: 'push_test.category.employee',
+      ),
+      PushNotificationTestDefinition(
         notificationType: 'employee_task_status_changed',
         audience: PushTestAudience.employee,
         sortOrder: 20,

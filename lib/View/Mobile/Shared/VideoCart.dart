@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/ContentModel.dart';
 import 'package:point/View/Mobile/Shared/PdfViewr.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -183,24 +184,124 @@ class ImagePreviewPage extends StatelessWidget {
   final String url;
   const ImagePreviewPage({super.key, required this.url});
 
+  static const _bg = Color(0xFF0A0A0F);
+
   @override
   Widget build(BuildContext context) {
+    final bottomSafe = MediaQuery.paddingOf(context).bottom;
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: _bg,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF5C5589),
-        title: const Text(
-          'عرض الصورة',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        flexibleSpace: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withValues(alpha: 0.9),
+                Colors.black.withValues(alpha: 0.5),
+                Colors.transparent,
+              ],
+              stops: const [0.0, 0.5, 1.0],
+            ),
+          ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Get.back(),
+          style: IconButton.styleFrom(
+            backgroundColor: Colors.white.withValues(alpha: 0.14),
+            foregroundColor: Colors.white,
+          ),
+          icon: const Icon(Icons.close_rounded, size: 22),
+          tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
+        ),
+        title: Text(
+          AppLocaleKeys.chatPreviewImageTitle.tr,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 17,
+            letterSpacing: 0.2,
+          ),
         ),
         centerTitle: true,
       ),
-      body: InteractiveViewer(
-        child: Center(child: Image.network(url, fit: BoxFit.contain)),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Positioned.fill(
+            child: InteractiveViewer(
+              minScale: 0.55,
+              maxScale: 5,
+              boundaryMargin: const EdgeInsets.all(72),
+              clipBehavior: Clip.none,
+              child: Center(
+                child: Image.network(
+                  url,
+                  fit: BoxFit.contain,
+                  loadingBuilder: (context, child, progress) {
+                    if (progress == null) return child;
+                    return SizedBox(
+                      height: 220,
+                      child: Center(
+                        child: SizedBox(
+                          width: 42,
+                          height: 42,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white.withValues(alpha: 0.9),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                  errorBuilder: (_, __, ___) => Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.broken_image_outlined,
+                          size: 58,
+                          color: Colors.white.withValues(alpha: 0.4),
+                        ),
+                        const SizedBox(height: 18),
+                        Text(
+                          AppLocaleKeys.chatPreviewLoadFailed.tr,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.78),
+                            fontSize: 15,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: 20,
+            right: 20,
+            bottom: 18 + bottomSafe,
+            child: Text(
+              AppLocaleKeys.chatPreviewPinchHint.tr,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.4),
+                fontSize: 12.5,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -215,74 +316,288 @@ class VideoPlayerPage extends StatefulWidget {
 }
 
 class _VideoPlayerPageState extends State<VideoPlayerPage> {
-  late VideoPlayerController controller;
-  bool isReady = false;
+  late final VideoPlayerController _controller;
+  bool _isReady = false;
+  bool _failed = false;
+  /// أثناء السحب على شريط التقدم؛ يمنع تعارض التحديث مع موضع المشغّل.
+  double? _scrubFraction;
+
+  static String _fmtTime(Duration d) {
+    if (d < Duration.zero) d = Duration.zero;
+    final sec = d.inSeconds;
+    final h = sec ~/ 3600;
+    final m = (sec % 3600) ~/ 60;
+    final s = sec % 60;
+    if (h > 0) {
+      return '$h:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+    }
+    return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+  }
+
+  void _onVideoTick() {
+    if (!mounted || _scrubFraction != null) return;
+    setState(() {});
+  }
 
   @override
   void initState() {
     super.initState();
-    controller = VideoPlayerController.networkUrl(Uri.parse(widget.url))
-      ..initialize().then((_) {
-        setState(() => isReady = true);
-        controller.play();
-      });
+    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.url));
+    _controller.addListener(_onVideoTick);
+    _controller.initialize().then((_) {
+      if (!mounted) return;
+      setState(() => _isReady = true);
+      _controller.play();
+    }).catchError((_) {
+      if (mounted) setState(() => _failed = true);
+    });
   }
 
   @override
   void dispose() {
-    controller.dispose();
+    _controller.removeListener(_onVideoTick);
+    _controller.dispose();
     super.dispose();
+  }
+
+  Duration get _effectivePosition {
+    final total = _controller.value.duration;
+    if (_scrubFraction != null && total.inMilliseconds > 0) {
+      return Duration(
+        milliseconds:
+            (_scrubFraction!.clamp(0.0, 1.0) * total.inMilliseconds).round(),
+      );
+    }
+    return _controller.value.position;
+  }
+
+  double get _sliderValue {
+    final total = _controller.value.duration;
+    if (total.inMilliseconds <= 0) return 0;
+    if (_scrubFraction != null) return _scrubFraction!.clamp(0.0, 1.0);
+    final p = _controller.value.position.inMilliseconds / total.inMilliseconds;
+    return p.clamp(0.0, 1.0);
+  }
+
+  Widget _buildSeekRow(BuildContext context) {
+    final total = _controller.value.duration;
+    final timeStyle = TextStyle(
+      color: Colors.white.withValues(alpha: 0.92),
+      fontSize: 12,
+      fontWeight: FontWeight.w600,
+      fontFeatures: const [FontFeature.tabularFigures()],
+    );
+
+    final slider = SliderTheme(
+      data: SliderTheme.of(context).copyWith(
+        trackHeight: 5,
+        trackShape: const RoundedRectSliderTrackShape(),
+        thumbShape: const RoundSliderThumbShape(
+          enabledThumbRadius: 8,
+          elevation: 3,
+          pressedElevation: 5,
+        ),
+        overlayShape: const RoundSliderOverlayShape(overlayRadius: 22),
+        activeTrackColor: const Color(0xff00A389),
+        inactiveTrackColor: Colors.white.withValues(alpha: 0.22),
+        thumbColor: Colors.white,
+        overlayColor: const Color(0xff00A389).withValues(alpha: 0.28),
+        showValueIndicator: ShowValueIndicator.never,
+      ),
+      child: Slider(
+        value: _sliderValue,
+        onChangeStart: (_) {
+          final t = _controller.value.duration;
+          double frac = 0;
+          if (t.inMilliseconds > 0) {
+            frac =
+                (_controller.value.position.inMilliseconds / t.inMilliseconds)
+                    .clamp(0.0, 1.0);
+          }
+          setState(() => _scrubFraction = frac);
+        },
+        onChanged: (v) => setState(() => _scrubFraction = v),
+        onChangeEnd: (v) {
+          final t = _controller.value.duration;
+          if (t.inMilliseconds > 0) {
+            _controller.seekTo(
+              Duration(milliseconds: (v * t.inMilliseconds).round()),
+            );
+          }
+          setState(() => _scrubFraction = null);
+        },
+      ),
+    );
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        SizedBox(
+          width: 56,
+          child: Text(_fmtTime(_effectivePosition), style: timeStyle),
+        ),
+        Expanded(
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: slider,
+          ),
+        ),
+        SizedBox(
+          width: 56,
+          child: Text(
+            _fmtTime(total),
+            style: timeStyle,
+            textAlign: TextAlign.end,
+          ),
+        ),
+      ],
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final bottomSafe = MediaQuery.paddingOf(context).bottom;
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFF0A0A0F),
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF5C5589),
-        title: const Text(
-          'عرض الفيديو',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        flexibleSpace: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withValues(alpha: 0.9),
+                Colors.black.withValues(alpha: 0.5),
+                Colors.transparent,
+              ],
+              stops: const [0.0, 0.5, 1.0],
+            ),
+          ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Get.back(),
+          style: IconButton.styleFrom(
+            backgroundColor: Colors.white.withValues(alpha: 0.14),
+            foregroundColor: Colors.white,
+          ),
+          icon: const Icon(Icons.close_rounded, size: 22),
+          tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
+        ),
+        title: Text(
+          AppLocaleKeys.chatPreviewVideoTitle.tr,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 17,
+            letterSpacing: 0.2,
+          ),
         ),
         centerTitle: true,
       ),
       body: Center(
         child:
-            isReady
-                ? AspectRatio(
-                  aspectRatio: controller.value.aspectRatio,
-                  child: Stack(
-                    alignment: Alignment.bottomCenter,
+            _failed
+                ? Padding(
+                  padding: const EdgeInsets.all(28),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      VideoPlayer(controller),
-                      VideoProgressIndicator(controller, allowScrubbing: true),
-                      Positioned(
-                        bottom: 20,
-                        child: IconButton(
-                          icon: Icon(
-                            controller.value.isPlaying
-                                ? Icons.pause_circle_filled
-                                : Icons.play_circle_fill,
-                            color: Colors.white,
-                            size: 60,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              controller.value.isPlaying
-                                  ? controller.pause()
-                                  : controller.play();
-                            });
-                          },
+                      Icon(
+                        Icons.videocam_off_outlined,
+                        size: 52,
+                        color: Colors.white.withValues(alpha: 0.45),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        AppLocaleKeys.chatPreviewVideoFailed.tr,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.78),
+                          fontSize: 15,
+                          height: 1.4,
                         ),
                       ),
                     ],
                   ),
                 )
-                : const CircularProgressIndicator(color: Colors.white),
+                : !_isReady
+                ? SizedBox(
+                  width: 42,
+                  height: 42,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: Colors.white.withValues(alpha: 0.85),
+                  ),
+                )
+                : AspectRatio(
+                  aspectRatio: _controller.value.aspectRatio,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Stack(
+                      alignment: Alignment.bottomCenter,
+                      children: [
+                        Positioned.fill(child: VideoPlayer(_controller)),
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          child: Container(
+                            padding: EdgeInsets.fromLTRB(
+                              10,
+                              32,
+                              10,
+                              8 + bottomSafe,
+                            ),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.transparent,
+                                  Colors.black.withValues(alpha: 0.88),
+                                ],
+                              ),
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _buildSeekRow(context),
+                                IconButton(
+                                  iconSize: 52,
+                                  onPressed: () async {
+                                    if (_controller.value.isPlaying) {
+                                      await _controller.pause();
+                                    } else {
+                                      await _controller.play();
+                                    }
+                                    if (mounted) setState(() {});
+                                  },
+                                  icon: Icon(
+                                    _controller.value.isPlaying
+                                        ? Icons.pause_circle_filled_rounded
+                                        : Icons.play_circle_fill_rounded,
+                                    color: Colors.white,
+                                    shadows: const [
+                                      Shadow(
+                                        blurRadius: 12,
+                                        color: Colors.black54,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
       ),
     );
   }

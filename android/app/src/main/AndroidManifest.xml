@@ -3,10 +3,15 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- Android 13+: مطلوب لعرض الإشعارات (FCM) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- طلب استثناء التطبيق من تحسين البطارية (اختياري عبر permission_handler) -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <application
         android:label="Point"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="point_default" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

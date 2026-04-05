@@ -77,6 +77,8 @@ class FirestoreChatApi {
         return '🎤';
       case 'image':
         return '📷';
+      case 'video':
+        return '🎬';
       case 'file':
         final fn = (data['fileName'] as String?)?.trim();
         return fn != null && fn.isNotEmpty ? '📎 $fn' : '📎';

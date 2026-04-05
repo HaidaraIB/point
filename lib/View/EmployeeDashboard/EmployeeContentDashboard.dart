@@ -8,6 +8,7 @@ import 'package:point/View/Contents/ContentDialogDetails.dart';
 import 'package:point/View/Contents/Mobile/ContentFormMobilePage.dart';
 import 'package:point/View/EmployeeDashboard/employee_mobile_app_bar.dart';
 import 'package:point/View/Mobile/ContentStatusCard.dart';
+import 'package:point/View/Shared/app_version_label.dart';
 import 'package:point/View/Shared/CustomDropDown.dart';
 import 'package:point/View/Shared/CustomHeader.dart';
 import 'package:point/View/Shared/button.dart';
@@ -126,6 +127,14 @@ class EmployeeContentDashboard extends StatelessWidget {
           _buildClientDropdown(controller),
           const SizedBox(height: 16),
           _buildContentList(context, controller),
+          AppVersionLabel(
+            padding: const EdgeInsets.only(top: 20, bottom: 8),
+            textStyle: TextStyle(
+              fontSize: 12,
+              height: 1.25,
+              color: Colors.grey.shade600,
+            ),
+          ),
         ],
       ),
     );
@@ -243,6 +252,14 @@ class EmployeeContentDashboard extends StatelessWidget {
                     maxWidth: constraints.maxWidth,
                   );
                 },
+              ),
+              AppVersionLabel(
+                padding: const EdgeInsets.only(top: 20, bottom: 8),
+                textStyle: TextStyle(
+                  fontSize: 12,
+                  height: 1.25,
+                  color: Colors.grey.shade600,
+                ),
               ),
             ],
           ),

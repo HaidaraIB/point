@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/View/Shared/app_version_label.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/ReadOnlyAccountEmailField.dart';
 
@@ -210,6 +211,14 @@ class _EmployeeProfileFormState extends State<EmployeeProfileForm> {
                                   ),
                                 ),
                       ),
+                    ),
+                  ),
+                  AppVersionLabel(
+                    padding: const EdgeInsets.only(top: 24),
+                    textStyle: TextStyle(
+                      fontSize: 12,
+                      height: 1.25,
+                      color: Colors.grey.shade600,
                     ),
                   ),
                 ],

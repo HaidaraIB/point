@@ -37,7 +37,6 @@ class NotificationEmailPolicy {
     // إدارة — تحديثات صغيرة متكررة
     'manager_task_progress_updated',
     'manager_task_edited',
-    'manager_task_comment',
 
     // عميل — تذكير متكرر
     'client_pending_over_24h',

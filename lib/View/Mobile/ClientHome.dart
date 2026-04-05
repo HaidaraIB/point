@@ -10,6 +10,7 @@ import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Mobile/ClientContentDetails.dart';
 import 'package:point/View/Mobile/ContentStatusCard.dart';
 import 'package:point/Utils/AppConstants.dart';
+import 'package:point/View/Shared/app_version_label.dart';
 
 class TabsController extends GetxController {
   RxInt selectedIndex =
@@ -307,6 +308,14 @@ class ClientHome extends StatelessWidget {
                               },
                             );
                       }),
+                  AppVersionLabel(
+                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
+                    textStyle: const TextStyle(
+                      fontSize: 12,
+                      height: 1.25,
+                      color: Color(0xFF888888),
+                    ),
+                  ),
                 ],
               ),
               ),

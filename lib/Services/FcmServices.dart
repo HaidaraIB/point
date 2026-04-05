@@ -1,19 +1,21 @@
 import 'dart:convert';
-import 'package:point/Utils/app_log.dart';
 import 'dart:io';
 import 'dart:async';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-
-import 'package:path_provider/path_provider.dart';
-import 'package:point/Services/ChatAudioFocus.dart';
-import 'package:point/Services/push_notification_sound.dart';
-// import 'package:mohmacash/Services/googleApis.dart';
+import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
-
-// import 'package:mohmacash/view/Screens/Tasks/TaskDetails.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:point/Controller/ClientController.dart';
+import 'package:point/Controller/HomeController.dart';
+import 'package:point/Services/ChatAudioFocus.dart';
+import 'package:point/Services/fcm_token_cache.dart';
+import 'package:point/Services/push_notification_sound.dart';
+import 'package:point/Services/StorageKeys.dart';
+import 'package:point/Utils/app_log.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -27,7 +29,6 @@ class NotificationService {
   Future<void>? _initFuture;
   StreamSubscription<RemoteMessage>? _foregroundSub;
 
-  // تهيئة كل حاجة (idempotent)
   Future<void> init() {
     _initFuture ??= () async {
       if (_isInitialized) return;
@@ -35,26 +36,62 @@ class NotificationService {
 
       if (!kIsWeb) {
         await _configureForegroundPresentation();
+        await _logNotificationSettings();
         await _initLocalNotifications();
       }
-      
+
       await _setupInteractedMessage();
       _listenToForegroundMessages();
     }();
     return _initFuture!;
   }
 
+  /// بعد استئناف التطبيق: استهلاك طلبات المزامنة الصامتة ومقارنة توكن FCM.
+  Future<void> onAppResumed() async {
+    if (kIsWeb) return;
+    await _consumePendingPushSyncPrefs();
+    await FcmTokenCache.resyncIfChanged();
+  }
+
+  Future<void> _consumePendingPushSyncPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(StorageKeys.prefsPendingPushSync) != true) return;
+    await prefs.setBool(StorageKeys.prefsPendingPushSync, false);
+    _notifyControllersRefreshAfterSilentPush();
+  }
+
+  void _notifyControllersRefreshAfterSilentPush() {
+    try {
+      if (Get.isRegistered<HomeController>()) {
+        Get.find<HomeController>().refreshAfterSilentPush();
+      }
+    } catch (_) {}
+    try {
+      if (Get.isRegistered<ClientController>()) {
+        Get.find<ClientController>().refreshAfterSilentPush();
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _logNotificationSettings() async {
+    try {
+      final s = await FirebaseMessaging.instance.getNotificationSettings();
+      appLog('FCM getNotificationSettings: ${s.authorizationStatus}');
+    } catch (e) {
+      appLog('FCM getNotificationSettings failed: $e');
+    }
+  }
+
   Future<void> _configureForegroundPresentation() async {
-    // iOS: عطّل العرض/الصوت التلقائيين في المقدّمة؛ نعرض عبر [_showLocalNotification]
-    // حتى نتمكن من عدم إظهار إشعار الدردشة والمستخدم داخل نفس المحادثة.
+    // iOS: عرض أصلي في المقدّمة (alert/sound/badge). الإشعار المحلي يُستخدم على Android
+    // وعلى iOS لرسائل data-only التي تحمل title في data.
     await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
-      alert: false,
+      alert: true,
       badge: true,
-      sound: false,
+      sound: true,
     );
   }
 
-  // تهيئة flutter_local_notifications
   Future<void> _initLocalNotifications() async {
     const AndroidInitializationSettings androidInit =
         AndroidInitializationSettings('@drawable/ic_launcher_monochrome');
@@ -103,7 +140,6 @@ class NotificationService {
     }
   }
 
-  // لما المستخدم يضغط على الإشعار
   void _onNotificationResponse(NotificationResponse response) {
     appLog('Notification clicked with payload: ${response.data}');
     final payload = response.payload;
@@ -112,7 +148,6 @@ class NotificationService {
     }
   }
 
-  // عرض الإشعار محليًا
   Future<void> _showLocalNotification(RemoteMessage message) async {
     final notification = message.notification;
 
@@ -172,11 +207,10 @@ class NotificationService {
       title,
       body ?? '',
       notificationDetails,
-      payload: jsonEncode(message.data), // optional
+      payload: jsonEncode(message.data),
     );
   }
 
-  /// Local notification helper for testing.
   Future<void> showTestLocalNotification({
     required String title,
     required String body,
@@ -218,7 +252,6 @@ class NotificationService {
     );
   }
 
-  /// لا نُظهر إشعاراً في المقدّمة لرسالة دردشة تخص المحادثة المفتوحة حالياً.
   bool _suppressForegroundChatNotification(RemoteMessage message) {
     final type = message.data['notificationType']?.toString().trim();
     if (type != 'chat_message') return false;
@@ -230,6 +263,43 @@ class NotificationService {
     return incoming == openId;
   }
 
+  bool _isSilentPushData(Map<String, String> data) {
+    final v = data['silentSync'] ?? data['fcmSilentSync'];
+    if (v == null) return false;
+    final s = v.trim().toLowerCase();
+    return s == '1' || s == 'true' || s == 'yes';
+  }
+
+  Map<String, String> _stringDataMap(RemoteMessage message) {
+    return {
+      for (final e in message.data.entries)
+        e.key: e.value?.toString() ?? '',
+    };
+  }
+
+  Future<void> _handleForegroundPush(RemoteMessage message) async {
+    final data = _stringDataMap(message);
+    if (_isSilentPushData(data)) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(StorageKeys.prefsPendingPushSync, true);
+      _notifyControllersRefreshAfterSilentPush();
+      return;
+    }
+
+    if (Platform.isIOS) {
+      if (message.notification != null) {
+        return;
+      }
+      final title = data['title']?.toString();
+      if (title != null && title.trim().isNotEmpty) {
+        await _showLocalNotification(message);
+      }
+      return;
+    }
+
+    await _showLocalNotification(message);
+  }
+
   Future<String> _downloadAndSaveFile(String url, String fileName) async {
     final directory = await getApplicationDocumentsDirectory();
     final filePath = '${directory.path}/$fileName';
@@ -239,35 +309,29 @@ class NotificationService {
     return filePath;
   }
 
-  // الرسائل وقت ما التطبيق شغال
   void _listenToForegroundMessages() {
     _foregroundSub ??= FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       appLog('Received a message in foreground: ${message.notification?.title}');
       if (_suppressForegroundChatNotification(message)) return;
       if (!kIsWeb) {
-        _showLocalNotification(message);
+        unawaited(_handleForegroundPush(message));
       }
     });
   }
 
-  // لما المستخدم يفتح التطبيق من الإشعار (background أو terminated)
   Future<void> _setupInteractedMessage() async {
-    // التطبيق مفتوح من إشعار والرسالة كانت background
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       appLog(
         'App opened from background notification: ${message.notification?.title}',
       );
-      // اعمل هنا التنقل أو حاجة حسب الداتا
     });
 
-    // أول مرة يتفتح التطبيق من terminated بالحالة دي
     RemoteMessage? initialMessage =
         await FirebaseMessaging.instance.getInitialMessage();
     if (initialMessage != null) {
       appLog(
         'App opened from terminated state with message: ${initialMessage.notification?.title}',
       );
-      // اعمل معالجة للرسالة هنا
     }
   }
 }

@@ -27,6 +27,7 @@ String? pushSoundBaseForNotificationType(String? notificationType) {
     'employee_task_rejected': 'notification_content_status',
     'employee_task_reopened': 'notification_task_comment',
     'employee_task_new_attachments': 'notification_task_comment',
+    'employee_task_new_comment': 'notification_task_comment',
     'employee_task_status_changed': 'notification_content_status',
     // Manager
     'manager_task_received': 'notification_task_preview',

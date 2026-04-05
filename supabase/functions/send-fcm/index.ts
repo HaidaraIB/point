@@ -46,6 +46,7 @@ function soundBaseForNotificationType(notificationType: string | undefined): str
     employee_task_rejected: "notification_content_status",
     employee_task_reopened: "notification_task_comment",
     employee_task_new_attachments: "notification_task_comment",
+    employee_task_new_comment: "notification_task_comment",
     employee_task_status_changed: "notification_content_status",
     manager_task_received: "notification_task_preview",
     manager_task_completed: "notification_task_preview",
@@ -206,6 +207,35 @@ function buildFcmV1NotificationMessage(args: {
   return msg;
 }
 
+/** دفع data-only صامت للمزامنة (بدون تنبيه نظام). يضيف silentSync=1 في data. */
+function buildFcmV1SilentDataOnlyMessage(args: {
+  token?: string;
+  topic?: string;
+  dataPayload: Record<string, string>;
+}): Record<string, unknown> {
+  const data: Record<string, string> = {
+    ...args.dataPayload,
+    silentSync: "1",
+  };
+  return {
+    ...(args.token ? { token: args.token } : {}),
+    ...(args.topic ? { topic: args.topic } : {}),
+    data,
+    android: { priority: "high" },
+    apns: {
+      headers: {
+        "apns-push-type": "background",
+        "apns-priority": "5",
+      },
+      payload: {
+        aps: {
+          "content-available": 1,
+        },
+      },
+    },
+  };
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { status: 200, headers: corsHeaders() });
   if (req.method !== "POST") return json({ errorCode: "ERR_METHOD_NOT_ALLOWED" }, 405);
@@ -237,6 +267,7 @@ Deno.serve(async (req: Request) => {
       recipientId,
       recipientType,
       notificationType,
+      silentDataOnly,
     } = await req.json().catch(() => ({})) as {
       token?: string;
       topic?: string;
@@ -247,6 +278,7 @@ Deno.serve(async (req: Request) => {
       recipientId?: string;
       recipientType?: string;
       notificationType?: string;
+      silentDataOnly?: boolean;
     };
 
     const requestIdSafe = (requestId ?? crypto.randomUUID()).trim();
@@ -270,6 +302,74 @@ Deno.serve(async (req: Request) => {
         functionVersion: FUNCTION_VERSION,
       },
     });
+
+    if ((!token && !topic) || (token && topic)) {
+      await writePushDiagnostic({
+        accessToken,
+        projectId: sa.project_id,
+        payload: {
+          requestId: requestIdSafe,
+          stage: "function_validation",
+          status: "error",
+          senderUid: caller.uid,
+          senderEmail: caller.email,
+          recipientId,
+          recipientType,
+          targetType: token ? "token" : "topic",
+          tokenMasked: token ? maskFcmToken(token) : undefined,
+          topic,
+          title,
+          bodyLen: body?.length ?? 0,
+          notificationType,
+          functionVersion: FUNCTION_VERSION,
+          details: { reason: "invalid_target_selection" },
+        },
+      });
+      return json({ errorCode: "ERR_INVALID_DATA", requestId: requestIdSafe }, 400);
+    }
+
+    const fcmUrl = `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`;
+
+    if (silentDataOnly === true) {
+      const raw = data ?? {};
+      const keys = Object.keys(raw);
+      if (keys.length === 0) {
+        return json(
+          { errorCode: "ERR_INVALID_DATA", requestId: requestIdSafe, details: "silentDataOnly requires data" },
+          400,
+        );
+      }
+      const dataPayload: Record<string, string> = { ...raw };
+      if (notificationType && notificationType.trim().length > 0) {
+        dataPayload.notificationType = notificationType.trim();
+      }
+      const fcmSilent = buildFcmV1SilentDataOnlyMessage({
+        ...(token ? { token } : {}),
+        ...(topic ? { topic } : {}),
+        dataPayload,
+      });
+      const resSilent = await fetch(fcmUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ message: fcmSilent }),
+      });
+      const outSilentRaw = await resSilent.text().catch(() => "");
+      const outSilent = (() => {
+        if (!outSilentRaw) return {};
+        try {
+          return JSON.parse(outSilentRaw);
+        } catch (_) {
+          return { raw: outSilentRaw.slice(0, 1400) };
+        }
+      })();
+      if (!resSilent.ok) {
+        return json({ errorCode: "ERR_SERVER", details: outSilent, requestId: requestIdSafe }, 500);
+      }
+      return json({ ok: true, result: outSilent, requestId: requestIdSafe, silentDataOnly: true }, 200);
+    }
 
     if (!title || !body) {
       await writePushDiagnostic({
@@ -295,30 +395,6 @@ Deno.serve(async (req: Request) => {
       });
       return json({ errorCode: "ERR_INVALID_DATA", requestId: requestIdSafe }, 400);
     }
-    if ((!token && !topic) || (token && topic)) {
-      await writePushDiagnostic({
-        accessToken,
-        projectId: sa.project_id,
-        payload: {
-          requestId: requestIdSafe,
-          stage: "function_validation",
-          status: "error",
-          senderUid: caller.uid,
-          senderEmail: caller.email,
-          recipientId,
-          recipientType,
-          targetType: token ? "token" : "topic",
-          tokenMasked: token ? maskFcmToken(token) : undefined,
-          topic,
-          title,
-          bodyLen: body.length,
-          notificationType,
-          functionVersion: FUNCTION_VERSION,
-          details: { reason: "invalid_target_selection" },
-        },
-      });
-      return json({ errorCode: "ERR_INVALID_DATA", requestId: requestIdSafe }, 400);
-    }
 
     if (
       notificationType?.trim() === "chat_message" &&
@@ -340,8 +416,6 @@ Deno.serve(async (req: Request) => {
         );
       }
     }
-
-    const fcmUrl = `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`;
 
     const soundBase = soundBaseForNotificationType(notificationType);
     const dataPayload: Record<string, string> = {

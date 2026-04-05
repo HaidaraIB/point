@@ -17,12 +17,13 @@
 | `employee_task_rejected` | **الموظف المكلَّف** بالمهمة. | `HomeController` عند رفض المهمة. |
 | `employee_task_reopened` | **الموظف المكلَّف** بالمهمة. | `HomeController` عند إعادة فتح المهمة. |
 | `employee_task_new_attachments` | **الموظف المكلَّف** بالمهمة. | `HomeController` عند إضافة مرفقات. |
+| `employee_task_new_comment` | **الموظف المكلَّف** بالمهمة. | `NotificationService.notifyEmployeeTaskNewComment` ← `HomeController` عندما يضيف غير المكلَّف تعليقاً (دون تغيير الحالة). |
 | `employee_task_status_changed` | **الموظف المكلَّف** بالمهمة. | `HomeController` عند تغيّر حالة المهمة. |
 | `manager_task_received` | **كل** من لديه دور `admin` أو `supervisor`. | `NotificationService.notifyManagersTaskReceivedByEmployee` ← `HomeController`. |
 | `manager_task_completed` | **كل** `admin` و`supervisor`. | `NotificationService.notifyManagersTaskCompletedByEmployee` ← `HomeController`. |
 | `admin_supervisor_escalated_task` | **المسؤولون بدور `admin` فقط** (لا يشمل `supervisor` في استدعاء الدالة). | `NotificationService.notifyAdminsSupervisorEscalatedTask` ← `HomeController`. |
 | `manager_task_edited` | **كل** `admin` و`supervisor`. | `notifyManagersEmployeeEditedTask` عندما يكون التعديل **مرفقات فقط** (`ManagerTaskEditKind.attachment`). |
-| `manager_task_comment` | **كل** `admin` و`supervisor`. | نفس الدالة عند تعديل **بتعليق** أو **تعليق + مرفقات**. |
+| `manager_task_comment` | **كل** `admin` و`supervisor`. | نفس الدالة عند تعديل **بتعليق** أو **تعليق + مرفقات** من المكلَّف؛ دفع + بريد (حسب عنوان البريد في `employees`). |
 | `manager_content_submitted_by_client` | **كل** `admin` و`supervisor`. | `notifyManagersContentSubmittedByClient` ← `History.dart`، `ContentsTable.dart`، `ContentFormMobilePage.dart`. |
 | `manager_task_overdue` | **كل** `admin` و`supervisor`. | **Cron** فقط: `handleTaskReminders` (مهام متأخرة). لا يوجد `NotificationService` لهذا النوع. |
 | `manager_new_task_department` | **كل** `admin` و`supervisor`. | `HomeController` عند مهمة جديدة في قسم. |

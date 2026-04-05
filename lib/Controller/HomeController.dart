@@ -18,7 +18,9 @@ import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/AudioService.dart';
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
+import 'package:point/Services/fcm_token_cache.dart';
 import 'package:point/Services/NotificationService.dart';
+import 'package:point/Services/push_permissions_helper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -542,6 +544,13 @@ class HomeController extends GetxController {
     _rebindClientsAndTasksStreams();
   }
 
+  /// بعد دفع صامت أو استئناف التطبيق — إعادة ربط تدفقات البيانات.
+  void refreshAfterSilentPush() {
+    fetchClients();
+    fetchTasks();
+    fetchContents();
+  }
+
   Future<bool> addTask(TaskModel task) async {
     isLoading.value = true;
     final emp = currentEmployee.value;
@@ -691,6 +700,21 @@ class HomeController extends GetxController {
         employeeName: assigneeName,
         taskTitle: newTask.title,
         kind: editKind,
+      );
+    }
+
+    if (!isUpdateByAssignee &&
+        assigneeId.isNotEmpty &&
+        oldTask.status == newTask.status &&
+        newTask.notes.length > oldTask.notes.length) {
+      final rawName = (emp?.name ?? '').trim();
+      final commenterName = rawName.isNotEmpty
+          ? rawName
+          : 'notify.unknown_actor'.tr;
+      await NotificationService.notifyEmployeeTaskNewComment(
+        employeeId: assigneeId,
+        commenterName: commenterName,
+        taskTitle: newTask.title,
       );
     }
 
@@ -1539,6 +1563,20 @@ class HomeController extends GetxController {
     }
   }
 
+  /// صورة أو فيديو من المعرض (زر المعرض في الدردشة).
+  Future<List<PlatformFile>> pickOneChatGalleryMedia() async {
+    final result = await FilePicker.platform.pickFiles(
+      allowMultiple: false,
+      withData: true,
+      type: FileType.media,
+    );
+    appLog('Picked gallery media: ${result?.files.map((e) => e.name).toList()}');
+    if (result != null && result.files.isNotEmpty) {
+      return result.files;
+    }
+    return [];
+  }
+
   /// ملف واحد لأي نوع (مرفقات الدردشة).
   Future<List<PlatformFile>> pickOneChatFile() async {
     final result = await FilePicker.platform.pickFiles(
@@ -1560,14 +1598,19 @@ class HomeController extends GetxController {
   Future<String?> uploadFiles({
     required dynamic filePathOrBytes,
     String? fileName,
+    bool useBlockingUploadDialog = true,
   }) async {
     final uuid = Uuid();
     Timer? uploadProgressTimer;
+    var dialogShown = false;
     try {
       isUploading.value = true;
       uploadProgress.value = 0.0;
 
-      showUploadDialog();
+      if (useBlockingUploadDialog) {
+        showUploadDialog();
+        dialogShown = true;
+      }
 
       final bucket = supabase.storage.from('point');
       final uniqueName = "${uuid.v1()}.${getExtension(fileName ?? '')}";
@@ -1594,12 +1637,16 @@ class HomeController extends GetxController {
       uploadedFilesPaths.add(url);
 
       isUploading.value = false;
-      Get.back();
+      if (dialogShown) {
+        Get.back();
+      }
 
       return url;
     } catch (e) {
       isUploading.value = false;
-      Get.back();
+      if (dialogShown) {
+        Get.back();
+      }
       appLog("Error uploading file: $e");
       return null;
     } finally {
@@ -1728,12 +1775,16 @@ class HomeController extends GetxController {
     try {
       FirebaseMessaging messaging = FirebaseMessaging.instance;
 
-      // 1. طلب الإذن
-      NotificationSettings settings = await messaging.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
+      NotificationSettings settings;
+      if (kIsWeb) {
+        settings = await messaging.requestPermission(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+      } else {
+        settings = await PushPermissionsHelper.ensurePushPermissionsFlow();
+      }
 
       final isAllowed =
           settings.authorizationStatus == AuthorizationStatus.authorized ||
@@ -1741,7 +1792,6 @@ class HomeController extends GetxController {
       if (isAllowed) {
         appLog('User granted permission');
 
-        // 2. الحصول على التوكن (على الويب قد يفشل لغياب Service Worker / إعدادات المشروع)
         String? token;
         if (kIsWeb) {
           const isTest = bool.fromEnvironment('USE_FIREBASE_TEST', defaultValue: false);
@@ -1750,10 +1800,29 @@ class HomeController extends GetxController {
           token = await messaging.getToken();
         }
         if (token != null && currentEmployee.value != null) {
-          await FirestoreServices.addEmployeeFcmToken(
-            employeeId: currentEmployee.value!.id ?? userId,
-            token: token,
-          );
+          final empId = currentEmployee.value!.id ?? userId;
+          for (var attempt = 0; attempt < 3; attempt++) {
+            try {
+              await FirestoreServices.addEmployeeFcmToken(
+                employeeId: empId,
+                token: token,
+              );
+              await FcmTokenCache.rememberSuccess(
+                token: token,
+                role: 'employee',
+                userId: empId.toString(),
+              );
+              break;
+            } catch (e) {
+              if (attempt == 2) {
+                appLog('addEmployeeFcmToken failed after retries: $e');
+              } else {
+                await Future<void>.delayed(
+                  Duration(milliseconds: 350 * (attempt + 1)),
+                );
+              }
+            }
+          }
           appLog("FCM Registration Token: ${kIsWeb ? 'Web' : ''} $token");
         }
 
@@ -1764,11 +1833,30 @@ class HomeController extends GetxController {
           final employeeId = currentEmployee.value?.id ?? userId;
           if (employeeId == null || employeeId.toString().trim().isEmpty)
             return;
-          await FirestoreServices.addEmployeeFcmToken(
-            employeeId: employeeId.toString(),
-            token: refreshedToken,
-          );
-          appLog('FCM token refreshed for employee $employeeId');
+          final idStr = employeeId.toString();
+          for (var attempt = 0; attempt < 3; attempt++) {
+            try {
+              await FirestoreServices.addEmployeeFcmToken(
+                employeeId: idStr,
+                token: refreshedToken,
+              );
+              await FcmTokenCache.rememberSuccess(
+                token: refreshedToken,
+                role: 'employee',
+                userId: idStr,
+              );
+              appLog('FCM token refreshed for employee $idStr');
+              return;
+            } catch (e) {
+              if (attempt == 2) {
+                appLog('FCM onTokenRefresh failed after retries: $e');
+              } else {
+                await Future<void>.delayed(
+                  Duration(milliseconds: 350 * (attempt + 1)),
+                );
+              }
+            }
+          }
         });
       } else {
         appLog('User declined or has not yet granted permission');

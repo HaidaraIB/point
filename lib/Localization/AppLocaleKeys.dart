@@ -4,6 +4,7 @@ class AppLocaleKeys {
   static const appLanguage = 'app.language';
   static const appLanguageArabic = 'app.language.arabic';
   static const appLanguageEnglish = 'app.language.english';
+  static const appVersionLine = 'app.version_line';
   static const appClose = 'app.close';
 
   static const commonConfirm = 'common.confirm';
@@ -55,6 +56,7 @@ class AppLocaleKeys {
   static const chatWriteMessage = 'chat.write_message';
   static const chatAttachSheetTitle = 'chat.attach_sheet_title';
   static const chatAttachPhoto = 'chat.attach_photo';
+  static const chatAttachGallery = 'chat.attach_gallery';
   static const chatAttachFile = 'chat.attach_file';
   static const chatAttachVoice = 'chat.attach_voice';
   static const chatVoiceDiscard = 'chat.voice_discard';
@@ -63,6 +65,11 @@ class AppLocaleKeys {
   static const chatUnknownUser = 'chat.unknown_user';
   static const chatFileTapToOpen = 'chat.file_tap_to_open';
   static const chatFileUntitled = 'chat.file_untitled';
+  static const chatPreviewImageTitle = 'chat.preview_image_title';
+  static const chatPreviewVideoTitle = 'chat.preview_video_title';
+  static const chatPreviewPinchHint = 'chat.preview_pinch_hint';
+  static const chatPreviewLoadFailed = 'chat.preview_load_failed';
+  static const chatPreviewVideoFailed = 'chat.preview_video_failed';
 
   static const successTitle = 'feedback.success_title';
   static const errorTitle = 'feedback.error_title';

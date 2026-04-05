@@ -1,6 +1,20 @@
 import 'package:point/config/app_config.dart';
 
 class StorageKeys {
+  /// طلب مزامنة بعد دفع FCM صامت (خلفية).
+  static const String prefsPendingPushSync = 'point_pending_push_sync_v1';
+
+  /// آخر توكن FCM نُزامَن بنجاح (للمقارنة عند استئناف التطبيق).
+  static const String prefsFcmTokenLastSynced = 'point_fcm_token_last_synced_v1';
+
+  /// `employee` أو `client` — يقترن بـ [prefsFcmTokenUserId].
+  static const String prefsFcmTokenRole = 'point_fcm_token_role_v1';
+
+  static const String prefsFcmTokenUserId = 'point_fcm_token_user_id_v1';
+
+  /// مرة واحدة: اقتراح تعطيل تحسين البطارية لـ Android.
+  static const String prefsBatteryOptPromptShown = 'point_battery_opt_prompt_v1';
+
   /// مفتاح anon من Supabase (public).
   static String get supabaseKey => AppConfig.supabaseAnonKey;
 

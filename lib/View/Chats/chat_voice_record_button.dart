@@ -62,6 +62,7 @@ class _ChatVoiceRecordButtonState extends State<ChatVoiceRecordButton> {
     final url = await c.uploadFiles(
       filePathOrBytes: f.bytes!,
       fileName: f.name,
+      useBlockingUploadDialog: false,
     );
     if (url != null) {
       await widget.onUploaded(url, 0);
@@ -179,6 +180,7 @@ class _ChatVoiceRecordButtonState extends State<ChatVoiceRecordButton> {
     final url = await c.uploadFiles(
       filePathOrBytes: bytes,
       fileName: 'voice.m4a',
+      useBlockingUploadDialog: false,
     );
     if (url != null) {
       await widget.onUploaded(url, sec);
@@ -215,21 +217,27 @@ class _ChatVoiceRecordButtonState extends State<ChatVoiceRecordButton> {
   @override
   Widget build(BuildContext context) {
     if (kIsWeb) {
-      return IconButton(
-        style: _compactIconButton(context),
-        icon: const Icon(Icons.audio_file_outlined),
-        tooltip: AppLocaleKeys.chatAttachVoice.tr,
-        onPressed: _onMicPressed,
-      );
+      return Obx(() {
+        final busy = Get.find<HomeController>().isUploading.value;
+        return IconButton(
+          style: _compactIconButton(context),
+          icon: const Icon(Icons.audio_file_outlined),
+          tooltip: AppLocaleKeys.chatAttachVoice.tr,
+          onPressed: busy ? null : _onMicPressed,
+        );
+      });
     }
 
     if (!_recording) {
-      return IconButton(
-        style: _compactIconButton(context),
-        icon: const Icon(Icons.mic_none),
-        tooltip: AppLocaleKeys.chatAttachVoice.tr,
-        onPressed: _onMicPressed,
-      );
+      return Obx(() {
+        final busy = Get.find<HomeController>().isUploading.value;
+        return IconButton(
+          style: _compactIconButton(context),
+          icon: const Icon(Icons.mic_none),
+          tooltip: AppLocaleKeys.chatAttachVoice.tr,
+          onPressed: busy ? null : _onMicPressed,
+        );
+      });
     }
 
     final theme = Theme.of(context);

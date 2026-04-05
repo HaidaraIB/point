@@ -93,6 +93,16 @@ class _PushNotificationTestDialogBodyState
         .toList();
   }
 
+  /// فهرس الصف في القائمة المصفّاة — يُستخدم كقيمة [RadioListTile] حتى لا يتكرر
+  /// نفس [notificationType] في مجموعة واحدة (Flutter 3.32+ يفرض تفرد القيمة المختارة).
+  int _selectedIndexIn(List<PushNotificationTestDefinition> types) {
+    final i = types.indexWhere(
+      (e) => e.notificationType == _selected.notificationType,
+    );
+    if (i >= 0) return i;
+    return 0;
+  }
+
   void _addMe(HomeController c) {
     final id = c.effectiveEmployee?.id;
     if (id == null || id.isEmpty) return;
@@ -410,15 +420,12 @@ class _PushNotificationTestDialogBodyState
                       textAlign: TextAlign.center,
                     ),
                   )
-                  : RadioGroup<String>(
-                    groupValue: _selected.notificationType,
+                  : RadioGroup<int>(
+                    groupValue: _selectedIndexIn(types),
                     onChanged: (v) {
                       if (_sending || v == null) return;
-                      setState(
-                        () => _selected = types.firstWhere(
-                          (e) => e.notificationType == v,
-                        ),
-                      );
+                      if (v < 0 || v >= types.length) return;
+                      setState(() => _selected = types[v]);
                     },
                     child: ListView.builder(
                       shrinkWrap: true,
@@ -429,10 +436,10 @@ class _PushNotificationTestDialogBodyState
                         final sel =
                             def.notificationType ==
                             _selected.notificationType;
-                        return RadioListTile<String>(
+                        return RadioListTile<int>(
                           dense: true,
                           enabled: !_sending,
-                          value: def.notificationType,
+                          value: i,
                           title: Text(
                             def.notificationType,
                             style: const TextStyle(
@@ -660,15 +667,12 @@ class _PushNotificationTestDialogBodyState
                         ),
                       ),
                     )
-                    : RadioGroup<String>(
-              groupValue: _selected.notificationType,
+                    : RadioGroup<int>(
+              groupValue: _selectedIndexIn(types),
               onChanged: (v) {
                 if (_sending || v == null) return;
-                setState(
-                  () => _selected = types.firstWhere(
-                    (e) => e.notificationType == v,
-                  ),
-                );
+                if (v < 0 || v >= types.length) return;
+                setState(() => _selected = types[v]);
               },
               child: ListView.builder(
                 itemCount: types.length,
@@ -676,10 +680,10 @@ class _PushNotificationTestDialogBodyState
                   final def = types[i];
                   final sel =
                       def.notificationType == _selected.notificationType;
-                  return RadioListTile<String>(
+                  return RadioListTile<int>(
                     dense: true,
                     enabled: !_sending,
-                    value: def.notificationType,
+                    value: i,
                     title: Text(
                       def.notificationType,
                       style: const TextStyle(
