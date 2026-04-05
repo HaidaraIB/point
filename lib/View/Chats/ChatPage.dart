@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:point/Utils/app_log.dart';
+import 'package:point/Utils/text_input_bidi.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -75,7 +76,12 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
+    _messageController.addListener(_onComposerTextChanged);
     _initUserThenLoad();
+  }
+
+  void _onComposerTextChanged() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _initUserThenLoad() async {
@@ -437,6 +443,7 @@ class _ChatScreenState extends State<ChatScreen> {
         FirestoreServices.syncEmployeeActiveChatId(_currentUserId!, null),
       );
     }
+    _messageController.removeListener(_onComposerTextChanged);
     _messageController.dispose();
     _searchController.dispose();
     super.dispose();
@@ -1623,6 +1630,15 @@ class _ChatScreenState extends State<ChatScreen> {
                                                           controller:
                                                               _messageController,
                                                           readOnly: busy,
+                                                          textDirection:
+                                                              textDirectionForTypedChatMessage(
+                                                            _messageController.text,
+                                                            Directionality.of(
+                                                              context,
+                                                            ),
+                                                          ),
+                                                          textAlign:
+                                                              TextAlign.start,
                                                           textInputAction:
                                                               kIsWeb
                                                                   ? TextInputAction

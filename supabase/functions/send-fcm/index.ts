@@ -32,7 +32,289 @@ type PushDiagnosticPayload = {
 // هذا يمنع انتقال المشكلة من `401 Invalid JWT` إلى `403` بسبب صلاحيات ناقصة.
 const FCM_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
-const FUNCTION_VERSION = "send-fcm-v4-multi-project";
+const FUNCTION_VERSION = "send-fcm-v5-batch";
+
+/** Max device targets per HTTP request (stays within typical Edge timeouts). */
+const MAX_FCM_BATCH_RECIPIENTS = 100;
+/** Parallel FCM HTTP calls inside one batch invocation. */
+const FCM_BATCH_CONCURRENCY = 8;
+
+type FcmBatchItemResult = {
+  index: number;
+  recipientId?: string;
+  recipientType?: string;
+  tokenMasked: string;
+  ok: boolean;
+  skipped?: boolean;
+  reason?: string;
+  requestId: string;
+  fcmMessageId?: string;
+  fcmHttpStatus?: number;
+  fcmErrorCode?: string;
+  fcmErrorStatus?: string;
+  fcmErrorMessage?: string;
+  details?: unknown;
+};
+
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T, index: number) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let next = 0;
+  async function worker() {
+    while (true) {
+      const idx = next++;
+      if (idx >= items.length) break;
+      results[idx] = await fn(items[idx], idx);
+    }
+  }
+  const n = Math.min(limit, Math.max(1, items.length));
+  await Promise.all(Array.from({ length: n }, () => worker()));
+  return results;
+}
+
+function parseJsonResponse(raw: string): Record<string, unknown> {
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw) as Record<string, unknown>;
+  } catch {
+    return { raw: raw.slice(0, 1400) };
+  }
+}
+
+async function handleFcmRecipientsBatch(args: {
+  accessToken: string;
+  sa: ServiceAccountJson;
+  caller: { uid: string; email?: string };
+  parsed: {
+    recipients: Array<{
+      token?: string;
+      recipientId?: string;
+      recipientType?: string;
+      data?: Record<string, string>;
+      requestId?: string;
+    }>;
+    title?: string;
+    body?: string;
+    data?: Record<string, string>;
+    requestId?: string;
+    notificationType?: string;
+    silentDataOnly?: boolean;
+  };
+}): Promise<Response> {
+  const { accessToken, sa, caller, parsed } = args;
+
+  if (parsed.silentDataOnly === true) {
+    return json(
+      { errorCode: "ERR_INVALID_DATA", details: "batch does not support silentDataOnly", requestId: parsed.requestId },
+      400,
+    );
+  }
+
+  const rec = parsed.recipients ?? [];
+  if (rec.length > MAX_FCM_BATCH_RECIPIENTS) {
+    return json({
+      errorCode: "ERR_INVALID_DATA",
+      details: `max ${MAX_FCM_BATCH_RECIPIENTS} recipients`,
+      max: MAX_FCM_BATCH_RECIPIENTS,
+    }, 400);
+  }
+
+  const title = parsed.title ?? "";
+  const body = parsed.body ?? "";
+  if (!title || !body) {
+    return json({ errorCode: "ERR_INVALID_DATA", details: "title and body required" }, 400);
+  }
+
+  const notificationType = parsed.notificationType;
+  const parentRequestId = (parsed.requestId ?? crypto.randomUUID()).trim();
+  const fcmUrl = `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`;
+  const soundBase = soundBaseForNotificationType(notificationType);
+
+  const processOne = async (
+    item: (typeof rec)[number],
+    index: number,
+  ): Promise<FcmBatchItemResult> => {
+    const token = (item.token ?? "").trim();
+    const tokenMasked = token ? maskFcmToken(token) : "***";
+    const subRequestId = (item.requestId?.trim() || `${parentRequestId}_${index}`).trim();
+    const recipientId = item.recipientId;
+    const recipientType = item.recipientType;
+
+    if (!token) {
+      return {
+        index,
+        tokenMasked,
+        ok: false,
+        requestId: subRequestId,
+        recipientId,
+        recipientType,
+        details: { reason: "missing_token" },
+      };
+    }
+
+    if (
+      notificationType?.trim() === "chat_message" &&
+      recipientId &&
+      typeof recipientId === "string"
+    ) {
+      const merged = { ...(parsed.data ?? {}), ...(item.data ?? {}) };
+      if (merged.chatId) {
+        const activeState = await getEmployeeActiveChatState(accessToken, sa.project_id, recipientId);
+        const incomingChat = String(merged.chatId).trim();
+        if (
+          shouldSkipChatPushForActiveSameChat({
+            activeChatId: activeState.chatId,
+            activeChatUpdatedAtMs: activeState.updatedAtMs,
+            incomingChatId: incomingChat,
+          })
+        ) {
+          return {
+            index,
+            tokenMasked,
+            ok: true,
+            skipped: true,
+            reason: "recipient_active_same_chat",
+            requestId: subRequestId,
+            recipientId,
+            recipientType,
+          };
+        }
+      }
+    }
+
+    const dataPayload: Record<string, string> = {
+      ...(parsed.data ?? {}),
+      ...(item.data ?? {}),
+    };
+    if (notificationType && notificationType.trim().length > 0) {
+      dataPayload.notificationType = notificationType.trim();
+    }
+    if (soundBase) {
+      dataPayload.pushSoundBase = soundBase;
+    }
+    dataPayload.title = title;
+    dataPayload.body = body;
+    dataPayload.requestId = subRequestId;
+
+    const fcmMessage = buildFcmV1NotificationMessage({
+      token,
+      title,
+      body,
+      dataPayload,
+      soundBase,
+      webNotificationTag: `point-${subRequestId}`,
+    });
+
+    const res = await fetch(fcmUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        message: fcmMessage,
+      }),
+    });
+
+    const outRaw = await res.text().catch(() => "");
+    const out = parseJsonResponse(outRaw);
+
+    if (!res.ok) {
+      const fcmError = (out as { error?: { code?: unknown; status?: unknown; message?: unknown } })?.error;
+      await writePushDiagnostic({
+        accessToken,
+        projectId: sa.project_id,
+        payload: {
+          requestId: subRequestId,
+          stage: "function_result",
+          status: "error",
+          senderUid: caller.uid,
+          senderEmail: caller.email,
+          recipientId,
+          recipientType,
+          targetType: "token",
+          tokenMasked,
+          title,
+          bodyLen: body.length,
+          notificationType,
+          functionVersion: FUNCTION_VERSION,
+          fcmHttpStatus: res.status,
+          fcmMessageId: typeof (out as { name?: string })?.name === "string"
+            ? (out as { name: string }).name
+            : undefined,
+          fcmErrorCode: fcmError?.code?.toString(),
+          fcmErrorStatus: fcmError?.status?.toString(),
+          fcmErrorMessage: fcmError?.message?.toString(),
+          details: out,
+        },
+      });
+      return {
+        index,
+        tokenMasked,
+        ok: false,
+        requestId: subRequestId,
+        recipientId,
+        recipientType,
+        fcmHttpStatus: res.status,
+        fcmErrorCode: fcmError?.code?.toString(),
+        fcmErrorStatus: fcmError?.status?.toString(),
+        fcmErrorMessage: fcmError?.message?.toString(),
+        details: out,
+      };
+    }
+
+    await writePushDiagnostic({
+      accessToken,
+      projectId: sa.project_id,
+      payload: {
+        requestId: subRequestId,
+        stage: "function_result",
+        status: "ok",
+        senderUid: caller.uid,
+        senderEmail: caller.email,
+        recipientId,
+        recipientType,
+        targetType: "token",
+        tokenMasked,
+        title,
+        bodyLen: body.length,
+        notificationType,
+        functionVersion: FUNCTION_VERSION,
+        fcmHttpStatus: res.status,
+        fcmMessageId: typeof (out as { name?: string })?.name === "string" ? (out as { name: string }).name : undefined,
+        details: out,
+      },
+    });
+
+    return {
+      index,
+      tokenMasked,
+      ok: true,
+      requestId: subRequestId,
+      recipientId,
+      recipientType,
+      fcmMessageId: typeof (out as { name?: string })?.name === "string" ? (out as { name: string }).name : undefined,
+    };
+  };
+
+  const results = await mapWithConcurrency(rec, FCM_BATCH_CONCURRENCY, processOne);
+
+  const sent = results.filter((r) => r.ok && !r.skipped).length;
+  const skipped = results.filter((r) => r.skipped === true).length;
+  const failed = results.filter((r) => !r.ok).length;
+
+  return json({
+    ok: true,
+    batch: true,
+    functionVersion: FUNCTION_VERSION,
+    parentRequestId,
+    results,
+    summary: { sent, skipped, failed, total: results.length },
+  }, 200);
+}
 
 function soundBaseForNotificationType(notificationType: string | undefined): string | null {
   if (!notificationType) return null;
@@ -40,6 +322,7 @@ function soundBaseForNotificationType(notificationType: string | undefined): str
   if (!t) return null;
   const map: Record<string, string> = {
     chat_message: "notification_chat",
+    chat_unread_digest: "notification_chat",
     employee_task_assigned: "notification_task_preview",
     employee_task_due_soon: "notification_task_deadline_soon",
     employee_task_edit_requested: "notification_task_comment",
@@ -145,10 +428,16 @@ function fcmPlatformSoundPayloads(soundBase: string | null): {
   };
 }
 
+/** Android TTL + APNs expiration: keep undelivered alerts up to 24h when device offline. */
+const FCM_NOTIFICATION_TTL_SEC = 86400;
+
+function apnsExpirationHeaderValue(): string {
+  return String(Math.floor(Date.now() / 1000) + FCM_NOTIFICATION_TTL_SEC);
+}
+
 /**
- * لا نضع `notification` على مستوى جذر الرسالة: على الويب يؤدي ذلك غالباً إلى
- * إشعارين لنفس الحدث (مسار FCM الافتراضي + Web Push). العرض يُضبط عبر
- * `webpush.notification` و`android.notification` و`apns.payload.aps.alert` فقط.
+ * جذر `notification` يحسّن التسليم على Android/iOS عند إغلاق التطبيق؛ الويب يبقى عبر
+ * `webpush.notification` + tag لتقليل الازدواجية.
  */
 function buildFcmV1NotificationMessage(args: {
   token?: string;
@@ -168,12 +457,21 @@ function buildFcmV1NotificationMessage(args: {
   };
   const prevAps = { ...(apnsBlock.payload?.aps ?? {}) };
   const tag = args.webNotificationTag.slice(0, 64);
+  const apnsHeaders: Record<string, string> = {
+    ...(apnsBlock.headers ?? {}),
+    "apns-expiration": apnsExpirationHeaderValue(),
+  };
 
   const msg: Record<string, unknown> = {
     ...(args.token ? { token: args.token } : {}),
     ...(args.topic ? { topic: args.topic } : {}),
+    notification: {
+      title: args.title,
+      body: args.body,
+    },
     android: {
       priority: "high",
+      ttl: `${FCM_NOTIFICATION_TTL_SEC}s`,
       notification: {
         title: args.title,
         body: args.body,
@@ -181,7 +479,7 @@ function buildFcmV1NotificationMessage(args: {
       },
     },
     apns: {
-      headers: apnsBlock.headers,
+      headers: apnsHeaders,
       payload: {
         aps: {
           ...prevAps,
@@ -257,6 +555,52 @@ Deno.serve(async (req: Request) => {
     // triggered by multiple app roles (employees/clients/etc).
     const accessToken = await getAccessToken(sa);
 
+    const parsed = await req.json().catch(() => ({})) as {
+      token?: string;
+      topic?: string;
+      title?: string;
+      body?: string;
+      data?: Record<string, string>;
+      requestId?: string;
+      recipientId?: string;
+      recipientType?: string;
+      notificationType?: string;
+      silentDataOnly?: boolean;
+      recipients?: Array<{
+        token?: string;
+        recipientId?: string;
+        recipientType?: string;
+        data?: Record<string, string>;
+        requestId?: string;
+      }>;
+    };
+
+    if (Array.isArray(parsed.recipients) && parsed.recipients.length > 0) {
+      if (parsed.token || parsed.topic) {
+        return json(
+          {
+            errorCode: "ERR_INVALID_DATA",
+            details: "use either recipients[] or token/topic, not both",
+          },
+          400,
+        );
+      }
+      return await handleFcmRecipientsBatch({
+        accessToken,
+        sa,
+        caller,
+        parsed: {
+          recipients: parsed.recipients,
+          title: parsed.title,
+          body: parsed.body,
+          data: parsed.data,
+          requestId: parsed.requestId,
+          notificationType: parsed.notificationType,
+          silentDataOnly: parsed.silentDataOnly,
+        },
+      });
+    }
+
     const {
       token,
       topic,
@@ -268,18 +612,7 @@ Deno.serve(async (req: Request) => {
       recipientType,
       notificationType,
       silentDataOnly,
-    } = await req.json().catch(() => ({})) as {
-      token?: string;
-      topic?: string;
-      title?: string;
-      body?: string;
-      data?: Record<string, string>;
-      requestId?: string;
-      recipientId?: string;
-      recipientType?: string;
-      notificationType?: string;
-      silentDataOnly?: boolean;
-    };
+    } = parsed;
 
     const requestIdSafe = (requestId ?? crypto.randomUUID()).trim();
     await writePushDiagnostic({
@@ -402,9 +735,15 @@ Deno.serve(async (req: Request) => {
       typeof recipientId === "string" &&
       data?.chatId
     ) {
-      const active = await getEmployeeActiveChatId(accessToken, sa.project_id, recipientId);
+      const activeState = await getEmployeeActiveChatState(accessToken, sa.project_id, recipientId);
       const incomingChat = String(data.chatId).trim();
-      if (active && active === incomingChat) {
+      if (
+        shouldSkipChatPushForActiveSameChat({
+          activeChatId: activeState.chatId,
+          activeChatUpdatedAtMs: activeState.updatedAtMs,
+          incomingChatId: incomingChat,
+        })
+      ) {
         return json(
           {
             ok: true,
@@ -521,21 +860,52 @@ Deno.serve(async (req: Request) => {
   }
 });
 
-async function getEmployeeActiveChatId(
+/** Skip chat FCM only when the same chat is actively open *and* sync is fresh (avoids stale activeChatId after kill/background). */
+const ACTIVE_CHAT_SKIP_MAX_AGE_MS = 3 * 60 * 1000;
+
+async function getEmployeeActiveChatState(
   accessToken: string,
   projectId: string,
   employeeId: string,
-): Promise<string | null> {
+): Promise<{ chatId: string | null; updatedAtMs: number | null }> {
   const url =
     `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/employees/${encodeURIComponent(employeeId)}`;
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
-  if (!res.ok) return null;
-  const j = await res.json().catch(() => ({}));
-  const v = (j as { fields?: { activeChatId?: { stringValue?: string } } })?.fields?.activeChatId
-    ?.stringValue;
-  return typeof v === "string" && v.length > 0 ? v : null;
+  if (!res.ok) return { chatId: null, updatedAtMs: null };
+  const j = await res.json().catch(() => ({})) as {
+    fields?: {
+      activeChatId?: { stringValue?: string };
+      activeChatUpdatedAt?: { timestampValue?: string; stringValue?: string };
+    };
+  };
+  const chatId = j.fields?.activeChatId?.stringValue;
+  const cid = typeof chatId === "string" && chatId.length > 0 ? chatId : null;
+  const tsRaw =
+    j.fields?.activeChatUpdatedAt?.timestampValue ??
+    j.fields?.activeChatUpdatedAt?.stringValue;
+  let updatedAtMs: number | null = null;
+  if (typeof tsRaw === "string" && tsRaw.length > 0) {
+    const n = new Date(tsRaw).getTime();
+    updatedAtMs = Number.isNaN(n) ? null : n;
+  }
+  return { chatId: cid, updatedAtMs };
+}
+
+function shouldSkipChatPushForActiveSameChat(args: {
+  activeChatId: string | null;
+  activeChatUpdatedAtMs: number | null;
+  incomingChatId: string;
+}): boolean {
+  const incoming = args.incomingChatId.trim();
+  if (!incoming || !args.activeChatId || args.activeChatId.trim() !== incoming) {
+    return false;
+  }
+  if (args.activeChatUpdatedAtMs == null) {
+    return false;
+  }
+  return Date.now() - args.activeChatUpdatedAtMs < ACTIVE_CHAT_SKIP_MAX_AGE_MS;
 }
 
 function maskFcmToken(t: string): string {

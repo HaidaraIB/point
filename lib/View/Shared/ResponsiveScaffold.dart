@@ -8,6 +8,7 @@ import 'package:point/Controller/HomeController.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/AppConstants.dart';
 import 'package:point/Utils/AppNotificationInbox.dart';
+import 'package:point/Utils/text_input_bidi.dart';
 import 'package:point/Services/ChatAudioFocus.dart';
 import 'package:point/Services/ChatIncomingMessageSound.dart';
 import 'package:point/Services/FireStoreServices.dart';
@@ -304,6 +305,10 @@ class _ChatPopupState extends State<ChatPopup> {
     if (mounted) setState(() {});
   }
 
+  void _onComposerTextChanged() {
+    if (mounted) setState(() {});
+  }
+
   Future<void> _showPopupAttachmentMenu(BuildContext anchorContext) async {
     final controller = Get.find<HomeController>();
     if (!mounted) return;
@@ -463,6 +468,7 @@ class _ChatPopupState extends State<ChatPopup> {
 
     _syncPopupSoundAndFocus();
     _messageFocusNode.addListener(_onPopupInputFocus);
+    _messageController.addListener(_onComposerTextChanged);
   }
 
   @override
@@ -484,6 +490,7 @@ class _ChatPopupState extends State<ChatPopup> {
     }
     _messageFocusNode.removeListener(_onPopupInputFocus);
     _messageFocusNode.dispose();
+    _messageController.removeListener(_onComposerTextChanged);
     _messageController.dispose();
     super.dispose();
   }
@@ -790,6 +797,11 @@ class _ChatPopupState extends State<ChatPopup> {
                         maxLines: 5,
                         keyboardType: TextInputType.multiline,
                         readOnly: busy,
+                        textDirection: textDirectionForTypedChatMessage(
+                          _messageController.text,
+                          Directionality.of(context),
+                        ),
+                        textAlign: TextAlign.start,
                         style: TextStyle(
                           fontSize: _messageFocusNode.hasFocus ? 15.5 : 14.5,
                           height: 1.35,

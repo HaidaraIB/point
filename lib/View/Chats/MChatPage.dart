@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:point/Utils/app_log.dart';
+import 'package:point/Utils/text_input_bidi.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -982,6 +983,11 @@ class _MessageScreenState extends State<MessageScreen> {
     );
 
     _messageFocusNode.addListener(_onMessageFocusChanged);
+    _messageController.addListener(_onComposerTextChanged);
+  }
+
+  void _onComposerTextChanged() {
+    if (mounted) setState(() {});
   }
 
   void _onMessageFocusChanged() {
@@ -1107,6 +1113,7 @@ class _MessageScreenState extends State<MessageScreen> {
     );
     _messageFocusNode.removeListener(_onMessageFocusChanged);
     _messageFocusNode.dispose();
+    _messageController.removeListener(_onComposerTextChanged);
     _messageController.dispose();
     super.dispose();
   }
@@ -1511,6 +1518,11 @@ class _MessageScreenState extends State<MessageScreen> {
                         maxLines: 6,
                         keyboardType: TextInputType.multiline,
                         readOnly: busy,
+                        textDirection: textDirectionForTypedChatMessage(
+                          _messageController.text,
+                          Directionality.of(context),
+                        ),
+                        textAlign: TextAlign.start,
                         style: TextStyle(
                           fontSize: _messageFocusNode.hasFocus ? 17 : 16,
                           height: 1.35,

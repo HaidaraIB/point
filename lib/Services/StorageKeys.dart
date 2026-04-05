@@ -12,6 +12,10 @@ class StorageKeys {
 
   static const String prefsFcmTokenUserId = 'point_fcm_token_user_id_v1';
 
+  /// أقصى `createdAt` (ms منذ epoch) لإشعار وارد رأيناه عند استطلاع Firestore بعد الاستئناف.
+  static const String prefsNotificationsResumeCursorMs =
+      'point_notifications_resume_cursor_ms_v1';
+
   /// مرة واحدة: اقتراح تعطيل تحسين البطارية لـ Android.
   static const String prefsBatteryOptPromptShown = 'point_battery_opt_prompt_v1';
 

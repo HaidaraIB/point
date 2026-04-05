@@ -40,6 +40,18 @@ const List<PushNotificationTestDefinition> kPushNotificationTestCatalog =
         categoryKey: 'push_test.category.chat',
       ),
       PushNotificationTestDefinition(
+        notificationType: 'chat_unread_digest',
+        audience: PushTestAudience.employee,
+        sortOrder: 10,
+        categoryKey: 'push_test.category.chat',
+      ),
+      PushNotificationTestDefinition(
+        notificationType: 'chat_unread_digest',
+        audience: PushTestAudience.client,
+        sortOrder: 10,
+        categoryKey: 'push_test.category.chat',
+      ),
+      PushNotificationTestDefinition(
         notificationType: 'employee_task_assigned',
         audience: PushTestAudience.employee,
         sortOrder: 20,

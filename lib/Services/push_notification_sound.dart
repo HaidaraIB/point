@@ -20,6 +20,7 @@ String? pushSoundBaseForNotificationType(String? notificationType) {
   if (t.isEmpty) return null;
   const map = <String, String>{
     'chat_message': 'notification_chat',
+    'chat_unread_digest': 'notification_chat',
     // Employee — task
     'employee_task_assigned': 'notification_task_preview',
     'employee_task_due_soon': 'notification_task_deadline_soon',

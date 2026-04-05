@@ -7,6 +7,31 @@ import 'package:point/Utils/EdgeFunctionRateLimiter.dart';
 /// المفتاح يُخزّن في Supabase فقط: Dashboard → Edge Functions → Secrets → RESEND_API_KEY
 const String _functionName = 'send-notification-email';
 
+/// One row for [EmailNotificationService.sendDetailedNotificationBatch] (Edge `messages[]`).
+class DetailedEmailBatchItem {
+  const DetailedEmailBatchItem({
+    required this.toEmail,
+    required this.title,
+    required this.body,
+    this.recipientLabel,
+    this.notificationType,
+    this.actionText,
+    this.referenceId,
+    this.details,
+    this.sentAt,
+  });
+
+  final String toEmail;
+  final String title;
+  final String body;
+  final String? recipientLabel;
+  final String? notificationType;
+  final String? actionText;
+  final String? referenceId;
+  final Map<String, String>? details;
+  final DateTime? sentAt;
+}
+
 class EmailNotificationService {
   EmailNotificationService._();
   static final EmailNotificationService instance = EmailNotificationService._();
@@ -110,6 +135,143 @@ class EmailNotificationService {
       appLog("❌ EmailNotificationService sendDetailedNotification error: $e");
       appLog("$st");
       await sendNotification(toEmail: toEmail, title: title, body: body);
+    }
+  }
+
+  /// Builds the same HTML as [sendDetailedNotification] for batch or custom sends.
+  static String buildDetailedNotificationHtml({
+    required String title,
+    required String body,
+    String? recipientLabel,
+    String? notificationType,
+    String? actionText,
+    String? referenceId,
+    Map<String, String>? details,
+    DateTime? sentAt,
+  }) {
+    final safeDetails = <String, String>{
+      if (details != null) ...details,
+      if (notificationType != null && notificationType.trim().isNotEmpty)
+        'نوع الإشعار': notificationType.trim(),
+      if (referenceId != null && referenceId.trim().isNotEmpty)
+        'المرجع': referenceId.trim(),
+    };
+    return _buildHtmlTemplate(
+      title: title,
+      body: body,
+      recipientLabel: recipientLabel,
+      actionText: actionText,
+      details: safeDetails,
+      sentAt: sentAt ?? DateTime.now(),
+    );
+  }
+
+  /// Sends many distinct HTML emails in one or few Edge invocations (`messages[]`, max 40 each).
+  static Future<void> sendDetailedNotificationBatch(
+    List<DetailedEmailBatchItem> items,
+  ) async {
+    if (items.isEmpty) return;
+    const maxChunk = 40;
+    for (var i = 0; i < items.length; i += maxChunk) {
+      final end = (i + maxChunk > items.length) ? items.length : i + maxChunk;
+      final chunk = items.sublist(i, end);
+      final messages = <Map<String, dynamic>>[];
+      for (final item in chunk) {
+        final html = buildDetailedNotificationHtml(
+          title: item.title,
+          body: item.body,
+          recipientLabel: item.recipientLabel,
+          notificationType: item.notificationType,
+          actionText: item.actionText,
+          referenceId: item.referenceId,
+          details: item.details,
+          sentAt: item.sentAt,
+        );
+        messages.add(<String, dynamic>{
+          'toEmail': item.toEmail.trim(),
+          'subject': item.title,
+          'body': html,
+          'isHtml': true,
+        });
+      }
+      try {
+        final client = Supabase.instance.client;
+        final res = await EdgeFunctionRateLimiter.instance.run(() {
+          return client.functions.invoke(
+            _functionName,
+            body: <String, dynamic>{'messages': messages},
+          );
+        });
+        if (res.status == 200 && res.data != null) {
+          final data = res.data as Map<String, dynamic>?;
+          if (data?['ok'] == true) {
+            appLog(
+              '✅ Email batch sent chunk ${i ~/ maxChunk + 1} (${chunk.length} messages)',
+            );
+            continue;
+          }
+        }
+        appLog(
+          '❌ Email batch invoke failed. status=${res.status}, data=${res.data}',
+        );
+      } catch (e, st) {
+        appLog('❌ EmailNotificationService sendDetailedNotificationBatch: $e');
+        appLog('$st');
+      }
+    }
+  }
+
+  /// Same HTML body to many addresses (e.g. topic broadcast); chunks to 40 per request.
+  static Future<void> sendPregeneratedHtmlBatch({
+    required List<String> toEmails,
+    required String subject,
+    required String htmlBody,
+  }) async {
+    final trimmed =
+        toEmails
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+    if (trimmed.isEmpty) return;
+    const maxChunk = 40;
+    for (var i = 0; i < trimmed.length; i += maxChunk) {
+      final end = (i + maxChunk > trimmed.length) ? trimmed.length : i + maxChunk;
+      final chunk = trimmed.sublist(i, end);
+      final messages =
+          chunk
+              .map(
+                (e) => <String, dynamic>{
+                  'toEmail': e,
+                  'subject': subject,
+                  'body': htmlBody,
+                  'isHtml': true,
+                },
+              )
+              .toList();
+      try {
+        final client = Supabase.instance.client;
+        final res = await EdgeFunctionRateLimiter.instance.run(() {
+          return client.functions.invoke(
+            _functionName,
+            body: <String, dynamic>{'messages': messages},
+          );
+        });
+        if (res.status == 200 && res.data != null) {
+          final data = res.data as Map<String, dynamic>?;
+          if (data?['ok'] == true) {
+            appLog(
+              '✅ Email pregenerated batch chunk ${i ~/ maxChunk + 1} (${chunk.length})',
+            );
+            continue;
+          }
+        }
+        appLog(
+          '❌ Email pregenerated batch failed. status=${res.status}, data=${res.data}',
+        );
+      } catch (e, st) {
+        appLog('❌ EmailNotificationService sendPregeneratedHtmlBatch: $e');
+        appLog('$st');
+      }
     }
   }
 

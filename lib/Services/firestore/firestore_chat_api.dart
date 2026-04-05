@@ -8,7 +8,9 @@ class FirestoreChatApi {
 
   /// يضع [isRead] = true لكل الرسائل الواردة (مرسل ليس [viewerUserId]) داخل [chatId].
   /// يُستدعى عند فتح المحادثة أو عند وصول تحديثات أثناء بقاء الشاشة مفتوحة.
-  /// يحدّد المحادثة المفتوحة حالياً لموظف (لتخطّي FCM على الخادم عند الحاجة).
+  /// يحدّد المحادثة المفتوحة حالياً لموظف. الخادم ([send-fcm]) يتخطّى دفع [chat_message]
+  /// لنفس المحادثة فقط إذا كان [activeChatUpdatedAt] حديثاً (بضع دقائق) — يقلّل الإشعارات المزدوجة
+  /// دون إسقاط الدفع عند بقاء [activeChatId] قديماً بعد إغلاق التطبيق.
   static Future<void> syncEmployeeActiveChatId(
     String employeeId,
     String? chatId,

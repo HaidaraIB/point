@@ -1,13 +1,63 @@
+/**
+ * جدولة Supabase Cron (مثال جسم الطلب):
+ * `POST` + JSON `{ "mode": "unread_chats", "firebaseProjectId": "<optional>" }`
+ * مع الرؤوس: `Authorization: Bearer <SUPABASE_ANON_KEY>`, `apikey`, `x-cron-secret: <CRON_SECRET>`.
+ *
+ * أوضاع `mode`: `tasks` | `content24h` | `publish` | `unread_chats` | `all`.
+ * **تجنّب `all` في الإنتاج** عند كثرة المستخدمين — حدود زمن Edge قد تقطع التنفيذ؛
+ * جدولة كرون منفصلة لكل `mode` + `unread_chats` منفصل دائماً عند كثرة المحادثات.
+ */
 import "https://deno.land/std@0.177.0/http/server.ts";
 import type { ServiceAccountJson } from "../_shared/firebase-edge.ts";
 import { resolveServiceAccountForScheduledCron } from "../_shared/firebase-edge.ts";
-import { buildEmailHtml } from "../send-notification-email/email-template.ts";
+import {
+  extractFcmTokensFromFirestoreFields,
+  fcmPayloadImpliesInvalidToken,
+  maskFcmToken,
+} from "../_shared/fcm_tokens.ts";
+import {
+  buildChatUnreadDigestEmailHtml,
+  buildEmailHtml,
+  type ChatDigestRow,
+} from "../send-notification-email/email-template.ts";
 
 // نطاق يغطي Firestore REST و FCM v1؛ `firebase.messaging` وحدها تسبب 403 على list/query في Firestore.
 const GOOGLE_ACCESS_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const RESEND_URL = "https://api.resend.com/emails";
 const FROM_EMAIL = "Point Agency <no-reply@mail.point-iq.app>";
+
+const CRON_FCM_VERSION = "scheduled-notifications-v6";
+
+type CronFcmAgg = {
+  sendAttempts: number;
+  sendOk: number;
+  sendFailed: number;
+  recipientsWithNoToken: number;
+  invalidTokensCleaned: number;
+};
+
+let cronFcmAgg: CronFcmAgg = {
+  sendAttempts: 0,
+  sendOk: 0,
+  sendFailed: 0,
+  recipientsWithNoToken: 0,
+  invalidTokensCleaned: 0,
+};
+
+function resetCronFcmAgg(): void {
+  cronFcmAgg = {
+    sendAttempts: 0,
+    sendOk: 0,
+    sendFailed: 0,
+    recipientsWithNoToken: 0,
+    invalidTokensCleaned: 0,
+  };
+}
+
+function snapshotCronFcmAgg(): CronFcmAgg {
+  return { ...cronFcmAgg };
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { status: 200, headers: corsHeaders() });
@@ -32,6 +82,8 @@ Deno.serve(async (req: Request) => {
       mode?: string;
       firebaseProjectId?: string;
     };
+    resetCronFcmAgg();
+    const started = Date.now();
     const sa = resolveServiceAccountForScheduledCron(body.firebaseProjectId);
     const accessToken = await getAccessToken(sa);
     const firestoreBase = `https://firestore.googleapis.com/v1/projects/${sa.project_id}/databases/(default)/documents`;
@@ -41,9 +93,21 @@ Deno.serve(async (req: Request) => {
 
     const mode = (body?.mode ?? "all").toLowerCase();
 
-    // ملاحظة: Supabase Cron قد يفرض timeout 5000ms.
-    // لذلك ندعم تشغيل جزء واحد عبر body.mode:
-    // tasks | content24h | publish | all
+    if (mode === "unread_chats") {
+      await handleUnreadChatDigest({ accessToken, firestoreBase, fcmUrl, projectId: sa.project_id });
+      const fcm = snapshotCronFcmAgg();
+      const durationMs = Date.now() - started;
+      console.log(
+        JSON.stringify({
+          cronCompletion: "unread_chats",
+          durationMs,
+          fcm,
+          warnAllMode: false,
+        }),
+      );
+      return json({ ok: true, mode: "unread_chats", durationMs, fcm }, 200);
+    }
+
     if (mode === "tasks" || mode === "all") {
       await handleTaskReminders({ accessToken, firestoreBase, fcmUrl, now, projectId: sa.project_id });
     }
@@ -54,7 +118,31 @@ Deno.serve(async (req: Request) => {
       await handlePublishReminders({ accessToken, firestoreBase, fcmUrl, now, projectId: sa.project_id });
     }
 
-    return json({ ok: true }, 200);
+    const fcm = snapshotCronFcmAgg();
+    const durationMs = Date.now() - started;
+    console.log(
+      JSON.stringify({
+        cronCompletion: mode,
+        durationMs,
+        fcm,
+        warnAllMode: mode === "all",
+      }),
+    );
+    return json(
+      {
+        ok: true,
+        mode,
+        durationMs,
+        fcm,
+        ...(mode === "all"
+          ? {
+            schedulingHint:
+              "Prefer separate cron jobs per mode (tasks, content24h, publish) to avoid Edge timeouts.",
+          }
+          : {}),
+      },
+      200,
+    );
   } catch (e) {
     return json({ errorCode: "ERR_SERVER", details: String(e) }, 500);
   }
@@ -139,6 +227,118 @@ function getDoubleField(fields: Record<string, unknown>, key: string): number | 
     return Number.isFinite(n) ? n : null;
   }
   return null;
+}
+
+async function writeCronPushDiagnostic(args: {
+  accessToken: string;
+  projectId: string;
+  requestId: string;
+  stage: string;
+  status: "ok" | "error";
+  recipientId?: string;
+  recipientKind?: "employee" | "client";
+  tokenMasked?: string;
+  title?: string;
+  bodyLen?: number;
+  notificationType?: string;
+  fcmHttpStatus?: number;
+  fcmErrorCode?: string;
+  fcmErrorMessage?: string;
+  details?: unknown;
+}): Promise<void> {
+  try {
+    const url =
+      `https://firestore.googleapis.com/v1/projects/${args.projectId}/databases/(default)/documents/push_diagnostics`;
+    const fields: Record<string, unknown> = {
+      requestId: { stringValue: args.requestId },
+      stage: { stringValue: args.stage },
+      status: { stringValue: args.status },
+      targetType: { stringValue: "token" },
+      functionVersion: { stringValue: CRON_FCM_VERSION },
+      createdAt: { timestampValue: new Date().toISOString() },
+      bodyLen: { integerValue: String(args.bodyLen ?? 0) },
+      source: { stringValue: "scheduled_notifications" },
+    };
+    if (args.recipientId) fields.recipientId = { stringValue: args.recipientId };
+    if (args.recipientKind) fields.recipientKind = { stringValue: args.recipientKind };
+    if (args.tokenMasked) fields.tokenMasked = { stringValue: args.tokenMasked };
+    if (args.title) fields.title = { stringValue: args.title };
+    if (args.notificationType) fields.notificationType = { stringValue: args.notificationType };
+    if (typeof args.fcmHttpStatus === "number") {
+      fields.fcmHttpStatus = { integerValue: String(args.fcmHttpStatus) };
+    }
+    if (args.fcmErrorCode) fields.fcmErrorCode = { stringValue: args.fcmErrorCode };
+    if (args.fcmErrorMessage) fields.fcmErrorMessage = { stringValue: args.fcmErrorMessage };
+    if (args.details !== undefined) {
+      fields.detailsJson = { stringValue: JSON.stringify(args.details).slice(0, 1400) };
+    }
+    await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${args.accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ fields }),
+    });
+  } catch (_) {
+    // non-blocking
+  }
+}
+
+async function removeInvalidFcmTokenFromDoc(
+  accessToken: string,
+  projectId: string,
+  collectionId: "employees" | "clients",
+  userId: string,
+  badToken: string,
+): Promise<void> {
+  const docPath = `projects/${projectId}/databases/(default)/documents/${collectionId}/${userId}`;
+  const commitUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:commit`;
+  const getUrl = `https://firestore.googleapis.com/v1/${docPath}`;
+  const getRes = await fetch(getUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
+  let clearSingle = false;
+  if (getRes.ok) {
+    const doc = await getRes.json() as { fields?: Record<string, unknown> };
+    const single = getStringField(doc.fields ?? {}, "fcmToken")?.trim();
+    clearSingle = single === badToken;
+  }
+  const writes: Record<string, unknown>[] = [
+    {
+      transform: {
+        document: docPath,
+        fieldTransforms: [
+          {
+            fieldPath: "fcmTokens",
+            removeAllFromArray: {
+              values: [{ stringValue: badToken }],
+            },
+          },
+        ],
+      },
+    },
+  ];
+  if (clearSingle) {
+    writes.push({
+      update: {
+        name: docPath,
+        fields: {
+          fcmToken: { nullValue: "NULL_VALUE" },
+        },
+      },
+      updateMask: { fieldPaths: ["fcmToken"] },
+    });
+  }
+  const res = await fetch(commitUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ writes }),
+  });
+  if (!res.ok) {
+    console.error("removeInvalidFcmTokenFromDoc failed", await res.text().catch(() => ""));
+  }
 }
 
 /** أحدث نشاط: من `fromDate` أو آخر حدث في timelineEvents (نص ISO أو timestamp). */
@@ -248,15 +448,23 @@ async function sendEmailIfPolicyAllows(
   toEmail: string | null,
   subject: string,
   body: string,
+  htmlOverride?: string | null,
 ) {
   if (!shouldSendEmailForNotificationTypeCron(notificationType)) return;
-  await sendEmailIfPossible(toEmail, subject, body);
+  await sendEmailIfPossible(toEmail, subject, body, htmlOverride);
 }
 
-async function sendEmailIfPossible(toEmail: string | null, subject: string, body: string) {
+async function sendEmailIfPossible(
+  toEmail: string | null,
+  subject: string,
+  body: string,
+  /** عند التمرير يُستخدم بدل buildEmailHtml(body) — لملخص الدردشة وغيره */
+  htmlOverride?: string | null,
+) {
   if (!toEmail) return;
   const apiKey = Deno.env.get("RESEND_API_KEY");
   if (!apiKey) return;
+  const html = htmlOverride != null && htmlOverride.length > 0 ? htmlOverride : buildEmailHtml(body);
   const res = await fetch(RESEND_URL, {
     method: "POST",
     headers: {
@@ -268,7 +476,7 @@ async function sendEmailIfPossible(toEmail: string | null, subject: string, body
       to: [toEmail],
       subject,
       text: body,
-      html: buildEmailHtml(body),
+      html,
     }),
   }).catch((err) => {
     console.error("sendEmailIfPossible network error", String(err));
@@ -325,6 +533,7 @@ function soundBaseForNotificationTypeCron(notificationType: string | undefined):
     admin_content_status_changed: "notification_content_status",
     promotion_new_published_content: "notification_promotion_status",
     broadcast_topic: "notification_task_preview",
+    chat_unread_digest: "notification_chat",
     employee_task_start_reminder: "notification_task_deadline_soon",
     employee_task_stale_update: "notification_task_comment",
     employee_task_followup: "notification_task_deadline_soon",
@@ -391,6 +600,13 @@ function fcmPlatformSoundPayloadsCron(soundBase: string | null): {
 }
 
 /** نفس منطق [send-fcm/index.ts]: بدون `notification` جذري لتفادي تكرار إشعارات الويب. */
+/** Matches [send-fcm] FCM_NOTIFICATION_TTL_SEC / apns-expiration for offline delivery. */
+const FCM_CRON_NOTIFICATION_TTL_SEC = 86400;
+
+function apnsExpirationHeaderValueCron(): string {
+  return String(Math.floor(Date.now() / 1000) + FCM_CRON_NOTIFICATION_TTL_SEC);
+}
+
 function buildFcmV1NotificationMessageCron(
   token: string,
   title: string,
@@ -408,11 +624,20 @@ function buildFcmV1NotificationMessageCron(
   };
   const prevAps = { ...(apnsBlock.payload?.aps ?? {}) };
   const tag = webNotificationTag.slice(0, 64);
+  const apnsHeaders: Record<string, string> = {
+    ...(apnsBlock.headers ?? {}),
+    "apns-expiration": apnsExpirationHeaderValueCron(),
+  };
 
   const msg: Record<string, unknown> = {
     token,
+    notification: {
+      title,
+      body,
+    },
     android: {
       priority: "high",
+      ttl: `${FCM_CRON_NOTIFICATION_TTL_SEC}s`,
       notification: {
         title,
         body,
@@ -420,7 +645,7 @@ function buildFcmV1NotificationMessageCron(
       },
     },
     apns: {
-      headers: apnsBlock.headers,
+      headers: apnsHeaders,
       payload: {
         aps: {
           ...prevAps,
@@ -439,59 +664,458 @@ function buildFcmV1NotificationMessageCron(
   return msg;
 }
 
-async function sendFcm({
-  accessToken,
-  fcmUrl,
-  token,
-  title,
-  body,
-  notificationType,
-}: {
-  accessToken: string;
-  fcmUrl: string;
-  token: string | null;
-  title: string;
-  body: string;
-  notificationType?: string;
-}) {
-  if (!token) return;
-  const soundBase = soundBaseForNotificationTypeCron(notificationType);
-  const dataPayload: Record<string, string> = {};
-  if (notificationType && notificationType.trim().length > 0) {
-    dataPayload.notificationType = notificationType.trim();
+/** يطابق [_shouldPersistFcmToNotificationInbox] في [firestore_fcm_api.dart] — لا نحفظ محادثات الدردشة ولا ملخص غير المقروء. */
+function shouldPersistInAppNotification(notificationType: string | undefined): boolean {
+  const t = (notificationType ?? "").trim();
+  return t !== "chat_message" && t !== "chat_unread_digest";
+}
+
+/** يطابق [FirestoreNotificationApi.addNotification] — مجموعة `notifications` للوارد داخل التطبيق. */
+async function persistInAppNotification(
+  accessToken: string,
+  projectId: string,
+  recipientId: string,
+  title: string,
+  body: string,
+): Promise<void> {
+  const rid = recipientId.trim();
+  if (!rid) return;
+  try {
+    const url =
+      `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/notifications`;
+    const fields: Record<string, unknown> = {
+      title: { stringValue: title },
+      body: { stringValue: body },
+      recipientId: { stringValue: rid },
+      createdAt: { stringValue: new Date().toISOString() },
+      isRead: { booleanValue: false },
+    };
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ fields }),
+    });
+    if (!res.ok) {
+      const out = await res.text().catch(() => "");
+      console.error("persistInAppNotification failed", res.status, out.slice(0, 800));
+    }
+  } catch (e) {
+    console.error("persistInAppNotification error", String(e));
   }
-  if (soundBase) {
-    dataPayload.pushSoundBase = soundBase;
+}
+
+function getStringArrayField(fields: Record<string, unknown>, key: string): string[] {
+  const raw = (fields[key] as { arrayValue?: { values?: unknown[] } })?.arrayValue?.values;
+  if (!Array.isArray(raw)) return [];
+  const out: string[] = [];
+  for (const item of raw) {
+    const s = (item as { stringValue?: string })?.stringValue;
+    if (typeof s === "string" && s.length > 0) out.push(s);
   }
-  const webTag = `point-cron-${crypto.randomUUID()}`;
-  dataPayload.title = title;
-  dataPayload.body = body;
-  dataPayload.requestId = webTag;
-  const message = buildFcmV1NotificationMessageCron(
-    token,
-    title,
-    body,
-    dataPayload,
-    soundBase,
-    webTag,
-  );
-  const res = await fetch(fcmUrl, {
+  return out;
+}
+
+function getBooleanField(fields: Record<string, unknown>, key: string): boolean {
+  return (fields[key] as { booleanValue?: boolean })?.booleanValue === true;
+}
+
+function chatIdFromDocumentName(name: string): string {
+  const parts = name.split("/");
+  return parts[parts.length - 1] ?? "";
+}
+
+async function getFirestoreDocument(
+  accessToken: string,
+  firestoreBase: string,
+  relativePath: string,
+): Promise<{ name: string; fields: Record<string, unknown> } | null> {
+  const segments = relativePath.split("/").map(encodeURIComponent).join("/");
+  const url = `${firestoreBase}/${segments}`;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    console.error("getFirestoreDocument", relativePath, await res.text().catch(() => ""));
+    return null;
+  }
+  const data = await res.json();
+  if (!data.fields) return null;
+  return { name: data.name, fields: data.fields };
+}
+
+type ResolvedProfile = {
+  name: string | null;
+  image: string | null;
+  email: string | null;
+  /** Same semantics as Flutter `_extractFcmTokens` (fcmToken + fcmTokens[]). */
+  fcmTokens: string[];
+  /** Where this profile was loaded from (for token invalidation). */
+  sourceCollection: "employees" | "clients";
+};
+
+async function resolveUserProfile(
+  accessToken: string,
+  firestoreBase: string,
+  userId: string,
+  cache: Map<string, ResolvedProfile | null>,
+): Promise<ResolvedProfile | null> {
+  if (cache.has(userId)) return cache.get(userId) ?? null;
+  let doc = await getFirestoreDocument(accessToken, firestoreBase, `employees/${userId}`);
+  let sourceCollection: "employees" | "clients" = "employees";
+  if (!doc) {
+    doc = await getFirestoreDocument(accessToken, firestoreBase, `clients/${userId}`);
+    sourceCollection = "clients";
+  }
+  if (!doc) {
+    cache.set(userId, null);
+    return null;
+  }
+  const f = doc.fields;
+  const prof: ResolvedProfile = {
+    name: getStringField(f, "name"),
+    image: getStringField(f, "image"),
+    email: getStringField(f, "email"),
+    fcmTokens: extractFcmTokensFromFirestoreFields(f),
+    sourceCollection,
+  };
+  cache.set(userId, prof);
+  return prof;
+}
+
+async function queryUnreadMessagesForChat(
+  accessToken: string,
+  firestoreBase: string,
+  chatId: string,
+): Promise<Array<{ name: string; fields: Record<string, unknown> }>> {
+  const url = `${firestoreBase}/chats/${encodeURIComponent(chatId)}:runQuery`;
+  const structuredQuery = {
+    from: [{ collectionId: "messages" }],
+    where: {
+      fieldFilter: {
+        field: { fieldPath: "isRead" },
+        op: "EQUAL",
+        value: { booleanValue: false },
+      },
+    },
+    limit: 500,
+  };
+  const res = await fetch(url, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      message,
-    }),
-  }).catch((err) => {
-    console.error("sendFcm network error", String(err));
-    return null;
+    body: JSON.stringify({ structuredQuery }),
   });
-  if (!res) return;
+  const data = await res.json();
   if (!res.ok) {
-    const out = await res.text().catch(() => "");
-    console.error("sendFcm failed", res.status, out.slice(0, 1400));
+    console.error("queryUnreadMessagesForChat", chatId, JSON.stringify(data).slice(0, 400));
+    return [];
+  }
+  const out: Array<{ name: string; fields: Record<string, unknown> }> = [];
+  for (
+    const row of data as Array<{ document?: { name?: string; fields?: Record<string, unknown> } }>
+  ) {
+    if (row?.document?.name && row?.document?.fields) {
+      out.push({ name: row.document.name, fields: row.document.fields });
+    }
+  }
+  return out;
+}
+
+/** كرون منفصل: بريد مفصّل + دفع خفيف لكل موظف/عميل لديه رسائل غير مقروءة واردة. */
+async function handleUnreadChatDigest(args: {
+  accessToken: string;
+  firestoreBase: string;
+  fcmUrl: string;
+  projectId: string;
+}): Promise<void> {
+  const { accessToken, firestoreBase, fcmUrl, projectId } = args;
+  const profileCache = new Map<string, ResolvedProfile | null>();
+  const digestByUser = new Map<string, ChatDigestRow[]>();
+
+  let pageToken: string | undefined;
+  do {
+    let listUrl = `${firestoreBase}/chats?pageSize=100`;
+    if (pageToken) listUrl += `&pageToken=${encodeURIComponent(pageToken)}`;
+    const res = await fetch(listUrl, { headers: { Authorization: `Bearer ${accessToken}` } });
+    const data = await res.json();
+    if (!res.ok) {
+      console.error("handleUnreadChatDigest list chats", JSON.stringify(data).slice(0, 600));
+      break;
+    }
+    const docs = (data.documents ?? []) as Array<{ name: string; fields: Record<string, unknown> }>;
+    pageToken = typeof data.nextPageToken === "string" ? data.nextPageToken : undefined;
+
+    for (const doc of docs) {
+      const chatId = chatIdFromDocumentName(doc.name);
+      const fields = doc.fields;
+      const participants = getStringArrayField(fields, "participants");
+      if (participants.length === 0) continue;
+
+      const messages = await queryUnreadMessagesForChat(accessToken, firestoreBase, chatId);
+      if (messages.length === 0) continue;
+
+      const perParticipant = new Map<string, number>();
+      for (const p of participants) perParticipant.set(p, 0);
+
+      for (const msg of messages) {
+        const senderId = getStringField(msg.fields, "senderId");
+        for (const p of participants) {
+          if (senderId && senderId !== p) {
+            perParticipant.set(p, (perParticipant.get(p) ?? 0) + 1);
+          }
+        }
+      }
+
+      const isGroup = getBooleanField(fields, "isGroup") || participants.length > 2;
+      const groupTitle = getStringField(fields, "title") ?? "Group";
+
+      for (const p of participants) {
+        const cnt = perParticipant.get(p) ?? 0;
+        if (cnt <= 0) continue;
+
+        let label: string;
+        let imageUrl: string | null | undefined;
+        if (isGroup) {
+          label = groupTitle;
+          imageUrl = null;
+        } else {
+          const other = participants.find((x) => x !== p);
+          if (!other) continue;
+          const op = await resolveUserProfile(accessToken, firestoreBase, other, profileCache);
+          label = op?.name?.trim() || other;
+          imageUrl = op?.image?.trim() || null;
+        }
+
+        if (!digestByUser.has(p)) digestByUser.set(p, []);
+        digestByUser.get(p)!.push({
+          count: cnt,
+          label,
+          imageUrl,
+        });
+      }
+    }
+  } while (pageToken);
+
+  const DIGEST_TYPE = "chat_unread_digest";
+  const pushTitle = "Point";
+  const pushBody = "You have unread messages. Open the app to read them.";
+  const emailSubject = "Unread messages — Point Agency";
+  const emailIntroAr = "لديك رسائل لم تُقرأ في المحادثات التالية:";
+
+  for (const [userId, rows] of digestByUser) {
+    if (rows.length === 0) continue;
+    const me = await resolveUserProfile(accessToken, firestoreBase, userId, profileCache);
+    if (!me) continue;
+    const email = me.email?.trim() || null;
+
+    const plainLines = [
+      emailIntroAr,
+      "",
+      ...rows.map((r) => `You have ${r.count} unread message(s) from ${r.label}`),
+    ];
+    const plainBody = plainLines.join("\n");
+    const html = buildChatUnreadDigestEmailHtml({ intro: emailIntroAr, rows });
+
+    if (!email && me.fcmTokens.length === 0) continue;
+
+    if (email) {
+      await sendEmailIfPolicyAllows(DIGEST_TYPE, email, emailSubject, plainBody, html);
+    }
+    await sendFcm({
+      accessToken,
+      fcmUrl,
+      tokens: me.fcmTokens,
+      title: pushTitle,
+      body: pushBody,
+      notificationType: DIGEST_TYPE,
+      recipientId: userId,
+      recipientKind: me.sourceCollection === "clients" ? "client" : "employee",
+      projectId,
+    });
+  }
+}
+
+async function sendFcm({
+  accessToken,
+  fcmUrl,
+  tokens,
+  title,
+  body,
+  notificationType,
+  recipientId,
+  recipientKind,
+  projectId,
+}: {
+  accessToken: string;
+  fcmUrl: string;
+  tokens: string[];
+  title: string;
+  body: string;
+  notificationType?: string;
+  /** معرّف الموظف أو العميل في Firestore — لحفظ نسخة في مجموعة notifications (مثل تدفق التطبيق). */
+  recipientId?: string | null;
+  recipientKind?: "employee" | "client";
+  projectId?: string;
+}) {
+  if (
+    recipientId &&
+    projectId &&
+    shouldPersistInAppNotification(notificationType)
+  ) {
+    await persistInAppNotification(accessToken, projectId, recipientId, title, body);
+  }
+  const cleaned = [...new Set(tokens.map((t) => t.trim()).filter((t) => t.length > 0))];
+  if (cleaned.length === 0) {
+    cronFcmAgg.recipientsWithNoToken++;
+    if (recipientId && projectId) {
+      await writeCronPushDiagnostic({
+        accessToken,
+        projectId,
+        requestId: `cron_${crypto.randomUUID()}`,
+        stage: "cron_validation",
+        status: "error",
+        recipientId,
+        recipientKind,
+        title,
+        bodyLen: body.length,
+        notificationType,
+        details: { reason: "no_fcm_tokens" },
+      });
+    }
+    return;
+  }
+
+  const soundBase = soundBaseForNotificationTypeCron(notificationType);
+  const dataPayloadBase: Record<string, string> = {};
+  if (notificationType && notificationType.trim().length > 0) {
+    dataPayloadBase.notificationType = notificationType.trim();
+  }
+  if (soundBase) {
+    dataPayloadBase.pushSoundBase = soundBase;
+  }
+  if ((notificationType ?? "").trim() === "chat_unread_digest") {
+    dataPayloadBase.openScreen = "chats";
+  }
+  dataPayloadBase.title = title;
+  dataPayloadBase.body = body;
+
+  for (const token of cleaned) {
+    const webTag = `point-cron-${crypto.randomUUID()}`;
+    const dataPayload = { ...dataPayloadBase, requestId: webTag };
+    const message = buildFcmV1NotificationMessageCron(
+      token,
+      title,
+      body,
+      dataPayload,
+      soundBase,
+      webTag,
+    );
+    cronFcmAgg.sendAttempts++;
+    const res = await fetch(fcmUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        message,
+      }),
+    }).catch((err) => {
+      console.error("sendFcm network error", String(err));
+      return null;
+    });
+    if (!res) {
+      cronFcmAgg.sendFailed++;
+      if (projectId) {
+        await writeCronPushDiagnostic({
+          accessToken,
+          projectId,
+          requestId: webTag,
+          stage: "cron_fcm_http",
+          status: "error",
+          recipientId: recipientId ?? undefined,
+          recipientKind,
+          tokenMasked: maskFcmToken(token),
+          title,
+          bodyLen: body.length,
+          notificationType,
+          details: { reason: "network_or_null_response" },
+        });
+      }
+      continue;
+    }
+    const outRaw = await res.text().catch(() => "");
+    let outParsed: Record<string, unknown> = {};
+    try {
+      outParsed = outRaw ? JSON.parse(outRaw) as Record<string, unknown> : {};
+    } catch {
+      outParsed = { raw: outRaw.slice(0, 400) };
+    }
+    if (!res.ok) {
+      cronFcmAgg.sendFailed++;
+      const fcmError = (outParsed as { error?: { code?: string; message?: string } }).error;
+      if (projectId) {
+        await writeCronPushDiagnostic({
+          accessToken,
+          projectId,
+          requestId: webTag,
+          stage: "cron_fcm_result",
+          status: "error",
+          recipientId: recipientId ?? undefined,
+          recipientKind,
+          tokenMasked: maskFcmToken(token),
+          title,
+          bodyLen: body.length,
+          notificationType,
+          fcmHttpStatus: res.status,
+          fcmErrorCode: fcmError?.code,
+          fcmErrorMessage: fcmError?.message,
+          details: outParsed,
+        });
+      }
+      if (
+        recipientId &&
+        projectId &&
+        recipientKind &&
+        fcmPayloadImpliesInvalidToken(outParsed)
+      ) {
+        await removeInvalidFcmTokenFromDoc(
+          accessToken,
+          projectId,
+          recipientKind === "client" ? "clients" : "employees",
+          recipientId,
+          token,
+        );
+        cronFcmAgg.invalidTokensCleaned++;
+      }
+      console.error("sendFcm failed", res.status, outRaw.slice(0, 1400));
+      continue;
+    }
+    cronFcmAgg.sendOk++;
+    if (projectId) {
+      const fcmMessageName = typeof (outParsed as { name?: string }).name === "string"
+        ? (outParsed as { name: string }).name
+        : undefined;
+      await writeCronPushDiagnostic({
+        accessToken,
+        projectId,
+        requestId: webTag,
+        stage: "cron_fcm_result",
+        status: "ok",
+        recipientId: recipientId ?? undefined,
+        recipientKind,
+        tokenMasked: maskFcmToken(token),
+        title,
+        bodyLen: body.length,
+        notificationType,
+        fcmHttpStatus: res.status,
+        details: { fcmMessageName },
+      });
+    }
   }
 }
 
@@ -653,13 +1277,13 @@ async function handleTaskReminders({
   projectId: string;
 }) {
   const employees = await listDocuments(accessToken, "employees", firestoreBase);
-  const byEmpId = new Map<string, { name: string; email: string | null; fcmToken: string | null; role: string | null }>();
+  const byEmpId = new Map<string, { name: string; email: string | null; fcmTokens: string[]; role: string | null }>();
   for (const e of employees) {
     const id = e.name.split("/").pop() ?? "";
     byEmpId.set(id, {
       name: getStringField(e.fields, "name") ?? id,
       email: getStringField(e.fields, "email"),
-      fcmToken: getStringField(e.fields, "fcmToken"),
+      fcmTokens: extractFcmTokensFromFirestoreFields(e.fields),
       role: getStringField(e.fields, "role"),
     });
   }
@@ -704,10 +1328,13 @@ async function handleTaskReminders({
       await sendFcm({
         accessToken,
         fcmUrl,
-        token: m?.fcmToken ?? null,
+        tokens: m?.fcmTokens ?? [],
         title: "مهمة متأخرة",
         body: msgBody,
         notificationType: "manager_task_overdue",
+        recipientId: id,
+        recipientKind: "employee",
+        projectId,
       });
     }
 
@@ -715,17 +1342,20 @@ async function handleTaskReminders({
     const dayMs = 24 * 60 * 60 * 1000;
     const lastEmp = overdueEmpNotified ? new Date(overdueEmpNotified).getTime() : 0;
     const canEmp = !overdueEmpNotified || now.getTime() - lastEmp >= dayMs;
-    if (canEmp && emp?.fcmToken) {
+    if (canEmp && emp) {
       const empTitle = "❌ مهمة متأخرة";
       const empBody = `تجاوز موعد التسليم: ${title}`;
       await sendEmailIfPolicyAllows("employee_task_overdue", emp.email ?? null, empTitle, empBody);
       await sendFcm({
         accessToken,
         fcmUrl,
-        token: emp.fcmToken,
+        tokens: emp.fcmTokens ?? [],
         title: empTitle,
         body: empBody,
         notificationType: "employee_task_overdue",
+        recipientId: assignedTo,
+        recipientKind: "employee",
+        projectId,
       });
       await patchTaskStringFields(accessToken, t.name, { overdueEmployeeNotifiedAt: notifyStamp });
     }
@@ -778,10 +1408,13 @@ async function handleTaskReminders({
       await sendFcm({
         accessToken,
         fcmUrl,
-        token: emp?.fcmToken ?? null,
+        tokens: emp?.fcmTokens ?? [],
         title: msgTitle,
         body: msgBody,
         notificationType: "employee_task_due_soon",
+        recipientId: assignedTo,
+        recipientKind: "employee",
+        projectId,
       });
       await patchTaskStringFields(accessToken, t.name, { dueSoonNotifiedAt24h: notifyStamp });
     }
@@ -793,10 +1426,13 @@ async function handleTaskReminders({
       await sendFcm({
         accessToken,
         fcmUrl,
-        token: emp?.fcmToken ?? null,
+        tokens: emp?.fcmTokens ?? [],
         title: msgTitle,
         body: msgBody,
         notificationType: "employee_task_followup",
+        recipientId: assignedTo,
+        recipientKind: "employee",
+        projectId,
       });
       await patchTaskStringFields(accessToken, t.name, { dueSoonNotifiedAt12h: notifyStamp });
     }
@@ -808,10 +1444,13 @@ async function handleTaskReminders({
       await sendFcm({
         accessToken,
         fcmUrl,
-        token: emp?.fcmToken ?? null,
+        tokens: emp?.fcmTokens ?? [],
         title: msgTitle,
         body: msgBody,
         notificationType: "employee_task_due_soon",
+        recipientId: assignedTo,
+        recipientKind: "employee",
+        projectId,
       });
       await patchTaskStringFields(accessToken, t.name, { dueSoonNotifiedAt6h: notifyStamp });
     }
@@ -823,10 +1462,13 @@ async function handleTaskReminders({
       await sendFcm({
         accessToken,
         fcmUrl,
-        token: emp?.fcmToken ?? null,
+        tokens: emp?.fcmTokens ?? [],
         title: msgTitle,
         body: msgBody,
         notificationType: "employee_task_due_soon_1h",
+        recipientId: assignedTo,
+        recipientKind: "employee",
+        projectId,
       });
       await patchTaskStringFields(accessToken, t.name, { dueSoonNotifiedAt1h: notifyStamp });
     }
@@ -868,10 +1510,13 @@ async function handleTaskReminders({
     await sendFcm({
       accessToken,
       fcmUrl,
-      token: emp?.fcmToken ?? null,
+      tokens: emp?.fcmTokens ?? [],
       title: msgTitle,
       body: msgBody,
       notificationType: "employee_task_start_reminder",
+      recipientId: assignedTo,
+      recipientKind: "employee",
+      projectId,
     });
     await patchTaskStringFields(accessToken, t.name, { startReminderNotifiedAt: notifyStamp });
   }
@@ -896,10 +1541,13 @@ async function handleTaskReminders({
       await sendFcm({
         accessToken,
         fcmUrl,
-        token: m?.fcmToken ?? null,
+        tokens: m?.fcmTokens ?? [],
         title: "⚠️ لم يتخذ موظف إجراءً على المهمة",
         body: msgBody,
         notificationType: "manager_task_no_action",
+        recipientId: id,
+        recipientKind: "employee",
+        projectId,
       });
     }
     await patchTaskStringFields(accessToken, t.name, { managerNoActionNotifiedAt: notifyStamp });
@@ -943,10 +1591,13 @@ async function handleTaskReminders({
     await sendFcm({
       accessToken,
       fcmUrl,
-      token: emp?.fcmToken ?? null,
+      tokens: emp?.fcmTokens ?? [],
       title: msgTitle,
       body: msgBody,
       notificationType: "employee_task_no_progress_yet",
+      recipientId: assignedTo,
+      recipientKind: "employee",
+      projectId,
     });
     await patchTaskStringFields(accessToken, t.name, { noProgressRemindedAt: notifyStamp });
   }
@@ -994,7 +1645,7 @@ async function handleTaskReminders({
       const prog = getDoubleField(f, "progress");
       const norm = normalizeProgressStepCron(prog);
       const tierBit = progressTierReminderBit(norm);
-      if (tierBit !== 0 && emp?.fcmToken) {
+      if (tierBit !== 0 && emp) {
         const merged = mergedProgressReminderMask(f);
         if ((merged & tierBit) === 0) {
           const payload = buildProgressTierReminderPayload(title, tierBit);
@@ -1008,10 +1659,13 @@ async function handleTaskReminders({
             await sendFcm({
               accessToken,
               fcmUrl,
-              token: emp.fcmToken,
+              tokens: emp.fcmTokens ?? [],
               title: payload.msgTitle,
               body: payload.msgBody,
               notificationType: payload.notificationType,
+              recipientId: assignedTo,
+              recipientKind: "employee",
+              projectId,
             });
             const prev = parseTaskMaskInt(getStringField(f, "progressReminderSentMask"));
             await patchTaskStringFields(accessToken, t.name, {
@@ -1037,10 +1691,13 @@ async function handleTaskReminders({
       await sendFcm({
         accessToken,
         fcmUrl,
-        token: emp?.fcmToken ?? null,
+        tokens: emp?.fcmTokens ?? [],
         title: msgTitle,
         body: msgBody,
         notificationType: "employee_task_stale_update",
+        recipientId: assignedTo,
+        recipientKind: "employee",
+        projectId,
       });
       await patchTaskStringFields(accessToken, t.name, { staleUpdateNotifiedAt: notifyStamp });
     }
@@ -1054,10 +1711,13 @@ async function handleTaskReminders({
         await sendFcm({
           accessToken,
           fcmUrl,
-          token: m?.fcmToken ?? null,
+          tokens: m?.fcmTokens ?? [],
           title: "⛔ توقف التقدم",
           body: msgBody,
           notificationType: "manager_task_progress_stalled",
+          recipientId: id,
+          recipientKind: "employee",
+          projectId,
         });
       }
       await patchTaskStringFields(accessToken, t.name, { managerStalledNotifiedAt: notifyStamp });
@@ -1079,12 +1739,12 @@ async function handleContentPendingOver24h({
   projectId: string;
 }) {
   const clients = await listDocuments(accessToken, "clients", firestoreBase);
-  const byClientId = new Map<string, { email: string | null; fcmToken: string | null }>();
+  const byClientId = new Map<string, { email: string | null; fcmTokens: string[] }>();
   for (const c of clients) {
     const id = c.name.split("/").pop() ?? "";
     byClientId.set(id, {
       email: getStringField(c.fields, "email"),
-      fcmToken: getStringField(c.fields, "fcmToken"),
+      fcmTokens: extractFcmTokensFromFirestoreFields(c.fields),
     });
   }
 
@@ -1118,10 +1778,13 @@ async function handleContentPendingOver24h({
     await sendFcm({
       accessToken,
       fcmUrl,
-      token: client?.fcmToken ?? null,
+      tokens: client?.fcmTokens ?? [],
       title: msgTitle,
       body: title,
       notificationType: "client_pending_over_24h",
+      recipientId: clientId,
+      recipientKind: "client",
+      projectId,
     });
   }
 }
@@ -1141,12 +1804,12 @@ async function handlePublishReminders({
 }) {
   const employees = await listDocuments(accessToken, "employees", firestoreBase);
 
-  const byEmpId = new Map<string, { email: string | null; fcmToken: string | null; role: string | null; department: string | null }>();
+  const byEmpId = new Map<string, { email: string | null; fcmTokens: string[]; role: string | null; department: string | null }>();
   for (const e of employees) {
     const id = e.name.split("/").pop() ?? "";
     byEmpId.set(id, {
       email: getStringField(e.fields, "email"),
-      fcmToken: getStringField(e.fields, "fcmToken"),
+      fcmTokens: extractFcmTokensFromFirestoreFields(e.fields),
       role: getStringField(e.fields, "role"),
       department: getStringField(e.fields, "department"),
     });
@@ -1189,10 +1852,13 @@ async function handlePublishReminders({
     await sendFcm({
       accessToken,
       fcmUrl,
-      token: target.fcmToken ?? null,
+      tokens: target.fcmTokens ?? [],
       title: msgTitle,
       body: title,
       notificationType: "publish_post_one_hour",
+      recipientId: targetId,
+      recipientKind: "employee",
+      projectId,
     });
   }
 }

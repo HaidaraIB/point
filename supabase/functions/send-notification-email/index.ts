@@ -8,6 +8,7 @@ import { buildEmailHtml } from "./email-template.ts";
 
 const RESEND_URL = "https://api.resend.com/emails";
 const FROM_EMAIL = "Point Agency <no-reply@mail.point-iq.app>";
+const MAX_EMAIL_BATCH = 40;
 
 /** نسخة نصية بسيطة عندما يكون الجسم HTML كاملاً (لجزء text/plain في MIME). */
 function htmlToPlainText(html: string): string {
@@ -31,6 +32,46 @@ function htmlToPlainText(html: string): string {
     .trim();
 }
 
+async function sendOneViaResend(
+  apiKey: string,
+  toEmail: string,
+  subject: string,
+  rawBody: string,
+  isHtml: boolean,
+): Promise<{ ok: boolean; status: number; id?: string; details?: unknown }> {
+  let textPart: string;
+  let htmlPart: string;
+  if (isHtml) {
+    htmlPart = rawBody;
+    textPart = htmlToPlainText(rawBody);
+    if (!textPart) textPart = subject.trim() || "إشعار من Point Agency";
+  } else {
+    textPart = rawBody;
+    htmlPart = buildEmailHtml(rawBody);
+  }
+
+  const res = await fetch(RESEND_URL, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: FROM_EMAIL,
+      to: [toEmail],
+      subject,
+      text: textPart,
+      html: htmlPart,
+    }),
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    return { ok: false, status: res.status, details: data };
+  }
+  return { ok: true, status: res.status, id: (data as { id?: string })?.id };
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { status: 200, headers: corsHeaders() });
@@ -47,7 +88,70 @@ Deno.serve(async (req: Request) => {
       subject?: string;
       body?: string;
       isHtml?: boolean;
+      messages?: Array<{
+        toEmail?: string;
+        subject?: string;
+        body?: string;
+        isHtml?: boolean;
+      }>;
     };
+
+    if (Array.isArray(body.messages) && body.messages.length > 0) {
+      if (body.toEmail) {
+        return jsonResponse(
+          { errorCode: "ERR_INVALID_DATA", details: "use either messages[] or toEmail, not both" },
+          400,
+        );
+      }
+      if (body.messages.length > MAX_EMAIL_BATCH) {
+        return jsonResponse(
+          { errorCode: "ERR_BATCH_TOO_LARGE", max: MAX_EMAIL_BATCH },
+          400,
+        );
+      }
+      const results: Array<{
+        index: number;
+        toEmail: string;
+        ok: boolean;
+        id?: string;
+        status?: number;
+        details?: unknown;
+      }> = [];
+      let okCount = 0;
+      for (let i = 0; i < body.messages.length; i++) {
+        const m = body.messages[i];
+        const toEmail = m?.toEmail?.trim() ?? "";
+        if (!toEmail) {
+          results.push({
+            index: i,
+            toEmail: "",
+            ok: false,
+            details: { reason: "missing_toEmail" },
+          });
+          continue;
+        }
+        const subject = m?.subject ?? "";
+        const rawBody = m?.body ?? "";
+        const isHtml = m?.isHtml === true;
+        const out = await sendOneViaResend(apiKey, toEmail, subject, rawBody, isHtml);
+        if (out.ok) okCount++;
+        results.push({
+          index: i,
+          toEmail,
+          ok: out.ok,
+          id: out.id,
+          status: out.status,
+          details: out.ok ? undefined : out.details,
+        });
+      }
+      return jsonResponse({
+        ok: true,
+        batch: true,
+        results,
+        summary: { ok: okCount, failed: results.length - okCount, total: results.length },
+      }, 200);
+    }
+
     const toEmail = body?.toEmail?.trim();
     const subject = body?.subject ?? "";
     const rawBody = body?.body ?? "";
@@ -57,38 +161,12 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ errorCode: "ERR_EMAIL_REQUIRED" }, 400);
     }
 
-    let textPart: string;
-    let htmlPart: string;
-    if (isHtml) {
-      htmlPart = rawBody;
-      textPart = htmlToPlainText(rawBody);
-      if (!textPart) textPart = subject.trim() || "إشعار من Point Agency";
-    } else {
-      textPart = rawBody;
-      htmlPart = buildEmailHtml(rawBody);
+    const out = await sendOneViaResend(apiKey, toEmail, subject, rawBody, isHtml);
+    if (!out.ok) {
+      return jsonResponse({ errorCode: "ERR_SERVER", details: out.details }, out.status);
     }
 
-    const res = await fetch(RESEND_URL, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: FROM_EMAIL,
-        to: [toEmail],
-        subject,
-        text: textPart,
-        html: htmlPart,
-      }),
-    });
-
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      return jsonResponse({ errorCode: "ERR_SERVER", details: data }, res.status);
-    }
-
-    return jsonResponse({ ok: true, id: data?.id }, 200);
+    return jsonResponse({ ok: true, id: out.id }, 200);
   } catch (e) {
     return jsonResponse({ errorCode: "ERR_SERVER", details: String(e) }, 500);
   }

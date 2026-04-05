@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:async';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -51,6 +52,7 @@ class NotificationService {
     if (kIsWeb) return;
     await _consumePendingPushSyncPrefs();
     await FcmTokenCache.resyncIfChanged();
+    await _pollMissedInAppNotificationsOnResume();
   }
 
   Future<void> _consumePendingPushSyncPrefs() async {
@@ -71,6 +73,47 @@ class NotificationService {
         Get.find<ClientController>().refreshAfterSilentPush();
       }
     } catch (_) {}
+  }
+
+  int? _parseNotificationCreatedAtMs(Object? v) {
+    if (v == null) return null;
+    if (v is Timestamp) return v.millisecondsSinceEpoch;
+    if (v is int) return v;
+    if (v is String) return DateTime.tryParse(v)?.millisecondsSinceEpoch;
+    return null;
+  }
+
+  /// سحب إشعارات الوارد غير المقروءة أحدث من آخر استطلاع — يعيد تحميل القوائم إن وُجدت جديدة.
+  Future<void> _pollMissedInAppNotificationsOnResume() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString(StorageKeys.prefsFcmTokenUserId)?.trim() ?? '';
+    if (userId.isEmpty) return;
+
+    final lastMs = prefs.getInt(StorageKeys.prefsNotificationsResumeCursorMs) ?? 0;
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('notifications')
+          .where('recipientId', isEqualTo: userId)
+          .where('isRead', isEqualTo: false)
+          .limit(50)
+          .get();
+
+      var maxMs = lastMs;
+      var hasNewerUnread = false;
+      for (final doc in snap.docs) {
+        final ms = _parseNotificationCreatedAtMs(doc.data()['createdAt']) ?? 0;
+        if (ms > lastMs) hasNewerUnread = true;
+        if (ms > maxMs) maxMs = ms;
+      }
+      if (hasNewerUnread) {
+        _notifyControllersRefreshAfterSilentPush();
+      }
+      if (maxMs > lastMs) {
+        await prefs.setInt(StorageKeys.prefsNotificationsResumeCursorMs, maxMs);
+      }
+    } catch (e, st) {
+      appLog('resume in-app notifications poll: $e\n$st');
+    }
   }
 
   Future<void> _logNotificationSettings() async {
@@ -294,6 +337,12 @@ class NotificationService {
       if (title != null && title.trim().isNotEmpty) {
         await _showLocalNotification(message);
       }
+      return;
+    }
+
+    // Android: رسائل تحمل كتلة notification من FCM قد تُعرض عبر مسار النظام؛
+    // تجنّب الإشعار المحلي المزدوج بعد إضافة notification على جذر الرسالة في الخادم.
+    if (Platform.isAndroid && message.notification != null) {
       return;
     }
 

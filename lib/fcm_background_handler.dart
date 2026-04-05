@@ -25,6 +25,13 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   }
 
   final data = message.data;
+  appLog(
+    'FCM background rx: os=${Platform.operatingSystem} '
+    'messageId=${message.messageId} hasFcmNotification=${message.notification != null} '
+    'silentSync=${_isTruthy(data['silentSync'] ?? data['fcmSilentSync'])} '
+    'notificationType=${data['notificationType']}',
+  );
+
   final silent = _isTruthy(data['silentSync'] ?? data['fcmSilentSync']);
   if (silent) {
     final prefs = await SharedPreferences.getInstance();

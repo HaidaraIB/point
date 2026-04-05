@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:point/Utils/app_log.dart';
-import 'dart:math' show Random;
+import 'dart:math' show Random, min;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
@@ -18,6 +18,9 @@ class FirestoreFcmApi {
 
   static final Random _random = Random();
 
+  /// Matches [supabase/functions/send-fcm/index.ts] `MAX_FCM_BATCH_RECIPIENTS`.
+  static const int _maxFcmRecipientsPerRequest = 100;
+
 
   static String _newPushRequestId() {
     final ms = DateTime.now().millisecondsSinceEpoch;
@@ -30,6 +33,8 @@ class FirestoreFcmApi {
     return '${t.substring(0, 6)}...${t.substring(t.length - 4)}';
   }
 
+  /// Query in Firestore `push_diagnostics`: `source` is `flutter_app` here vs `scheduled_notifications`
+  /// from the cron Edge Function (`functionVersion` / `stage` distinguish send-fcm vs cron).
   static Future<void> _logPushDiagnostic({
     required String requestId,
     required String stage,
@@ -91,25 +96,6 @@ class FirestoreFcmApi {
   }
 
   static String _emailDedupeKey(String email) => email.trim().toLowerCase();
-
-  static bool _isInvalidOrExpiredTokenError(Object error) {
-    if (error is FcmSendException) {
-      final details = (error.details?.toString() ?? '').toLowerCase();
-      final fcmStatus = (error.fcmErrorStatus ?? '').toLowerCase();
-      final fcmMessage = (error.fcmErrorMessage ?? '').toLowerCase();
-      final combined = '$details $fcmStatus $fcmMessage';
-      return combined.contains('registration-token-not-registered') ||
-          combined.contains('invalid-registration-token') ||
-          combined.contains('invalid_argument') ||
-          combined.contains('unregistered') ||
-          combined.contains('not registered') ||
-          combined.contains('token-not-registered');
-    }
-    if (error is FunctionException) {
-      return _fcmPayloadImpliesInvalidToken(error.details);
-    }
-    return false;
-  }
 
   static bool _fcmPayloadImpliesInvalidToken(Object? details) {
     final s = details?.toString().toLowerCase() ?? '';
@@ -369,8 +355,154 @@ class FirestoreFcmApi {
     }
   }
 
+  static Future<void> _sendFcmBatchesAndApplyResults({
+    required List<Map<String, dynamic>> recipients,
+    required List<({String token, String userId, bool isClient})> metaAligned,
+    required String title,
+    required String body,
+    Map<String, String>? data,
+    required String parentRequestId,
+    String? notificationType,
+  }) async {
+    if (recipients.isEmpty) return;
+    assert(recipients.length == metaAligned.length);
+    var offset = 0;
+    while (offset < recipients.length) {
+      final end = min(offset + _maxFcmRecipientsPerRequest, recipients.length);
+      final chunk = recipients.sublist(offset, end);
+      final chunkMeta = metaAligned.sublist(offset, end);
+      offset = end;
+      try {
+        final out = await _sendFcmBatchViaFunction(
+          recipients: chunk,
+          title: title,
+          body: body,
+          data: data,
+          requestId: parentRequestId,
+          notificationType: notificationType,
+        );
+        await _applyFcmBatchResults(
+          batchResponse: out,
+          meta: chunkMeta,
+          title: title,
+          bodyLen: body.length,
+          notificationType: notificationType,
+        );
+      } on FunctionException catch (e) {
+        final ex = _fcmSendExceptionFromFunctionException(e);
+        appLog(
+          '❌ FCM batch invoke failed status=${ex.status} errorCode=${ex.errorCode}',
+        );
+        rethrow;
+      }
+    }
+  }
+
+  static Future<Map<String, dynamic>> _sendFcmBatchViaFunction({
+    required List<Map<String, dynamic>> recipients,
+    required String title,
+    required String body,
+    Map<String, String>? data,
+    required String requestId,
+    String? notificationType,
+  }) async {
+    final firebaseIdToken =
+        await FirebaseAuth.instance.currentUser?.getIdToken();
+    if (firebaseIdToken == null || firebaseIdToken.isEmpty) {
+      throw StateError('FirebaseAuth session required to send FCM.');
+    }
+
+    appLog(
+      '➡️ FCM batch invoke start. count=${recipients.length} title="$title" bodyLen=${body.length}',
+    );
+
+    final res = await Supabase.instance.client.functions.invoke(
+      'send-fcm',
+      headers: <String, String>{
+        'x-firebase-id-token': 'Bearer $firebaseIdToken',
+      },
+      body: <String, dynamic>{
+        'recipients': recipients,
+        'title': title,
+        'body': body,
+        if (data != null) 'data': data,
+        'requestId': requestId,
+        if (notificationType != null) 'notificationType': notificationType,
+      },
+    );
+
+    appLog(
+      '✅ FCM batch invoke done. status=${res.status} data=${res.data}',
+    );
+
+    if (res.data is! Map) {
+      return <String, dynamic>{};
+    }
+    return Map<String, dynamic>.from(res.data! as Map);
+  }
+
+  static Future<void> _applyFcmBatchResults({
+    required Map<String, dynamic> batchResponse,
+    required List<({String token, String userId, bool isClient})> meta,
+    required String title,
+    required int bodyLen,
+    String? notificationType,
+  }) async {
+    final results = batchResponse['results'];
+    if (results is! List) return;
+    for (var i = 0; i < results.length; i++) {
+      final row = results[i];
+      if (row is! Map) continue;
+      final map = Map<String, dynamic>.from(row);
+      final ok = map['ok'] == true;
+      final skipped = map['skipped'] == true;
+      if (skipped) continue;
+      if (ok) continue;
+
+      final requestId = map['requestId']?.toString() ?? '';
+      final recipientId = map['recipientId']?.toString();
+      final recipientType = map['recipientType']?.toString();
+      final tokenMasked = map['tokenMasked']?.toString();
+
+      await _logPushDiagnostic(
+        requestId: requestId.isNotEmpty ? requestId : _newPushRequestId(),
+        stage: 'app_result',
+        status: 'error',
+        targetType: 'token',
+        recipientId: recipientId,
+        recipientType: recipientType,
+        tokenMasked: tokenMasked,
+        title: title,
+        bodyLen: bodyLen,
+        notificationType: notificationType,
+        fcmHttpStatus: _asInt(map['fcmHttpStatus']),
+        fcmErrorCode: map['fcmErrorCode']?.toString(),
+        fcmErrorStatus: map['fcmErrorStatus']?.toString(),
+        fcmErrorMessage: map['fcmErrorMessage']?.toString(),
+        details: map['details'],
+      );
+
+      if (!_fcmPayloadImpliesInvalidToken(map['details'])) continue;
+      if (i >= meta.length) continue;
+      final m = meta[i];
+      if (m.isClient) {
+        await _removeClientFcmToken(clientId: m.userId, token: m.token);
+      } else {
+        await _removeEmployeeFcmToken(employeeId: m.userId, token: m.token);
+      }
+      appLog('🧹 Removed invalid token (batch) uid=${m.userId}');
+    }
+  }
+
+  static int? _asInt(Object? o) {
+    if (o is int) return o;
+    if (o is num) return o.toInt();
+    return int.tryParse(o?.toString() ?? '');
+  }
+
   static bool _shouldPersistFcmToNotificationInbox(String? notificationType) {
-    return notificationType?.trim() != 'chat_message';
+    final t = notificationType?.trim() ?? '';
+    return t != 'chat_message' && t != 'chat_unread_digest';
   }
 
   static Future<void> sendFcm({
@@ -475,6 +607,18 @@ class FirestoreFcmApi {
         return;
       }
 
+      final parentRequestId = _newPushRequestId();
+      final recipients = <Map<String, dynamic>>[];
+      final meta = <({String token, String userId, bool isClient})>[];
+      final baseData = <String, String>{
+        'type': 'internal',
+        'id': trimmedUserId,
+        'url': 'https://example.com',
+        if (notificationType != null && notificationType.trim().isNotEmpty)
+          'notificationType': notificationType.trim(),
+        if (fcmDataExtras != null) ...fcmDataExtras,
+      };
+
       for (final token in tokens) {
         final cleanedToken = token.trim();
         if (cleanedToken.isEmpty) continue;
@@ -484,56 +628,29 @@ class FirestoreFcmApi {
           );
           continue;
         }
-        final requestId = _newPushRequestId();
-        try {
-          await _sendFcmViaFunction(
-            token: cleanedToken,
-            title: title,
-            body: body,
-            data: <String, String>{
-              'type': 'internal',
-              'id': trimmedUserId,
-              'url': 'https://example.com',
-              if (notificationType != null &&
-                  notificationType.trim().isNotEmpty)
-                'notificationType': notificationType.trim(),
-              if (fcmDataExtras != null) ...fcmDataExtras,
-            },
-            requestId: requestId,
-            recipientId: trimmedUserId,
-            recipientType: 'employee',
-            notificationType: notificationType,
-          );
-        } catch (e) {
-          if (e is FcmSendException) {
-            await _logPushDiagnostic(
-              requestId: requestId,
-              stage: 'app_result',
-              status: 'error',
-              targetType: 'token',
-              recipientId: trimmedUserId,
-              recipientType: 'employee',
-              tokenMasked: _maskFcmToken(cleanedToken),
-              title: title,
-              bodyLen: body.length,
-              notificationType: notificationType,
-              fcmHttpStatus: e.status,
-              fcmErrorCode: e.errorCode,
-              fcmErrorStatus: e.fcmErrorStatus,
-              fcmErrorMessage: e.fcmErrorMessage,
-              details: e.details,
-            );
-          }
-          if (_isInvalidOrExpiredTokenError(e)) {
-            await _removeEmployeeFcmToken(
-              employeeId: trimmedUserId,
-              token: cleanedToken,
-            );
-            appLog("🧹 Removed invalid employee token for $recipientName");
-            continue;
-          }
-          rethrow;
-        }
+        recipients.add(<String, dynamic>{
+          'token': cleanedToken,
+          'recipientId': trimmedUserId,
+          'recipientType': 'employee',
+          'requestId': _newPushRequestId(),
+        });
+        meta.add((token: cleanedToken, userId: trimmedUserId, isClient: false));
+      }
+
+      if (recipients.isEmpty) return;
+
+      try {
+        await _sendFcmBatchesAndApplyResults(
+          recipients: recipients,
+          metaAligned: meta,
+          title: title,
+          body: body,
+          data: baseData,
+          parentRequestId: parentRequestId,
+          notificationType: notificationType,
+        );
+      } on FunctionException catch (e) {
+        throw _fcmSendExceptionFromFunctionException(e);
       }
       appLog("✅ FCM Response: $recipientName");
     } on FcmSendException catch (e) {
@@ -657,6 +774,18 @@ class FirestoreFcmApi {
         return;
       }
 
+      final parentRequestIdClient = _newPushRequestId();
+      final recipientsClient = <Map<String, dynamic>>[];
+      final metaClient = <({String token, String userId, bool isClient})>[];
+      final baseDataClient = <String, String>{
+        'type': 'internal',
+        'id': trimmedUserId,
+        'url': 'https://example.com',
+        if (notificationType != null && notificationType.trim().isNotEmpty)
+          'notificationType': notificationType.trim(),
+        if (fcmDataExtras != null) ...fcmDataExtras,
+      };
+
       for (final token in tokens) {
         final cleanedToken = token.trim();
         if (cleanedToken.isEmpty) continue;
@@ -666,56 +795,29 @@ class FirestoreFcmApi {
           );
           continue;
         }
-        final requestId = _newPushRequestId();
-        try {
-          await _sendFcmViaFunction(
-            token: cleanedToken,
-            title: title,
-            body: body,
-            data: <String, String>{
-              'type': 'internal',
-              'id': trimmedUserId,
-              'url': 'https://example.com',
-              if (notificationType != null &&
-                  notificationType.trim().isNotEmpty)
-                'notificationType': notificationType.trim(),
-              if (fcmDataExtras != null) ...fcmDataExtras,
-            },
-            requestId: requestId,
-            recipientId: trimmedUserId,
-            recipientType: 'client',
-            notificationType: notificationType,
-          );
-        } catch (e) {
-          if (e is FcmSendException) {
-            await _logPushDiagnostic(
-              requestId: requestId,
-              stage: 'app_result',
-              status: 'error',
-              targetType: 'token',
-              recipientId: trimmedUserId,
-              recipientType: 'client',
-              tokenMasked: _maskFcmToken(cleanedToken),
-              title: title,
-              bodyLen: body.length,
-              notificationType: notificationType,
-              fcmHttpStatus: e.status,
-              fcmErrorCode: e.errorCode,
-              fcmErrorStatus: e.fcmErrorStatus,
-              fcmErrorMessage: e.fcmErrorMessage,
-              details: e.details,
-            );
-          }
-          if (_isInvalidOrExpiredTokenError(e)) {
-            await _removeClientFcmToken(
-              clientId: trimmedUserId,
-              token: cleanedToken,
-            );
-            appLog("🧹 Removed invalid client token for $recipientName");
-            continue;
-          }
-          rethrow;
-        }
+        recipientsClient.add(<String, dynamic>{
+          'token': cleanedToken,
+          'recipientId': trimmedUserId,
+          'recipientType': 'client',
+          'requestId': _newPushRequestId(),
+        });
+        metaClient.add((token: cleanedToken, userId: trimmedUserId, isClient: true));
+      }
+
+      if (recipientsClient.isEmpty) return;
+
+      try {
+        await _sendFcmBatchesAndApplyResults(
+          recipients: recipientsClient,
+          metaAligned: metaClient,
+          title: title,
+          body: body,
+          data: baseDataClient,
+          parentRequestId: parentRequestIdClient,
+          notificationType: notificationType,
+        );
+      } on FunctionException catch (e) {
+        throw _fcmSendExceptionFromFunctionException(e);
       }
       appLog("✅ FCM sent to client: $recipientName");
     } on FcmSendException catch (e) {
@@ -862,29 +964,38 @@ class FirestoreFcmApi {
       }
 
       final seenEmailKeys = <String>{};
+      final dedupedEmails = <String>[];
       for (final email in emails) {
         final key = _emailDedupeKey(email);
         if (!seenEmailKeys.add(key)) {
           appLog("↩️ Duplicate topic email skipped (same address listed twice)");
           continue;
         }
-        final details = <String, String>{
-          'الوجهة': 'إشعار جماعي',
-          'الموضوع': topic,
-          if (emailDetails != null) ...emailDetails,
-        };
-        unawaited(
-          EmailNotificationService.sendDetailedNotification(
-            toEmail: email,
-            title: title,
-            body: body,
-            notificationType: notificationType ?? 'إشعار جماعي',
-            actionText: actionText,
-            referenceId: referenceId,
-            details: details,
-          ),
-        );
+        dedupedEmails.add(email);
       }
+
+      if (dedupedEmails.isEmpty) return;
+
+      final details = <String, String>{
+        'الوجهة': 'إشعار جماعي',
+        'الموضوع': topic,
+        if (emailDetails != null) ...emailDetails,
+      };
+      final html = EmailNotificationService.buildDetailedNotificationHtml(
+        title: title,
+        body: body,
+        notificationType: notificationType ?? 'إشعار جماعي',
+        actionText: actionText,
+        referenceId: referenceId,
+        details: details,
+      );
+      unawaited(
+        EmailNotificationService.sendPregeneratedHtmlBatch(
+          toEmails: dedupedEmails,
+          subject: title,
+          htmlBody: html,
+        ),
+      );
     } catch (e) {
       appLog("❌ Email for topic error: $e");
     }
@@ -939,27 +1050,164 @@ class FirestoreFcmApi {
     Map<String, String>? emailDetails,
     Map<String, String>? fcmDataExtras,
   }) async {
+    try {
     final seen = <String>{};
-    final batchSeenTokens = <String>{};
-    final batchSeenEmails = <String>{};
+    final orderedIds = <String>[];
     for (final id in userIds) {
       final trimmed = id.trim();
       if (trimmed.isEmpty || seen.contains(trimmed)) continue;
       seen.add(trimmed);
-      unawaited(
-        sendFcm(
-          userId: trimmed,
-          title: title,
-          body: body,
-          notificationType: notificationType,
-          actionText: actionText,
-          referenceId: referenceId,
-          emailDetails: emailDetails,
-          fcmDataExtras: fcmDataExtras,
-          batchSeenTokens: batchSeenTokens,
-          batchSeenEmails: batchSeenEmails,
-        ),
-      );
+      orderedIds.add(trimmed);
+    }
+    if (orderedIds.isEmpty) return;
+
+    final snapshots = await Future.wait(
+      orderedIds.map(
+        (id) =>
+            FirebaseFirestore.instance.collection('employees').doc(id).get(),
+      ),
+    );
+
+    final batchSeenTokens = <String>{};
+    final batchSeenEmails = <String>{};
+    final emailItems = <DetailedEmailBatchItem>[];
+    final fcmRecipients = <Map<String, dynamic>>[];
+    final fcmMeta = <({String token, String userId, bool isClient})>[];
+
+    final effectiveSendEmail =
+        NotificationEmailPolicy.shouldSendEmail(notificationType);
+
+    for (var i = 0; i < snapshots.length; i++) {
+      final doc = snapshots[i];
+      final trimmedUserId = orderedIds[i];
+      if (!doc.exists) {
+        appLog('⚠️ Employee not found: $trimmedUserId');
+        continue;
+      }
+
+      final data = doc.data();
+      final email = data?['email']?.toString().trim();
+      final tokens = _extractFcmTokens(data);
+      final rawRecipientName = data?['name']?.toString().trim();
+      final recipientRole = data?['role'];
+      final recipientName =
+          (rawRecipientName != null && rawRecipientName.isNotEmpty)
+              ? rawRecipientName
+              : 'الموظف';
+
+      if (_shouldPersistFcmToNotificationInbox(notificationType)) {
+        await FirestoreNotificationApi.addNotification(
+          NotificationModel(
+            title: title,
+            body: body,
+            recipientId: trimmedUserId,
+            createdAt: DateTime.now(),
+            isRead: false,
+          ),
+        );
+      }
+
+      var sendThisEmail =
+          effectiveSendEmail && email != null && email.isNotEmpty;
+      if (sendThisEmail) {
+        final key = _emailDedupeKey(email);
+        if (!batchSeenEmails.add(key)) {
+          sendThisEmail = false;
+          appLog(
+            '↩️ Duplicate batch email skipped ($recipientName · $trimmedUserId)',
+          );
+        }
+      }
+      if (sendThisEmail) {
+        final details = <String, String>{
+          'المستلم': recipientName,
+          'معرف المستلم': trimmedUserId,
+          if (emailDetails != null) ...emailDetails,
+        };
+        emailItems.add(
+          DetailedEmailBatchItem(
+            toEmail: email!,
+            title: title,
+            body: body,
+            recipientLabel: recipientName,
+            notificationType: notificationType ?? 'إشعار موظف',
+            actionText: actionText,
+            referenceId: referenceId ?? trimmedUserId,
+            details: details,
+          ),
+        );
+      } else if (effectiveSendEmail && (email == null || email.isEmpty)) {
+        appLog(
+          '⚠️ Email missing for $recipientRole $recipientName — skipping email notification',
+        );
+      }
+
+      for (final token in tokens) {
+        final cleanedToken = token.trim();
+        if (cleanedToken.isEmpty) continue;
+        if (!batchSeenTokens.add(cleanedToken)) {
+          appLog(
+            '↩️ Duplicate batch token skipped for $recipientName (${_maskFcmToken(cleanedToken)})',
+          );
+          continue;
+        }
+        fcmRecipients.add(<String, dynamic>{
+          'token': cleanedToken,
+          'recipientId': trimmedUserId,
+          'recipientType': 'employee',
+          'requestId': _newPushRequestId(),
+          'data': <String, String>{
+            'type': 'internal',
+            'id': trimmedUserId,
+            'url': 'https://example.com',
+            if (notificationType != null && notificationType.trim().isNotEmpty)
+              'notificationType': notificationType.trim(),
+            if (fcmDataExtras != null) ...fcmDataExtras,
+          },
+        });
+        fcmMeta.add((token: cleanedToken, userId: trimmedUserId, isClient: false));
+      }
+    }
+
+    if (emailItems.isNotEmpty) {
+      unawaited(EmailNotificationService.sendDetailedNotificationBatch(emailItems));
+    }
+
+    if (fcmRecipients.isEmpty) return;
+
+    final parentRequestId = _newPushRequestId();
+    await _sendFcmBatchesAndApplyResults(
+      recipients: fcmRecipients,
+      metaAligned: fcmMeta,
+      title: title,
+      body: body,
+      data: null,
+      parentRequestId: parentRequestId,
+      notificationType: notificationType,
+    );
+    } on FunctionException catch (e) {
+      final ex = _fcmSendExceptionFromFunctionException(e);
+      switch (ex.errorCode) {
+        case 'ERR_METHOD_NOT_ALLOWED':
+          appLog('❌ FCM Error: ${AppLocaleKeys.errorsMethodNotAllowed}');
+          break;
+        case 'ERR_UNAUTHORIZED':
+          appLog('❌ FCM Error: ${AppLocaleKeys.errorsUnauthorized}');
+          break;
+        case 'ERR_FORBIDDEN':
+          appLog('❌ FCM Error: ${AppLocaleKeys.errorsForbidden}');
+          break;
+        case 'ERR_MISSING_TOKEN':
+          appLog('❌ FCM Error: ${AppLocaleKeys.errorsMissingToken}');
+          break;
+        case 'ERR_INVALID_DATA':
+          appLog('❌ FCM Error: ${AppLocaleKeys.errorsInvalidData}');
+          break;
+        default:
+          appLog('❌ FCM Error: ${AppLocaleKeys.errorsServer} | $ex');
+      }
+    } catch (e) {
+      appLog('❌ FCM Error: $e');
     }
   }
 }
