@@ -4,7 +4,7 @@
 # 3) Environment → مجموعة ios_config: انظر codemagic-ios-config.example.env
 # 4) Firebase الإنتاج: GOOGLE_SERVICE_INFO_PLIST يجب أن يكون من مشروع point-agency-production (ليس الاختبار). أمر البناء يمرّر USE_FIREBASE_PROD=true.
 # 5) Apple Developer: App ID com.point.agency مع Push + provisioning profile App Store يحتوي aps-environment (السكربت يفضّل اسماً Point)
-# 6) رقم البناء: يُشتق من pubspec + FCI_BUILD_NUMBER/CM_BUILD_NUMBER/BUILD_NUMBER عند التوفر (فعّل زيادة رقم البناء في إعدادات التطبيق على Codemagic إن رغبت)
+# 6) رقم البناء: من pubspec فقط (الجزء بعد + في version:). زِد الرقم هنا قبل كل رفع إلى App Store Connect.
 workflows:
   ios-workflow:
     name: iOS Workflow
@@ -32,7 +32,7 @@ workflows:
       - name: Get Flutter dependencies
         script: |
           flutter pub get
-      - name: Set iOS version from pubspec and Codemagic build number
+      - name: Set iOS version from pubspec (build number from pubspec only)
         script: |
           cd "$CM_BUILD_DIR"
           VERSION_LINE=$(grep '^version:' pubspec.yaml | head -1 | sed 's/version:[[:space:]]*//' | tr -d '[:space:]')
@@ -40,20 +40,9 @@ workflows:
           BUILD_FROM_PUB=$(echo "$VERSION_LINE" | cut -d'+' -f2)
           [ -n "$NAME" ] || NAME="1.0.0"
           [ -n "$BUILD_FROM_PUB" ] || BUILD_FROM_PUB="1"
-          INCR="${FCI_BUILD_NUMBER:-${CM_BUILD_NUMBER:-${BUILD_NUMBER:-}}}"
-          # Max(Codemagic counter, pubspec build) so CFBundleVersion is never below pubspec (+N)
-          # and App Store Connect does not reject duplicates when the UI counter lags.
-          if [ -n "$INCR" ] && [ "$INCR" -ge "$BUILD_FROM_PUB" ] 2>/dev/null; then
-            NUM="$INCR"
-          elif [ -n "$INCR" ]; then
-            NUM="$BUILD_FROM_PUB"
-            echo "⚠️ Codemagic build number ($INCR) < pubspec ($BUILD_FROM_PUB); using pubspec for CFBundleVersion"
-          else
-            NUM="$BUILD_FROM_PUB"
-          fi
           echo "FLUTTER_BUILD_NAME=$NAME" >> "$CM_ENV"
-          echo "FLUTTER_BUILD_NUMBER=$NUM" >> "$CM_ENV"
-          echo "✅ FLUTTER_BUILD_NAME=$NAME FLUTTER_BUILD_NUMBER=$NUM (pubspec: $VERSION_LINE; increment: ${INCR:-from pubspec})"
+          echo "FLUTTER_BUILD_NUMBER=$BUILD_FROM_PUB" >> "$CM_ENV"
+          echo "✅ FLUTTER_BUILD_NAME=$NAME FLUTTER_BUILD_NUMBER=$BUILD_FROM_PUB (from pubspec: $VERSION_LINE)"
       - name: Install CocoaPods dependencies
         script: |
           cd ios && pod install
