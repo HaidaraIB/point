@@ -2,8 +2,9 @@ import 'dart:async';
 import 'package:point/Utils/app_log.dart';
 import 'package:point/Utils/text_input_bidi.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:point/Controller/HomeController.dart';
@@ -37,6 +38,7 @@ class _ChatScreenState extends State<ChatScreen> {
   // -------- controllers / state -------
   final TextEditingController _messageController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _messageFocusNode = FocusNode();
   bool _isEmojiVisible = false;
   // Firebase instances
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -60,6 +62,8 @@ class _ChatScreenState extends State<ChatScreen> {
   Map<String, dynamic>? _selectedChat; // selected chat doc (id + data)
 
   Stream<QuerySnapshot<Map<String, dynamic>>>? _messagesStream;
+  /// يمنع إعادة إنشاء اشتراك الرسائل لنفس المحادثة عند كل snapshot.
+  String? _messagesStreamChatId;
 
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _chatsSubscription;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _messageSoundSubscription;
@@ -82,6 +86,21 @@ class _ChatScreenState extends State<ChatScreen> {
 
   void _onComposerTextChanged() {
     if (mounted) setState(() {});
+  }
+
+  KeyEventResult _onComposerKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    final key = event.logicalKey;
+    final isEnter =
+        key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter;
+    if (!isEnter) return KeyEventResult.ignored;
+    if (composerShiftPressed()) return KeyEventResult.ignored;
+    final busy = Get.find<HomeController>().isUploading.value;
+    if (!busy) {
+      unawaited(_sendMessage());
+    }
+    return KeyEventResult.handled;
   }
 
   Future<void> _initUserThenLoad() async {
@@ -288,6 +307,24 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
+  /// يضبط [stream] الرسائل ليتوافق مع [_selectedChat] (مثلاً عند استعادة آخر محادثة من [HomeController]).
+  void _syncMessagesStreamWithSelection() {
+    if (_selectedChat == null) {
+      _messagesStream = null;
+      _messagesStreamChatId = null;
+      return;
+    }
+    final id = _selectedChat!['id'] as String;
+    if (_messagesStreamChatId == id && _messagesStream != null) return;
+    _messagesStreamChatId = id;
+    _messagesStream = _firestore
+        .collection('chats')
+        .doc(id)
+        .collection('messages')
+        .orderBy('timestamp', descending: true)
+        .snapshots();
+  }
+
   // **---------------- Chats (Private & Group) ----------------**
   void _listenChats() {
     if (_currentUserId == null) return;
@@ -295,6 +332,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _chatsSubscription?.cancel();
 
     _selectedChat = Get.find<HomeController>().selectedChat;
+    _syncMessagesStreamWithSelection();
     _chatsSubscription = _firestore
         .collection('chats')
         .where('participants', arrayContains: _currentUserId)
@@ -322,6 +360,14 @@ class _ChatScreenState extends State<ChatScreen> {
           if (!mounted || _chatsSubscription == null) return;
           unawaited(_applySnapshotAndEnrich(gen, built));
         }, onError: (Object e, StackTrace st) {
+          if (e is FirebaseException &&
+              e.code == 'permission-denied' &&
+              FirebaseAuth.instance.currentUser == null) {
+            final sub = _chatsSubscription;
+            _chatsSubscription = null;
+            sub?.cancel();
+            return;
+          }
           appLog('⚠️ ChatScreen _listenChats: $e');
           if (!mounted || _chatsSubscription == null) return;
           setState(() {
@@ -341,9 +387,9 @@ class _ChatScreenState extends State<ChatScreen> {
       _loadingChats = false;
       if (_selectedChat != null) {
         _selectedChat = null;
-        _messagesStream = null;
       }
       if (!mounted || _chatsSubscription == null) return;
+      _syncMessagesStreamWithSelection();
       setState(() {});
       _syncMessageSoundListener();
       return;
@@ -362,7 +408,6 @@ class _ChatScreenState extends State<ChatScreen> {
     if (_selectedChat != null &&
         !merged.any((c) => c['id'] == _selectedChat!['id'])) {
       _selectedChat = null;
-      _messagesStream = null;
     } else if (_selectedChat != null) {
       final sid = _selectedChat!['id'] as String;
       try {
@@ -376,6 +421,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _chats = merged;
     _loadingChats = false;
     if (!mounted || _chatsSubscription == null) return;
+    _syncMessagesStreamWithSelection();
     setState(() {});
     _syncMessageSoundListener();
   }
@@ -445,6 +491,7 @@ class _ChatScreenState extends State<ChatScreen> {
     }
     _messageController.removeListener(_onComposerTextChanged);
     _messageController.dispose();
+    _messageFocusNode.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -537,12 +584,7 @@ class _ChatScreenState extends State<ChatScreen> {
       'isGroup': chatData['isGroup'] ?? false,
     };
 
-    // set messages stream
-    _messagesStream =
-        chatRef
-            .collection('messages')
-            .orderBy('timestamp', descending: true)
-            .snapshots();
+    _syncMessagesStreamWithSelection();
 
     setState(() {});
     _syncMessageSoundListener();
@@ -566,11 +608,7 @@ class _ChatScreenState extends State<ChatScreen> {
         'title': chatData['title'],
       };
 
-      _messagesStream =
-          groupRef
-              .collection('messages')
-              .orderBy('timestamp', descending: true)
-              .snapshots();
+      _syncMessagesStreamWithSelection();
       _otherUserId = null; // لا يوجد طرف آخر محدد في المجموعة
       setState(() {});
       _syncMessageSoundListener();
@@ -582,6 +620,10 @@ class _ChatScreenState extends State<ChatScreen> {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
     _messageController.clear();
+    _messageFocusNode.requestFocus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _messageFocusNode.requestFocus();
+    });
     unawaited(
       _sendChatPayload(
         lastMessagePreview: text,
@@ -1051,9 +1093,6 @@ class _ChatScreenState extends State<ChatScreen> {
                                                 ? Colors.grey.shade100
                                                 : null,
                                         onTap: () async {
-                                          final ref = _firestore
-                                              .collection('chats')
-                                              .doc(chatId);
                                           _selectedChat = ch;
                                           final participants =
                                               List<String>.from(
@@ -1066,14 +1105,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                               );
 
                                           _otherUserId = otherId;
-                                          _messagesStream =
-                                              ref
-                                                  .collection('messages')
-                                                  .orderBy(
-                                                    'timestamp',
-                                                    descending: true,
-                                                  )
-                                                  .snapshots();
+                                          _syncMessagesStreamWithSelection();
                                           appLog(_otherUserId.toString());
 
                                           await _markMessagesAsRead(ch['id']);
@@ -1470,6 +1502,8 @@ class _ChatScreenState extends State<ChatScreen> {
                                                           .isUploading
                                                           .value;
                                                   return Row(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment.center,
                                                     children: [
                                                       IconButton(
                                                         icon: Icon(
@@ -1560,7 +1594,9 @@ class _ChatScreenState extends State<ChatScreen> {
                                                                 },
                                                       ),
                                                       IconButton(
-                                                        tooltip: 'File',
+                                                        tooltip: AppLocaleKeys
+                                                            .chatAttachFile
+                                                            .tr,
                                                         icon: const Icon(
                                                           Icons.attach_file,
                                                         ),
@@ -1626,33 +1662,34 @@ class _ChatScreenState extends State<ChatScreen> {
                                                         },
                                                       ),
                                                       Expanded(
-                                                        child: TextField(
-                                                          controller:
-                                                              _messageController,
-                                                          readOnly: busy,
-                                                          textDirection:
-                                                              textDirectionForTypedChatMessage(
-                                                            _messageController.text,
-                                                            Directionality.of(
-                                                              context,
+                                                        child: Focus(
+                                                          onKeyEvent:
+                                                              _onComposerKeyEvent,
+                                                          child: TextField(
+                                                            controller:
+                                                                _messageController,
+                                                            focusNode:
+                                                                _messageFocusNode,
+                                                            minLines: 1,
+                                                            maxLines: 6,
+                                                            keyboardType:
+                                                                TextInputType
+                                                                    .multiline,
+                                                            readOnly: busy,
+                                                            textAlignVertical:
+                                                                TextAlignVertical
+                                                                    .center,
+                                                            textDirection:
+                                                                textDirectionForTypedChatMessage(
+                                                              _messageController
+                                                                  .text,
+                                                              Directionality.of(
+                                                                context,
+                                                              ),
                                                             ),
-                                                          ),
-                                                          textAlign:
-                                                              TextAlign.start,
-                                                          textInputAction:
-                                                              kIsWeb
-                                                                  ? TextInputAction
-                                                                      .send
-                                                                  : null,
-                                                          onSubmitted:
-                                                              kIsWeb
-                                                                  ? (_) {
-                                                                    if (!busy) {
-                                                                      _sendMessage();
-                                                                    }
-                                                                  }
-                                                                  : null,
-                                                          decoration: InputDecoration(
+                                                            textAlign:
+                                                                TextAlign.start,
+                                                            decoration: InputDecoration(
                                                             hintText:
                                                                 AppLocaleKeys.chatWriteMessage.tr,
                                                             filled: true,
@@ -1675,15 +1712,16 @@ class _ChatScreenState extends State<ChatScreen> {
                                                                   vertical: 8,
                                                                 ),
                                                           ),
-                                                          onTap: () {
-                                                            if (_isEmojiVisible) {
-                                                              setState(
-                                                                () =>
-                                                                    _isEmojiVisible =
-                                                                        false,
-                                                              );
-                                                            }
-                                                          },
+                                                            onTap: () {
+                                                              if (_isEmojiVisible) {
+                                                                setState(
+                                                                  () =>
+                                                                      _isEmojiVisible =
+                                                                          false,
+                                                                );
+                                                              }
+                                                            },
+                                                          ),
                                                         ),
                                                       ),
                                                       const SizedBox(width: 8),

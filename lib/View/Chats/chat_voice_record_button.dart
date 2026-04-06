@@ -205,22 +205,12 @@ class _ChatVoiceRecordButtonState extends State<ChatVoiceRecordButton> {
     super.dispose();
   }
 
-  static ButtonStyle _compactIconButton(BuildContext context) {
-    return IconButton.styleFrom(
-      padding: const EdgeInsets.all(8),
-      minimumSize: const Size(40, 40),
-      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      visualDensity: VisualDensity.compact,
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     if (kIsWeb) {
       return Obx(() {
         final busy = Get.find<HomeController>().isUploading.value;
         return IconButton(
-          style: _compactIconButton(context),
           icon: const Icon(Icons.audio_file_outlined),
           tooltip: AppLocaleKeys.chatAttachVoice.tr,
           onPressed: busy ? null : _onMicPressed,
@@ -232,7 +222,6 @@ class _ChatVoiceRecordButtonState extends State<ChatVoiceRecordButton> {
       return Obx(() {
         final busy = Get.find<HomeController>().isUploading.value;
         return IconButton(
-          style: _compactIconButton(context),
           icon: const Icon(Icons.mic_none),
           tooltip: AppLocaleKeys.chatAttachVoice.tr,
           onPressed: busy ? null : _onMicPressed,
@@ -263,13 +252,11 @@ class _ChatVoiceRecordButtonState extends State<ChatVoiceRecordButton> {
             ),
           ),
           IconButton(
-            style: _compactIconButton(context),
             tooltip: 'chat.voice_discard'.tr,
             icon: Icon(Icons.delete_outline, color: theme.colorScheme.error),
             onPressed: _deleteRecording,
           ),
           IconButton(
-            style: _compactIconButton(context),
             tooltip: 'chat.send_action'.tr,
             icon: const Icon(Icons.send_rounded, color: Color(0xff00A389)),
             onPressed: _finishAndUpload,

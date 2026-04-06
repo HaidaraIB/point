@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:get/get.dart';
 import 'package:point/Controller/ClientController.dart';
+import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Localization/LanguageController.dart';
-import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Mobile/ClientContentDetails.dart';
 import 'package:point/View/Mobile/ContentStatusCard.dart';
 import 'package:point/Utils/AppConstants.dart';
+import 'package:point/View/ClientDashboard/client_profile_form.dart';
+import 'package:point/View/Shared/CustomHeader.dart';
 import 'package:point/View/Shared/app_version_label.dart';
+import 'package:point/Utils/AppNotificationInbox.dart';
 
 class TabsController extends GetxController {
   RxInt selectedIndex =
@@ -41,19 +45,6 @@ class ClientHome extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  if (MediaQuery.of(context).size.width >= 800)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
-                      ),
-                      child: Row(
-                        children: [
-                          const Spacer(),
-                          _buildLanguageMenuButton(),
-                        ],
-                      ),
-                    ),
                   const SizedBox(height: 16),
 
                   Obx(() {
@@ -76,36 +67,39 @@ class ClientHome extends StatelessWidget {
                               tabsController.selectedIndex.value == index;
 
                           return Expanded(
-                            child: GestureDetector(
-                              onTap: () =>
-                                  tabsController.selectedIndex.value = index,
-                              behavior: HitTestBehavior.opaque,
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 200),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 8,
-                                  horizontal: 6,
-                                ),
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  color:
-                                      isSelected
-                                          ? const Color(0xFF62529A)
-                                          : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  tabs[index],
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
+                            child: MouseRegion(
+                              cursor: SystemMouseCursors.click,
+                              child: GestureDetector(
+                                onTap: () =>
+                                    tabsController.selectedIndex.value = index,
+                                behavior: HitTestBehavior.opaque,
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                    horizontal: 6,
+                                  ),
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
                                     color:
                                         isSelected
-                                            ? Colors.white
-                                            : Colors.black87,
-                                    fontWeight: FontWeight.w500,
-                                    fontSize: 14,
+                                            ? const Color(0xFF62529A)
+                                            : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    tabs[index],
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color:
+                                          isSelected
+                                              ? Colors.white
+                                              : Colors.black87,
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 14,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -334,106 +328,200 @@ class ClientHome extends StatelessWidget {
       titleSpacing: 10,
       title: Row(
         children: [
-          PopupMenuButton<String>(
-            tooltip: AppLocaleKeys.appLanguage.tr,
-            padding: EdgeInsets.zero,
-            icon: const Icon(Icons.language, color: AppColors.primary),
-            onSelected: (value) => _languageController.changeLanguage(value),
-            itemBuilder:
-                (context) => [
-                  PopupMenuItem(
-                    value: 'ar',
-                    child: Text(AppLocaleKeys.appLanguageArabic.tr),
-                  ),
-                  PopupMenuItem(
-                    value: 'en',
-                    child: Text(AppLocaleKeys.appLanguageEnglish.tr),
-                  ),
-                ],
-          ),
           Expanded(
             child: Obx(() {
               final client = controller.currentClient.value;
               final displayName = (client?.name ?? '').trim();
               final avatarUrl = client?.image ?? kDefaultAvatarUrl;
+              final unreadInbox = unreadInAppInboxCount(
+                Get.find<HomeController>().notifications,
+              );
               return Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: PopupMenuButton<String>(
+                      tooltip: AppLocaleKeys.appLanguage.tr,
+                      padding: EdgeInsets.zero,
+                      icon: const Icon(Icons.language, color: AppColors.primary),
+                      onSelected: (value) => _languageController.changeLanguage(value),
+                      itemBuilder:
+                          (context) => [
+                            PopupMenuItem(
+                              value: 'ar',
+                              child: Text(AppLocaleKeys.appLanguageArabic.tr),
+                            ),
+                            PopupMenuItem(
+                              value: 'en',
+                              child: Text(AppLocaleKeys.appLanguageEnglish.tr),
+                            ),
+                          ],
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      alignment: Alignment.center,
+                      children: [
+                        IconButton(
+                          tooltip: 'header.notifications'.tr,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(
+                            minWidth: 40,
+                            minHeight: 40,
+                          ),
+                          icon: const Icon(
+                            Icons.notifications_outlined,
+                            color: AppColors.primary,
+                          ),
+                          onPressed: () {
+                            final ctx = Get.context;
+                            if (ctx != null) {
+                              showInAppNotificationsDialog(ctx);
+                            }
+                          },
+                        ),
+                        Positioned(
+                          right: 4,
+                          top: 4,
+                          child: HeaderCountBadge(count: unreadInbox),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   if (displayName.isNotEmpty)
                     Flexible(
-                      child: Text(
-                        displayName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.end,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 13,
-                          color: Color(0xFF1A1A1A),
-                        ),
-                      ),
-                    ),
-                  if (displayName.isNotEmpty) const SizedBox(width: 8),
-                  PopupMenuButton<int>(
-                    tooltip: 'tasks.options_tooltip'.tr,
-                    padding: EdgeInsets.zero,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    color: Colors.white,
-                    elevation: 4,
-                    onSelected: (value) async {
-                      if (value == 0) {
-                        final shouldLogout =
-                            await _confirmClientLogoutDialog(Get.context!);
-                        if (!shouldLogout) return;
-                        controller.currentClient.value = null;
-                        await FirestoreServices().signOut();
-                        FunHelper.removeLoginData();
-                        Get.offAllNamed('/auth/LoginUserAccount');
-                      } else if (value == 1) {
-                        Get.toNamed('/auth/resetPassword');
-                      }
-                    },
-                    itemBuilder:
-                        (context) => [
-                          PopupMenuItem(
-                            value: 1,
-                            child: Row(
-                              children: [
-                                Text(
-                                  'resetpassword'.tr,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                const Icon(
-                                  Icons.lock_reset,
-                                  color: AppColors.primary,
-                                ),
-                              ],
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            displayName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.end,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                              color: Color(0xFF1A1A1A),
                             ),
                           ),
-                          PopupMenuItem(
-                            value: 0,
-                            child: Row(
-                              children: [
-                                Text(
-                                  'logout'.tr,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                const Icon(Icons.logout, color: Colors.red),
-                              ],
+                          Text(
+                            'user_type_client'.tr,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.end,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w500,
+                              fontSize: 11,
+                              color: Color(0xFF6E6E6E),
                             ),
                           ),
                         ],
-                    child: CircleAvatar(
-                      radius: 16,
-                      backgroundImage: NetworkImage(avatarUrl),
+                      ),
+                    ),
+                  if (displayName.isNotEmpty) const SizedBox(width: 8),
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: PopupMenuButton<int>(
+                      tooltip: 'tasks.options_tooltip'.tr,
+                      padding: EdgeInsets.zero,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      color: Colors.white,
+                      elevation: 4,
+                      onSelected: (value) async {
+                        if (value == 0) {
+                          final shouldLogout =
+                              await _confirmClientLogoutDialog(Get.context!);
+                          if (!shouldLogout) return;
+                          controller.currentClient.value = null;
+                          Get.offAllNamed('/auth/LoginUserAccount');
+                          FunHelper.scheduleFirebaseSignOutAndClearPrefs();
+                        } else if (value == 1) {
+                          Get.toNamed('/auth/resetPassword');
+                        } else if (value == 2) {
+                          if (kIsWeb) {
+                            showClientProfileDialog(Get.context!);
+                          } else {
+                            Get.toNamed('/clientProfile');
+                          }
+                        }
+                      },
+                      itemBuilder:
+                          (context) => [
+                            PopupMenuItem(
+                              value: 2,
+                              child: Row(
+                                children: [
+                                  Text(
+                                    'client.profile.menu'.tr,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Icon(
+                                    Icons.person_outline,
+                                    color: AppColors.primary,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: 1,
+                              child: Row(
+                                children: [
+                                  Text(
+                                    'resetpassword'.tr,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Icon(
+                                    Icons.lock_reset,
+                                    color: AppColors.primary,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem(
+                              value: 0,
+                              child: Row(
+                                children: [
+                                  Text(
+                                    'logout'.tr,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Icon(Icons.logout, color: Colors.red),
+                                ],
+                              ),
+                            ),
+                          ],
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircleAvatar(
+                            radius: 16,
+                            backgroundImage: NetworkImage(avatarUrl),
+                          ),
+                          const SizedBox(width: 2),
+                          Icon(
+                            Icons.expand_more,
+                            size: 22,
+                            color: const Color(0xFF1A1A1A),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
@@ -445,38 +533,6 @@ class ClientHome extends StatelessWidget {
     );
   }
 
-  Widget _buildLanguageMenuButton() {
-    return PopupMenuButton<String>(
-      tooltip: AppLocaleKeys.appLanguage.tr,
-      icon: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.language, color: AppColors.primary),
-          const SizedBox(width: 6),
-          Text(
-            AppLocaleKeys.appLanguage.tr,
-            style: const TextStyle(
-              color: AppColors.primary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const Icon(Icons.arrow_drop_down, color: AppColors.primary),
-        ],
-      ),
-      onSelected: (value) => _languageController.changeLanguage(value),
-      itemBuilder:
-          (context) => [
-            PopupMenuItem(
-              value: 'ar',
-              child: Text(AppLocaleKeys.appLanguageArabic.tr),
-            ),
-            PopupMenuItem(
-              value: 'en',
-              child: Text(AppLocaleKeys.appLanguageEnglish.tr),
-            ),
-          ],
-    );
-  }
 }
 
 Future<bool> _confirmClientLogoutDialog(BuildContext context) async {

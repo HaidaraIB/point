@@ -1,5 +1,13 @@
-import 'package:flutter/material.dart' show TextDirection;
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart' show Bidi;
+
+/// كشف موثوق لـ Shift على الويب وسطح المكتب (لـ Enter مقابل Shift+Enter).
+bool composerShiftPressed() {
+  final pressed = HardwareKeyboard.instance.logicalKeysPressed;
+  return pressed.contains(LogicalKeyboardKey.shiftLeft) ||
+      pressed.contains(LogicalKeyboardKey.shiftRight) ||
+      HardwareKeyboard.instance.isShiftPressed;
+}
 
 /// يحدد اتجاه حقل إدخال الرسالة من **محتوى النص** (أول حرف اتجاهي قوي)،
 /// وليس من اتجاه واجهة التطبيق.

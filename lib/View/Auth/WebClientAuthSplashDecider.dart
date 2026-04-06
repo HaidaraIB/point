@@ -3,16 +3,16 @@ import 'package:get/get.dart';
 import 'package:point/Services/AutoLoginService.dart';
 import 'package:point/Utils/AppImages.dart';
 
-/// Web cold start: show loading instead of the login form while we restore
-/// Firebase Auth + session (avoids users submitting login while already signed in).
-class WebAuthSplashDecider extends StatefulWidget {
-  const WebAuthSplashDecider({super.key});
+/// Web cold start for client auth: restore session, then client session setup or login.
+class WebClientAuthSplashDecider extends StatefulWidget {
+  const WebClientAuthSplashDecider({super.key});
 
   @override
-  State<WebAuthSplashDecider> createState() => _WebAuthSplashDeciderState();
+  State<WebClientAuthSplashDecider> createState() =>
+      _WebClientAuthSplashDeciderState();
 }
 
-class _WebAuthSplashDeciderState extends State<WebAuthSplashDecider> {
+class _WebClientAuthSplashDeciderState extends State<WebClientAuthSplashDecider> {
   bool _navigated = false;
 
   String? _validatedNextRoute() {
@@ -22,6 +22,7 @@ class _WebAuthSplashDeciderState extends State<WebAuthSplashDecider> {
     if (!decoded.startsWith('/')) return null;
     if (decoded.startsWith('/auth') ||
         decoded.contains('Splash') ||
+        decoded == '/clientSessionSetup' ||
         decoded == '/webAuthSplash' ||
         decoded == '/mobileSplash') {
       return null;
@@ -42,10 +43,16 @@ class _WebAuthSplashDeciderState extends State<WebAuthSplashDecider> {
     final deepLinkTarget = _validatedNextRoute();
 
     _navigated = true;
-    if (nextRoute != null && nextRoute.isNotEmpty) {
-      Get.offAllNamed(deepLinkTarget ?? nextRoute);
+    if (nextRoute == '/clientSessionSetup' || nextRoute == '/ClientHome') {
+      if (deepLinkTarget != null && deepLinkTarget.isNotEmpty) {
+        Get.offAllNamed(
+          '/clientSessionSetup?next=${Uri.encodeComponent(deepLinkTarget)}',
+        );
+      } else {
+        Get.offAllNamed('/clientSessionSetup');
+      }
     } else {
-      Get.offAllNamed('/auth/login');
+      Get.offAllNamed('/auth/LoginUserAccount');
     }
   }
 

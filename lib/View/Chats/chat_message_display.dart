@@ -310,104 +310,107 @@ class _VoiceMessageRowState extends State<VoiceMessageRow> {
     final busy = _loadCount > 0;
     final canScrub = _effectiveDuration.inMilliseconds > 0;
 
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minWidth: 200, maxWidth: 268),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: 44,
-                height: 44,
-                child: busy
-                    ? Center(
-                        child: SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 200, maxWidth: 268),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: busy
+                      ? Center(
+                          child: SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: primary,
+                            ),
+                          ),
+                        )
+                      : IconButton(
+                          padding: EdgeInsets.zero,
+                          onPressed: _toggle,
+                          icon: Icon(
+                            _playing
+                                ? Icons.pause_rounded
+                                : Icons.play_arrow_rounded,
                             color: primary,
+                            size: 34,
                           ),
                         ),
-                      )
-                    : IconButton(
-                        padding: EdgeInsets.zero,
-                        onPressed: _toggle,
-                        icon: Icon(
-                          _playing
-                              ? Icons.pause_rounded
-                              : Icons.play_arrow_rounded,
-                          color: primary,
-                          size: 34,
-                        ),
-                      ),
-              ),
-              Expanded(
-                child: SliderTheme(
-                  data: SliderTheme.of(context).copyWith(
-                    trackHeight: 5,
-                    thumbShape:
-                        const RoundSliderThumbShape(enabledThumbRadius: 7),
-                    overlayShape:
-                        const RoundSliderOverlayShape(overlayRadius: 16),
-                    activeTrackColor: progress,
-                    inactiveTrackColor: track,
-                    thumbColor: primary,
-                    overlayColor: primary.withValues(alpha: 0.14),
-                  ),
-                  child: Slider(
-                    value: _sliderValue.clamp(0.0, 1.0),
-                    onChanged: canScrub
-                        ? (v) => setState(() => _dragFraction = v)
-                        : null,
-                    onChangeEnd: canScrub ? _onSeekEnd : null,
-                  ),
                 ),
-              ),
-            ],
-          ),
-          Padding(
-            padding: const EdgeInsetsDirectional.only(start: 44, end: 6),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  _fmt(
-                    _dragFraction != null
-                        ? Duration(
-                            milliseconds:
-                                (_dragFraction! *
-                                        _effectiveDuration.inMilliseconds)
-                                    .round(),
-                          )
-                        : _position,
+                Expanded(
+                  child: SliderTheme(
+                    data: SliderTheme.of(context).copyWith(
+                      trackHeight: 5,
+                      thumbShape:
+                          const RoundSliderThumbShape(enabledThumbRadius: 7),
+                      overlayShape:
+                          const RoundSliderOverlayShape(overlayRadius: 16),
+                      activeTrackColor: progress,
+                      inactiveTrackColor: track,
+                      thumbColor: primary,
+                      overlayColor: primary.withValues(alpha: 0.14),
+                    ),
+                    child: Slider(
+                      value: _sliderValue.clamp(0.0, 1.0),
+                      onChanged: canScrub
+                          ? (v) => setState(() => _dragFraction = v)
+                          : null,
+                      onChangeEnd: canScrub ? _onSeekEnd : null,
+                    ),
                   ),
-                  style: TextStyle(fontSize: 11.5, color: secondary),
-                ),
-                Text(
-                  _fmt(_effectiveDuration),
-                  style: TextStyle(fontSize: 11.5, color: secondary),
                 ),
               ],
             ),
-          ),
-          if (_error != null)
             Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text(
-                AppLocaleKeys.errorsServer.tr,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: widget.isMe
-                      ? Colors.orange.shade100
-                      : Theme.of(context).colorScheme.error,
-                ),
+              padding: const EdgeInsetsDirectional.only(start: 44, end: 6),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _fmt(
+                      _dragFraction != null
+                          ? Duration(
+                              milliseconds:
+                                  (_dragFraction! *
+                                          _effectiveDuration.inMilliseconds)
+                                      .round(),
+                            )
+                          : _position,
+                    ),
+                    style: TextStyle(fontSize: 11.5, color: secondary),
+                  ),
+                  Text(
+                    _fmt(_effectiveDuration),
+                    style: TextStyle(fontSize: 11.5, color: secondary),
+                  ),
+                ],
               ),
             ),
-        ],
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  AppLocaleKeys.errorsServer.tr,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: widget.isMe
+                        ? Colors.orange.shade100
+                        : Theme.of(context).colorScheme.error,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -423,27 +426,89 @@ class _ChatImageBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        onTap: () => openChatMediaFromUrl(url),
-        child: Image.network(
-          url,
-          width: 200,
-          fit: BoxFit.cover,
-          loadingBuilder: (c, w, p) {
-            if (p == null) return w;
-            return const SizedBox(
-              height: 120,
-              child: Center(child: CircularProgressIndicator()),
-            );
-          },
-          errorBuilder: (_, __, ___) => Icon(
-            Icons.broken_image,
-            size: 40,
-            color: isMe ? Colors.white70 : Colors.black45,
+      child: _RetryableChatImage(
+        url: url,
+        width: 200,
+        fit: BoxFit.cover,
+        isMe: isMe,
+        onImageTap: () => openChatMediaFromUrl(url),
+      ),
+    );
+  }
+}
+
+class _RetryableChatImage extends StatefulWidget {
+  final String url;
+  final double width;
+  final BoxFit fit;
+  final bool isMe;
+  final double loadingHeight;
+  final VoidCallback? onImageTap;
+
+  const _RetryableChatImage({
+    required this.url,
+    required this.width,
+    required this.fit,
+    required this.isMe,
+    this.loadingHeight = 120,
+    this.onImageTap,
+  });
+
+  @override
+  State<_RetryableChatImage> createState() => _RetryableChatImageState();
+}
+
+class _RetryableChatImageState extends State<_RetryableChatImage> {
+  int _retrySeed = 0;
+
+  void _retry() {
+    final provider = NetworkImage(widget.url);
+    provider.evict();
+    setState(() => _retrySeed++);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final image = Image.network(
+      widget.url,
+      key: ValueKey('${widget.url}#$_retrySeed'),
+      width: widget.width,
+      fit: widget.fit,
+      loadingBuilder: (c, w, p) {
+        if (p == null) return w;
+        return SizedBox(
+          height: widget.loadingHeight,
+          child: const Center(child: CircularProgressIndicator()),
+        );
+      },
+      errorBuilder: (_, __, ___) => InkWell(
+        onTap: _retry,
+        child: SizedBox(
+          height: widget.loadingHeight,
+          width: widget.width,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.refresh,
+                size: 24,
+                color: widget.isMe ? Colors.white70 : Colors.black54,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Retry',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: widget.isMe ? Colors.white70 : Colors.black54,
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
+    if (widget.onImageTap == null) return image;
+    return InkWell(onTap: widget.onImageTap, child: image);
   }
 }
 
@@ -821,9 +886,12 @@ List<InlineSpan> buildMessageSpans(String text, bool isMe) {
                       child: Center(child: CircularProgressIndicator()),
                     );
                   },
-                  errorBuilder: (_, __, ___) => const Icon(
-                    Icons.broken_image,
-                    size: 40,
+                  errorBuilder: (_, __, ___) => _RetryableChatImage(
+                    url: url,
+                    width: 200,
+                    fit: BoxFit.cover,
+                    isMe: isMe,
+                    loadingHeight: 150,
                   ),
                 ),
               ),

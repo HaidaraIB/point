@@ -1,65 +1,69 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:point/Controller/ClientController.dart';
 import 'package:point/Controller/HomeController.dart';
-import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
-import 'package:point/View/Shared/app_version_label.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/ReadOnlyAccountEmailField.dart';
+import 'package:point/View/Shared/app_version_label.dart';
+import 'package:point/Models/ClientModel.dart';
 
-/// نموذج الملف الشخصي (اسم + صورة + حقوق قراءة فقط) — يُستخدم في شاشة الموبايل وفي حوار الويب.
-class EmployeeProfileForm extends StatefulWidget {
-  const EmployeeProfileForm({
+class ClientProfileForm extends StatefulWidget {
+  const ClientProfileForm({
     super.key,
     this.closeOnSuccess = false,
     this.padding = EdgeInsets.zero,
   });
 
-  /// عند الحفظ الناجح يُغلق الحوار (يُستخدم مع [showEmployeeProfileDialog]).
   final bool closeOnSuccess;
-
   final EdgeInsetsGeometry padding;
 
   @override
-  State<EmployeeProfileForm> createState() => _EmployeeProfileFormState();
+  State<ClientProfileForm> createState() => _ClientProfileFormState();
 }
 
-class _EmployeeProfileFormState extends State<EmployeeProfileForm> {
+class _ClientProfileFormState extends State<ClientProfileForm> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
-  String _lastHydratedEmployeeId = '';
+  String _lastHydratedClientId = '';
 
   @override
   void initState() {
     super.initState();
-    final c = Get.find<HomeController>();
-    final emp = c.currentEmployee.value;
-    _nameController = TextEditingController(text: emp?.name ?? '');
-    c.uploadedFilesPaths.assignAll(
-      emp != null && (emp.image ?? '').trim().isNotEmpty ? [emp.image!.trim()] : [],
+    final clientController = Get.find<ClientController>();
+    final uploadController = Get.find<HomeController>();
+    final client = clientController.currentClient.value;
+    _nameController = TextEditingController(text: client?.name ?? '');
+    uploadController.uploadedFilesPaths.assignAll(
+      client != null && (client.image ?? '').trim().isNotEmpty
+          ? [client.image!.trim()]
+          : [],
     );
   }
 
-  void _hydrateFromEmployee(HomeController controller) {
-    final emp = controller.currentEmployee.value;
-    if (emp == null) return;
+  void _hydrateFromClient({
+    required ClientController clientController,
+    required HomeController uploadController,
+  }) {
+    final client = clientController.currentClient.value;
+    if (client == null) return;
 
-    final employeeId = (emp.id ?? '').trim();
+    final clientId = (client.id ?? '').trim();
     final shouldHydrateName =
-        _lastHydratedEmployeeId != employeeId ||
-        _nameController.text.trim().isEmpty;
+        _lastHydratedClientId != clientId || _nameController.text.trim().isEmpty;
     if (shouldHydrateName) {
-      final name = (emp.name ?? '').trim();
+      final name = (client.name ?? '').trim();
       _nameController.value = TextEditingValue(
         text: name,
         selection: TextSelection.collapsed(offset: name.length),
       );
-      _lastHydratedEmployeeId = employeeId;
+      _lastHydratedClientId = clientId;
     }
 
-    final image = (emp.image ?? '').trim();
-    if (controller.uploadedFilesPaths.isEmpty && image.isNotEmpty) {
-      controller.uploadedFilesPaths.assignAll([image]);
+    final image = (client.image ?? '').trim();
+    if (uploadController.uploadedFilesPaths.isEmpty && image.isNotEmpty) {
+      uploadController.uploadedFilesPaths.assignAll([image]);
     }
   }
 
@@ -70,121 +74,133 @@ class _EmployeeProfileFormState extends State<EmployeeProfileForm> {
     super.dispose();
   }
 
+  /// Firestore doc may lag behind auth on cold start; prefer doc email, else JWT.
+  static String _accountEmail(ClientModel? client) {
+    final fromDoc = (client?.email ?? '').trim();
+    if (fromDoc.isNotEmpty) return fromDoc;
+    return (FirebaseAuth.instance.currentUser?.email ?? '').trim();
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-    final c = Get.find<HomeController>();
-    final emp = c.currentEmployee.value;
+    final clientController = Get.find<ClientController>();
+    final uploadController = Get.find<HomeController>();
+    final client = clientController.currentClient.value;
+    if (client == null) return;
+
     final imageUrl =
-        c.uploadedFilesPaths.isNotEmpty
-            ? c.uploadedFilesPaths.last
-            : emp?.image;
-    final ok = await c.updateMyProfile(
-      name: _nameController.text,
-      imageUrl: imageUrl,
+        uploadController.uploadedFilesPaths.isNotEmpty
+            ? uploadController.uploadedFilesPaths.last
+            : client.image;
+
+    final ok = await clientController.updateClient(
+      client.copyWith(name: _nameController.text.trim(), image: imageUrl),
     );
     if (!mounted) return;
     if (ok) {
-      c.uploadedFilesPaths.clear();
+      uploadController.uploadedFilesPaths.clear();
       if (widget.closeOnSuccess) {
         Navigator.of(context).pop();
       }
     }
   }
 
-  static String departmentLabel(String? department) {
-    final d = (department ?? '').trim();
-    if (d.isEmpty) return '—';
-    return StorageKeys.semanticDepartmentLabelKey(d).tr;
-  }
-
   @override
   Widget build(BuildContext context) {
-    return GetBuilder<HomeController>(
-      builder: (controller) {
+    return GetBuilder<ClientController>(
+      builder: (clientController) {
+        final uploadController = Get.find<HomeController>();
         return Form(
           key: _formKey,
           child: SingleChildScrollView(
             padding: widget.padding,
             child: Obx(() {
-              final emp = controller.currentEmployee.value;
-              _hydrateFromEmployee(controller);
+              final client = clientController.currentClient.value;
+              _hydrateFromClient(
+                clientController: clientController,
+                uploadController: uploadController,
+              );
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Center(
-                    child: InkWell(
-                      onTap: () async {
-                        await controller.pickoneImage().then((v) async {
-                          if (v.isNotEmpty) {
-                            await controller.uploadFiles(
-                              filePathOrBytes: v.first.bytes!,
-                              fileName: v.first.name,
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: InkWell(
+                        onTap: () async {
+                          final files = await uploadController.pickoneImage();
+                          if (files.isNotEmpty) {
+                            await uploadController.uploadFiles(
+                              filePathOrBytes: files.first.bytes!,
+                              fileName: files.first.name,
                             );
                             if (mounted) setState(() {});
                           }
-                        });
-                      },
-                      child: Obx(
-                        () => CircleAvatar(
-                          backgroundColor: Colors.grey.shade200,
-                          radius: 50,
-                          child:
-                              controller.uploadedFilesPaths.isNotEmpty
-                                  ? ClipRRect(
-                                    borderRadius: BorderRadius.circular(50),
-                                    child: Image.network(
-                                      controller.uploadedFilesPaths.last,
-                                      width: 100,
-                                      height: 100,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => Icon(
-                                        Icons.person,
-                                        size: 50,
-                                        color: AppColors.primary,
+                        },
+                        child: Obx(
+                          () => CircleAvatar(
+                            backgroundColor: Colors.grey.shade200,
+                            radius: 50,
+                            child:
+                                uploadController.uploadedFilesPaths.isNotEmpty
+                                    ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(50),
+                                      child: Image.network(
+                                        uploadController.uploadedFilesPaths.last,
+                                        width: 100,
+                                        height: 100,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (_, __, ___) => Icon(
+                                              Icons.person,
+                                              size: 50,
+                                              color: AppColors.primary,
+                                            ),
                                       ),
-                                    ),
-                                  )
-                                  : (emp?.image != null &&
-                                          emp!.image!.trim().isNotEmpty)
-                                  ? ClipRRect(
-                                    borderRadius: BorderRadius.circular(50),
-                                    child: Image.network(
-                                      emp.image!,
-                                      width: 100,
-                                      height: 100,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => Icon(
-                                        Icons.camera_alt,
-                                        size: 50,
-                                        color: AppColors.primary,
-                                      ),
-                                    ),
-                                  )
-                                  : Icon(
-                                    Icons.camera_alt,
-                                    size: 50,
-                                    color: AppColors.primary,
-                                  ),
+                                    )
+                                    : (client != null &&
+                                            (client.image ?? '').trim().isNotEmpty)
+                                        ? ClipRRect(
+                                            borderRadius: BorderRadius.circular(
+                                              50,
+                                            ),
+                                            child: Image.network(
+                                              client.image!.trim(),
+                                              width: 100,
+                                              height: 100,
+                                              fit: BoxFit.cover,
+                                              errorBuilder:
+                                                  (_, __, ___) => Icon(
+                                                    Icons.camera_alt,
+                                                    size: 50,
+                                                    color: AppColors.primary,
+                                                  ),
+                                            ),
+                                          )
+                                        : Icon(
+                                            Icons.camera_alt,
+                                            size: 50,
+                                            color: AppColors.primary,
+                                          ),
+                          ),
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(height: 20),
                   InputText(
-                    labelText: 'employee.profile.name'.tr,
+                    labelText: 'client.profile.name'.tr,
                     hintText: 'entername'.tr,
                     height: 48,
                     fillColor: Colors.white,
                     controller: _nameController,
-                    validator:
-                        (v) =>
-                            (v == null || v.trim().isEmpty) ? ' ' : null,
+                    validator: (v) => (v == null || v.trim().isEmpty) ? ' ' : null,
                     borderRadius: 8,
                     borderColor: Colors.grey.shade300,
                   ),
                   const SizedBox(height: 16),
                   ReadOnlyAccountEmailField(
-                    email: emp?.email ?? '',
+                    email: _accountEmail(client),
                     height: 48,
                     borderRadius: 8,
                     borderColor: Colors.grey.shade300,
@@ -192,16 +208,8 @@ class _EmployeeProfileFormState extends State<EmployeeProfileForm> {
                   ),
                   const SizedBox(height: 16),
                   _readOnlyLine(
-                    label: 'employee.profile.role'.tr,
-                    value:
-                        (emp?.role ?? '').trim().isEmpty
-                            ? '—'
-                            : emp!.role.tr,
-                  ),
-                  const SizedBox(height: 12),
-                  _readOnlyLine(
-                    label: 'employee.profile.department'.tr,
-                    value: departmentLabel(emp?.department),
+                    label: 'client.profile.role'.tr,
+                    value: 'user_type_client'.tr,
                   ),
                   const SizedBox(height: 32),
                   Obx(
@@ -216,9 +224,9 @@ class _EmployeeProfileFormState extends State<EmployeeProfileForm> {
                           ),
                         ),
                         onPressed:
-                            controller.isLoading.value ? null : _save,
+                            clientController.isLoading.value ? null : _save,
                         child:
-                            controller.isLoading.value
+                            clientController.isLoading.value
                                 ? const SizedBox(
                                   width: 24,
                                   height: 24,
@@ -228,7 +236,7 @@ class _EmployeeProfileFormState extends State<EmployeeProfileForm> {
                                   ),
                                 )
                                 : Text(
-                                  'employee.profile.save'.tr,
+                                  'client.profile.save'.tr,
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
@@ -285,8 +293,7 @@ class _EmployeeProfileFormState extends State<EmployeeProfileForm> {
   }
 }
 
-/// حوار ملف الموظف على الويب (نفس محتوى شاشة الموبايل).
-void showEmployeeProfileDialog(BuildContext context) {
+void showClientProfileDialog(BuildContext context) {
   showDialog<void>(
     context: context,
     barrierDismissible: true,
@@ -308,7 +315,7 @@ void showEmployeeProfileDialog(BuildContext context) {
                   children: [
                     Expanded(
                       child: Text(
-                        'employee.profile.title'.tr,
+                        'client.profile.title'.tr,
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 18,
@@ -326,7 +333,7 @@ void showEmployeeProfileDialog(BuildContext context) {
               ),
               Divider(height: 1, color: Colors.grey.shade200),
               Expanded(
-                child: EmployeeProfileForm(
+                child: ClientProfileForm(
                   closeOnSuccess: true,
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
                 ),

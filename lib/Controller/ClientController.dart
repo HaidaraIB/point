@@ -125,16 +125,43 @@ class ClientController extends GetxController {
   StreamSubscription<String>? _fcmTokenRefreshSub;
   StreamSubscription<User?>? _authStateSub;
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _clientDocSub;
+  /// Web cold start: [authStateChanges] can emit `null` once before persistence
+  /// restores the user — clearing [currentClient] there wipes the UI after refresh.
+  Timer? _authSignedOutDebounce;
+
+  /// First snapshot can be from local cache and miss fields; a later event has
+  /// full server data. Avoid overwriting a good [currentClient] with empty strings.
+  ClientModel _mergeClientWithPrevious(ClientModel incoming, ClientModel? prev) {
+    if (prev == null) return incoming;
+    final sameId =
+        (prev.id ?? '').trim().isNotEmpty &&
+        (incoming.id ?? '').trim().isNotEmpty &&
+        (prev.id ?? '').trim() == (incoming.id ?? '').trim();
+    if (!sameId) return incoming;
+
+    var m = incoming;
+    if ((m.name ?? '').trim().isEmpty && (prev.name ?? '').trim().isNotEmpty) {
+      m = m.copyWith(name: prev.name);
+    }
+    if ((m.email ?? '').trim().isEmpty && (prev.email ?? '').trim().isNotEmpty) {
+      m = m.copyWith(email: prev.email);
+    }
+    if ((m.image ?? '').trim().isEmpty && (prev.image ?? '').trim().isNotEmpty) {
+      m = m.copyWith(image: prev.image);
+    }
+    return m;
+  }
 
   void listenToClient(String clientId) {
     _clientDocSub?.cancel();
     _clientDocSub = _clientCollection.doc(clientId).snapshots().listen(
       (snapshot) async {
         if (snapshot.exists) {
-          final cl = ClientModel.fromJson(
+          final raw = ClientModel.fromJson(
             snapshot.data()!,
             snapshot.id,
           );
+          final cl = _mergeClientWithPrevious(raw, currentClient.value);
           currentClient.value = cl;
           unawaited(FirestoreServices.syncAuthRoleForClient(cl));
           getFCMToken(currentClient.value);
@@ -248,12 +275,18 @@ class ClientController extends GetxController {
   void onInit() {
     fetchClients();
     _authStateSub = FirebaseAuth.instance.authStateChanges().listen((user) {
+      _authSignedOutDebounce?.cancel();
       if (user == null) {
-        _clientDocSub?.cancel();
-        _clientDocSub = null;
-        currentClient.value = null;
-        clients.bindStream(Stream<List<ClientModel>>.value(const []));
-        update();
+        // Defer clear so a transient null during IndexedDB restore does not
+        // wipe session after silent login / refresh.
+        _authSignedOutDebounce = Timer(const Duration(milliseconds: 400), () {
+          if (FirebaseAuth.instance.currentUser != null) return;
+          _clientDocSub?.cancel();
+          _clientDocSub = null;
+          currentClient.value = null;
+          clients.bindStream(Stream<List<ClientModel>>.value(const []));
+          update();
+        });
         return;
       }
       fetchClients();
@@ -265,6 +298,8 @@ class ClientController extends GetxController {
 
   @override
   void onClose() {
+    _authSignedOutDebounce?.cancel();
+    _authSignedOutDebounce = null;
     _clientDocSub?.cancel();
     _clientDocSub = null;
     _authStateSub?.cancel();

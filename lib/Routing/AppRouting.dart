@@ -1,17 +1,22 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:point/Controller/ClientController.dart';
 import 'package:point/Controller/HomeController.dart';
 
 import 'package:point/View/Auth/ChooseUserType.dart';
+import 'package:point/View/Auth/ClientSessionSetupScreen.dart';
 import 'package:point/View/Auth/CreateUserAccount.dart';
 import 'package:point/View/Auth/EnterCode.dart';
 import 'package:point/View/Auth/ForgetPassword.dart';
 import 'package:point/View/Auth/Login.dart';
 import 'package:point/View/Auth/ResetPassword.dart';
 import 'package:point/View/Auth/SessionSetupScreen.dart';
+import 'package:point/View/Auth/WebClientAuthSplashDecider.dart';
 import 'package:point/View/Auth/WebAuthSplashDecider.dart';
 import 'package:point/View/Clients/ClientsTable.dart';
+import 'package:point/View/ClientDashboard/client_profile_screen.dart';
 import 'package:point/View/Contents/ContentsTable.dart';
 import 'package:point/View/EmployeeDashboard/EmployeeDashboard.dart';
 import 'package:point/View/EmployeeDashboard/employee_profile_screen.dart';
@@ -21,6 +26,7 @@ import 'package:point/View/History/TaskHistory.dart';
 import 'package:point/View/Home/Home.dart';
 import 'package:point/View/Mobile/ClientHome.dart';
 import 'package:point/View/Mobile/CreateUserAccount.dart';
+import 'package:point/View/Mobile/MobileClientSplashDecider.dart';
 import 'package:point/View/Mobile/LoginUserAccount.dart';
 import 'package:point/View/Mobile/MobileSplashDecider.dart';
 import 'package:point/View/Statistics/Statistics.dart';
@@ -31,9 +37,33 @@ class AuthMiddleware extends GetMiddleware {
   RouteSettings? redirect(String? route) {
     final user = Get.find<HomeController>().currentEmployee.value;
     if (user == null) {
+      final authUser = FirebaseAuth.instance.currentUser;
+      if (authUser != null) {
+        final currentRoute = route ?? Get.currentRoute;
+        final encodedNext = Uri.encodeComponent(currentRoute);
+        final splash = kIsWeb ? '/webAuthSplash' : '/mobileSplash';
+        return RouteSettings(name: '$splash?next=$encodedNext');
+      }
       return const RouteSettings(name: '/auth/login');
     }
     return null;
+  }
+}
+
+class ClientAuthMiddleware extends GetMiddleware {
+  @override
+  RouteSettings? redirect(String? route) {
+    final client = Get.find<ClientController>().currentClient.value;
+    if (client != null) return null;
+
+    final authUser = FirebaseAuth.instance.currentUser;
+    if (authUser != null) {
+      final currentRoute = route ?? Get.currentRoute;
+      final encodedNext = Uri.encodeComponent(currentRoute);
+      final splash = kIsWeb ? '/webClientAuthSplash' : '/mobileClientSplash';
+      return RouteSettings(name: '$splash?next=$encodedNext');
+    }
+    return const RouteSettings(name: '/auth/LoginUserAccount');
   }
 }
 
@@ -42,14 +72,27 @@ class AppRouting {
 
   static final routing = [
     GetPage(name: '/webAuthSplash', page: () => const WebAuthSplashDecider()),
+    GetPage(
+      name: '/webClientAuthSplash',
+      page: () => const WebClientAuthSplashDecider(),
+    ),
     GetPage(name: '/mobileSplash', page: () => const MobileSplashDecider()),
     GetPage(
+      name: '/mobileClientSplash',
+      page: () => const MobileClientSplashDecider(),
+    ),
+    GetPage(
       name: '/ClientHome',
+      middlewares: [ClientAuthMiddleware()],
       page: () {
         return ClientHome();
       },
     ),
     GetPage(name: '/sessionSetup', page: () => const SessionSetupScreen()),
+    GetPage(
+      name: '/clientSessionSetup',
+      page: () => const ClientSessionSetupScreen(),
+    ),
 
     GetPage(
       name: '/auth',
@@ -178,6 +221,11 @@ class AppRouting {
       name: '/employeeProfile',
       page: () => const EmployeeProfileScreen(),
       middlewares: [AuthMiddleware()],
+    ),
+    GetPage(
+      name: '/clientProfile',
+      page: () => const ClientProfileScreen(),
+      middlewares: [ClientAuthMiddleware()],
     ),
     GetPage(
       name: '/employeeContent',

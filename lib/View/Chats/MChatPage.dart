@@ -3,7 +3,9 @@ import 'package:point/Utils/app_log.dart';
 import 'package:point/Utils/text_input_bidi.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 // يجب أن يكون هذا الملف متاحًا لديك، وإلا سيعطي خطأ
@@ -269,6 +271,14 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
           if (!mounted) return;
           unawaited(_applySnapshotAndEnrich(gen, built));
         }, onError: (Object e, StackTrace st) {
+          if (e is FirebaseException &&
+              e.code == 'permission-denied' &&
+              FirebaseAuth.instance.currentUser == null) {
+            final sub = _chatsListSub;
+            _chatsListSub = null;
+            sub?.cancel();
+            return;
+          }
           appLog('⚠️ MChatPage _listenChats: $e');
           if (!mounted) return;
           setState(() {
@@ -994,6 +1004,22 @@ class _MessageScreenState extends State<MessageScreen> {
     if (mounted) setState(() {});
   }
 
+  KeyEventResult _onComposerKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    final key = event.logicalKey;
+    final isEnter =
+        key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter;
+    if (!isEnter) return KeyEventResult.ignored;
+    final shiftPressed = composerShiftPressed();
+    if (shiftPressed) return KeyEventResult.ignored;
+    final busy = Get.find<HomeController>().isUploading.value;
+    if (!busy) {
+      unawaited(_sendMessage());
+    }
+    return KeyEventResult.handled;
+  }
+
   Future<void> _showAttachmentMenu(BuildContext anchorContext) async {
     final homeController = Get.find<HomeController>();
     if (!mounted) return;
@@ -1122,6 +1148,10 @@ class _MessageScreenState extends State<MessageScreen> {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
     _messageController.clear();
+    _messageFocusNode.requestFocus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _messageFocusNode.requestFocus();
+    });
     if (mounted) {
       setState(() {
         _isEmojiVisible = false;
@@ -1463,7 +1493,7 @@ class _MessageScreenState extends State<MessageScreen> {
               child: Obx(() {
                 final busy = Get.find<HomeController>().isUploading.value;
                 return Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     IconButton(
                       padding: EdgeInsets.zero,
@@ -1511,40 +1541,44 @@ class _MessageScreenState extends State<MessageScreen> {
                       },
                     ),
                     Expanded(
-                      child: TextField(
-                        controller: _messageController,
-                        focusNode: _messageFocusNode,
-                        minLines: 1,
-                        maxLines: 6,
-                        keyboardType: TextInputType.multiline,
-                        readOnly: busy,
-                        textDirection: textDirectionForTypedChatMessage(
-                          _messageController.text,
-                          Directionality.of(context),
-                        ),
-                        textAlign: TextAlign.start,
-                        style: TextStyle(
-                          fontSize: _messageFocusNode.hasFocus ? 17 : 16,
-                          height: 1.35,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: AppLocaleKeys.chatWriteMessage.tr,
-                          hintStyle: TextStyle(
-                            color: Colors.grey.shade500,
-                            fontSize: 16,
+                      child: Focus(
+                        onKeyEvent: _onComposerKeyEvent,
+                        child: TextField(
+                          controller: _messageController,
+                          focusNode: _messageFocusNode,
+                          minLines: 1,
+                          maxLines: 6,
+                          keyboardType: TextInputType.multiline,
+                          readOnly: busy,
+                          textAlignVertical: TextAlignVertical.center,
+                          textDirection: textDirectionForTypedChatMessage(
+                            _messageController.text,
+                            Directionality.of(context),
                           ),
-                          border: InputBorder.none,
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 12,
+                          textAlign: TextAlign.start,
+                          style: TextStyle(
+                            fontSize: _messageFocusNode.hasFocus ? 17 : 16,
+                            height: 1.35,
                           ),
+                          decoration: InputDecoration(
+                            hintText: AppLocaleKeys.chatWriteMessage.tr,
+                            hintStyle: TextStyle(
+                              color: Colors.grey.shade500,
+                              fontSize: 16,
+                            ),
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 12,
+                            ),
+                          ),
+                          onTap: () {
+                            if (_isEmojiVisible) {
+                              setState(() => _isEmojiVisible = false);
+                            }
+                          },
                         ),
-                        onTap: () {
-                          if (_isEmojiVisible) {
-                            setState(() => _isEmojiVisible = false);
-                          }
-                        },
                       ),
                     ),
                     IconButton(

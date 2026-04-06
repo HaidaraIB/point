@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Localization/AppTranslations.dart';
 import 'package:point/Localization/LanguageController.dart';
+import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Shared/button.dart';
@@ -655,6 +656,16 @@ class FunHelper {
     SharedPreferences pref = await SharedPreferences.getInstance();
     await pref.remove('isLoggedIn');
     await pref.remove('email');
+  }
+
+  /// After [Get.offAllNamed] tears down routes (and Firestore listeners), signs out
+  /// Firebase Auth and clears login prefs on the next frame — avoids permission-denied
+  /// spam from listeners still active during sign-out.
+  static void scheduleFirebaseSignOutAndClearPrefs() {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await FirestoreServices().signOut();
+      await removeLoginData();
+    });
   }
 
   /// الوقت المتبقي حتى موعد التسليم (نص مترجم). يطابق سلوك بطاقة المهام السابقة.

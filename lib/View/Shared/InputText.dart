@@ -29,6 +29,8 @@ class InputText extends StatelessWidget {
   final VoidCallback? onTap;
   final ValueChanged<String>? onFieldSubmitted;
   final TextInputAction? textInputAction;
+  final Iterable<String>? autofillHints;
+  final FocusNode? focusNode;
 
   InputText({
     super.key,
@@ -57,6 +59,8 @@ class InputText extends StatelessWidget {
     this.readOnly,
     this.onFieldSubmitted,
     this.textInputAction,
+    this.autofillHints,
+    this.focusNode,
   });
 
   @override
@@ -156,6 +160,8 @@ class InputText extends StatelessWidget {
           ),
           child: TextFormField(
             controller: controller,
+            focusNode: focusNode,
+            autofillHints: autofillHints,
             validator: validator,
             onChanged: onchange,
             onFieldSubmitted: onFieldSubmitted,

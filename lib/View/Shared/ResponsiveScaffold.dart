@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:point/Controller/HomeController.dart';
@@ -76,7 +77,9 @@ class ResponsiveScaffold extends StatelessWidget {
                                         controller.effectiveEmployee?.role ??
                                         '',
                                     department:
-                                        controller.effectiveEmployee?.department,
+                                        controller
+                                            .effectiveEmployee
+                                            ?.department,
                                     avatarUrl:
                                         controller.effectiveEmployee?.image ??
                                         kDefaultAvatarUrl,
@@ -89,7 +92,15 @@ class ResponsiveScaffold extends StatelessWidget {
                         ),
                       ],
                     ),
-                    Positioned(bottom: 20, child: ChatOverlay()),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 20,
+                      child: Align(
+                        alignment: Alignment.bottomRight,
+                        child: ChatOverlay(),
+                      ),
+                    ),
                   ],
                 ),
               );
@@ -166,13 +177,11 @@ class ResponsiveScaffold extends StatelessWidget {
                                   const SizedBox(width: 6),
                                   _MobileHeaderIconButton(
                                     icon: Icons.chat_bubble_outline_rounded,
-                                    count:
-                                        controller.totalUnreadMessages.value,
+                                    count: controller.totalUnreadMessages.value,
                                     onTap: () {
                                       Get.to(
-                                        () => ChatsListScreen(
-                                          onMinimize: () {},
-                                        ),
+                                        () =>
+                                            ChatsListScreen(onMinimize: () {}),
                                       );
                                     },
                                   ),
@@ -276,6 +285,7 @@ class ChatOverlay extends StatelessWidget {
       if (chats.isEmpty) return const SizedBox();
 
       return Row(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: chats.map((c) => ChatPopup(chat: c)).toList(),
       );
@@ -295,8 +305,10 @@ class _ChatPopupState extends State<ChatPopup> {
   Offset offset = Offset.zero;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   Stream<QuerySnapshot<Map<String, dynamic>>>? _messagesStream;
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _messageSoundSubscription;
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _markReadSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+  _messageSoundSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+  _markReadSubscription;
   late String _chatId;
   final TextEditingController _messageController = TextEditingController();
   final FocusNode _messageFocusNode = FocusNode();
@@ -307,6 +319,21 @@ class _ChatPopupState extends State<ChatPopup> {
 
   void _onComposerTextChanged() {
     if (mounted) setState(() {});
+  }
+
+  KeyEventResult _onComposerKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    final key = event.logicalKey;
+    final isEnter =
+        key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.numpadEnter;
+    if (!isEnter) return KeyEventResult.ignored;
+    if (composerShiftPressed()) return KeyEventResult.ignored;
+    final busy = Get.find<HomeController>().isUploading.value;
+    if (!busy) {
+      unawaited(_sendMessage());
+    }
+    return KeyEventResult.handled;
   }
 
   Future<void> _showPopupAttachmentMenu(BuildContext anchorContext) async {
@@ -445,9 +472,7 @@ class _ChatPopupState extends State<ChatPopup> {
           FirestoreServices.markIncomingMessagesReadInChat(_chatId, uid),
         );
       });
-      unawaited(
-        FirestoreServices.markIncomingMessagesReadInChat(_chatId, uid),
-      );
+      unawaited(FirestoreServices.markIncomingMessagesReadInChat(_chatId, uid));
     } else {
       ChatAudioFocus.clearForegroundIfEquals(_chatId);
       unawaited(FirestoreServices.syncEmployeeActiveChatId(uid, null));
@@ -539,8 +564,7 @@ class _ChatPopupState extends State<ChatPopup> {
                     backgroundColor: Colors.white24,
                     initial: chatInitialFromName(widget.chat.name),
                     groupIcon: widget.chat.isGroup ? Icons.group : null,
-                    imageUrl:
-                        widget.chat.isGroup ? null : widget.chat.avatar,
+                    imageUrl: widget.chat.isGroup ? null : widget.chat.avatar,
                     iconColor: Colors.white,
                     initialTextColor: Colors.white,
                   ),
@@ -585,260 +609,306 @@ class _ChatPopupState extends State<ChatPopup> {
             ),
           ),
 
-          if (!widget.chat.minimized) ...[
-            /// BODY
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                  stream: _messagesStream,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                      return Center(child: Text('chat.start_first'.tr));
-                    }
+          /// عند الطي كان يُزال [StreamBuilder] من الشجرة فيُلغى الاشتراك وقد لا تُعاد الرسائل عند الفتح.
+          Expanded(
+            child: Visibility(
+              visible: !widget.chat.minimized,
+              maintainState: true,
+              maintainSize: false,
+              maintainAnimation: true,
+              child: Column(
+                mainAxisSize: MainAxisSize.max,
+                children: [
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                      child: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                        stream: _messagesStream,
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          }
+                          if (!snapshot.hasData ||
+                              snapshot.data!.docs.isEmpty) {
+                            return Center(child: Text('chat.start_first'.tr));
+                          }
 
-                    final messages = snapshot.data!.docs;
+                          final messages = snapshot.data!.docs;
 
-                    return ListView.builder(
-                      reverse: true, // لعرض الرسائل الأحدث في الأسفل
-                      itemCount: messages.length,
-                      itemBuilder: (context, index) {
-                        final msg = messages[index].data();
-                        final isMe =
-                            msg['senderId'] ==
-                            controller.currentEmployee.value?.id;
-                        final senderName =
-                            msg['senderName'] ?? 'chat.unknown_sender'.tr;
-                        final timestamp = msg['timestamp'] as Timestamp?;
-                        final isRead = msg['isRead'] ?? false;
+                          return ListView.builder(
+                            reverse: true, // لعرض الرسائل الأحدث في الأسفل
+                            itemCount: messages.length,
+                            itemBuilder: (context, index) {
+                              final msg = messages[index].data();
+                              final isMe =
+                                  msg['senderId'] ==
+                                  controller.currentEmployee.value?.id;
+                              final senderName =
+                                  msg['senderName'] ?? 'chat.unknown_sender'.tr;
+                              final timestamp = msg['timestamp'] as Timestamp?;
+                              final isRead = msg['isRead'] ?? false;
 
-                        return Align(
-                          alignment:
-                              isMe
-                                  ? Alignment.centerRight
-                                  : Alignment.centerLeft,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 4.0,
-                              horizontal: 8.0,
-                            ),
-                            child: Column(
-                              crossAxisAlignment:
-                                  isMe
-                                      ? CrossAxisAlignment.end
-                                      : CrossAxisAlignment.start,
-                              children: [
-                                // اسم المرسل للمجموعات
-                                if (!isMe)
-                                  Padding(
-                                    padding: const EdgeInsets.only(bottom: 2.0),
-                                    child: Text(
-                                      senderName,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.blue.shade700,
-                                      ),
-                                    ),
+                              return Align(
+                                alignment:
+                                    isMe
+                                        ? Alignment.centerRight
+                                        : Alignment.centerLeft,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 4.0,
+                                    horizontal: 8.0,
                                   ),
-                                // فقاعة الرسالة
-                                Container(
-                                  padding: const EdgeInsets.all(12),
-                                  constraints: BoxConstraints(
-                                    maxWidth:
-                                        MediaQuery.of(context).size.width * 0.7,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color:
+                                  child: Column(
+                                    crossAxisAlignment:
                                         isMe
-                                            ? const Color(0xff00A389)
-                                            : Colors.white,
-                                    borderRadius: BorderRadius.only(
-                                      topLeft: const Radius.circular(15),
-                                      topRight: const Radius.circular(15),
-                                      bottomLeft: Radius.circular(
-                                        isMe ? 15 : 4,
-                                      ),
-                                      bottomRight: Radius.circular(
-                                        isMe ? 4 : 15,
-                                      ),
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(
-                                          alpha: 0.05,
-                                        ),
-                                        blurRadius: 4,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: chatMessageBubbleContent(
-                                    Map<String, dynamic>.from(msg),
-                                    isMe,
-                                  ),
-                                  // Text(
-                                  //   msg['text'] ?? 'رسالة فارغة',
-                                  //   style: TextStyle(
-                                  //     color: isMe ? Colors.white : Colors.black,
-                                  //   ),
-                                  // ),
-                                ),
-                                // وقت وتاريخ الإرسال
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 4.0),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
+                                            ? CrossAxisAlignment.end
+                                            : CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        _formatTimestamp(timestamp),
-                                        style: const TextStyle(
-                                          fontSize: 10,
-                                          color: Colors.grey,
+                                      // اسم المرسل للمجموعات
+                                      if (!isMe)
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 2.0,
+                                          ),
+                                          child: Text(
+                                            senderName,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.blue.shade700,
+                                            ),
+                                          ),
+                                        ),
+                                      // فقاعة الرسالة
+                                      Container(
+                                        padding: const EdgeInsets.all(12),
+                                        constraints: BoxConstraints(
+                                          maxWidth:
+                                              MediaQuery.of(
+                                                context,
+                                              ).size.width *
+                                              0.7,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color:
+                                              isMe
+                                                  ? const Color(0xff00A389)
+                                                  : Colors.white,
+                                          borderRadius: BorderRadius.only(
+                                            topLeft: const Radius.circular(15),
+                                            topRight: const Radius.circular(15),
+                                            bottomLeft: Radius.circular(
+                                              isMe ? 15 : 4,
+                                            ),
+                                            bottomRight: Radius.circular(
+                                              isMe ? 4 : 15,
+                                            ),
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(
+                                                alpha: 0.05,
+                                              ),
+                                              blurRadius: 4,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: chatMessageBubbleContent(
+                                          Map<String, dynamic>.from(msg),
+                                          isMe,
+                                        ),
+                                        // Text(
+                                        //   msg['text'] ?? 'رسالة فارغة',
+                                        //   style: TextStyle(
+                                        //     color: isMe ? Colors.white : Colors.black,
+                                        //   ),
+                                        // ),
+                                      ),
+                                      // وقت وتاريخ الإرسال
+                                      Padding(
+                                        padding: const EdgeInsets.only(
+                                          top: 4.0,
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              _formatTimestamp(timestamp),
+                                              style: const TextStyle(
+                                                fontSize: 10,
+                                                color: Colors.grey,
+                                              ),
+                                            ),
+                                            if (isMe)
+                                              Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(
+                                                    isRead
+                                                        ? Icons.done_all
+                                                        : Icons.done,
+                                                    size: 14,
+                                                    color:
+                                                        isRead
+                                                            ? Colors.blue
+                                                            : Colors.grey,
+                                                  ),
+                                                  const SizedBox(width: 3),
+                                                  Text(
+                                                    isRead
+                                                        ? 'chat.read'.tr
+                                                        : 'chat.sent'.tr,
+                                                    style: const TextStyle(
+                                                      fontSize: 10,
+                                                      color: Colors.grey,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                          ],
                                         ),
                                       ),
-                                      if (isMe)
-                                        Icon(
-                                          isRead ? Icons.done_all : Icons.done,
-                                          size: 14,
-                                          color:
-                                              isRead
-                                                  ? Colors.blue
-                                                  : Colors.grey,
-                                        ),
                                     ],
                                   ),
                                 ),
-                              ],
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+
+                  const ChatUploadProgressBanner(),
+
+                  /// INPUT
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeOutCubic,
+                    margin: EdgeInsets.fromLTRB(
+                      8,
+                      4,
+                      8,
+                      _messageFocusNode.hasFocus ? 10 : 8,
+                    ),
+                    padding: EdgeInsets.symmetric(
+                      horizontal: _messageFocusNode.hasFocus ? 2 : 6,
+                      vertical: _messageFocusNode.hasFocus ? 4 : 2,
+                    ),
+                    constraints: BoxConstraints(
+                      minHeight: _messageFocusNode.hasFocus ? 50 : 46,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(
+                        _messageFocusNode.hasFocus ? 24 : 22,
+                      ),
+                      border: Border.all(
+                        color:
+                            _messageFocusNode.hasFocus
+                                ? const Color(
+                                  0xff00A389,
+                                ).withValues(alpha: 0.35)
+                                : Colors.grey.shade200,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.06),
+                          blurRadius: _messageFocusNode.hasFocus ? 10 : 5,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Obx(() {
+                      final busy = Get.find<HomeController>().isUploading.value;
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Builder(
+                            builder: (buttonContext) {
+                              return IconButton(
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(
+                                  minWidth: 36,
+                                  minHeight: 44,
+                                ),
+                                tooltip: 'chat.attach_sheet_title'.tr,
+                                icon: Icon(
+                                  Icons.add_circle_outline,
+                                  color: Colors.grey.shade700,
+                                  size: 24,
+                                ),
+                                onPressed:
+                                    busy
+                                        ? null
+                                        : () => _showPopupAttachmentMenu(
+                                          buttonContext,
+                                        ),
+                              );
+                            },
+                          ),
+                          Expanded(
+                            child: Focus(
+                              onKeyEvent: _onComposerKeyEvent,
+                              child: TextField(
+                                controller: _messageController,
+                                focusNode: _messageFocusNode,
+                                minLines: 1,
+                                maxLines: 5,
+                                keyboardType: TextInputType.multiline,
+                                readOnly: busy,
+                                textAlignVertical: TextAlignVertical.center,
+                                textDirection: textDirectionForTypedChatMessage(
+                                  _messageController.text,
+                                  Directionality.of(context),
+                                ),
+                                textAlign: TextAlign.start,
+                                style: TextStyle(
+                                  fontSize:
+                                      _messageFocusNode.hasFocus ? 15.5 : 14.5,
+                                  height: 1.35,
+                                ),
+                                decoration: InputDecoration(
+                                  hintText: 'chat.write_message'.tr,
+                                  hintStyle: TextStyle(
+                                    color: Colors.grey.shade500,
+                                    fontSize: 14,
+                                  ),
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                    vertical: 10,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
-                        );
-                      },
-                    );
-                  },
-                ),
-              ),
-            ),
-
-            const ChatUploadProgressBanner(),
-
-            /// INPUT
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOutCubic,
-              margin: EdgeInsets.fromLTRB(
-                8,
-                4,
-                8,
-                _messageFocusNode.hasFocus ? 10 : 8,
-              ),
-              padding: EdgeInsets.symmetric(
-                horizontal: _messageFocusNode.hasFocus ? 2 : 6,
-                vertical: _messageFocusNode.hasFocus ? 4 : 2,
-              ),
-              constraints: BoxConstraints(
-                minHeight: _messageFocusNode.hasFocus ? 50 : 46,
-              ),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(
-                  _messageFocusNode.hasFocus ? 24 : 22,
-                ),
-                border: Border.all(
-                  color:
-                      _messageFocusNode.hasFocus
-                          ? const Color(0xff00A389).withValues(alpha: 0.35)
-                          : Colors.grey.shade200,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.06),
-                    blurRadius: _messageFocusNode.hasFocus ? 10 : 5,
-                    offset: const Offset(0, 2),
+                          IconButton(
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 40,
+                              minHeight: 44,
+                            ),
+                            icon: const Icon(
+                              Icons.send_rounded,
+                              color: Color(0xff00A389),
+                              size: 24,
+                            ),
+                            onPressed: busy ? null : _sendMessage,
+                          ),
+                        ],
+                      );
+                    }),
                   ),
                 ],
               ),
-              child: Obx(() {
-                final busy = Get.find<HomeController>().isUploading.value;
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Builder(
-                      builder: (buttonContext) {
-                        return IconButton(
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(
-                            minWidth: 36,
-                            minHeight: 44,
-                          ),
-                          tooltip: 'chat.attach_sheet_title'.tr,
-                          icon: Icon(
-                            Icons.add_circle_outline,
-                            color: Colors.grey.shade700,
-                            size: 24,
-                          ),
-                          onPressed:
-                              busy
-                                  ? null
-                                  : () => _showPopupAttachmentMenu(
-                                    buttonContext,
-                                  ),
-                        );
-                      },
-                    ),
-                    Expanded(
-                      child: TextField(
-                        controller: _messageController,
-                        focusNode: _messageFocusNode,
-                        minLines: 1,
-                        maxLines: 5,
-                        keyboardType: TextInputType.multiline,
-                        readOnly: busy,
-                        textDirection: textDirectionForTypedChatMessage(
-                          _messageController.text,
-                          Directionality.of(context),
-                        ),
-                        textAlign: TextAlign.start,
-                        style: TextStyle(
-                          fontSize: _messageFocusNode.hasFocus ? 15.5 : 14.5,
-                          height: 1.35,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: 'chat.write_message'.tr,
-                          hintStyle: TextStyle(
-                            color: Colors.grey.shade500,
-                            fontSize: 14,
-                          ),
-                          border: InputBorder.none,
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                            vertical: 10,
-                          ),
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(
-                        minWidth: 40,
-                        minHeight: 44,
-                      ),
-                      icon: const Icon(
-                        Icons.send_rounded,
-                        color: Color(0xff00A389),
-                        size: 24,
-                      ),
-                      onPressed: busy ? null : _sendMessage,
-                    ),
-                  ],
-                );
-              }),
             ),
-          ],
+          ),
         ],
       ),
     );
@@ -847,12 +917,18 @@ class _ChatPopupState extends State<ChatPopup> {
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
-    await _sendChatPayload(
-      lastMessagePreview: text,
-      messageType: 'text',
-      text: text,
-    );
     _messageController.clear();
+    _messageFocusNode.requestFocus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _messageFocusNode.requestFocus();
+    });
+    unawaited(
+      _sendChatPayload(
+        lastMessagePreview: text,
+        messageType: 'text',
+        text: text,
+      ),
+    );
   }
 
   Future<void> _sendChatPayload({
@@ -946,8 +1022,7 @@ String _formatTimestamp(Timestamp? ts) {
   if (diff.inSeconds < 60) {
     return 'chat.seconds_ago'.tr;
   } else if (diff.inMinutes < 60) {
-    return 'common.minutes_ago'
-        .trParams({'count': '${diff.inMinutes}'});
+    return 'common.minutes_ago'.trParams({'count': '${diff.inMinutes}'});
   } else if (diff.inHours < 24) {
     return 'common.hours_ago'.trParams({'count': '${diff.inHours}'});
   } else if (diff.inDays < 7) {

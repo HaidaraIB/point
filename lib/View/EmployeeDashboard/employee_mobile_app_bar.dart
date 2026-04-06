@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Localization/LanguageController.dart';
-import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/AppConstants.dart';
@@ -149,9 +148,8 @@ class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidge
                             await confirmEmployeeLogoutDialog(Get.context!);
                         if (!shouldLogout) return;
                         controller.clearEmployeeSession();
-                        await FirestoreServices().signOut();
-                        FunHelper.removeLoginData();
                         Get.offAllNamed('/auth/login');
+                        FunHelper.scheduleFirebaseSignOutAndClearPrefs();
                       } else if (value == 1) {
                         Get.toNamed('/auth/resetPassword');
                       } else if (value == 2) {

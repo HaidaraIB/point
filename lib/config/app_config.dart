@@ -20,6 +20,10 @@ class AppConfig {
     'TEST_ADMIN_PASSWORD',
     defaultValue: '',
   );
+  static const String testClientPassword = String.fromEnvironment(
+    'TEST_CLIENT_PASSWORD',
+    defaultValue: '',
+  );
 
   /// Firebase project for this build. The Supabase secret for Edge Function
   /// `send-fcm` must be a service account whose `project_id` equals this value

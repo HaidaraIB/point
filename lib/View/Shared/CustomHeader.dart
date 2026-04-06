@@ -7,7 +7,6 @@ import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Localization/LanguageController.dart';
 import 'package:point/Controller/HomeController.dart';
-import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppColors.dart';
@@ -365,13 +364,12 @@ class MobileAppBarProfileWidget extends StatelessWidget {
               final shouldLogout = await _confirmLogoutDialog(context);
               if (!shouldLogout) return;
               Get.find<HomeController>().clearEmployeeSession();
-              await FirestoreServices().signOut();
               if (isClient) {
                 Get.offAllNamed('/auth/LoginUserAccount');
               } else {
                 Get.offAllNamed('/auth/login');
               }
-              FunHelper.removeLoginData();
+              FunHelper.scheduleFirebaseSignOutAndClearPrefs();
             } else if (value == 1) {
               _showNotificationsDialog(context);
             } else if (value == 2) {
@@ -592,13 +590,12 @@ class HeaderWidget extends StatelessWidget {
                 final shouldLogout = await _confirmLogoutDialog(context);
                 if (!shouldLogout) return;
                 Get.find<HomeController>().clearEmployeeSession();
-                await FirestoreServices().signOut();
                 if (client == true) {
                   Get.offAllNamed('/auth/LoginUserAccount');
                 } else {
                   Get.offAllNamed('/auth/login');
                 }
-                FunHelper.removeLoginData();
+                FunHelper.scheduleFirebaseSignOutAndClearPrefs();
               } else if (value == 1) {
                 _showNotificationsDialog(context);
               } else if (value == 2) {

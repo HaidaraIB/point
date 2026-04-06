@@ -1,9 +1,10 @@
 import 'package:point/Utils/app_log.dart';
 
-import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
+import 'package:point/Models/EmployeeModel.dart';
 import 'package:point/Controller/ClientController.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/ClientModel.dart';
@@ -12,7 +13,7 @@ import 'package:point/Services/firebase_auth_web_hydration.dart';
 /// Attempts silent login using FirebaseAuth existing session.
 ///
 /// Returns the route name to navigate to on success, otherwise null.
-Future<String?> attemptSilentLogin() async {
+Future<String?> attemptSilentLogin({bool allowRetry = true}) async {
   await waitForFirebaseAuthHydrationOnWeb();
 
   final homeController = Get.find<HomeController>();
@@ -20,7 +21,21 @@ Future<String?> attemptSilentLogin() async {
 
   final fcm = FirebaseMessaging.instance;
 
-  final employee = await homeController.service.getCurrentEmployeeByAuth();
+  EmployeeModel? employee;
+  try {
+    employee = await homeController.service.getCurrentEmployeeByAuth();
+  } on FirebaseException catch (e) {
+    if (e.code == 'permission-denied') {
+      appLog('attemptSilentLogin: getCurrentEmployeeByAuth permission-denied');
+    } else {
+      appLog('attemptSilentLogin: getCurrentEmployeeByAuth $e');
+    }
+    employee = null;
+  } catch (e, s) {
+    appLog('attemptSilentLogin: getCurrentEmployeeByAuth $e');
+    appLog('$s');
+    employee = null;
+  }
 
   if (employee != null) {
     appLog("✅ تم تسجيل دخول الموظف: ${employee.email}");
@@ -89,9 +104,16 @@ Future<String?> attemptSilentLogin() async {
         }
       }
 
-      return '/ClientHome';
+      return '/clientSessionSetup';
     }
     return null;
+  }
+
+  // On some cold starts, Firestore auth checks can race token/claims readiness.
+  // Retry once shortly before declaring user as signed out.
+  if (allowRetry && FirebaseAuth.instance.currentUser != null) {
+    await Future<void>.delayed(const Duration(milliseconds: 350));
+    return attemptSilentLogin(allowRetry: false);
   }
 
   return null;

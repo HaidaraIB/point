@@ -3,14 +3,16 @@ import 'package:get/get.dart';
 import 'package:point/Services/AutoLoginService.dart';
 import 'package:point/Utils/AppImages.dart';
 
-class MobileSplashDecider extends StatefulWidget {
-  const MobileSplashDecider({super.key});
+/// Mobile cold start for client auth: restore session, then client session setup or login.
+class MobileClientSplashDecider extends StatefulWidget {
+  const MobileClientSplashDecider({super.key});
 
   @override
-  State<MobileSplashDecider> createState() => _MobileSplashDeciderState();
+  State<MobileClientSplashDecider> createState() =>
+      _MobileClientSplashDeciderState();
 }
 
-class _MobileSplashDeciderState extends State<MobileSplashDecider> {
+class _MobileClientSplashDeciderState extends State<MobileClientSplashDecider> {
   bool _navigated = false;
 
   String? _validatedNextRoute() {
@@ -20,6 +22,7 @@ class _MobileSplashDeciderState extends State<MobileSplashDecider> {
     if (!decoded.startsWith('/')) return null;
     if (decoded.startsWith('/auth') ||
         decoded.contains('Splash') ||
+        decoded == '/clientSessionSetup' ||
         decoded == '/webAuthSplash' ||
         decoded == '/mobileSplash') {
       return null;
@@ -40,10 +43,16 @@ class _MobileSplashDeciderState extends State<MobileSplashDecider> {
     final deepLinkTarget = _validatedNextRoute();
 
     _navigated = true;
-    if (nextRoute != null && nextRoute.isNotEmpty) {
-      Get.offAllNamed(deepLinkTarget ?? nextRoute);
+    if (nextRoute == '/clientSessionSetup' || nextRoute == '/ClientHome') {
+      if (deepLinkTarget != null && deepLinkTarget.isNotEmpty) {
+        Get.offAllNamed(
+          '/clientSessionSetup?next=${Uri.encodeComponent(deepLinkTarget)}',
+        );
+      } else {
+        Get.offAllNamed('/clientSessionSetup');
+      }
     } else {
-      Get.offAllNamed('/auth/ChooseUserType');
+      Get.offAllNamed('/auth/LoginUserAccount');
     }
   }
 
@@ -74,4 +83,3 @@ class _MobileSplashDeciderState extends State<MobileSplashDecider> {
     );
   }
 }
-

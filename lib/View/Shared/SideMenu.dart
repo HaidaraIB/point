@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Localization/LanguageController.dart';
-import 'package:point/Services/FireStoreServices.dart';
+import 'package:point/Services/FunHelper.dart';
 import 'package:point/View/Shared/app_version_label.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
@@ -869,8 +869,8 @@ class _CustomSidebarState extends State<CustomSidebar> {
               final shouldLogout = await _confirmLogout();
               if (!shouldLogout) return;
               controller.clearEmployeeSession();
-              await FirestoreServices().signOut();
               Get.offAllNamed('/auth/login');
+              FunHelper.scheduleFirebaseSignOutAndClearPrefs();
             },
           ),
           Padding(

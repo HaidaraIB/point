@@ -711,17 +711,34 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
     final current = FirebaseAuth.instance.currentUser;
     if (current == null) return null;
     final uid = current.uid;
-    final byUid =
-        await _employeeCollection
-            .where('authUid', isEqualTo: uid)
-            .limit(1)
-            .get();
-    if (byUid.docs.isNotEmpty) {
-      final doc = byUid.docs.first;
-      final emp = EmployeeModel.fromJson(
-        doc.data() as Map<String, dynamic>,
-      ).copyWith(id: doc.id);
-      await FirestoreAuthApi.syncAuthRoleForEmployee(emp);
+    QueryDocumentSnapshot? byUidDoc;
+    try {
+      final byUid =
+          await _employeeCollection
+              .where('authUid', isEqualTo: uid)
+              .limit(1)
+              .get();
+      if (byUid.docs.isNotEmpty) {
+        byUidDoc = byUid.docs.first;
+      }
+    } on FirebaseException catch (e) {
+      // During cold-start token/claims timing, this query can be denied.
+      // Continue with email-based restore instead of failing whole auto-login.
+      if (e.code == 'permission-denied') {
+        appLog('getCurrentEmployeeByAuth byUid permission-denied; fallback byEmail');
+      } else {
+        rethrow;
+      }
+    }
+    if (byUidDoc != null) {
+      final doc = byUidDoc;
+      final emp = EmployeeModel.fromJson(doc.data() as Map<String, dynamic>)
+          .copyWith(id: doc.id);
+      try {
+        await FirestoreAuthApi.syncAuthRoleForEmployee(emp);
+      } catch (e) {
+        appLog('getCurrentEmployeeByAuth sync role failed (ignored): $e');
+      }
       return emp;
     }
     final email = current.email?.trim().toLowerCase();
@@ -733,14 +750,22 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
             .get();
     if (byEmail.docs.isEmpty) return null;
     final doc = byEmail.docs.first;
-    await _employeeCollection.doc(doc.id).update({
-      'authUid': uid,
-      'authStatus': 'active',
-    });
+    try {
+      await _employeeCollection.doc(doc.id).update({
+        'authUid': uid,
+        'authStatus': 'active',
+      });
+    } catch (e) {
+      appLog('getCurrentEmployeeByAuth update auth fields failed (ignored): $e');
+    }
     final restored = EmployeeModel.fromJson(
       doc.data() as Map<String, dynamic>,
     ).copyWith(id: doc.id, authUid: uid, authStatus: 'active');
-    await FirestoreAuthApi.syncAuthRoleForEmployee(restored);
+    try {
+      await FirestoreAuthApi.syncAuthRoleForEmployee(restored);
+    } catch (e) {
+      appLog('getCurrentEmployeeByAuth sync role failed (ignored): $e');
+    }
     return restored;
   }
 
@@ -767,14 +792,26 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
     }
 
     if (client.authUid == uid) {
-      await FirestoreAuthApi.syncAuthRoleForClient(client);
+      try {
+        await FirestoreAuthApi.syncAuthRoleForClient(client);
+      } catch (e) {
+        appLog('getCurrentClientByAuth sync role failed (ignored): $e');
+      }
       return client;
     }
 
-    await _updateAuthFieldsWithRetry(docRef: doc.reference, uid: uid);
+    try {
+      await _updateAuthFieldsWithRetry(docRef: doc.reference, uid: uid);
+    } catch (e) {
+      appLog('getCurrentClientByAuth update auth fields failed (ignored): $e');
+    }
     final restored =
         client.copyWith(authUid: uid, authStatus: 'active');
-    await FirestoreAuthApi.syncAuthRoleForClient(restored);
+    try {
+      await FirestoreAuthApi.syncAuthRoleForClient(restored);
+    } catch (e) {
+      appLog('getCurrentClientByAuth sync role failed (ignored): $e');
+    }
     return restored;
   }
 

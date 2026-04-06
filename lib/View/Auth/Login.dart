@@ -74,23 +74,116 @@ String _buildLoginErrorMessage(Object error) {
   return '$base (${_extractDiagnosticCode(error)})';
 }
 
-// --- IGNORE ---
 Widget _buildDesktopLayout() {
-  final _key = GlobalKey<FormState>();
-
   return GetBuilder<AuthController>(
     init: AuthController(),
-    builder: (controller) {
-      return Form(
-        key: _key,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final showAuthSplit = Responsive.showAuthSplitLayout(
-              constraints.maxWidth,
-            );
-            final viewportMinHeight =
-                constraints.hasBoundedHeight ? constraints.maxHeight : 0.0;
-            final formColumn = Column(
+    builder:
+        (controller) => _EmployeeLoginDesktopLayout(controller: controller),
+  );
+}
+
+class _EmployeeLoginDesktopLayout extends StatefulWidget {
+  final AuthController controller;
+
+  const _EmployeeLoginDesktopLayout({required this.controller});
+
+  @override
+  State<_EmployeeLoginDesktopLayout> createState() =>
+      _EmployeeLoginDesktopLayoutState();
+}
+
+class _EmployeeLoginDesktopLayoutState
+    extends State<_EmployeeLoginDesktopLayout> {
+  final _formKey = GlobalKey<FormState>();
+  late final FocusNode _emailFocus;
+  late final FocusNode _passwordFocus;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailFocus = FocusNode();
+    _passwordFocus = FocusNode();
+  }
+
+  @override
+  void dispose() {
+    _emailFocus.dispose();
+    _passwordFocus.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitEmployeeLogin() async {
+    if (_formKey.currentState?.validate() != true) return;
+    final c = widget.controller;
+    try {
+      final v = await Get.find<HomeController>().loginClient(
+        c.email.text.trim(),
+        c.pass.text.trim(),
+      );
+      if (v != null) {
+        appLog("✅ تم تسجيل دخول الموظف: ${v.email}");
+        appLog(v.status.toString());
+        if (v.status == 'active') {
+          Get.offAllNamed('/sessionSetup');
+        } else {
+          FunHelper.showSnackbar(
+            'error'.tr,
+            'account_not_active_contact_support'.tr,
+            snackPosition: SnackPosition.TOP,
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+          );
+        }
+      } else {
+        FunHelper.showSnackbar(
+          'error'.tr,
+          'invalid_email_or_password'.tr,
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+      }
+    } catch (e, st) {
+      final code = _extractDiagnosticCode(e);
+      appLog(
+        'Employee login failed: type=${e.runtimeType}, message=$e',
+        stackTrace: st,
+      );
+      await FirestoreServices.logClientDiagnosticError(
+        source: 'LoginView.employeeLogin',
+        code: code,
+        error: e,
+        stackTrace: st,
+        extra: {
+          'platform': defaultTargetPlatform.name,
+          'isWeb': kIsWeb,
+          'email': c.email.text.trim(),
+        },
+      );
+      FunHelper.showSnackbar(
+        'error'.tr,
+        _buildLoginErrorMessage(e),
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = widget.controller;
+    return Form(
+      key: _formKey,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final showAuthSplit = Responsive.showAuthSplitLayout(
+            constraints.maxWidth,
+          );
+          final viewportMinHeight =
+              constraints.hasBoundedHeight ? constraints.maxHeight : 0.0;
+          final formColumn = AutofillGroup(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -104,7 +197,6 @@ Widget _buildDesktopLayout() {
                   ),
                 ),
                 SizedBox(height: 10),
-
                 Text(
                   'enteremailandpassword'.tr,
                   style: TextStyle(color: Colors.grey, fontSize: 13),
@@ -114,16 +206,18 @@ Widget _buildDesktopLayout() {
                   labelText: 'email'.tr,
                   textInputType: TextInputType.emailAddress,
                   controller: controller.email,
+                  focusNode: _emailFocus,
+                  autofillHints: const [AutofillHints.email],
+                  textInputAction: TextInputAction.next,
+                  onFieldSubmitted: (_) => _passwordFocus.requestFocus(),
                   height: 42,
                   fillColor: Colors.white,
-
                   validator: (v) {
                     if (v == null || v.isEmpty) {
                       return ' ';
                     }
                     return null;
                   },
-
                   borderRadius: 5,
                   borderColor: Colors.grey.shade300,
                 ),
@@ -132,6 +226,10 @@ Widget _buildDesktopLayout() {
                   labelText: 'password'.tr,
                   controller: controller.pass,
                   obscureText: controller.obSecure,
+                  focusNode: _passwordFocus,
+                  autofillHints: const [AutofillHints.password],
+                  textInputAction: TextInputAction.go,
+                  onFieldSubmitted: (_) => _submitEmployeeLogin(),
                   height: 42,
                   fillColor: Colors.white,
                   textInputType: TextInputType.visiblePassword,
@@ -147,7 +245,6 @@ Widget _buildDesktopLayout() {
                       size: 12,
                     ),
                   ),
-                  // require: true,
                   validator: (v) {
                     if (v == null || v.isEmpty) {
                       return ' ';
@@ -175,66 +272,7 @@ Widget _buildDesktopLayout() {
                     borderSize: 10,
                     load: Get.find<HomeController>().isLoading.value,
                     margin: EdgeInsets.all(0),
-                    onPressed: () async {
-                      if (_key.currentState!.validate()) {
-                        try {
-                          final v = await Get.find<HomeController>()
-                              .loginClient(
-                                controller.email.text.trim(),
-                                controller.pass.text.trim(),
-                              );
-                          if (v != null) {
-                            appLog("✅ تم تسجيل دخول الموظف: ${v.email}");
-                            appLog(v.status.toString());
-                            if (v.status == 'active') {
-                              // الجلسة مفعّلة في loginClient؛ باقي الإعداد في SessionSetupScreen.
-                              Get.offAllNamed('/sessionSetup');
-                            } else {
-                              FunHelper.showSnackbar(
-                                'error'.tr,
-                                'account_not_active_contact_support'.tr,
-                                snackPosition: SnackPosition.TOP,
-                                backgroundColor: Colors.red,
-                                colorText: Colors.white,
-                              );
-                            }
-                          } else {
-                            FunHelper.showSnackbar(
-                              'error'.tr,
-                              'invalid_email_or_password'.tr,
-                              snackPosition: SnackPosition.TOP,
-                              backgroundColor: Colors.red,
-                              colorText: Colors.white,
-                            );
-                          }
-                        } catch (e, st) {
-                          final code = _extractDiagnosticCode(e);
-                          appLog(
-                            'Employee login failed: type=${e.runtimeType}, message=$e',
-                            stackTrace: st,
-                          );
-                          await FirestoreServices.logClientDiagnosticError(
-                            source: 'LoginView.employeeLogin',
-                            code: code,
-                            error: e,
-                            stackTrace: st,
-                            extra: {
-                              'platform': defaultTargetPlatform.name,
-                              'isWeb': kIsWeb,
-                              'email': controller.email.text.trim(),
-                            },
-                          );
-                          FunHelper.showSnackbar(
-                            'error'.tr,
-                            _buildLoginErrorMessage(e),
-                            snackPosition: SnackPosition.TOP,
-                            backgroundColor: Colors.red,
-                            colorText: Colors.white,
-                          );
-                        }
-                      }
-                    },
-                    // lineargrad: ,
+                    onPressed: _submitEmployeeLogin,
                     linearGradient: LinearGradient(
                       colors: [
                         Color(0xff19133F),
@@ -246,10 +284,7 @@ Widget _buildDesktopLayout() {
                         Color.fromARGB(255, 47, 19, 63),
                         Color.fromARGB(255, 47, 19, 63),
                         Color.fromARGB(255, 47, 19, 63),
-
-                        // Color(0xff5B0E4E),
                       ],
-
                       begin: Alignment.topCenter,
                       end: Alignment.bottomRight,
                     ),
@@ -266,83 +301,79 @@ Widget _buildDesktopLayout() {
                     ),
                   ),
                 ),
-
                 buildRightsSection(),
               ],
-            );
+            ),
+          );
 
-            if (!showAuthSplit) {
-              return SingleChildScrollView(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: viewportMinHeight),
-                  child: Padding(
-                    padding: EdgeInsets.all(10),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxWidth: min(480, constraints.maxWidth - 20),
-                        ),
-                        child: formColumn,
+          if (!showAuthSplit) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: viewportMinHeight),
+                child: Padding(
+                  padding: EdgeInsets.all(10),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: min(480, constraints.maxWidth - 20),
                       ),
+                      child: formColumn,
                     ),
                   ),
                 ),
-              );
-            }
-
-            return Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  flex: Responsive.authSplitCoverFlex,
-                  child: Image.asset(
-                    AppImages.images.authcover,
-                    fit: BoxFit.cover,
-                    alignment: Alignment.center,
-                    errorBuilder: (context, error, stackTrace) {
-                      return ColoredBox(color: Colors.grey.shade200);
-                    },
-                  ),
-                ),
-                Expanded(
-                  flex: Responsive.authSplitFormFlex,
-                  child: LayoutBuilder(
-                    builder: (context, colConstraints) {
-                      const verticalPad = 50.0;
-                      final minScrollChildHeight =
-                          colConstraints.maxHeight > verticalPad * 2
-                              ? colConstraints.maxHeight - verticalPad * 2
-                              : colConstraints.maxHeight;
-                      return SingleChildScrollView(
-                        padding: EdgeInsets.symmetric(
-                          vertical: verticalPad,
-                          horizontal: 40,
-                        ),
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            minHeight: minScrollChildHeight,
-                          ),
-                          child: Center(
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(
-                                maxWidth: min(
-                                  480,
-                                  colConstraints.maxWidth - 80,
-                                ),
-                              ),
-                              child: formColumn,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
+              ),
             );
-          },
-        ),
-      );
-    },
-  );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                flex: Responsive.authSplitCoverFlex,
+                child: Image.asset(
+                  AppImages.images.authcover,
+                  fit: BoxFit.cover,
+                  alignment: Alignment.center,
+                  errorBuilder: (context, error, stackTrace) {
+                    return ColoredBox(color: Colors.grey.shade200);
+                  },
+                ),
+              ),
+              Expanded(
+                flex: Responsive.authSplitFormFlex,
+                child: LayoutBuilder(
+                  builder: (context, colConstraints) {
+                    const verticalPad = 50.0;
+                    final minScrollChildHeight =
+                        colConstraints.maxHeight > verticalPad * 2
+                            ? colConstraints.maxHeight - verticalPad * 2
+                            : colConstraints.maxHeight;
+                    return SingleChildScrollView(
+                      padding: EdgeInsets.symmetric(
+                        vertical: verticalPad,
+                        horizontal: 40,
+                      ),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: minScrollChildHeight,
+                        ),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: min(480, colConstraints.maxWidth - 80),
+                            ),
+                            child: formColumn,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
 }

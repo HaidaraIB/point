@@ -13,6 +13,7 @@ import 'package:point/View/Auth/Shared/Rights.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/responsive.dart';
+import 'package:point/config/app_config.dart';
 
 class LoginUserAccount extends StatefulWidget {
   @override
@@ -23,21 +24,27 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
   final _key = GlobalKey<FormState>();
   late final TextEditingController emailController;
   late final TextEditingController passwordController;
+  late final FocusNode _emailFocus;
+  late final FocusNode _passwordFocus;
   bool _obscurePassword = true;
 
   @override
   void initState() {
     super.initState();
+    _emailFocus = FocusNode();
+    _passwordFocus = FocusNode();
     emailController = TextEditingController(
-      text: kDebugMode ? 'osamasafty22@gmail.com' : '',
+      text: kDebugMode ? 'point@client.app' : '',
     );
     passwordController = TextEditingController(
-      text: kDebugMode ? 'Ooaaoo@12' : '',
+      text: kDebugMode ? AppConfig.testClientPassword : '',
     );
   }
 
   @override
   void dispose() {
+    _emailFocus.dispose();
+    _passwordFocus.dispose();
     emailController.dispose();
     passwordController.dispose();
     super.dispose();
@@ -48,10 +55,9 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
     if (kIsWeb) {
       return Scaffold(
         body: GetBuilder<ClientController>(
-          builder: (controller) => Form(
-            key: _key,
-            child: _buildWebAuthLayout(controller),
-          ),
+          builder:
+              (controller) =>
+                  Form(key: _key, child: _buildWebAuthLayout(controller)),
         ),
       );
     }
@@ -74,10 +80,9 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
         centerTitle: true,
       ),
       body: GetBuilder<ClientController>(
-        builder: (controller) => Form(
-          key: _key,
-          child: _buildNativeMobileLayout(controller),
-        ),
+        builder:
+            (controller) =>
+                Form(key: _key, child: _buildNativeMobileLayout(controller)),
       ),
     );
   }
@@ -91,68 +96,70 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
           passwordController.text.trim(),
         )
         .then((v) async {
-      if (v != null) {
-        appLog("✅ تم تسجيل دخول العميل: ${v.email}");
-        if (v.status == 'active') {
-          await FunHelper.saveLoginData(
-            emailController.text.trim(),
-          );
-          controller.listenToClient(v.id!);
-          WidgetsBinding.instance
-              .addPostFrameCallback((_) => Get.offAllNamed('/ClientHome'));
-          if (!kIsWeb) {
-            try {
-              final settings = await fcm.requestPermission(
-                alert: true,
-                badge: true,
-                sound: true,
+          if (v != null) {
+            appLog("✅ تم تسجيل دخول العميل: ${v.email}");
+            if (v.status == 'active') {
+              await FunHelper.saveLoginData(emailController.text.trim());
+              // Set before [listenToClient]: first snapshot may be cache-partial and
+              // would otherwise show empty name until a later server event.
+              controller.currentClient.value = v;
+              controller.listenToClient(v.id!);
+              WidgetsBinding.instance.addPostFrameCallback(
+                (_) => Get.offAllNamed('/clientSessionSetup'),
               );
-              final allowed =
-                  settings.authorizationStatus == AuthorizationStatus.authorized ||
-                  settings.authorizationStatus ==
-                      AuthorizationStatus.provisional;
-              if (allowed) {
-                await fcm.unsubscribeFromTopic(
-                  'employees',
-                );
-                await fcm.subscribeToTopic('clients');
-                await fcm.subscribeToTopic('all');
-              } else {
-                appLog(
-                  'Client login notification permission denied: ${settings.authorizationStatus}',
-                );
+              if (!kIsWeb) {
+                try {
+                  final settings = await fcm.requestPermission(
+                    alert: true,
+                    badge: true,
+                    sound: true,
+                  );
+                  final allowed =
+                      settings.authorizationStatus ==
+                          AuthorizationStatus.authorized ||
+                      settings.authorizationStatus ==
+                          AuthorizationStatus.provisional;
+                  if (allowed) {
+                    await fcm.unsubscribeFromTopic('employees');
+                    await fcm.subscribeToTopic('clients');
+                    await fcm.subscribeToTopic('all');
+                  } else {
+                    appLog(
+                      'Client login notification permission denied: ${settings.authorizationStatus}',
+                    );
+                  }
+                } catch (e) {
+                  appLog('Client FCM setup failed: $e');
+                }
               }
-            } catch (e) {
-              appLog('Client FCM setup failed: $e');
+            } else {
+              FunHelper.showSnackbar(
+                'error'.tr,
+                'account_not_active_contact_support'.tr,
+                snackPosition: SnackPosition.TOP,
+                backgroundColor: Colors.red,
+                colorText: Colors.white,
+              );
             }
+          } else {
+            FunHelper.showSnackbar(
+              'error'.tr,
+              'invalid_email_or_password'.tr,
+              snackPosition: SnackPosition.TOP,
+              backgroundColor: Colors.red,
+              colorText: Colors.white,
+            );
           }
-        } else {
-          FunHelper.showSnackbar(
-            'error'.tr,
-            'account_not_active_contact_support'.tr,
-            snackPosition: SnackPosition.TOP,
-            backgroundColor: Colors.red,
-            colorText: Colors.white,
-          );
-        }
-      } else {
-        FunHelper.showSnackbar(
-          'error'.tr,
-          'invalid_email_or_password'.tr,
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
-      }
-    });
+        });
   }
 
   /// نفس تخطيط شاشة الموظف على الويب: صورة جانبية + نموذج (عرض ≥ [Responsive.authSplitMinWidth]).
   Widget _buildWebAuthLayout(ClientController controller) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final showAuthSplit =
-            Responsive.showAuthSplitLayout(constraints.maxWidth);
+        final showAuthSplit = Responsive.showAuthSplitLayout(
+          constraints.maxWidth,
+        );
         final viewportMinHeight =
             constraints.hasBoundedHeight ? constraints.maxHeight : 0.0;
         final formColumn = _buildFormColumn(
@@ -198,10 +205,10 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
               child: LayoutBuilder(
                 builder: (context, colConstraints) {
                   const verticalPad = 50.0;
-                  final minScrollChildHeight = colConstraints.maxHeight >
-                          verticalPad * 2
-                      ? colConstraints.maxHeight - verticalPad * 2
-                      : colConstraints.maxHeight;
+                  final minScrollChildHeight =
+                      colConstraints.maxHeight > verticalPad * 2
+                          ? colConstraints.maxHeight - verticalPad * 2
+                          : colConstraints.maxHeight;
                   return SingleChildScrollView(
                     padding: EdgeInsets.symmetric(
                       vertical: verticalPad,
@@ -214,10 +221,7 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
                       child: Center(
                         child: ConstrainedBox(
                           constraints: BoxConstraints(
-                            maxWidth: min(
-                              480,
-                              colConstraints.maxWidth - 80,
-                            ),
+                            maxWidth: min(480, colConstraints.maxWidth - 80),
                           ),
                           child: formColumn,
                         ),
@@ -240,10 +244,7 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
         margin: EdgeInsets.symmetric(vertical: 50, horizontal: 10),
         width: Get.width - 50,
         child: SingleChildScrollView(
-          child: _buildFormColumn(
-            controller,
-            useWebEmployeeChrome: false,
-          ),
+          child: _buildFormColumn(controller, useWebEmployeeChrome: false),
         ),
       ),
     );
@@ -259,133 +260,147 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
     final afterPasswordGap = useWebEmployeeChrome ? 10.0 : 25.0;
     final beforeButtonGap = useWebEmployeeChrome ? 25.0 : 8.0;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          'login_client_title'.tr,
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.w600,
-            wordSpacing: 1.2,
-            letterSpacing: 0.5,
-          ),
-        ),
-        SizedBox(height: 10),
-        Text(
-          'enteremailandpassword'.tr,
-          style: TextStyle(color: Colors.grey, fontSize: subtitleSize),
-        ),
-        InputText(
-          labelText: 'email'.tr,
-          hintText: useWebEmployeeChrome ? 'email'.tr : 'example@example.com'.tr,
-          height: inputHeight,
-          fillColor: Colors.white,
-          controller: emailController,
-          validator: (v) {
-            if (v == null || v.isEmpty || !v.isEmail) {
-              return ' ';
-            }
-            return null;
-          },
-          borderRadius: 5,
-          borderColor: Colors.grey.shade300,
-        ),
-        InputText(
-          hintText: useWebEmployeeChrome ? 'password'.tr : ''.tr,
-          labelText: 'password'.tr,
-          obscureText: _obscurePassword,
-          height: inputHeight,
-          controller: passwordController,
-          fillColor: Colors.white,
-          textInputType: TextInputType.visiblePassword,
-          suffixIcon: useWebEmployeeChrome
-              ? InkWell(
-                  onTap: () {
-                    setState(() => _obscurePassword = !_obscurePassword);
-                  },
-                  child: Icon(
-                    _obscurePassword
-                        ? Icons.visibility_off
-                        : Icons.visibility,
-                    color: Colors.grey,
-                    size: 12,
-                  ),
-                )
-              : IconButton(
-                  icon: Icon(
-                    _obscurePassword
-                        ? Icons.visibility_off
-                        : Icons.visibility,
-                    color: Colors.grey,
-                    size: 22,
-                  ),
-                  onPressed: () {
-                    setState(() => _obscurePassword = !_obscurePassword);
-                  },
-                  padding: EdgeInsets.zero,
-                  constraints: BoxConstraints(minWidth: 40, minHeight: 40),
-                ),
-          validator: (v) {
-            if (v == null || v.isEmpty) {
-              return ' ';
-            }
-            return validatePasswordStrong(v);
-          },
-          borderRadius: 5,
-          borderColor: Colors.grey.shade300,
-        ),
-        SizedBox(height: afterPasswordGap),
-        InkWell(
-          onTap: () => Get.toNamed('/auth/forgetPassword'),
-          child: Text(
-            'forgotpassword'.tr,
-            style: TextStyle(color: Colors.grey, fontSize: linkSize),
-          ),
-        ),
-        SizedBox(height: beforeButtonGap),
-        Obx(
-          () => MainButton(
-            load: controller.isLoading.value,
-            icon: false,
-            height: 40,
-            borderSize: 10,
-            margin: EdgeInsets.all(0),
-            linearGradient: LinearGradient(
-              colors: [
-                Color(0xff19133F),
-                Color(0xff19133F),
-                Color(0xff19133F),
-                Color(0xff19133F),
-                Color(0xff19133F),
-                Color.fromARGB(255, 47, 19, 63),
-                Color.fromARGB(255, 47, 19, 63),
-                Color.fromARGB(255, 47, 19, 63),
-                Color.fromARGB(255, 47, 19, 63),
-              ],
-              begin: Alignment.topCenter,
-              end: Alignment.bottomRight,
+    return AutofillGroup(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'login_client_title'.tr,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w600,
+              wordSpacing: 1.2,
+              letterSpacing: 0.5,
             ),
-            title: 'login'.tr,
-            onPressed: () => _submitClientLogin(controller),
           ),
-        ),
-        SizedBox(height: 10),
-        InkWell(
-          onTap: () {
-            WidgetsBinding.instance
-                .addPostFrameCallback((_) => Get.toNamed('/auth/login'));
-          },
-          child: Center(
+          SizedBox(height: 10),
+          Text(
+            'enteremailandpassword'.tr,
+            style: TextStyle(color: Colors.grey, fontSize: subtitleSize),
+          ),
+          InputText(
+            labelText: 'email'.tr,
+            hintText:
+                useWebEmployeeChrome ? 'email'.tr : 'example@example.com'.tr,
+            height: inputHeight,
+            fillColor: Colors.white,
+            controller: emailController,
+            focusNode: _emailFocus,
+            autofillHints: const [AutofillHints.email],
+            textInputAction: TextInputAction.next,
+            textInputType: TextInputType.emailAddress,
+            onFieldSubmitted: (_) => _passwordFocus.requestFocus(),
+            validator: (v) {
+              if (v == null || v.isEmpty || !v.isEmail) {
+                return ' ';
+              }
+              return null;
+            },
+            borderRadius: 5,
+            borderColor: Colors.grey.shade300,
+          ),
+          InputText(
+            hintText: useWebEmployeeChrome ? 'password'.tr : ''.tr,
+            labelText: 'password'.tr,
+            obscureText: _obscurePassword,
+            height: inputHeight,
+            controller: passwordController,
+            focusNode: _passwordFocus,
+            autofillHints: const [AutofillHints.password],
+            textInputAction: TextInputAction.go,
+            onFieldSubmitted: (_) => _submitClientLogin(controller),
+            fillColor: Colors.white,
+            textInputType: TextInputType.visiblePassword,
+            suffixIcon:
+                useWebEmployeeChrome
+                    ? InkWell(
+                      onTap: () {
+                        setState(() => _obscurePassword = !_obscurePassword);
+                      },
+                      child: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                        color: Colors.grey,
+                        size: 12,
+                      ),
+                    )
+                    : IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                        color: Colors.grey,
+                        size: 22,
+                      ),
+                      onPressed: () {
+                        setState(() => _obscurePassword = !_obscurePassword);
+                      },
+                      padding: EdgeInsets.zero,
+                      constraints: BoxConstraints(minWidth: 40, minHeight: 40),
+                    ),
+            validator: (v) {
+              if (v == null || v.isEmpty) {
+                return ' ';
+              }
+              return validatePasswordStrong(v);
+            },
+            borderRadius: 5,
+            borderColor: Colors.grey.shade300,
+          ),
+          SizedBox(height: afterPasswordGap),
+          InkWell(
+            onTap: () => Get.toNamed('/auth/forgetPassword'),
             child: Text(
-              'are_you_employee'.tr,
-              style: TextStyle(color: Colors.grey, fontSize: 13),
+              'forgotpassword'.tr,
+              style: TextStyle(color: Colors.grey, fontSize: linkSize),
             ),
           ),
-        ),
-        buildRightsSection(),
-      ],
+          SizedBox(height: beforeButtonGap),
+          Obx(
+            () => MainButton(
+              load: controller.isLoading.value,
+              icon: false,
+              height: 40,
+              borderSize: 10,
+              margin: EdgeInsets.all(0),
+              linearGradient: LinearGradient(
+                colors: [
+                  Color(0xff19133F),
+                  Color(0xff19133F),
+                  Color(0xff19133F),
+                  Color(0xff19133F),
+                  Color(0xff19133F),
+                  Color.fromARGB(255, 47, 19, 63),
+                  Color.fromARGB(255, 47, 19, 63),
+                  Color.fromARGB(255, 47, 19, 63),
+                  Color.fromARGB(255, 47, 19, 63),
+                ],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomRight,
+              ),
+              title: 'login'.tr,
+              onPressed: () => _submitClientLogin(controller),
+            ),
+          ),
+          SizedBox(height: 10),
+          InkWell(
+            onTap: () {
+              WidgetsBinding.instance.addPostFrameCallback(
+                (_) => Get.toNamed('/auth/login'),
+              );
+            },
+            child: Center(
+              child: Text(
+                'are_you_employee'.tr,
+                style: TextStyle(color: Colors.grey, fontSize: 13),
+              ),
+            ),
+          ),
+          buildRightsSection(),
+        ],
+      ),
     );
   }
 }
