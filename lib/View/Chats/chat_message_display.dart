@@ -88,9 +88,10 @@ Widget chatMessageBubbleContent(Map<String, dynamic> msg, bool isMe) {
   final text = (msg['text'] ?? '') as String;
 
   if (type == 'voice') {
-    final url = (attachmentUrl != null && attachmentUrl.isNotEmpty)
-        ? attachmentUrl
-        : text;
+    final url =
+        (attachmentUrl != null && attachmentUrl.isNotEmpty)
+            ? attachmentUrl
+            : text;
     if (url.startsWith('http')) {
       return VoiceMessageRow(
         url: url,
@@ -99,10 +100,21 @@ Widget chatMessageBubbleContent(Map<String, dynamic> msg, bool isMe) {
       );
     }
   }
-  if (type == 'image' &&
-      attachmentUrl != null &&
-      attachmentUrl.isNotEmpty) {
-    return _ChatImageBubble(url: attachmentUrl, isMe: isMe);
+  if (type == 'image' && attachmentUrl != null && attachmentUrl.isNotEmpty) {
+    final caption = text.trim();
+    final hasCaption = caption.isNotEmpty && caption != '📷';
+    if (!hasCaption) {
+      return _ChatImageBubble(url: attachmentUrl, isMe: isMe);
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _ChatImageBubble(url: attachmentUrl, isMe: isMe),
+        const SizedBox(height: 6),
+        messageTextRich(caption, isMe),
+      ],
+    );
   }
   if (attachmentUrl != null &&
       attachmentUrl.isNotEmpty &&
@@ -113,9 +125,7 @@ Widget chatMessageBubbleContent(Map<String, dynamic> msg, bool isMe) {
       fileName: msg['fileName'] as String?,
     );
   }
-  if (type == 'file' &&
-      attachmentUrl != null &&
-      attachmentUrl.isNotEmpty) {
+  if (type == 'file' && attachmentUrl != null && attachmentUrl.isNotEmpty) {
     return _FileBubble(
       url: attachmentUrl,
       fileName: msg['fileName'] as String?,
@@ -297,15 +307,18 @@ class _VoiceMessageRowState extends State<VoiceMessageRow> {
   Widget build(BuildContext context) {
     final primary =
         widget.isMe ? Colors.white : Theme.of(context).colorScheme.onSurface;
-    final secondary = widget.isMe
-        ? Colors.white.withValues(alpha: 0.72)
-        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55);
-    final track = widget.isMe
-        ? Colors.white.withValues(alpha: 0.35)
-        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.18);
-    final progress = widget.isMe
-        ? Colors.white.withValues(alpha: 0.92)
-        : Theme.of(context).colorScheme.primary;
+    final secondary =
+        widget.isMe
+            ? Colors.white.withValues(alpha: 0.72)
+            : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55);
+    final track =
+        widget.isMe
+            ? Colors.white.withValues(alpha: 0.35)
+            : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.18);
+    final progress =
+        widget.isMe
+            ? Colors.white.withValues(alpha: 0.92)
+            : Theme.of(context).colorScheme.primary;
 
     final busy = _loadCount > 0;
     final canScrub = _effectiveDuration.inMilliseconds > 0;
@@ -324,37 +337,40 @@ class _VoiceMessageRowState extends State<VoiceMessageRow> {
                 SizedBox(
                   width: 44,
                   height: 44,
-                  child: busy
-                      ? Center(
-                          child: SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
+                  child:
+                      busy
+                          ? Center(
+                            child: SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: primary,
+                              ),
+                            ),
+                          )
+                          : IconButton(
+                            padding: EdgeInsets.zero,
+                            onPressed: _toggle,
+                            icon: Icon(
+                              _playing
+                                  ? Icons.pause_rounded
+                                  : Icons.play_arrow_rounded,
                               color: primary,
+                              size: 34,
                             ),
                           ),
-                        )
-                      : IconButton(
-                          padding: EdgeInsets.zero,
-                          onPressed: _toggle,
-                          icon: Icon(
-                            _playing
-                                ? Icons.pause_rounded
-                                : Icons.play_arrow_rounded,
-                            color: primary,
-                            size: 34,
-                          ),
-                        ),
                 ),
                 Expanded(
                   child: SliderTheme(
                     data: SliderTheme.of(context).copyWith(
                       trackHeight: 5,
-                      thumbShape:
-                          const RoundSliderThumbShape(enabledThumbRadius: 7),
-                      overlayShape:
-                          const RoundSliderOverlayShape(overlayRadius: 16),
+                      thumbShape: const RoundSliderThumbShape(
+                        enabledThumbRadius: 7,
+                      ),
+                      overlayShape: const RoundSliderOverlayShape(
+                        overlayRadius: 16,
+                      ),
                       activeTrackColor: progress,
                       inactiveTrackColor: track,
                       thumbColor: primary,
@@ -362,9 +378,10 @@ class _VoiceMessageRowState extends State<VoiceMessageRow> {
                     ),
                     child: Slider(
                       value: _sliderValue.clamp(0.0, 1.0),
-                      onChanged: canScrub
-                          ? (v) => setState(() => _dragFraction = v)
-                          : null,
+                      onChanged:
+                          canScrub
+                              ? (v) => setState(() => _dragFraction = v)
+                              : null,
                       onChangeEnd: canScrub ? _onSeekEnd : null,
                     ),
                   ),
@@ -380,11 +397,11 @@ class _VoiceMessageRowState extends State<VoiceMessageRow> {
                     _fmt(
                       _dragFraction != null
                           ? Duration(
-                              milliseconds:
-                                  (_dragFraction! *
-                                          _effectiveDuration.inMilliseconds)
-                                      .round(),
-                            )
+                            milliseconds:
+                                (_dragFraction! *
+                                        _effectiveDuration.inMilliseconds)
+                                    .round(),
+                          )
                           : _position,
                     ),
                     style: TextStyle(fontSize: 11.5, color: secondary),
@@ -403,9 +420,10 @@ class _VoiceMessageRowState extends State<VoiceMessageRow> {
                   AppLocaleKeys.errorsServer.tr,
                   style: TextStyle(
                     fontSize: 11,
-                    color: widget.isMe
-                        ? Colors.orange.shade100
-                        : Theme.of(context).colorScheme.error,
+                    color:
+                        widget.isMe
+                            ? Colors.orange.shade100
+                            : Theme.of(context).colorScheme.error,
                   ),
                 ),
               ),
@@ -481,31 +499,32 @@ class _RetryableChatImageState extends State<_RetryableChatImage> {
           child: const Center(child: CircularProgressIndicator()),
         );
       },
-      errorBuilder: (_, __, ___) => InkWell(
-        onTap: _retry,
-        child: SizedBox(
-          height: widget.loadingHeight,
-          width: widget.width,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.refresh,
-                size: 24,
-                color: widget.isMe ? Colors.white70 : Colors.black54,
+      errorBuilder:
+          (_, __, ___) => InkWell(
+            onTap: _retry,
+            child: SizedBox(
+              height: widget.loadingHeight,
+              width: widget.width,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.refresh,
+                    size: 24,
+                    color: widget.isMe ? Colors.white70 : Colors.black54,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Retry',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: widget.isMe ? Colors.white70 : Colors.black54,
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 4),
-              Text(
-                'Retry',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: widget.isMe ? Colors.white70 : Colors.black54,
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
     );
     if (widget.onImageTap == null) return image;
     return InkWell(onTap: widget.onImageTap, child: image);
@@ -535,16 +554,20 @@ class _ChatVideoBubbleState extends State<_ChatVideoBubble> {
   @override
   void initState() {
     super.initState();
-    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.url))
-      ..setLooping(false)
-      ..setVolume(0);
-    _controller.initialize().then((_) {
-      if (!mounted) return;
-      _controller.pause();
-      setState(() => _ready = true);
-    }).catchError((_) {
-      if (mounted) setState(() => _failed = true);
-    });
+    _controller =
+        VideoPlayerController.networkUrl(Uri.parse(widget.url))
+          ..setLooping(false)
+          ..setVolume(0);
+    _controller
+        .initialize()
+        .then((_) {
+          if (!mounted) return;
+          _controller.pause();
+          setState(() => _ready = true);
+        })
+        .catchError((_) {
+          if (mounted) setState(() => _failed = true);
+        });
   }
 
   @override
@@ -568,9 +591,10 @@ class _ChatVideoBubbleState extends State<_ChatVideoBubble> {
       width: maxW,
       height: maxW * 9 / 16,
       alignment: Alignment.center,
-      color: widget.isMe
-          ? Colors.black.withValues(alpha: 0.22)
-          : Colors.black.withValues(alpha: 0.07),
+      color:
+          widget.isMe
+              ? Colors.black.withValues(alpha: 0.22)
+              : Colors.black.withValues(alpha: 0.07),
       child: SizedBox(
         width: 30,
         height: 30,
@@ -663,11 +687,7 @@ class _FileBubble extends StatelessWidget {
   final String? fileName;
   final bool isMe;
 
-  const _FileBubble({
-    required this.url,
-    this.fileName,
-    required this.isMe,
-  });
+  const _FileBubble({required this.url, this.fileName, required this.isMe});
 
   @override
   Widget build(BuildContext context) {
@@ -679,29 +699,36 @@ class _FileBubble extends StatelessWidget {
 
     final rawTitle = stored.isNotEmpty ? stored : fallbackBase;
     final titleBase = _basenameFromUrlOrName(rawTitle);
-    final title = _isStorageStyleUuidName(titleBase)
-        ? AppLocaleKeys.chatFileUntitled.tr
-        : titleBase;
+    final title =
+        _isStorageStyleUuidName(titleBase)
+            ? AppLocaleKeys.chatFileUntitled.tr
+            : titleBase;
 
     final tapHint = AppLocaleKeys.chatFileTapToOpen.tr;
-    final subtitle = ext.isNotEmpty ? '${ext.toUpperCase()} · $tapHint' : tapHint;
+    final subtitle =
+        ext.isNotEmpty ? '${ext.toUpperCase()} · $tapHint' : tapHint;
 
-    final primary = isMe ? Colors.white : Theme.of(context).colorScheme.onSurface;
-    final secondary = isMe
-        ? Colors.white.withValues(alpha: 0.72)
-        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55);
-    final iconBg = isMe
-        ? Colors.white.withValues(alpha: 0.22)
-        : Theme.of(context).colorScheme.primary.withValues(alpha: 0.12);
+    final primary =
+        isMe ? Colors.white : Theme.of(context).colorScheme.onSurface;
+    final secondary =
+        isMe
+            ? Colors.white.withValues(alpha: 0.72)
+            : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55);
+    final iconBg =
+        isMe
+            ? Colors.white.withValues(alpha: 0.22)
+            : Theme.of(context).colorScheme.primary.withValues(alpha: 0.12);
     final iconFg = isMe ? Colors.white : Theme.of(context).colorScheme.primary;
-    final tileBg = isMe
-        ? Colors.white.withValues(alpha: 0.2)
-        : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(
-              alpha: 0.65,
-            );
-    final borderColor = isMe
-        ? Colors.white.withValues(alpha: 0.35)
-        : Theme.of(context).colorScheme.outline.withValues(alpha: 0.35);
+    final tileBg =
+        isMe
+            ? Colors.white.withValues(alpha: 0.2)
+            : Theme.of(
+              context,
+            ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.65);
+    final borderColor =
+        isMe
+            ? Colors.white.withValues(alpha: 0.35)
+            : Theme.of(context).colorScheme.outline.withValues(alpha: 0.35);
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 260),
@@ -751,10 +778,7 @@ class _FileBubble extends StatelessWidget {
                         subtitle,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: secondary,
-                        ),
+                        style: TextStyle(fontSize: 11, color: secondary),
                       ),
                     ],
                   ),
@@ -774,20 +798,14 @@ Widget messageTextRich(String text, bool isMe) {
   if (matches.isEmpty) {
     return Text(
       text,
-      style: TextStyle(
-        fontSize: 15,
-        color: isMe ? Colors.white : Colors.black,
-      ),
+      style: TextStyle(fontSize: 15, color: isMe ? Colors.white : Colors.black),
     );
   }
 
   return RichText(
     text: TextSpan(
       children: buildMessageSpans(text, isMe),
-      style: TextStyle(
-        fontSize: 15,
-        color: isMe ? Colors.white : Colors.black,
-      ),
+      style: TextStyle(fontSize: 15, color: isMe ? Colors.white : Colors.black),
     ),
   );
 }
@@ -886,13 +904,14 @@ List<InlineSpan> buildMessageSpans(String text, bool isMe) {
                       child: Center(child: CircularProgressIndicator()),
                     );
                   },
-                  errorBuilder: (_, __, ___) => _RetryableChatImage(
-                    url: url,
-                    width: 200,
-                    fit: BoxFit.cover,
-                    isMe: isMe,
-                    loadingHeight: 150,
-                  ),
+                  errorBuilder:
+                      (_, __, ___) => _RetryableChatImage(
+                        url: url,
+                        width: 200,
+                        fit: BoxFit.cover,
+                        isMe: isMe,
+                        loadingHeight: 150,
+                      ),
                 ),
               ),
             ),
@@ -908,8 +927,7 @@ List<InlineSpan> buildMessageSpans(String text, bool isMe) {
             decoration: TextDecoration.underline,
           ),
           recognizer:
-              TapGestureRecognizer()
-                ..onTap = () => openChatMediaFromUrl(url),
+              TapGestureRecognizer()..onTap = () => openChatMediaFromUrl(url),
         ),
       );
     }

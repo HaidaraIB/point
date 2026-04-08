@@ -10,8 +10,10 @@ list(APPEND FLUTTER_PLUGIN_LIST
   firebase_auth
   firebase_core
   firebase_storage
+  irondash_engine_context
   permission_handler_windows
   record_windows
+  super_native_extensions
   syncfusion_pdfviewer_windows
   url_launcher_windows
 )

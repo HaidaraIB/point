@@ -16,18 +16,27 @@ attachIncomingMessageSoundSubscription({
   required String chatId,
   required String currentUserId,
 }) {
+  // Temporary web safeguard: avoid known cloud_firestore web assertion path
+  // seen in production traces around QuerySnapshot conversions.
+  if (kIsWeb) return null;
+
   var initialSnapshot = true;
+  final seenMessageIds = <String>{};
   return stream.listen((snapshot) {
     if (initialSnapshot) {
+      for (final doc in snapshot.docs) {
+        seenMessageIds.add(doc.id);
+      }
       initialSnapshot = false;
       return;
     }
-    for (final change in snapshot.docChanges) {
-      if (change.type != DocumentChangeType.added) continue;
-      final data = change.doc.data();
-      if (data == null) continue;
+
+    for (final doc in snapshot.docs) {
+      final id = doc.id;
+      if (seenMessageIds.contains(id)) continue;
+      seenMessageIds.add(id);
+      final data = doc.data();
       if (data['senderId'] == currentUserId) continue;
-      if (!kIsWeb) continue;
       AudioService.instance.playNotificationSound(chatId: chatId);
     }
   });

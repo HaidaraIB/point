@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -13,6 +14,7 @@ import 'package:point/Utils/text_input_bidi.dart';
 import 'package:point/Services/ChatAudioFocus.dart';
 import 'package:point/Services/ChatIncomingMessageSound.dart';
 import 'package:point/Services/FireStoreServices.dart';
+import 'package:point/Services/chat_clipboard_image_reader.dart';
 import 'package:point/View/Chats/MChatPage.dart';
 import 'package:point/View/Chats/chat_message_display.dart';
 import 'package:point/View/Chats/chat_ui_helpers.dart';
@@ -312,6 +314,7 @@ class _ChatPopupState extends State<ChatPopup> {
   late String _chatId;
   final TextEditingController _messageController = TextEditingController();
   final FocusNode _messageFocusNode = FocusNode();
+  String? _pendingPastedImageUrl;
 
   void _onPopupInputFocus() {
     if (mounted) setState(() {});
@@ -345,6 +348,7 @@ class _ChatPopupState extends State<ChatPopup> {
       anchorContext: anchorContext,
       photoLabel: 'chat.attach_gallery'.tr,
       fileLabel: 'chat.attach_file'.tr,
+      pasteImageLabel: 'chat.paste_image'.tr,
       voiceLabel: 'chat.attach_voice'.tr,
     );
     if (!mounted || action == null) return;
@@ -393,7 +397,53 @@ class _ChatPopupState extends State<ChatPopup> {
       case ChatAttachmentMenuAction.voice:
         await _showPopupVoiceAttachmentSheet();
         return;
+      case ChatAttachmentMenuAction.pasteImage:
+        await _pasteImageFromClipboard();
+        return;
     }
+  }
+
+  Future<void> _pasteImageFromClipboard() async {
+    final data = await readClipboardImageData();
+    if (!mounted) return;
+    if (data == null || data.bytes.isEmpty) {
+      _showPasteImageFailed();
+      return;
+    }
+    await _handlePastedImage(data.bytes, data.mimeType);
+  }
+
+  Future<void> _handlePastedImage(Uint8List bytes, String mimeType) async {
+    if (!mounted) return;
+    final controller = Get.find<HomeController>();
+    if (controller.isUploading.value) return;
+
+    final fileName =
+        'pasted_${DateTime.now().millisecondsSinceEpoch}.${_extFromMime(mimeType)}';
+    final url = await controller.uploadFiles(
+      filePathOrBytes: bytes,
+      fileName: fileName,
+      useBlockingUploadDialog: false,
+    );
+    if (!mounted || url == null) return;
+    setState(() => _pendingPastedImageUrl = url);
+    controller.uploadedFilesPaths.clear();
+  }
+
+  String _extFromMime(String mimeType) {
+    final t = mimeType.trim().toLowerCase();
+    if (t == 'image/jpeg' || t == 'image/jpg') return 'jpg';
+    if (t == 'image/webp') return 'webp';
+    if (t == 'image/gif') return 'gif';
+    if (t == 'image/bmp') return 'bmp';
+    return 'png';
+  }
+
+  void _showPasteImageFailed() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('chat.paste_image_failed'.tr)));
   }
 
   Future<void> _showPopupVoiceAttachmentSheet() async {
@@ -514,6 +564,7 @@ class _ChatPopupState extends State<ChatPopup> {
       unawaited(FirestoreServices.syncEmployeeActiveChatId(uid, null));
     }
     _messageFocusNode.removeListener(_onPopupInputFocus);
+    _messageFocusNode.unfocus();
     _messageFocusNode.dispose();
     _messageController.removeListener(_onComposerTextChanged);
     _messageController.dispose();
@@ -916,12 +967,27 @@ class _ChatPopupState extends State<ChatPopup> {
 
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
-    if (text.isEmpty) return;
+    final pendingImageUrl = _pendingPastedImageUrl;
+    if (text.isEmpty && pendingImageUrl == null) return;
     _messageController.clear();
-    _messageFocusNode.requestFocus();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _messageFocusNode.requestFocus();
-    });
+    if (!kIsWeb) {
+      _messageFocusNode.requestFocus();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _messageFocusNode.canRequestFocus) {
+          _messageFocusNode.requestFocus();
+        }
+      });
+    }
+    if (pendingImageUrl != null) {
+      setState(() => _pendingPastedImageUrl = null);
+      await _sendChatPayload(
+        lastMessagePreview: text.isNotEmpty ? text : '📷',
+        messageType: 'image',
+        text: text,
+        attachmentUrl: pendingImageUrl,
+      );
+      return;
+    }
     unawaited(
       _sendChatPayload(
         lastMessagePreview: text,

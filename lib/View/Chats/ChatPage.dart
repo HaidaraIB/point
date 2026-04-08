@@ -3,6 +3,8 @@ import 'package:point/Utils/app_log.dart';
 import 'package:point/Utils/text_input_bidi.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -13,6 +15,8 @@ import 'package:point/Services/ChatAudioFocus.dart';
 import 'package:point/Services/ChatIncomingMessageSound.dart';
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/StorageKeys.dart';
+import 'package:point/Services/chat_clipboard_image_reader.dart';
+import 'package:point/Services/chat_image_paste_listener.dart';
 import 'package:point/View/Chats/chat_message_display.dart';
 import 'package:point/View/Chats/chat_ui_helpers.dart';
 import 'package:point/View/Chats/chat_voice_record_button.dart';
@@ -39,7 +43,9 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _messageFocusNode = FocusNode();
+  ChatImagePasteListener? _imagePasteListener;
   bool _isEmojiVisible = false;
+  String? _pendingPastedImageUrl;
   // Firebase instances
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirestoreServices _firestoreServices = FirestoreServices();
@@ -62,14 +68,19 @@ class _ChatScreenState extends State<ChatScreen> {
   Map<String, dynamic>? _selectedChat; // selected chat doc (id + data)
 
   Stream<QuerySnapshot<Map<String, dynamic>>>? _messagesStream;
+
   /// يمنع إعادة إنشاء اشتراك الرسائل لنفس المحادثة عند كل snapshot.
   String? _messagesStreamChatId;
 
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _chatsSubscription;
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _messageSoundSubscription;
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _markReadSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+  _messageSoundSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+  _markReadSubscription;
+
   /// يمنع تطبيق دمج معاينات قديم بعد snapshot أحدث.
   int _chatsEnrichGen = 0;
+
   /// يمنع إلغاء اشتراك الصوت عند كل تحديث لقائمة المحادثات (كان يُرمى أول snapshot فيه الرسائل الجديدة).
   String? _messageSoundBoundChatId;
 
@@ -77,10 +88,25 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _loadingChats = true;
   bool _isLoadingGroup = false; // **إضافة حالة تحميل للمجموعة**
 
+  bool get _enableContentInsertion =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+
   @override
   void initState() {
     super.initState();
     _messageController.addListener(_onComposerTextChanged);
+    _imagePasteListener = ChatImagePasteListener(
+      onImagePasted: _handlePastedImage,
+      onPasteError: _showPasteImageFailed,
+      shouldHandle:
+          () =>
+              mounted &&
+              _selectedChat != null &&
+              !_messageFocusNode.hasFocus &&
+              (WidgetsBinding.instance.lifecycleState == null ||
+                  WidgetsBinding.instance.lifecycleState ==
+                      AppLifecycleState.resumed),
+    );
     _initUserThenLoad();
   }
 
@@ -158,15 +184,17 @@ class _ChatScreenState extends State<ChatScreen> {
     // Managers can still chat with anyone.
     if (_currentUserRole == 'employee') {
       final myDept = _currentUserDept;
-      _employees = _employees.where((e) {
-        final targetRole = e['role'];
-        final targetDept = e['dept'];
-        final isSpecialRole = StorageKeys.isChatElevatedRole(targetRole);
-        final isSameDept = myDept != null && myDept.isNotEmpty
-            ? StorageKeys.matchesDepartment(targetDept, myDept)
-            : false;
-        return isSpecialRole || isSameDept;
-      }).toList();
+      _employees =
+          _employees.where((e) {
+            final targetRole = e['role'];
+            final targetDept = e['dept'];
+            final isSpecialRole = StorageKeys.isChatElevatedRole(targetRole);
+            final isSameDept =
+                myDept != null && myDept.isNotEmpty
+                    ? StorageKeys.matchesDepartment(targetDept, myDept)
+                    : false;
+            return isSpecialRole || isSameDept;
+          }).toList();
     }
 
     _filteredEmployees = List.from(_employees);
@@ -242,7 +270,7 @@ class _ChatScreenState extends State<ChatScreen> {
       // إنشاء مستند المجموعة إذا لم يكن موجودًا
       await groupRef.set({
         'isGroup': true, // **علامة للمجموعة**
-        'title': deptGroupName.tr, // **اسم المجموعة**
+        'title': deptGroupName, // canonical department key
         'participants': participantsIds,
         'lastMessage': '',
         'lastUpdated': FieldValue.serverTimestamp(),
@@ -286,7 +314,8 @@ class _ChatScreenState extends State<ChatScreen> {
     }
     final chatId = sel['id'] as String;
     ChatAudioFocus.setForeground(chatId);
-    if (_messageSoundSubscription != null && _messageSoundBoundChatId == chatId) {
+    if (_messageSoundSubscription != null &&
+        _messageSoundBoundChatId == chatId) {
       return;
     }
     _messageSoundSubscription?.cancel();
@@ -301,9 +330,7 @@ class _ChatScreenState extends State<ChatScreen> {
     );
     unawaited(FirestoreServices.syncEmployeeActiveChatId(uid, chatId));
     _markReadSubscription = stream.listen((_) {
-      unawaited(
-        FirestoreServices.markIncomingMessagesReadInChat(chatId, uid),
-      );
+      unawaited(FirestoreServices.markIncomingMessagesReadInChat(chatId, uid));
     });
   }
 
@@ -317,12 +344,13 @@ class _ChatScreenState extends State<ChatScreen> {
     final id = _selectedChat!['id'] as String;
     if (_messagesStreamChatId == id && _messagesStream != null) return;
     _messagesStreamChatId = id;
-    _messagesStream = _firestore
-        .collection('chats')
-        .doc(id)
-        .collection('messages')
-        .orderBy('timestamp', descending: true)
-        .snapshots();
+    _messagesStream =
+        _firestore
+            .collection('chats')
+            .doc(id)
+            .collection('messages')
+            .orderBy('timestamp', descending: true)
+            .snapshots();
   }
 
   // **---------------- Chats (Private & Group) ----------------**
@@ -338,42 +366,46 @@ class _ChatScreenState extends State<ChatScreen> {
         .where('participants', arrayContains: _currentUserId)
         .orderBy('lastUpdated', descending: true)
         .snapshots()
-        .listen((snap) {
-          // تجنّب setState بعد الـ dispose (مهم عند إرسال رسالة ثم إغلاق الشاشة بسرعة)
-          if (!mounted || _chatsSubscription == null) return;
-          final built = <Map<String, dynamic>>[];
-          for (var doc in snap.docs) {
-            final data = doc.data();
-            final chat = {
-              'id': doc.id,
-              'participants': List<String>.from(data['participants'] ?? []),
-              'lastMessage': data['lastMessage'] ?? '',
-              'lastUpdated': data['lastUpdated'],
-              'isGroup': data['isGroup'] ?? false, // **قراءة علامة المجموعة**
-              'title': data['title'], // **قراءة اسم المجموعة**
-            };
-            built.add(chat);
-          }
+        .listen(
+          (snap) {
+            // تجنّب setState بعد الـ dispose (مهم عند إرسال رسالة ثم إغلاق الشاشة بسرعة)
+            if (!mounted || _chatsSubscription == null) return;
+            final built = <Map<String, dynamic>>[];
+            for (var doc in snap.docs) {
+              final data = doc.data();
+              final chat = {
+                'id': doc.id,
+                'participants': List<String>.from(data['participants'] ?? []),
+                'lastMessage': data['lastMessage'] ?? '',
+                'lastUpdated': data['lastUpdated'],
+                'isGroup': data['isGroup'] ?? false, // **قراءة علامة المجموعة**
+                'title': data['title'], // **قراءة اسم المجموعة**
+              };
+              built.add(chat);
+            }
 
-          _chatsEnrichGen++;
-          final gen = _chatsEnrichGen;
-          if (!mounted || _chatsSubscription == null) return;
-          unawaited(_applySnapshotAndEnrich(gen, built));
-        }, onError: (Object e, StackTrace st) {
-          if (e is FirebaseException &&
-              e.code == 'permission-denied' &&
-              FirebaseAuth.instance.currentUser == null) {
-            final sub = _chatsSubscription;
-            _chatsSubscription = null;
-            sub?.cancel();
-            return;
-          }
-          appLog('⚠️ ChatScreen _listenChats: $e');
-          if (!mounted || _chatsSubscription == null) return;
-          setState(() {
-            _loadingChats = false;
-          });
-        }, cancelOnError: false);
+            _chatsEnrichGen++;
+            final gen = _chatsEnrichGen;
+            if (!mounted || _chatsSubscription == null) return;
+            unawaited(_applySnapshotAndEnrich(gen, built));
+          },
+          onError: (Object e, StackTrace st) {
+            if (e is FirebaseException &&
+                e.code == 'permission-denied' &&
+                FirebaseAuth.instance.currentUser == null) {
+              final sub = _chatsSubscription;
+              _chatsSubscription = null;
+              sub?.cancel();
+              return;
+            }
+            appLog('⚠️ ChatScreen _listenChats: $e');
+            if (!mounted || _chatsSubscription == null) return;
+            setState(() {
+              _loadingChats = false;
+            });
+          },
+          cancelOnError: false,
+        );
   }
 
   /// دمج قائمة المحادثات مع آخر رسالة من `messages` وإخفاء الفردية بلا أي رسالة.
@@ -413,8 +445,9 @@ class _ChatScreenState extends State<ChatScreen> {
       try {
         final row = merged.firstWhere((c) => c['id'] == sid);
         _selectedChat = Map<String, dynamic>.from(row);
-        Get.find<HomeController>().selectedChat =
-            Map<String, dynamic>.from(row);
+        Get.find<HomeController>().selectedChat = Map<String, dynamic>.from(
+          row,
+        );
       } catch (_) {}
     }
 
@@ -477,8 +510,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
+    _imagePasteListener?.dispose();
     final sub = _chatsSubscription;
-    _chatsSubscription = null; // أي callback قادم من الـ stream سيرى null ولن يستدعي setState
+    _chatsSubscription =
+        null; // أي callback قادم من الـ stream سيرى null ولن يستدعي setState
     sub?.cancel();
     _messageSoundSubscription?.cancel();
     _markReadSubscription?.cancel();
@@ -491,18 +526,18 @@ class _ChatScreenState extends State<ChatScreen> {
     }
     _messageController.removeListener(_onComposerTextChanged);
     _messageController.dispose();
+    _messageFocusNode.unfocus();
     _messageFocusNode.dispose();
     _searchController.dispose();
     super.dispose();
   }
-
 
   String _getSelectedChatNameSync() {
     if (_selectedChat == null) return '';
 
     // إذا كانت مجموعة، نستخدم العنوان (Title)
     if (_selectedChat!['isGroup'] == true) {
-      return _selectedChat!['title'] ?? AppLocaleKeys.chatDepartmentGroup.tr;
+      return _localizedGroupTitleFromChat(_selectedChat!);
     }
 
     // للمحادثة الفردية، نجد اسم الطرف الآخر من الكاش
@@ -518,6 +553,26 @@ class _ChatScreenState extends State<ChatScreen> {
       orElse: () => {},
     );
     return other.isNotEmpty ? other['name'] : otherId.toString();
+  }
+
+  String _localizedGroupTitleFromChat(Map<String, dynamic> chat) {
+    final rawTitle = (chat['title'] ?? '').toString().trim();
+    final chatId = (chat['id'] ?? '').toString();
+    String? department;
+
+    if (chatId.startsWith('group_') && chatId.length > 6) {
+      department = chatId.substring(6);
+    }
+    department = StorageKeys.normalizeDepartment(
+      (department == null || department.isEmpty) ? rawTitle : department,
+    );
+    if (department.isNotEmpty) {
+      return 'department.$department'.tr;
+    }
+    if (rawTitle.isNotEmpty) {
+      return rawTitle.tr;
+    }
+    return AppLocaleKeys.chatDepartmentGroup.tr;
   }
 
   String? _getSelectedChatOtherImageUrlSync() {
@@ -551,15 +606,12 @@ class _ChatScreenState extends State<ChatScreen> {
     // لا get() قبل إنشاء مستند جديد. إن وُجد المستند، قد يفشل merge إن شمل الحقول
     // غير المسموحة في allow update — نُسقط إلى update(lastMessage, lastUpdated) فقط.
     try {
-      await chatRef.set(
-        {
-          'participants': ids,
-          'lastMessage': '',
-          'lastUpdated': FieldValue.serverTimestamp(),
-          'isGroup': false, // **محادثة فردية**
-        },
-        SetOptions(merge: true),
-      );
+      await chatRef.set({
+        'participants': ids,
+        'lastMessage': '',
+        'lastUpdated': FieldValue.serverTimestamp(),
+        'isGroup': false, // **محادثة فردية**
+      }, SetOptions(merge: true));
     } catch (e) {
       if (!e.toString().contains('permission-denied')) rethrow;
       await chatRef.update({
@@ -618,12 +670,27 @@ class _ChatScreenState extends State<ChatScreen> {
   // -----------// إرسال رسالة (نص أو مرفق)
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
-    if (text.isEmpty) return;
+    final pendingImageUrl = _pendingPastedImageUrl;
+    if (text.isEmpty && pendingImageUrl == null) return;
     _messageController.clear();
-    _messageFocusNode.requestFocus();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _messageFocusNode.requestFocus();
-    });
+    if (!kIsWeb) {
+      _messageFocusNode.requestFocus();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _messageFocusNode.canRequestFocus) {
+          _messageFocusNode.requestFocus();
+        }
+      });
+    }
+    if (pendingImageUrl != null) {
+      setState(() => _pendingPastedImageUrl = null);
+      await _sendChatPayload(
+        lastMessagePreview: text.isNotEmpty ? text : '📷',
+        messageType: 'image',
+        text: text,
+        attachmentUrl: pendingImageUrl,
+      );
+      return;
+    }
     unawaited(
       _sendChatPayload(
         lastMessagePreview: text,
@@ -648,8 +715,9 @@ class _ChatScreenState extends State<ChatScreen> {
       if (_selectedChat != null && _selectedChat!['id'] == chatId) {
         _selectedChat = Map<String, dynamic>.from(_selectedChat!)
           ..['lastMessage'] = preview;
-        Get.find<HomeController>().selectedChat =
-            Map<String, dynamic>.from(_selectedChat!);
+        Get.find<HomeController>().selectedChat = Map<String, dynamic>.from(
+          _selectedChat!,
+        );
       }
     });
   }
@@ -679,8 +747,7 @@ class _ChatScreenState extends State<ChatScreen> {
       OpenChatModel(
         id: chatId,
         name: _getSelectedChatNameSync(),
-        avatar:
-            isGroup ? '' : (_getSelectedChatOtherImageUrlSync() ?? ''),
+        avatar: isGroup ? '' : (_getSelectedChatOtherImageUrlSync() ?? ''),
         isGroup: isGroup,
       ),
     );
@@ -732,7 +799,7 @@ class _ChatScreenState extends State<ChatScreen> {
             userId: id,
             title: 'chat.fcm_in_group_title'.trParams({
               'user': _currentUserName ?? '',
-              'group': '${_selectedChat!['title']}',
+              'group': _localizedGroupTitleFromChat(_selectedChat!),
             }),
             body: lastMessagePreview,
             notificationType: 'chat_message',
@@ -767,14 +834,61 @@ class _ChatScreenState extends State<ChatScreen> {
     if (diff.inSeconds < 60) {
       return AppLocaleKeys.commonNow.tr;
     } else if (diff.inMinutes < 60) {
-      return AppLocaleKeys.commonMinutesAgo.trParams({'count': '${diff.inMinutes}'});
+      return AppLocaleKeys.commonMinutesAgo.trParams({
+        'count': '${diff.inMinutes}',
+      });
     } else if (diff.inHours < 24) {
-      return AppLocaleKeys.commonHoursAgo.trParams({'count': '${diff.inHours}'});
+      return AppLocaleKeys.commonHoursAgo.trParams({
+        'count': '${diff.inHours}',
+      });
     } else if (diff.inDays < 7) {
       return 'chat.days_ago'.trParams({'count': '${diff.inDays}'});
     } else {
       return DateFormat('dd/MM/yyyy').format(dt);
     }
+  }
+
+  Future<void> _handlePastedImage(Uint8List bytes, String mimeType) async {
+    if (!mounted || _selectedChat == null) return;
+    final controller = Get.find<HomeController>();
+    if (controller.isUploading.value) return;
+
+    final fileName =
+        'pasted_${DateTime.now().millisecondsSinceEpoch}.${_extFromMime(mimeType)}';
+    final url = await controller.uploadFiles(
+      filePathOrBytes: bytes,
+      fileName: fileName,
+      useBlockingUploadDialog: false,
+    );
+    if (!mounted || url == null) return;
+    setState(() => _pendingPastedImageUrl = url);
+    controller.uploadedFilesPaths.clear();
+  }
+
+  Future<void> _pasteImageFromClipboard() async {
+    final data = await readClipboardImageData();
+    if (!mounted || _selectedChat == null) return;
+    if (data == null || data.bytes.isEmpty) {
+      _showPasteImageFailed();
+      return;
+    }
+    await _handlePastedImage(data.bytes, data.mimeType);
+  }
+
+  void _showPasteImageFailed() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppLocaleKeys.chatPasteImageFailed.tr)),
+    );
+  }
+
+  String _extFromMime(String mimeType) {
+    final t = mimeType.trim().toLowerCase();
+    if (t == 'image/jpeg' || t == 'image/jpg') return 'jpg';
+    if (t == 'image/webp') return 'webp';
+    if (t == 'image/gif') return 'gif';
+    if (t == 'image/bmp') return 'bmp';
+    return 'png';
   }
 
   /// آخر رسالة لمجموعة القسم في القائمة (يُملأ من `_chats` بعد الدمج مع `messages`).
@@ -853,7 +967,9 @@ class _ChatScreenState extends State<ChatScreen> {
                           _loadingEmployees
                               ? Center(child: CircularProgressIndicator())
                               : _filteredEmployees.isEmpty
-                              ? Center(child: Text(AppLocaleKeys.chatNoEmployees.tr))
+                              ? Center(
+                                child: Text(AppLocaleKeys.chatNoEmployees.tr),
+                              )
                               : ListView.builder(
                                 itemCount: _filteredEmployees.length,
                                 itemBuilder: (context, idx) {
@@ -972,7 +1088,10 @@ class _ChatScreenState extends State<ChatScreen> {
                                         color: Color(0xff00A389),
                                         borderRadius: BorderRadius.circular(15),
                                       ),
-                                      child: Icon(Icons.add, color: Colors.white),
+                                      child: Icon(
+                                        Icons.add,
+                                        color: Colors.white,
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -1039,14 +1158,18 @@ class _ChatScreenState extends State<ChatScreen> {
                                       Color? titleColor;
 
                                       if (isGroup) {
-                                        displayName = ch['title'] ?? AppLocaleKeys.chatDepartmentGroup.tr;
+                                        displayName =
+                                            _localizedGroupTitleFromChat(ch);
                                         final lm =
                                             (ch['lastMessage'] ?? '')
                                                 .toString()
                                                 .trim();
-                                        subtitle = lm.isNotEmpty
-                                            ? lm
-                                            : AppLocaleKeys.chatGroupConversation.tr;
+                                        subtitle =
+                                            lm.isNotEmpty
+                                                ? lm
+                                                : AppLocaleKeys
+                                                    .chatGroupConversation
+                                                    .tr;
                                         initial = _initialFromName(displayName);
                                         avatarColor = Colors.blueGrey.shade100;
                                         avatarIcon = Icons.group;
@@ -1075,7 +1198,9 @@ class _ChatScreenState extends State<ChatScreen> {
                                             other.isNotEmpty
                                                 ? other['name']
                                                 : (otherId.length > 10
-                                                    ? AppLocaleKeys.chatUnknownUser.tr
+                                                    ? AppLocaleKeys
+                                                        .chatUnknownUser
+                                                        .tr
                                                     : otherId);
                                         subtitle = ch['lastMessage'] ?? '';
                                         initial = _initialFromName(displayName);
@@ -1134,10 +1259,10 @@ class _ChatScreenState extends State<ChatScreen> {
                                                     color: Colors.black54,
                                                   )
                                                   : (employImage != null &&
-                                                          employImage
-                                                              .toString()
-                                                              .trim()
-                                                              .isNotEmpty)
+                                                      employImage
+                                                          .toString()
+                                                          .trim()
+                                                          .isNotEmpty)
                                                   ? ClipOval(
                                                     child: Image.network(
                                                       employImage.toString(),
@@ -1145,14 +1270,13 @@ class _ChatScreenState extends State<ChatScreen> {
                                                       height: 48,
                                                       fit: BoxFit.cover,
                                                       errorBuilder:
-                                                          (_, __, ___) =>
-                                                              Text(
-                                                                initial,
-                                                                style: TextStyle(
-                                                                  color: Colors
-                                                                      .black,
-                                                                ),
-                                                              ),
+                                                          (_, __, ___) => Text(
+                                                            initial,
+                                                            style: TextStyle(
+                                                              color:
+                                                                  Colors.black,
+                                                            ),
+                                                          ),
                                                     ),
                                                   )
                                                   : Text(
@@ -1295,7 +1419,9 @@ class _ChatScreenState extends State<ChatScreen> {
                                         Text(
                                           _selectedChat!['isGroup'] == true
                                               ? AppLocaleKeys.chatGroupType.tr
-                                              : AppLocaleKeys.chatPrivateType.tr,
+                                              : AppLocaleKeys
+                                                  .chatPrivateType
+                                                  .tr,
                                           style: TextStyle(
                                             color: Colors.grey.shade600,
                                           ),
@@ -1320,7 +1446,9 @@ class _ChatScreenState extends State<ChatScreen> {
                                                 _messagesStream == null
                                                     ? Center(
                                                       child: Text(
-                                                        AppLocaleKeys.chatNoMessages.tr,
+                                                        AppLocaleKeys
+                                                            .chatNoMessages
+                                                            .tr,
                                                       ),
                                                     )
                                                     : StreamBuilder<
@@ -1350,7 +1478,9 @@ class _ChatScreenState extends State<ChatScreen> {
                                                         if (docs.isEmpty) {
                                                           return Center(
                                                             child: Text(
-                                                              AppLocaleKeys.chatNoMessages.tr,
+                                                              AppLocaleKeys
+                                                                  .chatNoMessages
+                                                                  .tr,
                                                             ),
                                                           );
                                                         }
@@ -1376,7 +1506,9 @@ class _ChatScreenState extends State<ChatScreen> {
                                                                     as Timestamp?;
                                                             final senderName =
                                                                 d['senderName'] ??
-                                                                AppLocaleKeys.chatSenderFallback.tr;
+                                                                AppLocaleKeys
+                                                                    .chatSenderFallback
+                                                                    .tr;
 
                                                             return Align(
                                                               alignment:
@@ -1446,9 +1578,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                                                       Map<
                                                                         String,
                                                                         dynamic
-                                                                      >.from(
-                                                                        d,
-                                                                      ),
+                                                                      >.from(d),
                                                                       isMe,
                                                                     ),
                                                                     // Text(
@@ -1496,6 +1626,79 @@ class _ChatScreenState extends State<ChatScreen> {
                                                   CrossAxisAlignment.stretch,
                                               children: [
                                                 const ChatUploadProgressBanner(),
+                                                if (_pendingPastedImageUrl !=
+                                                    null)
+                                                  Padding(
+                                                    padding:
+                                                        const EdgeInsets.fromLTRB(
+                                                          8,
+                                                          0,
+                                                          8,
+                                                          6,
+                                                        ),
+                                                    child: Row(
+                                                      children: [
+                                                        ClipRRect(
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                6,
+                                                              ),
+                                                          child: InkWell(
+                                                            onTap:
+                                                                () => openChatMediaFromUrl(
+                                                                  _pendingPastedImageUrl!,
+                                                                ),
+                                                            child: Image.network(
+                                                              _pendingPastedImageUrl!,
+                                                              width: 34,
+                                                              height: 34,
+                                                              fit: BoxFit.cover,
+                                                              errorBuilder:
+                                                                  (
+                                                                    _,
+                                                                    __,
+                                                                    ___,
+                                                                  ) => const Icon(
+                                                                    Icons
+                                                                        .image_outlined,
+                                                                    size: 18,
+                                                                  ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                        const SizedBox(
+                                                          width: 8,
+                                                        ),
+                                                        Expanded(
+                                                          child: Text(
+                                                            AppLocaleKeys
+                                                                .chatPasteImage
+                                                                .tr,
+                                                            style:
+                                                                const TextStyle(
+                                                                  fontSize: 12,
+                                                                ),
+                                                          ),
+                                                        ),
+                                                        IconButton(
+                                                          tooltip:
+                                                              AppLocaleKeys
+                                                                  .commonCancel
+                                                                  .tr,
+                                                          icon: const Icon(
+                                                            Icons.close,
+                                                            size: 18,
+                                                          ),
+                                                          onPressed:
+                                                              () => setState(
+                                                                () =>
+                                                                    _pendingPastedImageUrl =
+                                                                        null,
+                                                              ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
                                                 Obx(() {
                                                   final busy =
                                                       controller
@@ -1503,7 +1706,8 @@ class _ChatScreenState extends State<ChatScreen> {
                                                           .value;
                                                   return Row(
                                                     crossAxisAlignment:
-                                                        CrossAxisAlignment.center,
+                                                        CrossAxisAlignment
+                                                            .center,
                                                     children: [
                                                       IconButton(
                                                         icon: Icon(
@@ -1524,9 +1728,10 @@ class _ChatScreenState extends State<ChatScreen> {
                                                                 },
                                                       ),
                                                       IconButton(
-                                                        tooltip: AppLocaleKeys
-                                                            .chatAttachGallery
-                                                            .tr,
+                                                        tooltip:
+                                                            AppLocaleKeys
+                                                                .chatAttachGallery
+                                                                .tr,
                                                         icon: const Icon(
                                                           Icons
                                                               .perm_media_outlined,
@@ -1539,24 +1744,24 @@ class _ChatScreenState extends State<ChatScreen> {
                                                                       await controller
                                                                           .pickOneChatGalleryMedia();
                                                                   if (v.isEmpty ||
-                                                                      v
-                                                                              .first
-                                                                              .bytes ==
+                                                                      v.first.bytes ==
                                                                           null) {
                                                                     return;
                                                                   }
                                                                   final picked =
                                                                       v.first;
-                                                                  final url =
-                                                                      await controller.uploadFiles(
-                                                                        filePathOrBytes:
-                                                                            picked.bytes!,
-                                                                        fileName:
-                                                                            picked.name,
-                                                                        useBlockingUploadDialog:
-                                                                            false,
-                                                                      );
-                                                                  if (url == null) {
+                                                                  final url = await controller.uploadFiles(
+                                                                    filePathOrBytes:
+                                                                        picked
+                                                                            .bytes!,
+                                                                    fileName:
+                                                                        picked
+                                                                            .name,
+                                                                    useBlockingUploadDialog:
+                                                                        false,
+                                                                  );
+                                                                  if (url ==
+                                                                      null) {
                                                                     return;
                                                                   }
                                                                   final cap =
@@ -1565,7 +1770,8 @@ class _ChatScreenState extends State<ChatScreen> {
                                                                           .trim();
                                                                   final isVid =
                                                                       chatAttachmentIsVideo(
-                                                                        picked.name,
+                                                                        picked
+                                                                            .name,
                                                                       );
                                                                   await _sendChatPayload(
                                                                     lastMessagePreview:
@@ -1594,9 +1800,10 @@ class _ChatScreenState extends State<ChatScreen> {
                                                                 },
                                                       ),
                                                       IconButton(
-                                                        tooltip: AppLocaleKeys
-                                                            .chatAttachFile
-                                                            .tr,
+                                                        tooltip:
+                                                            AppLocaleKeys
+                                                                .chatAttachFile
+                                                                .tr,
                                                         icon: const Icon(
                                                           Icons.attach_file,
                                                         ),
@@ -1608,39 +1815,58 @@ class _ChatScreenState extends State<ChatScreen> {
                                                                       await controller
                                                                           .pickOneChatFile();
                                                                   if (v.isEmpty ||
-                                                                      v
-                                                                              .first
-                                                                              .bytes ==
+                                                                      v.first.bytes ==
                                                                           null) {
                                                                     return;
                                                                   }
-                                                                  final url =
-                                                                      await controller.uploadFiles(
-                                                                        filePathOrBytes:
-                                                                            v.first.bytes!,
-                                                                        fileName:
-                                                                            v.first.name,
-                                                                        useBlockingUploadDialog:
-                                                                            false,
-                                                                      );
-                                                                  if (url == null) {
+                                                                  final url = await controller.uploadFiles(
+                                                                    filePathOrBytes:
+                                                                        v
+                                                                            .first
+                                                                            .bytes!,
+                                                                    fileName:
+                                                                        v
+                                                                            .first
+                                                                            .name,
+                                                                    useBlockingUploadDialog:
+                                                                        false,
+                                                                  );
+                                                                  if (url ==
+                                                                      null) {
                                                                     return;
                                                                   }
                                                                   await _sendChatPayload(
                                                                     lastMessagePreview:
-                                                                        v.first.name,
+                                                                        v
+                                                                            .first
+                                                                            .name,
                                                                     messageType:
                                                                         'file',
                                                                     text: '',
                                                                     attachmentUrl:
                                                                         url,
                                                                     fileName:
-                                                                        v.first.name,
+                                                                        v
+                                                                            .first
+                                                                            .name,
                                                                   );
                                                                   controller
                                                                       .uploadedFilesPaths
                                                                       .clear();
                                                                 },
+                                                      ),
+                                                      IconButton(
+                                                        tooltip:
+                                                            AppLocaleKeys
+                                                                .chatPasteImage
+                                                                .tr,
+                                                        icon: const Icon(
+                                                          Icons.content_paste,
+                                                        ),
+                                                        onPressed:
+                                                            busy
+                                                                ? null
+                                                                : _pasteImageFromClipboard,
                                                       ),
                                                       ChatVoiceRecordButton(
                                                         onUploaded: (
@@ -1670,6 +1896,38 @@ class _ChatScreenState extends State<ChatScreen> {
                                                                 _messageController,
                                                             focusNode:
                                                                 _messageFocusNode,
+                                                            contentInsertionConfiguration:
+                                                                _enableContentInsertion
+                                                                    ? ContentInsertionConfiguration(
+                                                                      allowedMimeTypes: const <
+                                                                        String
+                                                                      >[
+                                                                        'image/png',
+                                                                        'image/jpeg',
+                                                                        'image/webp',
+                                                                        'image/gif',
+                                                                      ],
+                                                                      onContentInserted: (
+                                                                        KeyboardInsertedContent
+                                                                        content,
+                                                                      ) {
+                                                                        final data =
+                                                                            content.data;
+                                                                        if (data ==
+                                                                                null ||
+                                                                            data.isEmpty) {
+                                                                          _showPasteImageFailed();
+                                                                          return;
+                                                                        }
+                                                                        unawaited(
+                                                                          _handlePastedImage(
+                                                                            data,
+                                                                            content.mimeType,
+                                                                          ),
+                                                                        );
+                                                                      },
+                                                                    )
+                                                                    : null,
                                                             minLines: 1,
                                                             maxLines: 6,
                                                             keyboardType:
@@ -1681,37 +1939,40 @@ class _ChatScreenState extends State<ChatScreen> {
                                                                     .center,
                                                             textDirection:
                                                                 textDirectionForTypedChatMessage(
-                                                              _messageController
-                                                                  .text,
-                                                              Directionality.of(
-                                                                context,
-                                                              ),
-                                                            ),
+                                                                  _messageController
+                                                                      .text,
+                                                                  Directionality.of(
+                                                                    context,
+                                                                  ),
+                                                                ),
                                                             textAlign:
                                                                 TextAlign.start,
                                                             decoration: InputDecoration(
-                                                            hintText:
-                                                                AppLocaleKeys.chatWriteMessage.tr,
-                                                            filled: true,
-                                                            fillColor:
-                                                                Colors
-                                                                    .grey
-                                                                    .shade100,
-                                                            border: OutlineInputBorder(
-                                                              borderRadius:
-                                                                  BorderRadius.circular(
-                                                                    12,
+                                                              hintText:
+                                                                  AppLocaleKeys
+                                                                      .chatWriteMessage
+                                                                      .tr,
+                                                              filled: true,
+                                                              fillColor:
+                                                                  Colors
+                                                                      .grey
+                                                                      .shade100,
+                                                              border: OutlineInputBorder(
+                                                                borderRadius:
+                                                                    BorderRadius.circular(
+                                                                      12,
+                                                                    ),
+                                                                borderSide:
+                                                                    BorderSide
+                                                                        .none,
+                                                              ),
+                                                              contentPadding:
+                                                                  EdgeInsets.symmetric(
+                                                                    horizontal:
+                                                                        16,
+                                                                    vertical: 8,
                                                                   ),
-                                                              borderSide:
-                                                                  BorderSide.none,
                                                             ),
-                                                            contentPadding:
-                                                                EdgeInsets.symmetric(
-                                                                  horizontal:
-                                                                      16,
-                                                                  vertical: 8,
-                                                                ),
-                                                          ),
                                                             onTap: () {
                                                               if (_isEmojiVisible) {
                                                                 setState(
@@ -1737,15 +1998,16 @@ class _ChatScreenState extends State<ChatScreen> {
                                                           child: Container(
                                                             width: 45,
                                                             height: 45,
-                                                            decoration: BoxDecoration(
-                                                              color: Color(
-                                                                0xff465FFF,
-                                                              ),
-                                                              borderRadius:
-                                                                  BorderRadius.circular(
-                                                                    15,
+                                                            decoration:
+                                                                BoxDecoration(
+                                                                  color: Color(
+                                                                    0xff465FFF,
                                                                   ),
-                                                            ),
+                                                                  borderRadius:
+                                                                      BorderRadius.circular(
+                                                                        15,
+                                                                      ),
+                                                                ),
                                                             child: Icon(
                                                               Icons.send,
                                                               color:

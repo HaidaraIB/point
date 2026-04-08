@@ -6,7 +6,9 @@ list(APPEND FLUTTER_PLUGIN_LIST
   audioplayers_linux
   emoji_picker_flutter
   gtk
+  irondash_engine_context
   record_linux
+  super_native_extensions
   syncfusion_pdfviewer_linux
   url_launcher_linux
 )

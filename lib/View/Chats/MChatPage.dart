@@ -4,6 +4,8 @@ import 'package:point/Utils/text_input_bidi.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -15,6 +17,8 @@ import 'package:point/Services/ChatAudioFocus.dart';
 import 'package:point/Services/ChatIncomingMessageSound.dart';
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/StorageKeys.dart';
+import 'package:point/Services/chat_clipboard_image_reader.dart';
+import 'package:point/Services/chat_image_paste_listener.dart';
 
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
@@ -117,8 +121,8 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
     _loadingEmployees = true;
     if (mounted) setState(() {});
     final snapshot = await _firestore.collection('employees').get();
-    final all = snapshot.docs
-        .where((d) => d.id != _currentUserId)
+    final all =
+        snapshot.docs.where((d) => d.id != _currentUserId)
         // exclude current user from 1:1 chat list
         .map((d) {
           final data = d.data();
@@ -130,8 +134,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
             'dept': data['department'] ?? '',
             'role': data['role'] ?? '',
           };
-        })
-        .toList();
+        }).toList();
 
     // For employee role: allow chat target only when it is either:
     // - elevated role (admin/supervisor)
@@ -139,16 +142,17 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
     // This is a UX constraint; final enforcement is done in Firestore rules.
     if (_currentUserRole == 'employee') {
       final myDept = _currentUserDept;
-      _employees = all.where((e) {
-        final targetRole = e['role'];
-        final targetDept = e['dept'];
-        final isSpecialRole = StorageKeys.isChatElevatedRole(targetRole);
-        final isSameDept =
-            myDept != null && myDept.isNotEmpty
-                ? StorageKeys.matchesDepartment(targetDept, myDept)
-                : false;
-        return isSpecialRole || isSameDept;
-      }).toList();
+      _employees =
+          all.where((e) {
+            final targetRole = e['role'];
+            final targetDept = e['dept'];
+            final isSpecialRole = StorageKeys.isChatElevatedRole(targetRole);
+            final isSameDept =
+                myDept != null && myDept.isNotEmpty
+                    ? StorageKeys.matchesDepartment(targetDept, myDept)
+                    : false;
+            return isSpecialRole || isSameDept;
+          }).toList();
     } else {
       _employees = all;
     }
@@ -217,7 +221,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
     if (!groupSnapshot.exists) {
       await groupRef.set({
         'isGroup': true,
-        'title': deptGroupName.tr,
+        'title': deptGroupName,
         'participants': participantsIds,
         'lastMessage': '',
         'lastUpdated': FieldValue.serverTimestamp(),
@@ -251,40 +255,44 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
         .where('participants', arrayContains: _currentUserId)
         .orderBy('lastUpdated', descending: true)
         .snapshots()
-        .listen((snap) {
-          final built = <Map<String, dynamic>>[];
-          for (var doc in snap.docs) {
-            final data = doc.data();
-            final chat = {
-              'id': doc.id,
-              'participants': List<String>.from(data['participants'] ?? []),
-              'lastMessage': data['lastMessage'] ?? '',
-              'lastUpdated': data['lastUpdated'],
-              'isGroup': data['isGroup'] ?? false,
-              'title': data['title'],
-            };
-            built.add(chat);
-          }
+        .listen(
+          (snap) {
+            final built = <Map<String, dynamic>>[];
+            for (var doc in snap.docs) {
+              final data = doc.data();
+              final chat = {
+                'id': doc.id,
+                'participants': List<String>.from(data['participants'] ?? []),
+                'lastMessage': data['lastMessage'] ?? '',
+                'lastUpdated': data['lastUpdated'],
+                'isGroup': data['isGroup'] ?? false,
+                'title': data['title'],
+              };
+              built.add(chat);
+            }
 
-          _chatsEnrichGen++;
-          final gen = _chatsEnrichGen;
-          if (!mounted) return;
-          unawaited(_applySnapshotAndEnrich(gen, built));
-        }, onError: (Object e, StackTrace st) {
-          if (e is FirebaseException &&
-              e.code == 'permission-denied' &&
-              FirebaseAuth.instance.currentUser == null) {
-            final sub = _chatsListSub;
-            _chatsListSub = null;
-            sub?.cancel();
-            return;
-          }
-          appLog('⚠️ MChatPage _listenChats: $e');
-          if (!mounted) return;
-          setState(() {
-            _loadingChats = false;
-          });
-        }, cancelOnError: false);
+            _chatsEnrichGen++;
+            final gen = _chatsEnrichGen;
+            if (!mounted) return;
+            unawaited(_applySnapshotAndEnrich(gen, built));
+          },
+          onError: (Object e, StackTrace st) {
+            if (e is FirebaseException &&
+                e.code == 'permission-denied' &&
+                FirebaseAuth.instance.currentUser == null) {
+              final sub = _chatsListSub;
+              _chatsListSub = null;
+              sub?.cancel();
+              return;
+            }
+            appLog('⚠️ MChatPage _listenChats: $e');
+            if (!mounted) return;
+            setState(() {
+              _loadingChats = false;
+            });
+          },
+          cancelOnError: false,
+        );
   }
 
   Future<void> _applySnapshotAndEnrich(
@@ -373,15 +381,12 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
     final chatRef = _firestore.collection('chats').doc(chatId);
 
     try {
-      await chatRef.set(
-        {
-          'participants': ids,
-          'lastMessage': '',
-          'lastUpdated': FieldValue.serverTimestamp(),
-          'isGroup': false,
-        },
-        SetOptions(merge: true),
-      );
+      await chatRef.set({
+        'participants': ids,
+        'lastMessage': '',
+        'lastUpdated': FieldValue.serverTimestamp(),
+        'isGroup': false,
+      }, SetOptions(merge: true));
     } catch (e) {
       if (!e.toString().contains('permission-denied')) rethrow;
       await chatRef.update({
@@ -433,8 +438,10 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
         'isGroup': chatData['isGroup'] ?? false,
         'title': chatData['title'],
         // اسم العرض للمجموعة
-        'displayName':
-            chatData['title'] ?? AppLocaleKeys.chatDepartmentGroup.tr,
+        'displayName': _localizedGroupTitleFromChat({
+          'id': groupDoc.id,
+          'title': chatData['title'],
+        }),
       };
 
       // الانتقال إلى شاشة الرسائل (MessageScreen)
@@ -457,7 +464,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
     String? otherAvatarUrl;
 
     if (chat['isGroup'] == true) {
-      displayName = chat['title'] ?? AppLocaleKeys.chatGroupUnknown.tr;
+      displayName = _localizedGroupTitleFromChat(chat);
     } else {
       final participants = List<String>.from(chat['participants'] ?? []);
       otherId = participants.firstWhere(
@@ -596,6 +603,26 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
     return parts.first[0].toUpperCase();
   }
 
+  String _localizedGroupTitleFromChat(Map<String, dynamic> chat) {
+    final rawTitle = (chat['title'] ?? '').toString().trim();
+    final chatId = (chat['id'] ?? '').toString();
+    String? department;
+
+    if (chatId.startsWith('group_') && chatId.length > 6) {
+      department = chatId.substring(6);
+    }
+    department = StorageKeys.normalizeDepartment(
+      (department == null || department.isEmpty) ? rawTitle : department,
+    );
+    if (department.isNotEmpty) {
+      return 'department.$department'.tr;
+    }
+    if (rawTitle.isNotEmpty) {
+      return rawTitle.tr;
+    }
+    return AppLocaleKeys.chatDepartmentGroup.tr;
+  }
+
   // ---------------- build ----------------
   @override
   Widget build(BuildContext context) {
@@ -684,7 +711,8 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                         ),
                       ),
                     ),
-                    if (_currentUserDept != null && _currentUserDept!.isNotEmpty)
+                    if (_currentUserDept != null &&
+                        _currentUserDept!.isNotEmpty)
                       SliverToBoxAdapter(
                         child: StreamBuilder<int>(
                           stream: _firestoreServices.unreadIncomingCountStream(
@@ -714,9 +742,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                 ),
                               ),
                               title: Text(
-                                'newchat.group_title'.trParams({
-                                  'name': _currentUserDept!.tr,
-                                }),
+                                _localizedGroupTitleFromChat(groupChatData),
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: Colors.blue.shade700,
@@ -780,16 +806,12 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                       )
                     else
                       SliverList(
-                        delegate: SliverChildBuilderDelegate((
-                          context,
-                          index,
-                        ) {
+                        delegate: SliverChildBuilderDelegate((context, index) {
                           final ch = _chats[index];
                           final isGroup = ch['isGroup'] ?? false;
                           final chatId = ch['id'] as String;
 
-                          if (isGroup &&
-                              chatId == 'group_$_currentUserDept') {
+                          if (isGroup && chatId == 'group_$_currentUserDept') {
                             return const SizedBox.shrink();
                           }
 
@@ -802,13 +824,13 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
 
                           late final String listSubtitle;
                           if (isGroup) {
-                            displayName =
-                                ch['title'] ?? 'chat.group_default'.tr;
+                            displayName = _localizedGroupTitleFromChat(ch);
                             final lm =
                                 (ch['lastMessage'] ?? '').toString().trim();
-                            listSubtitle = lm.isNotEmpty
-                                ? lm
-                                : AppLocaleKeys.chatGroupConversation.tr;
+                            listSubtitle =
+                                lm.isNotEmpty
+                                    ? lm
+                                    : AppLocaleKeys.chatGroupConversation.tr;
                             initial = _initialFromName(displayName);
                             avatarColor = Colors.blueGrey.shade100;
                             avatarIcon = Icons.group;
@@ -837,7 +859,8 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                             titleColor = Colors.black;
                             listSubtitle = ch['lastMessage'] ?? '';
                             if (other.isNotEmpty) {
-                              final im = (other['image'] ?? '').toString().trim();
+                              final im =
+                                  (other['image'] ?? '').toString().trim();
                               dmImageUrl = im.isEmpty ? null : im;
                             }
                           }
@@ -933,13 +956,16 @@ class MessageScreen extends StatefulWidget {
 class _MessageScreenState extends State<MessageScreen> {
   final TextEditingController _messageController = TextEditingController();
   final FocusNode _messageFocusNode = FocusNode();
+  ChatImagePasteListener? _imagePasteListener;
   bool _isEmojiVisible = false;
+  String? _pendingPastedImageUrl;
 
   String _initialFromName(String name) {
     if (name.trim().isEmpty) return '?';
     final parts = name.trim().split(' ');
     return parts.first[0].toUpperCase();
   }
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   Stream<QuerySnapshot<Map<String, dynamic>>>? _messagesStream;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
@@ -948,6 +974,8 @@ class _MessageScreenState extends State<MessageScreen> {
   _markReadSubscription;
   late String _chatId;
   late String _displayName;
+  bool get _enableContentInsertion =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
   @override
   void initState() {
@@ -965,10 +993,7 @@ class _MessageScreenState extends State<MessageScreen> {
 
     ChatAudioFocus.setForeground(_chatId);
     unawaited(
-      FirestoreServices.syncEmployeeActiveChatId(
-        widget.currentUserId,
-        _chatId,
-      ),
+      FirestoreServices.syncEmployeeActiveChatId(widget.currentUserId, _chatId),
     );
     _messageSoundSubscription = attachIncomingMessageSoundSubscription(
       stream: _messagesStream!,
@@ -994,6 +1019,17 @@ class _MessageScreenState extends State<MessageScreen> {
 
     _messageFocusNode.addListener(_onMessageFocusChanged);
     _messageController.addListener(_onComposerTextChanged);
+    _imagePasteListener = ChatImagePasteListener(
+      onImagePasted: _handlePastedImage,
+      onPasteError: _showPasteImageFailed,
+      shouldHandle:
+          () =>
+              mounted &&
+              !_messageFocusNode.hasFocus &&
+              (WidgetsBinding.instance.lifecycleState == null ||
+                  WidgetsBinding.instance.lifecycleState ==
+                      AppLifecycleState.resumed),
+    );
   }
 
   void _onComposerTextChanged() {
@@ -1029,6 +1065,7 @@ class _MessageScreenState extends State<MessageScreen> {
       anchorContext: anchorContext,
       photoLabel: AppLocaleKeys.chatAttachGallery.tr,
       fileLabel: AppLocaleKeys.chatAttachFile.tr,
+      pasteImageLabel: AppLocaleKeys.chatPasteImage.tr,
       voiceLabel: AppLocaleKeys.chatAttachVoice.tr,
     );
     if (!mounted || action == null) return;
@@ -1076,6 +1113,9 @@ class _MessageScreenState extends State<MessageScreen> {
         return;
       case ChatAttachmentMenuAction.voice:
         await _showVoiceAttachmentSheet();
+        return;
+      case ChatAttachmentMenuAction.pasteImage:
+        await _pasteImageFromClipboard();
         return;
     }
   }
@@ -1131,6 +1171,7 @@ class _MessageScreenState extends State<MessageScreen> {
 
   @override
   void dispose() {
+    _imagePasteListener?.dispose();
     _messageSoundSubscription?.cancel();
     _markReadSubscription?.cancel();
     ChatAudioFocus.clearForegroundIfEquals(_chatId);
@@ -1138,6 +1179,7 @@ class _MessageScreenState extends State<MessageScreen> {
       FirestoreServices.syncEmployeeActiveChatId(widget.currentUserId, null),
     );
     _messageFocusNode.removeListener(_onMessageFocusChanged);
+    _messageFocusNode.unfocus();
     _messageFocusNode.dispose();
     _messageController.removeListener(_onComposerTextChanged);
     _messageController.dispose();
@@ -1146,16 +1188,31 @@ class _MessageScreenState extends State<MessageScreen> {
 
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
-    if (text.isEmpty) return;
+    final pendingImageUrl = _pendingPastedImageUrl;
+    if (text.isEmpty && pendingImageUrl == null) return;
     _messageController.clear();
-    _messageFocusNode.requestFocus();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _messageFocusNode.requestFocus();
-    });
+    if (!kIsWeb) {
+      _messageFocusNode.requestFocus();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _messageFocusNode.canRequestFocus) {
+          _messageFocusNode.requestFocus();
+        }
+      });
+    }
     if (mounted) {
       setState(() {
         _isEmojiVisible = false;
       });
+    }
+    if (pendingImageUrl != null) {
+      setState(() => _pendingPastedImageUrl = null);
+      await _sendChatPayload(
+        lastMessagePreview: text.isNotEmpty ? text : '📷',
+        messageType: 'image',
+        text: text,
+        attachmentUrl: pendingImageUrl,
+      );
+      return;
     }
     unawaited(
       _sendChatPayload(
@@ -1164,6 +1221,49 @@ class _MessageScreenState extends State<MessageScreen> {
         text: text,
       ),
     );
+  }
+
+  Future<void> _handlePastedImage(Uint8List bytes, String mimeType) async {
+    if (!mounted) return;
+    final controller = Get.find<HomeController>();
+    if (controller.isUploading.value) return;
+
+    final fileName =
+        'pasted_${DateTime.now().millisecondsSinceEpoch}.${_extFromMime(mimeType)}';
+    final url = await controller.uploadFiles(
+      filePathOrBytes: bytes,
+      fileName: fileName,
+      useBlockingUploadDialog: false,
+    );
+    if (!mounted || url == null) return;
+    setState(() => _pendingPastedImageUrl = url);
+    controller.uploadedFilesPaths.clear();
+  }
+
+  Future<void> _pasteImageFromClipboard() async {
+    final data = await readClipboardImageData();
+    if (!mounted) return;
+    if (data == null || data.bytes.isEmpty) {
+      _showPasteImageFailed();
+      return;
+    }
+    await _handlePastedImage(data.bytes, data.mimeType);
+  }
+
+  void _showPasteImageFailed() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppLocaleKeys.chatPasteImageFailed.tr)),
+    );
+  }
+
+  String _extFromMime(String mimeType) {
+    final t = mimeType.trim().toLowerCase();
+    if (t == 'image/jpeg' || t == 'image/jpg') return 'jpg';
+    if (t == 'image/webp') return 'webp';
+    if (t == 'image/gif') return 'gif';
+    if (t == 'image/bmp') return 'bmp';
+    return 'png';
   }
 
   Future<void> _sendChatPayload({
@@ -1274,8 +1374,7 @@ class _MessageScreenState extends State<MessageScreen> {
         titleSpacing: 8,
         title: Row(
           children: [
-            if (!isGroup &&
-                isChatImageHttpUrl(widget.otherAvatarUrl)) ...[
+            if (!isGroup && isChatImageHttpUrl(widget.otherAvatarUrl)) ...[
               CircleAvatar(
                 radius: 18,
                 backgroundColor: Colors.grey.shade200,
@@ -1453,6 +1552,43 @@ class _MessageScreenState extends State<MessageScreen> {
             ),
 
             const ChatUploadProgressBanner(),
+            if (_pendingPastedImageUrl != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 0, 14, 2),
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: InkWell(
+                        onTap:
+                            () => openChatMediaFromUrl(_pendingPastedImageUrl!),
+                        child: Image.network(
+                          _pendingPastedImageUrl!,
+                          width: 34,
+                          height: 34,
+                          fit: BoxFit.cover,
+                          errorBuilder:
+                              (_, __, ___) =>
+                                  const Icon(Icons.image_outlined, size: 18),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        AppLocaleKeys.chatPasteImage.tr,
+                        style: const TextStyle(fontSize: 12),
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: AppLocaleKeys.commonCancel.tr,
+                      icon: const Icon(Icons.close, size: 18),
+                      onPressed:
+                          () => setState(() => _pendingPastedImageUrl = null),
+                    ),
+                  ],
+                ),
+              ),
 
             // 2. إدخال الرسالة والإيموجي
             AnimatedContainer(
@@ -1546,6 +1682,32 @@ class _MessageScreenState extends State<MessageScreen> {
                         child: TextField(
                           controller: _messageController,
                           focusNode: _messageFocusNode,
+                          contentInsertionConfiguration:
+                              _enableContentInsertion
+                                  ? ContentInsertionConfiguration(
+                                    allowedMimeTypes: const <String>[
+                                      'image/png',
+                                      'image/jpeg',
+                                      'image/webp',
+                                      'image/gif',
+                                    ],
+                                    onContentInserted: (
+                                      KeyboardInsertedContent content,
+                                    ) {
+                                      final data = content.data;
+                                      if (data == null || data.isEmpty) {
+                                        _showPasteImageFailed();
+                                        return;
+                                      }
+                                      unawaited(
+                                        _handlePastedImage(
+                                          data,
+                                          content.mimeType,
+                                        ),
+                                      );
+                                    },
+                                  )
+                                  : null,
                           minLines: 1,
                           maxLines: 6,
                           keyboardType: TextInputType.multiline,

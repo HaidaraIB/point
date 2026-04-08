@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Actions returned from [showTelegramStyleAttachmentMenu].
-enum ChatAttachmentMenuAction { photo, file, voice }
+enum ChatAttachmentMenuAction { photo, file, pasteImage, voice }
 
 /// Dark vertical popup anchored to [anchorContext] (e.g. the + button), similar
 /// in spirit to Telegram’s attachment menu — not feature parity, only layout/feel.
@@ -10,6 +10,7 @@ Future<ChatAttachmentMenuAction?> showTelegramStyleAttachmentMenu({
   required BuildContext anchorContext,
   required String photoLabel,
   required String fileLabel,
+  required String pasteImageLabel,
   required String voiceLabel,
 }) {
   final buttonObject = anchorContext.findRenderObject();
@@ -62,6 +63,16 @@ Future<ChatAttachmentMenuAction?> showTelegramStyleAttachmentMenu({
         child: _TelegramMenuRow(
           icon: Icons.insert_drive_file_outlined,
           label: fileLabel,
+          iconColor: iconColor,
+        ),
+      ),
+      PopupMenuItem<ChatAttachmentMenuAction>(
+        value: ChatAttachmentMenuAction.pasteImage,
+        height: 48,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        child: _TelegramMenuRow(
+          icon: Icons.content_paste,
+          label: pasteImageLabel,
           iconColor: iconColor,
         ),
       ),

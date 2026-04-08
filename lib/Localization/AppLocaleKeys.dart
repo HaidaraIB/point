@@ -58,6 +58,8 @@ class AppLocaleKeys {
   static const chatAttachPhoto = 'chat.attach_photo';
   static const chatAttachGallery = 'chat.attach_gallery';
   static const chatAttachFile = 'chat.attach_file';
+  static const chatPasteImage = 'chat.paste_image';
+  static const chatPasteImageFailed = 'chat.paste_image_failed';
   static const chatAttachVoice = 'chat.attach_voice';
   static const chatVoiceDiscard = 'chat.voice_discard';
   static const chatVoiceSaveFailed = 'chat.voice_save_failed';

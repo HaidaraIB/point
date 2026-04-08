@@ -83,6 +83,9 @@ class AppTranslations extends Translations {
       'chat.attach_photo': 'Photo',
       'chat.attach_gallery': 'Photo or video',
       'chat.attach_file': 'File',
+      'chat.paste_image': 'Paste image',
+      'chat.paste_image_failed':
+          'No image found in clipboard or browser blocked clipboard access.',
       'chat.attach_voice': 'Voice message',
       'chat.voice_discard': 'Delete recording',
       'chat.voice_save_failed': 'Could not read the voice file. Try again.',
@@ -953,6 +956,9 @@ class AppTranslations extends Translations {
       "chat.attach_photo": "صورة",
       "chat.attach_gallery": "صورة أو فيديو",
       "chat.attach_file": "ملف",
+      "chat.paste_image": "لصق صورة",
+      "chat.paste_image_failed":
+          "لا توجد صورة في الحافظة أو أن المتصفح منع الوصول للحافظة.",
       "chat.attach_voice": "رسالة صوتية",
       "chat.voice_discard": "حذف التسجيل",
       "chat.voice_save_failed": "تعذّر قراءة ملف الصوت. أعد المحاولة.",
