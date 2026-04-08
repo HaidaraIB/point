@@ -2,17 +2,10 @@
 # بيئة الاختبار على Firebase Hosting: deploy-firebase-hosting.yml
 #
 # الإعداد في GitHub → Settings → Secrets and variables → Actions:
-#   FTP_SERVER — من hPanel → FTP Accounts أو Remote access: يُفضّل عنوان IP الظاهر هناك (نفسه لـ FTP وSFTP).
-#   FTP_USERNAME — اسم المستخدم لـ SSH/SFTP من hPanel → Remote access (قد يختلف عن اسم حساب FTP فرعي).
-#             على Hostinger غالباً يكون مثل u123456789 أو الاسم الكامل للحساب الفرعي إن كان مسموحاً له بـ SSH.
-#   HOSTINGER_SSH_PRIVATE_KEY — مُفضّل: المفتاح الخاص (كامل PEM) بعد إضافة المفتاح العام في hPanel → Remote access.
-#             يتجاوز مشاكل كلمة المرور و«Permission denied» من CI.
-#   FTP_PASSWORD — بديل إن لم تستخدم مفتاحاً: نفس كلمة مرور SSH/FTP كما في لوحة التحكم (بدون مسافات زائدة عند اللصق).
-#   FTP_PORT — اختياري: الافتراضي في السيرفر 65002 إن لم تُضف القيمة (Hostinger SFTP).
-#   FTP_REMOTE_PATH — اختياري: المسار على السيرفر (مثلاً / أو public_html). إن تُرك فارغاً يُستخدم / في سكربت النشر.
-#
-# ملاحظة: SamKirkland/FTP-Deploy-Action يستخدم FTP/FTPS فقط. إن ظهر Timeout (control socket) أو رسالة
-# تشير إلى SFTP، فالسيرفر يتوقع SSH/SFTP على المنفذ 65002 وليس FTP على 21 — النشر هنا يستخدم rsync عبر SFTP.
+#   FTP_SERVER — Hostinger: إما اسم المضيف من لوحة FTP أو عنوان IP (مثلاً 37.44.245.153)
+#             إذا فشل حلّ اسم مثل ftp.point-iq.app استخدم IP من صفحة «FTP Access».
+#   FTP_USERNAME — لحساب فرعي مثل agency استخدم الاسم الكامل: u....agency وليس حساب FTP الرئيسي فقط.
+#   FTP_PASSWORD
 # النطاق الفرعي agency.point-iq.app يشير عادةً لمجلد agency — جذر FTP = جذر الموقع على ذلك النطاق (مسار URL = /).
 # --base-href يجب أن يكون / وليس /agency/ عند استخدام نطاق فرعي، وإلا تُحمّل الأصول من مسار خاطئ.
 # وأسرار Supabase نفسها المستخدمة في deploy-firebase-hosting.yml:
@@ -20,8 +13,8 @@
 #   SUPABASE_ANON_KEY
 #   SUPABASE_STORAGE_BASE_URL
 #
-# تشغيل يدوي: Actions → Deploy web to Hostinger (SFTP) → Run workflow
-name: Deploy web to Hostinger (SFTP)
+# تشغيل يدوي: Actions → Deploy web to Hostinger (FTP) → Run workflow
+name: Deploy web to Hostinger (FTP)
 
 on:
   workflow_dispatch:
@@ -68,39 +61,14 @@ jobs:
           --dart-define=SUPABASE_ANON_KEY="${{ secrets.SUPABASE_ANON_KEY }}"
           --dart-define=SUPABASE_STORAGE_BASE_URL="${{ secrets.SUPABASE_STORAGE_BASE_URL }}"
 
-      # rsync over SSH → SFTP على منفذ Hostinger (65002). لا يحذف ملفات على السيرفر غير الموجودة محلياً.
-      # المصادقة: HOSTINGER_SSH_PRIVATE_KEY (مُفضّل) أو FTP_PASSWORD عبر sshpass.
-      - name: Install deploy tools for SFTP
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq sshpass openssh-client
-
-      - name: Deploy to Hostinger via SFTP (rsync over SSH)
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.HOSTINGER_SSH_PRIVATE_KEY }}
-          SSHPASS: ${{ secrets.FTP_PASSWORD }}
-          FTP_PORT: ${{ secrets.FTP_PORT }}
-          FTP_USER: ${{ secrets.FTP_USERNAME }}
-          FTP_HOST: ${{ secrets.FTP_SERVER }}
-          FTP_REMOTE_PATH: ${{ secrets.FTP_REMOTE_PATH }}
-        run: |
-          set -euo pipefail
-          PORT="${FTP_PORT:-65002}"
-          REMOTE_BASE="${FTP_REMOTE_PATH:-/}"
-          DEST="${FTP_USER}@${FTP_HOST}:${REMOTE_BASE}/"
-          SSH_OPTS="-p ${PORT} -o StrictHostKeyChecking=no -o ConnectTimeout=60"
-          # Trailing slash on build/web/: sync directory contents into REMOTE_BASE
-          if [ -n "${SSH_PRIVATE_KEY:-}" ]; then
-            KEYFILE=/tmp/hostinger_deploy_key.$$
-            umask 077
-            printf '%s\n' "${SSH_PRIVATE_KEY}" > "${KEYFILE}"
-            rsync -avz -e "ssh -i ${KEYFILE} ${SSH_OPTS}" build/web/ "${DEST}"
-            rm -f "${KEYFILE}"
-          elif [ -n "${SSHPASS:-}" ]; then
-            SSHPASS=$(printf '%s' "${SSHPASS}")
-            export SSHPASS
-            sshpass -e rsync -avz \
-              -e "ssh ${SSH_OPTS} -o PreferredAuthentications=password -o PubkeyAuthentication=no" \
-              build/web/ "${DEST}"
-          else
-            echo "Set HOSTINGER_SSH_PRIVATE_KEY (recommended) or FTP_PASSWORD in repository secrets." >&2
-            exit 1
-          fi
+      - name: Deploy to Hostinger via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./build/web/
+          # حساب FTP الفرعي (.agency): الجذر هو مجلد agency — ارفع إلى /
+          server-dir: /
+          # لا تحذف ملفات على السيرفر غير الموجودة محلياً (احذف هذا السطر إن أردت مرآة كاملة)
+          dangerous-clean-slate: false
