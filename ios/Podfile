@@ -28,6 +28,11 @@ require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelpe
 flutter_ios_podfile_setup
 
 target 'Runner' do
+  # Dynamic frameworks + modular headers: satisfies Firebase/Swift pods (module maps for Obj-C deps)
+  # and avoids static-link issues seen with super_native_extensions + use_frameworks :linkage => :static.
+  use_frameworks! :linkage => :dynamic
+  use_modular_headers!
+
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 end
 
