@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:point/Utils/AppConstants.dart';
 
 /// نتيجة قراءة إصدار التطبيق (للعرض في الواجهة).
@@ -31,6 +32,16 @@ Future<AppVersionInfo> loadAppVersionInfo() async {
           return AppVersionInfo(version: v, buildNumber: b);
         }
       }
+    } catch (_) {
+      // ننتقل للاحتياطي أدناه
+    }
+  } else {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      return AppVersionInfo(
+        version: info.version,
+        buildNumber: info.buildNumber,
+      );
     } catch (_) {
       // ننتقل للاحتياطي أدناه
     }

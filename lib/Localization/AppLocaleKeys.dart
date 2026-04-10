@@ -5,6 +5,7 @@ class AppLocaleKeys {
   static const appLanguageArabic = 'app.language.arabic';
   static const appLanguageEnglish = 'app.language.english';
   static const appVersionLine = 'app.version_line';
+  static const appBuildLine = 'app.build_line';
   static const appClose = 'app.close';
 
   static const commonConfirm = 'common.confirm';

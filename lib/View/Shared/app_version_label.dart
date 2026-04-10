@@ -56,7 +56,6 @@ class AppVersionLabel extends StatelessWidget {
         final info = snapshot.data!;
         final line = AppLocaleKeys.appVersionLine.trParams({
           'version': info.version,
-          'build': info.buildNumber,
         });
         Widget child =
             compact
@@ -77,6 +76,43 @@ class AppVersionLabel extends StatelessWidget {
           child = SafeArea(top: false, minimum: EdgeInsets.zero, child: child);
         }
         return child;
+      },
+    );
+  }
+}
+
+/// Build number only (pubspec value after `+`), shown on auth screens.
+class LoginScreenBuildLabel extends StatelessWidget {
+  const LoginScreenBuildLabel({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final style = TextStyle(
+      fontSize: 11,
+      height: 1.2,
+      color: Theme.of(context).hintColor,
+    );
+    return FutureBuilder<AppVersionInfo>(
+      future: _resolveAppVersionFuture(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done ||
+            snapshot.hasError ||
+            snapshot.data == null) {
+          return const SizedBox.shrink();
+        }
+        final line = AppLocaleKeys.appBuildLine.trParams({
+          'build': snapshot.data!.buildNumber,
+        });
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+          child: SafeArea(
+            top: false,
+            minimum: EdgeInsets.zero,
+            child: Center(
+              child: Text(line, textAlign: TextAlign.center, style: style),
+            ),
+          ),
+        );
       },
     );
   }

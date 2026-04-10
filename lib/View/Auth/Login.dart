@@ -15,6 +15,7 @@ import 'package:point/Utils/AppImages.dart';
 import 'package:point/View/Auth/Shared/Rights.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
+import 'package:point/View/Shared/app_version_label.dart';
 import 'package:point/View/Shared/responsive.dart';
 
 class LoginView extends StatelessWidget {
@@ -24,13 +25,33 @@ class LoginView extends StatelessWidget {
     return Responsive(
       mobile: Scaffold(
         appBar: showBackButton ? _buildEmployeeLoginAppBar() : null,
-        body: _buildDesktopLayout(),
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(child: _buildDesktopLayout()),
+            const LoginScreenBuildLabel(),
+          ],
+        ),
       ),
       tablet: Scaffold(
         appBar: showBackButton ? _buildEmployeeLoginAppBar() : null,
-        body: _buildDesktopLayout(),
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(child: _buildDesktopLayout()),
+            const LoginScreenBuildLabel(),
+          ],
+        ),
       ),
-      desktop: Scaffold(body: _buildDesktopLayout()),
+      desktop: Scaffold(
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(child: _buildDesktopLayout()),
+            const LoginScreenBuildLabel(),
+          ],
+        ),
+      ),
     );
   }
 

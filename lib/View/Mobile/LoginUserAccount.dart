@@ -12,6 +12,7 @@ import 'package:point/Utils/PasswordValidator.dart';
 import 'package:point/View/Auth/Shared/Rights.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
+import 'package:point/View/Shared/app_version_label.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/config/app_config.dart';
 
@@ -54,10 +55,20 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
   Widget build(BuildContext context) {
     if (kIsWeb) {
       return Scaffold(
-        body: GetBuilder<ClientController>(
-          builder:
-              (controller) =>
-                  Form(key: _key, child: _buildWebAuthLayout(controller)),
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: GetBuilder<ClientController>(
+                builder:
+                    (controller) => Form(
+                      key: _key,
+                      child: _buildWebAuthLayout(controller),
+                    ),
+              ),
+            ),
+            const LoginScreenBuildLabel(),
+          ],
         ),
       );
     }
@@ -79,10 +90,20 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
         ),
         centerTitle: true,
       ),
-      body: GetBuilder<ClientController>(
-        builder:
-            (controller) =>
-                Form(key: _key, child: _buildNativeMobileLayout(controller)),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: GetBuilder<ClientController>(
+              builder:
+                  (controller) => Form(
+                    key: _key,
+                    child: _buildNativeMobileLayout(controller),
+                  ),
+            ),
+          ),
+          const LoginScreenBuildLabel(),
+        ],
       ),
     );
   }
