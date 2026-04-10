@@ -81,9 +81,12 @@ class AppVersionLabel extends StatelessWidget {
   }
 }
 
-/// Build number only (pubspec value after `+`), shown on auth screens.
-class LoginScreenBuildLabel extends StatelessWidget {
-  const LoginScreenBuildLabel({super.key});
+/// Semantic app version for auth screens only ([app.version_line], no build number).
+///
+/// Place inside the **form** column/panel so split layouts do not paint a strip
+/// under the cover image.
+class LoginScreenVersionCornerLabel extends StatelessWidget {
+  const LoginScreenVersionCornerLabel({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -100,19 +103,10 @@ class LoginScreenBuildLabel extends StatelessWidget {
             snapshot.data == null) {
           return const SizedBox.shrink();
         }
-        final line = AppLocaleKeys.appBuildLine.trParams({
-          'build': snapshot.data!.buildNumber,
+        final line = AppLocaleKeys.appVersionLine.trParams({
+          'version': snapshot.data!.version,
         });
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-          child: SafeArea(
-            top: false,
-            minimum: EdgeInsets.zero,
-            child: Center(
-              child: Text(line, textAlign: TextAlign.center, style: style),
-            ),
-          ),
-        );
+        return Text(line, textAlign: TextAlign.start, style: style);
       },
     );
   }

@@ -55,20 +55,10 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
   Widget build(BuildContext context) {
     if (kIsWeb) {
       return Scaffold(
-        body: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: GetBuilder<ClientController>(
-                builder:
-                    (controller) => Form(
-                      key: _key,
-                      child: _buildWebAuthLayout(controller),
-                    ),
-              ),
-            ),
-            const LoginScreenBuildLabel(),
-          ],
+        body: GetBuilder<ClientController>(
+          builder:
+              (controller) =>
+                  Form(key: _key, child: _buildWebAuthLayout(controller)),
         ),
       );
     }
@@ -90,20 +80,10 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
         ),
         centerTitle: true,
       ),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: GetBuilder<ClientController>(
-              builder:
-                  (controller) => Form(
-                    key: _key,
-                    child: _buildNativeMobileLayout(controller),
-                  ),
-            ),
-          ),
-          const LoginScreenBuildLabel(),
-        ],
+      body: GetBuilder<ClientController>(
+        builder:
+            (controller) =>
+                Form(key: _key, child: _buildNativeMobileLayout(controller)),
       ),
     );
   }
@@ -183,9 +163,10 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
         );
         final viewportMinHeight =
             constraints.hasBoundedHeight ? constraints.maxHeight : 0.0;
-        final formColumn = _buildFormColumn(
+        final authFormCore = _buildFormColumn(
           controller,
           useWebEmployeeChrome: true,
+          trailingLoginVersion: false,
         );
 
         if (!showAuthSplit) {
@@ -199,7 +180,11 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
                     constraints: BoxConstraints(
                       maxWidth: min(480, constraints.maxWidth - 20),
                     ),
-                    child: formColumn,
+                    child: _buildFormColumn(
+                      controller,
+                      useWebEmployeeChrome: true,
+                      trailingLoginVersion: true,
+                    ),
                   ),
                 ),
               ),
@@ -230,24 +215,50 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
                       colConstraints.maxHeight > verticalPad * 2
                           ? colConstraints.maxHeight - verticalPad * 2
                           : colConstraints.maxHeight;
-                  return SingleChildScrollView(
-                    padding: EdgeInsets.symmetric(
-                      vertical: verticalPad,
-                      horizontal: 40,
-                    ),
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minHeight: minScrollChildHeight,
-                      ),
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxWidth: min(480, colConstraints.maxWidth - 80),
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: EdgeInsets.symmetric(
+                            vertical: verticalPad,
+                            horizontal: 40,
                           ),
-                          child: formColumn,
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minHeight: minScrollChildHeight,
+                            ),
+                            child: Center(
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(
+                                  maxWidth: min(
+                                    480,
+                                    colConstraints.maxWidth - 80,
+                                  ),
+                                ),
+                                child: authFormCore,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                      Padding(
+                        padding: EdgeInsetsDirectional.fromSTEB(
+                          40,
+                          0,
+                          40,
+                          16,
+                        ),
+                        child: SafeArea(
+                          top: false,
+                          minimum: EdgeInsets.zero,
+                          child: Align(
+                            alignment: AlignmentDirectional.centerStart,
+                            child: LoginScreenVersionCornerLabel(),
+                          ),
+                        ),
+                      ),
+                    ],
                   );
                 },
               ),
@@ -265,7 +276,11 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
         margin: EdgeInsets.symmetric(vertical: 50, horizontal: 10),
         width: Get.width - 50,
         child: SingleChildScrollView(
-          child: _buildFormColumn(controller, useWebEmployeeChrome: false),
+          child: _buildFormColumn(
+            controller,
+            useWebEmployeeChrome: false,
+            trailingLoginVersion: true,
+          ),
         ),
       ),
     );
@@ -274,6 +289,7 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
   Widget _buildFormColumn(
     ClientController controller, {
     required bool useWebEmployeeChrome,
+    bool trailingLoginVersion = true,
   }) {
     final inputHeight = useWebEmployeeChrome ? 42.0 : 50.0;
     final subtitleSize = useWebEmployeeChrome ? 13.0 : 12.0;
@@ -420,6 +436,14 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
             ),
           ),
           buildRightsSection(),
+          if (trailingLoginVersion)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: LoginScreenVersionCornerLabel(),
+              ),
+            ),
         ],
       ),
     );

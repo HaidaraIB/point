@@ -25,33 +25,13 @@ class LoginView extends StatelessWidget {
     return Responsive(
       mobile: Scaffold(
         appBar: showBackButton ? _buildEmployeeLoginAppBar() : null,
-        body: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(child: _buildDesktopLayout()),
-            const LoginScreenBuildLabel(),
-          ],
-        ),
+        body: _buildDesktopLayout(),
       ),
       tablet: Scaffold(
         appBar: showBackButton ? _buildEmployeeLoginAppBar() : null,
-        body: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(child: _buildDesktopLayout()),
-            const LoginScreenBuildLabel(),
-          ],
-        ),
+        body: _buildDesktopLayout(),
       ),
-      desktop: Scaffold(
-        body: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(child: _buildDesktopLayout()),
-            const LoginScreenBuildLabel(),
-          ],
-        ),
-      ),
+      desktop: Scaffold(body: _buildDesktopLayout()),
     );
   }
 
@@ -203,7 +183,7 @@ class _EmployeeLoginDesktopLayoutState
           );
           final viewportMinHeight =
               constraints.hasBoundedHeight ? constraints.maxHeight : 0.0;
-          final formColumn = AutofillGroup(
+          final authFormCore = AutofillGroup(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
@@ -327,6 +307,14 @@ class _EmployeeLoginDesktopLayoutState
             ),
           );
 
+          final loginVersionCorner = Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: LoginScreenVersionCornerLabel(),
+            ),
+          );
+
           if (!showAuthSplit) {
             return SingleChildScrollView(
               child: ConstrainedBox(
@@ -338,7 +326,11 @@ class _EmployeeLoginDesktopLayoutState
                       constraints: BoxConstraints(
                         maxWidth: min(480, constraints.maxWidth - 20),
                       ),
-                      child: formColumn,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [authFormCore, loginVersionCorner],
+                      ),
                     ),
                   ),
                 ),
@@ -369,24 +361,50 @@ class _EmployeeLoginDesktopLayoutState
                         colConstraints.maxHeight > verticalPad * 2
                             ? colConstraints.maxHeight - verticalPad * 2
                             : colConstraints.maxHeight;
-                    return SingleChildScrollView(
-                      padding: EdgeInsets.symmetric(
-                        vertical: verticalPad,
-                        horizontal: 40,
-                      ),
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minHeight: minScrollChildHeight,
-                        ),
-                        child: Center(
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(
-                              maxWidth: min(480, colConstraints.maxWidth - 80),
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: SingleChildScrollView(
+                            padding: EdgeInsets.symmetric(
+                              vertical: verticalPad,
+                              horizontal: 40,
                             ),
-                            child: formColumn,
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minHeight: minScrollChildHeight,
+                              ),
+                              child: Center(
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                    maxWidth: min(
+                                      480,
+                                      colConstraints.maxWidth - 80,
+                                    ),
+                                  ),
+                                  child: authFormCore,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                        Padding(
+                          padding: EdgeInsetsDirectional.fromSTEB(
+                            40,
+                            0,
+                            40,
+                            16,
+                          ),
+                          child: SafeArea(
+                            top: false,
+                            minimum: EdgeInsets.zero,
+                            child: Align(
+                              alignment: AlignmentDirectional.centerStart,
+                              child: LoginScreenVersionCornerLabel(),
+                            ),
+                          ),
+                        ),
+                      ],
                     );
                   },
                 ),
