@@ -146,7 +146,7 @@ class NotificationService {
     );
 
     await _localNotificationsPlugin.initialize(
-      initSettings,
+      settings: initSettings,
       onDidReceiveNotificationResponse: _onNotificationResponse,
     );
     await _ensureAndroidNotificationChannels();
@@ -246,10 +246,10 @@ class NotificationService {
     );
 
     await _localNotificationsPlugin.show(
-      notification?.hashCode ?? title.hashCode,
-      title,
-      body ?? '',
-      notificationDetails,
+      id: notification?.hashCode ?? title.hashCode,
+      title: title,
+      body: body ?? '',
+      notificationDetails: notificationDetails,
       payload: jsonEncode(message.data),
     );
   }
@@ -285,10 +285,10 @@ class NotificationService {
     );
 
     await _localNotificationsPlugin.show(
-      DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      title,
-      body,
-      notificationDetails,
+      id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      title: title,
+      body: body,
+      notificationDetails: notificationDetails,
       payload: jsonEncode(<String, String>{
         'type': 'local_test',
       }),

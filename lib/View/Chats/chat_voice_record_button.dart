@@ -51,7 +51,7 @@ class _ChatVoiceRecordButtonState extends State<ChatVoiceRecordButton> {
   }
 
   Future<void> _pickAudioFileWebOrFallback() async {
-    final r = await FilePicker.platform.pickFiles(
+    final r = await FilePicker.pickFiles(
       withData: true,
       type: FileType.custom,
       allowedExtensions: const ['m4a', 'mp3', 'wav', 'aac', 'ogg', 'webm'],

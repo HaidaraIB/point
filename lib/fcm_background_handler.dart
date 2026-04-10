@@ -69,7 +69,7 @@ Future<void> _showAndroidDataOnlyHeadsUp(
     );
     const initSettings = InitializationSettings(android: androidInit);
     final plugin = FlutterLocalNotificationsPlugin();
-    await plugin.initialize(initSettings);
+    await plugin.initialize(settings: initSettings);
     final android = plugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
     if (android == null) return;
@@ -115,10 +115,10 @@ Future<void> _showAndroidDataOnlyHeadsUp(
       icon: '@drawable/ic_launcher_monochrome',
     );
     await plugin.show(
-      title.hashCode,
-      title,
-      body,
-      NotificationDetails(android: androidDetails),
+      id: title.hashCode,
+      title: title,
+      body: body,
+      notificationDetails: NotificationDetails(android: androidDetails),
       payload: jsonEncode(message.data),
     );
   } catch (e, st) {

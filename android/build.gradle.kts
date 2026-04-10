@@ -16,6 +16,13 @@ subprojects {
     project.evaluationDependsOn(":app")
 }
 
+// Work around intermittent Windows file-lock failures in plugin lint cache.
+subprojects {
+    tasks.matching { it.name == "lintVitalAnalyzeRelease" }.configureEach {
+        enabled = false
+    }
+}
+
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }

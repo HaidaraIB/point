@@ -1537,7 +1537,7 @@ class HomeController extends GetxController {
 
   RxList<dynamic> uploadedFilesPaths = [].obs;
   Future<List<PlatformFile>> pickMultiFiles() async {
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       allowMultiple: true,
       withData: true,
     );
@@ -1551,7 +1551,7 @@ class HomeController extends GetxController {
   }
 
   Future<List<PlatformFile>> pickoneImage() async {
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       allowMultiple: false,
       withData: true,
       type: FileType.image,
@@ -1567,7 +1567,7 @@ class HomeController extends GetxController {
 
   /// صورة أو فيديو من المعرض (زر المعرض في الدردشة).
   Future<List<PlatformFile>> pickOneChatGalleryMedia() async {
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       allowMultiple: false,
       withData: true,
       type: FileType.media,
@@ -1581,7 +1581,7 @@ class HomeController extends GetxController {
 
   /// ملف واحد لأي نوع (مرفقات الدردشة).
   Future<List<PlatformFile>> pickOneChatFile() async {
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       allowMultiple: false,
       withData: true,
     );

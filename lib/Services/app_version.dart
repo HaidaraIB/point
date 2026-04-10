@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:package_info_plus/package_info_plus.dart';
 import 'package:point/Utils/AppConstants.dart';
 
 /// نتيجة قراءة إصدار التطبيق (للعرض في الواجهة).
@@ -14,10 +13,9 @@ class AppVersionInfo {
 }
 
 /// يقرأ الإصدار بشكل موثوق على **الويب** عبر `version.json` نسبةً إلى [Uri.base]،
-/// ثم [PackageInfo]، ثم [kAppVersionFallback] / [kAppBuildFallback].
+/// ثم يستخدم القيم الاحتياطية [kAppVersionFallback] / [kAppBuildFallback].
 ///
-/// على الويب، `package_info_plus` يعتمد على طلب HTTP قد يفشل أو يُرجع حقولاً فارغة
-/// في وضع التطوير؛ لذلك نجرب `Uri.base.resolve('version.json')` أولاً.
+/// على الويب قد يفشل طلب `version.json` في وضع التطوير؛ لذلك نحتفظ باحتياطي ثابت.
 Future<AppVersionInfo> loadAppVersionInfo() async {
   if (kIsWeb) {
     try {
@@ -37,15 +35,6 @@ Future<AppVersionInfo> loadAppVersionInfo() async {
       // ننتقل للاحتياطي أدناه
     }
   }
-
-  try {
-    final info = await PackageInfo.fromPlatform();
-    final v = info.version.trim();
-    final b = info.buildNumber.trim();
-    if (v.isNotEmpty && b.isNotEmpty) {
-      return AppVersionInfo(version: v, buildNumber: b);
-    }
-  } catch (_) {}
 
   return const AppVersionInfo(
     version: kAppVersionFallback,
