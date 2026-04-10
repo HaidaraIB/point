@@ -1,6 +1,176 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Localization/AppLocaleKeys.dart';
+
+/// Scrolls a [ScrollablePositionedList] so the item at [index] is visible.
+///
+/// [ListView.builder] only mounts visible rows, so [Scrollable.ensureVisible]
+/// on a [GlobalKey] does nothing when the target is off-screen. This helper
+/// waits until [controller] is attached, then animates to [index].
+void scheduleScrollChatToMessageIndex({
+  required ItemScrollController controller,
+  required int index,
+  required bool Function() mounted,
+  Duration duration = const Duration(milliseconds: 380),
+  Curve curve = Curves.easeOutCubic,
+  double alignment = 0.35,
+}) {
+  if (index < 0) return;
+  var attempts = 0;
+  void tryScroll() {
+    if (!mounted()) return;
+    if (controller.isAttached) {
+      unawaited(
+        controller.scrollTo(
+          index: index,
+          duration: duration,
+          curve: curve,
+          alignment: alignment,
+        ),
+      );
+      return;
+    }
+    attempts++;
+    if (attempts > 24) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) => tryScroll());
+  }
+
+  WidgetsBinding.instance.addPostFrameCallback((_) => tryScroll());
+}
+
+/// Scrolls a **reverse** chat list to the newest message (index `0`).
+void scheduleScrollChatToLatest({
+  required ItemScrollController controller,
+  required bool Function() mounted,
+  Duration duration = const Duration(milliseconds: 320),
+  Curve curve = Curves.easeOutCubic,
+}) {
+  var attempts = 0;
+  void tryScroll() {
+    if (!mounted()) return;
+    if (controller.isAttached) {
+      unawaited(
+        controller.scrollTo(
+          index: 0,
+          duration: duration,
+          curve: curve,
+          alignment: 0,
+        ),
+      );
+      return;
+    }
+    attempts++;
+    if (attempts > 24) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) => tryScroll());
+  }
+
+  WidgetsBinding.instance.addPostFrameCallback((_) => tryScroll());
+}
+
+/// Reply target while composing (references an existing message).
+class ChatReplyDraft {
+  final String messageId;
+  final String preview;
+  final String? replySenderName;
+  /// Thumbnail URL when the quoted message is an image (`attachmentUrl`).
+  final String? replyImageUrl;
+  /// Video file URL when the quoted message is a video (thumbnail generated client-side).
+  final String? replyVideoUrl;
+
+  const ChatReplyDraft({
+    required this.messageId,
+    required this.preview,
+    this.replySenderName,
+    this.replyImageUrl,
+    this.replyVideoUrl,
+  });
+}
+
+/// Short snippet for storing on the outgoing message (`replyPreview`).
+String chatReplyPreviewFromMessage(Map<String, dynamic> m) {
+  if (m['deleted'] == true) {
+    return '🗑';
+  }
+  final type = (m['messageType'] as String?)?.trim() ?? 'text';
+  final text = (m['text'] ?? '').toString().trim();
+  switch (type) {
+    case 'voice':
+      final voiceUrl = (m['attachmentUrl'] as String?)?.trim() ?? '';
+      if (text.isNotEmpty &&
+          text != '🎤' &&
+          text != voiceUrl &&
+          !text.startsWith('http://') &&
+          !text.startsWith('https://')) {
+        if (text.length <= 160) return text;
+        return '${text.substring(0, 160)}…';
+      }
+      return '🎤';
+    case 'image':
+      if (text.isNotEmpty && text != '📷') {
+        if (text.length <= 160) return text;
+        return '${text.substring(0, 160)}…';
+      }
+      return '📷';
+    case 'video':
+      if (text.isNotEmpty && text != '🎬') {
+        if (text.length <= 160) return text;
+        return '${text.substring(0, 160)}…';
+      }
+      return '🎬';
+    case 'file':
+      final fn = (m['fileName'] as String?)?.trim() ?? '';
+      if (text.isNotEmpty && text != fn && text != '📎') {
+        if (text.length <= 160) return text;
+        return '${text.substring(0, 160)}…';
+      }
+      return fn.isNotEmpty ? '📎 $fn' : '📎';
+    default:
+      if (text.isEmpty) return ' ';
+      if (text.length <= 160) return text;
+      return '${text.substring(0, 160)}…';
+  }
+}
+
+/// `attachmentUrl` for image messages, for reply thumbnails.
+String? replyImageUrlFromMessage(Map<String, dynamic> m) {
+  if (m['deleted'] == true) return null;
+  final type = (m['messageType'] as String?)?.trim() ?? 'text';
+  if (type != 'image') return null;
+  final u = (m['attachmentUrl'] as String?)?.trim();
+  if (u == null || u.isEmpty) return null;
+  return u;
+}
+
+/// `attachmentUrl` for video messages (used to generate a thumbnail).
+String? replyVideoUrlFromMessage(Map<String, dynamic> m) {
+  if (m['deleted'] == true) return null;
+  final type = (m['messageType'] as String?)?.trim() ?? 'text';
+  if (type != 'video') return null;
+  final u = (m['attachmentUrl'] as String?)?.trim();
+  if (u == null || u.isEmpty) return null;
+  return u;
+}
+
+/// Text beside the reply thumbnail in bubbles (avoid raw 📷 / 🎬 when a thumb is shown).
+String replyQuotePreviewLine(Map<String, dynamic> m) {
+  final preview = (m['replyPreview'] as String?)?.trim() ?? '';
+  final hasImg = (m['replyImageUrl'] as String?)?.trim().isNotEmpty ?? false;
+  final hasVid = (m['replyVideoUrl'] as String?)?.trim().isNotEmpty ?? false;
+  if (hasImg && (preview.isEmpty || preview == '📷')) {
+    return AppLocaleKeys.chatReplyMediaPhoto.tr;
+  }
+  if (hasVid && (preview.isEmpty || preview == '🎬')) {
+    return AppLocaleKeys.chatReplyMediaVideo.tr;
+  }
+  if (preview.isEmpty) {
+    return AppLocaleKeys.chatReplyOriginalMissing.tr;
+  }
+  return preview;
+}
 
 String chatInitialFromName(String name) {
   if (name.trim().isEmpty) return '?';

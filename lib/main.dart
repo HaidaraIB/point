@@ -6,6 +6,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:point/Services/AudioService.dart';
+import 'package:point/Services/chat_voice_playback_service.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
 import 'package:point/Bindings/AppBindings.dart';
@@ -56,6 +57,7 @@ void main(List<String> args) async {
 
   final languageController = Get.put(LanguageController(), permanent: true);
   await languageController.initialize();
+  Get.put(ChatVoicePlaybackService(), permanent: true);
 
   final supabaseUrl = AppConfig.supabaseUrl;
   final supabaseKey = StorageKeys.supabaseKey;

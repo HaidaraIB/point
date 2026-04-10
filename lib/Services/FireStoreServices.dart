@@ -107,6 +107,13 @@ class FirestoreServices extends FirestoreServicesBase
   ) =>
       FirestoreChatApi.fetchLatestMessagePreviewsForChatIds(fs, chatIds);
 
+  static Future<Map<String, ChatListLastMessageMeta?>>
+  fetchLatestMessageMetaForChatIds(
+    FirebaseFirestore fs,
+    Iterable<String> chatIds,
+  ) =>
+      FirestoreChatApi.fetchLatestMessageMetaForChatIds(fs, chatIds);
+
   static Future<void> patchChatLastMessageIfStale(
     FirebaseFirestore fs,
     String chatId,

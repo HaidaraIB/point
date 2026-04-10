@@ -195,6 +195,65 @@ service cloud.firestore {
       return myId < otherId ? (myId + '_' + otherId) : (otherId + '_' + myId);
     }
 
+    function chatDataForId(chatIdParam) {
+      return get(/databases/$(database)/documents/chats/$(chatIdParam)).data;
+    }
+
+    function messageParticipantInChat(chatIdParam) {
+      return actorParticipantId() in chatDataForId(chatIdParam).participants;
+    }
+
+    function messageDocIsTextEditable(m) {
+      return !m.keys().hasAny(['messageType'])
+        || m.messageType == 'text'
+        || m.messageType == '';
+    }
+
+    function messageDocNotSoftDeleted(m) {
+      return !m.keys().hasAny(['deleted']) || m.deleted != true;
+    }
+
+    function messageMarkReadUpdate(chatIdParam) {
+      let d = request.resource.data.diff(resource.data).affectedKeys();
+      return d.hasOnly(['isRead'])
+        && resource.data.senderId != actorParticipantId()
+        && messageParticipantInChat(chatIdParam)
+        && request.resource.data.isRead == true
+        && (!resource.data.keys().hasAny(['isRead']) || resource.data.isRead != true);
+    }
+
+    function messageSoftDeleteByAdmin(chatIdParam) {
+      let d = request.resource.data.diff(resource.data).affectedKeys();
+      return isAdmin()
+        && messageParticipantInChat(chatIdParam)
+        && d.hasOnly(['deleted', 'deletedAt', 'deletedBy'])
+        && request.resource.data.deleted == true
+        && request.resource.data.deletedBy == actorParticipantId();
+    }
+
+    function messageTextEditBody(chatIdParam) {
+      let d = request.resource.data.diff(resource.data).affectedKeys();
+      return d.hasOnly(['text', 'edited', 'editedAt'])
+        && messageParticipantInChat(chatIdParam)
+        && messageDocIsTextEditable(resource.data)
+        && messageDocNotSoftDeleted(resource.data);
+    }
+
+    function messageTextEditBySender(chatIdParam) {
+      return resource.data.senderId == actorParticipantId()
+        && !isAdmin()
+        && messageTextEditBody(chatIdParam);
+    }
+
+    function messageTextEditByAdmin(chatIdParam) {
+      return isAdmin()
+        && messageTextEditBody(chatIdParam);
+    }
+
+    function messageDocAt(chatIdParam, messageIdParam) {
+      return get(/databases/$(database)/documents/chats/$(chatIdParam)/messages/$(messageIdParam)).data;
+    }
+
     // للإنشاء/التحديث: التحقق من الطرف الآخر عبر employees.
     // يجب exists قبل get — وإلا تفشل القاعدة إن لم يوجد المستند.
     function employeeOtherAllowedInPrivateChat(participants) {
@@ -498,22 +557,50 @@ service cloud.firestore {
             )
           );
 
-        allow update, delete: if isSignedIn() && hasAuthRole()
-          && actorParticipantId() in get(/databases/$(database)/documents/chats/$(chatId)).data.participants
+        allow update: if isSignedIn() && hasAuthRole()
           && (
-            isManager()
-            || isClientRole()
-            || (
-              isEmployeeRole()
-              && (
-                employeeCanReadGroupChatMessages(chatId)
-                || (
-                  get(/databases/$(database)/documents/chats/$(chatId)).data.isGroup != true
-                  && employeeOtherAllowedInPrivateChat(get(/databases/$(database)/documents/chats/$(chatId)).data.participants)
+            messageMarkReadUpdate(chatId)
+            || messageSoftDeleteByAdmin(chatId)
+            || messageTextEditBySender(chatId)
+            || messageTextEditByAdmin(chatId)
+          );
+
+        allow delete: if false;
+
+        match /edits/{editId} {
+          allow read: if isSignedIn() && hasAuthRole()
+            && (
+              isManager()
+              || (
+                isEmployeeRole()
+                && (
+                  employeeCanReadGroupChatMessages(chatId)
+                  || (
+                    get(/databases/$(database)/documents/chats/$(chatId)).data.isGroup != true
+                    && actorParticipantId() in get(/databases/$(database)/documents/chats/$(chatId)).data.participants
+                  )
                 )
               )
+              || (
+                isClientRole()
+                && actorParticipantId() in get(/databases/$(database)/documents/chats/$(chatId)).data.participants
+              )
+            );
+
+          allow create: if isSignedIn() && hasAuthRole()
+            && messageParticipantInChat(chatId)
+            && exists(/databases/$(database)/documents/chats/$(chatId)/messages/$(messageId))
+            && request.resource.data.keys().hasOnly(['previousText', 'editedAt', 'editedBy', 'editedByName'])
+            && request.resource.data.editedBy == actorParticipantId()
+            && (
+              isAdmin()
+              || messageDocAt(chatId, messageId).senderId == actorParticipantId()
             )
-          );
+            && messageDocIsTextEditable(messageDocAt(chatId, messageId))
+            && messageDocNotSoftDeleted(messageDocAt(chatId, messageId));
+
+          allow update, delete: if false;
+        }
       }
     }
 

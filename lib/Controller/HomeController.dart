@@ -16,6 +16,8 @@ import 'package:point/Models/EmployeeModel.dart';
 import 'package:point/Models/NotificationModel.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/AudioService.dart';
+import 'package:point/Services/audio_tab_visibility.dart';
+import 'package:point/Services/ChatAudioFocus.dart';
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/fcm_token_cache.dart';
@@ -1741,6 +1743,12 @@ class HomeController extends GetxController {
           userId,
           onPerChatUnreadIncrease: (chatId) {
             if (!kIsWeb) return;
+            // Web: unread aggregate also fires when a message arrives; skip the
+            // notification ding if this thread is already open (page or popup).
+            if (!isBrowserTabHidden &&
+                ChatAudioFocus.incomingTreatAsInChat(chatId)) {
+              return;
+            }
             unawaited(
               AudioService.instance.playNotificationSound(chatId: chatId),
             );

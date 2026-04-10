@@ -72,6 +72,23 @@ class AppLocaleKeys {
   static const chatPreviewPinchHint = 'chat.preview_pinch_hint';
   static const chatPreviewLoadFailed = 'chat.preview_load_failed';
   static const chatPreviewVideoFailed = 'chat.preview_video_failed';
+  static const chatActionCopy = 'chat.action_copy';
+  static const chatActionEdit = 'chat.action_edit';
+  static const chatActionDelete = 'chat.action_delete';
+  static const chatActionReply = 'chat.action_reply';
+  static const chatEditedLabel = 'chat.edited_label';
+  static const chatEditHistoryTitle = 'chat.edit_history_title';
+  static const chatEditHistoryBy = 'chat.edit_history_by';
+  static const chatMessageDeletedBody = 'chat.message_deleted_body';
+  static const chatMessageDeletedPreview = 'chat.message_deleted_preview';
+  static const chatConfirmDeleteAdminTitle = 'chat.confirm_delete_admin_title';
+  static const chatConfirmDeleteAdminBody = 'chat.confirm_delete_admin_body';
+  static const chatReplyingTo = 'chat.replying_to';
+  static const chatReplyMediaPhoto = 'chat.reply_media_photo';
+  static const chatReplyMediaVideo = 'chat.reply_media_video';
+  static const chatCopyDone = 'chat.copy_done';
+  static const chatEditMessageTitle = 'chat.edit_message_title';
+  static const chatReplyOriginalMissing = 'chat.reply_original_missing';
 
   static const successTitle = 'feedback.success_title';
   static const errorTitle = 'feedback.error_title';
@@ -96,6 +113,7 @@ class AppLocaleKeys {
   static const chatConversationFallback = 'chat.conversation_fallback';
   static const chatFcmInGroupTitle = 'chat.fcm_in_group_title';
   static const chatSearchInChats = 'chat.search_in_chats';
+  static const chatSearchNoMatches = 'chat.search_no_matches';
   static const chatGroupUnknown = 'chat.group_unknown';
   static const chatEmptyMessage = 'chat.empty_message';
 

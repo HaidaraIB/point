@@ -9,7 +9,9 @@ import 'package:point/Utils/app_log.dart';
 import 'ChatAudioFocus.dart';
 import 'audio_tab_visibility.dart';
 
-/// Centralized web-safe notification sound using a single [AudioPlayer].
+/// Centralized web-safe notification sound using a shared [AudioPlayer], plus
+/// dedicated players for **in-chat** receive/send cues (different assets from
+/// [playNotificationSound], which runs when the conversation is not in the foreground).
 ///
 /// **Why `unlockAudio()` exists (web):** Browsers block audio until there has been
 /// a user gesture (tap/click). Calling [play] once from that gesture "unlocks" the
@@ -21,9 +23,19 @@ class AudioService {
 
   /// Keys كما في [pubspec] (مسار كامل تحت `assets/`).
   static String get _bundleAssetKey => 'assets/sounds/notification_chat.wav';
+  static String get _activeIncomingAsset => 'assets/sounds/chat_message_in.wav';
+  static String get _activeOutgoingAsset => 'assets/sounds/chat_message_out.wav';
   static const Duration _minPlayInterval = Duration(seconds: 1);
+  static const Duration _minActivePlayInterval = Duration(milliseconds: 300);
 
   final AudioPlayer _player = AudioPlayer();
+  final AudioPlayer _activeIncomingPlayer = AudioPlayer();
+  final AudioPlayer _activeOutgoingPlayer = AudioPlayer();
+
+  bool _activeIncomingPreloaded = false;
+  bool _activeOutgoingPreloaded = false;
+  DateTime? _lastActiveIncomingAt;
+  DateTime? _lastActiveOutgoingAt;
 
   bool _preloaded = false;
   bool _audioUnlocked = false;
@@ -125,6 +137,9 @@ class AudioService {
       await _player.stop();
       await _player.setVolume(1.0);
       _audioUnlocked = true;
+      // Warm in-chat WAV players so the first message after unlock plays on web.
+      unawaited(_ensureActiveIncomingLoaded());
+      unawaited(_ensureActiveOutgoingLoaded());
     } catch (e, st) {
       if (kDebugMode) {
         appDebugPrint('AudioService.unlockAudio gesture play failed: $e\n$st');
@@ -136,8 +151,8 @@ class AudioService {
 
   bool _shouldPlayForIncomingChat(String chatId) {
     if (isBrowserTabHidden) return true;
-    if (ChatAudioFocus.foregroundChatId != chatId) return true;
-    return false;
+    if (ChatAudioFocus.incomingTreatAsInChat(chatId)) return false;
+    return true;
   }
 
   /// Plays the preloaded asset on the shared player if unlocked and throttling allows.
@@ -164,7 +179,95 @@ class AudioService {
     }
   }
 
+  Future<void> _ensureActiveIncomingLoaded() async {
+    if (_activeIncomingPreloaded) return;
+    await _activeIncomingPlayer.setReleaseMode(ReleaseMode.stop);
+    final key = _activeIncomingAsset;
+    final bd = await _loadAssetBytes(key);
+    final bytes = bd.buffer.asUint8List(bd.offsetInBytes, bd.lengthInBytes);
+    final mime =
+        key.toLowerCase().endsWith('.wav') ? 'audio/wav' : 'audio/mpeg';
+    await _activeIncomingPlayer
+        .setSource(BytesSource(bytes, mimeType: mime))
+        .timeout(_setSourceTimeout);
+    _activeIncomingPreloaded = true;
+  }
+
+  Future<void> _ensureActiveOutgoingLoaded() async {
+    if (_activeOutgoingPreloaded) return;
+    await _activeOutgoingPlayer.setReleaseMode(ReleaseMode.stop);
+    final key = _activeOutgoingAsset;
+    final bd = await _loadAssetBytes(key);
+    final bytes = bd.buffer.asUint8List(bd.offsetInBytes, bd.lengthInBytes);
+    final mime =
+        key.toLowerCase().endsWith('.wav') ? 'audio/wav' : 'audio/mpeg';
+    await _activeOutgoingPlayer
+        .setSource(BytesSource(bytes, mimeType: mime))
+        .timeout(_setSourceTimeout);
+    _activeOutgoingPreloaded = true;
+  }
+
+  /// Short cue while the user is **viewing** this chat (foreground) — not the push-style [playNotificationSound].
+  Future<void> playActiveChatIncomingSound() async {
+    if (!_audioUnlocked) return;
+    try {
+      await _ensureActiveIncomingLoaded();
+    } catch (e, st) {
+      if (kDebugMode) {
+        appDebugPrint(
+          'AudioService.playActiveChatIncomingSound preload: $e\n$st',
+        );
+      }
+      return;
+    }
+    final now = DateTime.now();
+    if (_lastActiveIncomingAt != null &&
+        now.difference(_lastActiveIncomingAt!) < _minActivePlayInterval) {
+      return;
+    }
+    _lastActiveIncomingAt = now;
+    try {
+      await _activeIncomingPlayer.seek(Duration.zero);
+      await _activeIncomingPlayer.resume();
+    } catch (e, st) {
+      if (kDebugMode) {
+        appDebugPrint('AudioService.playActiveChatIncomingSound: $e\n$st');
+      }
+    }
+  }
+
+  /// Short cue after the user sends a message while this chat is in the foreground.
+  Future<void> playActiveChatOutgoingSound() async {
+    if (!_audioUnlocked) return;
+    try {
+      await _ensureActiveOutgoingLoaded();
+    } catch (e, st) {
+      if (kDebugMode) {
+        appDebugPrint(
+          'AudioService.playActiveChatOutgoingSound preload: $e\n$st',
+        );
+      }
+      return;
+    }
+    final now = DateTime.now();
+    if (_lastActiveOutgoingAt != null &&
+        now.difference(_lastActiveOutgoingAt!) < _minActivePlayInterval) {
+      return;
+    }
+    _lastActiveOutgoingAt = now;
+    try {
+      await _activeOutgoingPlayer.seek(Duration.zero);
+      await _activeOutgoingPlayer.resume();
+    } catch (e, st) {
+      if (kDebugMode) {
+        appDebugPrint('AudioService.playActiveChatOutgoingSound: $e\n$st');
+      }
+    }
+  }
+
   Future<void> dispose() async {
     await _player.dispose();
+    await _activeIncomingPlayer.dispose();
+    await _activeOutgoingPlayer.dispose();
   }
 }

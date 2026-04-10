@@ -298,12 +298,10 @@ class NotificationService {
   bool _suppressForegroundChatNotification(RemoteMessage message) {
     final type = message.data['notificationType']?.toString().trim();
     if (type != 'chat_message') return false;
-    final openId = ChatAudioFocus.foregroundChatId;
-    if (openId == null || openId.isEmpty) return false;
     final incoming =
         message.data['chatId']?.toString().trim() ?? '';
     if (incoming.isEmpty) return false;
-    return incoming == openId;
+    return ChatAudioFocus.incomingTreatAsInChat(incoming);
   }
 
   bool _isSilentPushData(Map<String, String> data) {
