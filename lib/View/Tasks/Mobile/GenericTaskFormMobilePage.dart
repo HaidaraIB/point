@@ -228,6 +228,9 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
         ? customClientController.text.trim()
         : clientController.text.trim();
     final model = widget.model;
+    final keepStatusUnchanged =
+        controller.currentEmployee.value?.role == 'admin' ||
+        controller.currentEmployee.value?.role == 'supervisor';
     final safeEmployees = (controller.employees as List<EmployeeModel>?) ?? <EmployeeModel>[];
     final execImage = safeEmployees.firstWhereOrNull((a) => a.id == executorController.text)?.image ?? '';
 
@@ -262,7 +265,9 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             assignedTo: executorController.text,
             clientName: resolvedClientName,
             assignedImageUrl: execImage,
-            status: StorageKeys.status_edit_requested,
+            status: keepStatusUnchanged
+                ? model.status
+                : StorageKeys.status_edit_requested,
             notes: updatedNotes,
             files: updatedFiles,
             promotionModel: PromotionModel(
@@ -271,7 +276,9 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
               campaignName: titleController.text,
               type: '0',
               priority: priorityController.text,
-              status: StorageKeys.status_edit_requested,
+              status: keepStatusUnchanged
+                  ? (model.promotionModel?.status ?? model.status)
+                  : StorageKeys.status_edit_requested,
               duration: durationPromoController.text,
               tags: marksController.text,
               platforms: platformsPromo.toList(),
@@ -294,7 +301,9 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             assignedTo: executorController.text,
             clientName: resolvedClientName,
             assignedImageUrl: execImage,
-            status: StorageKeys.status_edit_requested,
+            status: keepStatusUnchanged
+                ? model.status
+                : StorageKeys.status_edit_requested,
             notes: updatedNotes,
             files: updatedFiles,
             photoGrapghyModel: PhotographyModel(
@@ -316,7 +325,9 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             assignedTo: executorController.text,
             clientName: resolvedClientName,
             assignedImageUrl: execImage,
-            status: StorageKeys.status_edit_requested,
+            status: keepStatusUnchanged
+                ? model.status
+                : StorageKeys.status_edit_requested,
             notes: updatedNotes,
             files: updatedFiles,
             contentWriteModel: ContentWriteModel(
@@ -337,7 +348,9 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             assignedTo: executorController.text,
             clientName: resolvedClientName,
             assignedImageUrl: execImage,
-            status: StorageKeys.status_edit_requested,
+            status: keepStatusUnchanged
+                ? model.status
+                : StorageKeys.status_edit_requested,
             notes: updatedNotes,
             files: updatedFiles,
             monatageModel: MonatageModel(
@@ -359,7 +372,9 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             assignedTo: executorController.text,
             clientName: resolvedClientName,
             assignedImageUrl: execImage,
-            status: StorageKeys.status_edit_requested,
+            status: keepStatusUnchanged
+                ? model.status
+                : StorageKeys.status_edit_requested,
             notes: updatedNotes,
             files: updatedFiles,
             publishModel: PublishModel(
@@ -381,7 +396,9 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             assignedTo: executorController.text,
             clientName: resolvedClientName,
             assignedImageUrl: execImage,
-            status: StorageKeys.status_edit_requested,
+            status: keepStatusUnchanged
+                ? model.status
+                : StorageKeys.status_edit_requested,
             notes: updatedNotes,
             files: updatedFiles,
             programmingModel: ProgrammingModel(
@@ -402,7 +419,9 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             assignedTo: executorController.text,
             clientName: resolvedClientName,
             assignedImageUrl: execImage,
-            status: StorageKeys.status_edit_requested,
+            status: keepStatusUnchanged
+                ? model.status
+                : StorageKeys.status_edit_requested,
             notes: updatedNotes,
             files: updatedFiles,
           );
@@ -613,7 +632,12 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
           final department = _departmentForType(taskType);
           final filteredEmployees = safeEmployees
               .where(
-                (a) => StorageKeys.matchesDepartment(a.department, department),
+                (a) =>
+                    StorageKeys.matchesDepartment(a.department, department) ||
+                    (((controller.currentEmployee.value?.role == 'admin') ||
+                            (controller.currentEmployee.value?.role ==
+                                'supervisor')) &&
+                        a.id == controller.currentEmployee.value?.id),
               )
               .toList();
 
@@ -935,7 +959,22 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                         onPressed: controller.isLoading.value ? null : _submit,
                         child: controller.isLoading.value
                             ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                            : Text('common.save'.tr, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                            : Text(
+                                (widget.model != null &&
+                                        ((controller.currentEmployee.value
+                                                    ?.role ==
+                                                'admin') ||
+                                            (controller.currentEmployee.value
+                                                    ?.role ==
+                                                'supervisor')))
+                                    ? 'edit'.tr
+                                    : 'common.save'.tr,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
                       ),
                     ),
                   ),

@@ -343,10 +343,13 @@ class TasksHistoryMobile extends StatelessWidget {
         ),
         child: DropdownButtonHideUnderline(
           child: DropdownButton<T>(
+            isExpanded: true,
             hint: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Text(
                 hint,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontSize: 13,
                   color: AppColors.primaryfontColor,
@@ -375,10 +378,13 @@ class TasksHistoryMobile extends StatelessWidget {
         ),
         child: DropdownButtonHideUnderline(
           child: DropdownButton<String>(
+            isExpanded: true,
             hint: Padding(
               padding: EdgeInsets.symmetric(horizontal: 8),
               child: Text(
                 'tasks.filter_status'.tr,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   fontSize: 13,
                   color: AppColors.primaryfontColor,

@@ -31,18 +31,18 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Generate firebase-messaging-sw.js (production)
         run: node scripts/generate-firebase-sw.js
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.35.1'
+          flutter-version: '3.41.5'
           channel: 'stable'
           cache: true
 

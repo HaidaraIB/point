@@ -1,3 +1,6 @@
+import org.gradle.api.tasks.compile.JavaCompile
+import org.gradle.api.logging.LogLevel
+
 allprojects {
     repositories {
         google()
@@ -14,6 +17,22 @@ subprojects {
 }
 subprojects {
     project.evaluationDependsOn(":app")
+}
+
+// Suppress third-party Java unchecked/deprecation notes during Android builds.
+subprojects {
+    tasks.withType<JavaCompile>().configureEach {
+        options.isWarnings = false
+        logging.captureStandardError(LogLevel.DEBUG)
+        doFirst {
+            if (!options.compilerArgs.contains("-nowarn")) {
+                options.compilerArgs.add("-nowarn")
+            }
+            if (!options.compilerArgs.contains("-Xlint:none")) {
+                options.compilerArgs.add("-Xlint:none")
+            }
+        }
+    }
 }
 
 // Work around intermittent Windows file-lock failures in plugin lint cache.

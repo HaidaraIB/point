@@ -8,9 +8,9 @@ import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Shared/TaskTimelineWidget.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:point/View/Tasks/Dialogs/ContentWriteDialog.dart';
 import 'package:point/View/Tasks/Dialogs/DesignDialog.dart';
 import 'package:point/View/Tasks/Dialogs/MontageDialog.dart';
@@ -322,29 +322,8 @@ class TaskDetailsMobilePage extends StatelessWidget {
     );
   }
 
-  Uri _normalizeAttachmentUri(String rawUrl) {
-    final trimmed = rawUrl.trim();
-    final parsed = Uri.tryParse(trimmed);
-    if (parsed != null && parsed.hasScheme) return parsed;
-    return Uri.parse('https://$trimmed');
-  }
-
   Future<void> _launchAttachmentUrl(String rawUrl) async {
-    try {
-      final uri = _normalizeAttachmentUri(rawUrl);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-        return;
-      }
-    } catch (_) {}
-
-    FunHelper.showSnackbar(
-      AppLocaleKeys.errorTitle.tr,
-      AppLocaleKeys.contentDialogOpenLinkFailed.tr,
-      snackPosition: SnackPosition.TOP,
-      backgroundColor: Colors.orange,
-      colorText: Colors.white,
-    );
+    await openUrlPreferInAppMedia(rawUrl);
   }
 
   Widget _linkFieldRow(BuildContext context, String label, String? raw) {
@@ -1201,6 +1180,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
   Widget _buildActions(BuildContext context) {
     final controller = Get.find<HomeController>();
     final role = controller.currentEmployee.value?.role ?? '';
+    final canEditDirectly = role == 'admin' || role == 'supervisor';
     final isEmployee = role == 'employee';
     final canEscalate =
         role == 'supervisor' &&
@@ -1224,7 +1204,9 @@ class TaskDetailsMobilePage extends StatelessWidget {
         OutlinedButton.icon(
           onPressed: () => _openEditDialog(context, task),
           icon: const Icon(Icons.edit_outlined, size: 18),
-          label: Text('tasks.request_edit'.tr),
+          label: Text(
+            canEditDirectly ? 'edit'.tr : 'tasks.request_edit'.tr,
+          ),
           style: OutlinedButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 14),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

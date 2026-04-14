@@ -159,7 +159,13 @@ void montageDialog(BuildContext context, {TaskModel? model}) {
                                               (a) => StorageKeys.matchesDepartment(
                                                 a.department,
                                                 StorageKeys.departmentMontage,
-                                              ),
+                                              ) ||
+                                              (((controller.currentEmployee.value?.role ==
+                                                          'admin') ||
+                                                      (controller.currentEmployee.value?.role ==
+                                                          'supervisor')) &&
+                                                  a.id ==
+                                                      controller.currentEmployee.value?.id),
                                             )
                                             .map(
                                               (v) => DropdownMenuItem(
@@ -866,8 +872,13 @@ void montageDialog(BuildContext context, {TaskModel? model}) {
                                                     ),
                                                 ],
                                             status:
-                                                StorageKeys
-                                                    .status_edit_requested,
+                                                ((controller.currentEmployee.value?.role ==
+                                                            'admin') ||
+                                                        (controller.currentEmployee.value?.role ==
+                                                            'supervisor'))
+                                                    ? model.status
+                                                    : StorageKeys
+                                                        .status_edit_requested,
                                             priority: priorityController.text,
                                             fromDate: effectiveStartAt,
                                             toDate: effectiveEndAt,
@@ -912,7 +923,19 @@ void montageDialog(BuildContext context, {TaskModel? model}) {
                                             ),
                                           )
                                           : Text(
-                                            'common.save'.tr,
+                                            (model != null &&
+                                                    ((controller
+                                                                .currentEmployee
+                                                                .value
+                                                                ?.role ==
+                                                            'admin') ||
+                                                        (controller
+                                                                .currentEmployee
+                                                                .value
+                                                                ?.role ==
+                                                            'supervisor')))
+                                                ? 'edit'.tr
+                                                : 'common.save'.tr,
                                             style: TextStyle(
                                               color: Colors.white,
                                             ),

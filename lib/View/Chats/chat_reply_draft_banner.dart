@@ -1,10 +1,8 @@
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/View/Chats/chat_ui_helpers.dart';
-import 'package:video_thumbnail/video_thumbnail.dart';
+import 'package:video_player/video_player.dart';
 
 /// Caption line for the composer when a media thumbnail is shown (no 📷/🎬 emoji).
 String chatReplyComposerCaption(ChatReplyDraft d) {
@@ -53,53 +51,7 @@ class ChatReplyMediaThumb extends StatelessWidget {
     }
     final vu = videoUrl?.trim();
     if (vu != null && vu.isNotEmpty) {
-      return FutureBuilder<Uint8List?>(
-        future: VideoThumbnail.thumbnailData(
-          video: vu,
-          imageFormat: ImageFormat.JPEG,
-          maxWidth: (size * 3).round(),
-          quality: 70,
-        ),
-        builder: (context, snap) {
-          final bytes = snap.data;
-          if (bytes != null && bytes.isNotEmpty) {
-            return ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: SizedBox(
-                width: size,
-                height: size,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Image.memory(bytes, fit: BoxFit.cover),
-                    Center(
-                      child: Icon(
-                        Icons.play_circle_fill_rounded,
-                        size: size * 0.45,
-                        color: Colors.white.withValues(alpha: 0.92),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }
-          if (snap.connectionState == ConnectionState.waiting) {
-            return SizedBox(
-              width: size,
-              height: size,
-              child: Center(
-                child: SizedBox(
-                  width: size * 0.4,
-                  height: size * 0.4,
-                  child: const CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ),
-            );
-          }
-          return _thumbPlaceholder(size, Icons.videocam_outlined);
-        },
-      );
+      return _ChatReplyVideoThumb(videoUrl: vu, size: size);
     }
     return const SizedBox.shrink();
   }
@@ -114,6 +66,116 @@ class ChatReplyMediaThumb extends StatelessWidget {
       ),
       alignment: Alignment.center,
       child: Icon(icon, size: size * 0.45, color: Colors.black45),
+    );
+  }
+}
+
+class _ChatReplyVideoThumb extends StatefulWidget {
+  final String videoUrl;
+  final double size;
+
+  const _ChatReplyVideoThumb({required this.videoUrl, required this.size});
+
+  @override
+  State<_ChatReplyVideoThumb> createState() => _ChatReplyVideoThumbState();
+}
+
+class _ChatReplyVideoThumbState extends State<_ChatReplyVideoThumb> {
+  VideoPlayerController? _controller;
+  bool _ready = false;
+  bool _failed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initController(widget.videoUrl);
+  }
+
+  @override
+  void didUpdateWidget(covariant _ChatReplyVideoThumb oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.videoUrl == widget.videoUrl) return;
+    _disposeController();
+    _ready = false;
+    _failed = false;
+    _initController(widget.videoUrl);
+  }
+
+  Future<void> _initController(String url) async {
+    try {
+      final c = VideoPlayerController.networkUrl(Uri.parse(url))
+        ..setLooping(false)
+        ..setVolume(0);
+      _controller = c;
+      await c.initialize().timeout(const Duration(seconds: 8));
+      if (!mounted) return;
+      await c.pause();
+      setState(() => _ready = true);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _failed = true);
+    }
+  }
+
+  void _disposeController() {
+    final c = _controller;
+    _controller = null;
+    c?.dispose();
+  }
+
+  @override
+  void dispose() {
+    _disposeController();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_failed || _controller == null) {
+      return ChatReplyMediaThumb._thumbPlaceholder(
+        widget.size,
+        Icons.videocam_outlined,
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(6),
+      child: SizedBox(
+        width: widget.size,
+        height: widget.size,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (_ready && _controller!.value.isInitialized)
+              FittedBox(
+                fit: BoxFit.cover,
+                clipBehavior: Clip.hardEdge,
+                child: SizedBox(
+                  width: _controller!.value.size.width,
+                  height: _controller!.value.size.height,
+                  child: VideoPlayer(_controller!),
+                ),
+              )
+            else
+              Container(
+                color: Colors.black12,
+                alignment: Alignment.center,
+                child: SizedBox(
+                  width: widget.size * 0.4,
+                  height: widget.size * 0.4,
+                  child: const CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            Center(
+              child: Icon(
+                Icons.play_circle_fill_rounded,
+                size: widget.size * 0.45,
+                color: Colors.white.withValues(alpha: 0.92),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -4,11 +4,11 @@ import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
+import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Tasks/DetailsDialogs/GenericTaskDetailsDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 import 'package:point/View/Tasks/Mobile/TaskDetailsMobile.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 void showPublishDialog(BuildContext context, {required TaskModel task}) {
   Responsive.isMobile(context)
@@ -64,21 +64,7 @@ class PublishDetailsSection extends StatelessWidget {
                   ),
                   InkWell(
                     onTap: () async {
-                      if (await canLaunchUrl(
-                        Uri.parse(task.publishModel!.contenturl),
-                      )) {
-                        await launchUrl(
-                          Uri.parse(task.publishModel!.contenturl),
-                          mode: LaunchMode.externalApplication,
-                        );
-                      } else {
-                        FunHelper.showSnackbar(
-                          'error'.tr,
-                          'errors.cannot_open_link_param'.trParams({
-                            'url': task.publishModel!.contenturl,
-                          }),
-                        );
-                      }
+                      await openUrlPreferInAppMedia(task.publishModel!.contenturl);
                     },
                     child: TaskDetailsDialogHelpers.infoBox(
                       'task_details.content_link'.tr,
@@ -90,19 +76,16 @@ class PublishDetailsSection extends StatelessWidget {
                   InkWell(
                     onTap: () async {
                       final url = task.publishModel!.fileurl;
-                      if (url != null && await canLaunchUrl(Uri.parse(url))) {
-                        await launchUrl(
-                          Uri.parse(url),
-                          mode: LaunchMode.externalApplication,
-                        );
-                      } else {
+                      if (url == null || url.trim().isEmpty) {
                         FunHelper.showSnackbar(
                           'error'.tr,
                           'errors.cannot_open_link_param'.trParams({
                             'url': url ?? '',
                           }),
                         );
+                        return;
                       }
+                      await openUrlPreferInAppMedia(url);
                     },
                     child: TaskDetailsDialogHelpers.infoBox(
                       'task_details.files_link'.tr,

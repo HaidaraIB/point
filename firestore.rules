@@ -250,6 +250,22 @@ service cloud.firestore {
         && messageTextEditBody(chatIdParam);
     }
 
+    function messagePinUpdate(chatIdParam) {
+      let d = request.resource.data.diff(resource.data).affectedKeys();
+      let pinFieldsOk = d.hasOnly(['isPinned', 'pinnedAt', 'pinnedBy']);
+      let pinAction =
+        request.resource.data.isPinned == true
+        && request.resource.data.pinnedBy == actorParticipantId()
+        && request.resource.data.pinnedAt is timestamp;
+      let unpinAction =
+        request.resource.data.isPinned == false
+        && !request.resource.data.keys().hasAny(['pinnedAt', 'pinnedBy']);
+      return messageParticipantInChat(chatIdParam)
+        && messageDocNotSoftDeleted(resource.data)
+        && pinFieldsOk
+        && (pinAction || unpinAction);
+    }
+
     function messageDocAt(chatIdParam, messageIdParam) {
       return get(/databases/$(database)/documents/chats/$(chatIdParam)/messages/$(messageIdParam)).data;
     }
@@ -563,6 +579,7 @@ service cloud.firestore {
             || messageSoftDeleteByAdmin(chatId)
             || messageTextEditBySender(chatId)
             || messageTextEditByAdmin(chatId)
+            || messagePinUpdate(chatId)
           );
 
         allow delete: if false;

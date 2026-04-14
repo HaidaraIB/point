@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'package:point/Controller/ClientController.dart';
 import 'package:point/Controller/HomeController.dart';
-import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/ContentModel.dart';
 import 'package:point/Services/NotificationService.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
+import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 
@@ -262,19 +261,5 @@ class EditRequestSheet extends StatelessWidget {
 }
 
 Future<void> _openEditAttachment(String rawUrl) async {
-  final uri = Uri.tryParse(rawUrl);
-  if (uri == null) {
-    FunHelper.showSnackbar(
-      'error'.tr,
-      AppLocaleKeys.contentDialogOpenLinkFailed.tr,
-    );
-    return;
-  }
-  final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
-  if (!ok) {
-    FunHelper.showSnackbar(
-      'error'.tr,
-      AppLocaleKeys.contentDialogOpenLinkFailed.tr,
-    );
-  }
+  await openUrlPreferInAppMedia(rawUrl);
 }

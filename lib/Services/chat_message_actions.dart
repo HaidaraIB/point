@@ -74,4 +74,31 @@ class ChatMessageActions {
     });
     await syncChatLastMessageFromLatest(fs, chatId);
   }
+
+  static Future<void> setMessagePinnedState({
+    required FirebaseFirestore fs,
+    required String chatId,
+    required String messageId,
+    required bool pinned,
+    required String actorUserId,
+  }) async {
+    final msgRef = fs
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .doc(messageId);
+    if (pinned) {
+      await msgRef.update({
+        'isPinned': true,
+        'pinnedAt': FieldValue.serverTimestamp(),
+        'pinnedBy': actorUserId,
+      });
+      return;
+    }
+    await msgRef.update({
+      'isPinned': false,
+      'pinnedAt': FieldValue.delete(),
+      'pinnedBy': FieldValue.delete(),
+    });
+  }
 }

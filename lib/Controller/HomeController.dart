@@ -980,18 +980,33 @@ class HomeController extends GetxController {
       );
     }
     if (newTask.files.length > oldTask.files.length) {
-      final lastFile =
-          newTask.files.isNotEmpty ? newTask.files.last.toString() : '';
-      events.add(
-        TaskTimelineEvent(
-          type: 'attachment_added',
-          label: 'تم إضافة مرفق',
-          newValue: lastFile.isEmpty ? null : lastFile,
-          byUserId: userId,
-          byUserName: userName,
-          timestamp: now,
-        ),
-      );
+      final oldCounter = <String, int>{};
+      for (final f in oldTask.files) {
+        final key = f.toString();
+        oldCounter[key] = (oldCounter[key] ?? 0) + 1;
+      }
+      final addedFiles = <String>[];
+      for (final f in newTask.files) {
+        final key = f.toString();
+        final remaining = oldCounter[key] ?? 0;
+        if (remaining > 0) {
+          oldCounter[key] = remaining - 1;
+        } else {
+          addedFiles.add(key);
+        }
+      }
+      for (final file in addedFiles) {
+        events.add(
+          TaskTimelineEvent(
+            type: 'attachment_added',
+            label: 'تم إضافة مرفق',
+            newValue: file.isEmpty ? null : file,
+            byUserId: userId,
+            byUserName: userName,
+            timestamp: now,
+          ),
+        );
+      }
     }
 
     // --- DesignTaskModel ---

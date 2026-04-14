@@ -56,33 +56,8 @@ Widget _buildFormAttachmentThumbnail(String url) {
   );
 }
 
-Uri _normalizeAttachmentUri(String rawUrl) {
-  final trimmed = rawUrl.trim();
-  final parsed = Uri.tryParse(trimmed);
-  if (parsed != null && parsed.hasScheme) {
-    return parsed;
-  }
-  return Uri.parse('https://$trimmed');
-}
-
 Future<void> _openAttachmentUrl(String rawUrl) async {
-  try {
-    final uri = _normalizeAttachmentUri(rawUrl);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-      return;
-    }
-  } catch (_) {
-    // Ignore errors and show user-friendly feedback instead of throwing.
-  }
-
-  FunHelper.showSnackbar(
-    'validation.title'.tr,
-    'errors.cannot_open_link'.tr,
-    snackPosition: SnackPosition.TOP,
-    backgroundColor: Colors.orange,
-    colorText: Colors.white,
-  );
+  await openUrlPreferInAppMedia(rawUrl);
 }
 
 void showAddContentDialog(

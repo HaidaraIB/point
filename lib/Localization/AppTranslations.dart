@@ -2,8 +2,34 @@ import 'package:get/get_navigation/src/root/internacionalization.dart';
 import 'package:point/Localization/notify_translations_map.dart';
 
 class AppTranslations extends Translations {
+  static String _normalizeDigits(String input) {
+    const arabicIndic = '٠١٢٣٤٥٦٧٨٩';
+    const easternArabicIndic = '۰۱۲۳۴۵۶۷۸۹';
+    final buffer = StringBuffer();
+    for (final rune in input.runes) {
+      final char = String.fromCharCode(rune);
+      final aiIndex = arabicIndic.indexOf(char);
+      if (aiIndex >= 0) {
+        buffer.write(aiIndex);
+        continue;
+      }
+      final eaiIndex = easternArabicIndic.indexOf(char);
+      if (eaiIndex >= 0) {
+        buffer.write(eaiIndex);
+        continue;
+      }
+      buffer.write(char);
+    }
+    return buffer.toString();
+  }
+
+  static Map<String, String> _normalizeMapDigits(Map<String, String> source) {
+    return source.map((key, value) => MapEntry(key, _normalizeDigits(value)));
+  }
+
   @override
-  Map<String, Map<String, String>> get keys => {
+  Map<String, Map<String, String>> get keys {
+    final raw = {
     'en': {
       'login': 'Login',
       'enteremailandpassword': 'Enter email and password',
@@ -102,6 +128,9 @@ class AppTranslations extends Translations {
       'chat.action_edit': 'Edit',
       'chat.action_delete': 'Delete',
       'chat.action_reply': 'Reply',
+      'chat.action_pin': 'Pin message',
+      'chat.action_unpin': 'Unpin message',
+      'chat.pinned_message_label': 'Pinned message',
       'chat.edited_label': 'Edited',
       'chat.edit_history_title': 'Edit history',
       'chat.edit_history_by': 'By @name',
@@ -994,6 +1023,9 @@ class AppTranslations extends Translations {
       "chat.action_edit": "تعديل",
       "chat.action_delete": "حذف",
       "chat.action_reply": "رد",
+      "chat.action_pin": "تثبيت الرسالة",
+      "chat.action_unpin": "إلغاء تثبيت الرسالة",
+      "chat.pinned_message_label": "رسالة مثبتة",
       "chat.edited_label": "تم التعديل",
       "chat.edit_history_title": "سجل التعديلات",
       "chat.edit_history_by": "بواسطة @name",
@@ -1421,4 +1453,8 @@ class AppTranslations extends Translations {
       ...notifyTranslationsAr,
     },
   };
+    return raw.map(
+      (locale, map) => MapEntry(locale, _normalizeMapDigits(map)),
+    );
+  }
 }

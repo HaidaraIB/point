@@ -14,7 +14,6 @@ import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/ContentPermissions.dart';
 import 'package:point/View/Clients/ClientsTable.dart';
 import 'package:point/View/History/HistoryMobile.dart';
-import 'package:point/View/Mobile/ContentStatusCard.dart' show getFileType;
 import 'package:point/View/Shared/ContentStatusPromotionDropdownChip.dart';
 import 'package:point/View/Shared/CustomDropDown.dart';
 import 'package:point/View/Shared/InputText.dart';
@@ -24,7 +23,8 @@ import 'package:point/View/Shared/ResponsiveScaffold.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/t.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
+import 'package:point/Utils/media_url_opener.dart';
 
 import 'package:point/View/History/history_date_utils.dart';
 
@@ -193,12 +193,14 @@ class History extends StatelessWidget {
                           ),
                         SizedBox(height: 10),
                         HorizontalScrollbarTable(
-                          child: SizedBox(
-                            width: 2000,
-                            child: Obx(
-                              () => DataTable(
-                                dataRowMinHeight: 60,
-                                dataRowMaxHeight: 60,
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 6, bottom: 14),
+                            child: SizedBox(
+                              width: 2000,
+                              child: Obx(
+                                () => DataTable(
+                                dataRowMinHeight: 72,
+                                dataRowMaxHeight: double.infinity,
                                 dataRowColor: WidgetStateProperty.all(
                                   Colors.white,
                                 ),
@@ -392,7 +394,9 @@ class History extends StatelessWidget {
                                                       (Get.width - 280) / 9,
                                                 ),
                                                 child: Text(
-                                                  emp.platform.toString(),
+                                                  FunHelper.formatStoredPlatforms(
+                                                    emp.platform,
+                                                  ),
                                                   overflow:
                                                       TextOverflow.ellipsis,
                                                   style: TextStyle(
@@ -421,7 +425,10 @@ class History extends StatelessWidget {
                                                       BorderRadius.circular(16),
                                                 ),
                                                 child: Text(
-                                                  emp.contentType.tr,
+                                                  FunHelper.trStored(
+                                                    emp.contentType,
+                                                    kind: StoredValueKind.contentType,
+                                                  ),
                                                   style: TextStyle(
                                                     color: Colors.purple,
                                                     fontWeight: FontWeight.bold,
@@ -556,14 +563,21 @@ class History extends StatelessWidget {
                                                       });
                                                     },
                                                     child: buildContentDropdownChip(
-                                                      label: emp.status.tr,
+                                                      label: FunHelper.trStored(
+                                                        emp.status,
+                                                        kind: StoredValueKind.taskStatus,
+                                                      ),
                                                       textColor:
                                                           getContentStatusColor(
-                                                            emp.status,
+                                                            FunHelper.canonicalStoredStatus(
+                                                              emp.status,
+                                                            ),
                                                           ),
                                                       backgroundColor:
                                                           getContentStatusBgColor(
-                                                            emp.status,
+                                                            FunHelper.canonicalStoredStatus(
+                                                              emp.status,
+                                                            ),
                                                           ),
                                                     ),
                                                   );
@@ -692,15 +706,28 @@ class History extends StatelessWidget {
                                                     },
                                                     child: buildContentDropdownChip(
                                                       label:
-                                                          emp.promotion?.tr ??
-                                                          '--',
+                                                          emp.promotion == null ||
+                                                                  emp.promotion!
+                                                                      .trim()
+                                                                      .isEmpty
+                                                              ? '--'
+                                                              : FunHelper.trStored(
+                                                                emp.promotion,
+                                                                kind:
+                                                                    StoredValueKind
+                                                                        .promotion,
+                                                              ),
                                                       textColor:
                                                           getContentPromotionColor(
-                                                            emp.promotion,
+                                                            FunHelper.canonicalStoredPromotion(
+                                                              emp.promotion,
+                                                            ),
                                                           ),
                                                       backgroundColor:
                                                           getContentPromotionBgColor(
-                                                            emp.promotion,
+                                                            FunHelper.canonicalStoredPromotion(
+                                                              emp.promotion,
+                                                            ),
                                                           ),
                                                     ),
                                                   );
@@ -734,8 +761,10 @@ class History extends StatelessWidget {
                                             TableCellCenter(
                                               child: Container(
                                                 constraints: BoxConstraints(
-                                                  maxWidth:
-                                                      (Get.width - 280) / 9,
+                                                  maxWidth: math.max(
+                                                    (Get.width - 280) / 9,
+                                                    120,
+                                                  ),
                                                 ),
                                                 child: Text(
                                                   emp.clientNotes ?? '--',
@@ -754,14 +783,16 @@ class History extends StatelessWidget {
                                             TableCellCenter(
                                               child: Container(
                                                 constraints: BoxConstraints(
-                                                  maxWidth:
-                                                      (Get.width - 280) / 9,
+                                                  maxWidth: math.max(
+                                                    (Get.width - 280) / 9,
+                                                    120,
+                                                  ),
                                                 ),
                                                 child: Text(
                                                   FunHelper.formatdate(
                                                         emp.publishDate,
                                                       ) ??
-                                                      '--',
+                                                          '--',
                                                   overflow:
                                                       TextOverflow.ellipsis,
                                                   style: TextStyle(
@@ -933,6 +964,7 @@ class History extends StatelessWidget {
                                         ],
                                       );
                                     }).toList(),
+                                ),
                               ),
                             ),
                           ),
@@ -950,62 +982,8 @@ class History extends StatelessWidget {
   }
 }
 
-Uri _historyNormalizeAttachmentUri(String rawUrl) {
-  final trimmed = rawUrl.trim();
-  final parsed = Uri.tryParse(trimmed);
-  if (parsed != null && parsed.hasScheme) {
-    return parsed;
-  }
-  return Uri.parse('https://$trimmed');
-}
-
 Future<void> historyOpenAttachmentUrl(String rawUrl) async {
-  try {
-    final uri = _historyNormalizeAttachmentUri(rawUrl);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-      return;
-    }
-  } catch (_) {}
-  FunHelper.showSnackbar(
-    'validation.title'.tr,
-    'errors.cannot_open_link'.tr,
-    snackPosition: SnackPosition.TOP,
-    backgroundColor: Colors.orange,
-    colorText: Colors.white,
-  );
-}
-
-Widget _historyAttachmentPreviewTile(String url) {
-  final bool isImage = getFileType(url) == 'image';
-  return ClipRRect(
-    borderRadius: BorderRadius.circular(8),
-    child:
-        isImage
-            ? Image.network(
-              url,
-              width: 56,
-              height: 56,
-              fit: BoxFit.cover,
-              errorBuilder:
-                  (_, __, ___) => _historyAttachmentPlaceholder(
-                    Icons.broken_image_outlined,
-                  ),
-            )
-            : _historyAttachmentPlaceholder(Icons.link_outlined),
-  );
-}
-
-Widget _historyAttachmentPlaceholder(IconData icon) {
-  return Container(
-    width: 56,
-    height: 56,
-    decoration: BoxDecoration(
-      color: Colors.blueGrey.shade100,
-      border: Border.all(color: Colors.blueGrey.shade200),
-    ),
-    child: Icon(icon, size: 22, color: Colors.blueGrey.shade700),
-  );
+  await openUrlPreferInAppMedia(rawUrl);
 }
 
 Widget _historyAttachmentFilesWrap(List<dynamic>? files) {
@@ -1018,33 +996,17 @@ Widget _historyAttachmentFilesWrap(List<dynamic>? files) {
     runSpacing: 10,
     children: [
       for (final file in list)
-        InkWell(
-          onTap: () async {
-            final s = file?.toString() ?? '';
-            if (s.isEmpty) return;
-            if (getFileType(s) == 'image') {
-              Get.dialog(
-                AlertDialog(
-                  actions: [
-                    MainButton(
-                      icon: false,
-                      title: 'app.close'.tr,
-                      fontColor: Colors.white,
-                      backgroundColor: AppColors.primary,
-                      width: 100,
-                      borderSize: 5,
-                      height: 30,
-                      onPressed: () => Get.back(),
-                    ),
-                  ],
-                  content: Image.network(s, fit: BoxFit.contain),
-                ),
-              );
-              return;
-            }
-            await historyOpenAttachmentUrl(s);
-          },
-          child: _historyAttachmentPreviewTile(file?.toString() ?? ''),
+        SizedBox(
+          width: 56,
+          height: 56,
+          child: TaskDetailsDialogHelpers.attachmentThumbnail(
+            file?.toString() ?? '',
+            onOpen: () async {
+              final s = file?.toString() ?? '';
+              if (s.isEmpty) return;
+              await historyOpenAttachmentUrl(s);
+            },
+          ),
         ),
     ],
   );
@@ -1461,66 +1423,80 @@ void showAddContentDialog(
 
                                       SizedBox(
                                         width: (Get.width * 0.7 / 2) - 30,
-                                        child: Obx(
-                                          () => Column(
-                                            children: [
-                                              for (var filePath
-                                                  in controller
-                                                      .uploadedFilesPaths)
-                                                Row(
+                                        child: Obx(() {
+                                          final files =
+                                              controller.uploadedFilesPaths
+                                                  .toList();
+                                          if (files.isEmpty) {
+                                            return const SizedBox.shrink();
+                                          }
+                                          return GridView.builder(
+                                            shrinkWrap: true,
+                                            physics:
+                                                const NeverScrollableScrollPhysics(),
+                                            itemCount: files.length,
+                                            gridDelegate:
+                                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                                  crossAxisCount: 2,
+                                                  crossAxisSpacing: 10,
+                                                  mainAxisSpacing: 10,
+                                                  childAspectRatio: 1,
+                                                ),
+                                            itemBuilder: (context, index) {
+                                              final filePath = files[index];
+                                              return InkWell(
+                                                onTap: () async {
+                                                  await historyOpenAttachmentUrl(
+                                                    filePath,
+                                                  );
+                                                },
+                                                child: Stack(
                                                   children: [
-                                                    InkWell(
-                                                      onTap: () {
-                                                        controller
-                                                            .uploadedFilesPaths
-                                                            .remove(filePath);
-                                                      },
-                                                      child: Icon(
-                                                        Icons.cancel,
-                                                        color: Colors.red,
-                                                      ),
+                                                    Positioned.fill(
+                                                      child:
+                                                          TaskDetailsDialogHelpers.attachmentThumbnail(
+                                                            filePath,
+                                                            onOpen: () async {
+                                                              await historyOpenAttachmentUrl(
+                                                                filePath,
+                                                              );
+                                                            },
+                                                          ),
                                                     ),
-                                                    SizedBox(width: 5),
-                                                    InkWell(
-                                                      onTap: () async {
-                                                        if (await canLaunchUrl(
-                                                          Uri.parse(filePath),
-                                                        )) {
-                                                          await launchUrl(
-                                                            Uri.parse(filePath),
-                                                            mode:
-                                                                LaunchMode
-                                                                    .externalApplication,
-                                                          );
-                                                        } else {
-                                                          FunHelper.showSnackbar(
-                                                            'error'.tr,
-                                                            'errors.cannot_open_link_param'
-                                                                .trParams({
-                                                                  'url':
-                                                                      filePath,
-                                                                }),
-                                                          );
-                                                        }
-                                                      },
-                                                      child: Text(
-                                                        FunHelper.getFileNameFromUrl(
-                                                          filePath,
-                                                        ),
-                                                        style: TextStyle(
-                                                          fontSize: 12,
-                                                          color: Colors.blue,
-                                                          decoration:
-                                                              TextDecoration
-                                                                  .underline,
+                                                    Positioned(
+                                                      top: 6,
+                                                      right: 6,
+                                                      child: InkWell(
+                                                        onTap: () {
+                                                          controller
+                                                              .uploadedFilesPaths
+                                                              .remove(filePath);
+                                                        },
+                                                        child: Container(
+                                                          width: 24,
+                                                          height: 24,
+                                                          decoration: BoxDecoration(
+                                                            color:
+                                                                Colors.black54,
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  12,
+                                                                ),
+                                                          ),
+                                                          child: const Icon(
+                                                            Icons.close,
+                                                            color: Colors.white,
+                                                            size: 15,
+                                                          ),
                                                         ),
                                                       ),
                                                     ),
                                                   ],
                                                 ),
-                                            ],
-                                          ),
-                                        ),
+                                              );
+                                            },
+                                          );
+                                        }),
                                       ),
                                     ],
                                   ),

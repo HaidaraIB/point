@@ -118,6 +118,9 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
         ? customClientController.text.trim()
         : clientController.text.trim();
     final model = widget.model;
+    final keepStatusUnchanged =
+        controller.currentEmployee.value?.role == 'admin' ||
+        controller.currentEmployee.value?.role == 'supervisor';
     final safeEmployees = (controller.employees as List<EmployeeModel>?) ?? <EmployeeModel>[];
 
     if (model == null) {
@@ -162,7 +165,9 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
           id: model.id,
           title: titleController.text,
           description: notesController.text,
-          status: StorageKeys.status_edit_requested,
+          status: keepStatusUnchanged
+              ? model.status
+              : StorageKeys.status_edit_requested,
           priority: priorityController.text,
           fromDate: effectiveStartAt,
           toDate: effectiveEndAt,
@@ -251,7 +256,13 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                           (a) => StorageKeys.matchesDepartment(
                             a.department,
                             StorageKeys.departmentDesign,
-                          ),
+                          ) ||
+                          (((controller.currentEmployee.value?.role ==
+                                      'admin') ||
+                                  (controller.currentEmployee.value?.role ==
+                                      'supervisor')) &&
+                              a.id ==
+                                  controller.currentEmployee.value?.id),
                         )
                         .map(
                           (v) => DropdownMenuItem(
@@ -613,7 +624,22 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                         onPressed: controller.isLoading.value ? null : _submit,
                         child: controller.isLoading.value
                             ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                            : Text('common.save'.tr, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                            : Text(
+                                (widget.model != null &&
+                                        ((controller.currentEmployee.value
+                                                    ?.role ==
+                                                'admin') ||
+                                            (controller.currentEmployee.value
+                                                    ?.role ==
+                                                'supervisor')))
+                                    ? 'edit'.tr
+                                    : 'common.save'.tr,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
                       ),
                     ),
                   ),

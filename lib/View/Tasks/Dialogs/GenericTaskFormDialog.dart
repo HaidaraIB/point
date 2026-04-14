@@ -146,7 +146,11 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
                   (a) => StorageKeys.matchesDepartment(
                     a.department,
                     widget.delegate.executorDepartment,
-                  ),
+                  ) ||
+                  (((controller.currentEmployee.value?.role == 'admin') ||
+                          (controller.currentEmployee.value?.role ==
+                              'supervisor')) &&
+                      a.id == controller.currentEmployee.value?.id),
                 )
                 .map(
                   (v) => DropdownMenuItem(
@@ -587,7 +591,16 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
                 onPressed: () => _onSave(controller),
                 child: controller.isLoading.value
                     ? const Center(child: CircularProgressIndicator(color: Colors.white))
-                    : Text('common.save'.tr, style: const TextStyle(color: Colors.white)),
+                    : Text(
+                        (widget.model != null &&
+                                ((controller.currentEmployee.value?.role ==
+                                        'admin') ||
+                                    (controller.currentEmployee.value?.role ==
+                                        'supervisor')))
+                            ? 'edit'.tr
+                            : 'common.save'.tr,
+                        style: const TextStyle(color: Colors.white),
+                      ),
               ),
             ),
           ),

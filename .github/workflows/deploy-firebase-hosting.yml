@@ -13,18 +13,18 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Generate firebase-messaging-sw.js (test project)
         run: node scripts/generate-firebase-sw.js --test
 
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.35.1'
+          flutter-version: '3.41.5'
           channel: 'stable'
           cache: true
 
@@ -41,7 +41,7 @@ jobs:
           --dart-define=SUPABASE_STORAGE_BASE_URL="${{ secrets.SUPABASE_STORAGE_BASE_URL }}"
 
       - name: Install Firebase CLI
-        run: npm install -g firebase-tools
+        run: npm install -g firebase-tools@15.14.0
 
       - name: Deploy to Firebase Hosting (test project)
         run: >

@@ -1,9 +1,8 @@
-// ignore_for_file: deprecated_member_use
-
 import 'dart:async';
-import 'dart:html' as html;
-import 'dart:js_util' as js_util;
+import 'dart:js_interop';
 import 'dart:typed_data';
+
+import 'package:web/web.dart';
 
 class ClipboardImageData {
   ClipboardImageData({required this.bytes, required this.mimeType});
@@ -13,21 +12,14 @@ class ClipboardImageData {
 }
 
 Future<ClipboardImageData?> readClipboardImageData() async {
-  final clipboard = html.window.navigator.clipboard;
-  if (clipboard == null) return null;
-  if (!js_util.hasProperty(clipboard, 'read')) return null;
   try {
-    final dynamic rawItems = await js_util.promiseToFuture<dynamic>(
-      js_util.callMethod(clipboard, 'read', const []),
-    );
-    final items = _asList(rawItems);
-    for (final dynamic item in items) {
-      final types = _asList(js_util.getProperty(item, 'types'));
-      for (final dynamic t in types) {
-        final mime = t.toString().toLowerCase();
+    final clipboard = window.navigator.clipboard;
+    final items = await clipboard.read().toDart;
+    for (final item in items.toDart) {
+      for (final t in item.types.toDart) {
+        final mime = t.toDart.toLowerCase();
         if (!mime.startsWith('image/')) continue;
-        final dynamic blobFuture = js_util.callMethod(item, 'getType', [t]);
-        final dynamic blob = await js_util.promiseToFuture<dynamic>(blobFuture);
+        final blob = await item.getType(mime).toDart;
         final bytes = await _blobToBytes(blob);
         if (bytes != null) {
           return ClipboardImageData(bytes: bytes, mimeType: mime);
@@ -40,21 +32,11 @@ Future<ClipboardImageData?> readClipboardImageData() async {
   return null;
 }
 
-List<dynamic> _asList(dynamic value) {
-  if (value is List) return value;
+Future<Uint8List?> _blobToBytes(Blob blob) async {
   try {
-    return List<dynamic>.from(value as Iterable);
+    final buffer = await blob.arrayBuffer().toDart;
+    return Uint8List.view(buffer.toDart);
   } catch (_) {
-    return const [];
+    return null;
   }
-}
-
-Future<Uint8List?> _blobToBytes(dynamic blob) async {
-  try {
-    final dynamic bufferFuture = js_util.callMethod(blob, 'arrayBuffer', const []);
-    final dynamic result = await js_util.promiseToFuture<dynamic>(bufferFuture);
-    if (result is ByteBuffer) return Uint8List.view(result);
-    if (result is Uint8List) return result;
-  } catch (_) {}
-  return null;
 }

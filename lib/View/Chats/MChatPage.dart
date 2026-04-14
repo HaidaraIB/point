@@ -777,7 +777,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                     width: 45,
                                     height: 45,
                                     decoration: BoxDecoration(
-                                      color: const Color(0xff00A389),
+                                      color: const Color(0xFF465FFF),
                                       borderRadius: BorderRadius.circular(15),
                                     ),
                                     child: const Icon(
@@ -1604,6 +1604,9 @@ class _MessageScreenState extends State<MessageScreen>
     final isGroup = widget.chat['isGroup'] ?? false;
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: const Color(0xFFEAE5ED),
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () {
@@ -1653,7 +1656,7 @@ class _MessageScreenState extends State<MessageScreen>
         ),
       ),
       body: Container(
-        decoration: const BoxDecoration(color: Color(0xfff7f9fc)),
+        decoration: const BoxDecoration(color: Color(0xFFE9EDEF)),
         child: Column(
           children: [
             // 1. عرض الرسائل
@@ -1681,6 +1684,13 @@ class _MessageScreenState extends State<MessageScreen>
 
                         final messages = snapshot.data!.docs;
                         _orderedChatMessageDocs = messages;
+                        QueryDocumentSnapshot<Map<String, dynamic>>? pinnedDoc;
+                        for (final doc in messages) {
+                          if (doc.data()['isPinned'] == true) {
+                            pinnedDoc = doc;
+                            break;
+                          }
+                        }
 
                         final showScrollFab = !chatReverseListShowsLatest(
                           positionsListener: _chatItemPositionsListener,
@@ -1704,12 +1714,27 @@ class _MessageScreenState extends State<MessageScreen>
                           usePersisted: persistedForResolve != null,
                         );
 
-                        return Stack(
-                          clipBehavior: Clip.none,
-                          alignment: Alignment.bottomRight,
+                        return Column(
                           children: [
-                            Positioned.fill(
-                              child: ScrollablePositionedList.builder(
+                            if (pinnedDoc != null)
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
+                                child: _PinnedMessageBanner(
+                                  message: pinnedDoc.data(),
+                                  isGroup: isGroup,
+                                  onTap:
+                                      () => _scrollToRepliedMessage(
+                                        pinnedDoc!.id,
+                                      ),
+                                ),
+                              ),
+                            Expanded(
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                alignment: Alignment.bottomRight,
+                                children: [
+                                  Positioned.fill(
+                                    child: ScrollablePositionedList.builder(
                                 key: ValueKey(
                                   '${_chatId}_${prefsDone ? 'p' : 'n'}',
                                 ),
@@ -1760,29 +1785,20 @@ class _MessageScreenState extends State<MessageScreen>
                                       bubbleDecoration: BoxDecoration(
                                         color:
                                             isMe
-                                                ? const Color(0xff00A389)
+                                                ? const Color(0xFF465FFF)
                                                 : Colors.white,
                                         borderRadius: BorderRadius.only(
-                                          topLeft: const Radius.circular(15),
-                                          topRight: const Radius.circular(15),
+                                          topLeft: const Radius.circular(18),
+                                          topRight: const Radius.circular(18),
                                           bottomLeft: Radius.circular(
-                                            isMe ? 15 : 4,
+                                            isMe ? 18 : 5,
                                           ),
                                           bottomRight: Radius.circular(
-                                            isMe ? 4 : 15,
+                                            isMe ? 5 : 18,
                                           ),
                                         ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withValues(
-                                              alpha: 0.05,
-                                            ),
-                                            blurRadius: 4,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ],
                                       ),
-                                      maxWidthFactor: 0.7,
+                                      maxWidthFactor: 0.76,
                                       alignment:
                                           isMe
                                               ? Alignment.centerRight
@@ -1796,18 +1812,22 @@ class _MessageScreenState extends State<MessageScreen>
                                     ),
                                   );
                                 },
-                              ),
-                            ),
-                            Positioned(
-                              right: 6,
-                              bottom: 10,
-                              child: ChatScrollToLatestFab(
-                                visible: showScrollFab,
-                                badgeCount: unreadBelow,
-                                onPressed: () => scheduleScrollChatToLatest(
-                                  controller: _chatMessageItemScrollController,
-                                  mounted: () => mounted,
-                                ),
+                                    ),
+                                  ),
+                                  Positioned(
+                                    right: 6,
+                                    bottom: 10,
+                                    child: ChatScrollToLatestFab(
+                                      visible: showScrollFab,
+                                      badgeCount: unreadBelow,
+                                      onPressed: () => scheduleScrollChatToLatest(
+                                        controller:
+                                            _chatMessageItemScrollController,
+                                        mounted: () => mounted,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
@@ -1868,7 +1888,7 @@ class _MessageScreenState extends State<MessageScreen>
                 border: Border.all(
                   color:
                       _messageFocusNode.hasFocus
-                          ? const Color(0xff00A389).withValues(alpha: 0.35)
+                          ? const Color(0xFF465FFF).withValues(alpha: 0.35)
                           : Colors.grey.shade200,
                 ),
                 boxShadow: [
@@ -2004,7 +2024,7 @@ class _MessageScreenState extends State<MessageScreen>
                       ),
                       icon: const Icon(
                         Icons.send_rounded,
-                        color: Color(0xff00A389),
+                        color: Color(0xFF465FFF),
                         size: 28,
                       ),
                       onPressed: busy ? null : _sendMessage,
@@ -2049,6 +2069,85 @@ class _MessageScreenState extends State<MessageScreen>
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PinnedMessageBanner extends StatelessWidget {
+  final Map<String, dynamic> message;
+  final bool isGroup;
+  final VoidCallback onTap;
+
+  const _PinnedMessageBanner({
+    required this.message,
+    required this.isGroup,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final sender = (message['senderName'] as String?)?.trim() ?? '';
+    final preview = chatReplyPreviewFromMessage(message);
+    final titleColor = const Color(0xFF465FFF);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF4F8F6),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 3,
+                height: 28,
+                margin: const EdgeInsets.only(top: 2),
+                decoration: BoxDecoration(
+                  color: titleColor,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.push_pin_rounded, size: 16, color: titleColor),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      AppLocaleKeys.chatPinnedMessageLabel.tr,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: titleColor,
+                        height: 1.15,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      isGroup && sender.isNotEmpty ? '$sender: $preview' : preview,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.black87,
+                        height: 1.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

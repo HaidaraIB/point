@@ -4,11 +4,11 @@ import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
+import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Tasks/DetailsDialogs/GenericTaskDetailsDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 import 'package:point/View/Tasks/Mobile/TaskDetailsMobile.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 void showProgrammingDialog(BuildContext context, {required TaskModel task}) {
   Responsive.isMobile(context)
@@ -65,19 +65,7 @@ class ProgrammingDetailsSection extends StatelessWidget {
                   InkWell(
                     onTap: () async {
                       final url = task.programmingModel!.contenturl;
-                      if (await canLaunchUrl(Uri.parse(url))) {
-                        await launchUrl(
-                          Uri.parse(url),
-                          mode: LaunchMode.externalApplication,
-                        );
-                      } else {
-                        FunHelper.showSnackbar(
-                          'error'.tr,
-                          'errors.cannot_open_link_param'.trParams({
-                            'url': url,
-                          }),
-                        );
-                      }
+                      await openUrlPreferInAppMedia(url);
                     },
                     child: TaskDetailsDialogHelpers.infoBox(
                       'task_details.content_link'.tr,

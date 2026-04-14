@@ -150,6 +150,9 @@ class ContentWriteFormDelegate extends TaskFormDialogDelegate {
     TaskModel? existing,
     HomeController controller,
   ) {
+    final keepStatusUnchanged =
+        controller.currentEmployee.value?.role == 'admin' ||
+        controller.currentEmployee.value?.role == 'supervisor';
     final notes = existing != null
         ? [
             ...existing.notes,
@@ -197,7 +200,9 @@ class ContentWriteFormDelegate extends TaskFormDialogDelegate {
     return existing.copyWith(
       title: common.title,
       description: common.description,
-      status: StorageKeys.status_edit_requested,
+      status: keepStatusUnchanged
+          ? existing.status
+          : StorageKeys.status_edit_requested,
       priority: common.priority,
       fromDate: common.fromDate,
       toDate: common.toDate,

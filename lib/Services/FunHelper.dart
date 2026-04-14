@@ -440,12 +440,8 @@ class FunHelper {
     try {
       if (date == null) return null;
       final useAr = _isArabicAppLanguage();
-      final loc =
-          useAr ? const Locale('ar') : (Get.locale ?? const Locale('en'));
-      final localeName =
-          loc.countryCode != null && loc.countryCode!.isNotEmpty
-              ? '${loc.languageCode}_${loc.countryCode}'
-              : loc.languageCode;
+      // Force Latin digits for all locales.
+      const localeName = 'en_US';
       final pattern = useAr ? 'dd/MM/yyyy HH:mm' : 'dd/MM/yyyy hh:mm a';
       return DateFormat(pattern, localeName).format(date.toLocal());
     } catch (e) {
@@ -457,12 +453,8 @@ class FunHelper {
     try {
       if (date == null) return null;
       final useAr = _isArabicAppLanguage();
-      final loc =
-          useAr ? const Locale('ar') : (Get.locale ?? const Locale('en'));
-      final localeName =
-          loc.countryCode != null && loc.countryCode!.isNotEmpty
-              ? '${loc.languageCode}_${loc.countryCode}'
-              : loc.languageCode;
+      // Force Latin digits for all locales.
+      const localeName = 'en_US';
       final pattern = useAr ? 'yyyy-MM-dd HH:mm' : 'yyyy-MM-dd hh:mm a';
       return DateFormat(pattern, localeName).format(date.toLocal());
     } catch (e) {

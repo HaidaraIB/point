@@ -230,6 +230,7 @@ class _TasksHistoryState extends State<TasksHistory> {
                                           ),
                                           child: DropdownButtonHideUnderline(
                                             child: DropdownButton<String>(
+                                              isExpanded: true,
                                               hint: Padding(
                                                 padding:
                                                     const EdgeInsets.symmetric(
@@ -237,6 +238,8 @@ class _TasksHistoryState extends State<TasksHistory> {
                                                     ),
                                                 child: Text(
                                                   'tasks.filter_priority'.tr,
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
                                                   style: TextStyle(
                                                     fontSize: 13,
                                                     color:
@@ -289,6 +292,7 @@ class _TasksHistoryState extends State<TasksHistory> {
                                           ),
                                           child: DropdownButtonHideUnderline(
                                             child: DropdownButton<String>(
+                                              isExpanded: true,
                                               hint: Padding(
                                                 padding:
                                                     const EdgeInsets.symmetric(
@@ -296,6 +300,8 @@ class _TasksHistoryState extends State<TasksHistory> {
                                                     ),
                                                 child: Text(
                                                   'tasks.filter_status'.tr,
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
                                                   style: TextStyle(
                                                     fontSize: 13,
                                                     color:
@@ -371,6 +377,7 @@ class _TasksHistoryState extends State<TasksHistory> {
                                             ),
                                             child: DropdownButtonHideUnderline(
                                               child: DropdownButton<String>(
+                                                isExpanded: true,
                                                 hint: Padding(
                                                   padding:
                                                       const EdgeInsets.symmetric(
@@ -378,6 +385,9 @@ class _TasksHistoryState extends State<TasksHistory> {
                                                       ),
                                                   child: Text(
                                                     'tasks.filter_assignee'.tr,
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
                                                     style: TextStyle(
                                                       fontSize: 13,
                                                       color:

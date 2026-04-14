@@ -76,6 +76,9 @@ class AppLocaleKeys {
   static const chatActionEdit = 'chat.action_edit';
   static const chatActionDelete = 'chat.action_delete';
   static const chatActionReply = 'chat.action_reply';
+  static const chatActionPin = 'chat.action_pin';
+  static const chatActionUnpin = 'chat.action_unpin';
+  static const chatPinnedMessageLabel = 'chat.pinned_message_label';
   static const chatEditedLabel = 'chat.edited_label';
   static const chatEditHistoryTitle = 'chat.edit_history_title';
   static const chatEditHistoryBy = 'chat.edit_history_by';

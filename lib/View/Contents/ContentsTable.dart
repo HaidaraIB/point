@@ -14,6 +14,7 @@ import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/AppConstants.dart';
 import 'package:point/Utils/ContentPermissions.dart';
+import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Clients/ClientsTable.dart';
 import 'package:point/View/Contents/ContentDialogDetails.dart';
 import 'package:point/View/Contents/Mobile/ContentFormMobilePage.dart';
@@ -29,7 +30,6 @@ import 'package:point/View/Shared/HorizontalScroll.dart';
 import 'package:point/View/Shared/TableCellCenter.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/t.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 part 'contents_table_employee_web_part.dart';
 part 'contents_table_desktop_data_table_part.dart';

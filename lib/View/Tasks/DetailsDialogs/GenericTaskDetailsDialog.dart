@@ -5,10 +5,9 @@ import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
-import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Shared/TaskTimelineWidget.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 /// Generic web dialog for task details. Renders common shell (header, notes,
 /// attachments, timeline) and a type-specific middle section.
@@ -489,31 +488,8 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
     );
   }
 
-  Uri _normalizeAttachmentUri(String rawUrl) {
-    final trimmed = rawUrl.trim();
-    final parsed = Uri.tryParse(trimmed);
-    if (parsed != null && parsed.hasScheme) return parsed;
-    return Uri.parse('https://$trimmed');
-  }
-
   Future<void> _launchUrl(String rawUrl) async {
-    try {
-      final uri = _normalizeAttachmentUri(rawUrl);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-        return;
-      }
-    } catch (_) {
-      // fall through to snackbar
-    }
-
-    FunHelper.showSnackbar(
-      AppLocaleKeys.errorTitle.tr,
-      AppLocaleKeys.contentDialogOpenLinkFailed.tr,
-      snackPosition: SnackPosition.TOP,
-      backgroundColor: Colors.orange,
-      colorText: Colors.white,
-    );
+    await openUrlPreferInAppMedia(rawUrl);
   }
 
   Widget _buildSectionShell({

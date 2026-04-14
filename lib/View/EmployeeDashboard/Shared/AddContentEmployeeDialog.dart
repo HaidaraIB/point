@@ -2,32 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
-import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 Future<void> _openAddContentEmployeeFile(String rawUrl) async {
-  final uri = Uri.tryParse(rawUrl);
-  if (uri == null) {
-    FunHelper.showSnackbar(
-      'error'.tr,
-      AppLocaleKeys.contentDialogOpenLinkFailed.tr,
-    );
-    return;
-  }
-  final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
-  if (!ok) {
-    FunHelper.showSnackbar(
-      'error'.tr,
-      AppLocaleKeys.contentDialogOpenLinkFailed.tr,
-    );
-  }
+  await openUrlPreferInAppMedia(rawUrl);
 }
 
 void addContentEmployeeDialog(

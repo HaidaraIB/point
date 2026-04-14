@@ -303,7 +303,13 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                                   (a) => StorageKeys.matchesDepartment(
                                                     a.department,
                                                     StorageKeys.departmentPromotion,
-                                                  ),
+                                                  ) ||
+                                                  (((controller.currentEmployee.value?.role ==
+                                                              'admin') ||
+                                                          (controller.currentEmployee.value?.role ==
+                                                              'supervisor')) &&
+                                                      a.id ==
+                                                          controller.currentEmployee.value?.id),
                                                 )
                                                 .map(
                                                   (v) => DropdownMenuItem(
@@ -1065,8 +1071,13 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                                         ),
                                                     ],
                                                 status:
-                                                    StorageKeys
-                                                        .status_edit_requested,
+                                                    ((controller.currentEmployee.value?.role ==
+                                                                'admin') ||
+                                                            (controller.currentEmployee.value?.role ==
+                                                                'supervisor'))
+                                                        ? model.status
+                                                        : StorageKeys
+                                                            .status_edit_requested,
                                                 priority:
                                                     priorityController.text,
                                                 fromDate: effectiveStartAt,
@@ -1129,7 +1140,19 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                                     CircularProgressIndicator(),
                                               )
                                               : Text(
-                                                'common.save'.tr,
+                                                (model != null &&
+                                                        ((controller
+                                                                    .currentEmployee
+                                                                    .value
+                                                                    ?.role ==
+                                                                'admin') ||
+                                                            (controller
+                                                                    .currentEmployee
+                                                                    .value
+                                                                    ?.role ==
+                                                                'supervisor')))
+                                                    ? 'edit'.tr
+                                                    : 'common.save'.tr,
                                                 style: TextStyle(
                                                   color: Colors.white,
                                                 ),

@@ -8,8 +8,8 @@ import 'package:point/Services/StorageKeys.dart';
 import 'package:point/View/Contents/Mobile/ContentDetailsMobilePage.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/Utils/ContentPermissions.dart';
+import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 void showContentDialogDetails(
   BuildContext context, {
@@ -565,30 +565,7 @@ class _ContentDialogDetailsState extends State<ContentDialogDetails> {
     return s.isEmpty ? '-' : s;
   }
 
-  Uri _normalizeUri(String rawUrl) {
-    final trimmed = rawUrl.trim();
-    final parsed = Uri.tryParse(trimmed);
-    if (parsed != null && parsed.hasScheme) return parsed;
-    return Uri.parse('https://$trimmed');
-  }
-
   Future<void> _launchAttachment(String rawUrl) async {
-    try {
-      final uri = _normalizeUri(rawUrl);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-        return;
-      }
-    } catch (_) {
-      // Fall through to snackbar.
-    }
-
-    FunHelper.showSnackbar(
-      AppLocaleKeys.errorTitle.tr,
-      AppLocaleKeys.contentDialogOpenLinkFailed.tr,
-      snackPosition: SnackPosition.TOP,
-      backgroundColor: Colors.orange,
-      colorText: Colors.white,
-    );
+    await openUrlPreferInAppMedia(rawUrl);
   }
 }

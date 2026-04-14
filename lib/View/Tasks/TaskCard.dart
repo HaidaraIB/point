@@ -51,6 +51,8 @@ class TaskCard extends StatelessWidget {
                     builder: (context) {
                       final hc = Get.find<HomeController>();
                       final role = hc.currentEmployee.value?.role ?? '';
+                      final canEditDirectly =
+                          role == 'admin' || role == 'supervisor';
                       final canEscalate =
                           role == 'supervisor' &&
                           FunHelper.taskStatusAllowsSupervisorDirectOrEscalate(
@@ -102,7 +104,11 @@ class TaskCard extends StatelessWidget {
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Text('tasks.request_edit'.tr),
+                                        Text(
+                                          canEditDirectly
+                                              ? 'edit'.tr
+                                              : 'tasks.request_edit'.tr,
+                                        ),
                                         Icon(
                                           Icons.edit_outlined,
                                           color: Colors.blueAccent,

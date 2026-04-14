@@ -47,6 +47,85 @@ class ChatScreen extends StatefulWidget {
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
+class _PinnedMessageBanner extends StatelessWidget {
+  final Map<String, dynamic> message;
+  final bool isGroup;
+  final VoidCallback onTap;
+
+  const _PinnedMessageBanner({
+    required this.message,
+    required this.isGroup,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final sender = (message['senderName'] as String?)?.trim() ?? '';
+    final preview = chatReplyPreviewFromMessage(message);
+    final titleColor = const Color(0xFF465FFF);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF4F6FF),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 3,
+                height: 28,
+                margin: const EdgeInsets.only(top: 2),
+                decoration: BoxDecoration(
+                  color: titleColor,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.push_pin_rounded, size: 16, color: titleColor),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      AppLocaleKeys.chatPinnedMessageLabel.tr,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: titleColor,
+                        height: 1.15,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      isGroup && sender.isNotEmpty ? '$sender: $preview' : preview,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.black87,
+                        height: 1.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   // -------- controllers / state -------
   final TextEditingController _messageController = TextEditingController();
@@ -1427,7 +1506,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                       width: 45,
                                       height: 45,
                                       decoration: BoxDecoration(
-                                        color: Color(0xff00A389),
+                                      color: Color(0xFF465FFF),
                                         borderRadius: BorderRadius.circular(15),
                                       ),
                                       child: Icon(
@@ -1867,6 +1946,18 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                         }
                                                         _orderedChatMessageDocs =
                                                             docs;
+                                                        QueryDocumentSnapshot<
+                                                          Map<String, dynamic>
+                                                        >?
+                                                        pinnedDoc;
+                                                        for (final doc in docs) {
+                                                          if (doc
+                                                                  .data()['isPinned'] ==
+                                                              true) {
+                                                            pinnedDoc = doc;
+                                                            break;
+                                                          }
+                                                        }
                                                         final showScrollFab =
                                                             !chatReverseListShowsLatest(
                                                           positionsListener:
@@ -1907,15 +1998,39 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                               persistedForResolve !=
                                                                   null,
                                                         );
-                                                        return Stack(
-                                                          clipBehavior:
-                                                              Clip.none,
-                                                          alignment: Alignment
-                                                              .bottomRight,
+                                                        return Column(
                                                           children: [
-                                                            Positioned.fill(
-                                                              child: ScrollablePositionedList
-                                                                  .builder(
+                                                            if (pinnedDoc != null)
+                                                              Padding(
+                                                                padding:
+                                                                    const EdgeInsets.fromLTRB(
+                                                                      12,
+                                                                      8,
+                                                                      12,
+                                                                      4,
+                                                                    ),
+                                                                child: _PinnedMessageBanner(
+                                                                  message:
+                                                                      pinnedDoc.data(),
+                                                                  isGroup:
+                                                                      _selectedChat!['isGroup'] ==
+                                                                      true,
+                                                                  onTap:
+                                                                      () => _scrollToRepliedMessage(
+                                                                        pinnedDoc!.id,
+                                                                      ),
+                                                                ),
+                                                              ),
+                                                            Expanded(
+                                                              child: Stack(
+                                                                clipBehavior:
+                                                                    Clip.none,
+                                                                alignment: Alignment
+                                                                    .bottomRight,
+                                                                children: [
+                                                                  Positioned.fill(
+                                                                    child: ScrollablePositionedList
+                                                                        .builder(
                                                                 key: ValueKey(
                                                                   '${selChatId}_$_chatMessageListEpoch',
                                                                 ),
@@ -1954,6 +2069,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                                       AppLocaleKeys
                                                                           .chatSenderFallback
                                                                           .tr;
+                                                                  final isRead =
+                                                                      d['isRead'] ==
+                                                                      true;
 
                                                                   return Padding(
                                                                     key:
@@ -2016,9 +2134,25 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                                             : Colors
                                                                                 .grey
                                                                                 .shade100,
-                                                                        borderRadius:
-                                                                            BorderRadius.circular(
-                                                                          12,
+                                                                        borderRadius: BorderRadius.only(
+                                                                          topLeft:
+                                                                              const Radius.circular(
+                                                                                17,
+                                                                              ),
+                                                                          topRight:
+                                                                              const Radius.circular(
+                                                                                17,
+                                                                              ),
+                                                                          bottomLeft: Radius.circular(
+                                                                            isMe
+                                                                                ? 17
+                                                                                : 5,
+                                                                          ),
+                                                                          bottomRight: Radius.circular(
+                                                                            isMe
+                                                                                ? 5
+                                                                                : 17,
+                                                                          ),
                                                                         ),
                                                                       ),
                                                                       maxWidthFactor:
@@ -2033,26 +2167,33 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                                               .end
                                                                           : CrossAxisAlignment
                                                                               .start,
+                                                                      showReadReceipts:
+                                                                          true,
+                                                                      messageIsRead:
+                                                                          isRead,
                                                                     ),
                                                                   );
                                                                 },
-                                                              ),
-                                                            ),
-                                                            Positioned(
-                                                              right: 6,
-                                                              bottom: 10,
-                                                              child: ChatScrollToLatestFab(
-                                                                visible:
-                                                                    showScrollFab,
-                                                                badgeCount:
-                                                                    unreadBelow,
-                                                                onPressed: () =>
-                                                                    scheduleScrollChatToLatest(
-                                                                  controller:
-                                                                      _chatMessageItemScrollController,
-                                                                  mounted: () =>
-                                                                      mounted,
-                                                                ),
+                                                                    ),
+                                                                  ),
+                                                                  Positioned(
+                                                                    right: 6,
+                                                                    bottom: 10,
+                                                                    child: ChatScrollToLatestFab(
+                                                                      visible:
+                                                                          showScrollFab,
+                                                                      badgeCount:
+                                                                          unreadBelow,
+                                                                      onPressed: () =>
+                                                                          scheduleScrollChatToLatest(
+                                                                        controller:
+                                                                            _chatMessageItemScrollController,
+                                                                        mounted:
+                                                                            () => mounted,
+                                                                      ),
+                                                                    ),
+                                                                  ),
+                                                                ],
                                                               ),
                                                             ),
                                                           ],

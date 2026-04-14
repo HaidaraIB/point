@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
+import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/Utils/AppColors.dart';
 
 class TaskTimelineWidget extends StatelessWidget {
@@ -59,6 +60,29 @@ class _TimelineRow extends StatelessWidget {
     if (d != null) return FunHelper.formatdate(d) ?? v;
     // ترجمة الحالة والأولوية وغيرها لعرضها بشكل مقروء
     return v.tr;
+  }
+
+  static String _attachmentFileName(String raw) {
+    final v = raw.trim();
+    if (v.isEmpty) return v;
+    final uri = Uri.tryParse(v);
+    if (uri != null && uri.pathSegments.isNotEmpty) {
+      return Uri.decodeComponent(uri.pathSegments.last);
+    }
+    return v;
+  }
+
+  static bool _isLikelyImage(String raw) {
+    final v = raw.toLowerCase();
+    return v.contains('.jpg') ||
+        v.contains('.jpeg') ||
+        v.contains('.png') ||
+        v.contains('.webp') ||
+        v.contains('.gif');
+  }
+
+  Future<void> _openAttachment(BuildContext context, String rawUrl) async {
+    await openUrlPreferInAppMedia(rawUrl);
   }
 
   IconData _iconForType(String type) {
@@ -120,7 +144,12 @@ class _TimelineRow extends StatelessWidget {
                         .trParams({'value': _formatValue(event.oldValue!)}),
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                   ),
-                if (event.newValue != null)
+                if (event.type == 'attachment_added' && event.newValue != null)
+                  _AttachmentTimelineValue(
+                    rawValue: event.newValue!,
+                    onOpen: () => _openAttachment(context, event.newValue!),
+                  )
+                else if (event.newValue != null)
                   Text(
                     'timeline.value_to'
                         .trParams({'value': _formatValue(event.newValue!)}),
@@ -157,6 +186,74 @@ class _TimelineRow extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _AttachmentTimelineValue extends StatelessWidget {
+  final String rawValue;
+  final VoidCallback onOpen;
+
+  const _AttachmentTimelineValue({required this.rawValue, required this.onOpen});
+
+  @override
+  Widget build(BuildContext context) {
+    final fileName = _TimelineRow._attachmentFileName(rawValue);
+    final isImage = _TimelineRow._isLikelyImage(rawValue);
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: InkWell(
+        onTap: onOpen,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: SizedBox(
+                  width: 48,
+                  height: 48,
+                  child:
+                      isImage
+                          ? Image.network(
+                            rawValue,
+                            fit: BoxFit.cover,
+                            errorBuilder:
+                                (_, __, ___) => Container(
+                                  color: Colors.grey.shade200,
+                                  child: const Icon(Icons.image_not_supported),
+                                ),
+                          )
+                          : Container(
+                            color: Colors.grey.shade200,
+                            child: const Icon(Icons.insert_drive_file_outlined),
+                          ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  fileName,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.primaryfontColor,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(Icons.open_in_new, size: 16, color: Colors.grey.shade600),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

@@ -1,5 +1,3 @@
-// ignore_for_file: unused_local_variable, no_leading_underscores_for_local_identifiers, unnecessary_cast
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -8,7 +6,6 @@ import 'package:intl/intl.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/ClientModel.dart';
 import 'package:point/Models/DesignTaskModel.dart';
-import 'package:point/Models/EmployeeModel.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
@@ -128,7 +125,13 @@ void designDialog(BuildContext context, {TaskModel? model}) {
                                               (a) => StorageKeys.matchesDepartment(
                                                 a.department,
                                                 StorageKeys.departmentDesign,
-                                              ),
+                                              ) ||
+                                              (((controller.currentEmployee.value?.role ==
+                                                          'admin') ||
+                                                      (controller.currentEmployee.value?.role ==
+                                                          'supervisor')) &&
+                                                  a.id ==
+                                                      controller.currentEmployee.value?.id),
                                             )
                                             .map(
                                               (v) => DropdownMenuItem(
@@ -156,7 +159,7 @@ void designDialog(BuildContext context, {TaskModel? model}) {
                                     onChanged: (value) {
                                       if (value != null) {
                                         executorController.text =
-                                            (value as EmployeeModel).id ?? '';
+                                            (value).id ?? '';
                                       }
                                     },
                                     validator: (v) {
@@ -838,8 +841,13 @@ void designDialog(BuildContext context, {TaskModel? model}) {
                                             title: titleController.text,
                                             description: notesController.text,
                                             status:
-                                                StorageKeys
-                                                    .status_edit_requested,
+                                                ((controller.currentEmployee.value?.role ==
+                                                            'admin') ||
+                                                        (controller.currentEmployee.value?.role ==
+                                                            'supervisor'))
+                                                    ? model.status
+                                                    : StorageKeys
+                                                        .status_edit_requested,
                                             priority: priorityController.text,
                                             fromDate: effectiveStartAt,
                                             toDate: effectiveEndAt,
@@ -904,7 +912,19 @@ void designDialog(BuildContext context, {TaskModel? model}) {
                                             ),
                                           )
                                           : Text(
-                                            'common.save'.tr,
+                                            (model != null &&
+                                                    ((controller
+                                                                .currentEmployee
+                                                                .value
+                                                                ?.role ==
+                                                            'admin') ||
+                                                        (controller
+                                                                .currentEmployee
+                                                                .value
+                                                                ?.role ==
+                                                            'supervisor')))
+                                                ? 'edit'.tr
+                                                : 'common.save'.tr,
                                             style: TextStyle(
                                               color: Colors.white,
                                             ),

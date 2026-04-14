@@ -1,5 +1,5 @@
 name: point
-description: "A new Flutter project."
+description: "Point Agency"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -16,10 +16,10 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.1.0+8
+version: 1.1.1+9
 
 environment:
-  sdk: ^3.7.0
+  sdk: ^3.9.0
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -38,37 +38,34 @@ dependencies:
   cupertino_icons: ^1.0.8
   get: ^4.7.2
   flutter_svg: ^2.2.1
-  firebase_auth: ^6.0.2
-  firebase_core: ^4.6.0
-  cloud_firestore: ^6.0.2
+  firebase_auth: ^6.4.0
+  firebase_core: ^4.7.0
+  cloud_firestore: ^6.3.0
   intl: ^0.20.2
-  syncfusion_flutter_charts: ^31.1.19
+  syncfusion_flutter_charts: ^33.1.49
   uuid: ^4.5.1
-  supabase_flutter: ^2.10.3
+  supabase_flutter: ^2.12.2
   file_picker: ^11.0.2
   flutter_dropzone: ^4.2.1
   lucide_icons: ^0.257.0
   url_launcher: ^6.3.2
-  firebase_messaging: ^16.1.3
-  firebase_storage: ^13.0.2
+  firebase_messaging: ^16.2.0
+  firebase_storage: ^13.3.0
   font_awesome_flutter: ^11.0.0
   emoji_picker_flutter: ^4.3.0
   video_player: ^2.10.0
-  syncfusion_flutter_pdfviewer: ^31.1.19
+  syncfusion_flutter_pdfviewer: ^33.1.49
   dots_indicator: ^4.0.1
-  flutter_local_notifications: ^20.1.0
-  floating_draggable_widget: ^2.3.0
+  flutter_local_notifications: ^21.0.0
   audioplayers: ^6.5.0
   web: ^1.1.0
   http: ^1.2.2
   google_fonts: ^8.0.2
   record: ^6.2.0
   path_provider: ^2.1.5
-  collection: ^1.19.1
   flutter_slidable: ^4.0.3
   permission_handler: ^12.0.1
-  super_clipboard: ^0.9.1
-  video_thumbnail: ^0.5.6
+  pasteboard: ^0.5.0
   scrollable_positioned_list: ^0.3.8
   package_info_plus: ^9.0.1
 

@@ -305,10 +305,30 @@ class _ChatMessageTileState extends State<ChatMessageTile>
     var n = 1; // reply
     final copyText = _copyablePlainText();
     if (!_deleted && copyText.isNotEmpty) n++;
+    if (!_deleted) n++;
     if (_canEditText) n++;
     if (widget.message['edited'] == true) n++;
     if (widget.isAdmin && !_deleted) n++;
     return n;
+  }
+
+  Future<void> _togglePinnedState() async {
+    final currentlyPinned = widget.message['isPinned'] == true;
+    try {
+      await ChatMessageActions.setMessagePinnedState(
+        fs: FirebaseFirestore.instance,
+        chatId: widget.chatId,
+        messageId: widget.messageId,
+        pinned: !currentlyPinned,
+        actorUserId: widget.currentUserId,
+      );
+    } catch (_) {
+      _showChatFeedback(
+        AppLocaleKeys.errorTitle.tr,
+        AppLocaleKeys.errorGeneric.tr,
+        isError: true,
+      );
+    }
   }
 
   Future<void> _showEditHistory() async {
@@ -718,6 +738,22 @@ class _ChatMessageTileState extends State<ChatMessageTile>
             label: AppLocaleKeys.chatActionEdit.tr,
           ),
         ),
+      if (!_deleted)
+        PopupMenuItem<void>(
+          height: 42,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          onTap: () => runAfterClose(_togglePinnedState),
+          child: _ChatMenuRow(
+            icon:
+                widget.message['isPinned'] == true
+                    ? Icons.push_pin
+                    : Icons.push_pin_outlined,
+            label:
+                widget.message['isPinned'] == true
+                    ? AppLocaleKeys.chatActionUnpin.tr
+                    : AppLocaleKeys.chatActionPin.tr,
+          ),
+        ),
       if (editedFlag)
         PopupMenuItem<void>(
           height: 42,
@@ -843,6 +879,20 @@ class _ChatMessageTileState extends State<ChatMessageTile>
   Widget build(BuildContext context) {
     final mq = MediaQuery.sizeOf(context);
     final replyLabel = AppLocaleKeys.chatActionReply.tr;
+    final bubbleColor = widget.bubbleDecoration.color;
+    final bubbleGreen =
+        bubbleColor != null ? (bubbleColor.g * 255.0).round().clamp(0, 255) : 0;
+    final bubbleRed =
+        bubbleColor != null ? (bubbleColor.r * 255.0).round().clamp(0, 255) : 0;
+    final telegramLikeOutgoing =
+        widget.isMe &&
+        bubbleColor != null &&
+        bubbleGreen >= 210 &&
+        bubbleRed >= 160;
+    final footerTextColor =
+        telegramLikeOutgoing
+            ? const Color(0xFF667781)
+            : (widget.isMe ? Colors.white.withValues(alpha: 0.78) : Colors.black45);
     final slidableChild = GestureDetector(
       behavior: HitTestBehavior.deferToChild,
       onDoubleTap: _emitReply,
@@ -870,7 +920,7 @@ class _ChatMessageTileState extends State<ChatMessageTile>
               Container(
                 key: _bubbleKey,
                 decoration: widget.bubbleDecoration,
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
@@ -878,20 +928,26 @@ class _ChatMessageTileState extends State<ChatMessageTile>
                     _replyQuoteBar(context),
                     chatMessageBubbleContent(
                       Map<String, dynamic>.from(widget.message),
-                      widget.isMe,
+                      !telegramLikeOutgoing && widget.isMe,
                     ),
                     const SizedBox(height: 6),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        if (widget.message['isPinned'] == true) ...[
+                          Icon(
+                            Icons.push_pin_rounded,
+                            size: 12,
+                            color: footerTextColor,
+                          ),
+                          const SizedBox(width: 4),
+                        ],
                         Text(
                           widget.formatTime(widget.timestamp),
                           style: TextStyle(
-                            fontSize: 10,
-                            color:
-                                widget.isMe
-                                    ? Colors.white70
-                                    : Colors.black54,
+                            fontSize: 11,
+                            color: footerTextColor,
+                            height: 1.0,
                           ),
                         ),
                         if (widget.message['edited'] == true && !_deleted) ...[
@@ -904,9 +960,7 @@ class _ChatMessageTileState extends State<ChatMessageTile>
                                 fontSize: 10,
                                 fontStyle: FontStyle.italic,
                                 color:
-                                    widget.isMe
-                                        ? Colors.white60
-                                        : Colors.black45,
+                                    footerTextColor,
                                 decoration: TextDecoration.underline,
                               ),
                             ),
@@ -916,13 +970,22 @@ class _ChatMessageTileState extends State<ChatMessageTile>
                           const SizedBox(width: 6),
                           Icon(
                             widget.messageIsRead
-                                ? Icons.done_all
-                                : Icons.done,
-                            size: 14,
+                                ? Icons.done_all_rounded
+                                : Icons.done_rounded,
+                            size: 15,
                             color:
                                 widget.messageIsRead
-                                    ? Colors.blue
-                                    : Colors.grey,
+                                    ? const Color(0xFF53BDEB)
+                                    : (telegramLikeOutgoing
+                                        ? const Color(0xFF8696A0)
+                                        : footerTextColor),
+                            shadows: const [
+                              Shadow(
+                                color: Color(0x66000000),
+                                blurRadius: 2,
+                                offset: Offset(0, 1),
+                              ),
+                            ],
                           ),
                         ],
                       ],

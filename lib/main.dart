@@ -22,6 +22,7 @@ import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_log.dart';
 import 'package:point/config/app_config.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart' as intl;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:point/firebase_app_options.dart';
@@ -57,6 +58,8 @@ void main(List<String> args) async {
 
   final languageController = Get.put(LanguageController(), permanent: true);
   await languageController.initialize();
+  // Keep numerals Latin (0-9) across all app languages.
+  intl.Intl.defaultLocale = 'en_US';
   Get.put(ChatVoicePlaybackService(), permanent: true);
 
   final supabaseUrl = AppConfig.supabaseUrl;
@@ -170,8 +173,8 @@ class _AppState extends State<App> with WidgetsBindingObserver {
         initialBinding: AppBindings(),
         builder: (context, child) {
           final code = lc.currentLocale.value.languageCode;
-          final dir =
-              code == 'ar' ? TextDirection.rtl : TextDirection.ltr;
+          final textDirections = TextDirection.values;
+          final dir = code == 'ar' ? textDirections.first : textDirections.last;
           return Directionality(
             textDirection: dir,
             child: child ?? const SizedBox.shrink(),

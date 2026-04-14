@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:point/Controller/HomeController.dart';
-import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/ContentModel.dart';
 import 'package:point/Models/EmployeeModel.dart';
 import 'package:point/Services/NotificationService.dart';
@@ -11,13 +10,13 @@ import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/ContentPermissions.dart';
+import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Clients/ClientsTable.dart' show customDatePicker;
 import 'package:point/View/Shared/CustomDropDown.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/t.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 /// Mobile-only full-screen form for add/edit content. Desktop keeps using [showAddContentDialog].
 class ContentFormMobilePage extends StatefulWidget {
@@ -87,21 +86,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
   }
 
   Future<void> _openUploadedFile(String rawUrl) async {
-    final uri = Uri.tryParse(rawUrl);
-    if (uri == null) {
-      FunHelper.showSnackbar(
-        'error'.tr,
-        AppLocaleKeys.contentDialogOpenLinkFailed.tr,
-      );
-      return;
-    }
-    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!ok && mounted) {
-      FunHelper.showSnackbar(
-        'error'.tr,
-        AppLocaleKeys.contentDialogOpenLinkFailed.tr,
-      );
-    }
+    await openUrlPreferInAppMedia(rawUrl);
   }
 
   Future<void> _pickPublishDate() async {
