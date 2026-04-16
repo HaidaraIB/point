@@ -1,7 +1,14 @@
+import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/View/Mobile/Shared/VideoCart.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+final RegExp _urlRegex = RegExp(
+  r'((?:https?:\/\/|www\.|(?:[a-z0-9-]+\.)+[a-z]{2,})(?:\/[^\s]*)?)',
+  caseSensitive: false,
+);
 
 String _mediaPathLower(String rawUrl) {
   try {
@@ -30,11 +37,37 @@ bool isVideoMediaUrl(String rawUrl) {
       p.endsWith('.mkv');
 }
 
+String normalizeUrlForLaunch(String rawUrl) {
+  final trimmed = rawUrl.trim();
+  final lower = trimmed.toLowerCase();
+  if (lower.startsWith('www.')) {
+    return 'https://$trimmed';
+  }
+  if (!lower.startsWith('http://') &&
+      !lower.startsWith('https://') &&
+      RegExp(r'^(?:[a-z0-9-]+\.)+[a-z]{2,}(?:[\/?#].*)?$', caseSensitive: false)
+          .hasMatch(trimmed)) {
+    return 'https://$trimmed';
+  }
+  return trimmed;
+}
+
+bool containsUrlText(String text) => _urlRegex.hasMatch(text);
+
+bool isLikelyUrlValue(String text) {
+  final trimmed = text.trim();
+  if (trimmed.isEmpty) return false;
+  return RegExp(
+    r'^(?:https?:\/\/|www\.|(?:[a-z0-9-]+\.)+[a-z]{2,})(?:[\/?#].*)?$',
+    caseSensitive: false,
+  ).hasMatch(trimmed);
+}
+
 Future<bool> openUrlPreferInAppMedia(
   String rawUrl, {
   bool showErrorSnackbar = true,
 }) async {
-  final trimmed = rawUrl.trim();
+  final trimmed = normalizeUrlForLaunch(rawUrl);
   if (trimmed.isEmpty) return false;
 
   if (isImageMediaUrl(trimmed)) {
@@ -65,4 +98,98 @@ Future<bool> openUrlPreferInAppMedia(
     );
   }
   return ok;
+}
+
+class LinkifiedText extends StatefulWidget {
+  final String text;
+  final TextStyle? style;
+  final TextStyle? linkStyle;
+  final TextAlign textAlign;
+  final int? maxLines;
+  final TextOverflow? overflow;
+
+  const LinkifiedText(
+    this.text, {
+    super.key,
+    this.style,
+    this.linkStyle,
+    this.textAlign = TextAlign.start,
+    this.maxLines,
+    this.overflow,
+  });
+
+  @override
+  State<LinkifiedText> createState() => _LinkifiedTextState();
+}
+
+class _LinkifiedTextState extends State<LinkifiedText> {
+  final List<TapGestureRecognizer> _recognizers = [];
+
+  @override
+  void dispose() {
+    for (final recognizer in _recognizers) {
+      recognizer.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final matches = _urlRegex.allMatches(widget.text).toList();
+    if (matches.isEmpty) {
+      return Text(
+        widget.text,
+        textAlign: widget.textAlign,
+        maxLines: widget.maxLines,
+        overflow: widget.overflow,
+        style: widget.style,
+      );
+    }
+
+    for (final recognizer in _recognizers) {
+      recognizer.dispose();
+    }
+    _recognizers.clear();
+
+    final spans = <InlineSpan>[];
+    var lastIndex = 0;
+    final effectiveStyle = DefaultTextStyle.of(context).style.merge(widget.style);
+    final effectiveLinkStyle = effectiveStyle.merge(
+      widget.linkStyle ??
+          const TextStyle(
+            color: Colors.blue,
+            decoration: TextDecoration.underline,
+          ),
+    );
+
+    for (final match in matches) {
+      if (match.start > lastIndex) {
+        spans.add(TextSpan(text: widget.text.substring(lastIndex, match.start)));
+      }
+
+      final url = match.group(0)!;
+      final recognizer =
+          TapGestureRecognizer()
+            ..onTap = () {
+              openUrlPreferInAppMedia(url);
+            };
+      _recognizers.add(recognizer);
+
+      spans.add(
+        TextSpan(text: url, style: effectiveLinkStyle, recognizer: recognizer),
+      );
+      lastIndex = match.end;
+    }
+
+    if (lastIndex < widget.text.length) {
+      spans.add(TextSpan(text: widget.text.substring(lastIndex)));
+    }
+
+    return Text.rich(
+      TextSpan(style: effectiveStyle, children: spans),
+      textAlign: widget.textAlign,
+      maxLines: widget.maxLines,
+      overflow: widget.overflow,
+    );
+  }
 }

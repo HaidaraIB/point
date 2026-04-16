@@ -139,7 +139,7 @@ class _TimelineRow extends StatelessWidget {
               if (event.oldValue != null || event.newValue != null) ...[
                 const SizedBox(height: 4),
                 if (event.oldValue != null)
-                  Text(
+                  LinkifiedText(
                     'timeline.value_from'
                         .trParams({'value': _formatValue(event.oldValue!)}),
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
@@ -150,7 +150,7 @@ class _TimelineRow extends StatelessWidget {
                     onOpen: () => _openAttachment(context, event.newValue!),
                   )
                 else if (event.newValue != null)
-                  Text(
+                  LinkifiedText(
                     'timeline.value_to'
                         .trParams({'value': _formatValue(event.newValue!)}),
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade600),

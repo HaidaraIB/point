@@ -164,7 +164,7 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
                 ),
                 if (hasDescription) ...[
                   const SizedBox(height: 4),
-                  Text(
+                  LinkifiedText(
                     widget.task.description,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -353,7 +353,7 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
                               ),
                             ),
                             const SizedBox(height: 5),
-                            Text(
+                            LinkifiedText(
                               latestNote.note,
                               maxLines: 3,
                               overflow: TextOverflow.ellipsis,
@@ -389,7 +389,7 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
+                                LinkifiedText(
                                   note.note,
                                   maxLines: 4,
                                   overflow: TextOverflow.ellipsis,
@@ -566,7 +566,7 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
+                LinkifiedText(
                   value,
                   maxLines: 3,
                   overflow: TextOverflow.ellipsis,

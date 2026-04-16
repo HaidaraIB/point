@@ -284,7 +284,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          SelectableText(
+          LinkifiedText(
             value,
             style: TextStyle(
               fontSize: 13,
@@ -331,11 +331,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
     if (value.isEmpty || value == '-') {
       return _fieldRow(context, label, '-');
     }
-    final lower = value.toLowerCase();
-    final looksUrl =
-        lower.startsWith('http://') ||
-        lower.startsWith('https://') ||
-        lower.startsWith('www.');
+    final looksUrl = isLikelyUrlValue(value);
     if (!looksUrl) {
       return _fieldRow(context, label, value);
     }
@@ -446,7 +442,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(height: 5),
-                              Text(
+                              LinkifiedText(
                                 latestNote.note,
                                 maxLines: 4,
                                 overflow: TextOverflow.ellipsis,
@@ -478,7 +474,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              SelectableText(
+                              LinkifiedText(
                                 note.note,
                                 style: const TextStyle(
                                   fontSize: 12,

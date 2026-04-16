@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/media_url_opener.dart';
 
 /// Shared helpers for task details dialogs (web). Used by GenericTaskDetailsDialog
 /// and type-specific sections to avoid duplication.
@@ -95,10 +96,9 @@ class TaskDetailsDialogHelpers {
           child ??
               Tooltip(
                 message: value,
-                child: Text(
+                child: LinkifiedText(
                   value,
                   textAlign: TextAlign.center,
-                  softWrap: true,
                   maxLines: 4,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(

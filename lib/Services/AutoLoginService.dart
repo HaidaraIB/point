@@ -19,8 +19,6 @@ Future<String?> attemptSilentLogin({bool allowRetry = true}) async {
   final homeController = Get.find<HomeController>();
   final clientController = Get.find<ClientController>();
 
-  final fcm = FirebaseMessaging.instance;
-
   EmployeeModel? employee;
   try {
     employee = await homeController.service.getCurrentEmployeeByAuth();
@@ -51,6 +49,7 @@ Future<String?> attemptSilentLogin({bool allowRetry = true}) async {
       }
 
       if (!kIsWeb) {
+        final fcm = FirebaseMessaging.instance;
         try {
           await fcm.subscribeToTopic('all');
           await fcm.unsubscribeFromTopic('clients');
@@ -95,6 +94,7 @@ Future<String?> attemptSilentLogin({bool allowRetry = true}) async {
       clientController.fetchContents();
 
       if (!kIsWeb) {
+        final fcm = FirebaseMessaging.instance;
         try {
           await fcm.unsubscribeFromTopic('employees');
           await fcm.subscribeToTopic('clients');
