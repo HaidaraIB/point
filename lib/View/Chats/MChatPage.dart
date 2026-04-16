@@ -1950,69 +1950,79 @@ class _MessageScreenState extends State<MessageScreen>
                       },
                     ),
                     Expanded(
-                      child: Focus(
-                        onKeyEvent: _onComposerKeyEvent,
-                        child: TextField(
-                          controller: _messageController,
-                          focusNode: _messageFocusNode,
-                          contentInsertionConfiguration:
-                              _enableContentInsertion
-                                  ? ContentInsertionConfiguration(
-                                    allowedMimeTypes: const <String>[
-                                      'image/png',
-                                      'image/jpeg',
-                                      'image/webp',
-                                      'image/gif',
-                                    ],
-                                    onContentInserted: (
-                                      KeyboardInsertedContent content,
-                                    ) {
-                                      final data = content.data;
-                                      if (data == null || data.isEmpty) {
-                                        _showPasteImageFailed();
-                                        return;
-                                      }
-                                      unawaited(
-                                        _handlePastedImage(
-                                          data,
-                                          content.mimeType,
-                                        ),
-                                      );
-                                    },
-                                  )
-                                  : null,
-                          minLines: 1,
-                          maxLines: 6,
-                          keyboardType: TextInputType.multiline,
-                          readOnly: busy,
-                          textAlignVertical: TextAlignVertical.center,
-                          textDirection: textDirectionForTypedChatMessage(
-                            _messageController.text,
-                            Directionality.of(context),
+                      child: Theme(
+                        data: Theme.of(context).copyWith(
+                          textSelectionTheme: const TextSelectionThemeData(
+                            cursorColor: Color(0xFF465FFF),
+                            selectionHandleColor: Color(0xFF465FFF),
+                            selectionColor: Color(0x33465FFF),
                           ),
-                          textAlign: TextAlign.start,
-                          style: TextStyle(
-                            fontSize: _messageFocusNode.hasFocus ? 17 : 16,
-                            height: 1.35,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: AppLocaleKeys.chatWriteMessage.tr,
-                            hintStyle: TextStyle(
-                              color: Colors.grey.shade500,
-                              fontSize: 16,
+                        ),
+                        child: Focus(
+                          onKeyEvent: _onComposerKeyEvent,
+                          child: TextField(
+                            cursorColor: const Color(0xFF465FFF),
+                            controller: _messageController,
+                            focusNode: _messageFocusNode,
+                            contentInsertionConfiguration:
+                                _enableContentInsertion
+                                    ? ContentInsertionConfiguration(
+                                      allowedMimeTypes: const <String>[
+                                        'image/png',
+                                        'image/jpeg',
+                                        'image/webp',
+                                        'image/gif',
+                                      ],
+                                      onContentInserted: (
+                                        KeyboardInsertedContent content,
+                                      ) {
+                                        final data = content.data;
+                                        if (data == null || data.isEmpty) {
+                                          _showPasteImageFailed();
+                                          return;
+                                        }
+                                        unawaited(
+                                          _handlePastedImage(
+                                            data,
+                                            content.mimeType,
+                                          ),
+                                        );
+                                      },
+                                    )
+                                    : null,
+                            minLines: 1,
+                            maxLines: 6,
+                            keyboardType: TextInputType.multiline,
+                            readOnly: busy,
+                            textAlignVertical: TextAlignVertical.center,
+                            textDirection: textDirectionForTypedChatMessage(
+                              _messageController.text,
+                              Directionality.of(context),
                             ),
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 12,
+                            textAlign: TextAlign.start,
+                            style: TextStyle(
+                              fontSize: _messageFocusNode.hasFocus ? 17 : 16,
+                              height: 1.35,
                             ),
+                            decoration: InputDecoration(
+                              hintText: AppLocaleKeys.chatWriteMessage.tr,
+                              hintStyle: TextStyle(
+                                color: Colors.grey.shade500,
+                                fontSize: 16,
+                              ),
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 12,
+                              ),
+                            ),
+                            onTap: () {
+                              if (_isEmojiVisible) {
+                                setState(() => _isEmojiVisible = false);
+                              }
+                            },
                           ),
-                          onTap: () {
-                            if (_isEmojiVisible) {
-                              setState(() => _isEmojiVisible = false);
-                            }
-                          },
                         ),
                       ),
                     ),

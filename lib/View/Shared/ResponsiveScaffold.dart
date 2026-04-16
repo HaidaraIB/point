@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/AppConstants.dart';
 import 'package:point/Utils/AppNotificationInbox.dart';
@@ -86,10 +87,9 @@ class ResponsiveScaffold extends StatelessWidget {
                                     role:
                                         controller.effectiveEmployee?.role ??
                                         '',
-                                    department:
-                                        controller
-                                            .effectiveEmployee
-                                            ?.department,
+                                    department: controller
+                                        .effectiveEmployee
+                                        ?.department,
                                     avatarUrl:
                                         controller.effectiveEmployee?.image ??
                                         kDefaultAvatarUrl,
@@ -144,26 +144,23 @@ class ResponsiveScaffold extends StatelessWidget {
                             // Left: Menu / Back (محمي من النوتش بسبب SafeArea)
                             if (sideMenu != false)
                               Builder(
-                                builder:
-                                    (context) => Container(
-                                      width: 44,
-                                      height: 44,
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.12,
-                                        ),
-                                        borderRadius: BorderRadius.circular(14),
-                                      ),
-                                      child: IconButton(
-                                        icon: const Icon(
-                                          Icons.menu,
-                                          color: Colors.white,
-                                        ),
-                                        onPressed: () {
-                                          Scaffold.of(context).openDrawer();
-                                        },
-                                      ),
+                                builder: (context) => Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: IconButton(
+                                    icon: const Icon(
+                                      Icons.menu,
+                                      color: Colors.white,
                                     ),
+                                    onPressed: () {
+                                      Scaffold.of(context).openDrawer();
+                                    },
+                                  ),
+                                ),
                               )
                             else
                               const SizedBox(width: 44),
@@ -631,17 +628,15 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
     super.initState();
     _chatId = widget.chat.id;
     final uid = Get.find<HomeController>().currentEmployee.value?.id ?? '';
-    _openScrollPrefsFuture =
-        uid.isEmpty
-            ? Future<ChatScrollSnapshot?>.value(null)
-            : ChatScrollPersistence.load(uid, _chatId);
-    _messagesStream =
-        _firestore
-            .collection('chats')
-            .doc(_chatId)
-            .collection('messages')
-            .orderBy('timestamp', descending: true)
-            .snapshots();
+    _openScrollPrefsFuture = uid.isEmpty
+        ? Future<ChatScrollSnapshot?>.value(null)
+        : ChatScrollPersistence.load(uid, _chatId);
+    _messagesStream = _firestore
+        .collection('chats')
+        .doc(_chatId)
+        .collection('messages')
+        .orderBy('timestamp', descending: true)
+        .snapshots();
 
     _syncPopupSoundAndFocus();
     _syncExpandedPopupRegistration();
@@ -764,155 +759,185 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
         }
       },
       child: AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
-      width: 280,
-      height: widget.chat.minimized ? 45 : 360,
-      margin: const EdgeInsets.symmetric(horizontal: 6),
-      transform: Matrix4.translationValues(offset.dx, offset.dy, 0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8)],
-      ),
-      child: Column(
-        children: [
-          /// HEADER
-          GestureDetector(
-            onPanUpdate: (d) {
-              setState(() {
-                offset += d.delta;
-              });
-            },
-            onTap: () {
-              controller.toggleMinimize(widget.chat.id, !widget.chat.minimized);
-              controller.clearUnread(widget.chat.id);
-            },
-            child: Container(
-              height: 45,
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(10),
+        duration: const Duration(milliseconds: 250),
+        width: 280,
+        height: widget.chat.minimized ? 45 : 360,
+        margin: const EdgeInsets.symmetric(horizontal: 6),
+        transform: Matrix4.translationValues(offset.dx, offset.dy, 0),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8)],
+        ),
+        child: Column(
+          children: [
+            /// HEADER
+            GestureDetector(
+              onPanUpdate: (d) {
+                setState(() {
+                  offset += d.delta;
+                });
+              },
+              onTap: () {
+                controller.toggleMinimize(
+                  widget.chat.id,
+                  !widget.chat.minimized,
+                );
+                controller.clearUnread(widget.chat.id);
+              },
+              child: Container(
+                height: 45,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(10),
+                  ),
+                  border: Border(
+                    bottom: BorderSide(color: Colors.grey.shade200),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Row(
+                        children: [
+                          chatLeadingAvatar(
+                            radius: 14,
+                            backgroundColor: widget.chat.isGroup
+                                ? Colors.blueGrey.shade100
+                                : Colors.grey.shade200,
+                            initial: chatInitialFromName(widget.chat.name),
+                            groupIcon: widget.chat.isGroup ? Icons.group : null,
+                            imageUrl: widget.chat.isGroup
+                                ? null
+                                : widget.chat.avatar,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              widget.chat.name,
+                              style: const TextStyle(
+                                color: Color(0xFF111827),
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (widget.chat.unreadCount > 0) ...[
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text(
+                              widget.chat.unreadCount.toString(),
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                        ],
+                        Text(
+                          widget.chat.isGroup
+                              ? AppLocaleKeys.chatGroupType.tr
+                              : AppLocaleKeys.chatPrivateType.tr,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        InkWell(
+                          onTap: () => controller.closeChat(widget.chat.id),
+                          child: Icon(
+                            Icons.close,
+                            size: 18,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              child: Row(
-                children: [
-                  chatLeadingAvatar(
-                    radius: 14,
-                    backgroundColor: Colors.white24,
-                    initial: chatInitialFromName(widget.chat.name),
-                    groupIcon: widget.chat.isGroup ? Icons.group : null,
-                    imageUrl: widget.chat.isGroup ? null : widget.chat.avatar,
-                    iconColor: Colors.white,
-                    initialTextColor: Colors.white,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      widget.chat.name,
-                      style: const TextStyle(color: Colors.white, fontSize: 13),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-
-                  /// 🔔 Badge
-                  if (widget.chat.unreadCount > 0)
-                    Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Text(
-                        widget.chat.unreadCount.toString(),
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-
-                  const SizedBox(width: 6),
-
-                  InkWell(
-                    onTap: () => controller.closeChat(widget.chat.id),
-                    child: const Icon(
-                      Icons.close,
-                      size: 16,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
             ),
-          ),
 
-          /// عند الطي كان يُزال [StreamBuilder] من الشجرة فيُلغى الاشتراك وقد لا تُعاد الرسائل عند الفتح.
-          Expanded(
-            child: Visibility(
-              visible: !widget.chat.minimized,
-              maintainState: true,
-              maintainSize: false,
-              maintainAnimation: true,
-              child: Column(
-                mainAxisSize: MainAxisSize.max,
-                children: [
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                      child: FutureBuilder<ChatScrollSnapshot?>(
-                        future: _openScrollPrefsFuture,
-                        builder: (context, fSnap) {
-                          final prefsDone =
-                              fSnap.connectionState == ConnectionState.done;
-                          final persisted = fSnap.data;
-                          return StreamBuilder<
-                            QuerySnapshot<Map<String, dynamic>>
-                          >(
-                            stream: _messagesStream,
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState ==
-                                  ConnectionState.waiting) {
-                                return const Center(
-                                  child: CircularProgressIndicator(),
-                                );
-                              }
-                              if (!snapshot.hasData ||
-                                  snapshot.data!.docs.isEmpty) {
-                                return Center(
-                                  child: Text('chat.start_first'.tr),
-                                );
-                              }
+            /// عند الطي كان يُزال [StreamBuilder] من الشجرة فيُلغى الاشتراك وقد لا تُعاد الرسائل عند الفتح.
+            Expanded(
+              child: Visibility(
+                visible: !widget.chat.minimized,
+                maintainState: true,
+                maintainSize: false,
+                maintainAnimation: true,
+                child: Column(
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                        child: FutureBuilder<ChatScrollSnapshot?>(
+                          future: _openScrollPrefsFuture,
+                          builder: (context, fSnap) {
+                            final prefsDone =
+                                fSnap.connectionState == ConnectionState.done;
+                            final persisted = fSnap.data;
+                            return StreamBuilder<
+                              QuerySnapshot<Map<String, dynamic>>
+                            >(
+                              stream: _messagesStream,
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return const Center(
+                                    child: CircularProgressIndicator(),
+                                  );
+                                }
+                                if (!snapshot.hasData ||
+                                    snapshot.data!.docs.isEmpty) {
+                                  return Center(
+                                    child: Text('chat.start_first'.tr),
+                                  );
+                                }
 
-                              final messages = snapshot.data!.docs;
-                              _orderedChatMessageDocs = messages;
+                                final messages = snapshot.data!.docs;
+                                _orderedChatMessageDocs = messages;
 
-                              final uid =
-                                  controller.currentEmployee.value?.id ?? '';
-                              final showScrollFab = !chatReverseListShowsLatest(
-                                positionsListener: _chatItemPositionsListener,
-                                itemCount: messages.length,
-                              );
-                              final unreadBelow =
-                                  uid.isNotEmpty
-                                      ? chatReverseListUnreadIncomingBelowCount(
+                                final uid =
+                                    controller.currentEmployee.value?.id ?? '';
+                                final showScrollFab =
+                                    !chatReverseListShowsLatest(
+                                      positionsListener:
+                                          _chatItemPositionsListener,
+                                      itemCount: messages.length,
+                                    );
+                                final unreadBelow = uid.isNotEmpty
+                                    ? chatReverseListUnreadIncomingBelowCount(
                                         positionsListener:
                                             _chatItemPositionsListener,
                                         itemCount: messages.length,
                                         docs: messages,
                                         currentUserId: uid,
                                       )
-                                      : 0;
-                              final fromPrefs =
-                                  prefsDone ? persisted : null;
-                              final persistedForResolve =
-                                  _lastScrollSnapshotForPersist ??
-                                  fromPrefs ??
-                                  _diskScrollOverride;
-                              final openScroll =
-                                  uid.isNotEmpty
-                                      ? resolveChatOpenScroll(
+                                    : 0;
+                                final fromPrefs = prefsDone ? persisted : null;
+                                final persistedForResolve =
+                                    _lastScrollSnapshotForPersist ??
+                                    fromPrefs ??
+                                    _diskScrollOverride;
+                                final openScroll = uid.isNotEmpty
+                                    ? resolveChatOpenScroll(
                                         itemCount: messages.length,
                                         currentUserId: uid,
                                         docs: messages,
@@ -920,293 +945,309 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                                         usePersisted:
                                             persistedForResolve != null,
                                       )
-                                      : (index: 0, alignment: 1.0);
+                                    : (index: 0, alignment: 1.0);
 
-                              return Stack(
-                                clipBehavior: Clip.none,
-                                alignment: Alignment.bottomRight,
-                                children: [
-                                  Positioned.fill(
-                                    child: ScrollablePositionedList.builder(
-                                      key: ValueKey(
-                                        '${_chatId}_$_chatMessageListEpoch',
-                                      ),
-                                      itemScrollController:
-                                          _chatMessageItemScrollController,
-                                      itemPositionsListener:
-                                          _chatItemPositionsListener,
-                                      initialScrollIndex: openScroll.index,
-                                      initialAlignment: openScroll.alignment,
-                                  reverse: true,
-                                  itemCount: messages.length,
-                                  itemBuilder: (context, index) {
-                                    final msg = messages[index].data();
-                                    final mid = messages[index].id;
-                                    final isMe =
-                                        msg['senderId'] ==
-                                        controller.currentEmployee.value?.id;
-                                    final senderName =
-                                        msg['senderName'] ??
-                                        'chat.unknown_sender'.tr;
-                                    final timestamp =
-                                        msg['timestamp'] as Timestamp?;
-                                    final isRead = msg['isRead'] ?? false;
-
-                                    final rowUid =
-                                        controller.currentEmployee.value?.id;
-                                    if (rowUid == null) {
-                                      return const SizedBox.shrink();
-                                    }
-                                    return Padding(
-                                      key: ValueKey(mid),
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 4,
-                                        horizontal: 8,
-                                      ),
-                                      child: ChatMessageTile(
-                                        chatId: _chatId,
-                                        messageId: mid,
-                                        message: Map<String, dynamic>.from(
-                                          msg,
+                                return Stack(
+                                  clipBehavior: Clip.none,
+                                  alignment: Alignment.bottomRight,
+                                  children: [
+                                    Positioned.fill(
+                                      child: ScrollablePositionedList.builder(
+                                        key: ValueKey(
+                                          '${_chatId}_$_chatMessageListEpoch',
                                         ),
-                                        isMe: isMe,
-                                        isGroup: widget.chat.isGroup,
-                                        senderName: senderName,
-                                        showGroupSenderName:
-                                            widget.chat.isGroup && !isMe,
-                                        timestamp: timestamp,
-                                        formatTime: _formatTimestamp,
-                                        isAdmin:
-                                            controller
-                                                .currentEmployee
-                                                .value
-                                                ?.role ==
-                                            'admin',
-                                        currentUserId: rowUid,
-                                        currentUserDisplayName:
-                                            controller
-                                                .currentEmployee
-                                                .value
-                                                ?.name,
-                                        onReply:
-                                            (draft) => setState(
-                                              () => _replyDraft = draft,
+                                        itemScrollController:
+                                            _chatMessageItemScrollController,
+                                        itemPositionsListener:
+                                            _chatItemPositionsListener,
+                                        initialScrollIndex: openScroll.index,
+                                        initialAlignment: openScroll.alignment,
+                                        reverse: true,
+                                        itemCount: messages.length,
+                                        itemBuilder: (context, index) {
+                                          final msg = messages[index].data();
+                                          final mid = messages[index].id;
+                                          final isMe =
+                                              msg['senderId'] ==
+                                              controller
+                                                  .currentEmployee
+                                                  .value
+                                                  ?.id;
+                                          final senderName =
+                                              msg['senderName'] ??
+                                              'chat.unknown_sender'.tr;
+                                          final timestamp =
+                                              msg['timestamp'] as Timestamp?;
+                                          final isRead = msg['isRead'] ?? false;
+
+                                          final rowUid = controller
+                                              .currentEmployee
+                                              .value
+                                              ?.id;
+                                          if (rowUid == null) {
+                                            return const SizedBox.shrink();
+                                          }
+                                          return Padding(
+                                            key: ValueKey(mid),
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 4,
+                                              horizontal: 8,
                                             ),
-                                        onReplyPreviewTap:
-                                            _scrollToRepliedMessage,
-                                        bubbleDecoration: BoxDecoration(
-                                          color:
-                                              isMe
-                                                  ? const Color(0xff00A389)
-                                                  : Colors.white,
-                                          borderRadius: BorderRadius.only(
-                                            topLeft: const Radius.circular(15),
-                                            topRight: const Radius.circular(15),
-                                            bottomLeft: Radius.circular(
-                                              isMe ? 15 : 4,
-                                            ),
-                                            bottomRight: Radius.circular(
-                                              isMe ? 4 : 15,
-                                            ),
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withValues(
-                                                alpha: 0.05,
+                                            child: ChatMessageTile(
+                                              chatId: _chatId,
+                                              messageId: mid,
+                                              message:
+                                                  Map<String, dynamic>.from(
+                                                    msg,
+                                                  ),
+                                              isMe: isMe,
+                                              isGroup: widget.chat.isGroup,
+                                              senderName: senderName,
+                                              showGroupSenderName:
+                                                  widget.chat.isGroup && !isMe,
+                                              timestamp: timestamp,
+                                              formatTime: _formatTimestamp,
+                                              isAdmin:
+                                                  controller
+                                                      .currentEmployee
+                                                      .value
+                                                      ?.role ==
+                                                  'admin',
+                                              currentUserId: rowUid,
+                                              currentUserDisplayName: controller
+                                                  .currentEmployee
+                                                  .value
+                                                  ?.name,
+                                              onReply: (draft) => setState(
+                                                () => _replyDraft = draft,
                                               ),
-                                              blurRadius: 4,
-                                              offset: const Offset(0, 2),
+                                              onReplyPreviewTap:
+                                                  _scrollToRepliedMessage,
+                                              bubbleDecoration: BoxDecoration(
+                                                color: isMe
+                                                    ? const Color(0xFF465FFF)
+                                                    : Colors.white,
+                                                borderRadius: BorderRadius.only(
+                                                  topLeft:
+                                                      const Radius.circular(15),
+                                                  topRight:
+                                                      const Radius.circular(15),
+                                                  bottomLeft: Radius.circular(
+                                                    isMe ? 15 : 4,
+                                                  ),
+                                                  bottomRight: Radius.circular(
+                                                    isMe ? 4 : 15,
+                                                  ),
+                                                ),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.black
+                                                        .withValues(
+                                                          alpha: 0.05,
+                                                        ),
+                                                    blurRadius: 4,
+                                                    offset: const Offset(0, 2),
+                                                  ),
+                                                ],
+                                              ),
+                                              maxWidthFactor: 0.7,
+                                              alignment: isMe
+                                                  ? Alignment.centerRight
+                                                  : Alignment.centerLeft,
+                                              columnCrossAxis: isMe
+                                                  ? CrossAxisAlignment.end
+                                                  : CrossAxisAlignment.start,
+                                              showReadReceipts: true,
+                                              messageIsRead: isRead,
                                             ),
-                                          ],
-                                        ),
-                                        maxWidthFactor: 0.7,
-                                        alignment:
-                                            isMe
-                                                ? Alignment.centerRight
-                                                : Alignment.centerLeft,
-                                        columnCrossAxis:
-                                            isMe
-                                                ? CrossAxisAlignment.end
-                                                : CrossAxisAlignment.start,
-                                        showReadReceipts: true,
-                                        messageIsRead: isRead,
+                                          );
+                                        },
                                       ),
-                                    );
-                                  },
-                                ),
-                              ),
-                              Positioned(
-                                right: 6,
-                                bottom: 10,
-                                child: ChatScrollToLatestFab(
-                                  visible: showScrollFab,
-                                  badgeCount: unreadBelow,
-                                  onPressed: () => scheduleScrollChatToLatest(
-                                    controller:
-                                        _chatMessageItemScrollController,
-                                    mounted: () => mounted,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          );
-                            },
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-
-                  const ChatUploadProgressBanner(),
-                  if (_replyDraft != null)
-                    ChatReplyDraftBanner(
-                      draft: _replyDraft!,
-                      fontSize: 12,
-                      padding: const EdgeInsets.fromLTRB(8, 2, 8, 2),
-                      onCancel: () => setState(() => _replyDraft = null),
-                    ),
-                  if (_pendingAttachment != null)
-                    PendingAttachmentStrip(
-                      pending: _pendingAttachment!,
-                      padding: const EdgeInsets.fromLTRB(8, 2, 8, 4),
-                      titleFontSize: 12,
-                      onCancel:
-                          () => setState(() => _pendingAttachment = null),
-                      onTapPreview:
-                          (_pendingAttachment!.messageType == 'image' ||
-                                  _pendingAttachment!.messageType == 'video')
-                              ? () => openChatMediaFromUrl(
-                                    _pendingAttachment!.attachmentUrl,
-                                  )
-                              : null,
-                    ),
-
-                  /// INPUT
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 220),
-                    curve: Curves.easeOutCubic,
-                    margin: EdgeInsets.fromLTRB(
-                      8,
-                      4,
-                      8,
-                      _messageFocusNode.hasFocus ? 10 : 8,
-                    ),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: _messageFocusNode.hasFocus ? 2 : 6,
-                      vertical: _messageFocusNode.hasFocus ? 4 : 2,
-                    ),
-                    constraints: BoxConstraints(
-                      minHeight: _messageFocusNode.hasFocus ? 50 : 46,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(
-                        _messageFocusNode.hasFocus ? 24 : 22,
-                      ),
-                      border: Border.all(
-                        color:
-                            _messageFocusNode.hasFocus
-                                ? const Color(
-                                  0xff00A389,
-                                ).withValues(alpha: 0.35)
-                                : Colors.grey.shade200,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.06),
-                          blurRadius: _messageFocusNode.hasFocus ? 10 : 5,
-                          offset: const Offset(0, 2),
+                                    ),
+                                    Positioned(
+                                      right: 6,
+                                      bottom: 10,
+                                      child: ChatScrollToLatestFab(
+                                        visible: showScrollFab,
+                                        badgeCount: unreadBelow,
+                                        onPressed: () =>
+                                            scheduleScrollChatToLatest(
+                                              controller:
+                                                  _chatMessageItemScrollController,
+                                              mounted: () => mounted,
+                                            ),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                          },
                         ),
-                      ],
+                      ),
                     ),
-                    child: Obx(() {
-                      final busy = Get.find<HomeController>().isUploading.value;
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Builder(
-                            builder: (buttonContext) {
-                              return IconButton(
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(
-                                  minWidth: 36,
-                                  minHeight: 44,
-                                ),
-                                tooltip: 'chat.attach_sheet_title'.tr,
-                                icon: Icon(
-                                  Icons.add_circle_outline,
-                                  color: Colors.grey.shade700,
-                                  size: 24,
-                                ),
-                                onPressed:
-                                    busy
-                                        ? null
-                                        : () => _showPopupAttachmentMenu(
-                                          buttonContext,
-                                        ),
-                              );
-                            },
-                          ),
-                          Expanded(
-                            child: Focus(
-                              onKeyEvent: _onComposerKeyEvent,
-                              child: TextField(
-                                controller: _messageController,
-                                focusNode: _messageFocusNode,
-                                minLines: 1,
-                                maxLines: 5,
-                                keyboardType: TextInputType.multiline,
-                                readOnly: busy,
-                                textAlignVertical: TextAlignVertical.center,
-                                textDirection: textDirectionForTypedChatMessage(
-                                  _messageController.text,
-                                  Directionality.of(context),
-                                ),
-                                textAlign: TextAlign.start,
-                                style: TextStyle(
-                                  fontSize:
-                                      _messageFocusNode.hasFocus ? 15.5 : 14.5,
-                                  height: 1.35,
-                                ),
-                                decoration: InputDecoration(
-                                  hintText: 'chat.write_message'.tr,
-                                  hintStyle: TextStyle(
-                                    color: Colors.grey.shade500,
-                                    fontSize: 14,
-                                  ),
-                                  border: InputBorder.none,
-                                  isDense: true,
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 4,
-                                    vertical: 10,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(
-                              minWidth: 40,
-                              minHeight: 44,
-                            ),
-                            icon: const Icon(
-                              Icons.send_rounded,
-                              color: Color(0xff00A389),
-                              size: 24,
-                            ),
-                            onPressed: busy ? null : _sendMessage,
+
+                    const ChatUploadProgressBanner(),
+                    if (_replyDraft != null)
+                      ChatReplyDraftBanner(
+                        draft: _replyDraft!,
+                        fontSize: 12,
+                        padding: const EdgeInsets.fromLTRB(8, 2, 8, 2),
+                        onCancel: () => setState(() => _replyDraft = null),
+                      ),
+                    if (_pendingAttachment != null)
+                      PendingAttachmentStrip(
+                        pending: _pendingAttachment!,
+                        padding: const EdgeInsets.fromLTRB(8, 2, 8, 4),
+                        titleFontSize: 12,
+                        onCancel: () =>
+                            setState(() => _pendingAttachment = null),
+                        onTapPreview:
+                            (_pendingAttachment!.messageType == 'image' ||
+                                _pendingAttachment!.messageType == 'video')
+                            ? () => openChatMediaFromUrl(
+                                _pendingAttachment!.attachmentUrl,
+                              )
+                            : null,
+                      ),
+
+                    /// INPUT
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 220),
+                      curve: Curves.easeOutCubic,
+                      margin: EdgeInsets.fromLTRB(
+                        8,
+                        4,
+                        8,
+                        _messageFocusNode.hasFocus ? 10 : 8,
+                      ),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: _messageFocusNode.hasFocus ? 2 : 6,
+                        vertical: _messageFocusNode.hasFocus ? 4 : 2,
+                      ),
+                      constraints: BoxConstraints(
+                        minHeight: _messageFocusNode.hasFocus ? 50 : 46,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(
+                          _messageFocusNode.hasFocus ? 24 : 22,
+                        ),
+                        border: Border.all(
+                          color: _messageFocusNode.hasFocus
+                              ? const Color(0xFF465FFF).withValues(alpha: 0.35)
+                              : Colors.grey.shade200,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.06),
+                            blurRadius: _messageFocusNode.hasFocus ? 10 : 5,
+                            offset: const Offset(0, 2),
                           ),
                         ],
-                      );
-                    }),
-                  ),
-                ],
+                      ),
+                      child: Obx(() {
+                        final busy =
+                            Get.find<HomeController>().isUploading.value;
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Builder(
+                              builder: (buttonContext) {
+                                return IconButton(
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(
+                                    minWidth: 36,
+                                    minHeight: 44,
+                                  ),
+                                  tooltip: 'chat.attach_sheet_title'.tr,
+                                  icon: Icon(
+                                    Icons.add_circle_outline,
+                                    color: Colors.grey.shade700,
+                                    size: 24,
+                                  ),
+                                  onPressed: busy
+                                      ? null
+                                      : () => _showPopupAttachmentMenu(
+                                          buttonContext,
+                                        ),
+                                );
+                              },
+                            ),
+                            Expanded(
+                              child: Theme(
+                                data: Theme.of(context).copyWith(
+                                  textSelectionTheme:
+                                      const TextSelectionThemeData(
+                                        cursorColor: Color(0xFF465FFF),
+                                        selectionHandleColor: Color(0xFF465FFF),
+                                        selectionColor: Color(0x33465FFF),
+                                      ),
+                                ),
+                                child: Focus(
+                                  onKeyEvent: _onComposerKeyEvent,
+                                  child: TextField(
+                                    cursorColor: const Color(0xFF465FFF),
+                                    controller: _messageController,
+                                    focusNode: _messageFocusNode,
+                                    minLines: 1,
+                                    maxLines: 5,
+                                    keyboardType: TextInputType.multiline,
+                                    readOnly: busy,
+                                    textAlignVertical: TextAlignVertical.center,
+                                    textDirection:
+                                        textDirectionForTypedChatMessage(
+                                          _messageController.text,
+                                          Directionality.of(context),
+                                        ),
+                                    textAlign: TextAlign.start,
+                                    style: TextStyle(
+                                      fontSize: _messageFocusNode.hasFocus
+                                          ? 15.5
+                                          : 14.5,
+                                      height: 1.35,
+                                    ),
+                                    decoration: InputDecoration(
+                                      hintText: 'chat.write_message'.tr,
+                                      hintStyle: TextStyle(
+                                        color: Colors.grey.shade500,
+                                        fontSize: 14,
+                                      ),
+                                      border: InputBorder.none,
+                                      isDense: true,
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 4,
+                                            vertical: 10,
+                                          ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(
+                                minWidth: 40,
+                                minHeight: 44,
+                              ),
+                              icon: const Icon(
+                                Icons.send_rounded,
+                                color: Color(0xFF465FFF),
+                                size: 24,
+                              ),
+                              onPressed: busy ? null : _sendMessage,
+                            ),
+                          ],
+                        );
+                      }),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }

@@ -258,7 +258,7 @@ class _ChatVoiceRecordButtonState extends State<ChatVoiceRecordButton> {
           ),
           IconButton(
             tooltip: 'chat.send_action'.tr,
-            icon: const Icon(Icons.send_rounded, color: Color(0xff00A389)),
+            icon: const Icon(Icons.send_rounded, color: Color(0xFF465FFF)),
             onPressed: _finishAndUpload,
           ),
         ],

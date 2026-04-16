@@ -105,7 +105,9 @@ class _PinnedMessageBanner extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      isGroup && sender.isNotEmpty ? '$sender: $preview' : preview,
+                      isGroup && sender.isNotEmpty
+                          ? '$sender: $preview'
+                          : preview,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -209,14 +211,13 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     _imagePasteListener = ChatImagePasteListener(
       onImagePasted: _handlePastedImage,
       onPasteError: _showPasteImageFailed,
-      shouldHandle:
-          () =>
-              mounted &&
-              _selectedChat != null &&
-              !_messageFocusNode.hasFocus &&
-              (WidgetsBinding.instance.lifecycleState == null ||
-                  WidgetsBinding.instance.lifecycleState ==
-                      AppLifecycleState.resumed),
+      shouldHandle: () =>
+          mounted &&
+          _selectedChat != null &&
+          !_messageFocusNode.hasFocus &&
+          (WidgetsBinding.instance.lifecycleState == null ||
+              WidgetsBinding.instance.lifecycleState ==
+                  AppLifecycleState.resumed),
     );
     _chatItemPositionsListener.itemPositions.addListener(
       _onChatScrollPositions,
@@ -302,13 +303,15 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   /// Persists scroll for [chatId] using live positions only when that chat is the active stream.
-  Future<void> _persistScrollSnapshotForChatId(String uid, String chatId) async {
-    final live =
-        _messagesStreamChatId == chatId
-            ? chatScrollSnapshotFromItemPositions(
-              _chatItemPositionsListener.itemPositions.value,
-            )
-            : null;
+  Future<void> _persistScrollSnapshotForChatId(
+    String uid,
+    String chatId,
+  ) async {
+    final live = _messagesStreamChatId == chatId
+        ? chatScrollSnapshotFromItemPositions(
+            _chatItemPositionsListener.itemPositions.value,
+          )
+        : null;
     final snap = live ?? _scrollSnapshotCache[chatId];
     if (snap == null) return;
     await ChatScrollPersistence.saveSnapshot(
@@ -402,39 +405,36 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     _loadingEmployees = true;
     setState(() {});
     final snapshot = await _firestore.collection('employees').get();
-    _employees =
-        snapshot.docs
-            .where(
-              (d) => d.id != _currentUserId,
-            ) // exclude current user from 1:1 chat list
-            .map((d) {
-              final data = d.data();
-              return {
-                'id': d.id,
-                'name': data['name'] ?? '',
-                'email': data['email'] ?? '',
-                'image': data['image'] ?? '',
-                'dept': data['department'] ?? '', // **إضافة حقل القسم**
-                'role': data['role'] ?? '', // **إضافة حقل الدور**
-              };
-            })
-            .toList();
+    _employees = snapshot.docs
+        .where(
+          (d) => d.id != _currentUserId,
+        ) // exclude current user from 1:1 chat list
+        .map((d) {
+          final data = d.data();
+          return {
+            'id': d.id,
+            'name': data['name'] ?? '',
+            'email': data['email'] ?? '',
+            'image': data['image'] ?? '',
+            'dept': data['department'] ?? '', // **إضافة حقل القسم**
+            'role': data['role'] ?? '', // **إضافة حقل الدور**
+          };
+        })
+        .toList();
 
     // For employee role: show only allowed chat targets.
     // Managers can still chat with anyone.
     if (_currentUserRole == 'employee') {
       final myDept = _currentUserDept;
-      _employees =
-          _employees.where((e) {
-            final targetRole = e['role'];
-            final targetDept = e['dept'];
-            final isSpecialRole = StorageKeys.isChatElevatedRole(targetRole);
-            final isSameDept =
-                myDept != null && myDept.isNotEmpty
-                    ? StorageKeys.matchesDepartment(targetDept, myDept)
-                    : false;
-            return isSpecialRole || isSameDept;
-          }).toList();
+      _employees = _employees.where((e) {
+        final targetRole = e['role'];
+        final targetDept = e['dept'];
+        final isSpecialRole = StorageKeys.isChatElevatedRole(targetRole);
+        final isSameDept = myDept != null && myDept.isNotEmpty
+            ? StorageKeys.matchesDepartment(targetDept, myDept)
+            : false;
+        return isSpecialRole || isSameDept;
+      }).toList();
     }
 
     _filteredEmployees = List.from(_employees);
@@ -448,12 +448,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       _filteredEmployees = List.from(_employees);
       setState(() {});
     } else {
-      _filteredEmployees =
-          _employees
-              .where(
-                (e) => (e['name'] as String).toLowerCase().contains(qlower),
-              )
-              .toList();
+      _filteredEmployees = _employees
+          .where((e) => (e['name'] as String).toLowerCase().contains(qlower))
+          .toList();
     }
     setState(() {});
   }
@@ -603,13 +600,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       _scrollUnreadBelowLast = -1;
     }
     _messagesStreamChatId = id;
-    _messagesStream =
-        _firestore
-            .collection('chats')
-            .doc(id)
-            .collection('messages')
-            .orderBy('timestamp', descending: true)
-            .snapshots();
+    _messagesStream = _firestore
+        .collection('chats')
+        .doc(id)
+        .collection('messages')
+        .orderBy('timestamp', descending: true)
+        .snapshots();
   }
 
   // **---------------- Chats (Private & Group) ----------------**
@@ -691,11 +687,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
 
     final ids = built.map((c) => c['id'] as String).toList();
-    final metas =
-        await FirestoreServices.fetchLatestMessageMetaForChatIds(
-          _firestore,
-          ids,
-        );
+    final metas = await FirestoreServices.fetchLatestMessageMetaForChatIds(
+      _firestore,
+      ids,
+    );
     if (!mounted || gen != _chatsEnrichGen) return;
 
     final merged = _mergeChatsWithPreviews(built, metas);
@@ -737,10 +732,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       final docLm = (c['lastMessage'] ?? '').toString();
 
       final fromMeta = meta?.previewText;
-      final preview =
-          (fromMeta != null && fromMeta.trim().isNotEmpty)
-              ? fromMeta.trim()
-              : docLm.trim();
+      final preview = (fromMeta != null && fromMeta.trim().isNotEmpty)
+          ? fromMeta.trim()
+          : docLm.trim();
 
       if (!isGroup && preview.isEmpty) continue;
 
@@ -971,7 +965,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     final chatDoc = await chatRef.get();
     final chatData = chatDoc.data() ?? {};
     final newChatId = chatDoc.id;
-    final openSnap = await ChatScrollPersistence.load(_currentUserId!, newChatId);
+    final openSnap = await ChatScrollPersistence.load(
+      _currentUserId!,
+      newChatId,
+    );
     _selectedChat = {
       'id': newChatId,
       'participants': List<String>.from(chatData['participants'] ?? []),
@@ -1348,14 +1345,13 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 if (qlower.isEmpty) {
                   _filteredEmployees = List.from(_employees);
                 } else {
-                  _filteredEmployees =
-                      _employees
-                          .where(
-                            (e) => (e['name'] as String).toLowerCase().contains(
-                              qlower,
-                            ),
-                          )
-                          .toList();
+                  _filteredEmployees = _employees
+                      .where(
+                        (e) => (e['name'] as String).toLowerCase().contains(
+                          qlower,
+                        ),
+                      )
+                      .toList();
                 }
                 setStateDialog(() {});
               }
@@ -1385,34 +1381,33 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     SizedBox(height: 12),
                     Container(
                       constraints: BoxConstraints(maxHeight: 360),
-                      child:
-                          _loadingEmployees
-                              ? Center(child: CircularProgressIndicator())
-                              : _filteredEmployees.isEmpty
-                              ? Center(
-                                child: Text(AppLocaleKeys.chatNoEmployees.tr),
-                              )
-                              : ListView.builder(
-                                itemCount: _filteredEmployees.length,
-                                itemBuilder: (context, idx) {
-                                  final emp = _filteredEmployees[idx];
-                                  return ListTile(
-                                    leading: CircleAvatar(
-                                      backgroundColor: Colors.grey.shade200,
-                                      child: Text(
-                                        _initialFromName(emp['name']),
-                                        style: TextStyle(color: Colors.black),
-                                      ),
+                      child: _loadingEmployees
+                          ? Center(child: CircularProgressIndicator())
+                          : _filteredEmployees.isEmpty
+                          ? Center(
+                              child: Text(AppLocaleKeys.chatNoEmployees.tr),
+                            )
+                          : ListView.builder(
+                              itemCount: _filteredEmployees.length,
+                              itemBuilder: (context, idx) {
+                                final emp = _filteredEmployees[idx];
+                                return ListTile(
+                                  leading: CircleAvatar(
+                                    backgroundColor: Colors.grey.shade200,
+                                    child: Text(
+                                      _initialFromName(emp['name']),
+                                      style: TextStyle(color: Colors.black),
                                     ),
-                                    title: Text(emp['name']),
-                                    subtitle: Text(emp['email'] ?? ''),
-                                    onTap: () async {
-                                      Navigator.of(ctx).pop();
-                                      await _openOrCreateChatWith(emp['id']);
-                                    },
-                                  );
-                                },
-                              ),
+                                  ),
+                                  title: Text(emp['name']),
+                                  subtitle: Text(emp['email'] ?? ''),
+                                  onTap: () async {
+                                    Navigator.of(ctx).pop();
+                                    await _openOrCreateChatWith(emp['id']);
+                                  },
+                                );
+                              },
+                            ),
                     ),
                   ],
                 ),
@@ -1506,7 +1501,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                       width: 45,
                                       height: 45,
                                       decoration: BoxDecoration(
-                                      color: Color(0xFF465FFF),
+                                        color: Color(0xFF465FFF),
                                         borderRadius: BorderRadius.circular(15),
                                       ),
                                       child: Icon(
@@ -1557,10 +1552,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                             ),
                             tileColor:
                                 _selectedChat != null &&
-                                        _selectedChat!['id'] ==
-                                            'group_$_currentUserDept'
-                                    ? Colors.blue.shade50
-                                    : null,
+                                    _selectedChat!['id'] ==
+                                        'group_$_currentUserDept'
+                                ? Colors.blue.shade50
+                                : null,
                             onTap: _openDepartmentGroup,
                           ),
                         if (_isLoadingGroup)
@@ -1569,49 +1564,95 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                           ), // مؤشر تحميل المجموعة
                         // chats list
                         Expanded(
-                          child:
-                              _loadingChats
-                                  ? Center(child: CircularProgressIndicator())
-                                  : _chats.isEmpty
-                                  ? Center(
-                                    child: Text(AppLocaleKeys.chatNoChats.tr),
-                                  )
-                                  : visibleChats.isEmpty &&
-                                      _chatListSearchQuery
-                                          .trim()
-                                          .isNotEmpty
-                                  ? Center(
-                                    child: Text(
-                                      AppLocaleKeys.chatSearchNoMatches.tr,
-                                    ),
-                                  )
-                                  : ListView.builder(
-                                    itemCount: visibleChats.length,
-                                    itemBuilder: (context, index) {
-                                      final ch = visibleChats[index];
-                                      final isGroup = ch['isGroup'] ?? false;
-                                      final chatId = ch['id'] as String;
+                          child: _loadingChats
+                              ? Center(child: CircularProgressIndicator())
+                              : _chats.isEmpty
+                              ? Center(
+                                  child: Text(AppLocaleKeys.chatNoChats.tr),
+                                )
+                              : visibleChats.isEmpty &&
+                                    _chatListSearchQuery.trim().isNotEmpty
+                              ? Center(
+                                  child: Text(
+                                    AppLocaleKeys.chatSearchNoMatches.tr,
+                                  ),
+                                )
+                              : ListView.builder(
+                                  itemCount: visibleChats.length,
+                                  itemBuilder: (context, index) {
+                                    final ch = visibleChats[index];
+                                    final isGroup = ch['isGroup'] ?? false;
+                                    final chatId = ch['id'] as String;
 
-                                      String displayName;
-                                      String initial;
-                                      String? employImage;
-                                      Color avatarColor;
-                                      IconData? avatarIcon;
-                                      Color? titleColor;
+                                    String displayName;
+                                    String initial;
+                                    String? employImage;
+                                    Color avatarColor;
+                                    IconData? avatarIcon;
+                                    Color? titleColor;
 
-                                      if (isGroup) {
-                                        displayName =
-                                            _localizedGroupTitleFromChat(ch);
-                                        initial = _initialFromName(displayName);
-                                        avatarColor = Colors.blueGrey.shade100;
-                                        avatarIcon = Icons.group;
-                                        titleColor = Colors.blue.shade700;
+                                    if (isGroup) {
+                                      displayName =
+                                          _localizedGroupTitleFromChat(ch);
+                                      initial = _initialFromName(displayName);
+                                      avatarColor = Colors.blueGrey.shade100;
+                                      avatarIcon = Icons.group;
+                                      titleColor = Colors.blue.shade700;
 
-                                        // تخطي عرض مجموعة القسم مرة أخرى إذا تم عرضها بالفعل في الأعلى
-                                        if (chatId == 'group_$_currentUserDept')
-                                          return SizedBox.shrink();
-                                      } else {
-                                        // محادثة فردية
+                                      // تخطي عرض مجموعة القسم مرة أخرى إذا تم عرضها بالفعل في الأعلى
+                                      if (chatId == 'group_$_currentUserDept')
+                                        return SizedBox.shrink();
+                                    } else {
+                                      // محادثة فردية
+                                      final participants = List<String>.from(
+                                        ch['participants'] ?? [],
+                                      );
+                                      final otherId = participants.firstWhere(
+                                        (id) => id != _currentUserId,
+                                        orElse: () => 'N/A',
+                                      );
+
+                                      _otherUserId = otherId;
+                                      appLog(_otherUserId.toString());
+                                      final other = _employees.firstWhere(
+                                        (e) => e['id'] == otherId,
+                                        orElse: () => {},
+                                      );
+                                      displayName = other.isNotEmpty
+                                          ? other['name']
+                                          : (otherId.length > 10
+                                                ? AppLocaleKeys
+                                                      .chatUnknownUser
+                                                      .tr
+                                                : otherId);
+                                      initial = _initialFromName(displayName);
+                                      employImage = other['image'];
+                                      avatarColor = Colors.grey.shade200;
+                                      avatarIcon = null;
+                                      titleColor = Colors.black;
+                                    }
+
+                                    return ListTile(
+                                      tileColor:
+                                          _selectedChat != null &&
+                                              _selectedChat!['id'] == chatId
+                                          ? Colors.grey.shade100
+                                          : null,
+                                      onTap: () async {
+                                        final prevId =
+                                            _selectedChat?['id'] as String?;
+                                        final uid = _currentUserId;
+                                        if (uid != null && prevId != null) {
+                                          await _persistScrollSnapshotForChatId(
+                                            uid,
+                                            prevId,
+                                          );
+                                        }
+                                        _flushScrollDiskTimer();
+                                        _replyDraft = null;
+                                        final nextChatId = ch['id'] as String;
+                                        _scrollSnapshotCache.remove(nextChatId);
+                                        _selectedChat = ch;
                                         final participants = List<String>.from(
                                           ch['participants'] ?? [],
                                         );
@@ -1621,177 +1662,121 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                         );
 
                                         _otherUserId = otherId;
+                                        _syncMessagesStreamWithSelection();
                                         appLog(_otherUserId.toString());
-                                        final other = _employees.firstWhere(
-                                          (e) => e['id'] == otherId,
-                                          orElse: () => {},
-                                        );
-                                        displayName =
-                                            other.isNotEmpty
-                                                ? other['name']
-                                                : (otherId.length > 10
-                                                    ? AppLocaleKeys
-                                                        .chatUnknownUser
-                                                        .tr
-                                                    : otherId);
-                                        initial = _initialFromName(displayName);
-                                        employImage = other['image'];
-                                        avatarColor = Colors.grey.shade200;
-                                        avatarIcon = null;
-                                        titleColor = Colors.black;
-                                      }
 
-                                      return ListTile(
-                                        tileColor:
-                                            _selectedChat != null &&
-                                                    _selectedChat!['id'] ==
-                                                        chatId
-                                                ? Colors.grey.shade100
-                                                : null,
-                                        onTap: () async {
-                                          final prevId =
-                                              _selectedChat?['id'] as String?;
-                                          final uid = _currentUserId;
-                                          if (uid != null && prevId != null) {
-                                            await _persistScrollSnapshotForChatId(
-                                              uid,
-                                              prevId,
-                                            );
-                                          }
-                                          _flushScrollDiskTimer();
-                                          _replyDraft = null;
-                                          final nextChatId = ch['id'] as String;
-                                          _scrollSnapshotCache.remove(nextChatId);
-                                          _selectedChat = ch;
+                                        final openSnap = _currentUserId != null
+                                            ? await ChatScrollPersistence.load(
+                                                _currentUserId!,
+                                                nextChatId,
+                                              )
+                                            : null;
+
+                                        await _markMessagesAsRead(nextChatId);
+                                        if (!isGroup) {
                                           final participants =
                                               List<String>.from(
                                                 ch['participants'] ?? [],
                                               );
-                                          final otherId = participants
+                                          _otherUserId = participants
                                               .firstWhere(
                                                 (id) => id != _currentUserId,
-                                                orElse: () => 'N/A',
                                               );
-
-                                          _otherUserId = otherId;
-                                          _syncMessagesStreamWithSelection();
-                                          appLog(_otherUserId.toString());
-
-                                          final openSnap =
-                                              _currentUserId != null
-                                                  ? await ChatScrollPersistence.load(
-                                                    _currentUserId!,
-                                                    nextChatId,
-                                                  )
-                                                  : null;
-
-                                          await _markMessagesAsRead(nextChatId);
-                                          if (!isGroup) {
-                                            final participants =
-                                                List<String>.from(
-                                                  ch['participants'] ?? [],
-                                                );
-                                            _otherUserId = participants
-                                                .firstWhere(
-                                                  (id) => id != _currentUserId,
-                                                );
-                                          } else {
-                                            _otherUserId = null;
+                                        } else {
+                                          _otherUserId = null;
+                                        }
+                                        if (!mounted) return;
+                                        setState(() {
+                                          if (prevId != nextChatId) {
+                                            _chatMessageListEpoch++;
                                           }
-                                          if (!mounted) return;
-                                          setState(() {
-                                            if (prevId != nextChatId) {
-                                              _chatMessageListEpoch++;
-                                            }
-                                            _persistedOpenScroll = openSnap;
-                                            _persistedOpenScrollForChatId =
-                                                nextChatId;
-                                            _scrollFabVisibleLast = null;
-                                            _scrollUnreadBelowLast = -1;
-                                          });
-                                          _syncMessageSoundListener();
-                                        },
-                                        leading: CircleAvatar(
-                                          radius: 24,
-                                          backgroundColor: avatarColor,
-                                          child:
-                                              avatarIcon != null
-                                                  ? Icon(
-                                                    avatarIcon,
-                                                    color: Colors.black54,
-                                                  )
-                                                  : (employImage != null &&
-                                                      employImage
-                                                          .toString()
-                                                          .trim()
-                                                          .isNotEmpty)
-                                                  ? ClipOval(
-                                                    child: Image.network(
-                                                      employImage.toString(),
-                                                      width: 48,
-                                                      height: 48,
-                                                      fit: BoxFit.cover,
-                                                      errorBuilder:
-                                                          (_, __, ___) => Text(
-                                                            initial,
-                                                            style: TextStyle(
-                                                              color:
-                                                                  Colors.black,
-                                                            ),
-                                                          ),
-                                                    ),
-                                                  )
-                                                  : Text(
-                                                    initial,
-                                                    style: TextStyle(
-                                                      color: Colors.black,
-                                                    ),
-                                                  ),
+                                          _persistedOpenScroll = openSnap;
+                                          _persistedOpenScrollForChatId =
+                                              nextChatId;
+                                          _scrollFabVisibleLast = null;
+                                          _scrollUnreadBelowLast = -1;
+                                        });
+                                        _syncMessageSoundListener();
+                                      },
+                                      leading: CircleAvatar(
+                                        radius: 24,
+                                        backgroundColor: avatarColor,
+                                        child: avatarIcon != null
+                                            ? Icon(
+                                                avatarIcon,
+                                                color: Colors.black54,
+                                              )
+                                            : (employImage != null &&
+                                                  employImage
+                                                      .toString()
+                                                      .trim()
+                                                      .isNotEmpty)
+                                            ? ClipOval(
+                                                child: Image.network(
+                                                  employImage.toString(),
+                                                  width: 48,
+                                                  height: 48,
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder: (_, __, ___) =>
+                                                      Text(
+                                                        initial,
+                                                        style: TextStyle(
+                                                          color: Colors.black,
+                                                        ),
+                                                      ),
+                                                ),
+                                              )
+                                            : Text(
+                                                initial,
+                                                style: TextStyle(
+                                                  color: Colors.black,
+                                                ),
+                                              ),
+                                      ),
+                                      title: Text(
+                                        displayName,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: titleColor,
                                         ),
-                                        title: Text(
-                                          displayName,
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: titleColor,
-                                          ),
-                                        ),
-                                        subtitle: _chatListSubtitleWidget(
-                                          ch,
-                                          isGroup
-                                              ? AppLocaleKeys
+                                      ),
+                                      subtitle: _chatListSubtitleWidget(
+                                        ch,
+                                        isGroup
+                                            ? AppLocaleKeys
                                                   .chatGroupConversation
                                                   .tr
-                                              : '',
-                                        ),
-                                        //counter
-                                        trailing: StreamBuilder<int>(
-                                          stream: _firestoreServices
-                                              .unreadIncomingCountStream(
-                                                chatId,
-                                                _currentUserId ?? '',
-                                              ),
-                                          builder: (context, snap) {
-                                            final count = snap.data ?? 0;
-                                            if (count > 0) {
-                                              return CircleAvatar(
-                                                radius: 10,
-                                                backgroundColor:
-                                                    Colors.blue.shade100,
-                                                child: Text(
-                                                  count.toString(),
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    color: Colors.black87,
-                                                  ),
+                                            : '',
+                                      ),
+                                      //counter
+                                      trailing: StreamBuilder<int>(
+                                        stream: _firestoreServices
+                                            .unreadIncomingCountStream(
+                                              chatId,
+                                              _currentUserId ?? '',
+                                            ),
+                                        builder: (context, snap) {
+                                          final count = snap.data ?? 0;
+                                          if (count > 0) {
+                                            return CircleAvatar(
+                                              radius: 10,
+                                              backgroundColor:
+                                                  Colors.blue.shade100,
+                                              child: Text(
+                                                count.toString(),
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.black87,
                                                 ),
-                                              );
-                                            }
-                                            return SizedBox.shrink();
-                                          },
-                                        ),
-                                      );
-                                    },
-                                  ),
+                                              ),
+                                            );
+                                          }
+                                          return SizedBox.shrink();
+                                        },
+                                      ),
+                                    );
+                                  },
+                                ),
                         ),
                       ],
                     ),
@@ -1805,813 +1790,716 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   flex: 5,
                   child: Container(
                     // keep exactly the same structure inside
-                    child:
-                        _selectedChat == null
-                            ? Center(
-                              child: Text(
-                                AppLocaleKeys.chatSelectFromList.tr,
-                                style: TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 18,
-                                ),
+                    child: _selectedChat == null
+                        ? Center(
+                            child: Text(
+                              AppLocaleKeys.chatSelectFromList.tr,
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 18,
                               ),
-                            )
-                            : Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                  // header
-                                  Container(
-                                    margin: EdgeInsets.only(top: 30, left: 10),
-                                    padding: const EdgeInsets.all(16),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
+                            ),
+                          )
+                        : Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // header
+                              Container(
+                                margin: EdgeInsets.only(top: 30, left: 10),
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
                                       children: [
-                                        Row(
+                                        Builder(
+                                          builder: (context) {
+                                            final isGroup =
+                                                _selectedChat!['isGroup'] ==
+                                                true;
+                                            return chatLeadingAvatar(
+                                              radius: 28,
+                                              backgroundColor: isGroup
+                                                  ? Colors.blueGrey.shade100
+                                                  : Colors.grey.shade200,
+                                              initial: _initialFromName(
+                                                _getSelectedChatNameSync(),
+                                              ),
+                                              groupIcon: isGroup
+                                                  ? Icons.group
+                                                  : null,
+                                              imageUrl: isGroup
+                                                  ? null
+                                                  : _getSelectedChatOtherImageUrlSync(),
+                                            );
+                                          },
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
-                                            Builder(
-                                              builder: (context) {
-                                                final isGroup =
-                                                    _selectedChat!['isGroup'] ==
-                                                    true;
-                                                return chatLeadingAvatar(
-                                                  radius: 28,
-                                                  backgroundColor:
-                                                      isGroup
-                                                          ? Colors
-                                                              .blueGrey
-                                                              .shade100
-                                                          : Colors
-                                                              .grey
-                                                              .shade200,
-                                                  initial: _initialFromName(
-                                                    _getSelectedChatNameSync(),
-                                                  ),
-                                                  groupIcon:
-                                                      isGroup
-                                                          ? Icons.group
-                                                          : null,
-                                                  imageUrl:
-                                                      isGroup
-                                                          ? null
-                                                          : _getSelectedChatOtherImageUrlSync(),
-                                                );
-                                              },
-                                            ),
-                                            const SizedBox(width: 12),
-                                            Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  _getSelectedChatNameSync(),
-                                                  style: TextStyle(
-                                                    fontSize: 18,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                              ],
+                                            Text(
+                                              _getSelectedChatNameSync(),
+                                              style: TextStyle(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                              ),
                                             ),
                                           ],
                                         ),
-                                        Text(
-                                          _selectedChat!['isGroup'] == true
-                                              ? AppLocaleKeys.chatGroupType.tr
-                                              : AppLocaleKeys
-                                                  .chatPrivateType
-                                                  .tr,
-                                          style: TextStyle(
-                                            color: Colors.grey.shade600,
-                                          ),
-                                        ),
                                       ],
                                     ),
-                                  ),
-                                  SizedBox(height: 15),
-                                  // messages area (stream) — no outer [SingleChildScrollView]
-                                  // nesting (it prevented [ItemPositionsListener] from working).
-                                  Expanded(
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(15),
+                                    Text(
+                                      _selectedChat!['isGroup'] == true
+                                          ? AppLocaleKeys.chatGroupType.tr
+                                          : AppLocaleKeys.chatPrivateType.tr,
+                                      style: TextStyle(
+                                        color: Colors.grey.shade600,
                                       ),
-                                      margin: const EdgeInsets.symmetric(
-                                        horizontal: 5,
-                                      ),
-                                      clipBehavior: Clip.antiAlias,
-                                      child:
-                                          _messagesStream == null
-                                              ? Center(
-                                                child: Text(
-                                                  AppLocaleKeys.chatNoMessages.tr,
-                                                ),
-                                              )
-                                              : StreamBuilder<
-                                                      QuerySnapshot<
-                                                        Map<String, dynamic>
-                                                      >
-                                                    >(
-                                                      stream: _messagesStream,
-                                                      builder: (
-                                                        context,
-                                                        snapshot,
-                                                      ) {
-                                                        if (snapshot
-                                                                .connectionState ==
-                                                            ConnectionState
-                                                                .waiting) {
-                                                          return Center(
-                                                            child:
-                                                                CircularProgressIndicator(),
-                                                          );
-                                                        }
-                                                        final docs =
-                                                            snapshot
-                                                                .data
-                                                                ?.docs ??
-                                                            [];
-                                                        if (docs.isEmpty) {
-                                                          return Center(
-                                                            child: Text(
-                                                              AppLocaleKeys
-                                                                  .chatNoMessages
-                                                                  .tr,
-                                                            ),
-                                                          );
-                                                        }
-                                                        _orderedChatMessageDocs =
-                                                            docs;
-                                                        QueryDocumentSnapshot<
-                                                          Map<String, dynamic>
-                                                        >?
-                                                        pinnedDoc;
-                                                        for (final doc in docs) {
-                                                          if (doc
-                                                                  .data()['isPinned'] ==
-                                                              true) {
-                                                            pinnedDoc = doc;
-                                                            break;
-                                                          }
-                                                        }
-                                                        final showScrollFab =
-                                                            !chatReverseListShowsLatest(
-                                                          positionsListener:
-                                                              _chatItemPositionsListener,
-                                                          itemCount: docs.length,
-                                                        );
-                                                        final unreadBelow =
-                                                            chatReverseListUnreadIncomingBelowCount(
-                                                          positionsListener:
-                                                              _chatItemPositionsListener,
-                                                          itemCount: docs.length,
-                                                          docs: docs,
-                                                          currentUserId:
-                                                              _currentUserId!,
-                                                        );
-                                                        final selChatId =
-                                                            _selectedChat!['id']
-                                                                as String;
-                                                        final mem =
-                                                            _scrollSnapshotCache[
-                                                                selChatId];
-                                                        final disk =
-                                                            _persistedOpenScrollForChatId ==
-                                                                    selChatId
-                                                                ? _persistedOpenScroll
-                                                                : null;
-                                                        final persistedForResolve =
-                                                            mem ?? disk;
-                                                        final openScroll =
-                                                            resolveChatOpenScroll(
-                                                          itemCount: docs.length,
-                                                          currentUserId:
-                                                              _currentUserId!,
-                                                          docs: docs,
-                                                          persisted:
-                                                              persistedForResolve,
-                                                          usePersisted:
-                                                              persistedForResolve !=
-                                                                  null,
-                                                        );
-                                                        return Column(
-                                                          children: [
-                                                            if (pinnedDoc != null)
-                                                              Padding(
-                                                                padding:
-                                                                    const EdgeInsets.fromLTRB(
-                                                                      12,
-                                                                      8,
-                                                                      12,
-                                                                      4,
-                                                                    ),
-                                                                child: _PinnedMessageBanner(
-                                                                  message:
-                                                                      pinnedDoc.data(),
-                                                                  isGroup:
-                                                                      _selectedChat!['isGroup'] ==
-                                                                      true,
-                                                                  onTap:
-                                                                      () => _scrollToRepliedMessage(
-                                                                        pinnedDoc!.id,
-                                                                      ),
-                                                                ),
-                                                              ),
-                                                            Expanded(
-                                                              child: Stack(
-                                                                clipBehavior:
-                                                                    Clip.none,
-                                                                alignment: Alignment
-                                                                    .bottomRight,
-                                                                children: [
-                                                                  Positioned.fill(
-                                                                    child: ScrollablePositionedList
-                                                                        .builder(
-                                                                key: ValueKey(
-                                                                  '${selChatId}_$_chatMessageListEpoch',
-                                                                ),
-                                                                itemScrollController:
-                                                                    _chatMessageItemScrollController,
-                                                                itemPositionsListener:
-                                                                    _chatItemPositionsListener,
-                                                                initialScrollIndex:
-                                                                    openScroll.index,
-                                                                initialAlignment:
-                                                                    openScroll.alignment,
-                                                                padding:
-                                                                    const EdgeInsets.all(
-                                                                  16,
-                                                                ),
-                                                                itemCount:
-                                                                    docs.length,
-                                                                reverse: true,
-                                                                itemBuilder: (
-                                                                  context,
-                                                                  i,
-                                                                ) {
-                                                                  final d =
-                                                                      docs[i]
-                                                                          .data();
-                                                                  final mid =
-                                                                      docs[i].id;
-                                                                  final isMe =
-                                                                      d['senderId'] ==
-                                                                      _currentUserId;
-                                                                  final ts =
-                                                                      d['timestamp']
-                                                                          as Timestamp?;
-                                                                  final senderName =
-                                                                      d['senderName'] ??
-                                                                      AppLocaleKeys
-                                                                          .chatSenderFallback
-                                                                          .tr;
-                                                                  final isRead =
-                                                                      d['isRead'] ==
-                                                                      true;
-
-                                                                  return Padding(
-                                                                    key:
-                                                                        ValueKey(
-                                                                          mid,
-                                                                        ),
-                                                                    padding: const EdgeInsets
-                                                                        .symmetric(
-                                                                      vertical:
-                                                                          4,
-                                                                    ),
-                                                                    child: ChatMessageTile(
-                                                                      chatId:
-                                                                          _selectedChat!['id']
-                                                                              as String,
-                                                                      messageId:
-                                                                          mid,
-                                                                      message: Map<
-                                                                        String,
-                                                                        dynamic
-                                                                      >.from(
-                                                                        d,
-                                                                      ),
-                                                                      isMe:
-                                                                          isMe,
-                                                                      isGroup:
-                                                                          _selectedChat!['isGroup'] ==
-                                                                          true,
-                                                                      senderName:
-                                                                          senderName,
-                                                                      showGroupSenderName:
-                                                                          !isMe &&
-                                                                          (_selectedChat?['isGroup'] ??
-                                                                              false),
-                                                                      timestamp:
-                                                                          ts,
-                                                                      formatTime:
-                                                                          _formatTimestamp,
-                                                                      isAdmin:
-                                                                          _currentUserRole ==
-                                                                          'admin',
-                                                                      currentUserId:
-                                                                          _currentUserId!,
-                                                                      currentUserDisplayName:
-                                                                          _currentUserName,
-                                                                      onReply:
-                                                                          (
-                                                                            draft,
-                                                                          ) => setState(
-                                                                            () => _replyDraft =
-                                                                                draft,
-                                                                          ),
-                                                                      onReplyPreviewTap:
-                                                                          _scrollToRepliedMessage,
-                                                                      bubbleDecoration: BoxDecoration(
-                                                                        color: isMe
-                                                                            ? const Color(
-                                                                                0xff465FFF,
-                                                                              )
-                                                                            : Colors
-                                                                                .grey
-                                                                                .shade100,
-                                                                        borderRadius: BorderRadius.only(
-                                                                          topLeft:
-                                                                              const Radius.circular(
-                                                                                17,
-                                                                              ),
-                                                                          topRight:
-                                                                              const Radius.circular(
-                                                                                17,
-                                                                              ),
-                                                                          bottomLeft: Radius.circular(
-                                                                            isMe
-                                                                                ? 17
-                                                                                : 5,
-                                                                          ),
-                                                                          bottomRight: Radius.circular(
-                                                                            isMe
-                                                                                ? 5
-                                                                                : 17,
-                                                                          ),
-                                                                        ),
-                                                                      ),
-                                                                      maxWidthFactor:
-                                                                          0.6,
-                                                                      alignment: isMe
-                                                                          ? Alignment
-                                                                              .centerRight
-                                                                          : Alignment
-                                                                              .centerLeft,
-                                                                      columnCrossAxis: isMe
-                                                                          ? CrossAxisAlignment
-                                                                              .end
-                                                                          : CrossAxisAlignment
-                                                                              .start,
-                                                                      showReadReceipts:
-                                                                          true,
-                                                                      messageIsRead:
-                                                                          isRead,
-                                                                    ),
-                                                                  );
-                                                                },
-                                                                    ),
-                                                                  ),
-                                                                  Positioned(
-                                                                    right: 6,
-                                                                    bottom: 10,
-                                                                    child: ChatScrollToLatestFab(
-                                                                      visible:
-                                                                          showScrollFab,
-                                                                      badgeCount:
-                                                                          unreadBelow,
-                                                                      onPressed: () =>
-                                                                          scheduleScrollChatToLatest(
-                                                                        controller:
-                                                                            _chatMessageItemScrollController,
-                                                                        mounted:
-                                                                            () => mounted,
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                ],
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        );
-                                                      },
-                                                    ),
                                     ),
+                                  ],
+                                ),
+                              ),
+                              SizedBox(height: 15),
+                              // messages area (stream) — no outer [SingleChildScrollView]
+                              // nesting (it prevented [ItemPositionsListener] from working).
+                              Expanded(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(15),
                                   ),
-
-                                          // input text and send button
-                                          Padding(
-                                            padding: const EdgeInsets.all(16.0),
-                                            child: Column(
-                                              mainAxisSize: MainAxisSize.min,
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.stretch,
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 5,
+                                  ),
+                                  clipBehavior: Clip.antiAlias,
+                                  child: _messagesStream == null
+                                      ? Center(
+                                          child: Text(
+                                            AppLocaleKeys.chatNoMessages.tr,
+                                          ),
+                                        )
+                                      : StreamBuilder<
+                                          QuerySnapshot<Map<String, dynamic>>
+                                        >(
+                                          stream: _messagesStream,
+                                          builder: (context, snapshot) {
+                                            if (snapshot.connectionState ==
+                                                ConnectionState.waiting) {
+                                              return Center(
+                                                child:
+                                                    CircularProgressIndicator(),
+                                              );
+                                            }
+                                            final docs =
+                                                snapshot.data?.docs ?? [];
+                                            if (docs.isEmpty) {
+                                              return Center(
+                                                child: Text(
+                                                  AppLocaleKeys
+                                                      .chatNoMessages
+                                                      .tr,
+                                                ),
+                                              );
+                                            }
+                                            _orderedChatMessageDocs = docs;
+                                            QueryDocumentSnapshot<
+                                              Map<String, dynamic>
+                                            >?
+                                            pinnedDoc;
+                                            for (final doc in docs) {
+                                              if (doc.data()['isPinned'] ==
+                                                  true) {
+                                                pinnedDoc = doc;
+                                                break;
+                                              }
+                                            }
+                                            final showScrollFab =
+                                                !chatReverseListShowsLatest(
+                                                  positionsListener:
+                                                      _chatItemPositionsListener,
+                                                  itemCount: docs.length,
+                                                );
+                                            final unreadBelow =
+                                                chatReverseListUnreadIncomingBelowCount(
+                                                  positionsListener:
+                                                      _chatItemPositionsListener,
+                                                  itemCount: docs.length,
+                                                  docs: docs,
+                                                  currentUserId:
+                                                      _currentUserId!,
+                                                );
+                                            final selChatId =
+                                                _selectedChat!['id'] as String;
+                                            final mem =
+                                                _scrollSnapshotCache[selChatId];
+                                            final disk =
+                                                _persistedOpenScrollForChatId ==
+                                                    selChatId
+                                                ? _persistedOpenScroll
+                                                : null;
+                                            final persistedForResolve =
+                                                mem ?? disk;
+                                            final openScroll =
+                                                resolveChatOpenScroll(
+                                                  itemCount: docs.length,
+                                                  currentUserId:
+                                                      _currentUserId!,
+                                                  docs: docs,
+                                                  persisted:
+                                                      persistedForResolve,
+                                                  usePersisted:
+                                                      persistedForResolve !=
+                                                      null,
+                                                );
+                                            return Column(
                                               children: [
-                                                const ChatUploadProgressBanner(),
-                                                if (_replyDraft != null)
-                                                  ChatReplyDraftBanner(
-                                                    draft: _replyDraft!,
-                                                    onCancel:
-                                                        () => setState(
-                                                          () =>
-                                                              _replyDraft =
-                                                                  null,
+                                                if (pinnedDoc != null)
+                                                  Padding(
+                                                    padding:
+                                                        const EdgeInsets.fromLTRB(
+                                                          12,
+                                                          8,
+                                                          12,
+                                                          4,
                                                         ),
+                                                    child: _PinnedMessageBanner(
+                                                      message: pinnedDoc.data(),
+                                                      isGroup:
+                                                          _selectedChat!['isGroup'] ==
+                                                          true,
+                                                      onTap: () =>
+                                                          _scrollToRepliedMessage(
+                                                            pinnedDoc!.id,
+                                                          ),
+                                                    ),
                                                   ),
-                                                if (_pendingAttachment != null)
-                                                  PendingAttachmentStrip(
-                                                    pending:
-                                                        _pendingAttachment!,
-                                                    onCancel:
-                                                        () => setState(
-                                                          () =>
-                                                              _pendingAttachment =
-                                                                  null,
-                                                        ),
-                                                    onTapPreview:
-                                                        (_pendingAttachment!
-                                                                        .messageType ==
-                                                                    'image' ||
-                                                                _pendingAttachment!
-                                                                        .messageType ==
-                                                                    'video')
-                                                            ? () =>
-                                                                openChatMediaFromUrl(
-                                                                  _pendingAttachment!
-                                                                      .attachmentUrl,
-                                                                )
-                                                            : null,
-                                                  ),
-                                                Obx(() {
-                                                  final busy =
-                                                      controller
-                                                          .isUploading
-                                                          .value;
-                                                  return Row(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .center,
+                                                Expanded(
+                                                  child: Stack(
+                                                    clipBehavior: Clip.none,
+                                                    alignment:
+                                                        Alignment.bottomRight,
                                                     children: [
-                                                      IconButton(
-                                                        icon: Icon(
-                                                          Icons
-                                                              .sentiment_satisfied_alt_outlined,
-                                                        ),
-                                                        onPressed:
-                                                            busy
-                                                                ? null
-                                                                : () {
-                                                                  setState(() {
-                                                                    _isEmojiVisible =
-                                                                        !_isEmojiVisible;
-                                                                    FocusScope.of(
-                                                                      context,
-                                                                    ).unfocus();
-                                                                  });
-                                                                },
-                                                      ),
-                                                      IconButton(
-                                                        tooltip:
-                                                            AppLocaleKeys
-                                                                .chatAttachGallery
-                                                                .tr,
-                                                        icon: const Icon(
-                                                          Icons
-                                                              .perm_media_outlined,
-                                                        ),
-                                                        onPressed:
-                                                            busy
-                                                                ? null
-                                                                : () async {
-                                                                  final v =
-                                                                      await controller
-                                                                          .pickOneChatGalleryMedia();
-                                                                  if (v.isEmpty ||
-                                                                      v.first.bytes ==
-                                                                          null) {
-                                                                    return;
-                                                                  }
-                                                                  final picked =
-                                                                      v.first;
-                                                                  final url = await controller.uploadFiles(
-                                                                    filePathOrBytes:
-                                                                        picked
-                                                                            .bytes!,
-                                                                    fileName:
-                                                                        picked
-                                                                            .name,
-                                                                    useBlockingUploadDialog:
-                                                                        false,
-                                                                  );
-                                                                  if (url ==
-                                                                      null) {
-                                                                    return;
-                                                                  }
-                                                                  final isVid =
-                                                                      chatAttachmentIsVideo(
-                                                                        picked
-                                                                            .name,
-                                                                      );
-                                                                  setState(
-                                                                    () =>
-                                                                        _pendingAttachment =
-                                                                            PendingChatAttachment(
-                                                                              messageType:
-                                                                                  isVid
-                                                                                      ? 'video'
-                                                                                      : 'image',
-                                                                              attachmentUrl:
-                                                                                  url,
-                                                                              fileName:
-                                                                                  isVid
-                                                                                      ? picked.name
-                                                                                      : null,
-                                                                            ),
-                                                                  );
-                                                                  controller
-                                                                      .uploadedFilesPaths
-                                                                      .clear();
-                                                                },
-                                                      ),
-                                                      IconButton(
-                                                        tooltip:
-                                                            AppLocaleKeys
-                                                                .chatAttachFile
-                                                                .tr,
-                                                        icon: const Icon(
-                                                          Icons.attach_file,
-                                                        ),
-                                                        onPressed:
-                                                            busy
-                                                                ? null
-                                                                : () async {
-                                                                  final v =
-                                                                      await controller
-                                                                          .pickOneChatFile();
-                                                                  if (v.isEmpty ||
-                                                                      v.first.bytes ==
-                                                                          null) {
-                                                                    return;
-                                                                  }
-                                                                  final url = await controller.uploadFiles(
-                                                                    filePathOrBytes:
-                                                                        v
-                                                                            .first
-                                                                            .bytes!,
-                                                                    fileName:
-                                                                        v
-                                                                            .first
-                                                                            .name,
-                                                                    useBlockingUploadDialog:
-                                                                        false,
-                                                                  );
-                                                                  if (url ==
-                                                                      null) {
-                                                                    return;
-                                                                  }
-                                                                  setState(
-                                                                    () =>
-                                                                        _pendingAttachment =
-                                                                            PendingChatAttachment(
-                                                                              messageType:
-                                                                                  'file',
-                                                                              attachmentUrl:
-                                                                                  url,
-                                                                              fileName:
-                                                                                  v
-                                                                                      .first
-                                                                                      .name,
-                                                                            ),
-                                                                  );
-                                                                  controller
-                                                                      .uploadedFilesPaths
-                                                                      .clear();
-                                                                },
-                                                      ),
-                                                      IconButton(
-                                                        tooltip:
-                                                            AppLocaleKeys
-                                                                .chatPasteImage
-                                                                .tr,
-                                                        icon: const Icon(
-                                                          Icons.content_paste,
-                                                        ),
-                                                        onPressed:
-                                                            busy
-                                                                ? null
-                                                                : _pasteImageFromClipboard,
-                                                      ),
-                                                      ChatVoiceRecordButton(
-                                                        onUploaded: (
-                                                          url,
-                                                          sec,
-                                                        ) async {
-                                                          setState(
-                                                            () =>
-                                                                _pendingAttachment =
-                                                                    PendingChatAttachment(
-                                                                      messageType:
-                                                                          'voice',
-                                                                      attachmentUrl:
-                                                                          url,
-                                                                      durationSec:
-                                                                          sec > 0
-                                                                              ? sec
-                                                                              : null,
-                                                                    ),
-                                                          );
-                                                          controller
-                                                              .uploadedFilesPaths
-                                                              .clear();
-                                                        },
-                                                      ),
-                                                      Expanded(
-                                                        child: Focus(
-                                                          onKeyEvent:
-                                                              _onComposerKeyEvent,
-                                                          child: TextField(
-                                                            controller:
-                                                                _messageController,
-                                                            focusNode:
-                                                                _messageFocusNode,
-                                                            contentInsertionConfiguration:
-                                                                _enableContentInsertion
-                                                                    ? ContentInsertionConfiguration(
-                                                                      allowedMimeTypes: const <
-                                                                        String
-                                                                      >[
-                                                                        'image/png',
-                                                                        'image/jpeg',
-                                                                        'image/webp',
-                                                                        'image/gif',
-                                                                      ],
-                                                                      onContentInserted: (
-                                                                        KeyboardInsertedContent
-                                                                        content,
-                                                                      ) {
-                                                                        final data =
-                                                                            content.data;
-                                                                        if (data ==
-                                                                                null ||
-                                                                            data.isEmpty) {
-                                                                          _showPasteImageFailed();
-                                                                          return;
-                                                                        }
-                                                                        unawaited(
-                                                                          _handlePastedImage(
-                                                                            data,
-                                                                            content.mimeType,
-                                                                          ),
-                                                                        );
-                                                                      },
-                                                                    )
-                                                                    : null,
-                                                            minLines: 1,
-                                                            maxLines: 6,
-                                                            keyboardType:
-                                                                TextInputType
-                                                                    .multiline,
-                                                            readOnly: busy,
-                                                            textAlignVertical:
-                                                                TextAlignVertical
-                                                                    .center,
-                                                            textDirection:
-                                                                textDirectionForTypedChatMessage(
-                                                                  _messageController
-                                                                      .text,
-                                                                  Directionality.of(
-                                                                    context,
-                                                                  ),
-                                                                ),
-                                                            textAlign:
-                                                                TextAlign.start,
-                                                            decoration: InputDecoration(
-                                                              hintText:
-                                                                  AppLocaleKeys
-                                                                      .chatWriteMessage
-                                                                      .tr,
-                                                              filled: true,
-                                                              fillColor:
-                                                                  Colors
-                                                                      .grey
-                                                                      .shade100,
-                                                              border: OutlineInputBorder(
-                                                                borderRadius:
-                                                                    BorderRadius.circular(
-                                                                      12,
-                                                                    ),
-                                                                borderSide:
-                                                                    BorderSide
-                                                                        .none,
+                                                      Positioned.fill(
+                                                        child: ScrollablePositionedList.builder(
+                                                          key: ValueKey(
+                                                            '${selChatId}_$_chatMessageListEpoch',
+                                                          ),
+                                                          itemScrollController:
+                                                              _chatMessageItemScrollController,
+                                                          itemPositionsListener:
+                                                              _chatItemPositionsListener,
+                                                          initialScrollIndex:
+                                                              openScroll.index,
+                                                          initialAlignment:
+                                                              openScroll
+                                                                  .alignment,
+                                                          padding:
+                                                              const EdgeInsets.all(
+                                                                16,
                                                               ),
-                                                              contentPadding:
-                                                                  EdgeInsets.symmetric(
-                                                                    horizontal:
-                                                                        16,
-                                                                    vertical: 8,
+                                                          itemCount:
+                                                              docs.length,
+                                                          reverse: true,
+                                                          itemBuilder: (context, i) {
+                                                            final d = docs[i]
+                                                                .data();
+                                                            final mid =
+                                                                docs[i].id;
+                                                            final isMe =
+                                                                d['senderId'] ==
+                                                                _currentUserId;
+                                                            final ts =
+                                                                d['timestamp']
+                                                                    as Timestamp?;
+                                                            final senderName =
+                                                                d['senderName'] ??
+                                                                AppLocaleKeys
+                                                                    .chatSenderFallback
+                                                                    .tr;
+                                                            final isRead =
+                                                                d['isRead'] ==
+                                                                true;
+
+                                                            return Padding(
+                                                              key: ValueKey(
+                                                                mid,
+                                                              ),
+                                                              padding:
+                                                                  const EdgeInsets.symmetric(
+                                                                    vertical: 4,
                                                                   ),
-                                                            ),
-                                                            onTap: () {
-                                                              if (_isEmojiVisible) {
-                                                                setState(
-                                                                  () =>
-                                                                      _isEmojiVisible =
-                                                                          false,
-                                                                );
-                                                              }
-                                                            },
-                                                          ),
+                                                              child: ChatMessageTile(
+                                                                chatId:
+                                                                    _selectedChat!['id']
+                                                                        as String,
+                                                                messageId: mid,
+                                                                message:
+                                                                    Map<
+                                                                      String,
+                                                                      dynamic
+                                                                    >.from(d),
+                                                                isMe: isMe,
+                                                                isGroup:
+                                                                    _selectedChat!['isGroup'] ==
+                                                                    true,
+                                                                senderName:
+                                                                    senderName,
+                                                                showGroupSenderName:
+                                                                    !isMe &&
+                                                                    (_selectedChat?['isGroup'] ??
+                                                                        false),
+                                                                timestamp: ts,
+                                                                formatTime:
+                                                                    _formatTimestamp,
+                                                                isAdmin:
+                                                                    _currentUserRole ==
+                                                                    'admin',
+                                                                currentUserId:
+                                                                    _currentUserId!,
+                                                                currentUserDisplayName:
+                                                                    _currentUserName,
+                                                                onReply:
+                                                                    (
+                                                                      draft,
+                                                                    ) => setState(
+                                                                      () => _replyDraft =
+                                                                          draft,
+                                                                    ),
+                                                                onReplyPreviewTap:
+                                                                    _scrollToRepliedMessage,
+                                                                bubbleDecoration: BoxDecoration(
+                                                                  color: isMe
+                                                                      ? const Color(
+                                                                          0xff465FFF,
+                                                                        )
+                                                                      : Colors
+                                                                            .grey
+                                                                            .shade100,
+                                                                  borderRadius: BorderRadius.only(
+                                                                    topLeft:
+                                                                        const Radius.circular(
+                                                                          17,
+                                                                        ),
+                                                                    topRight:
+                                                                        const Radius.circular(
+                                                                          17,
+                                                                        ),
+                                                                    bottomLeft:
+                                                                        Radius.circular(
+                                                                          isMe
+                                                                              ? 17
+                                                                              : 5,
+                                                                        ),
+                                                                    bottomRight:
+                                                                        Radius.circular(
+                                                                          isMe
+                                                                              ? 5
+                                                                              : 17,
+                                                                        ),
+                                                                  ),
+                                                                ),
+                                                                maxWidthFactor:
+                                                                    0.6,
+                                                                alignment: isMe
+                                                                    ? Alignment
+                                                                          .centerRight
+                                                                    : Alignment
+                                                                          .centerLeft,
+                                                                columnCrossAxis:
+                                                                    isMe
+                                                                    ? CrossAxisAlignment
+                                                                          .end
+                                                                    : CrossAxisAlignment
+                                                                          .start,
+                                                                showReadReceipts:
+                                                                    true,
+                                                                messageIsRead:
+                                                                    isRead,
+                                                              ),
+                                                            );
+                                                          },
                                                         ),
                                                       ),
-                                                      const SizedBox(width: 8),
-                                                      MouseRegion(
-                                                        cursor:
-                                                            SystemMouseCursors
-                                                                .click,
-                                                        child: GestureDetector(
-                                                          onTap:
-                                                              busy
-                                                                  ? null
-                                                                  : _sendMessage,
-                                                          child: Container(
-                                                            width: 45,
-                                                            height: 45,
-                                                            decoration:
-                                                                BoxDecoration(
-                                                                  color: Color(
-                                                                    0xff465FFF,
-                                                                  ),
-                                                                  borderRadius:
-                                                                      BorderRadius.circular(
-                                                                        15,
-                                                                      ),
-                                                                ),
-                                                            child: Icon(
-                                                              Icons.send,
-                                                              color:
-                                                                  Colors.white,
-                                                              size: 20,
-                                                            ),
-                                                          ),
+                                                      Positioned(
+                                                        right: 6,
+                                                        bottom: 10,
+                                                        child: ChatScrollToLatestFab(
+                                                          visible:
+                                                              showScrollFab,
+                                                          badgeCount:
+                                                              unreadBelow,
+                                                          onPressed: () =>
+                                                              scheduleScrollChatToLatest(
+                                                                controller:
+                                                                    _chatMessageItemScrollController,
+                                                                mounted: () =>
+                                                                    mounted,
+                                                              ),
                                                         ),
                                                       ),
                                                     ],
-                                                  );
-                                                }),
+                                                  ),
+                                                ),
                                               ],
+                                            );
+                                          },
+                                        ),
+                                ),
+                              ),
+
+                              // input text and send button
+                              Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    const ChatUploadProgressBanner(),
+                                    if (_replyDraft != null)
+                                      ChatReplyDraftBanner(
+                                        draft: _replyDraft!,
+                                        onCancel: () =>
+                                            setState(() => _replyDraft = null),
+                                      ),
+                                    if (_pendingAttachment != null)
+                                      PendingAttachmentStrip(
+                                        pending: _pendingAttachment!,
+                                        onCancel: () => setState(
+                                          () => _pendingAttachment = null,
+                                        ),
+                                        onTapPreview:
+                                            (_pendingAttachment!.messageType ==
+                                                    'image' ||
+                                                _pendingAttachment!
+                                                        .messageType ==
+                                                    'video')
+                                            ? () => openChatMediaFromUrl(
+                                                _pendingAttachment!
+                                                    .attachmentUrl,
+                                              )
+                                            : null,
+                                      ),
+                                    Obx(() {
+                                      final busy = controller.isUploading.value;
+                                      return Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.center,
+                                        children: [
+                                          IconButton(
+                                            icon: Icon(
+                                              Icons
+                                                  .sentiment_satisfied_alt_outlined,
+                                            ),
+                                            onPressed: busy
+                                                ? null
+                                                : () {
+                                                    setState(() {
+                                                      _isEmojiVisible =
+                                                          !_isEmojiVisible;
+                                                      FocusScope.of(
+                                                        context,
+                                                      ).unfocus();
+                                                    });
+                                                  },
+                                          ),
+                                          IconButton(
+                                            tooltip: AppLocaleKeys
+                                                .chatAttachGallery
+                                                .tr,
+                                            icon: const Icon(
+                                              Icons.perm_media_outlined,
+                                            ),
+                                            onPressed: busy
+                                                ? null
+                                                : () async {
+                                                    final v = await controller
+                                                        .pickOneChatGalleryMedia();
+                                                    if (v.isEmpty ||
+                                                        v.first.bytes == null) {
+                                                      return;
+                                                    }
+                                                    final picked = v.first;
+                                                    final url = await controller
+                                                        .uploadFiles(
+                                                          filePathOrBytes:
+                                                              picked.bytes!,
+                                                          fileName: picked.name,
+                                                          useBlockingUploadDialog:
+                                                              false,
+                                                        );
+                                                    if (url == null) {
+                                                      return;
+                                                    }
+                                                    final isVid =
+                                                        chatAttachmentIsVideo(
+                                                          picked.name,
+                                                        );
+                                                    setState(
+                                                      () => _pendingAttachment =
+                                                          PendingChatAttachment(
+                                                            messageType: isVid
+                                                                ? 'video'
+                                                                : 'image',
+                                                            attachmentUrl: url,
+                                                            fileName: isVid
+                                                                ? picked.name
+                                                                : null,
+                                                          ),
+                                                    );
+                                                    controller
+                                                        .uploadedFilesPaths
+                                                        .clear();
+                                                  },
+                                          ),
+                                          IconButton(
+                                            tooltip:
+                                                AppLocaleKeys.chatAttachFile.tr,
+                                            icon: const Icon(Icons.attach_file),
+                                            onPressed: busy
+                                                ? null
+                                                : () async {
+                                                    final v = await controller
+                                                        .pickOneChatFile();
+                                                    if (v.isEmpty ||
+                                                        v.first.bytes == null) {
+                                                      return;
+                                                    }
+                                                    final url = await controller
+                                                        .uploadFiles(
+                                                          filePathOrBytes:
+                                                              v.first.bytes!,
+                                                          fileName:
+                                                              v.first.name,
+                                                          useBlockingUploadDialog:
+                                                              false,
+                                                        );
+                                                    if (url == null) {
+                                                      return;
+                                                    }
+                                                    setState(
+                                                      () => _pendingAttachment =
+                                                          PendingChatAttachment(
+                                                            messageType: 'file',
+                                                            attachmentUrl: url,
+                                                            fileName:
+                                                                v.first.name,
+                                                          ),
+                                                    );
+                                                    controller
+                                                        .uploadedFilesPaths
+                                                        .clear();
+                                                  },
+                                          ),
+                                          IconButton(
+                                            tooltip:
+                                                AppLocaleKeys.chatPasteImage.tr,
+                                            icon: const Icon(
+                                              Icons.content_paste,
+                                            ),
+                                            onPressed: busy
+                                                ? null
+                                                : _pasteImageFromClipboard,
+                                          ),
+                                          ChatVoiceRecordButton(
+                                            onUploaded: (url, sec) async {
+                                              setState(
+                                                () => _pendingAttachment =
+                                                    PendingChatAttachment(
+                                                      messageType: 'voice',
+                                                      attachmentUrl: url,
+                                                      durationSec: sec > 0
+                                                          ? sec
+                                                          : null,
+                                                    ),
+                                              );
+                                              controller.uploadedFilesPaths
+                                                  .clear();
+                                            },
+                                          ),
+                                          Expanded(
+                                            child: Theme(
+                                              data: Theme.of(context).copyWith(
+                                                textSelectionTheme:
+                                                    const TextSelectionThemeData(
+                                                      cursorColor: Color(
+                                                        0xFF465FFF,
+                                                      ),
+                                                      selectionHandleColor:
+                                                          Color(0xFF465FFF),
+                                                      selectionColor: Color(
+                                                        0x33465FFF,
+                                                      ),
+                                                    ),
+                                              ),
+                                              child: Focus(
+                                                onKeyEvent: _onComposerKeyEvent,
+                                                child: TextField(
+                                                  cursorColor: const Color(
+                                                    0xFF465FFF,
+                                                  ),
+                                                  controller:
+                                                      _messageController,
+                                                  focusNode: _messageFocusNode,
+                                                  contentInsertionConfiguration:
+                                                      _enableContentInsertion
+                                                      ? ContentInsertionConfiguration(
+                                                          allowedMimeTypes:
+                                                              const <String>[
+                                                                'image/png',
+                                                                'image/jpeg',
+                                                                'image/webp',
+                                                                'image/gif',
+                                                              ],
+                                                          onContentInserted:
+                                                              (
+                                                                KeyboardInsertedContent
+                                                                content,
+                                                              ) {
+                                                                final data =
+                                                                    content
+                                                                        .data;
+                                                                if (data ==
+                                                                        null ||
+                                                                    data.isEmpty) {
+                                                                  _showPasteImageFailed();
+                                                                  return;
+                                                                }
+                                                                unawaited(
+                                                                  _handlePastedImage(
+                                                                    data,
+                                                                    content
+                                                                        .mimeType,
+                                                                  ),
+                                                                );
+                                                              },
+                                                        )
+                                                      : null,
+                                                  minLines: 1,
+                                                  maxLines: 6,
+                                                  keyboardType:
+                                                      TextInputType.multiline,
+                                                  readOnly: busy,
+                                                  textAlignVertical:
+                                                      TextAlignVertical.center,
+                                                  textDirection:
+                                                      textDirectionForTypedChatMessage(
+                                                        _messageController.text,
+                                                        Directionality.of(
+                                                          context,
+                                                        ),
+                                                      ),
+                                                  textAlign: TextAlign.start,
+                                                  decoration: InputDecoration(
+                                                    hintText: AppLocaleKeys
+                                                        .chatWriteMessage
+                                                        .tr,
+                                                    filled: true,
+                                                    fillColor:
+                                                        Colors.grey.shade100,
+                                                    border: OutlineInputBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            12,
+                                                          ),
+                                                      borderSide:
+                                                          BorderSide.none,
+                                                    ),
+                                                    contentPadding:
+                                                        EdgeInsets.symmetric(
+                                                          horizontal: 16,
+                                                          vertical: 8,
+                                                        ),
+                                                  ),
+                                                  onTap: () {
+                                                    if (_isEmojiVisible) {
+                                                      setState(
+                                                        () => _isEmojiVisible =
+                                                            false,
+                                                      );
+                                                    }
+                                                  },
+                                                ),
+                                              ),
                                             ),
                                           ),
-
-                                          // Emoji Picker
-                                          Offstage(
-                                            offstage: !_isEmojiVisible,
-                                            child: SizedBox(
-                                              height: 250,
-                                              child: EmojiPicker(
-                                                onEmojiSelected: (
-                                                  category,
-                                                  emoji,
-                                                ) {
-                                                  _messageController.text +=
-                                                      emoji.emoji;
-                                                },
-                                                //   config: const Config(
-                                                //     columns: 7,
-                                                //     emojiSizeMax: 32.0,
-                                                //     verticalSpacing: 0,
-                                                //     horizontalSpacing: 0,
-                                                //     gridPadding: EdgeInsets.zero,
-                                                //     initCategory: Category.RECENT,
-                                                //     bgColor: Color(0xFFF2F2F2),
-                                                //     indicatorColor: Colors.blue,
-                                                //     iconColor: Colors.grey,
-                                                //     iconColorSelected: Colors.blue,
-                                                //     backspaceColor: Colors.blue,
-                                                //     skinToneDialogBgColor: Colors.white,
-                                                //     skinToneIndicatorColor: Colors.grey,
-                                                //     enableSkinTones: true,
-                                                //     showRecentsTab: true,
-                                                //     recentsLimit: 28,
-                                                //     noRecents: Text(
-                                                //       'لا توجد رموز حديثة',
-                                                //       textAlign: TextAlign.center,
-                                                //     ),
-                                                //     // textDirection: TextDirection.rtl,
-                                                //     tabIndicatorAnimDuration: kTabScrollDuration,
-                                                //     categoryIcons: CategoryIcons(),
-                                                //     buttonMode: ButtonMode.MATERIAL,
-                                                //   ),
+                                          const SizedBox(width: 8),
+                                          MouseRegion(
+                                            cursor: SystemMouseCursors.click,
+                                            child: GestureDetector(
+                                              onTap: busy ? null : _sendMessage,
+                                              child: Container(
+                                                width: 45,
+                                                height: 45,
+                                                decoration: BoxDecoration(
+                                                  color: Color(0xff465FFF),
+                                                  borderRadius:
+                                                      BorderRadius.circular(15),
+                                                ),
+                                                child: Icon(
+                                                  Icons.send,
+                                                  color: Colors.white,
+                                                  size: 20,
+                                                ),
                                               ),
                                             ),
                                           ),
                                         ],
-                                      ),
-                                    ),
+                                      );
+                                    }),
+                                  ],
+                                ),
+                              ),
+
+                              // Emoji Picker
+                              Offstage(
+                                offstage: !_isEmojiVisible,
+                                child: SizedBox(
+                                  height: 250,
+                                  child: EmojiPicker(
+                                    onEmojiSelected: (category, emoji) {
+                                      _messageController.text += emoji.emoji;
+                                    },
+                                    //   config: const Config(
+                                    //     columns: 7,
+                                    //     emojiSizeMax: 32.0,
+                                    //     verticalSpacing: 0,
+                                    //     horizontalSpacing: 0,
+                                    //     gridPadding: EdgeInsets.zero,
+                                    //     initCategory: Category.RECENT,
+                                    //     bgColor: Color(0xFFF2F2F2),
+                                    //     indicatorColor: Colors.blue,
+                                    //     iconColor: Colors.grey,
+                                    //     iconColorSelected: Colors.blue,
+                                    //     backspaceColor: Colors.blue,
+                                    //     skinToneDialogBgColor: Colors.white,
+                                    //     skinToneIndicatorColor: Colors.grey,
+                                    //     enableSkinTones: true,
+                                    //     showRecentsTab: true,
+                                    //     recentsLimit: 28,
+                                    //     noRecents: Text(
+                                    //       'لا توجد رموز حديثة',
+                                    //       textAlign: TextAlign.center,
+                                    //     ),
+                                    //     // textDirection: TextDirection.rtl,
+                                    //     tabIndicatorAnimDuration: kTabScrollDuration,
+                                    //     categoryIcons: CategoryIcons(),
+                                    //     buttonMode: ButtonMode.MATERIAL,
+                                    //   ),
                                   ),
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
+                ),
               ],
             ),
           ),

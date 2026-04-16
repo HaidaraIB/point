@@ -216,7 +216,7 @@ class ChatUploadProgressBanner extends StatelessWidget {
                 value: p,
                 minHeight: 4,
                 backgroundColor: Colors.grey.shade200,
-                color: const Color(0xff00A389),
+                color: const Color(0xFF465FFF),
               ),
             ),
           ],
