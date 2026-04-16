@@ -102,6 +102,8 @@ class _TimelineRow extends StatelessWidget {
         return Icons.note_add_outlined;
       case 'attachment_added':
         return Icons.attach_file;
+      case 'final_deliverable_attachment_added':
+        return Icons.outbox_outlined;
       case 'audience_changed':
         return Icons.people_outline;
       case 'category_changed':
@@ -144,7 +146,9 @@ class _TimelineRow extends StatelessWidget {
                         .trParams({'value': _formatValue(event.oldValue!)}),
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                   ),
-                if (event.type == 'attachment_added' && event.newValue != null)
+                if ((event.type == 'attachment_added' ||
+                        event.type == 'final_deliverable_attachment_added') &&
+                    event.newValue != null)
                   _AttachmentTimelineValue(
                     rawValue: event.newValue!,
                     onOpen: () => _openAttachment(context, event.newValue!),

@@ -1009,6 +1009,48 @@ class HomeController extends GetxController {
       }
     }
 
+    _addIfChanged(
+      events,
+      'tasks.timeline_final_deliverable_text_updated',
+      oldTask.finalDeliverableText,
+      newTask.finalDeliverableText,
+      userId,
+      userName,
+      now,
+      fieldKey: 'finalDeliverableText',
+    );
+
+    if (newTask.finalDeliverableFileUrls.length >
+        oldTask.finalDeliverableFileUrls.length) {
+      final oldCounter = <String, int>{};
+      for (final f in oldTask.finalDeliverableFileUrls) {
+        final key = f.toString();
+        oldCounter[key] = (oldCounter[key] ?? 0) + 1;
+      }
+      final addedFiles = <String>[];
+      for (final f in newTask.finalDeliverableFileUrls) {
+        final key = f.toString();
+        final remaining = oldCounter[key] ?? 0;
+        if (remaining > 0) {
+          oldCounter[key] = remaining - 1;
+        } else {
+          addedFiles.add(key);
+        }
+      }
+      for (final file in addedFiles) {
+        events.add(
+          TaskTimelineEvent(
+            type: 'final_deliverable_attachment_added',
+            label: 'tasks.timeline_final_deliverable_file_added',
+            newValue: file.isEmpty ? null : file,
+            byUserId: userId,
+            byUserName: userName,
+            timestamp: now,
+          ),
+        );
+      }
+    }
+
     // --- DesignTaskModel ---
     final oldD = oldTask.designDetails;
     final newD = newTask.designDetails;

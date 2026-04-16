@@ -279,6 +279,35 @@ class AppTranslations extends Translations {
       'tasks.action_text_label': 'Action text',
       'tasks.notes_section': 'Notes',
       'tasks.latest_comment': 'Latest comment',
+      'tasks.final_deliverable_section': 'Final deliverable',
+      'tasks.final_deliverable_dialog_title': 'Submit for review',
+      'tasks.final_deliverable_dialog_subtitle':
+          'Attach the final work as text and/or files, then send the task for review.',
+      'tasks.final_deliverable_text_label': 'Final work (text)',
+      'tasks.final_deliverable_text_hint':
+          'Optional: links, summary, or paste text…',
+      'tasks.final_deliverable_add_files': 'Add files',
+      'tasks.final_deliverable_files_label': 'Attached files',
+      'tasks.final_deliverable_submit': 'Send for review',
+      'tasks.final_deliverable_validation':
+          'Add at least a short text or one file.',
+      'tasks.final_deliverable_file_read_error':
+          'Could not read file: @name',
+      'tasks.timeline_final_deliverable_text_updated':
+          'Final deliverable text updated',
+      'tasks.timeline_final_deliverable_file_added':
+          'Final deliverable file added',
+      'tasks.final_deliverable_edit': 'Edit',
+      'tasks.final_deliverable_edit_title': 'Edit final work',
+      'tasks.final_deliverable_edit_subtitle':
+          'Update the text and/or files stored as the final deliverable for this task.',
+      'tasks.final_deliverable_save': 'Save',
+      'tasks.final_deliverable_clear_all': 'Clear all',
+      'tasks.final_deliverable_clear_title': 'Clear final work?',
+      'tasks.final_deliverable_clear_message':
+          'This removes all final deliverable text and file links from the task.',
+      'tasks.final_deliverable_empty_manager':
+          'No final work is attached yet. Tap Edit to add text or files.',
       'time.ago_minutes': '@count min ago',
       'time.ago_hours': '@count h ago',
       'time.ago_days': '@count days ago',
@@ -1170,6 +1199,34 @@ class AppTranslations extends Translations {
       "tasks.action_text_label": "نص الإجراء",
       "tasks.notes_section": "الملاحظات",
       "tasks.latest_comment": "آخر تعليق",
+      "tasks.final_deliverable_section": "العمل النهائي",
+      "tasks.final_deliverable_dialog_title": "إرسال للمراجعة",
+      "tasks.final_deliverable_dialog_subtitle":
+          "أرفق العمل النهائي كنص و/أو ملفات، ثم أرسل المهمة للمراجعة.",
+      "tasks.final_deliverable_text_label": "العمل النهائي (نص)",
+      "tasks.final_deliverable_text_hint":
+          "اختياري: روابط، ملخص، أو لصق النص…",
+      "tasks.final_deliverable_add_files": "إضافة ملفات",
+      "tasks.final_deliverable_files_label": "الملفات المرفقة",
+      "tasks.final_deliverable_submit": "إرسال للمراجعة",
+      "tasks.final_deliverable_validation":
+          "أضف نصاً قصيراً أو ملفاً واحداً على الأقل.",
+      "tasks.final_deliverable_file_read_error": "تعذّر قراءة الملف: @name",
+      "tasks.timeline_final_deliverable_text_updated":
+          "تم تحديث نص العمل النهائي",
+      "tasks.timeline_final_deliverable_file_added":
+          "تمت إضافة مرفق للعمل النهائي",
+      "tasks.final_deliverable_edit": "تعديل",
+      "tasks.final_deliverable_edit_title": "تعديل العمل النهائي",
+      "tasks.final_deliverable_edit_subtitle":
+          "حدّث النص و/أو الملفات المحفوظة كعمل نهائي لهذه المهمة.",
+      "tasks.final_deliverable_save": "حفظ",
+      "tasks.final_deliverable_clear_all": "مسح الكل",
+      "tasks.final_deliverable_clear_title": "مسح العمل النهائي؟",
+      "tasks.final_deliverable_clear_message":
+          "سيُزال كل نص العمل النهائي وروابط الملفات من المهمة.",
+      "tasks.final_deliverable_empty_manager":
+          "لا يوجد عمل نهائي بعد. اضغط «تعديل» لإضافة نص أو ملفات.",
       "time.ago_minutes": "قبل @count د",
       "time.ago_hours": "قبل @count س",
       "time.ago_days": "قبل @count يوم",

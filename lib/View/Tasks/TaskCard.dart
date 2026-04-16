@@ -12,6 +12,7 @@ import 'package:point/View/Tasks/Dialogs/ProgrammingDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PromotionDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PublishDialog.dart';
 import 'package:point/View/Tasks/Shared/add_task_comment_dialog.dart';
+import 'package:point/View/Tasks/Shared/open_task_final_work.dart';
 
 class TaskCard extends StatelessWidget {
   final TaskModel task;
@@ -472,28 +473,58 @@ class TaskCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
 
-                  Row(
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: onTap,
-                          style: OutlinedButton.styleFrom(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: onTap,
+                              style: OutlinedButton.styleFrom(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 10,
+                                ),
+                              ),
+                              child: Text(
+                                'tasks.view_details'.tr,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
                           ),
-                          child: Text(
-                            'tasks.view_details'.tr,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => showAddTaskCommentDialog(
+                                context: context,
+                                task: task,
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 10,
+                                ),
+                              ),
+                              child: Text(
+                                'tasks.add_comment_title'.tr,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
                         child: OutlinedButton(
-                          onPressed: () => showAddTaskCommentDialog(
+                          onPressed: () => openTaskFinalWorkDialog(
                             context: context,
                             task: task,
                           ),
@@ -504,7 +535,7 @@ class TaskCard extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(vertical: 10),
                           ),
                           child: Text(
-                            'tasks.add_comment_title'.tr,
+                            'tasks.final_deliverable_section'.tr,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),

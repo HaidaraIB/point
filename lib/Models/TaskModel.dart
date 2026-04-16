@@ -33,6 +33,10 @@ class TaskModel {
   PromotionModel? promotionModel;
   ProgrammingModel? programmingModel;
   final List<dynamic> files;
+  /// نص اختياري للتسليم النهائي عند الإرسال للمراجعة.
+  final String finalDeliverableText;
+  /// روابط مرفقات التسليم النهائي (بعد الرفع إلى التخزين).
+  final List<String> finalDeliverableFileUrls;
   final List<NoteModel> notes;
   final List<TaskTimelineEvent> timelineEvents;
   /// طابع ISO لآخر إشعار «قبل 24 ساعة» (يحدّث من scheduled-notifications).
@@ -86,6 +90,8 @@ class TaskModel {
     this.programmingModel,
     this.notes = const [],
     this.files = const [],
+    this.finalDeliverableText = '',
+    this.finalDeliverableFileUrls = const [],
     this.timelineEvents = const [],
     this.dueSoonNotifiedAt24h,
     this.dueSoonNotifiedAt6h,
@@ -202,6 +208,11 @@ class TaskModel {
           (json['files'] != null)
               ? List<String>.from(json['files'])
               : <String>[], // 🆕
+      finalDeliverableText: json['finalDeliverableText']?.toString() ?? '',
+      finalDeliverableFileUrls:
+          json['finalDeliverableFileUrls'] != null
+              ? List<String>.from(json['finalDeliverableFileUrls'] as List)
+              : <String>[],
       notes:
           json['notes'] != null
               ? (json['notes'] as List)
@@ -258,6 +269,8 @@ class TaskModel {
       'monatageModel': monatageModel?.toJson(),
       'promotionModel': promotionModel?.toJson(),
       'files': files,
+      'finalDeliverableText': finalDeliverableText,
+      'finalDeliverableFileUrls': finalDeliverableFileUrls,
       'notes': notes.map((e) => e.toJson()).toList(),
       'timelineEvents': timelineEvents.map((e) => e.toJson()).toList(),
       if (dueSoonNotifiedAt24h != null)
@@ -308,6 +321,8 @@ class TaskModel {
     MonatageModel? monatageModel,
     PublishModel? publishModel,
     List<dynamic>? files,
+    String? finalDeliverableText,
+    List<String>? finalDeliverableFileUrls,
     PromotionModel? promotionModel,
     ProgrammingModel? programmingModel,
     List<NoteModel>? notes,
@@ -347,6 +362,10 @@ class TaskModel {
       promotionModel: promotionModel ?? this.promotionModel,
       programmingModel: programmingModel ?? this.programmingModel,
       files: files ?? this.files,
+      finalDeliverableText:
+          finalDeliverableText ?? this.finalDeliverableText,
+      finalDeliverableFileUrls:
+          finalDeliverableFileUrls ?? this.finalDeliverableFileUrls,
       notes: notes ?? this.notes,
       timelineEvents: timelineEvents ?? this.timelineEvents,
       dueSoonNotifiedAt24h:

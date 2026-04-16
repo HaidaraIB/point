@@ -9,6 +9,7 @@ import 'package:point/Utils/AppConstants.dart';
 import 'package:point/View/EmployeeDashboard/Shared/AddContentEmployeeDialog.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Tasks/Shared/add_task_comment_dialog.dart';
+import 'package:point/View/Tasks/Shared/open_task_final_work.dart';
 
 /// صورة المكلَّف في البطاقة: الحقل المخزّن في المهمة قد يكون فارغاً لمهام قديمة،
 /// فيُستكمل من بيانات الموظف الحالية كما في الهيدر.
@@ -139,10 +140,9 @@ class EmployeeTaskCard extends StatelessWidget {
                                     ),
                                   );
                                 } else if (value == 1) {
-                                  controller.updateTask(
-                                    task.copyWith(
-                                      status: StorageKeys.status_under_revision,
-                                    ),
+                                  openTaskFinalWorkDialog(
+                                    context: context,
+                                    task: task,
                                   );
                                 }
                               },
@@ -384,71 +384,109 @@ class EmployeeTaskCard extends StatelessWidget {
                             final columnGap =
                                 Responsive.isDesktop(context) ? 12.0 : 8.0;
                             const rowGap = 10.0;
-                            return employeeTaskCardActionRows(
-                              columnSpacing: columnGap,
-                              rowSpacing: rowGap,
-                              cells: [
-                                OutlinedButton(
-                                  style: OutlinedButton.styleFrom(
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(24),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 10,
-                                    ),
-                                  ),
-                                  onPressed: () {
-                                    addContentEmployeeDialog(
-                                      context,
-                                      model: task,
-                                    );
-                                  },
-                                  child: Text(
-                                    'addcontent'.tr,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(fontSize: 12),
-                                  ),
-                                ),
-                                OutlinedButton(
-                                  style: OutlinedButton.styleFrom(
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(24),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 10,
-                                    ),
-                                  ),
-                                  onPressed:
-                                      () => showAddTaskCommentDialog(
-                                        context: context,
-                                        task: task,
+                            return Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                employeeTaskCardActionRows(
+                                  columnSpacing: columnGap,
+                                  rowSpacing: rowGap,
+                                  cells: [
+                                    OutlinedButton(
+                                      style: OutlinedButton.styleFrom(
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            24,
+                                          ),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 10,
+                                        ),
                                       ),
-                                  child: Text(
-                                    'tasks.add_comment_title'.tr,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(fontSize: 12),
-                                  ),
+                                      onPressed: () {
+                                        addContentEmployeeDialog(
+                                          context,
+                                          model: task,
+                                        );
+                                      },
+                                      child: Text(
+                                        'addcontent'.tr,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(fontSize: 12),
+                                      ),
+                                    ),
+                                    OutlinedButton(
+                                      style: OutlinedButton.styleFrom(
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            24,
+                                          ),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 10,
+                                        ),
+                                      ),
+                                      onPressed:
+                                          () => showAddTaskCommentDialog(
+                                            context: context,
+                                            task: task,
+                                          ),
+                                      child: Text(
+                                        'tasks.add_comment_title'.tr,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(fontSize: 12),
+                                      ),
+                                    ),
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(
+                                          0xFF5C5589,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            24,
+                                          ),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 10,
+                                        ),
+                                      ),
+                                      onPressed: onTap,
+                                      child: Text(
+                                        'tasks.view_task_details'.tr,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF5C5589),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(24),
+                                SizedBox(height: rowGap),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: OutlinedButton(
+                                    style: OutlinedButton.styleFrom(
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(24),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 10,
+                                      ),
                                     ),
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 10,
+                                    onPressed: () => openTaskFinalWorkDialog(
+                                      context: context,
+                                      task: task,
                                     ),
-                                  ),
-                                  onPressed: onTap,
-                                  child: Text(
-                                    'tasks.view_task_details'.tr,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
+                                    child: Text(
+                                      'tasks.final_deliverable_section'.tr,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontSize: 12),
                                     ),
                                   ),
                                 ),

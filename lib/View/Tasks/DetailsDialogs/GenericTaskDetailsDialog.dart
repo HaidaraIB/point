@@ -8,6 +8,7 @@ import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Shared/TaskTimelineWidget.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
+import 'package:point/View/Tasks/Shared/edit_final_deliverable_dialog.dart';
 
 /// Generic web dialog for task details. Renders common shell (header, notes,
 /// attachments, timeline) and a type-specific middle section.
@@ -37,6 +38,22 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
   void dispose() {
     _scrollController.dispose();
     super.dispose();
+  }
+
+  TaskModel _liveTask() {
+    final id = widget.task.id;
+    if (id == null || id.isEmpty) return widget.task;
+    return Get.find<HomeController>().tasks.firstWhereOrNull((t) => t.id == id) ??
+        widget.task;
+  }
+
+  bool _canManageFinalDeliverable() {
+    final r = Get.find<HomeController>().currentEmployee.value?.role ?? '';
+    return r == 'admin' || r == 'supervisor';
+  }
+
+  bool _shouldShowFinalDeliverableSection(TaskModel t) {
+    return _taskHasFinalDeliverable(t) || _canManageFinalDeliverable();
   }
 
   @override
@@ -103,6 +120,45 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
                       child: widget.typeSpecificSection,
                     ),
                     const SizedBox(height: 16),
+                    Obx(() {
+                      final live = _liveTask();
+                      if (!_shouldShowFinalDeliverableSection(live)) {
+                        return const SizedBox.shrink();
+                      }
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: _buildSectionShell(
+                          context: context,
+                          title: 'tasks.final_deliverable_section'.tr,
+                          icon: Icons.outbox_outlined,
+                          titleActions:
+                              _canManageFinalDeliverable()
+                                  ? [
+                                    IconButton(
+                                      tooltip: 'tasks.final_deliverable_edit'
+                                          .tr,
+                                      icon: const Icon(
+                                        Icons.edit_outlined,
+                                        size: 22,
+                                      ),
+                                      onPressed: () {
+                                        showEditFinalDeliverableDialog(
+                                          context: context,
+                                          task: _liveTask(),
+                                        );
+                                      },
+                                    ),
+                                  ]
+                                  : null,
+                          child: _buildFinalDeliverableSection(
+                            context,
+                            textTheme,
+                            dialogWidth,
+                            live,
+                          ),
+                        ),
+                      );
+                    }),
                     _buildSectionShell(
                       context: context,
                       title: 'content.dialog.notes_attachments_section'.tr,
@@ -114,10 +170,12 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    _buildTimelineShell(
-                      context: context,
-                      child: TaskTimelineWidget(
-                        events: widget.task.timelineEvents,
+                    Obx(
+                      () => _buildTimelineShell(
+                        context: context,
+                        child: TaskTimelineWidget(
+                          events: _liveTask().timelineEvents,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -497,6 +555,7 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
     required String title,
     required IconData icon,
     required Widget child,
+    List<Widget>? titleActions,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
     return Container(
@@ -513,12 +572,17 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
             children: [
               Icon(icon, size: 18, color: colorScheme.primary),
               const SizedBox(width: 8),
-              Text(
-                title,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                ),
               ),
+              if (titleActions != null) ...titleActions,
             ],
           ),
           const SizedBox(height: 10),
@@ -581,6 +645,105 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
           ),
         ],
       ),
+    );
+  }
+
+  bool _taskHasFinalDeliverable(TaskModel t) {
+    return t.finalDeliverableText.trim().isNotEmpty ||
+        t.finalDeliverableFileUrls.isNotEmpty;
+  }
+
+  Widget _buildFinalDeliverableSection(
+    BuildContext context,
+    TextTheme textTheme,
+    double dialogWidth,
+    TaskModel t,
+  ) {
+    final urls = t.finalDeliverableFileUrls;
+    final body = t.finalDeliverableText.trim();
+    final colorScheme = Theme.of(context).colorScheme;
+    final maxW = (dialogWidth - 80).clamp(240.0, 760.0);
+    final crossCount =
+        maxW < 340 ? 1 : (maxW < 560 ? 2 : 3);
+
+    if (body.isEmpty &&
+        urls.isEmpty &&
+        _canManageFinalDeliverable()) {
+      return Text(
+        'tasks.final_deliverable_empty_manager'.tr,
+        style: TextStyle(
+          fontSize: 13,
+          color: colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w500,
+          height: 1.35,
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (body.isNotEmpty) ...[
+          Text(
+            'tasks.final_deliverable_text_label'.tr,
+            style: textTheme.titleSmall,
+          ),
+          const SizedBox(height: 8),
+          Container(
+            width: maxW,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerLowest,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: colorScheme.outlineVariant),
+            ),
+            child: LinkifiedText(
+              body,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primaryfontColor,
+              ),
+            ),
+          ),
+          if (urls.isNotEmpty) const SizedBox(height: 14),
+        ],
+        if (urls.isNotEmpty) ...[
+          Text(
+            'tasks.final_deliverable_files_label'.tr,
+            style: textTheme.titleSmall,
+          ),
+          const SizedBox(height: 8),
+          Container(
+            width: maxW,
+            constraints: const BoxConstraints(minHeight: 72),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerLowest,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: colorScheme.outlineVariant),
+            ),
+            padding: const EdgeInsets.all(10),
+            child: GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: urls.length,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossCount,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                mainAxisExtent: 84,
+              ),
+              itemBuilder: (context, index) {
+                final att = urls[index];
+                return TaskDetailsDialogHelpers.attachmentThumbnail(
+                  att,
+                  onOpen: () => _launchUrl(att),
+                );
+              },
+            ),
+          ),
+        ],
+      ],
     );
   }
 

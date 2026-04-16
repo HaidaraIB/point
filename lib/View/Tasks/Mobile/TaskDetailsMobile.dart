@@ -18,6 +18,7 @@ import 'package:point/View/Tasks/Dialogs/PhotographyDialog.dart';
 import 'package:point/View/Tasks/Dialogs/ProgrammingDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PromotionDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PublishDialog.dart';
+import 'package:point/View/Tasks/Shared/edit_final_deliverable_dialog.dart';
 
 /// Mobile-only full-screen task details. Used when opening any task type on mobile.
 class TaskDetailsMobilePage extends StatelessWidget {
@@ -213,12 +214,42 @@ class TaskDetailsMobilePage extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               _buildTypeDetailsCard(context),
+              Obx(() {
+                final live =
+                    Get.find<HomeController>().tasks.firstWhereOrNull(
+                          (x) => x.id == task.id,
+                        ) ??
+                        task;
+                if (!_shouldShowFinalDeliverableCard(live)) {
+                  return const SizedBox.shrink();
+                }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 12),
+                    _buildFinalDeliverableCard(context, live),
+                  ],
+                );
+              }),
               const SizedBox(height: 12),
               _buildNotesAndAttachmentsCard(context),
-              if (task.timelineEvents.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                TaskTimelineWidget(events: task.timelineEvents),
-              ],
+              Obx(() {
+                final live =
+                    Get.find<HomeController>().tasks.firstWhereOrNull(
+                          (x) => x.id == task.id,
+                        ) ??
+                        task;
+                if (live.timelineEvents.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: 16),
+                    TaskTimelineWidget(events: live.timelineEvents),
+                  ],
+                );
+              }),
               const SizedBox(height: 24),
               _buildActions(context),
             ],
@@ -361,6 +392,136 @@ class TaskDetailsMobilePage extends StatelessWidget {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  bool _hasFinalDeliverable(TaskModel t) {
+    return t.finalDeliverableText.trim().isNotEmpty ||
+        t.finalDeliverableFileUrls.isNotEmpty;
+  }
+
+  bool _canManageFinalDeliverable() {
+    final r = Get.find<HomeController>().currentEmployee.value?.role ?? '';
+    return r == 'admin' || r == 'supervisor';
+  }
+
+  bool _shouldShowFinalDeliverableCard(TaskModel t) {
+    return _hasFinalDeliverable(t) || _canManageFinalDeliverable();
+  }
+
+  Widget _buildFinalDeliverableCard(BuildContext context, TaskModel t) {
+    final textTheme = Theme.of(context).textTheme;
+    final body = t.finalDeliverableText.trim();
+    final urls = t.finalDeliverableFileUrls;
+    final screenW = MediaQuery.sizeOf(context).width;
+    final contentW = (screenW - 64).clamp(240.0, 800.0);
+    final crossCount = contentW < 340 ? 1 : (contentW < 560 ? 2 : 3);
+
+    return _buildCard(
+      context,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.outbox_outlined, size: 18, color: Colors.grey.shade800),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'tasks.final_deliverable_section'.tr,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+              ),
+              if (_canManageFinalDeliverable())
+                IconButton(
+                  tooltip: 'tasks.final_deliverable_edit'.tr,
+                  icon: const Icon(Icons.edit_outlined, size: 22),
+                  onPressed: () {
+                    final live =
+                        Get.find<HomeController>().tasks.firstWhereOrNull(
+                              (x) => x.id == task.id,
+                            ) ??
+                            t;
+                    showEditFinalDeliverableDialog(
+                      context: context,
+                      task: live,
+                    );
+                  },
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (body.isEmpty &&
+              urls.isEmpty &&
+              _canManageFinalDeliverable()) ...[
+            Text(
+              'tasks.final_deliverable_empty_manager'.tr,
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey.shade700,
+                height: 1.35,
+              ),
+            ),
+          ] else if (body.isNotEmpty) ...[
+            Text('tasks.final_deliverable_text_label'.tr, style: textTheme.titleSmall),
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: LinkifiedText(
+                body,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primaryfontColor,
+                ),
+              ),
+            ),
+            if (urls.isNotEmpty) const SizedBox(height: 14),
+          ],
+          if (urls.isNotEmpty) ...[
+            Text('tasks.final_deliverable_files_label'.tr, style: textTheme.titleSmall),
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              constraints: const BoxConstraints(minHeight: 72),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              padding: const EdgeInsets.all(10),
+              child: GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: urls.length,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossCount,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                  mainAxisExtent: 84,
+                ),
+                itemBuilder: (context, index) {
+                  final att = urls[index];
+                  return TaskDetailsDialogHelpers.attachmentThumbnail(
+                    att,
+                    onOpen: () => _launchAttachmentUrl(att),
+                  );
+                },
+              ),
+            ),
+          ],
         ],
       ),
     );
