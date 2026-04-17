@@ -1,3 +1,4 @@
+import 'package:point/Models/TaskModel.dart';
 import 'package:point/config/app_config.dart';
 
 class StorageKeys {
@@ -91,6 +92,7 @@ class StorageKeys {
     'status_awaiting_manager',
     'status_approved',
     'status_scheduled',
+    'status_task_completed',
     'status_published',
     'status_rejected',
     'status_in_edit',
@@ -108,19 +110,132 @@ class StorageKeys {
     'status_edit_requested',
     'status_ready_to_publish',
     'status_awaiting_manager',
+    'status_approved',
     'status_scheduled',
   ];
 
   /// الحالات المنتهية (لا تظهر افتراضياً في إدارة المهام)
   static const List<String> statusListEnded = [
-    'status_approved',
+    'status_task_completed',
     'status_published',
     'status_rejected',
   ];
 
+  // --- مهام قسم الترويج (type == '0') — حالات خاصة ---
+  static const String status_promotion_in_progress =
+      'status_promotion_in_progress';
+  static const String status_promotion_ad_platform_review =
+      'status_promotion_ad_platform_review';
+  static const String status_promotion_running = 'status_promotion_running';
+  static const String status_promotion_finished =
+      'status_promotion_finished';
+
+  static const List<String> promotionTaskStatusList = [
+    status_promotion_in_progress,
+    status_promotion_ad_platform_review,
+    status_promotion_running,
+    status_promotion_finished,
+  ];
+
+  /// جارية في لوحة مهام الترويج (قبل انتهاء الترويج).
+  static const List<String> promotionTaskStatusListOngoing = [
+    status_promotion_in_progress,
+    status_promotion_ad_platform_review,
+    status_promotion_running,
+  ];
+
+  /// مهام ترويج قديمة ما زالت تستخدم حالات مسار النشر العام.
+  static const Set<String> legacyPromotionOngoingTaskStatuses = {
+    status_not_start_yet,
+    status_processing,
+    status_under_revision,
+    status_in_edit,
+    status_edit_requested,
+    status_ready_to_publish,
+    status_awaiting_manager,
+    status_approved,
+    status_scheduled,
+  };
+
   static bool isOngoingStatus(String status) =>
       statusListOngoing.contains(status);
-  static bool isEndedStatus(String status) => statusListEnded.contains(status);
+
+  static bool isEndedStatus(String status) =>
+      statusListEnded.contains(status) ||
+      status == status_promotion_finished;
+
+  /// مهمة انتهت بنجاح (تسليم نهائي أو بيانات قديمة بـ [status_published]).
+  static bool isTaskSuccessfulTerminalStatus(String status) =>
+      status == status_task_completed || status == status_published;
+
+  /// مهمة ترويج قديمة ما زالت تستخدم حالات أقسام أخرى.
+  static bool isLegacyPromotionOngoingStatus(String status) =>
+      legacyPromotionOngoingTaskStatuses.contains(status);
+
+  static bool isTaskOngoing(TaskModel t) {
+    if (t.type == '0') {
+      if (promotionTaskStatusListOngoing.contains(t.status)) return true;
+      if (t.status == status_promotion_finished) return false;
+      if (statusListEnded.contains(t.status)) return false;
+      return legacyPromotionOngoingTaskStatuses.contains(t.status);
+    }
+    return statusListOngoing.contains(t.status);
+  }
+
+  static bool isTaskEnded(TaskModel t) {
+    if (t.type == '0') {
+      if (t.status == status_promotion_finished) return true;
+      return statusListEnded.contains(t.status);
+    }
+    return statusListEnded.contains(t.status);
+  }
+
+  static List<String> ongoingStatusFilterKeysForTaskType(String taskType) {
+    if (taskType == '0') {
+      return [
+        '',
+        ...promotionTaskStatusListOngoing,
+        ...legacyPromotionOngoingTaskStatuses,
+      ];
+    }
+    return ['', ...statusListOngoing];
+  }
+
+  /// عناصر قائمة «فلتر الحالة» في صفحة المهام الجارية حسب نوع القسم.
+  static List<String> ongoingStatusFilterDropdownValues(String taskType) {
+    if (taskType == '0') {
+      return [
+        ...promotionTaskStatusListOngoing,
+        ...legacyPromotionOngoingTaskStatuses,
+      ];
+    }
+    return List<String>.from(statusListOngoing);
+  }
+
+  static bool isSelectedOngoingFilterValid(String taskType, String selected) {
+    if (selected.isEmpty) return true;
+    final allowed = ongoingStatusFilterKeysForTaskType(taskType).toSet();
+    return allowed.contains(selected);
+  }
+
+  static List<String> endedStatusFilterKeysForTaskType(String taskType) {
+    if (taskType == '0') {
+      return ['', status_promotion_finished, ...statusListEnded];
+    }
+    return ['', ...statusListEnded];
+  }
+
+  static List<String> endedStatusFilterDropdownValues(String taskType) {
+    if (taskType == '0') {
+      return [status_promotion_finished, ...statusListEnded];
+    }
+    return List<String>.from(statusListEnded);
+  }
+
+  static bool isSelectedEndedFilterValid(String taskType, String selected) {
+    if (selected.isEmpty) return true;
+    return endedStatusFilterKeysForTaskType(taskType).contains(selected);
+  }
   static const List<String> promations = [
     'no_promotion',
     'under_promotion',
@@ -136,12 +251,24 @@ class StorageKeys {
   static const String status_scheduled = "status_scheduled";
   static const String status_processing = "status_processing";
 
+  /// مهمة اكتملت بعد تسليم العمل النهائي (يُفضّل هذا بدلاً من [status_published] للمهام).
+  static const String status_task_completed = "status_task_completed";
+
+  /// محتوى «تم النشر» أو مهام قديمة وُسمت بهذه الحالة قبل [status_task_completed].
   static const String status_published = "status_published";
   static const String status_rejected = "status_rejected";
   static const String status_in_edit = "status_in_edit";
   static const String status_edit_requested = "status_edit_requested";
   static const String status_not_start_yet = "status_not_start_yet";
   static const String status_awaiting_manager = "status_awaiting_manager";
+  static const String finalWorkTypePost = 'final_work_post';
+  static const String finalWorkTypeStory = 'final_work_story';
+  static const String finalWorkTypeVideoReel = 'final_work_video_reel';
+  static const List<String> finalWorkTypes = [
+    finalWorkTypePost,
+    finalWorkTypeStory,
+    finalWorkTypeVideoReel,
+  ];
 
   //user
   static const String status_user_pending = "status_user_pending";

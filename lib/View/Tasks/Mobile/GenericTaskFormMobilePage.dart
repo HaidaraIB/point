@@ -49,6 +49,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
   late final TextEditingController campaignReasonController;
   late final TextEditingController marksController;
   late final TextEditingController durationPromoController;
+  late final TextEditingController campaignBudgetPromoController;
   late final TextEditingController attachmentPromoController;
   late final TextEditingController ageRangesController;
   late final RxList<String> platformsPromo;
@@ -110,6 +111,9 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
     campaignReasonController = TextEditingController(text: promo?.target);
     marksController = TextEditingController(text: promo?.tags);
     durationPromoController = TextEditingController(text: promo?.duration);
+    campaignBudgetPromoController = TextEditingController(
+      text: promo?.campaignBudget,
+    );
     attachmentPromoController = TextEditingController(text: promo?.attachementurl);
     ageRangesController = TextEditingController(text: promo?.ageRanges);
     platformsPromo = (promo?.platforms?.cast<String>() ?? []).obs;
@@ -171,6 +175,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
     campaignReasonController.dispose();
     marksController.dispose();
     durationPromoController.dispose();
+    campaignBudgetPromoController.dispose();
     attachmentPromoController.dispose();
     ageRangesController.dispose();
     shootingLocationController.dispose();
@@ -280,6 +285,10 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                   ? (model.promotionModel?.status ?? model.status)
                   : StorageKeys.status_edit_requested,
               duration: durationPromoController.text,
+              campaignBudget:
+                  campaignBudgetPromoController.text.trim().isEmpty
+                  ? null
+                  : campaignBudgetPromoController.text.trim(),
               tags: marksController.text,
               platforms: platformsPromo.toList(),
               countries: countriesList.toList(),
@@ -450,7 +459,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
         return TaskModel(
           title: titleController.text,
           description: notesController.text,
-          status: StorageKeys.status_not_start_yet,
+          status: StorageKeys.status_promotion_in_progress,
           priority: priorityController.text,
           fromDate: effectiveStartAt,
           toDate: effectiveEndAt,
@@ -467,8 +476,12 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             campaignName: titleController.text,
             type: '0',
             priority: priorityController.text,
-            status: StorageKeys.status_not_start_yet,
+            status: StorageKeys.status_promotion_in_progress,
             duration: durationPromoController.text,
+            campaignBudget:
+                campaignBudgetPromoController.text.trim().isEmpty
+                ? null
+                : campaignBudgetPromoController.text.trim(),
             tags: marksController.text,
             platforms: platformsPromo.toList(),
             countries: countriesList.toList(),
@@ -1031,6 +1044,16 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
           InputText(labelText: 'marks'.tr, hintText: 'addmark'.tr, height: 48, fillColor: Colors.white, controller: marksController, borderRadius: 8, borderColor: Colors.grey.shade300),
           pad,
           InputText(labelText: 'task_details.duration'.tr, hintText: 'promotion.campaign_duration_hint'.tr, height: 48, fillColor: Colors.white, controller: durationPromoController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          pad,
+          InputText(
+            labelText: 'promotion.campaign_budget'.tr,
+            hintText: 'promotion.campaign_budget_hint'.tr,
+            height: 48,
+            fillColor: Colors.white,
+            controller: campaignBudgetPromoController,
+            borderRadius: 8,
+            borderColor: Colors.grey.shade300,
+          ),
           pad,
           Obx(() => DynamicDropdownMultiSelect<String>(
             items: StorageKeys.countryCitiesMap.keys.toList(),

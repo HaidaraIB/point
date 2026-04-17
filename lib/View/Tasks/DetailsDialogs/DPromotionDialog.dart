@@ -177,6 +177,14 @@ class PromotionDetailsSection extends StatelessWidget {
                     height: 110,
                   ),
                   TaskDetailsDialogHelpers.infoBox(
+                    'promotion.campaign_budget'.tr,
+                    (promo.campaignBudget?.trim().isNotEmpty ?? false)
+                        ? promo.campaignBudget!.trim()
+                        : '-',
+                    width: cellWidth,
+                    height: 110,
+                  ),
+                  TaskDetailsDialogHelpers.infoBox(
                     'task_details.task_priority'.tr,
                     FunHelper.trStored(
                       task.priority,

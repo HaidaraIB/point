@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
+import 'package:point/View/Shared/task_status_visuals.dart';
 
 Color getContentStatusColor(String status) {
   switch (status) {
@@ -14,6 +16,8 @@ Color getContentStatusColor(String status) {
     case StorageKeys.status_processing:
       return Colors.amber;
     case StorageKeys.status_published:
+      return Colors.lightGreen;
+    case StorageKeys.status_task_completed:
       return Colors.lightGreen;
     case StorageKeys.status_rejected:
       return Colors.red;
@@ -71,6 +75,8 @@ Widget buildContentDropdownChip({
   required String label,
   required Color textColor,
   required Color backgroundColor,
+  IconData? leadingIcon,
+  Color? leadingIconColor,
 }) {
   return MouseRegion(
     cursor: SystemMouseCursors.click,
@@ -85,9 +91,18 @@ Widget buildContentDropdownChip({
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          if (leadingIcon != null) ...[
+            Icon(
+              leadingIcon,
+              size: 16,
+              color: leadingIconColor ?? textColor,
+            ),
+            const SizedBox(width: 4),
+          ],
           Text(
             label,
             maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: textColor,
               fontWeight: FontWeight.bold,
@@ -103,5 +118,20 @@ Widget buildContentDropdownChip({
         ],
       ),
     ),
+  );
+}
+
+/// Status chip for tables/history: label + tint from [getContentStatusColor], with status icon.
+Widget buildTaskStatusDropdownChip({
+  required String rawStatus,
+  required String label,
+}) {
+  final canon = FunHelper.canonicalStoredStatus(rawStatus);
+  return buildContentDropdownChip(
+    label: label,
+    textColor: getContentStatusColor(canon),
+    backgroundColor: getContentStatusBgColor(canon),
+    leadingIcon: TaskStatusVisuals.iconFor(rawStatus),
+    leadingIconColor: TaskStatusVisuals.iconTintFor(rawStatus),
   );
 }

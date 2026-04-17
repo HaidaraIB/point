@@ -5,6 +5,7 @@ import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
+import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 
@@ -20,10 +21,43 @@ Future<void> showEditFinalDeliverableDialog({
   );
 }
 
+/// Employee flow after manager approval:
+/// upload final work and mark task as completed.
+Future<void> showUploadFinalWorkAfterApprovalDialog({
+  required BuildContext context,
+  required TaskModel task,
+}) async {
+  await showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder:
+        (ctx) => _EditFinalDeliverableDialog(
+          task: task,
+          forceCompleteOnSave: true,
+          allowClearAll: false,
+          titleKey: 'tasks.final_work_upload_after_accept_title',
+          subtitleKey: 'tasks.final_work_upload_after_accept_subtitle',
+          saveKey: 'tasks.final_work_complete_task_button',
+        ),
+  );
+}
+
 class _EditFinalDeliverableDialog extends StatefulWidget {
   final TaskModel task;
+  final bool forceCompleteOnSave;
+  final bool allowClearAll;
+  final String titleKey;
+  final String subtitleKey;
+  final String saveKey;
 
-  const _EditFinalDeliverableDialog({required this.task});
+  const _EditFinalDeliverableDialog({
+    required this.task,
+    this.forceCompleteOnSave = false,
+    this.allowClearAll = true,
+    this.titleKey = 'tasks.final_deliverable_edit_title',
+    this.subtitleKey = 'tasks.final_deliverable_edit_subtitle',
+    this.saveKey = 'tasks.final_deliverable_save',
+  });
 
   @override
   State<_EditFinalDeliverableDialog> createState() =>
@@ -33,6 +67,7 @@ class _EditFinalDeliverableDialog extends StatefulWidget {
 class _EditFinalDeliverableDialogState extends State<_EditFinalDeliverableDialog> {
   late final TextEditingController _textController;
   final _urls = <String>[];
+  String _selectedType = '';
   var _submitting = false;
 
   @override
@@ -42,6 +77,7 @@ class _EditFinalDeliverableDialogState extends State<_EditFinalDeliverableDialog
       text: widget.task.finalDeliverableText,
     );
     _urls.addAll(widget.task.finalDeliverableFileUrls);
+    _selectedType = widget.task.finalDeliverableType.trim();
   }
 
   @override
@@ -88,14 +124,42 @@ class _EditFinalDeliverableDialogState extends State<_EditFinalDeliverableDialog
   }
 
   Future<void> _save() async {
+    final text = _textController.text.trim();
+    if (widget.forceCompleteOnSave &&
+        _selectedType.isEmpty &&
+        widget.allowClearAll == false) {
+      FunHelper.showSnackbar(
+        'validation.title'.tr,
+        'tasks.final_deliverable_type_required'.tr,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.orange.shade800,
+        colorText: Colors.white,
+      );
+      return;
+    }
+    if (widget.forceCompleteOnSave && text.isEmpty && _urls.isEmpty) {
+      FunHelper.showSnackbar(
+        'validation.title'.tr,
+        'tasks.final_deliverable_validation'.tr,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.orange.shade800,
+        colorText: Colors.white,
+      );
+      return;
+    }
     setState(() => _submitting = true);
     final hc = Get.find<HomeController>();
     hc.uploadedFilesPaths.clear();
     final live = _latestTask();
     final ok = await hc.updateTask(
       live.copyWith(
-        finalDeliverableText: _textController.text.trim(),
+        status:
+            widget.forceCompleteOnSave
+                ? StorageKeys.status_task_completed
+                : live.status,
+        finalDeliverableText: text,
         finalDeliverableFileUrls: List<String>.from(_urls),
+        finalDeliverableType: _selectedType,
       ),
     );
     if (!mounted) return;
@@ -121,6 +185,7 @@ class _EditFinalDeliverableDialogState extends State<_EditFinalDeliverableDialog
           live.copyWith(
             finalDeliverableText: '',
             finalDeliverableFileUrls: const [],
+            finalDeliverableType: '',
           ),
         );
         if (!mounted) return;
@@ -158,19 +223,40 @@ class _EditFinalDeliverableDialogState extends State<_EditFinalDeliverableDialog
 
     return AlertDialog(
       constraints: dialogConstraints,
-      title: Text('tasks.final_deliverable_edit_title'.tr),
+      title: Text(widget.titleKey.tr),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'tasks.final_deliverable_edit_subtitle'.tr,
+              widget.subtitleKey.tr,
               style: TextStyle(
                 fontSize: 13,
                 color: Colors.grey.shade700,
                 height: 1.35,
               ),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              initialValue: _selectedType.isEmpty ? null : _selectedType,
+              decoration: InputDecoration(
+                labelText: 'tasks.final_deliverable_type_label'.tr,
+                border: const OutlineInputBorder(),
+              ),
+              items:
+                  StorageKeys.finalWorkTypes
+                      .map(
+                        (k) => DropdownMenuItem<String>(
+                          value: k,
+                          child: Text(k.tr),
+                        ),
+                      )
+                      .toList(),
+              onChanged:
+                  _submitting
+                      ? null
+                      : (v) => setState(() => _selectedType = v ?? ''),
             ),
             const SizedBox(height: 12),
             TextField(
@@ -286,10 +372,11 @@ class _EditFinalDeliverableDialogState extends State<_EditFinalDeliverableDialog
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: _submitting ? null : _confirmClearAll,
-          child: Text('tasks.final_deliverable_clear_all'.tr),
-        ),
+        if (widget.allowClearAll)
+          TextButton(
+            onPressed: _submitting ? null : _confirmClearAll,
+            child: Text('tasks.final_deliverable_clear_all'.tr),
+          ),
         TextButton(
           onPressed: _submitting ? null : () => Navigator.of(context).pop(),
           child: Text(AppLocaleKeys.commonCancel.tr),
@@ -302,7 +389,7 @@ class _EditFinalDeliverableDialogState extends State<_EditFinalDeliverableDialog
                   height: 22,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : Text('tasks.final_deliverable_save'.tr),
+              : Text(widget.saveKey.tr),
         ),
       ],
     );

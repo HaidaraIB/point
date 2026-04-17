@@ -13,6 +13,7 @@ import 'package:point/View/Tasks/Dialogs/PromotionDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PublishDialog.dart';
 import 'package:point/View/Tasks/Shared/add_task_comment_dialog.dart';
 import 'package:point/View/Tasks/Shared/open_task_final_work.dart';
+import 'package:point/View/Shared/task_status_visuals.dart';
 
 class TaskCard extends StatelessWidget {
   final TaskModel task;
@@ -83,7 +84,7 @@ class TaskCard extends StatelessWidget {
                               color: Colors.white,
                               elevation: 4,
                               itemBuilder: (context) {
-                                final items = <PopupMenuItem<int>>[
+                                final items = <PopupMenuEntry<int>>[
                                   PopupMenuItem(
                                     value: 0,
                                     child: Row(
@@ -149,7 +150,7 @@ class TaskCard extends StatelessWidget {
                                     ),
                                   ),
                                 ];
-                                if (canEscalate) {
+                                if (canEscalate && task.type != '0') {
                                   items.add(
                                     PopupMenuItem(
                                       value: 4,
@@ -190,7 +191,7 @@ class TaskCard extends StatelessWidget {
                                       ),
                                     ),
                                   );
-                                } else if (!hideAccept) {
+                                } else if (!hideAccept && task.type != '0') {
                                   items.add(
                                     PopupMenuItem(
                                       value: 4,
@@ -205,6 +206,79 @@ class TaskCard extends StatelessWidget {
                                             size: 20,
                                           ),
                                         ],
+                                      ),
+                                    ),
+                                  );
+                                }
+                                if (task.type == '0' && canEditDirectly) {
+                                  items.add(const PopupMenuDivider(height: 12));
+                                  items.add(
+                                    PopupMenuItem(
+                                      value: 20,
+                                      child: TaskStatusVisuals.popupMenuRow(
+                                        label: StorageKeys
+                                            .status_promotion_in_progress
+                                            .tr,
+                                        rawOrCanonicalForIcon:
+                                            StorageKeys.status_promotion_in_progress,
+                                      ),
+                                    ),
+                                  );
+                                  items.add(
+                                    PopupMenuItem(
+                                      value: 21,
+                                      child: TaskStatusVisuals.popupMenuRow(
+                                        label: StorageKeys
+                                            .status_promotion_ad_platform_review
+                                            .tr,
+                                        rawOrCanonicalForIcon: StorageKeys
+                                            .status_promotion_ad_platform_review,
+                                      ),
+                                    ),
+                                  );
+                                  items.add(
+                                    PopupMenuItem(
+                                      value: 22,
+                                      child: TaskStatusVisuals.popupMenuRow(
+                                        label: StorageKeys.status_promotion_running
+                                            .tr,
+                                        rawOrCanonicalForIcon:
+                                            StorageKeys.status_promotion_running,
+                                      ),
+                                    ),
+                                  );
+                                  items.add(
+                                    PopupMenuItem(
+                                      value: 23,
+                                      child: TaskStatusVisuals.popupMenuRow(
+                                        label: StorageKeys.status_promotion_finished
+                                            .tr,
+                                        rawOrCanonicalForIcon:
+                                            StorageKeys.status_promotion_finished,
+                                      ),
+                                    ),
+                                  );
+                                } else if (task.type != '0' && canEditDirectly) {
+                                  // Same quick status paths as [EmployeeTaskCard]
+                                  // (non–promotion tasks; type encodes department workflow).
+                                  items.add(const PopupMenuDivider(height: 12));
+                                  items.add(
+                                    PopupMenuItem(
+                                      value: 60,
+                                      child: TaskStatusVisuals.popupMenuRow(
+                                        label: StorageKeys.status_processing.tr,
+                                        rawOrCanonicalForIcon:
+                                            StorageKeys.status_processing,
+                                      ),
+                                    ),
+                                  );
+                                  items.add(
+                                    PopupMenuItem(
+                                      value: 61,
+                                      child: TaskStatusVisuals.popupMenuRow(
+                                        label: StorageKeys.status_under_revision.tr,
+                                        rawOrCanonicalForIcon:
+                                            StorageKeys.status_under_revision,
                                       ),
                                     ),
                                   );
@@ -262,12 +336,31 @@ class TaskCard extends StatelessWidget {
                                     confirmText: 'tasks.reject'.tr,
                                     confirmColor: Colors.red,
                                     onTap: () async {
-                                      await Get.find<HomeController>().updateTask(
-                                        task.copyWith(
-                                          status: StorageKeys.status_rejected,
-                                        ),
-                                      );
+                                      final next =
+                                          task.type == '0'
+                                              ? task.copyWithPromotionStatusAligned(
+                                                StorageKeys.status_rejected,
+                                              )
+                                              : task.copyWith(
+                                                status:
+                                                    StorageKeys.status_rejected,
+                                              );
+                                      await Get.find<HomeController>()
+                                          .updateTask(next);
                                     },
+                                  );
+                                } else if (value >= 20 &&
+                                    value <= 23 &&
+                                    task.type == '0') {
+                                  final st = [
+                                    StorageKeys.status_promotion_in_progress,
+                                    StorageKeys
+                                        .status_promotion_ad_platform_review,
+                                    StorageKeys.status_promotion_running,
+                                    StorageKeys.status_promotion_finished,
+                                  ][value - 20];
+                                  Get.find<HomeController>().updateTask(
+                                    task.copyWithPromotionStatusAligned(st),
                                   );
                                 } else if (value == 4) {
                                   if (canEscalate) {
@@ -331,6 +424,21 @@ class TaskCard extends StatelessWidget {
                                             ),
                                           );
                                     },
+                                  );
+                                } else if (value == 60 &&
+                                    task.type != '0' &&
+                                    canEditDirectly) {
+                                  Get.find<HomeController>().updateTask(
+                                    task.copyWith(
+                                      status: StorageKeys.status_processing,
+                                    ),
+                                  );
+                                } else if (value == 61 &&
+                                    task.type != '0' &&
+                                    canEditDirectly) {
+                                  openTaskFinalWorkDialog(
+                                    context: context,
+                                    task: task,
                                   );
                                 }
                               },
@@ -520,26 +628,49 @@ class TaskCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton(
-                          onPressed: () => openTaskFinalWorkDialog(
-                            context: context,
-                            task: task,
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                          ),
-                          child: Text(
-                            'tasks.final_deliverable_section'.tr,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
+                      Builder(
+                        builder: (context) {
+                          final role =
+                              Get.find<HomeController>()
+                                  .currentEmployee
+                                  .value
+                                  ?.role ??
+                              '';
+                          if (!shouldShowPrimaryFinalWorkTaskButton(
+                                task,
+                                role,
+                              )) {
+                            return const SizedBox.shrink();
+                          }
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              const SizedBox(height: 8),
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton(
+                                  onPressed: () => openTaskFinalWorkDialog(
+                                    context: context,
+                                    task: task,
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 10,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'tasks.final_deliverable_section'.tr,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -574,20 +705,10 @@ class TaskCard extends StatelessWidget {
 
 Widget _buildstatusTag(String raw) {
   final key = FunHelper.canonicalStoredStatus(raw);
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-    decoration: BoxDecoration(
-      color: _getStatusbgColor(key),
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: Text(
-      FunHelper.trStored(raw, kind: StoredValueKind.taskStatus),
-      style: TextStyle(
-        color: _getStatusColor(key),
-        fontSize: 11,
-        fontWeight: FontWeight.bold,
-      ),
-    ),
+  return TaskStatusVisuals.statusChip(
+    rawStatus: raw,
+    fg: _getStatusColor(key),
+    bg: _getStatusbgColor(key),
   );
 }
 
@@ -635,6 +756,8 @@ Color _getStatusColor(String status) {
       return Colors.orange;
     case StorageKeys.status_processing:
       return Colors.amber;
+    case StorageKeys.status_task_completed:
+      return Colors.lightGreen;
     case StorageKeys.status_published:
       return Colors.lightGreen;
     case StorageKeys.status_rejected:
@@ -645,6 +768,14 @@ Color _getStatusColor(String status) {
       return Colors.deepOrange;
     case StorageKeys.status_not_start_yet:
       return Colors.grey;
+    case StorageKeys.status_promotion_in_progress:
+      return Colors.amber.shade900;
+    case StorageKeys.status_promotion_ad_platform_review:
+      return Colors.blue.shade800;
+    case StorageKeys.status_promotion_running:
+      return Colors.green.shade800;
+    case StorageKeys.status_promotion_finished:
+      return Colors.blueGrey.shade700;
     default:
       return Colors.black45;
   }
@@ -664,6 +795,8 @@ Color _getStatusbgColor(String status) {
       return Colors.orange.shade50;
     case StorageKeys.status_processing:
       return Colors.amber.shade50;
+    case StorageKeys.status_task_completed:
+      return Colors.lightGreen.shade50;
     case StorageKeys.status_published:
       return Colors.lightGreen.shade50;
     case StorageKeys.status_rejected:
@@ -674,6 +807,14 @@ Color _getStatusbgColor(String status) {
       return Colors.deepOrange.shade50;
     case StorageKeys.status_not_start_yet:
       return Colors.grey.shade200;
+    case StorageKeys.status_promotion_in_progress:
+      return Colors.amber.shade50;
+    case StorageKeys.status_promotion_ad_platform_review:
+      return Colors.blue.shade50;
+    case StorageKeys.status_promotion_running:
+      return Colors.green.shade50;
+    case StorageKeys.status_promotion_finished:
+      return Colors.blueGrey.shade100;
     default:
       return Colors.grey.shade200;
   }

@@ -37,6 +37,8 @@ class TaskModel {
   final String finalDeliverableText;
   /// روابط مرفقات التسليم النهائي (بعد الرفع إلى التخزين).
   final List<String> finalDeliverableFileUrls;
+  /// نوع العمل النهائي: بوست / ستوري / فيديو-ريل.
+  final String finalDeliverableType;
   final List<NoteModel> notes;
   final List<TaskTimelineEvent> timelineEvents;
   /// طابع ISO لآخر إشعار «قبل 24 ساعة» (يحدّث من scheduled-notifications).
@@ -92,6 +94,7 @@ class TaskModel {
     this.files = const [],
     this.finalDeliverableText = '',
     this.finalDeliverableFileUrls = const [],
+    this.finalDeliverableType = '',
     this.timelineEvents = const [],
     this.dueSoonNotifiedAt24h,
     this.dueSoonNotifiedAt6h,
@@ -213,6 +216,7 @@ class TaskModel {
           json['finalDeliverableFileUrls'] != null
               ? List<String>.from(json['finalDeliverableFileUrls'] as List)
               : <String>[],
+      finalDeliverableType: json['finalDeliverableType']?.toString() ?? '',
       notes:
           json['notes'] != null
               ? (json['notes'] as List)
@@ -271,6 +275,7 @@ class TaskModel {
       'files': files,
       'finalDeliverableText': finalDeliverableText,
       'finalDeliverableFileUrls': finalDeliverableFileUrls,
+      'finalDeliverableType': finalDeliverableType,
       'notes': notes.map((e) => e.toJson()).toList(),
       'timelineEvents': timelineEvents.map((e) => e.toJson()).toList(),
       if (dueSoonNotifiedAt24h != null)
@@ -323,6 +328,7 @@ class TaskModel {
     List<dynamic>? files,
     String? finalDeliverableText,
     List<String>? finalDeliverableFileUrls,
+    String? finalDeliverableType,
     PromotionModel? promotionModel,
     ProgrammingModel? programmingModel,
     List<NoteModel>? notes,
@@ -366,6 +372,7 @@ class TaskModel {
           finalDeliverableText ?? this.finalDeliverableText,
       finalDeliverableFileUrls:
           finalDeliverableFileUrls ?? this.finalDeliverableFileUrls,
+      finalDeliverableType: finalDeliverableType ?? this.finalDeliverableType,
       notes: notes ?? this.notes,
       timelineEvents: timelineEvents ?? this.timelineEvents,
       dueSoonNotifiedAt24h:
@@ -390,6 +397,17 @@ class TaskModel {
           managerStalledNotifiedAt ?? this.managerStalledNotifiedAt,
       noProgressRemindedAt:
           noProgressRemindedAt ?? this.noProgressRemindedAt,
+    );
+  }
+
+  /// مهام الترويج (`type == '0'`): يبقي [promotionModel.status] مطابقاً لـ [status].
+  TaskModel copyWithPromotionStatusAligned(String newStatus) {
+    if (type != '0' || promotionModel == null) {
+      return copyWith(status: newStatus);
+    }
+    return copyWith(
+      status: newStatus,
+      promotionModel: promotionModel!.copyWith(status: newStatus),
     );
   }
 }

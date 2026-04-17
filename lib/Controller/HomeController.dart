@@ -79,13 +79,19 @@ class HomeController extends GetxController {
 
     // إن كانت الحالة المختارة منتهية (غير موجودة في قائمة الجارية) نُعيدها فارغة
     if (selectedStatus.value.isNotEmpty &&
-        !StorageKeys.statusListOngoing.contains(selectedStatus.value)) {
+        !StorageKeys.statusListOngoing.contains(selectedStatus.value) &&
+        !StorageKeys.promotionTaskStatusListOngoing.contains(
+          selectedStatus.value,
+        ) &&
+        !StorageKeys.legacyPromotionOngoingTaskStatuses.contains(
+          selectedStatus.value,
+        )) {
       selectedStatus.value = '';
     }
 
     // نعرض فقط المهام الجارية دائماً
     List<TaskModel> baseList =
-        tasks.where((t) => StorageKeys.isOngoingStatus(t.status)).toList();
+        tasks.where((t) => StorageKeys.isTaskOngoing(t)).toList();
 
     // إن وُجد فلتر حالة محددة (إحدى الحالات الجارية) نطبّقها
     if (selectedStatus.value.isNotEmpty) {
@@ -121,11 +127,18 @@ class HomeController extends GetxController {
   void filterTasksHistory() {
     final searchText = searchController.text.trim().toLowerCase();
 
+    if (selectedStatus.value.isNotEmpty &&
+        !StorageKeys.statusListEnded.contains(selectedStatus.value) &&
+        selectedStatus.value != StorageKeys.status_promotion_finished) {
+      selectedStatus.value = '';
+    }
+
     List<TaskModel> baseList =
-        tasks.where((t) => StorageKeys.isEndedStatus(t.status)).toList();
+        tasks.where((t) => StorageKeys.isTaskEnded(t)).toList();
 
     if (selectedStatus.value.isNotEmpty &&
-        StorageKeys.statusListEnded.contains(selectedStatus.value)) {
+        (StorageKeys.statusListEnded.contains(selectedStatus.value) ||
+            selectedStatus.value == StorageKeys.status_promotion_finished)) {
       baseList =
           baseList
               .where(
@@ -443,7 +456,94 @@ class HomeController extends GetxController {
     employeeWebContentSearchController.clear();
     employeeWebContentStatusFilter.value = '';
     employeeWebContentTypeFilter.value = '';
+    employeeWebContentDateFilter.value = null;
     update(['employeeWebContent']);
+  }
+
+  void toggleContentSelection(String contentId, {bool? selected}) {
+    if (contentId.trim().isEmpty) return;
+    final shouldSelect = selected ?? !selectedContentIds.contains(contentId);
+    if (shouldSelect) {
+      selectedContentIds.add(contentId);
+    } else {
+      selectedContentIds.remove(contentId);
+    }
+    selectedContentIds.refresh();
+    update(['employeeWebContent']);
+  }
+
+  void clearSelectedContentIds() {
+    selectedContentIds.clear();
+    selectedContentIds.refresh();
+    update(['employeeWebContent']);
+  }
+
+  void toggleSelectAllVisibleContents(List<ContentModel> visibleContents) {
+    final ids =
+        visibleContents
+            .map((c) => c.id?.trim() ?? '')
+            .where((id) => id.isNotEmpty)
+            .toList();
+    if (ids.isEmpty) return;
+    final allSelected = ids.every(selectedContentIds.contains);
+    if (allSelected) {
+      selectedContentIds.removeAll(ids);
+    } else {
+      selectedContentIds.addAll(ids);
+    }
+    selectedContentIds.refresh();
+    update(['employeeWebContent']);
+  }
+
+  Future<bool> approveSelectedContents() async {
+    final selected =
+        contents
+            .where(
+              (c) =>
+                  c.id != null &&
+                  selectedContentIds.contains(c.id!) &&
+                  c.status != StorageKeys.status_approved,
+            )
+            .toList();
+    if (selected.isEmpty) return false;
+    var ok = true;
+    for (final content in selected) {
+      final updated = await updateContent(
+        content.copyWith(status: StorageKeys.status_approved),
+      );
+      ok = ok && updated;
+    }
+    if (ok) {
+      clearSelectedContentIds();
+      refreshFilteredContents();
+    }
+    return ok;
+  }
+
+  /// Bulk publish — UI retained; implementation pending.
+  Future<bool> publishSelectedContents() async {
+    return false;
+  }
+
+  /// Bulk schedule — UI retained; implementation pending.
+  Future<bool> scheduleSelectedContents() async {
+    return false;
+  }
+
+  Future<bool> deleteSelectedContents() async {
+    final ids = selectedContentIds.toList();
+    if (ids.isEmpty) return false;
+    var allOk = true;
+    for (final id in ids) {
+      final deleted = await deleteContent(id);
+      allOk = allOk && deleted;
+      if (deleted) {
+        selectedContentIds.remove(id);
+      }
+    }
+    selectedContentIds.refresh();
+    update(['employeeWebContent']);
+    return allOk;
   }
 
   List<ContentModel> filteredContentsForEmployeeWeb() {
@@ -459,6 +559,17 @@ class HomeController extends GetxController {
     final st = employeeWebContentStatusFilter.value;
     if (st.isNotEmpty) {
       list = list.where((c) => c.status == st).toList();
+    }
+    final filterDate = employeeWebContentDateFilter.value;
+    if (filterDate != null) {
+      list =
+          list.where((c) {
+            final d = c.publishDate;
+            if (d == null) return false;
+            return d.year == filterDate.year &&
+                d.month == filterDate.month &&
+                d.day == filterDate.day;
+          }).toList();
     }
     return list;
   }
@@ -482,6 +593,7 @@ class HomeController extends GetxController {
             (publishDate.year == now.year && publishDate.month >= now.month);
       }).toList(),
     );
+    update(['employeeWebContent']);
   }
 
   fetchNotification(String? id) {
@@ -633,13 +745,17 @@ class HomeController extends GetxController {
         );
       }
       if (isUpdateByAssignee) {
-        if (newTask.status == StorageKeys.status_processing) {
+        if (newTask.status == StorageKeys.status_processing ||
+            newTask.status == StorageKeys.status_promotion_in_progress) {
           await NotificationService.notifyManagersTaskReceivedByEmployee(
             employeeName: assigneeName,
             taskTitle: newTask.title,
           );
         } else if (newTask.status == StorageKeys.status_ready_to_publish ||
-            newTask.status == StorageKeys.status_under_revision) {
+            newTask.status == StorageKeys.status_under_revision ||
+            newTask.status ==
+                StorageKeys.status_promotion_ad_platform_review ||
+            newTask.status == StorageKeys.status_task_completed) {
           await NotificationService.notifyManagersTaskCompletedByEmployee(
             employeeName: assigneeName,
             taskTitle: newTask.title,
@@ -669,8 +785,8 @@ class HomeController extends GetxController {
           taskTitle: newTask.title,
         );
       }
-      final wasEnded = StorageKeys.isEndedStatus(oldTask.status);
-      final isNowOngoing = StorageKeys.isOngoingStatus(newTask.status);
+      final wasEnded = StorageKeys.isTaskEnded(oldTask);
+      final isNowOngoing = StorageKeys.isTaskOngoing(newTask);
       if (wasEnded && isNowOngoing && assigneeId.isNotEmpty) {
         await NotificationService.notifyEmployeeTaskReopened(
           employeeId: assigneeId,
@@ -1483,6 +1599,16 @@ class HomeController extends GetxController {
       );
       _addIfChanged(
         events,
+        'tasks.timeline.promotion_campaign_budget_changed',
+        oldPromo?.campaignBudget,
+        newPromo?.campaignBudget,
+        userId,
+        userName,
+        now,
+        fieldKey: 'promotionModel.campaignBudget',
+      );
+      _addIfChanged(
+        events,
         'تم تغيير العلامات (الترويج)',
         oldPromo?.tags,
         newPromo?.tags,
@@ -1781,6 +1907,8 @@ class HomeController extends GetxController {
       TextEditingController();
   final RxString employeeWebContentStatusFilter = ''.obs;
   final RxString employeeWebContentTypeFilter = ''.obs;
+  final Rxn<DateTime> employeeWebContentDateFilter = Rxn<DateTime>();
+  final RxSet<String> selectedContentIds = <String>{}.obs;
 
   RxString selectedDate = ''.obs;
   var notifications = <NotificationModel>[].obs;

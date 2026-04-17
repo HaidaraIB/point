@@ -197,7 +197,13 @@ class TasksMobile extends StatelessWidget {
         ),
         _buildStatBox(
           tasks
-              .where((a) => a.status == StorageKeys.status_processing)
+              .where(
+                (a) =>
+                    a.status == StorageKeys.status_processing ||
+                    a.status ==
+                        StorageKeys.status_promotion_in_progress ||
+                    a.status == StorageKeys.status_promotion_running,
+              )
               .length
               .toString(),
           'status_processing'.tr,
@@ -206,7 +212,12 @@ class TasksMobile extends StatelessWidget {
         ),
         _buildStatBox(
           tasks
-              .where((a) => a.status == StorageKeys.status_under_revision)
+              .where(
+                (a) =>
+                    a.status == StorageKeys.status_under_revision ||
+                    a.status ==
+                        StorageKeys.status_promotion_ad_platform_review,
+              )
               .length
               .toString(),
           'status_under_revision'.tr,
@@ -224,7 +235,11 @@ class TasksMobile extends StatelessWidget {
         ),
         _buildStatBox(
           tasks
-              .where((a) => a.status == StorageKeys.status_approved)
+              .where(
+                (a) =>
+                    StorageKeys.isTaskSuccessfulTerminalStatus(a.status) ||
+                    a.status == StorageKeys.status_promotion_finished,
+              )
               .length
               .toString(),
           'employee.dashboard.completed'.tr,
@@ -372,7 +387,7 @@ class TasksMobile extends StatelessWidget {
                     },
                   ),
                   const SizedBox(width: 10),
-                  _buildStatusDropdown(controller),
+                  _buildStatusDropdown(controller, selectedIndex),
                   const SizedBox(width: 10),
                   _buildDropdown<String>(
                     width: 150,
@@ -446,7 +461,9 @@ class TasksMobile extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusDropdown(HomeController controller) {
+  Widget _buildStatusDropdown(HomeController controller, int tabIndex) {
+    final ongoingItems =
+        StorageKeys.ongoingStatusFilterDropdownValues(tabIndex.toString());
     return SizedBox(
       width: 170,
       height: 40,
@@ -473,9 +490,7 @@ class TasksMobile extends StatelessWidget {
             ),
             value:
                 controller.selectedStatus.value.isEmpty ||
-                        !StorageKeys.statusListOngoing.contains(
-                          controller.selectedStatus.value,
-                        )
+                        !ongoingItems.contains(controller.selectedStatus.value)
                     ? null
                     : controller.selectedStatus.value,
             items: [
@@ -486,7 +501,7 @@ class TasksMobile extends StatelessWidget {
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
-              ...StorageKeys.statusListOngoing.map(
+              ...ongoingItems.map(
                 (e) => DropdownMenuItem(
                   value: e,
                   child: Padding(

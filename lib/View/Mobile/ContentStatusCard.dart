@@ -7,6 +7,7 @@ import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/ContentPermissions.dart';
 import 'package:point/View/Shared/ContentStatusPromotionDropdownChip.dart';
+import 'package:point/View/Shared/task_status_visuals.dart';
 
 class ContentStatusCard extends StatelessWidget {
   final ContentModel? model;
@@ -253,20 +254,10 @@ Widget _buildPromotionTag(String? promotion) {
 
 Widget _buildstatusTag(String text) {
   final key = FunHelper.canonicalStoredStatus(text);
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-    decoration: BoxDecoration(
-      color: _getStatusbgColor(key),
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: Text(
-      FunHelper.trStored(text, kind: StoredValueKind.taskStatus),
-      style: TextStyle(
-        color: _getStatusColor(key),
-        fontSize: 11,
-        fontWeight: FontWeight.bold,
-      ),
-    ),
+  return TaskStatusVisuals.statusChip(
+    rawStatus: text,
+    fg: _getStatusColor(key),
+    bg: _getStatusbgColor(key),
   );
 }
 
@@ -288,6 +279,9 @@ Color _getStatusColor(String status) {
       return Colors.amber;
 
     case StorageKeys.status_published: // منشور
+      return Colors.lightGreen;
+
+    case StorageKeys.status_task_completed:
       return Colors.lightGreen;
 
     case StorageKeys.status_rejected: // مرفوض

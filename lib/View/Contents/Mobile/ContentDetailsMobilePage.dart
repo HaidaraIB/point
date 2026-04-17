@@ -11,6 +11,7 @@ import 'package:point/Utils/ContentPermissions.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Contents/Mobile/ContentFormMobilePage.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
+import 'package:point/View/Shared/task_status_visuals.dart';
 
 /// تفاصيل المحتوى على الجوال: نفس صلاحيات الويب ([ContentPermissions] + قواعد Firestore).
 class ContentDetailsMobilePage extends StatefulWidget {
@@ -49,14 +50,11 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
     final ok = await controller.updateContent(emp.copyWith(status: value));
     if (!mounted) return;
     if (!ok) return;
-    final actorName =
-        (controller.currentEmployee.value?.name ?? '').trim();
+    final actorName = (controller.currentEmployee.value?.name ?? '').trim();
     await NotificationService.notifyAdminContentStatusChanged(
       contentTitle: emp.title,
       statusLabelAr: statusLabelAr,
-      changedByName: actorName.isEmpty
-          ? 'notify.unknown_actor'.tr
-          : actorName,
+      changedByName: actorName.isEmpty ? 'notify.unknown_actor'.tr : actorName,
     );
     if (value == StorageKeys.status_published) {
       final clientName =
@@ -79,13 +77,14 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
     if (emp.id == null) return;
     final ok =
         ContentPermissions.isPromotionEmployee(controller.currentEmployee.value)
-            ? await controller.updateContentPromotionField(emp.id!, value)
-            : await controller.updateContent(emp.copyWith(promotion: value));
+        ? await controller.updateContentPromotionField(emp.id!, value)
+        : await controller.updateContent(emp.copyWith(promotion: value));
     if (!mounted) return;
     if (!ok) return;
     if (value == 'under_promotion' || value == 'end_promotion') {
-      final promotionLabel =
-          value == 'under_promotion' ? 'under_promotion'.tr : 'end_promotion'.tr;
+      final promotionLabel = value == 'under_promotion'
+          ? 'under_promotion'.tr
+          : 'end_promotion'.tr;
       await NotificationService.notifyAdminContentPromotionStatusChanged(
         contentTitle: emp.title,
         promotionLabelAr: promotionLabel,
@@ -99,10 +98,7 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
     if (!ContentPermissions.canAddOrEditContent(emp)) return;
     hc.uploadedFilesPaths.assignAll(_task.files ?? []);
     Get.off(
-      () => ContentFormMobilePage(
-        clientId: _task.clientId,
-        model: _task,
-      ),
+      () => ContentFormMobilePage(clientId: _task.clientId, model: _task),
     );
   }
 
@@ -198,7 +194,8 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
               ...StorageKeys.promations.map(
                 (p) => ListTile(
                   title: Text(p.tr),
-                  selected: p == (_task.promotion ?? '').trim() ||
+                  selected:
+                      p == (_task.promotion ?? '').trim() ||
                       (p == 'no_promotion' &&
                           (_task.promotion == null ||
                               _task.promotion!.trim().isEmpty)),
@@ -228,7 +225,7 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
     final showStatusUi = ContentPermissions.showContentStatusUi(emp);
     final showPromotionUi = ContentPermissions.showContentPromotionUi(emp);
     final showPublishDateUi = ContentPermissions.showContentPublishDateUi(emp);
-    final showActionsBar = canEdit || canDelete;
+    final showActionsBar = canEdit || canDelete || canStatus;
 
     final clientName =
         hc.clients
@@ -237,25 +234,21 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
         '-';
     final promotionValue =
         (_task.promotion == null || _task.promotion!.trim().isEmpty)
-            ? AppLocaleKeys.contentDialogNoPromotion.tr
-            : FunHelper.trStored(
-              _task.promotion,
-              kind: StoredValueKind.promotion,
-            );
-    final publishDate =
-        _task.publishDate == null
-            ? AppLocaleKeys.contentDialogNoDate.tr
-            : FunHelper.formatdate(_task.publishDate).toString();
+        ? AppLocaleKeys.contentDialogNoPromotion.tr
+        : FunHelper.trStored(_task.promotion, kind: StoredValueKind.promotion);
+    final publishDate = _task.publishDate == null
+        ? AppLocaleKeys.contentDialogNoDate.tr
+        : FunHelper.formatdate(_task.publishDate).toString();
     final platformValue = _platformText(_task.platform);
     final bool isNotesEmpty = (_task.clientNotes?.trim().isEmpty ?? true);
     final notes = isNotesEmpty
-            ? AppLocaleKeys.contentDialogNoNotes.tr
-            : _task.clientNotes!.trim();
+        ? AppLocaleKeys.contentDialogNoNotes.tr
+        : _task.clientNotes!.trim();
 
     final bool isMoreNotesEmpty = (_task.notes?.trim().isEmpty ?? true);
     final moreNotes = isMoreNotesEmpty
-            ? AppLocaleKeys.contentDialogNoNotes.tr
-            : _task.notes!.trim();
+        ? AppLocaleKeys.contentDialogNoNotes.tr
+        : _task.notes!.trim();
 
     final statusDisplay = FunHelper.trStored(
       _task.status,
@@ -274,7 +267,7 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
           overflow: TextOverflow.ellipsis,
         ),
         actions: [
-          if (canEdit || canDelete)
+          if (showActionsBar)
             PopupMenuButton<int>(
               icon: const Icon(Icons.more_vert),
               tooltip: 'tasks.options_tooltip'.tr,
@@ -282,6 +275,7 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
                 borderRadius: BorderRadius.circular(12),
               ),
               itemBuilder: (context) {
+                const primaryPurple = Color(0xFF5C5589);
                 final items = <PopupMenuEntry<int>>[];
                 if (canEdit) {
                   items.add(
@@ -299,7 +293,7 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
                 if (canDelete) {
                   items.add(
                     PopupMenuItem(
-                      value: 1,
+                      value: 3,
                       child: Row(
                         children: [
                           Expanded(child: Text('delete'.tr)),
@@ -309,174 +303,140 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
                     ),
                   );
                 }
+                if (canStatus) {
+                  items.add(
+                    PopupMenuItem(
+                      value: 1,
+                      child: Row(
+                        children: [
+                          Expanded(child: Text('content.publish_now'.tr)),
+                          const Icon(
+                            Icons.publish_rounded,
+                            color: primaryPurple,
+                            size: 22,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                  items.add(
+                    PopupMenuItem(
+                      value: 2,
+                      child: Row(
+                        children: [
+                          Expanded(child: Text('content.schedule'.tr)),
+                          const Icon(
+                            Icons.schedule_rounded,
+                            color: primaryPurple,
+                            size: 22,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
                 return items;
               },
               onSelected: (v) {
                 if (v == 0) _openEdit(hc, emp);
-                if (v == 1) _confirmDelete(hc);
+                // Publish (1) and schedule (2): reserved for future implementation.
+                if (v == 3) _confirmDelete(hc);
               },
             ),
         ],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                children: [
-                  _tile(
-                    context,
-                    title: AppLocaleKeys.contentDialogClient.tr,
-                    value: clientName,
-                    icon: Icons.person_outline,
-                  ),
-                  _tile(
-                    context,
-                    title: AppLocaleKeys.contentType.tr,
-                    value: FunHelper.trStored(
-                      _task.contentType,
-                      kind: StoredValueKind.contentType,
-                    ),
-                    icon: Icons.category_outlined,
-                  ),
-                  _tile(
-                    context,
-                    title: AppLocaleKeys.platform.tr,
-                    value: platformValue,
-                    icon: Icons.public,
-                  ),
-                  if (showStatusUi) ...[
-                    if (canStatus)
-                      _interactiveTile(
-                        context,
-                        title: AppLocaleKeys.status.tr,
-                        value: statusDisplay,
-                        icon: Icons.flag_outlined,
-                        hint: AppLocaleKeys.contentDialogTapToChange.tr,
-                        onTap: () => _showStatusSheet(context, emp),
-                      )
-                    else
-                      _tile(
-                        context,
-                        title: AppLocaleKeys.status.tr,
-                        value: statusDisplay,
-                        icon: Icons.flag_outlined,
-                      ),
-                  ],
-                  if (showPromotionUi) ...[
-                    if (canPromotion)
-                      _interactiveTile(
-                        context,
-                        title: AppLocaleKeys.promotion.tr,
-                        value: promotionValue,
-                        icon: Icons.campaign_outlined,
-                        hint: AppLocaleKeys.contentDialogTapToChange.tr,
-                        onTap: () => _showPromotionSheet(context, emp),
-                      )
-                    else
-                      _tile(
-                        context,
-                        title: AppLocaleKeys.promotion.tr,
-                        value: promotionValue,
-                        icon: Icons.campaign_outlined,
-                      ),
-                  ],
-                  _tile(
-                    context,
-                    title: AppLocaleKeys.clientNotes.tr,
-                    value: notes,
-                    icon: Icons.note_alt_outlined,
-                    centerValue: isNotesEmpty,
-                  ),
-                  if (_clientRevisionAttachmentUrls().isNotEmpty)
-                    _clientRevisionsAttachmentsCard(context),
-                  _tile(
-                    context,
-                    title: AppLocaleKeys.notes.tr,
-                    value: moreNotes,
-                    icon: Icons.sticky_note_2_outlined,
-                    centerValue: isMoreNotesEmpty,
-                  ),
-                  if (showPublishDateUi)
-                    _tile(
-                      context,
-                      title: AppLocaleKeys.publishDate.tr,
-                      value: publishDate,
-                      icon: Icons.calendar_month_outlined,
-                    ),
-                  _attachmentsCard(context),
-                ],
-              ),
-            ),
-          ),
-          if (showActionsBar)
-            _bottomActionBar(context, hc, emp, canEdit, canDelete),
-        ],
-      ),
-    );
-  }
-
-  Widget _bottomActionBar(
-    BuildContext context,
-    HomeController hc,
-    EmployeeModel? emp,
-    bool canEdit,
-    bool canDelete,
-  ) {
-    final bottom = MediaQuery.paddingOf(context).bottom;
-    return Material(
-      elevation: 8,
-      color: Colors.white,
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(12, 10, 12, 10 + bottom),
-        child: Row(
+      body: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(
+          12,
+          12,
+          12,
+          12 + MediaQuery.paddingOf(context).bottom,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (canEdit)
-              Expanded(
-                child: FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF5C5589),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  onPressed: () => _openEdit(hc, emp),
-                  icon: const Icon(Icons.edit_outlined, size: 22),
-                  label: Text(
-                    'edit'.tr,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                    ),
-                  ),
-                ),
+            _tile(
+              context,
+              title: AppLocaleKeys.contentDialogClient.tr,
+              value: clientName,
+              icon: Icons.person_outline,
+            ),
+            _tile(
+              context,
+              title: AppLocaleKeys.contentType.tr,
+              value: FunHelper.trStored(
+                _task.contentType,
+                kind: StoredValueKind.contentType,
               ),
-            if (canEdit && canDelete) const SizedBox(width: 10),
-            if (canDelete)
-              Expanded(
-                child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.red.shade700,
-                    side: BorderSide(color: Colors.red.shade300),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  onPressed: () => _confirmDelete(hc),
-                  icon: const Icon(Icons.delete_outline, size: 22),
-                  label: Text(
-                    'delete'.tr,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
-                    ),
-                  ),
+              icon: Icons.category_outlined,
+            ),
+            _tile(
+              context,
+              title: AppLocaleKeys.platform.tr,
+              value: platformValue,
+              icon: Icons.public,
+            ),
+            if (showStatusUi) ...[
+              if (canStatus)
+                _interactiveTile(
+                  context,
+                  title: AppLocaleKeys.status.tr,
+                  value: statusDisplay,
+                  icon: TaskStatusVisuals.iconFor(_task.status),
+                  hint: AppLocaleKeys.contentDialogTapToChange.tr,
+                  onTap: () => _showStatusSheet(context, emp),
+                )
+              else
+                _tile(
+                  context,
+                  title: AppLocaleKeys.status.tr,
+                  value: statusDisplay,
+                  icon: TaskStatusVisuals.iconFor(_task.status),
                 ),
+            ],
+            if (showPromotionUi) ...[
+              if (canPromotion)
+                _interactiveTile(
+                  context,
+                  title: AppLocaleKeys.promotion.tr,
+                  value: promotionValue,
+                  icon: Icons.campaign_outlined,
+                  hint: AppLocaleKeys.contentDialogTapToChange.tr,
+                  onTap: () => _showPromotionSheet(context, emp),
+                )
+              else
+                _tile(
+                  context,
+                  title: AppLocaleKeys.promotion.tr,
+                  value: promotionValue,
+                  icon: Icons.campaign_outlined,
+                ),
+            ],
+            _tile(
+              context,
+              title: AppLocaleKeys.clientNotes.tr,
+              value: notes,
+              icon: Icons.note_alt_outlined,
+              centerValue: isNotesEmpty,
+            ),
+            if (_clientRevisionAttachmentUrls().isNotEmpty)
+              _clientRevisionsAttachmentsCard(context),
+            _tile(
+              context,
+              title: AppLocaleKeys.notes.tr,
+              value: moreNotes,
+              icon: Icons.sticky_note_2_outlined,
+              centerValue: isMoreNotesEmpty,
+            ),
+            if (showPublishDateUi)
+              _tile(
+                context,
+                title: AppLocaleKeys.publishDate.tr,
+                value: publishDate,
+                icon: Icons.calendar_month_outlined,
               ),
+            _attachmentsCard(context),
           ],
         ),
       ),
@@ -609,7 +569,9 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
           ),
           const SizedBox(height: 6),
           Row(
-            mainAxisAlignment: centerValue ? MainAxisAlignment.center : MainAxisAlignment.start,
+            mainAxisAlignment: centerValue
+                ? MainAxisAlignment.center
+                : MainAxisAlignment.start,
             children: [
               Flexible(
                 child: Text(
@@ -654,12 +616,17 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
         border: Border.all(color: const Color(0xFFFFC107)),
       ),
       child: Column(
-        crossAxisAlignment:
-            isRtl ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        crossAxisAlignment: isRtl
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.edit_note_outlined, color: Colors.amber.shade900, size: 22),
+              Icon(
+                Icons.edit_note_outlined,
+                color: Colors.amber.shade900,
+                size: 22,
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -702,11 +669,10 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
     final isRtl =
         Directionality.of(context) == TextDirection.rtl ||
         Get.locale?.languageCode == 'ar';
-    final files =
-        (_task.files ?? [])
-            .whereType<String>()
-            .where((e) => e.trim().isNotEmpty)
-            .toList();
+    final files = (_task.files ?? [])
+        .whereType<String>()
+        .where((e) => e.trim().isNotEmpty)
+        .toList();
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 10),
@@ -717,8 +683,9 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
         border: Border.all(color: const Color(0xFFE7E0F0)),
       ),
       child: Column(
-        crossAxisAlignment:
-            isRtl ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        crossAxisAlignment: isRtl
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
         children: [
           Row(
             children: [

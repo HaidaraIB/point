@@ -19,6 +19,15 @@ import 'package:point/View/Tasks/Dialogs/ProgrammingDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PromotionDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PublishDialog.dart';
 import 'package:point/View/Tasks/Shared/edit_final_deliverable_dialog.dart';
+import 'package:point/View/Tasks/Shared/open_task_final_work.dart';
+import 'package:point/View/Shared/task_status_visuals.dart';
+
+bool _employeeMayEditFinalDeliverableInDetails(TaskModel t, String role) {
+  if (role != 'employee') return false;
+  if (t.type == '0') return false;
+  return FunHelper.canonicalStoredStatus(t.status) ==
+      StorageKeys.status_approved;
+}
 
 /// Mobile-only full-screen task details. Used when opening any task type on mobile.
 class TaskDetailsMobilePage extends StatelessWidget {
@@ -84,17 +93,16 @@ class TaskDetailsMobilePage extends StatelessWidget {
                 context,
                 child: Row(
                   children: [
-                    _chip(
-                      FunHelper.trStored(
-                        task.status,
-                        kind: StoredValueKind.taskStatus,
-                      ),
-                      _statusColor(
+                    TaskStatusVisuals.statusChip(
+                      rawStatus: task.status,
+                      fg: _statusColor(
                         FunHelper.canonicalStoredStatus(task.status),
                       ),
-                      _statusBg(
+                      bg: _statusBg(
                         FunHelper.canonicalStoredStatus(task.status),
                       ),
+                      iconSize: 14,
+                      fontSize: 12,
                     ),
                     const SizedBox(width: 8),
                     _chip(
@@ -399,7 +407,8 @@ class TaskDetailsMobilePage extends StatelessWidget {
 
   bool _hasFinalDeliverable(TaskModel t) {
     return t.finalDeliverableText.trim().isNotEmpty ||
-        t.finalDeliverableFileUrls.isNotEmpty;
+        t.finalDeliverableFileUrls.isNotEmpty ||
+        t.finalDeliverableType.trim().isNotEmpty;
   }
 
   bool _canManageFinalDeliverable() {
@@ -415,6 +424,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final body = t.finalDeliverableText.trim();
     final urls = t.finalDeliverableFileUrls;
+    final finalType = t.finalDeliverableType.trim();
     final screenW = MediaQuery.sizeOf(context).width;
     final contentW = (screenW - 64).clamp(240.0, 800.0);
     final crossCount = contentW < 340 ? 1 : (contentW < 560 ? 2 : 3);
@@ -438,25 +448,67 @@ class TaskDetailsMobilePage extends StatelessWidget {
                   ),
                 ),
               ),
-              if (_canManageFinalDeliverable())
-                IconButton(
-                  tooltip: 'tasks.final_deliverable_edit'.tr,
-                  icon: const Icon(Icons.edit_outlined, size: 22),
-                  onPressed: () {
-                    final live =
-                        Get.find<HomeController>().tasks.firstWhereOrNull(
-                              (x) => x.id == task.id,
-                            ) ??
-                            t;
-                    showEditFinalDeliverableDialog(
-                      context: context,
-                      task: live,
-                    );
-                  },
-                ),
+              Builder(
+                builder: (context) {
+                  final role =
+                      Get.find<HomeController>()
+                          .currentEmployee
+                          .value
+                          ?.role ??
+                      '';
+                  final live =
+                      Get.find<HomeController>().tasks.firstWhereOrNull(
+                            (x) => x.id == task.id,
+                          ) ??
+                      t;
+                  final showEdit =
+                      _canManageFinalDeliverable() ||
+                      _employeeMayEditFinalDeliverableInDetails(live, role);
+                  if (!showEdit) return const SizedBox.shrink();
+                  return IconButton(
+                    tooltip: 'tasks.final_deliverable_edit'.tr,
+                    icon: const Icon(Icons.edit_outlined, size: 22),
+                    onPressed: () {
+                      if (_canManageFinalDeliverable()) {
+                        showEditFinalDeliverableDialog(
+                          context: context,
+                          task: live,
+                        );
+                      } else {
+                        openTaskFinalWorkDialog(
+                          context: context,
+                          task: live,
+                        );
+                      }
+                    },
+                  );
+                },
+              ),
             ],
           ),
           const SizedBox(height: 14),
+          if (finalType.isNotEmpty) ...[
+            Text('tasks.final_deliverable_type_label'.tr, style: textTheme.titleSmall),
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Text(
+                finalType.tr,
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primaryfontColor,
+                ),
+              ),
+            ),
+            if (body.isNotEmpty || urls.isNotEmpty) const SizedBox(height: 14),
+          ],
           if (body.isEmpty &&
               urls.isEmpty &&
               _canManageFinalDeliverable()) ...[
@@ -1248,14 +1300,37 @@ class TaskDetailsMobilePage extends StatelessWidget {
 
   Color _statusColor(String status) {
     switch (status) {
+      case StorageKeys.status_not_start_yet:
+        return Colors.grey.shade700;
+      case StorageKeys.status_processing:
+        return Colors.amber.shade900;
       case StorageKeys.status_under_revision:
         return Colors.blue;
+      case StorageKeys.status_in_edit:
+        return Colors.purple.shade700;
+      case StorageKeys.status_edit_requested:
+        return Colors.deepOrange.shade700;
+      case StorageKeys.status_ready_to_publish:
+        return Colors.teal.shade700;
       case StorageKeys.status_awaiting_manager:
         return Colors.indigo.shade700;
       case StorageKeys.status_approved:
         return Colors.green;
+      case StorageKeys.status_scheduled:
+        return Colors.orange.shade800;
+      case StorageKeys.status_task_completed:
+      case StorageKeys.status_published:
+        return Colors.lightGreen.shade800;
       case StorageKeys.status_rejected:
         return Colors.red;
+      case StorageKeys.status_promotion_in_progress:
+        return Colors.amber.shade900;
+      case StorageKeys.status_promotion_ad_platform_review:
+        return Colors.blue.shade800;
+      case StorageKeys.status_promotion_running:
+        return Colors.green.shade800;
+      case StorageKeys.status_promotion_finished:
+        return Colors.blueGrey.shade700;
       default:
         return Colors.grey;
     }
@@ -1263,14 +1338,37 @@ class TaskDetailsMobilePage extends StatelessWidget {
 
   Color _statusBg(String status) {
     switch (status) {
+      case StorageKeys.status_not_start_yet:
+        return Colors.grey.shade200;
+      case StorageKeys.status_processing:
+        return Colors.amber.shade50;
       case StorageKeys.status_under_revision:
         return Colors.blue.shade50;
+      case StorageKeys.status_in_edit:
+        return Colors.purple.shade50;
+      case StorageKeys.status_edit_requested:
+        return Colors.deepOrange.shade50;
+      case StorageKeys.status_ready_to_publish:
+        return Colors.teal.shade50;
       case StorageKeys.status_awaiting_manager:
         return Colors.indigo.shade50;
       case StorageKeys.status_approved:
         return Colors.green.shade50;
+      case StorageKeys.status_scheduled:
+        return Colors.orange.shade50;
+      case StorageKeys.status_task_completed:
+      case StorageKeys.status_published:
+        return Colors.lightGreen.shade50;
       case StorageKeys.status_rejected:
         return Colors.red.shade50;
+      case StorageKeys.status_promotion_in_progress:
+        return Colors.amber.shade50;
+      case StorageKeys.status_promotion_ad_platform_review:
+        return Colors.blue.shade50;
+      case StorageKeys.status_promotion_running:
+        return Colors.green.shade50;
+      case StorageKeys.status_promotion_finished:
+        return Colors.blueGrey.shade100;
       default:
         return Colors.grey.shade200;
     }
@@ -1371,7 +1469,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         if (!isEmployee) ...[
-        if (canEscalate) ...[
+        if (task.type != '0' && canEscalate) ...[
           Row(
             children: [
               Expanded(
@@ -1486,7 +1584,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
               ),
             ),
           ),
-        ] else if (hideAccept) ...[
+        ] else if (task.type != '0' && hideAccept) ...[
           OutlinedButton.icon(
             onPressed: () {
               FunHelper.showConfirmDailog(
@@ -1513,7 +1611,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
               ),
             ),
           ),
-        ] else ...[
+        ] else if (task.type != '0') ...[
           Row(
             children: [
               Expanded(

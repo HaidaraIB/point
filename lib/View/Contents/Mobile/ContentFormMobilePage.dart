@@ -40,7 +40,10 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
   late final TextEditingController executorController;
   late final TextEditingController contentTypeController;
   late final TextEditingController notesController;
+  late final TextEditingController captionController;
   late final TextEditingController fileController;
+  late final TextEditingController postAttachmentController;
+  late final TextEditingController storyAttachmentController;
   late final RxList<dynamic> platforms;
   DateTime? publishDate;
 
@@ -56,7 +59,10 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
     executorController = TextEditingController(text: m?.executor);
     contentTypeController = TextEditingController(text: m?.contentType);
     notesController = TextEditingController(text: m?.clientNotes);
+    captionController = TextEditingController(text: m?.caption);
     fileController = TextEditingController();
+    postAttachmentController = TextEditingController();
+    storyAttachmentController = TextEditingController();
     platforms = (m?.platform ?? []).obs;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -81,7 +87,10 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
     executorController.dispose();
     contentTypeController.dispose();
     notesController.dispose();
+    captionController.dispose();
     fileController.dispose();
+    postAttachmentController.dispose();
+    storyAttachmentController.dispose();
     super.dispose();
   }
 
@@ -103,10 +112,27 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final controller = Get.find<HomeController>();
+    final postAttachments = [
+      ...?widget.model?.postAttachments,
+      if (postAttachmentController.text.trim().isNotEmpty)
+        postAttachmentController.text.trim(),
+    ];
+    final storyAttachments = [
+      ...?widget.model?.storyAttachments,
+      if (storyAttachmentController.text.trim().isNotEmpty)
+        storyAttachmentController.text.trim(),
+    ];
     final files = [
       ...controller.uploadedFilesPaths,
       if (fileController.text.trim().isNotEmpty) fileController.text.trim(),
-    ];
+      ...postAttachments,
+      ...storyAttachments,
+    ].toSet().toList();
+
+    final effectiveStatus =
+        widget.model == null
+            ? StorageKeys.status_under_revision
+            : widget.model!.status;
 
     if (widget.model == null) {
       final ok = await controller.addContent(
@@ -118,10 +144,13 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
           contentType: contentTypeController.text,
           executor: executorController.text,
           clientId: widget.clientId,
-          status: StorageKeys.status_under_revision,
+          status: effectiveStatus,
           promotion: 'no_promotion',
           createdAt: DateTime.now(),
           notes: notesController.text,
+          caption: captionController.text,
+          postAttachments: postAttachments,
+          storyAttachments: storyAttachments,
         ),
       );
       if (!mounted) return;
@@ -140,8 +169,13 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
           contentTypeLabel: 'content.notify.design_video_new'.tr,
         );
         await NotificationService.notifyManagersContentSubmittedByClient(clientName: clientName, contentTitle: titleController.text);
-        if (publishDate != null) {
-          await NotificationService.notifyClientContentScheduled(clientId: widget.clientId, contentTitle: titleController.text, dateFormatted: FunHelper.formatdate(publishDate) ?? '');
+        if (effectiveStatus == StorageKeys.status_scheduled &&
+            publishDate != null) {
+          await NotificationService.notifyClientContentScheduled(
+            clientId: widget.clientId,
+            contentTitle: titleController.text,
+            dateFormatted: FunHelper.formatdate(publishDate) ?? '',
+          );
         }
       }
     } else {
@@ -154,8 +188,11 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
           contentType: contentTypeController.text,
           executor: executorController.text,
           clientId: widget.clientId,
-          status: StorageKeys.status_under_revision,
+          status: effectiveStatus,
           notes: notesController.text,
+          caption: captionController.text,
+          postAttachments: postAttachments,
+          storyAttachments: storyAttachments,
         ),
       );
       if (!mounted) return;
@@ -172,8 +209,13 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
         if (widget.model!.status == StorageKeys.status_edit_requested) {
           await NotificationService.notifyClientEditsDone(clientId: widget.clientId, contentTitle: titleController.text);
         }
-        if (publishDate != null) {
-          await NotificationService.notifyClientContentScheduled(clientId: widget.clientId, contentTitle: titleController.text, dateFormatted: FunHelper.formatdate(publishDate) ?? '');
+        if (effectiveStatus == StorageKeys.status_scheduled &&
+            publishDate != null) {
+          await NotificationService.notifyClientContentScheduled(
+            clientId: widget.clientId,
+            contentTitle: titleController.text,
+            dateFormatted: FunHelper.formatdate(publishDate) ?? '',
+          );
         }
       }
     }
@@ -317,11 +359,44 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                   ),
                   const SizedBox(height: 16),
                   InputText(
+                    labelText: 'content.caption'.tr,
+                    hintText: 'content.caption_hint'.tr,
+                    height: 100,
+                    fillColor: Colors.white,
+                    controller: captionController,
+                    expanded: true,
+                    borderRadius: 8,
+                    borderColor: Colors.grey.shade300,
+                  ),
+                  const SizedBox(height: 16),
+                  InputText(
                     labelText: 'content.form.insert_link'.tr,
                     hintText: 'googledrivelink .com'.tr,
                     height: 48,
                     fillColor: Colors.white,
                     controller: fileController,
+                    validator: (_) => null,
+                    borderRadius: 8,
+                    borderColor: Colors.grey.shade300,
+                  ),
+                  const SizedBox(height: 16),
+                  InputText(
+                    labelText: 'content.post_attachment'.tr,
+                    hintText: 'content.form.insert_link'.tr,
+                    height: 48,
+                    fillColor: Colors.white,
+                    controller: postAttachmentController,
+                    validator: (_) => null,
+                    borderRadius: 8,
+                    borderColor: Colors.grey.shade300,
+                  ),
+                  const SizedBox(height: 16),
+                  InputText(
+                    labelText: 'content.story_attachment'.tr,
+                    hintText: 'content.form.insert_link'.tr,
+                    height: 48,
+                    fillColor: Colors.white,
+                    controller: storyAttachmentController,
                     validator: (_) => null,
                     borderRadius: 8,
                     borderColor: Colors.grey.shade300,
@@ -469,7 +544,9 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        onPressed: controller.isLoading.value ? null : _submit,
+                        onPressed: controller.isLoading.value
+                            ? null
+                            : _submit,
                         child: controller.isLoading.value
                             ? const SizedBox(
                                 width: 24,

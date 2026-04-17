@@ -130,6 +130,24 @@ class AppLocaleKeys {
   static const contentType = 'content_type';
   static const status = 'status';
   static const promotion = 'promotion';
+
+  /// Promotion department task workflow (`type == '0'`).
+  static const statusPromotionInProgress = 'status_promotion_in_progress';
+  static const statusPromotionAdPlatformReview =
+      'status_promotion_ad_platform_review';
+  static const statusPromotionRunning = 'status_promotion_running';
+  static const statusPromotionFinished = 'status_promotion_finished';
+  static const promotionCampaignBudget = 'promotion.campaign_budget';
+  static const promotionCampaignBudgetHint = 'promotion.campaign_budget_hint';
+  static const promotionStatusHintInProgress =
+      'promotion.status_hint_in_progress';
+  static const promotionStatusHintAdReview = 'promotion.status_hint_ad_review';
+  static const promotionStatusHintRunning = 'promotion.status_hint_running';
+  static const promotionStatusHintFinished =
+      'promotion.status_hint_finished';
+  static const tasksTimelinePromotionCampaignBudgetChanged =
+      'tasks.timeline.promotion_campaign_budget_changed';
+
   static const clientNotes = 'client_notes';
   static const publishDate = 'publish_date';
   static const notes = 'notes';
@@ -147,6 +165,7 @@ class AppLocaleKeys {
   static const contentDialogUnknown = 'content.dialog.unknown';
   static const contentDialogOpenLinkFailed = 'content.dialog.open_link_failed';
   static const contentDialogTapToChange = 'content.dialog.tap_to_change';
+  static const contentQuickStatus = 'content.quick_status';
 
   static const pushTestOpenButton = 'push_test.open_button';
   static const pushTestTitle = 'push_test.title';

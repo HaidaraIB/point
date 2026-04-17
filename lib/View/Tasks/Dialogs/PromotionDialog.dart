@@ -52,6 +52,9 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
   final durationController = TextEditingController(
     text: model?.promotionModel?.duration,
   );
+  final campaignBudgetController = TextEditingController(
+    text: model?.promotionModel?.campaignBudget,
+  );
   List<String> countriesList = model?.promotionModel?.countries ?? [];
   List<String> interestsList = model?.promotionModel?.interests ?? [];
   List<String> cityList = model?.promotionModel?.cities ?? [];
@@ -400,13 +403,13 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                   ],
                                 ),
 
-                                // 🔹 التواريخ والمنصة
+                                // 🔹 المدة + الميزانية
                                 Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
                                     SizedBox(
-                                      width: (Get.width * 0.7 / 3) - 25,
+                                      width: (Get.width * 0.7 / 2) - 25,
                                       child: InputText(
                                         labelText: 'task_details.duration'.tr,
                                         hintText: 'promotion.campaign_duration_hint'.tr,
@@ -424,9 +427,31 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                         borderColor: Colors.grey.shade300,
                                       ),
                                     ),
-                                    // تاريخ البدء
                                     SizedBox(
-                                      width: (Get.width * 0.7 / 3) - 25,
+                                      width: (Get.width * 0.7 / 2) - 25,
+                                      child: InputText(
+                                        labelText:
+                                            'promotion.campaign_budget'.tr,
+                                        hintText:
+                                            'promotion.campaign_budget_hint'
+                                                .tr,
+                                        height: 42,
+                                        fillColor: Colors.white,
+                                        controller: campaignBudgetController,
+                                        borderRadius: 5,
+                                        borderColor: Colors.grey.shade300,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                // 🔹 التواريخ
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    SizedBox(
+                                      width: (Get.width * 0.7 / 2) - 25,
                                       child: InputText(
                                         onTap: () async {
                                           await customDatePicker(context).then((
@@ -462,9 +487,8 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                       ),
                                     ),
 
-                                    // تاريخ الانتهاء
                                     SizedBox(
-                                      width: (Get.width * 0.7 / 3) - 25,
+                                      width: (Get.width * 0.7 / 2) - 25,
                                       child: InputText(
                                         labelText: 'endat'.tr,
                                         hintText: '1/10/2026'.tr,
@@ -499,8 +523,6 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                         borderColor: Colors.grey.shade300,
                                       ),
                                     ),
-
-                                    // المنصة (مرة تانية)
                                   ],
                                 ),
 
@@ -971,9 +993,8 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                                 title: titleController.text,
                                                 description:
                                                     notesController.text,
-                                                status:
-                                                    StorageKeys
-                                                        .status_not_start_yet,
+                                                status: StorageKeys
+                                                    .status_promotion_in_progress,
                                                 notes: [
                                                   if (notesController
                                                       .text
@@ -1024,15 +1045,27 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                                   countries: countriesList,
                                                   duration:
                                                       durationController.text,
+                                                  campaignBudget:
+                                                      campaignBudgetController
+                                                          .text
+                                                          .trim()
+                                                          .isEmpty
+                                                      ? null
+                                                      : campaignBudgetController
+                                                          .text
+                                                          .trim(),
                                                   tags: marksController.text,
-                                                  name: 'name',
+                                                  name: titleController.text,
                                                   target:
                                                       campaignReasonController
                                                           .text,
-                                                  campaignName: 'campaignName',
-                                                  type: 'type',
-                                                  priority: ' priority',
-                                                  status: 'status',
+                                                  campaignName:
+                                                      titleController.text,
+                                                  type: '0',
+                                                  priority:
+                                                      priorityController.text,
+                                                  status: StorageKeys
+                                                      .status_promotion_in_progress,
                                                   platforms: platforms,
                                                   attachementurl:
                                                       attachmentController
@@ -1044,6 +1077,20 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                             controller.uploadedFilesPaths
                                                 .clear();
                                           } else {
+                                            final nextTaskStatus =
+                                                ((controller
+                                                            .currentEmployee
+                                                            .value
+                                                            ?.role ==
+                                                        'admin') ||
+                                                    (controller
+                                                            .currentEmployee
+                                                            .value
+                                                            ?.role ==
+                                                        'supervisor'))
+                                                    ? model.status
+                                                    : StorageKeys
+                                                        .status_edit_requested;
                                             controller.updateTask(
                                               TaskModel(
                                                 id: model.id,
@@ -1070,14 +1117,7 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                                               DateTime.now(),
                                                         ),
                                                     ],
-                                                status:
-                                                    ((controller.currentEmployee.value?.role ==
-                                                                'admin') ||
-                                                            (controller.currentEmployee.value?.role ==
-                                                                'supervisor'))
-                                                        ? model.status
-                                                        : StorageKeys
-                                                            .status_edit_requested,
+                                                status: nextTaskStatus,
                                                 priority:
                                                     priorityController.text,
                                                 fromDate: effectiveStartAt,
@@ -1112,15 +1152,26 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                                   countries: countriesList,
                                                   duration:
                                                       durationController.text,
+                                                  campaignBudget:
+                                                      campaignBudgetController
+                                                          .text
+                                                          .trim()
+                                                          .isEmpty
+                                                      ? null
+                                                      : campaignBudgetController
+                                                          .text
+                                                          .trim(),
                                                   tags: marksController.text,
-                                                  name: 'name',
+                                                  name: titleController.text,
                                                   target:
                                                       campaignReasonController
                                                           .text,
-                                                  campaignName: 'campaignName',
-                                                  type: 'type',
-                                                  priority: ' priority',
-                                                  status: 'status',
+                                                  campaignName:
+                                                      titleController.text,
+                                                  type: '0',
+                                                  priority:
+                                                      priorityController.text,
+                                                  status: nextTaskStatus,
                                                   platforms: platforms,
                                                   attachementurl:
                                                       attachmentController

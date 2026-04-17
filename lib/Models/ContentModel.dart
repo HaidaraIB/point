@@ -13,6 +13,9 @@ class ContentModel {
   final DateTime createdAt; // تاريخ الإنشاء
   List<dynamic>? files;
   final String? notes; // 🔹 الملاحظات الداخلية
+  final String? caption;
+  final List<dynamic>? postAttachments;
+  final List<dynamic>? storyAttachments;
 
   ContentModel({
     this.id,
@@ -29,6 +32,9 @@ class ContentModel {
     required this.createdAt,
     this.files,
     this.notes, // 🔹 مضاف
+    this.caption,
+    this.postAttachments,
+    this.storyAttachments,
   });
 
   ContentModel copyWith({
@@ -46,6 +52,9 @@ class ContentModel {
     DateTime? createdAt,
     List<dynamic>? files,
     String? notes, // 🔹 مضاف
+    String? caption,
+    List<dynamic>? postAttachments,
+    List<dynamic>? storyAttachments,
   }) {
     return ContentModel(
       id: id ?? this.id,
@@ -62,6 +71,9 @@ class ContentModel {
       createdAt: createdAt ?? this.createdAt,
       files: files ?? this.files,
       notes: notes ?? this.notes, // 🔹 مضاف
+      caption: caption ?? this.caption,
+      postAttachments: postAttachments ?? this.postAttachments,
+      storyAttachments: storyAttachments ?? this.storyAttachments,
     );
   }
 
@@ -84,6 +96,9 @@ class ContentModel {
               : null,
       createdAt: DateTime.parse(json['createdAt']),
       notes: json['notes'], // 🔹 مضاف
+      caption: json['caption'],
+      postAttachments: json['postAttachments'],
+      storyAttachments: json['storyAttachments'],
     );
   }
 
@@ -102,6 +117,9 @@ class ContentModel {
       "publishDate": publishDate?.toIso8601String(),
       "createdAt": createdAt.toIso8601String(),
       "notes": notes, // 🔹 مضاف
+      "caption": caption,
+      "postAttachments": postAttachments,
+      "storyAttachments": storyAttachments,
     };
   }
 }

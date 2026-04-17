@@ -562,23 +562,12 @@ class History extends StatelessWidget {
                                                         }
                                                       });
                                                     },
-                                                    child: buildContentDropdownChip(
+                                                    child: buildTaskStatusDropdownChip(
+                                                      rawStatus: emp.status,
                                                       label: FunHelper.trStored(
                                                         emp.status,
                                                         kind: StoredValueKind.taskStatus,
                                                       ),
-                                                      textColor:
-                                                          getContentStatusColor(
-                                                            FunHelper.canonicalStoredStatus(
-                                                              emp.status,
-                                                            ),
-                                                          ),
-                                                      backgroundColor:
-                                                          getContentStatusBgColor(
-                                                            FunHelper.canonicalStoredStatus(
-                                                              emp.status,
-                                                            ),
-                                                          ),
                                                     ),
                                                   );
                                                 },

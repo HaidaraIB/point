@@ -294,7 +294,7 @@ class TasksHistoryMobile extends StatelessWidget {
                 },
               ),
               const SizedBox(width: 10),
-              _buildStatusEndedDropdown(controller),
+              _buildStatusEndedDropdown(controller, selectedIndex),
               const SizedBox(width: 10),
               _buildDropdown<String>(
                 width: 150,
@@ -366,8 +366,13 @@ class TasksHistoryMobile extends StatelessWidget {
     );
   }
 
-  /// Status dropdown for history: only ended statuses (statusListEnded).
-  Widget _buildStatusEndedDropdown(HomeController controller) {
+  /// Status dropdown for history: ended statuses (plus promotion finished).
+  Widget _buildStatusEndedDropdown(
+    HomeController controller,
+    int tabIndex,
+  ) {
+    final endedItems =
+        StorageKeys.endedStatusFilterDropdownValues(tabIndex.toString());
     return SizedBox(
       width: 170,
       height: 40,
@@ -394,9 +399,7 @@ class TasksHistoryMobile extends StatelessWidget {
             ),
             value:
                 controller.selectedStatus.value.isEmpty ||
-                        !StorageKeys.statusListEnded.contains(
-                          controller.selectedStatus.value,
-                        )
+                        !endedItems.contains(controller.selectedStatus.value)
                     ? null
                     : controller.selectedStatus.value,
             items: [
@@ -407,7 +410,7 @@ class TasksHistoryMobile extends StatelessWidget {
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
               ),
-              ...StorageKeys.statusListEnded.map(
+              ...endedItems.map(
                 (e) => DropdownMenuItem(
                   value: e,
                   child: Padding(

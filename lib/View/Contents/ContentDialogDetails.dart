@@ -10,6 +10,7 @@ import 'package:point/View/Shared/responsive.dart';
 import 'package:point/Utils/ContentPermissions.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
+import 'package:point/View/Shared/task_status_visuals.dart';
 
 void showContentDialogDetails(
   BuildContext context, {
@@ -286,7 +287,7 @@ class _ContentDialogDetailsState extends State<ContentDialogDetails> {
               widget.task.status,
               kind: StoredValueKind.taskStatus,
             ),
-            icon: Icons.flag_outlined,
+            icon: TaskStatusVisuals.iconFor(widget.task.status),
             width: tileWidth,
             colorScheme: colorScheme,
           ),

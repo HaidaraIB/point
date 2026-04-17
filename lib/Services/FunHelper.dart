@@ -46,6 +46,7 @@ class FunHelper {
     'ready to publish': StorageKeys.status_ready_to_publish,
     'approved': StorageKeys.status_approved,
     'scheduled': StorageKeys.status_scheduled,
+    'task completed': StorageKeys.status_task_completed,
     'published': StorageKeys.status_published,
     'rejected': StorageKeys.status_rejected,
     'in edit': StorageKeys.status_in_edit,
@@ -68,6 +69,7 @@ class FunHelper {
     'جاهز للنشر': StorageKeys.status_ready_to_publish,
     'تمت الموافقة': StorageKeys.status_approved,
     'تمت الجدولة': StorageKeys.status_scheduled,
+    'مهمة مكتملة': StorageKeys.status_task_completed,
     'تم النشر': StorageKeys.status_published,
     'مرفوض': StorageKeys.status_rejected,
     'قيد التعديل': StorageKeys.status_in_edit,
@@ -81,11 +83,19 @@ class FunHelper {
     'Ready to publish': StorageKeys.status_ready_to_publish,
     'Approved': StorageKeys.status_approved,
     'Scheduled': StorageKeys.status_scheduled,
+    'Task completed': StorageKeys.status_task_completed,
     'Published': StorageKeys.status_published,
     'Rejected': StorageKeys.status_rejected,
     'In edit': StorageKeys.status_in_edit,
     'Not started yet': StorageKeys.status_not_start_yet,
     'Edit requested': StorageKeys.status_edit_requested,
+    // حالات مهام الترويج (نص عربي قد يُخزَّن قديماً)
+    'قيد مراجعة ميتا أو المنصات الإعلانية الأخرى':
+        StorageKeys.status_promotion_ad_platform_review,
+    'قيد مراجعة ميتا او المنصات الاعلانية الاخرى':
+        StorageKeys.status_promotion_ad_platform_review,
+    'قيد الترويج': StorageKeys.status_promotion_running,
+    'انتهاء الترويج': StorageKeys.status_promotion_finished,
   };
 
   /// Arabic/English priority labels → keys in [StorageKeys.priority].
@@ -186,6 +196,7 @@ class FunHelper {
   static String canonicalStoredStatus(String? raw) {
     final t = raw?.trim() ?? '';
     if (t.isEmpty) return t;
+    if (StorageKeys.promotionTaskStatusList.contains(t)) return t;
     if (StorageKeys.statusList.contains(t)) return t;
     final byLegacy = _legacyStatusToKey[t.toLowerCase()];
     if (byLegacy != null) return byLegacy;
@@ -202,6 +213,7 @@ class FunHelper {
   /// أي حالة **جارية** ما عدا [status_awaiting_manager] (المهمة عند المدير بالفعل).
   static bool taskStatusAllowsSupervisorDirectOrEscalate(String status) {
     final k = canonicalStoredStatus(status);
+    if (StorageKeys.promotionTaskStatusList.contains(k)) return false;
     if (k == StorageKeys.status_awaiting_manager) return false;
     return StorageKeys.isOngoingStatus(k);
   }

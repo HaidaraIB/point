@@ -8,11 +8,21 @@ import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppConstants.dart';
 import 'package:point/View/EmployeeDashboard/Shared/AddContentEmployeeDialog.dart';
 import 'package:point/View/Shared/responsive.dart';
+import 'package:point/View/Shared/task_status_visuals.dart';
 import 'package:point/View/Tasks/Shared/add_task_comment_dialog.dart';
 import 'package:point/View/Tasks/Shared/open_task_final_work.dart';
 
 /// صورة المكلَّف في البطاقة: الحقل المخزّن في المهمة قد يكون فارغاً لمهام قديمة،
 /// فيُستكمل من بيانات الموظف الحالية كما في الهيدر.
+/// After approval (or once the task is completed), status must not be reverted
+/// from the quick menu — use final work instead.
+bool _employeeHideQuickStatusChangeMenu(TaskModel task) {
+  final s = FunHelper.canonicalStoredStatus(task.status);
+  if (s == StorageKeys.status_approved) return true;
+  if (StorageKeys.isTaskSuccessfulTerminalStatus(s)) return true;
+  return false;
+}
+
 String _resolvedAssignedAvatarUrl(TaskModel task, EmployeeModel? assignee) {
   final fromTask = task.assignedImageUrl.trim();
   if (fromTask.isNotEmpty) return fromTask;
@@ -74,6 +84,7 @@ class EmployeeTaskCard extends StatelessWidget {
                               ),
                             ),
                           ),
+                          if (!_employeeHideQuickStatusChangeMenu(task))
                           SizedBox(
                             child: PopupMenuButton<int>(
                               tooltip: 'tasks.options_tooltip'.tr,
@@ -83,56 +94,91 @@ class EmployeeTaskCard extends StatelessWidget {
                               ),
                               color: Colors.white,
                               elevation: 4,
-                              itemBuilder:
-                                  (context) => [
+                              itemBuilder: (context) {
+                                if (task.type == '0') {
+                                  return [
                                     PopupMenuItem(
-                                      value: 0,
-                                      height: 30,
-                                      child: Container(
-                                        height: 30,
-                                        margin: EdgeInsets.all(2),
-                                        padding: EdgeInsets.symmetric(
-                                          vertical: 5,
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            SizedBox(width: 5),
-                                            Text(
-                                              StorageKeys.status_processing.tr,
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
+                                      value: 10,
+                                      child: TaskStatusVisuals.popupMenuRow(
+                                        label: StorageKeys
+                                            .status_promotion_in_progress
+                                            .tr,
+                                        rawOrCanonicalForIcon:
+                                            StorageKeys.status_promotion_in_progress,
                                       ),
                                     ),
                                     PopupMenuItem(
-                                      value: 1,
-                                      height: 30,
-                                      child: Container(
-                                        height: 30,
-                                        margin: EdgeInsets.all(2),
-                                        padding: EdgeInsets.symmetric(
-                                          vertical: 5,
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            SizedBox(width: 5),
-                                            Text(
-                                              StorageKeys
-                                                  .status_under_revision
-                                                  .tr,
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
+                                      value: 11,
+                                      child: TaskStatusVisuals.popupMenuRow(
+                                        label: StorageKeys
+                                            .status_promotion_ad_platform_review
+                                            .tr,
+                                        rawOrCanonicalForIcon: StorageKeys
+                                            .status_promotion_ad_platform_review,
                                       ),
                                     ),
-                                  ],
+                                    PopupMenuItem(
+                                      value: 12,
+                                      child: TaskStatusVisuals.popupMenuRow(
+                                        label: StorageKeys.status_promotion_running
+                                            .tr,
+                                        rawOrCanonicalForIcon:
+                                            StorageKeys.status_promotion_running,
+                                      ),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 13,
+                                      child: TaskStatusVisuals.popupMenuRow(
+                                        label: StorageKeys.status_promotion_finished
+                                            .tr,
+                                        rawOrCanonicalForIcon:
+                                            StorageKeys.status_promotion_finished,
+                                      ),
+                                    ),
+                                  ];
+                                }
+                                return [
+                                  PopupMenuItem(
+                                    value: 0,
+                                    child: TaskStatusVisuals.popupMenuRow(
+                                      label: StorageKeys.status_processing.tr,
+                                      rawOrCanonicalForIcon:
+                                          StorageKeys.status_processing,
+                                    ),
+                                  ),
+                                  PopupMenuItem(
+                                    value: 1,
+                                    child: TaskStatusVisuals.popupMenuRow(
+                                      label: StorageKeys.status_under_revision.tr,
+                                      rawOrCanonicalForIcon:
+                                          StorageKeys.status_under_revision,
+                                    ),
+                                  ),
+                                ];
+                              },
                               onSelected: (value) {
+                                if (_employeeHideQuickStatusChangeMenu(task)) {
+                                  return;
+                                }
+                                if (task.type == '0') {
+                                  final String? st =
+                                      value == 10
+                                          ? StorageKeys.status_promotion_in_progress
+                                          : value == 11
+                                          ? StorageKeys
+                                              .status_promotion_ad_platform_review
+                                          : value == 12
+                                          ? StorageKeys.status_promotion_running
+                                          : value == 13
+                                          ? StorageKeys.status_promotion_finished
+                                          : null;
+                                  if (st != null) {
+                                    controller.updateTask(
+                                      task.copyWithPromotionStatusAligned(st),
+                                    );
+                                  }
+                                  return;
+                                }
                                 if (value == 0) {
                                   controller.updateTask(
                                     task.copyWith(
@@ -467,29 +513,37 @@ class EmployeeTaskCard extends StatelessWidget {
                                   ],
                                 ),
                                 SizedBox(height: rowGap),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: OutlinedButton(
-                                    style: OutlinedButton.styleFrom(
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(24),
+                                if (shouldShowPrimaryFinalWorkTaskButton(
+                                      task,
+                                      controller.currentEmployee.value?.role ??
+                                          '',
+                                    )) ...[
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: OutlinedButton(
+                                      style: OutlinedButton.styleFrom(
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            24,
+                                          ),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 10,
+                                        ),
                                       ),
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 10,
+                                      onPressed: () => openTaskFinalWorkDialog(
+                                        context: context,
+                                        task: task,
                                       ),
-                                    ),
-                                    onPressed: () => openTaskFinalWorkDialog(
-                                      context: context,
-                                      task: task,
-                                    ),
-                                    child: Text(
-                                      'tasks.final_deliverable_section'.tr,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(fontSize: 12),
+                                      child: Text(
+                                        'tasks.final_deliverable_section'.tr,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
                                     ),
                                   ),
-                                ),
+                                ],
                               ],
                             );
                           },
@@ -592,20 +646,10 @@ Widget employeeTaskCardActionRows({
 
 Widget _buildStatusTag(String raw) {
   final key = FunHelper.canonicalStoredStatus(raw);
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-    decoration: BoxDecoration(
-      color: _getStatusBgColor(key),
-      borderRadius: BorderRadius.circular(8),
-    ),
-    child: Text(
-      FunHelper.trStored(raw, kind: StoredValueKind.taskStatus),
-      style: TextStyle(
-        color: _getStatusColor(key),
-        fontSize: 11,
-        fontWeight: FontWeight.bold,
-      ),
-    ),
+  return TaskStatusVisuals.statusChip(
+    rawStatus: raw,
+    fg: _getStatusColor(key),
+    bg: _getStatusBgColor(key),
   );
 }
 
@@ -638,6 +682,8 @@ Color _getStatusColor(String status) {
       return Colors.orange.shade800;
     case StorageKeys.status_processing:
       return Colors.amber.shade900;
+    case StorageKeys.status_task_completed:
+      return Colors.lightGreen.shade800;
     case StorageKeys.status_published:
       return Colors.lightGreen.shade800;
     case StorageKeys.status_rejected:
@@ -648,6 +694,14 @@ Color _getStatusColor(String status) {
       return Colors.deepOrange.shade700;
     case StorageKeys.status_not_start_yet:
       return Colors.grey.shade700;
+    case StorageKeys.status_promotion_in_progress:
+      return Colors.amber.shade900;
+    case StorageKeys.status_promotion_ad_platform_review:
+      return Colors.blue.shade800;
+    case StorageKeys.status_promotion_running:
+      return Colors.green.shade800;
+    case StorageKeys.status_promotion_finished:
+      return Colors.blueGrey.shade700;
     default:
       return Colors.blueGrey.shade700;
   }
@@ -667,6 +721,8 @@ Color _getStatusBgColor(String status) {
       return Colors.orange.shade50;
     case StorageKeys.status_processing:
       return Colors.amber.shade50;
+    case StorageKeys.status_task_completed:
+      return Colors.lightGreen.shade50;
     case StorageKeys.status_published:
       return Colors.lightGreen.shade50;
     case StorageKeys.status_rejected:
@@ -677,6 +733,14 @@ Color _getStatusBgColor(String status) {
       return Colors.deepOrange.shade50;
     case StorageKeys.status_not_start_yet:
       return Colors.grey.shade200;
+    case StorageKeys.status_promotion_in_progress:
+      return Colors.amber.shade50;
+    case StorageKeys.status_promotion_ad_platform_review:
+      return Colors.blue.shade50;
+    case StorageKeys.status_promotion_running:
+      return Colors.green.shade50;
+    case StorageKeys.status_promotion_finished:
+      return Colors.blueGrey.shade100;
     default:
       return Colors.blueGrey.shade50;
   }

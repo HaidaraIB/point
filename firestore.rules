@@ -71,23 +71,53 @@ service cloud.firestore {
       let d = dDept == null ? '' : dDept;
       let r = emp.role;
       let ed = emp.department == null ? '' : emp.department;
-      return (r == 'admin' || r == 'supervisor') ? (d == '' || d == null) : (ed == d);
+      // Managers: allow empty department in authRoles payload, or exact match with employees doc.
+      return (r == 'admin' || r == 'supervisor')
+        ? (d == '' || d == null || ed == d)
+        : (ed == d);
+    }
+
+    // authRoles sync runs on login; employees.authUid may still be empty (chicken-and-egg vs hasAuthRole()).
+    function employeeAuthUidMatchesForAuthRolesSync(emp) {
+      return emp.authUid == request.auth.uid
+        || (
+          employeeAuthUidLooksUnset(emp)
+          && request.auth.token.email != null
+          && emp.email == request.auth.token.email
+        );
     }
 
     function validateEmployeeAuthRolePayload() {
       let d = request.resource.data;
-      let emp = get(/databases/$(database)/documents/employees/$(d.employeeId)).data;
-      return emp.authUid == request.auth.uid
-        && emp.role == d.role
-        && authRoleDeptMatchesEmployee(emp, d.department);
+      let empPath = /databases/$(database)/documents/employees/$(d.employeeId);
+      return exists(empPath)
+        && employeeAuthUidMatchesForAuthRolesSync(get(empPath).data)
+        && get(empPath).data.role == d.role
+        && authRoleDeptMatchesEmployee(get(empPath).data, d.department);
+    }
+
+    function clientAuthUidLooksUnset(cl) {
+      return !(cl.keys().hasAny(['authUid']))
+        || cl.authUid == null
+        || cl.authUid == '';
+    }
+
+    function clientAuthUidMatchesForAuthRolesSync(cl) {
+      return cl.authUid == request.auth.uid
+        || (
+          clientAuthUidLooksUnset(cl)
+          && request.auth.token.email != null
+          && cl.email == request.auth.token.email
+        );
     }
 
     function validateClientAuthRolePayload() {
       let d = request.resource.data;
-      let cl = get(/databases/$(database)/documents/clients/$(d.clientId)).data;
-      return d.role == 'client'
+      let clPath = /databases/$(database)/documents/clients/$(d.clientId);
+      return exists(clPath)
+        && d.role == 'client'
         && d.employeeId == null
-        && cl.authUid == request.auth.uid;
+        && clientAuthUidMatchesForAuthRolesSync(get(clPath).data);
     }
 
     function authRoleDocKeysAllowed() {
@@ -119,15 +149,23 @@ service cloud.firestore {
         ));
     }
 
-    function employeeTaskUpdateForbidden() {
-      return (request.resource.data.status == 'status_approved'
-          || request.resource.data.status == 'status_rejected')
-        && request.resource.data.status != resource.data.status;
+    // موظف: لا يضع حالة موافقة/رفض بنفسه؛ ولا يعيد المهمة من «موافق» إلى قيد التنفيذ/مراجعة
+    // (التسليم النهائي فقط → status_task_completed أو status_published).
+    function employeeTaskEmployeeStatusUpdateForbidden() {
+      let ns = request.resource.data.status;
+      let os = resource.data.status;
+      return isEmployeeRole()
+        && (
+          ((ns == 'status_approved' || ns == 'status_rejected') && ns != os)
+          || (os == 'status_approved' && ns != os
+              && ns != 'status_task_completed'
+              && ns != 'status_published')
+        );
     }
 
     function employeeTaskUpdateAllowed() {
       return request.resource.data.assignedTo == resource.data.assignedTo
-        && !employeeTaskUpdateForbidden();
+        && !employeeTaskEmployeeStatusUpdateForbidden();
     }
 
     function canReadContentsDoc() {

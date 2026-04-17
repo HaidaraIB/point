@@ -186,7 +186,14 @@ class Tasks extends StatelessWidget {
                                           .where(
                                             (a) =>
                                                 a.status ==
-                                                StorageKeys.status_processing,
+                                                    StorageKeys
+                                                        .status_processing ||
+                                                a.status ==
+                                                    StorageKeys
+                                                        .status_promotion_in_progress ||
+                                                a.status ==
+                                                    StorageKeys
+                                                        .status_promotion_running,
                                           )
                                           .length
                                           .toString(),
@@ -199,8 +206,11 @@ class Tasks extends StatelessWidget {
                                           .where(
                                             (a) =>
                                                 a.status ==
-                                                StorageKeys
-                                                    .status_under_revision,
+                                                    StorageKeys
+                                                        .status_under_revision ||
+                                                a.status ==
+                                                    StorageKeys
+                                                        .status_promotion_ad_platform_review,
                                           )
                                           .length
                                           .toString(),
@@ -226,8 +236,13 @@ class Tasks extends StatelessWidget {
                                       tasks
                                           .where(
                                             (a) =>
+                                                StorageKeys
+                                                    .isTaskSuccessfulTerminalStatus(
+                                                  a.status,
+                                                ) ||
                                                 a.status ==
-                                                StorageKeys.status_approved,
+                                                    StorageKeys
+                                                        .status_promotion_finished,
                                           )
                                           .length
                                           .toString(),
@@ -371,67 +386,74 @@ class Tasks extends StatelessWidget {
                                         const SizedBox(width: 10),
 
                                         // 🔹 الحالة (فقط المهام الجارية)
-                                        Container(
-                                          width: 170,
-                                          height: 40,
-                                          decoration: BoxDecoration(
-                                            border: Border.all(
-                                              color: Colors.grey.shade300,
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                          ),
-                                          child: DropdownButtonHideUnderline(
-                                            child: DropdownButton<String>(
-                                              isExpanded: true,
-                                              hint: Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                    ),
-                                                child: Text(
-                                                  'tasks.filter_status'.tr,
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                    fontSize: 13,
-                                                    color:
-                                                        AppColors
-                                                            .primaryfontColor,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
+                                        Builder(
+                                          builder: (_) {
+                                            final ongoingStatusItems =
+                                                StorageKeys
+                                                    .ongoingStatusFilterDropdownValues(
+                                                      selectedIndex.toString(),
+                                                    );
+                                            return Container(
+                                              width: 170,
+                                              height: 40,
+                                              decoration: BoxDecoration(
+                                                border: Border.all(
+                                                  color: Colors.grey.shade300,
                                                 ),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
                                               ),
-                                              value:
-                                                  controller
-                                                              .selectedStatus
-                                                              .value
-                                                              .isEmpty ||
-                                                          !StorageKeys
-                                                              .statusListOngoing
-                                                              .contains(
-                                                                controller
-                                                                    .selectedStatus
-                                                                    .value,
-                                                              )
-                                                      ? null
-                                                      : controller
-                                                          .selectedStatus
-                                                          .value,
-                                              items: [
-                                                DropdownMenuItem(
-                                                  value: '',
-                                                  child: Text(
-                                                    'filter_status_ongoing'.tr,
-                                                    style: TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.w600,
+                                              child: DropdownButtonHideUnderline(
+                                                child: DropdownButton<String>(
+                                                  isExpanded: true,
+                                                  hint: Padding(
+                                                    padding:
+                                                        const EdgeInsets.symmetric(
+                                                          horizontal: 8,
+                                                        ),
+                                                    child: Text(
+                                                      'tasks.filter_status'.tr,
+                                                      maxLines: 1,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                      style: TextStyle(
+                                                        fontSize: 13,
+                                                        color:
+                                                            AppColors
+                                                                .primaryfontColor,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
                                                     ),
                                                   ),
-                                                ),
-                                                ...StorageKeys.statusListOngoing
-                                                    .map(
+                                                  value:
+                                                      controller
+                                                                  .selectedStatus
+                                                                  .value
+                                                                  .isEmpty ||
+                                                              !ongoingStatusItems
+                                                                  .contains(
+                                                                    controller
+                                                                        .selectedStatus
+                                                                        .value,
+                                                                  )
+                                                          ? null
+                                                          : controller
+                                                              .selectedStatus
+                                                              .value,
+                                                  items: [
+                                                    DropdownMenuItem(
+                                                      value: '',
+                                                      child: Text(
+                                                        'filter_status_ongoing'
+                                                            .tr,
+                                                        style: TextStyle(
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    ...ongoingStatusItems.map(
                                                       (e) => DropdownMenuItem(
                                                         value: e,
                                                         child: Padding(
@@ -443,15 +465,17 @@ class Tasks extends StatelessWidget {
                                                         ),
                                                       ),
                                                     ),
-                                              ],
-                                              onChanged: (value) {
-                                                controller
-                                                    .selectedStatus
-                                                    .value = value ?? '';
-                                                controller.filterTasks();
-                                              },
-                                            ),
-                                          ),
+                                                  ],
+                                                  onChanged: (value) {
+                                                    controller
+                                                        .selectedStatus
+                                                        .value = value ?? '';
+                                                    controller.filterTasks();
+                                                  },
+                                                ),
+                                              ),
+                                            );
+                                          },
                                         ),
                                         const SizedBox(width: 10),
 

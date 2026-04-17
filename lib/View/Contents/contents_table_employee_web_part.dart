@@ -228,6 +228,8 @@ Widget _EmployeeWebContentTitleRow(
         ),
         onPressed: () => Get.toNamed('/employeeDashboard'),
       ),
+      const SizedBox(width: 8),
+      _bulkContentActionsControls(context, controller, expandInParentRow: true),
     ],
   );
 }
@@ -391,6 +393,43 @@ Widget _EmployeeWebContentFiltersRow(
                         value ?? '';
                     controller.update(['employeeWebContent']);
                   },
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          flex: 2,
+          child: Obx(
+            () => InkWell(
+              onTap: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime(2100),
+                  initialDate:
+                      controller.employeeWebContentDateFilter.value ??
+                      DateTime.now(),
+                );
+                if (picked == null) return;
+                controller.employeeWebContentDateFilter.value = picked;
+                controller.update(['employeeWebContent']);
+              },
+              child: Container(
+                height: 40,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  controller.employeeWebContentDateFilter.value == null
+                      ? 'publish_date'.tr
+                      : DateFormat('yyyy-MM-dd').format(
+                        controller.employeeWebContentDateFilter.value!,
+                      ),
                 ),
               ),
             ),

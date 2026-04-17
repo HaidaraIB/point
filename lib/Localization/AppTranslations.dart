@@ -289,6 +289,8 @@ class AppTranslations extends Translations {
       'tasks.final_deliverable_dialog_title': 'Submit for review',
       'tasks.final_deliverable_dialog_subtitle':
           'Attach the final work as text and/or files, then send the task for review.',
+      'tasks.send_for_review_only_message':
+          'This sends the task for review only. After the manager approves, the task stays in your ongoing list until you upload final work from it; then its status becomes Task completed.',
       'tasks.final_deliverable_text_label': 'Final work (text)',
       'tasks.final_deliverable_text_hint':
           'Optional: links, summary, or paste text…',
@@ -314,6 +316,21 @@ class AppTranslations extends Translations {
           'This removes all final deliverable text and file links from the task.',
       'tasks.final_deliverable_empty_manager':
           'No final work is attached yet. Tap Edit to add text or files.',
+      'tasks.final_work_upload_after_accept_title': 'Upload final work',
+      'tasks.final_work_upload_after_accept_subtitle':
+          'The task was approved and stays in your list until you finish. Choose a deliverable type, add text and/or files, then confirm to set the task to Task completed.',
+      'tasks.final_work_complete_task_button': 'Mark completed',
+      'tasks.final_deliverable_type_label': 'Deliverable type',
+      'tasks.final_deliverable_type_required': 'Please choose a deliverable type.',
+      'tasks.final_work_waiting_for_approval':
+          'Wait for manager approval before you can upload final work.',
+      'tasks.final_work_already_completed':
+          'Final work is already submitted and the task is completed.',
+      'tasks.final_work_action_not_available':
+          'This action is not available for this task status.',
+      'final_work_post': 'Post',
+      'final_work_story': 'Story',
+      'final_work_video_reel': 'Video / Reel',
       'time.ago_minutes': '@count min ago',
       'time.ago_hours': '@count h ago',
       'time.ago_days': '@count days ago',
@@ -392,7 +409,18 @@ class AppTranslations extends Translations {
       'content.form.insert_link': 'Insert link',
       'content.form.select_client_first':
           'Please select a client before adding new content.',
+      'content.open_client_notes': 'Open notes',
+      'content.publish_now': 'Publish',
+      'content.quick_status': 'Publish / schedule',
+      'content.schedule': 'Schedule',
+      'content.caption': 'Caption',
+      'content.caption_hint': 'Write content caption',
+      'content.post_attachment': 'Post attachment',
+      'content.story_attachment': 'Story attachment',
       'content.add_success': 'Content added successfully',
+      'content.bulk_delete_confirm_title': 'Delete selected content?',
+      'content.bulk_delete_confirm_message':
+          'Delete @count selected item(s)? This cannot be undone.',
       'errors.no_permission': 'You do not have permission',
       'employees.department': 'Department',
       'employee.dashboard.tasks_assigned_to_you': 'Tasks assigned to you',
@@ -686,12 +714,31 @@ class AppTranslations extends Translations {
       'status_ready_to_publish': 'Ready to publish',
       'status_approved': 'Approved',
       'status_scheduled': 'Scheduled',
+      'status_task_completed': 'Task completed',
       'status_published': 'Published',
       'status_rejected': 'Rejected',
       'status_in_edit': 'In edit',
       'status_not_start_yet': 'Not started yet',
       'status_edit_requested': 'Edit requested',
       'status_awaiting_manager': 'Awaiting manager review',
+      'status_promotion_in_progress': 'In progress',
+      'status_promotion_ad_platform_review':
+          'Under review by Meta or other ad platforms',
+      'status_promotion_running': 'Promotion running',
+      'status_promotion_finished': 'Promotion ended',
+      'promotion.campaign_budget': 'Campaign budget',
+      'promotion.campaign_budget_hint':
+          'e.g. 5000 SAR or a short note',
+      'promotion.status_hint_in_progress':
+          'Assignee: preparing the campaign and creative assets.',
+      'promotion.status_hint_ad_review':
+          'Assignee: ads submitted to Meta or other platforms for approval.',
+      'promotion.status_hint_running':
+          'Manager: ads approved; the campaign is live.',
+      'promotion.status_hint_finished':
+          'Assignee or manager: the promotion period has ended.',
+      'tasks.timeline.promotion_campaign_budget_changed':
+          'Campaign budget updated (promotion)',
       'filter_status_ongoing': 'Ongoing tasks',
       'filter_status_ended': 'Completed tasks',
       'employeecount': 'Employees count',
@@ -895,12 +942,31 @@ class AppTranslations extends Translations {
       "status_ready_to_publish": "جاهز للنشر",
       "status_approved": "تمت الموافقة",
       "status_scheduled": "تمت الجدولة",
+      "status_task_completed": "مهمة مكتملة",
       "status_published": "تم النشر",
       "status_rejected": "مرفوض",
       "status_in_edit": "قيد التعديل",
       "status_not_start_yet": " لم يبدأ بعد",
       "status_edit_requested": "طلب التعديل",
       "status_awaiting_manager": "بانتظار المدير",
+      "status_promotion_in_progress": "قيد التنفيذ",
+      "status_promotion_ad_platform_review":
+          "قيد مراجعة ميتا أو المنصات الإعلانية الأخرى",
+      "status_promotion_running": "قيد الترويج",
+      "status_promotion_finished": "انتهاء الترويج",
+      "promotion.campaign_budget": "ميزانية الحملة",
+      "promotion.campaign_budget_hint":
+          "مثال: 5000 ريال أو وصف مختصر",
+      "promotion.status_hint_in_progress":
+          "الموظف: إعداد الحملة والمواد الإعلانية.",
+      "promotion.status_hint_ad_review":
+          "الموظف: تم إرسال الإعلان إلى ميتا أو المنصات للمراجعة.",
+      "promotion.status_hint_running":
+          "المسؤول: تمت الموافقة والحملة قيد التشغيل.",
+      "promotion.status_hint_finished":
+          "الموظف أو المسؤول: انتهت فترة الترويج.",
+      "tasks.timeline.promotion_campaign_budget_changed":
+          "تم تحديث ميزانية الحملة (الترويج)",
       "filter_status_ongoing": "المهام الجارية",
       "filter_status_ended": "المهام المنتهية",
       "employeecount": "عدد الموظفين",
@@ -1215,6 +1281,8 @@ class AppTranslations extends Translations {
       "tasks.final_deliverable_dialog_title": "إرسال للمراجعة",
       "tasks.final_deliverable_dialog_subtitle":
           "أرفق العمل النهائي كنص و/أو ملفات، ثم أرسل المهمة للمراجعة.",
+      "tasks.send_for_review_only_message":
+          "سيتم إرسال المهمة للمراجعة فقط. بعد موافقة المدير تبقى المهمة في قائمة المهام الجارية حتى ترفع العمل النهائي من صفحتها؛ عندها تصبح حالتها «مهمة مكتملة».",
       "tasks.final_deliverable_text_label": "العمل النهائي (نص)",
       "tasks.final_deliverable_text_hint":
           "اختياري: روابط، ملخص، أو لصق النص…",
@@ -1239,6 +1307,21 @@ class AppTranslations extends Translations {
           "سيُزال كل نص العمل النهائي وروابط الملفات من المهمة.",
       "tasks.final_deliverable_empty_manager":
           "لا يوجد عمل نهائي بعد. اضغط «تعديل» لإضافة نص أو ملفات.",
+      "tasks.final_work_upload_after_accept_title": "رفع العمل النهائي",
+      "tasks.final_work_upload_after_accept_subtitle":
+          "تمت الموافقة على المهمة وتظل في قائمتك حتى تنهي التسليم. اختر نوع التسليم وأضف النص و/أو الملفات، ثم أكّد لتصبح الحالة «مهمة مكتملة».",
+      "tasks.final_work_complete_task_button": "إكمال المهمة",
+      "tasks.final_deliverable_type_label": "نوع التسليم",
+      "tasks.final_deliverable_type_required": "يرجى اختيار نوع التسليم.",
+      "tasks.final_work_waiting_for_approval":
+          "انتظر موافقة المدير قبل رفع العمل النهائي.",
+      "tasks.final_work_already_completed":
+          "تم تسليم العمل النهائي بالفعل واكتملت المهمة.",
+      "tasks.final_work_action_not_available":
+          "هذا الإجراء غير متاح لحالة المهمة الحالية.",
+      "final_work_post": "منشور",
+      "final_work_story": "قصة",
+      "final_work_video_reel": "فيديو / ريل",
       "time.ago_minutes": "قبل @count د",
       "time.ago_hours": "قبل @count س",
       "time.ago_days": "قبل @count يوم",
@@ -1312,7 +1395,18 @@ class AppTranslations extends Translations {
       "content.form.insert_link": "إدراج رابط",
       "content.form.select_client_first":
           "يرجى اختيار عميل قبل إضافة محتوى جديد.",
+      "content.open_client_notes": "عرض الملاحظات",
+      "content.publish_now": "نشر",
+      "content.quick_status": "نشر أو جدولة",
+      "content.schedule": "جدولة",
+      "content.caption": "كابشن المحتوى",
+      "content.caption_hint": "اكتب كابشن المحتوى",
+      "content.post_attachment": "مرفق البوست",
+      "content.story_attachment": "مرفق الستوري",
       "content.add_success": "تمت إضافة المحتوى بنجاح",
+      "content.bulk_delete_confirm_title": "حذف المحتوى المحدد؟",
+      "content.bulk_delete_confirm_message":
+          "حذف @count عنصراً محدداً؟ لا يمكن التراجع.",
       "errors.no_permission": "ليس لديك الصلاحية",
       "employees.department": "القسم",
       "employee.dashboard.tasks_assigned_to_you": "المهام المسندة إليك",

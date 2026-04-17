@@ -10,6 +10,8 @@ class PromotionModel {
   final DateTime? startDate;
   final DateTime? endDate;
   final String? duration; // المدة
+  /// ميزانية الحملة (نص حر: مبلغ وعملة أو وصف مختصر).
+  final String? campaignBudget;
   final String? tags; // العلامات
   final List? platforms; // المنصات: Facebook, Instagram, TikTok...
   final List<String>? interests; // الاهتمامات
@@ -34,6 +36,7 @@ class PromotionModel {
     this.startDate,
     this.endDate,
     this.duration,
+    this.campaignBudget,
     this.tags,
     this.platforms,
     this.interests,
@@ -61,6 +64,7 @@ class PromotionModel {
           json['startDate'] != null ? DateTime.parse(json['startDate']) : null,
       endDate: json['endDate'] != null ? DateTime.parse(json['endDate']) : null,
       duration: json['duration'],
+      campaignBudget: json['campaignBudget'] as String?,
       tags: json['tags'],
       platforms: json['platforms'],
       interests: (json['interests'] as List?)?.cast<String>(),
@@ -88,6 +92,7 @@ class PromotionModel {
     'startDate': startDate?.toIso8601String(),
     'endDate': endDate?.toIso8601String(),
     'duration': duration,
+    'campaignBudget': campaignBudget,
     'tags': tags,
     'platforms': platforms,
     'interests': interests,
@@ -113,6 +118,7 @@ class PromotionModel {
     DateTime? startDate,
     DateTime? endDate,
     String? duration,
+    String? campaignBudget,
     String? tags,
     List? platforms,
     List<String>? interests,
@@ -137,6 +143,7 @@ class PromotionModel {
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
       duration: duration ?? this.duration,
+      campaignBudget: campaignBudget ?? this.campaignBudget,
       tags: tags ?? this.tags,
       platforms: platforms ?? this.platforms,
       interests: interests ?? this.interests,

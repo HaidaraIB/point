@@ -9,6 +9,8 @@ import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Shared/TaskTimelineWidget.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 import 'package:point/View/Tasks/Shared/edit_final_deliverable_dialog.dart';
+import 'package:point/View/Tasks/Shared/open_task_final_work.dart';
+import 'package:point/View/Shared/task_status_visuals.dart';
 
 /// Generic web dialog for task details. Renders common shell (header, notes,
 /// attachments, timeline) and a type-specific middle section.
@@ -50,6 +52,14 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
   bool _canManageFinalDeliverable() {
     final r = Get.find<HomeController>().currentEmployee.value?.role ?? '';
     return r == 'admin' || r == 'supervisor';
+  }
+
+  bool _employeeMayEditFinalDeliverableInDetails(TaskModel t) {
+    final r = Get.find<HomeController>().currentEmployee.value?.role ?? '';
+    if (r != 'employee') return false;
+    if (t.type == '0') return false;
+    return FunHelper.canonicalStoredStatus(t.status) ==
+        StorageKeys.status_approved;
   }
 
   bool _shouldShowFinalDeliverableSection(TaskModel t) {
@@ -132,7 +142,10 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
                           title: 'tasks.final_deliverable_section'.tr,
                           icon: Icons.outbox_outlined,
                           titleActions:
-                              _canManageFinalDeliverable()
+                              (_canManageFinalDeliverable() ||
+                                  _employeeMayEditFinalDeliverableInDetails(
+                                    live,
+                                  ))
                                   ? [
                                     IconButton(
                                       tooltip: 'tasks.final_deliverable_edit'
@@ -142,10 +155,18 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
                                         size: 22,
                                       ),
                                       onPressed: () {
-                                        showEditFinalDeliverableDialog(
-                                          context: context,
-                                          task: _liveTask(),
-                                        );
+                                        final t = _liveTask();
+                                        if (_canManageFinalDeliverable()) {
+                                          showEditFinalDeliverableDialog(
+                                            context: context,
+                                            task: t,
+                                          );
+                                        } else {
+                                          openTaskFinalWorkDialog(
+                                            context: context,
+                                            task: t,
+                                          );
+                                        }
                                       },
                                     ),
                                   ]
@@ -325,7 +346,7 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
         _buildMetaTile(
           label: 'tasks.status_label'.tr,
           value: statusValue,
-          icon: Icons.flag_outlined,
+          icon: TaskStatusVisuals.iconFor(widget.task.status),
           width: infoWidth,
           colorScheme: colorScheme,
         ),
@@ -650,7 +671,8 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
 
   bool _taskHasFinalDeliverable(TaskModel t) {
     return t.finalDeliverableText.trim().isNotEmpty ||
-        t.finalDeliverableFileUrls.isNotEmpty;
+        t.finalDeliverableFileUrls.isNotEmpty ||
+        t.finalDeliverableType.trim().isNotEmpty;
   }
 
   Widget _buildFinalDeliverableSection(
@@ -661,6 +683,7 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
   ) {
     final urls = t.finalDeliverableFileUrls;
     final body = t.finalDeliverableText.trim();
+    final finalType = t.finalDeliverableType.trim();
     final colorScheme = Theme.of(context).colorScheme;
     final maxW = (dialogWidth - 80).clamp(240.0, 760.0);
     final crossCount =
@@ -683,6 +706,31 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (finalType.isNotEmpty) ...[
+          Text(
+            'tasks.final_deliverable_type_label'.tr,
+            style: textTheme.titleSmall,
+          ),
+          const SizedBox(height: 8),
+          Container(
+            width: maxW,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerLowest,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: colorScheme.outlineVariant),
+            ),
+            child: Text(
+              finalType.tr,
+              style: TextStyle(
+                fontSize: 13,
+                color: colorScheme.onSurface,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          if (body.isNotEmpty || urls.isNotEmpty) const SizedBox(height: 14),
+        ],
         if (body.isNotEmpty) ...[
           Text(
             'tasks.final_deliverable_text_label'.tr,

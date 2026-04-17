@@ -36,6 +36,132 @@ part 'contents_table_desktop_data_table_part.dart';
 part 'contents_table_mobile_part.dart';
 part 'contents_table_add_content_dialog_part.dart';
 
+void _confirmBulkDeleteContent(BuildContext context, HomeController controller) {
+  final n = controller.selectedContentIds.length;
+  if (n == 0) return;
+  FunHelper.showConfirmDailog(
+    context,
+    title: 'content.bulk_delete_confirm_title'.tr,
+    message: 'content.bulk_delete_confirm_message'.trParams({'count': '$n'}),
+    confirmText: 'delete'.tr,
+    confirmColor: Colors.red,
+    onTap: () async {
+      await controller.deleteSelectedContents();
+    },
+  );
+}
+
+/// Light outlined bulk action (same family as table status chips).
+Widget _bulkActionChipButton({
+  required String label,
+  required Color accentColor,
+  required IconData icon,
+  required VoidCallback onPressed,
+  bool expandWidth = false,
+}) {
+  final style = OutlinedButton.styleFrom(
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    backgroundColor: accentColor.withValues(alpha: 0.08),
+    foregroundColor: accentColor,
+    side: BorderSide(color: accentColor.withValues(alpha: 0.28)),
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+    minimumSize: expandWidth ? const Size.fromHeight(40) : const Size(0, 38),
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+  );
+  final child = OutlinedButton.icon(
+    style: style,
+    icon: Icon(icon, size: 17),
+    label: Text(
+      label,
+      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5),
+    ),
+    onPressed: onPressed,
+  );
+  if (expandWidth) {
+    return SizedBox(width: double.infinity, child: child);
+  }
+  return child;
+}
+
+/// Shared desktop bulk bar: Approve, Publish, Schedule — [ContentPermissions.canChangePostStatus];
+/// Delete — [ContentPermissions.canDeleteContent].
+Widget _bulkContentActionsControls(
+  BuildContext context,
+  HomeController controller, {
+  required bool expandInParentRow,
+}) {
+  const scheduleAccent = Color(0xFF1565C0);
+  return Obx(() {
+    final selectedCount = controller.selectedContentIds.length;
+    if (selectedCount == 0) return const SizedBox.shrink();
+    final emp = controller.currentEmployee.value;
+    final canStatus = ContentPermissions.canChangePostStatus(emp);
+    final canDel = ContentPermissions.canDeleteContent(emp);
+    if (!canStatus && !canDel) return const SizedBox.shrink();
+    final row = SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (canStatus) ...[
+            _bulkActionChipButton(
+              label: '${'tasks.accept'.tr} ($selectedCount)',
+              accentColor: AppColors.success,
+              icon: Icons.check_circle_outline_rounded,
+              onPressed: () async {
+                await controller.approveSelectedContents();
+              },
+            ),
+            const SizedBox(width: 6),
+            _bulkActionChipButton(
+              label: '${'content.publish_now'.tr} ($selectedCount)',
+              accentColor: AppColors.primary,
+              icon: Icons.publish_rounded,
+              onPressed: () async {
+                await controller.publishSelectedContents();
+              },
+            ),
+            const SizedBox(width: 6),
+            _bulkActionChipButton(
+              label: '${'content.schedule'.tr} ($selectedCount)',
+              accentColor: scheduleAccent,
+              icon: Icons.schedule_rounded,
+              onPressed: () async {
+                await controller.scheduleSelectedContents();
+              },
+            ),
+          ],
+          if (canStatus && canDel) const SizedBox(width: 6),
+          if (canDel)
+            _bulkActionChipButton(
+              label: '${'delete'.tr} ($selectedCount)',
+              accentColor: AppColors.destructive,
+              icon: Icons.delete_outline_rounded,
+              onPressed: () {
+                _confirmBulkDeleteContent(context, controller);
+              },
+            ),
+        ],
+      ),
+    );
+    if (expandInParentRow) {
+      return Expanded(
+        child: Align(
+          alignment: AlignmentDirectional.centerEnd,
+          child: row,
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: row,
+      ),
+    );
+  });
+}
+
 class ContentsTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -197,6 +323,11 @@ class ContentsTable extends StatelessWidget {
                           clearFiltersWhenClientChanges: false,
                         ),
                         SizedBox(height: 10),
+                        _bulkContentActionsControls(
+                          context,
+                          controller,
+                          expandInParentRow: false,
+                        ),
                         _buildDesktopContentsDataTable(context),
                       ],
                     ),

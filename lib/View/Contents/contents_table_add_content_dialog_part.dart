@@ -1,7 +1,9 @@
-﻿part of 'package:point/View/Contents/ContentsTable.dart';
+part of 'package:point/View/Contents/ContentsTable.dart';
 
 Widget _buildAttachmentPreviewTile(String url) {
-  final bool isImage = getFileType(url) == 'image';
+  final fileType = getFileType(url);
+  final bool isImage = fileType == 'image';
+  final bool isVideo = fileType == 'video';
   return ClipRRect(
     borderRadius: BorderRadius.circular(8),
     child:
@@ -16,7 +18,9 @@ Widget _buildAttachmentPreviewTile(String url) {
                     Icons.broken_image_outlined,
                   ),
             )
-            : _attachmentPlaceholderThumbnail(Icons.link_outlined),
+            : _attachmentPlaceholderThumbnail(
+              isVideo ? Icons.play_circle_fill_rounded : Icons.link_outlined,
+            ),
   );
 }
 
@@ -33,7 +37,9 @@ Widget _attachmentPlaceholderThumbnail(IconData icon) {
 }
 
 Widget _buildFormAttachmentThumbnail(String url) {
-  final isImage = getFileType(url) == 'image';
+  final fileType = getFileType(url);
+  final isImage = fileType == 'image';
+  final isVideo = fileType == 'video';
   return ClipRRect(
     borderRadius: BorderRadius.circular(10),
     child: Container(
@@ -51,7 +57,9 @@ Widget _buildFormAttachmentThumbnail(String url) {
                       Icons.broken_image_outlined,
                     ),
               )
-              : _attachmentPlaceholderThumbnail(Icons.link_outlined),
+              : _attachmentPlaceholderThumbnail(
+                isVideo ? Icons.play_circle_fill_rounded : Icons.link_outlined,
+              ),
     ),
   );
 }
@@ -83,7 +91,11 @@ void showAddContentDialog(
   final contentTypeController = TextEditingController(text: model?.contentType);
   final executorController = TextEditingController(text: model?.executor);
   final notesController = TextEditingController(text: model?.clientNotes);
+  final captionController = TextEditingController(text: model?.caption);
   final filecontroller = TextEditingController();
+  final postAttachmentController = TextEditingController();
+  final storyAttachmentController = TextEditingController();
+  var submitStatus = StorageKeys.status_under_revision;
 
   final publishDatectr = TextEditingController(
     text: FunHelper.formatdate(model?.publishDate),
@@ -302,6 +314,19 @@ void showAddContentDialog(
                                 ),
                               ],
                             ),
+                            SizedBox(
+                              width: (Get.width * 0.7) - 30,
+                              child: InputText(
+                                labelText: 'content.caption'.tr,
+                                hintText: 'content.caption_hint'.tr,
+                                height: 100,
+                                fillColor: Colors.white,
+                                controller: captionController,
+                                expanded: true,
+                                borderRadius: 5,
+                                borderColor: Colors.grey.shade300,
+                              ),
+                            ),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -518,6 +543,35 @@ void showAddContentDialog(
                                 ),
                               ],
                             ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                SizedBox(
+                                  width: (Get.width * 0.7 / 2) - 30,
+                                  child: InputText(
+                                    labelText: 'content.post_attachment'.tr,
+                                    hintText: 'content.form.insert_link'.tr,
+                                    height: 42,
+                                    fillColor: Colors.white,
+                                    controller: postAttachmentController,
+                                    borderRadius: 5,
+                                    borderColor: Colors.grey.shade300,
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: (Get.width * 0.7 / 2) - 30,
+                                  child: InputText(
+                                    labelText: 'content.story_attachment'.tr,
+                                    hintText: 'content.form.insert_link'.tr,
+                                    height: 42,
+                                    fillColor: Colors.white,
+                                    controller: storyAttachmentController,
+                                    borderRadius: 5,
+                                    borderColor: Colors.grey.shade300,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ],
                         ),
                       ),
@@ -571,12 +625,20 @@ void showAddContentDialog(
                                                       executorController.text,
                                                   clientId: clientId,
                                                   status:
-                                                      StorageKeys
-                                                          .status_under_revision,
+                                                      submitStatus,
                                                   promotion: 'no_promotion',
                                                   // publishDate: publishDate,
                                                   createdAt: DateTime.now(),
                                                   notes: notesController.text,
+                                                  caption: captionController.text,
+                                                  postAttachments:
+                                                      postAttachmentController.text.trim().isEmpty
+                                                          ? (model?.postAttachments ?? [])
+                                                          : [postAttachmentController.text.trim()],
+                                                  storyAttachments:
+                                                      storyAttachmentController.text.trim().isEmpty
+                                                          ? (model?.storyAttachments ?? [])
+                                                          : [storyAttachmentController.text.trim()],
                                                 ),
                                               )
                                               .then((v) async {
@@ -635,10 +697,18 @@ void showAddContentDialog(
                                                       executorController.text,
                                                   clientId: clientId,
                                                   status:
-                                                      StorageKeys
-                                                          .status_under_revision,
+                                                      submitStatus,
 
                                                   notes: notesController.text,
+                                                  caption: captionController.text,
+                                                  postAttachments:
+                                                      postAttachmentController.text.trim().isEmpty
+                                                          ? (model.postAttachments ?? [])
+                                                          : [postAttachmentController.text.trim()],
+                                                  storyAttachments:
+                                                      storyAttachmentController.text.trim().isEmpty
+                                                          ? (model.storyAttachments ?? [])
+                                                          : [storyAttachmentController.text.trim()],
                                                 ),
                                               )
                                               .then((v) async {

@@ -148,7 +148,12 @@ class EmployeeDashboard extends StatelessWidget {
                                   .where(
                                     (a) =>
                                         a.status ==
-                                        StorageKeys.status_processing,
+                                            StorageKeys.status_processing ||
+                                        a.status ==
+                                            StorageKeys
+                                                .status_promotion_in_progress ||
+                                        a.status ==
+                                            StorageKeys.status_promotion_running,
                                   )
                                   .length
                                   .toString(),
@@ -161,7 +166,10 @@ class EmployeeDashboard extends StatelessWidget {
                                   .where(
                                     (a) =>
                                         a.status ==
-                                        StorageKeys.status_under_revision,
+                                            StorageKeys.status_under_revision ||
+                                        a.status ==
+                                            StorageKeys
+                                                .status_promotion_ad_platform_review,
                                   )
                                   .length
                                   .toString(),
@@ -173,7 +181,12 @@ class EmployeeDashboard extends StatelessWidget {
                               tasks
                                   .where(
                                     (a) =>
-                                        a.status == StorageKeys.status_approved,
+                                        StorageKeys
+                                            .isTaskSuccessfulTerminalStatus(
+                                          a.status,
+                                        ) ||
+                                        a.status ==
+                                            StorageKeys.status_promotion_finished,
                                   )
                                   .length
                                   .toString(),
@@ -208,8 +221,7 @@ class EmployeeDashboard extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         child: Row(
                           children: [
-                            SizedBox(
-                              width: (Get.width * 0.7 / 3) - 25,
+                            Expanded(
                               child: InputText(
                                 prefixIcon: Icon(
                                   CupertinoIcons.search,
@@ -242,100 +254,120 @@ class EmployeeDashboard extends StatelessWidget {
                                 height: 42,
                               ),
                             ),
-                            Spacer(),
-                            Container(
+                            const SizedBox(width: 10),
+                            SizedBox(
                               width: 150,
                               height: 40,
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.grey.shade300),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  hint: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                    ),
-                                    child: Text(
-                                      'tasks.filter_priority'.tr,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: AppColors.primaryfontColor,
-                                        fontWeight: FontWeight.bold,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: Colors.grey.shade300,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<String>(
+                                    isExpanded: true,
+                                    hint: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                      ),
+                                      child: Text(
+                                        'tasks.filter_priority'.tr,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: AppColors.primaryfontColor,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ),
+                                    value:
+                                        controller.selectedPriority.value.isEmpty
+                                            ? null
+                                            : controller.selectedPriority.value,
+                                    items:
+                                        StorageKeys.priority
+                                            .map(
+                                              (e) => DropdownMenuItem(
+                                                value: e,
+                                                child: Text(
+                                                  e.tr,
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            )
+                                            .toList(),
+                                    onChanged: (value) {
+                                      controller.selectedPriority.value =
+                                          value ?? '';
+                                      controller.filterTasks();
+                                    },
                                   ),
-                                  value:
-                                      controller.selectedPriority.value.isEmpty
-                                          ? null
-                                          : controller.selectedPriority.value,
-                                  items:
-                                      StorageKeys.priority
-                                          .map(
-                                            (e) => DropdownMenuItem(
-                                              value: e,
-                                              child: Text(e.tr),
-                                            ),
-                                          )
-                                          .toList(),
-                                  onChanged: (value) {
-                                    controller.selectedPriority.value =
-                                        value ?? '';
-                                    controller.filterTasks();
-                                  },
                                 ),
                               ),
                             ),
                             const SizedBox(width: 10),
 
                             // 🔹 الحالة
-                            Container(
+                            SizedBox(
                               width: 150,
                               height: 40,
-
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.grey.shade300),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  hint: Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                    ),
-                                    child: Text(
-                                      'tasks.filter_status'.tr,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: AppColors.primaryfontColor,
-                                        fontWeight: FontWeight.bold,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: Colors.grey.shade300,
+                                  ),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<String>(
+                                    isExpanded: true,
+                                    hint: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                      ),
+                                      child: Text(
+                                        'tasks.filter_status'.tr,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: AppColors.primaryfontColor,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ),
+                                    value:
+                                        controller.selectedStatus.value.isEmpty
+                                            ? null
+                                            : controller.selectedStatus.value,
+                                    items:
+                                        StorageKeys.statusList
+                                            .map(
+                                              (e) => DropdownMenuItem(
+                                                value: e,
+                                                child: Text(
+                                                  e.tr,
+                                                  maxLines: 1,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            )
+                                            .toList(),
+                                    onChanged: (value) {
+                                      controller.selectedStatus.value =
+                                          value ?? '';
+                                      controller.filterTasks();
+                                    },
                                   ),
-                                  value:
-                                      controller.selectedStatus.value.isEmpty
-                                          ? null
-                                          : controller.selectedStatus.value,
-                                  items:
-                                      StorageKeys.statusList
-                                          .map(
-                                            (e) => DropdownMenuItem(
-                                              value: e,
-                                              child: Text(e.tr),
-                                            ),
-                                          )
-                                          .toList(),
-                                  onChanged: (value) {
-                                    controller.selectedStatus.value =
-                                        value ?? '';
-                                    controller.filterTasks();
-                                  },
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 10),
-
-                            const SizedBox(width: 10),
                           ],
                         ),
                       ),
@@ -469,7 +501,14 @@ class EmployeeDashboard extends StatelessWidget {
                                           .where(
                                             (a) =>
                                                 a.status ==
-                                                StorageKeys.status_processing,
+                                                    StorageKeys
+                                                        .status_processing ||
+                                                a.status ==
+                                                    StorageKeys
+                                                        .status_promotion_in_progress ||
+                                                a.status ==
+                                                    StorageKeys
+                                                        .status_promotion_running,
                                           )
                                           .length
                                           .toString(),
@@ -482,7 +521,11 @@ class EmployeeDashboard extends StatelessWidget {
                                           .where(
                                             (a) =>
                                                 a.status ==
-                                                StorageKeys.status_under_revision,
+                                                    StorageKeys
+                                                        .status_under_revision ||
+                                                a.status ==
+                                                    StorageKeys
+                                                        .status_promotion_ad_platform_review,
                                           )
                                           .length
                                           .toString(),
@@ -499,8 +542,13 @@ class EmployeeDashboard extends StatelessWidget {
                                       tasks
                                           .where(
                                             (a) =>
+                                                StorageKeys
+                                                    .isTaskSuccessfulTerminalStatus(
+                                                  a.status,
+                                                ) ||
                                                 a.status ==
-                                                StorageKeys.status_approved,
+                                                    StorageKeys
+                                                        .status_promotion_finished,
                                           )
                                           .length
                                           .toString(),
