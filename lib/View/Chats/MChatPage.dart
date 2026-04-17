@@ -22,6 +22,7 @@ import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/firestore/firestore_chat_api.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Services/chat_clipboard_image_reader.dart';
+import 'package:point/Services/chat_list_pins_persistence.dart';
 import 'package:point/Services/chat_scroll_persistence.dart';
 import 'package:point/Services/chat_image_paste_listener.dart';
 
@@ -33,6 +34,7 @@ import 'package:point/View/Chats/pending_chat_attachment.dart';
 import 'package:point/View/Chats/chat_scroll_to_latest_fab.dart';
 import 'package:point/View/Chats/chat_list_tile_media_subtitle.dart';
 import 'package:point/View/Chats/chat_reply_draft_banner.dart';
+import 'package:point/View/Chats/chat_list_folder_utils.dart';
 import 'package:point/View/Chats/chat_ui_helpers.dart';
 import 'package:point/View/Chats/chat_voice_record_button.dart';
 import 'package:point/View/Chats/telegram_style_attachment_menu.dart';
@@ -75,6 +77,8 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
 
   List<Map<String, dynamic>> _chats = []; // chats list for current user
   String _chatListSearchQuery = '';
+  ChatListFolder _chatListFolder = ChatListFolder.all;
+  List<String> _pinnedChatIds = [];
 
   bool _loadingEmployees = true;
   bool _loadingChats = true;
@@ -127,7 +131,66 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
 
     await _loadEmployees();
     await _createOrLoadDepartmentGroup();
+    await _reloadPinnedChats();
     _listenChats();
+  }
+
+  Future<void> _reloadPinnedChats() async {
+    final uid = _currentUserId;
+    if (uid == null || uid.isEmpty || uid == 'temp_current_user') {
+      _pinnedChatIds = [];
+      return;
+    }
+    _pinnedChatIds = await ChatListPinsPersistence.loadPinnedChatIds(uid);
+  }
+
+  bool _deptGroupTileVisibleForFolder() {
+    if (_chatListFolder == ChatListFolder.privateChats) return false;
+    return _deptGroupTileVisibleForSearch();
+  }
+
+  List<Map<String, dynamic>> _visibleChatsOrderedForList() {
+    final searched = _visibleChatsForSearch();
+    final foldered = filterChatsByFolder(searched, _chatListFolder);
+    return sortChatsPinnedFirst(foldered, _pinnedChatIds);
+  }
+
+  Future<void> _togglePinChat(String chatId) async {
+    final uid = _currentUserId;
+    if (uid == null || uid.isEmpty || uid == 'temp_current_user') return;
+    final pinned = _pinnedChatIds.contains(chatId);
+    if (pinned) {
+      _pinnedChatIds = await ChatListPinsPersistence.unpinChat(
+        uid,
+        _pinnedChatIds,
+        chatId,
+      );
+    } else {
+      _pinnedChatIds = await ChatListPinsPersistence.pinChat(
+        uid,
+        _pinnedChatIds,
+        chatId,
+      );
+    }
+    if (mounted) setState(() {});
+  }
+
+  void _showChatListPinMenu(
+    BuildContext menuContext,
+    Offset globalPosition,
+    String chatId,
+  ) {
+    if (!mounted) return;
+    final pinned = _pinnedChatIds.contains(chatId);
+    unawaited(
+      showChatListPinContextMenu(
+        context: menuContext,
+        globalPosition: globalPosition,
+        chatId: chatId,
+        isPinned: pinned,
+        onTogglePin: _togglePinChat,
+      ),
+    );
   }
 
   // ---------------- Employees ----------------
@@ -135,8 +198,8 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
     _loadingEmployees = true;
     if (mounted) setState(() {});
     final snapshot = await _firestore.collection('employees').get();
-    final all =
-        snapshot.docs.where((d) => d.id != _currentUserId)
+    final all = snapshot.docs
+        .where((d) => d.id != _currentUserId)
         // exclude current user from 1:1 chat list
         .map((d) {
           final data = d.data();
@@ -148,7 +211,8 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
             'dept': data['department'] ?? '',
             'role': data['role'] ?? '',
           };
-        }).toList();
+        })
+        .toList();
 
     // For employee role: allow chat target only when it is either:
     // - elevated role (admin/supervisor)
@@ -156,17 +220,15 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
     // This is a UX constraint; final enforcement is done in Firestore rules.
     if (_currentUserRole == 'employee') {
       final myDept = _currentUserDept;
-      _employees =
-          all.where((e) {
-            final targetRole = e['role'];
-            final targetDept = e['dept'];
-            final isSpecialRole = StorageKeys.isChatElevatedRole(targetRole);
-            final isSameDept =
-                myDept != null && myDept.isNotEmpty
-                    ? StorageKeys.matchesDepartment(targetDept, myDept)
-                    : false;
-            return isSpecialRole || isSameDept;
-          }).toList();
+      _employees = all.where((e) {
+        final targetRole = e['role'];
+        final targetDept = e['dept'];
+        final isSpecialRole = StorageKeys.isChatElevatedRole(targetRole);
+        final isSameDept = myDept != null && myDept.isNotEmpty
+            ? StorageKeys.matchesDepartment(targetDept, myDept)
+            : false;
+        return isSpecialRole || isSameDept;
+      }).toList();
     } else {
       _employees = all;
     }
@@ -182,12 +244,9 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
       _filteredEmployees = List.from(_employees);
       if (mounted) setState(() {});
     } else {
-      _filteredEmployees =
-          _employees
-              .where(
-                (e) => (e['name'] as String).toLowerCase().contains(qlower),
-              )
-              .toList();
+      _filteredEmployees = _employees
+          .where((e) => (e['name'] as String).toLowerCase().contains(qlower))
+          .toList();
     }
     if (mounted) setState(() {});
   }
@@ -322,11 +381,10 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
     }
 
     final ids = built.map((c) => c['id'] as String).toList();
-    final metas =
-        await FirestoreServices.fetchLatestMessageMetaForChatIds(
-          _firestore,
-          ids,
-        );
+    final metas = await FirestoreServices.fetchLatestMessageMetaForChatIds(
+      _firestore,
+      ids,
+    );
     if (!mounted || gen != _chatsEnrichGen) return;
 
     _chats = _mergeChatsWithPreviews(built, metas);
@@ -346,10 +404,9 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
       final docLm = (c['lastMessage'] ?? '').toString();
 
       final fromMeta = meta?.previewText;
-      final preview =
-          (fromMeta != null && fromMeta.trim().isNotEmpty)
-              ? fromMeta.trim()
-              : docLm.trim();
+      final preview = (fromMeta != null && fromMeta.trim().isNotEmpty)
+          ? fromMeta.trim()
+          : docLm.trim();
 
       if (!isGroup && preview.isEmpty) continue;
 
@@ -504,12 +561,9 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
         (e) => e['id'] == otherId,
         orElse: () => {},
       );
-      displayName =
-          other.isNotEmpty
-              ? other['name']
-              : (otherId.length > 10
-                  ? AppLocaleKeys.chatUnknownUser.tr
-                  : otherId);
+      displayName = other.isNotEmpty
+          ? other['name']
+          : (otherId.length > 10 ? AppLocaleKeys.chatUnknownUser.tr : otherId);
       if (other.isNotEmpty) {
         final im = (other['image'] ?? '').toString().trim();
         otherAvatarUrl = im.isEmpty ? null : im;
@@ -550,14 +604,13 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                 if (qlower.isEmpty) {
                   _filteredEmployees = List.from(_employees);
                 } else {
-                  _filteredEmployees =
-                      _employees
-                          .where(
-                            (e) => (e['name'] as String).toLowerCase().contains(
-                              qlower,
-                            ),
-                          )
-                          .toList();
+                  _filteredEmployees = _employees
+                      .where(
+                        (e) => (e['name'] as String).toLowerCase().contains(
+                          qlower,
+                        ),
+                      )
+                      .toList();
                 }
                 setStateDialog(() {});
               }
@@ -587,33 +640,32 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                     SizedBox(height: 12),
                     Container(
                       constraints: BoxConstraints(maxHeight: 360),
-                      child:
-                          _loadingEmployees
-                              ? Center(child: CircularProgressIndicator())
-                              : _filteredEmployees.isEmpty
-                              ? Center(child: Text('chat.no_employees'.tr))
-                              : ListView.builder(
-                                itemCount: _filteredEmployees.length,
-                                itemBuilder: (context, idx) {
-                                  final emp = _filteredEmployees[idx];
-                                  return ListTile(
-                                    leading: CircleAvatar(
-                                      backgroundColor: Colors.grey.shade200,
-                                      child: Text(
-                                        _initialFromName(emp['name']),
-                                        style: TextStyle(color: Colors.black),
-                                      ),
+                      child: _loadingEmployees
+                          ? Center(child: CircularProgressIndicator())
+                          : _filteredEmployees.isEmpty
+                          ? Center(child: Text('chat.no_employees'.tr))
+                          : ListView.builder(
+                              itemCount: _filteredEmployees.length,
+                              itemBuilder: (context, idx) {
+                                final emp = _filteredEmployees[idx];
+                                return ListTile(
+                                  leading: CircleAvatar(
+                                    backgroundColor: Colors.grey.shade200,
+                                    child: Text(
+                                      _initialFromName(emp['name']),
+                                      style: TextStyle(color: Colors.black),
                                     ),
-                                    title: Text(emp['name']),
-                                    subtitle: Text(emp['email'] ?? ''),
-                                    onTap: () async {
-                                      Navigator.of(ctx).pop();
-                                      // عند الضغط، ننتقل مباشرة لشاشة الرسائل
-                                      await _openOrCreateChatWith(emp);
-                                    },
-                                  );
-                                },
-                              ),
+                                  ),
+                                  title: Text(emp['name']),
+                                  subtitle: Text(emp['email'] ?? ''),
+                                  onTap: () async {
+                                    Navigator.of(ctx).pop();
+                                    // عند الضغط، ننتقل مباشرة لشاشة الرسائل
+                                    await _openOrCreateChatWith(emp);
+                                  },
+                                );
+                              },
+                            ),
                     ),
                   ],
                 ),
@@ -706,7 +758,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
   Widget build(BuildContext context) {
     return GetBuilder<HomeController>(
       builder: (controller) {
-        final visibleChats = _visibleChatsForSearch();
+        final visibleChats = _visibleChatsOrderedForList();
         return Scaffold(
           appBar: PreferredSize(
             preferredSize: const Size.fromHeight(60.0), // تعيين حجم الـ AppBar
@@ -792,9 +844,17 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                         ),
                       ),
                     ),
+                    SliverToBoxAdapter(
+                      child: ChatListFolderTabs(
+                        selected: _chatListFolder,
+                        onSelected: (f) {
+                          setState(() => _chatListFolder = f);
+                        },
+                      ),
+                    ),
                     if (_currentUserDept != null &&
                         _currentUserDept!.isNotEmpty &&
-                        _deptGroupTileVisibleForSearch())
+                        _deptGroupTileVisibleForFolder())
                       SliverToBoxAdapter(
                         child: StreamBuilder<int>(
                           stream: _firestoreServices.unreadIncomingCountStream(
@@ -810,30 +870,46 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                             if (groupChatData.isEmpty) {
                               return const SizedBox.shrink();
                             }
+                            final deptChatId = 'group_$_currentUserDept';
+                            final deptPinned = _pinnedChatIds.contains(
+                              deptChatId,
+                            );
 
-                            return ListTile(
-                              leading: CircleAvatar(
-                                radius: 24,
-                                backgroundColor: Colors.blueGrey.shade100,
-                                child: const Icon(
-                                  Icons.group,
-                                  color: Colors.blueGrey,
+                            return GestureDetector(
+                              onLongPressStart: (details) {
+                                _showChatListPinMenu(
+                                  context,
+                                  details.globalPosition,
+                                  deptChatId,
+                                );
+                              },
+                              child: ListTile(
+                                leading: chatListLeadingWithPinBadge(
+                                  pinned: deptPinned,
+                                  avatarChild: CircleAvatar(
+                                    radius: 24,
+                                    backgroundColor: Colors.blueGrey.shade100,
+                                    child: const Icon(
+                                      Icons.group,
+                                      color: Colors.blueGrey,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                              title: Text(
-                                _localizedGroupTitleFromChat(groupChatData),
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blue.shade700,
+                                title: Text(
+                                  _localizedGroupTitleFromChat(groupChatData),
+                                  style: TextStyle(
+                                    fontWeight: unreadCount > 0
+                                        ? FontWeight.bold
+                                        : FontWeight.w400,
+                                    color: Colors.blue.shade700,
+                                  ),
                                 ),
-                              ),
-                              subtitle: _chatListSubtitleWidget(
-                                Map<String, dynamic>.from(groupChatData),
-                                AppLocaleKeys.chatGroupConversation.tr,
-                              ),
-                              trailing:
-                                  unreadCount > 0
-                                      ? Container(
+                                subtitle: _chatListSubtitleWidget(
+                                  Map<String, dynamic>.from(groupChatData),
+                                  AppLocaleKeys.chatGroupConversation.tr,
+                                ),
+                                trailing: unreadCount > 0
+                                    ? Container(
                                         padding: const EdgeInsets.all(6),
                                         decoration: BoxDecoration(
                                           color: Colors.red,
@@ -849,8 +925,10 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                           ),
                                         ),
                                       )
-                                      : null,
-                              onTap: () => _openDepartmentGroup(groupChatData),
+                                    : null,
+                                onTap: () =>
+                                    _openDepartmentGroup(groupChatData),
+                              ),
                             );
                           },
                         ),
@@ -891,6 +969,16 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                           ),
                         ),
                       )
+                    else if (visibleChats.isEmpty && _chats.isNotEmpty)
+                      SliverFillRemaining(
+                        hasScrollBody: false,
+                        child: SizedBox(
+                          height: Get.height * 0.45,
+                          child: Center(
+                            child: Text(AppLocaleKeys.chatFolderEmpty.tr),
+                          ),
+                        ),
+                      )
                     else
                       SliverList(
                         delegate: SliverChildBuilderDelegate((context, index) {
@@ -927,19 +1015,19 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                               (e) => e['id'] == otherId,
                               orElse: () => {},
                             );
-                            displayName =
-                                other.isNotEmpty
-                                    ? other['name']
-                                    : (otherId.length > 10
-                                        ? AppLocaleKeys.chatUnknownUser.tr
-                                        : otherId);
+                            displayName = other.isNotEmpty
+                                ? other['name']
+                                : (otherId.length > 10
+                                      ? AppLocaleKeys.chatUnknownUser.tr
+                                      : otherId);
                             initial = _initialFromName(displayName);
                             avatarColor = Colors.grey.shade200;
                             avatarIcon = null;
                             titleColor = Colors.black;
                             if (other.isNotEmpty) {
-                              final im =
-                                  (other['image'] ?? '').toString().trim();
+                              final im = (other['image'] ?? '')
+                                  .toString()
+                                  .trim();
                               dmImageUrl = im.isEmpty ? null : im;
                             }
                           }
@@ -952,31 +1040,44 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                 ),
                             builder: (context, snapshot) {
                               final unreadCount = snapshot.data ?? 0;
-                              return ListTile(
-                                onTap: () => _openExistingChat(ch),
-                                leading: chatLeadingAvatar(
-                                  radius: 24,
-                                  backgroundColor: avatarColor,
-                                  initial: initial,
-                                  groupIcon: avatarIcon,
-                                  imageUrl: dmImageUrl,
-                                ),
-                                title: Text(
-                                  displayName,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: titleColor,
+                              final isPinned = _pinnedChatIds.contains(chatId);
+                              return GestureDetector(
+                                onLongPressStart: (details) {
+                                  _showChatListPinMenu(
+                                    context,
+                                    details.globalPosition,
+                                    chatId,
+                                  );
+                                },
+                                child: ListTile(
+                                  onTap: () => _openExistingChat(ch),
+                                  leading: chatListLeadingWithPinBadge(
+                                    pinned: isPinned,
+                                    avatarChild: chatLeadingAvatar(
+                                      radius: 24,
+                                      backgroundColor: avatarColor,
+                                      initial: initial,
+                                      groupIcon: avatarIcon,
+                                      imageUrl: dmImageUrl,
+                                    ),
                                   ),
-                                ),
-                                subtitle: _chatListSubtitleWidget(
-                                  ch,
-                                  isGroup
-                                      ? AppLocaleKeys.chatGroupConversation.tr
-                                      : '',
-                                ),
-                                trailing:
-                                    unreadCount > 0
-                                        ? Container(
+                                  title: Text(
+                                    displayName,
+                                    style: TextStyle(
+                                      fontWeight: unreadCount > 0
+                                          ? FontWeight.bold
+                                          : FontWeight.w400,
+                                      color: titleColor,
+                                    ),
+                                  ),
+                                  subtitle: _chatListSubtitleWidget(
+                                    ch,
+                                    isGroup
+                                        ? AppLocaleKeys.chatGroupConversation.tr
+                                        : '',
+                                  ),
+                                  trailing: unreadCount > 0
+                                      ? Container(
                                           padding: const EdgeInsets.all(6),
                                           decoration: BoxDecoration(
                                             color: Colors.red,
@@ -992,7 +1093,8 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                             ),
                                           ),
                                         )
-                                        : null,
+                                      : null,
+                                ),
                               );
                             },
                           );
@@ -1093,13 +1195,12 @@ class _MessageScreenState extends State<MessageScreen>
     _displayName =
         widget.chat['displayName'] ?? AppLocaleKeys.chatConversationFallback.tr;
     _currentUserRole = Get.find<HomeController>().currentEmployee.value?.role;
-    _messagesStream =
-        _firestore
-            .collection('chats')
-            .doc(_chatId)
-            .collection('messages')
-            .orderBy('timestamp', descending: true)
-            .snapshots();
+    _messagesStream = _firestore
+        .collection('chats')
+        .doc(_chatId)
+        .collection('messages')
+        .orderBy('timestamp', descending: true)
+        .snapshots();
 
     ChatAudioFocus.setForeground(_chatId);
     ChatAudioFocus.registerMainLayoutChatOpen(_chatId);
@@ -1137,13 +1238,12 @@ class _MessageScreenState extends State<MessageScreen>
     _imagePasteListener = ChatImagePasteListener(
       onImagePasted: _handlePastedImage,
       onPasteError: _showPasteImageFailed,
-      shouldHandle:
-          () =>
-              mounted &&
-              !_messageFocusNode.hasFocus &&
-              (WidgetsBinding.instance.lifecycleState == null ||
-                  WidgetsBinding.instance.lifecycleState ==
-                      AppLifecycleState.resumed),
+      shouldHandle: () =>
+          mounted &&
+          !_messageFocusNode.hasFocus &&
+          (WidgetsBinding.instance.lifecycleState == null ||
+              WidgetsBinding.instance.lifecycleState ==
+                  AppLifecycleState.resumed),
     );
   }
 
@@ -1627,14 +1727,10 @@ class _MessageScreenState extends State<MessageScreen>
                     width: 36,
                     height: 36,
                     fit: BoxFit.cover,
-                    errorBuilder:
-                        (_, __, ___) => Text(
-                          _initialFromName(_displayName),
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.black,
-                          ),
-                        ),
+                    errorBuilder: (_, __, ___) => Text(
+                      _initialFromName(_displayName),
+                      style: const TextStyle(fontSize: 14, color: Colors.black),
+                    ),
                   ),
                 ),
               ),
@@ -1705,7 +1801,7 @@ class _MessageScreenState extends State<MessageScreen>
                             );
                         final persistedForResolve =
                             _lastScrollSnapshotForPersist ??
-                                (prefsDone ? persisted : null);
+                            (prefsDone ? persisted : null);
                         final openScroll = resolveChatOpenScroll(
                           itemCount: messages.length,
                           currentUserId: widget.currentUserId,
@@ -1718,14 +1814,17 @@ class _MessageScreenState extends State<MessageScreen>
                           children: [
                             if (pinnedDoc != null)
                               Padding(
-                                padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
+                                padding: const EdgeInsets.fromLTRB(
+                                  10,
+                                  8,
+                                  10,
+                                  4,
+                                ),
                                 child: _PinnedMessageBanner(
                                   message: pinnedDoc.data(),
                                   isGroup: isGroup,
-                                  onTap:
-                                      () => _scrollToRepliedMessage(
-                                        pinnedDoc!.id,
-                                      ),
+                                  onTap: () =>
+                                      _scrollToRepliedMessage(pinnedDoc!.id),
                                 ),
                               ),
                             Expanded(
@@ -1735,83 +1834,91 @@ class _MessageScreenState extends State<MessageScreen>
                                 children: [
                                   Positioned.fill(
                                     child: ScrollablePositionedList.builder(
-                                key: ValueKey(
-                                  '${_chatId}_${prefsDone ? 'p' : 'n'}',
-                                ),
-                                itemScrollController:
-                                    _chatMessageItemScrollController,
-                                itemPositionsListener:
-                                    _chatItemPositionsListener,
-                                initialScrollIndex: openScroll.index,
-                                initialAlignment: openScroll.alignment,
-                                reverse: true, // لعرض الرسائل الأحدث في الأسفل
-                                itemCount: messages.length,
-                                itemBuilder: (context, index) {
-                              final msg = messages[index].data();
-                              final mid = messages[index].id;
-                              final isMe =
-                                  msg['senderId'] == widget.currentUserId;
-                              final senderName =
-                                  msg['senderName'] ?? 'chat.unknown_user'.tr;
-                              final timestamp = msg['timestamp'] as Timestamp?;
-                              final isRead = msg['isRead'] ?? false;
-
-                                  return Padding(
-                                    key: ValueKey(mid),
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 4,
-                                      horizontal: 8,
-                                    ),
-                                    child: ChatMessageTile(
-                                      chatId: _chatId,
-                                      messageId: mid,
-                                      message: Map<String, dynamic>.from(msg),
-                                      isMe: isMe,
-                                      isGroup: isGroup,
-                                      senderName: senderName,
-                                      showGroupSenderName: isGroup && !isMe,
-                                      timestamp: timestamp,
-                                      formatTime: _formatTimestamp,
-                                      isAdmin: _currentUserRole == 'admin',
-                                      currentUserId: widget.currentUserId,
-                                      currentUserDisplayName:
-                                          widget.currentUserName,
-                                      onReply:
-                                          (draft) => setState(
-                                            () => _replyDraft = draft,
-                                          ),
-                                      onReplyPreviewTap:
-                                          _scrollToRepliedMessage,
-                                      bubbleDecoration: BoxDecoration(
-                                        color:
-                                            isMe
-                                                ? const Color(0xFF465FFF)
-                                                : Colors.white,
-                                        borderRadius: BorderRadius.only(
-                                          topLeft: const Radius.circular(18),
-                                          topRight: const Radius.circular(18),
-                                          bottomLeft: Radius.circular(
-                                            isMe ? 18 : 5,
-                                          ),
-                                          bottomRight: Radius.circular(
-                                            isMe ? 5 : 18,
-                                          ),
-                                        ),
+                                      key: ValueKey(
+                                        '${_chatId}_${prefsDone ? 'p' : 'n'}',
                                       ),
-                                      maxWidthFactor: 0.76,
-                                      alignment:
-                                          isMe
-                                              ? Alignment.centerRight
-                                              : Alignment.centerLeft,
-                                      columnCrossAxis:
-                                          isMe
-                                              ? CrossAxisAlignment.end
-                                              : CrossAxisAlignment.start,
-                                      showReadReceipts: true,
-                                      messageIsRead: isRead,
-                                    ),
-                                  );
-                                },
+                                      itemScrollController:
+                                          _chatMessageItemScrollController,
+                                      itemPositionsListener:
+                                          _chatItemPositionsListener,
+                                      initialScrollIndex: openScroll.index,
+                                      initialAlignment: openScroll.alignment,
+                                      reverse:
+                                          true, // لعرض الرسائل الأحدث في الأسفل
+                                      itemCount: messages.length,
+                                      itemBuilder: (context, index) {
+                                        final msg = messages[index].data();
+                                        final mid = messages[index].id;
+                                        final isMe =
+                                            msg['senderId'] ==
+                                            widget.currentUserId;
+                                        final senderName =
+                                            msg['senderName'] ??
+                                            'chat.unknown_user'.tr;
+                                        final timestamp =
+                                            msg['timestamp'] as Timestamp?;
+                                        final isRead = msg['isRead'] ?? false;
+
+                                        return Padding(
+                                          key: ValueKey(mid),
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 4,
+                                            horizontal: 8,
+                                          ),
+                                          child: ChatMessageTile(
+                                            chatId: _chatId,
+                                            messageId: mid,
+                                            message: Map<String, dynamic>.from(
+                                              msg,
+                                            ),
+                                            isMe: isMe,
+                                            isGroup: isGroup,
+                                            senderName: senderName,
+                                            showGroupSenderName:
+                                                isGroup && !isMe,
+                                            timestamp: timestamp,
+                                            formatTime: _formatTimestamp,
+                                            isAdmin:
+                                                _currentUserRole == 'admin',
+                                            currentUserId: widget.currentUserId,
+                                            currentUserDisplayName:
+                                                widget.currentUserName,
+                                            onReply: (draft) => setState(
+                                              () => _replyDraft = draft,
+                                            ),
+                                            onReplyPreviewTap:
+                                                _scrollToRepliedMessage,
+                                            bubbleDecoration: BoxDecoration(
+                                              color: isMe
+                                                  ? const Color(0xFF465FFF)
+                                                  : Colors.white,
+                                              borderRadius: BorderRadius.only(
+                                                topLeft: const Radius.circular(
+                                                  18,
+                                                ),
+                                                topRight: const Radius.circular(
+                                                  18,
+                                                ),
+                                                bottomLeft: Radius.circular(
+                                                  isMe ? 18 : 5,
+                                                ),
+                                                bottomRight: Radius.circular(
+                                                  isMe ? 5 : 18,
+                                                ),
+                                              ),
+                                            ),
+                                            maxWidthFactor: 0.76,
+                                            alignment: isMe
+                                                ? Alignment.centerRight
+                                                : Alignment.centerLeft,
+                                            columnCrossAxis: isMe
+                                                ? CrossAxisAlignment.end
+                                                : CrossAxisAlignment.start,
+                                            showReadReceipts: true,
+                                            messageIsRead: isRead,
+                                          ),
+                                        );
+                                      },
                                     ),
                                   ),
                                   Positioned(
@@ -1820,11 +1927,12 @@ class _MessageScreenState extends State<MessageScreen>
                                     child: ChatScrollToLatestFab(
                                       visible: showScrollFab,
                                       badgeCount: unreadBelow,
-                                      onPressed: () => scheduleScrollChatToLatest(
-                                        controller:
-                                            _chatMessageItemScrollController,
-                                        mounted: () => mounted,
-                                      ),
+                                      onPressed: () =>
+                                          scheduleScrollChatToLatest(
+                                            controller:
+                                                _chatMessageItemScrollController,
+                                            mounted: () => mounted,
+                                          ),
                                     ),
                                   ),
                                 ],
@@ -1851,15 +1959,14 @@ class _MessageScreenState extends State<MessageScreen>
                 padding: const EdgeInsets.fromLTRB(14, 0, 14, 2),
                 child: PendingAttachmentStrip(
                   pending: _pendingAttachment!,
-                  onCancel:
-                      () => setState(() => _pendingAttachment = null),
+                  onCancel: () => setState(() => _pendingAttachment = null),
                   onTapPreview:
                       (_pendingAttachment!.messageType == 'image' ||
-                              _pendingAttachment!.messageType == 'video')
-                          ? () => openChatMediaFromUrl(
-                                _pendingAttachment!.attachmentUrl,
-                              )
-                          : null,
+                          _pendingAttachment!.messageType == 'video')
+                      ? () => openChatMediaFromUrl(
+                          _pendingAttachment!.attachmentUrl,
+                        )
+                      : null,
                 ),
               ),
 
@@ -1886,10 +1993,9 @@ class _MessageScreenState extends State<MessageScreen>
                   _messageFocusNode.hasFocus ? 26 : 24,
                 ),
                 border: Border.all(
-                  color:
-                      _messageFocusNode.hasFocus
-                          ? const Color(0xFF465FFF).withValues(alpha: 0.35)
-                          : Colors.grey.shade200,
+                  color: _messageFocusNode.hasFocus
+                      ? const Color(0xFF465FFF).withValues(alpha: 0.35)
+                      : Colors.grey.shade200,
                 ),
                 boxShadow: [
                   BoxShadow(
@@ -1915,18 +2021,17 @@ class _MessageScreenState extends State<MessageScreen>
                         color: Colors.grey.shade700,
                         size: 26,
                       ),
-                      onPressed:
-                          busy
-                              ? null
-                              : () {
-                                final showEmoji = !_isEmojiVisible;
-                                setState(() => _isEmojiVisible = showEmoji);
-                                if (showEmoji) {
-                                  FocusScope.of(context).unfocus();
-                                } else {
-                                  _messageFocusNode.requestFocus();
-                                }
-                              },
+                      onPressed: busy
+                          ? null
+                          : () {
+                              final showEmoji = !_isEmojiVisible;
+                              setState(() => _isEmojiVisible = showEmoji);
+                              if (showEmoji) {
+                                FocusScope.of(context).unfocus();
+                              } else {
+                                _messageFocusNode.requestFocus();
+                              }
+                            },
                     ),
                     Builder(
                       builder: (buttonContext) {
@@ -1942,10 +2047,9 @@ class _MessageScreenState extends State<MessageScreen>
                             color: Colors.grey.shade700,
                             size: 28,
                           ),
-                          onPressed:
-                              busy
-                                  ? null
-                                  : () => _showAttachmentMenu(buttonContext),
+                          onPressed: busy
+                              ? null
+                              : () => _showAttachmentMenu(buttonContext),
                         );
                       },
                     ),
@@ -1966,30 +2070,29 @@ class _MessageScreenState extends State<MessageScreen>
                             focusNode: _messageFocusNode,
                             contentInsertionConfiguration:
                                 _enableContentInsertion
-                                    ? ContentInsertionConfiguration(
-                                      allowedMimeTypes: const <String>[
-                                        'image/png',
-                                        'image/jpeg',
-                                        'image/webp',
-                                        'image/gif',
-                                      ],
-                                      onContentInserted: (
-                                        KeyboardInsertedContent content,
-                                      ) {
-                                        final data = content.data;
-                                        if (data == null || data.isEmpty) {
-                                          _showPasteImageFailed();
-                                          return;
-                                        }
-                                        unawaited(
-                                          _handlePastedImage(
-                                            data,
-                                            content.mimeType,
-                                          ),
-                                        );
-                                      },
-                                    )
-                                    : null,
+                                ? ContentInsertionConfiguration(
+                                    allowedMimeTypes: const <String>[
+                                      'image/png',
+                                      'image/jpeg',
+                                      'image/webp',
+                                      'image/gif',
+                                    ],
+                                    onContentInserted:
+                                        (KeyboardInsertedContent content) {
+                                          final data = content.data;
+                                          if (data == null || data.isEmpty) {
+                                            _showPasteImageFailed();
+                                            return;
+                                          }
+                                          unawaited(
+                                            _handlePastedImage(
+                                              data,
+                                              content.mimeType,
+                                            ),
+                                          );
+                                        },
+                                  )
+                                : null,
                             minLines: 1,
                             maxLines: 6,
                             keyboardType: TextInputType.multiline,
@@ -2143,7 +2246,9 @@ class _PinnedMessageBanner extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      isGroup && sender.isNotEmpty ? '$sender: $preview' : preview,
+                      isGroup && sender.isNotEmpty
+                          ? '$sender: $preview'
+                          : preview,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(

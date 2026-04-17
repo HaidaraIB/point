@@ -42,6 +42,12 @@ class AppLocaleKeys {
   static const homeReviewListSubtitle = 'home.review_list_subtitle';
   static const homeReviewListEmpty = 'home.review_list_empty';
 
+  static const chatFolderAll = 'chat.folder_all';
+  static const chatFolderPrivate = 'chat.folder_private';
+  static const chatFolderGroups = 'chat.folder_groups';
+  static const chatFolderEmpty = 'chat.folder_empty';
+  static const chatListPinChat = 'chat.list_pin_chat';
+  static const chatListUnpinChat = 'chat.list_unpin_chat';
   static const chatSearch = 'chat.search';
   static const chatSearchEmployee = 'chat.search_employee';
   static const chatNoEmployees = 'chat.no_employees';

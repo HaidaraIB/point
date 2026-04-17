@@ -19,8 +19,10 @@ import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/firestore/firestore_chat_api.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Services/chat_clipboard_image_reader.dart';
+import 'package:point/Services/chat_list_pins_persistence.dart';
 import 'package:point/Services/chat_scroll_persistence.dart';
 import 'package:point/Services/chat_image_paste_listener.dart';
+import 'package:point/View/Chats/chat_list_folder_utils.dart';
 import 'package:point/View/Chats/chat_message_display.dart';
 import 'package:point/View/Chats/chat_message_tile.dart';
 import 'package:point/View/Chats/pending_chat_attachment.dart';
@@ -156,6 +158,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   List<Map<String, dynamic>> _chats = []; // chats list for current user
   String _chatListSearchQuery = '';
+  ChatListFolder _chatListFolder = ChatListFolder.all;
+  List<String> _pinnedChatIds = [];
   Map<String, dynamic>? _selectedChat; // selected chat doc (id + data)
   ChatReplyDraft? _replyDraft;
 
@@ -397,7 +401,66 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
     await _loadEmployees();
     await _createOrLoadDepartmentGroup(); // **تحميل مجموعة القسم**
+    await _reloadPinnedChats();
     _listenChats();
+  }
+
+  Future<void> _reloadPinnedChats() async {
+    final uid = _currentUserId;
+    if (uid == null || uid.isEmpty || uid == 'temp_current_user') {
+      _pinnedChatIds = [];
+      return;
+    }
+    _pinnedChatIds = await ChatListPinsPersistence.loadPinnedChatIds(uid);
+  }
+
+  bool _deptGroupTileVisibleForFolder() {
+    if (_chatListFolder == ChatListFolder.privateChats) return false;
+    return _deptGroupTileVisibleForSearch();
+  }
+
+  List<Map<String, dynamic>> _visibleChatsOrderedForSidebar() {
+    final searched = _visibleChatsForSearch();
+    final foldered = filterChatsByFolder(searched, _chatListFolder);
+    return sortChatsPinnedFirst(foldered, _pinnedChatIds);
+  }
+
+  Future<void> _togglePinChat(String chatId) async {
+    final uid = _currentUserId;
+    if (uid == null || uid.isEmpty || uid == 'temp_current_user') return;
+    final pinned = _pinnedChatIds.contains(chatId);
+    if (pinned) {
+      _pinnedChatIds = await ChatListPinsPersistence.unpinChat(
+        uid,
+        _pinnedChatIds,
+        chatId,
+      );
+    } else {
+      _pinnedChatIds = await ChatListPinsPersistence.pinChat(
+        uid,
+        _pinnedChatIds,
+        chatId,
+      );
+    }
+    if (mounted) setState(() {});
+  }
+
+  void _showChatListPinMenu(
+    BuildContext menuContext,
+    Offset globalPosition,
+    String chatId,
+  ) {
+    if (!mounted) return;
+    final pinned = _pinnedChatIds.contains(chatId);
+    unawaited(
+      showChatListPinContextMenu(
+        context: menuContext,
+        globalPosition: globalPosition,
+        chatId: chatId,
+        isPinned: pinned,
+        onTogglePin: _togglePinChat,
+      ),
+    );
   }
 
   // ---------------- Employees ----------------
@@ -1425,7 +1488,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     // Keep UI EXACTLY like design you provided:
     return GetBuilder<HomeController>(
       builder: (controller) {
-        final visibleChats = _visibleChatsForSearch();
+        final visibleChats = _visibleChatsOrderedForSidebar();
         return Scaffold(
           // key: widget.key,
           appBar: PreferredSize(
@@ -1515,48 +1578,86 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                             ),
                           ),
                         ),
+                        ChatListFolderTabs(
+                          selected: _chatListFolder,
+                          onSelected: (f) {
+                            setState(() => _chatListFolder = f);
+                          },
+                        ),
 
                         // **عرض مجموعة القسم أولاً**
                         if (_currentUserDept != null &&
                             _currentUserDept!.isNotEmpty &&
-                            _deptGroupTileVisibleForSearch())
-                          ListTile(
-                            leading: CircleAvatar(
-                              radius: 24,
-                              backgroundColor: Colors.blueGrey.shade100,
-                              child: Icon(Icons.group, color: Colors.blueGrey),
-                            ),
-                            title: Text(
-                              '${AppLocaleKeys.chatDepartmentGroup.tr} ${_currentUserDept!.tr}',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blue.shade700,
-                              ),
-                            ),
-                            subtitle: Builder(
-                              builder: (context) {
-                                final dept = _currentUserDept;
-                                final fb =
-                                    AppLocaleKeys.chatGroupConversation.tr;
-                                if (dept == null || dept.isEmpty) {
-                                  return Text(fb);
-                                }
-                                final gid = 'group_$dept';
-                                for (final c in _chats) {
-                                  if (c['id'] == gid) {
-                                    return _chatListSubtitleWidget(c, fb);
-                                  }
-                                }
-                                return Text(fb);
-                              },
-                            ),
-                            tileColor:
-                                _selectedChat != null &&
-                                    _selectedChat!['id'] ==
-                                        'group_$_currentUserDept'
-                                ? Colors.blue.shade50
-                                : null,
-                            onTap: _openDepartmentGroup,
+                            _deptGroupTileVisibleForFolder())
+                          StreamBuilder<int>(
+                            stream: _firestoreServices
+                                .unreadIncomingCountStream(
+                                  'group_$_currentUserDept',
+                                  _currentUserId ?? '',
+                                ),
+                            builder: (context, snapshot) {
+                              final unreadCount = snapshot.data ?? 0;
+                              final deptChatId = 'group_$_currentUserDept';
+                              final deptPinned = _pinnedChatIds.contains(
+                                deptChatId,
+                              );
+                              return GestureDetector(
+                                onLongPressStart: (details) {
+                                  _showChatListPinMenu(
+                                    context,
+                                    details.globalPosition,
+                                    deptChatId,
+                                  );
+                                },
+                                child: ListTile(
+                                  leading: chatListLeadingWithPinBadge(
+                                    pinned: deptPinned,
+                                    avatarChild: CircleAvatar(
+                                      radius: 24,
+                                      backgroundColor: Colors.blueGrey.shade100,
+                                      child: Icon(
+                                        Icons.group,
+                                        color: Colors.blueGrey,
+                                      ),
+                                    ),
+                                  ),
+                                  title: Text(
+                                    '${AppLocaleKeys.chatDepartmentGroup.tr} ${_currentUserDept!.tr}',
+                                    style: TextStyle(
+                                      fontWeight: unreadCount > 0
+                                          ? FontWeight.bold
+                                          : FontWeight.w400,
+                                      color: Colors.blue.shade700,
+                                    ),
+                                  ),
+                                  subtitle: Builder(
+                                    builder: (context) {
+                                      final dept = _currentUserDept;
+                                      final fb = AppLocaleKeys
+                                          .chatGroupConversation
+                                          .tr;
+                                      if (dept == null || dept.isEmpty) {
+                                        return Text(fb);
+                                      }
+                                      final gid = 'group_$dept';
+                                      for (final c in _chats) {
+                                        if (c['id'] == gid) {
+                                          return _chatListSubtitleWidget(c, fb);
+                                        }
+                                      }
+                                      return Text(fb);
+                                    },
+                                  ),
+                                  tileColor:
+                                      _selectedChat != null &&
+                                          _selectedChat!['id'] ==
+                                              'group_$_currentUserDept'
+                                      ? Colors.blue.shade50
+                                      : null,
+                                  onTap: _openDepartmentGroup,
+                                ),
+                              );
+                            },
                           ),
                         if (_isLoadingGroup)
                           Center(
@@ -1576,6 +1677,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                   child: Text(
                                     AppLocaleKeys.chatSearchNoMatches.tr,
                                   ),
+                                )
+                              : visibleChats.isEmpty
+                              ? Center(
+                                  child: Text(AppLocaleKeys.chatFolderEmpty.tr),
                                 )
                               : ListView.builder(
                                   itemCount: visibleChats.length,
@@ -1632,148 +1737,182 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                       titleColor = Colors.black;
                                     }
 
-                                    return ListTile(
-                                      tileColor:
-                                          _selectedChat != null &&
-                                              _selectedChat!['id'] == chatId
-                                          ? Colors.grey.shade100
-                                          : null,
-                                      onTap: () async {
-                                        final prevId =
-                                            _selectedChat?['id'] as String?;
-                                        final uid = _currentUserId;
-                                        if (uid != null && prevId != null) {
-                                          await _persistScrollSnapshotForChatId(
-                                            uid,
-                                            prevId,
-                                          );
-                                        }
-                                        _flushScrollDiskTimer();
-                                        _replyDraft = null;
-                                        final nextChatId = ch['id'] as String;
-                                        _scrollSnapshotCache.remove(nextChatId);
-                                        _selectedChat = ch;
-                                        final participants = List<String>.from(
-                                          ch['participants'] ?? [],
-                                        );
-                                        final otherId = participants.firstWhere(
-                                          (id) => id != _currentUserId,
-                                          orElse: () => 'N/A',
-                                        );
-
-                                        _otherUserId = otherId;
-                                        _syncMessagesStreamWithSelection();
-                                        appLog(_otherUserId.toString());
-
-                                        final openSnap = _currentUserId != null
-                                            ? await ChatScrollPersistence.load(
-                                                _currentUserId!,
+                                    return StreamBuilder<int>(
+                                      stream: _firestoreServices
+                                          .unreadIncomingCountStream(
+                                            chatId,
+                                            _currentUserId ?? '',
+                                          ),
+                                      builder: (context, unreadSnap) {
+                                        final unreadCount =
+                                            unreadSnap.data ?? 0;
+                                        final isPinned = _pinnedChatIds
+                                            .contains(chatId);
+                                        return GestureDetector(
+                                          onLongPressStart: (details) {
+                                            _showChatListPinMenu(
+                                              context,
+                                              details.globalPosition,
+                                              chatId,
+                                            );
+                                          },
+                                          child: ListTile(
+                                            tileColor:
+                                                _selectedChat != null &&
+                                                    _selectedChat!['id'] ==
+                                                        chatId
+                                                ? Colors.grey.shade100
+                                                : null,
+                                            onTap: () async {
+                                              final prevId =
+                                                  _selectedChat?['id']
+                                                      as String?;
+                                              final uid = _currentUserId;
+                                              if (uid != null &&
+                                                  prevId != null) {
+                                                await _persistScrollSnapshotForChatId(
+                                                  uid,
+                                                  prevId,
+                                                );
+                                              }
+                                              _flushScrollDiskTimer();
+                                              _replyDraft = null;
+                                              final nextChatId =
+                                                  ch['id'] as String;
+                                              _scrollSnapshotCache.remove(
                                                 nextChatId,
-                                              )
-                                            : null;
+                                              );
+                                              _selectedChat = ch;
+                                              final participants =
+                                                  List<String>.from(
+                                                    ch['participants'] ?? [],
+                                                  );
+                                              final otherId = participants
+                                                  .firstWhere(
+                                                    (id) =>
+                                                        id != _currentUserId,
+                                                    orElse: () => 'N/A',
+                                                  );
 
-                                        await _markMessagesAsRead(nextChatId);
-                                        if (!isGroup) {
-                                          final participants =
-                                              List<String>.from(
-                                                ch['participants'] ?? [],
+                                              _otherUserId = otherId;
+                                              _syncMessagesStreamWithSelection();
+                                              appLog(_otherUserId.toString());
+
+                                              final openSnap =
+                                                  _currentUserId != null
+                                                  ? await ChatScrollPersistence.load(
+                                                      _currentUserId!,
+                                                      nextChatId,
+                                                    )
+                                                  : null;
+
+                                              await _markMessagesAsRead(
+                                                nextChatId,
                                               );
-                                          _otherUserId = participants
-                                              .firstWhere(
-                                                (id) => id != _currentUserId,
-                                              );
-                                        } else {
-                                          _otherUserId = null;
-                                        }
-                                        if (!mounted) return;
-                                        setState(() {
-                                          if (prevId != nextChatId) {
-                                            _chatMessageListEpoch++;
-                                          }
-                                          _persistedOpenScroll = openSnap;
-                                          _persistedOpenScrollForChatId =
-                                              nextChatId;
-                                          _scrollFabVisibleLast = null;
-                                          _scrollUnreadBelowLast = -1;
-                                        });
-                                        _syncMessageSoundListener();
-                                      },
-                                      leading: CircleAvatar(
-                                        radius: 24,
-                                        backgroundColor: avatarColor,
-                                        child: avatarIcon != null
-                                            ? Icon(
-                                                avatarIcon,
-                                                color: Colors.black54,
-                                              )
-                                            : (employImage != null &&
-                                                  employImage
-                                                      .toString()
-                                                      .trim()
-                                                      .isNotEmpty)
-                                            ? ClipOval(
-                                                child: Image.network(
-                                                  employImage.toString(),
-                                                  width: 48,
-                                                  height: 48,
-                                                  fit: BoxFit.cover,
-                                                  errorBuilder: (_, __, ___) =>
-                                                      Text(
+                                              if (!isGroup) {
+                                                final participants =
+                                                    List<String>.from(
+                                                      ch['participants'] ?? [],
+                                                    );
+                                                _otherUserId = participants
+                                                    .firstWhere(
+                                                      (id) =>
+                                                          id != _currentUserId,
+                                                    );
+                                              } else {
+                                                _otherUserId = null;
+                                              }
+                                              if (!mounted) return;
+                                              setState(() {
+                                                if (prevId != nextChatId) {
+                                                  _chatMessageListEpoch++;
+                                                }
+                                                _persistedOpenScroll = openSnap;
+                                                _persistedOpenScrollForChatId =
+                                                    nextChatId;
+                                                _scrollFabVisibleLast = null;
+                                                _scrollUnreadBelowLast = -1;
+                                              });
+                                              _syncMessageSoundListener();
+                                            },
+                                            leading: chatListLeadingWithPinBadge(
+                                              pinned: isPinned,
+                                              avatarChild: CircleAvatar(
+                                                radius: 24,
+                                                backgroundColor: avatarColor,
+                                                child: avatarIcon != null
+                                                    ? Icon(
+                                                        avatarIcon,
+                                                        color: Colors.black54,
+                                                      )
+                                                    : (employImage != null &&
+                                                          employImage
+                                                              .toString()
+                                                              .trim()
+                                                              .isNotEmpty)
+                                                    ? ClipOval(
+                                                        child: Image.network(
+                                                          employImage
+                                                              .toString(),
+                                                          width: 48,
+                                                          height: 48,
+                                                          fit: BoxFit.cover,
+                                                          errorBuilder:
+                                                              (
+                                                                _,
+                                                                __,
+                                                                ___,
+                                                              ) => Text(
+                                                                initial,
+                                                                style: TextStyle(
+                                                                  color: Colors
+                                                                      .black,
+                                                                ),
+                                                              ),
+                                                        ),
+                                                      )
+                                                    : Text(
                                                         initial,
                                                         style: TextStyle(
                                                           color: Colors.black,
                                                         ),
                                                       ),
-                                                ),
-                                              )
-                                            : Text(
-                                                initial,
-                                                style: TextStyle(
-                                                  color: Colors.black,
-                                                ),
                                               ),
-                                      ),
-                                      title: Text(
-                                        displayName,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: titleColor,
-                                        ),
-                                      ),
-                                      subtitle: _chatListSubtitleWidget(
-                                        ch,
-                                        isGroup
-                                            ? AppLocaleKeys
-                                                  .chatGroupConversation
-                                                  .tr
-                                            : '',
-                                      ),
-                                      //counter
-                                      trailing: StreamBuilder<int>(
-                                        stream: _firestoreServices
-                                            .unreadIncomingCountStream(
-                                              chatId,
-                                              _currentUserId ?? '',
                                             ),
-                                        builder: (context, snap) {
-                                          final count = snap.data ?? 0;
-                                          if (count > 0) {
-                                            return CircleAvatar(
-                                              radius: 10,
-                                              backgroundColor:
-                                                  Colors.blue.shade100,
-                                              child: Text(
-                                                count.toString(),
-                                                style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: Colors.black87,
-                                                ),
+                                            title: Text(
+                                              displayName,
+                                              style: TextStyle(
+                                                fontWeight: unreadCount > 0
+                                                    ? FontWeight.bold
+                                                    : FontWeight.w400,
+                                                color: titleColor,
                                               ),
-                                            );
-                                          }
-                                          return SizedBox.shrink();
-                                        },
-                                      ),
+                                            ),
+                                            subtitle: _chatListSubtitleWidget(
+                                              ch,
+                                              isGroup
+                                                  ? AppLocaleKeys
+                                                        .chatGroupConversation
+                                                        .tr
+                                                  : '',
+                                            ),
+                                            trailing: unreadCount > 0
+                                                ? CircleAvatar(
+                                                    radius: 10,
+                                                    backgroundColor:
+                                                        Colors.blue.shade100,
+                                                    child: Text(
+                                                      unreadCount.toString(),
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                        color: Colors.black87,
+                                                      ),
+                                                    ),
+                                                  )
+                                                : const SizedBox.shrink(),
+                                          ),
+                                        );
+                                      },
                                     );
                                   },
                                 ),
