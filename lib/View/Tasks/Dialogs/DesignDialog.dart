@@ -36,7 +36,9 @@ void designDialog(BuildContext context, {TaskModel? model}) {
   final taskTypeController = TextEditingController(
     text: model?.designDetails?.taskType,
   );
-  RxList platforms = (model?.designDetails?.platform ?? []).obs;
+  RxList platforms = normalizeTaskFormPlatformSelections(
+    List<dynamic>.from(model?.designDetails?.platform ?? const []),
+  ).obs;
 
   final clientController = TextEditingController(text: model?.clientName);
   final homeController = Get.find<HomeController>();
@@ -63,7 +65,7 @@ void designDialog(BuildContext context, {TaskModel? model}) {
     text: FunHelper.formatdate(model?.toDate),
   );
   // final attachmentController = TextEditingController();
-  final notesController = TextEditingController();
+  final notesController = TextEditingController(text: model?.description ?? '');
 
   DateTime? startAt = model?.fromDate;
   DateTime? endAt = model?.toDate;

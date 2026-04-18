@@ -29,7 +29,9 @@ void publishDialog(BuildContext context, {TaskModel? model}) {
 
   final titleController = TextEditingController(text: model?.title);
   final executorController = TextEditingController(text: model?.assignedTo);
-  RxList platforms = (model?.publishModel?.platform ?? []).obs;
+  RxList platforms = normalizeTaskFormPlatformSelections(
+    List<dynamic>.from(model?.publishModel?.platform ?? const []),
+  ).obs;
   final clientController = TextEditingController(text: model?.clientName);
   final homeController = Get.find<HomeController>();
   final isCustomClient = (clientController.text.isNotEmpty &&
@@ -50,7 +52,7 @@ void publishDialog(BuildContext context, {TaskModel? model}) {
   final contenturl = TextEditingController(
     text: model?.publishModel?.contenturl,
   );
-  final notesController = TextEditingController();
+  final notesController = TextEditingController(text: model?.description ?? '');
 
   DateTime? startAt = model?.fromDate;
   DateTime? endAt = model?.toDate;

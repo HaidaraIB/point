@@ -277,6 +277,23 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                 // onTap: () => Get.toNamed('/users'),
                               ),
 
+                              _buildTile(
+                                selectedTab: 9,
+                                icon: 'assets/images/nav_content.png',
+                                text: 'library.sidebar'.tr,
+                                iconData: Icons.folder_copy_outlined,
+                                onTap: () {
+                                  setState(() {
+                                    _selectedTab = 9;
+                                  });
+                                  WidgetsBinding.instance.addPostFrameCallback((
+                                    _,
+                                  ) {
+                                    Get.toNamed('/library');
+                                  });
+                                },
+                              ),
+
                               _buildExpansion(
                                 id: 'tasks',
                                 selectedTab: 4,
@@ -538,6 +555,22 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                     _,
                                   ) {
                                     Get.toNamed('/content');
+                                  });
+                                },
+                              ),
+                              _buildTile(
+                                selectedTab: 9,
+                                icon: 'assets/images/nav_content.png',
+                                text: 'library.sidebar'.tr,
+                                iconData: Icons.folder_copy_outlined,
+                                onTap: () {
+                                  setState(() {
+                                    _selectedTab = 9;
+                                  });
+                                  WidgetsBinding.instance.addPostFrameCallback((
+                                    _,
+                                  ) {
+                                    Get.toNamed('/library');
                                   });
                                 },
                               ),

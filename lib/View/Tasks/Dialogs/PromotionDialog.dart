@@ -31,7 +31,9 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
   // final taskTypeController = TextEditingController(
 
   // );
-  RxList platforms = (model?.promotionModel?.platforms ?? []).obs;
+  RxList platforms = normalizeTaskFormPlatformSelections(
+    List<dynamic>.from(model?.promotionModel?.platforms ?? const []),
+  ).obs;
 
   final clientcontroller = TextEditingController(text: model?.clientName);
   final homeController = Get.find<HomeController>();
@@ -72,7 +74,7 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
   final attachmentController = TextEditingController(
     text: model?.promotionModel?.attachementurl,
   );
-  final notesController = TextEditingController();
+  final notesController = TextEditingController(text: model?.description ?? '');
 
   Get.find<HomeController>().uploadedFilesPaths.assignAll(
       List.from(model?.files ?? []));

@@ -1584,7 +1584,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
               ),
             ),
           ),
-        ] else if (task.type != '0' && hideAccept) ...[
+        ] else if (hideAccept) ...[
           OutlinedButton.icon(
             onPressed: () {
               FunHelper.showConfirmDailog(
@@ -1594,9 +1594,13 @@ class TaskDetailsMobilePage extends StatelessWidget {
                 confirmText: 'tasks.reject'.tr,
                 confirmColor: Colors.red,
                 onTap: () async {
-                  await controller.updateTask(
-                    task.copyWith(status: StorageKeys.status_rejected),
-                  );
+                  final next =
+                      task.type == '0'
+                          ? task.copyWithPromotionStatusAligned(
+                              StorageKeys.status_rejected,
+                            )
+                          : task.copyWith(status: StorageKeys.status_rejected);
+                  await controller.updateTask(next);
                   Get.back();
                 },
               );
@@ -1611,7 +1615,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
               ),
             ),
           ),
-        ] else if (task.type != '0') ...[
+        ] else ...[
           Row(
             children: [
               Expanded(
@@ -1624,9 +1628,15 @@ class TaskDetailsMobilePage extends StatelessWidget {
                       confirmText: 'tasks.reject'.tr,
                       confirmColor: Colors.red,
                       onTap: () async {
-                        await controller.updateTask(
-                          task.copyWith(status: StorageKeys.status_rejected),
-                        );
+                        final next =
+                            task.type == '0'
+                                ? task.copyWithPromotionStatusAligned(
+                                    StorageKeys.status_rejected,
+                                  )
+                                : task.copyWith(
+                                    status: StorageKeys.status_rejected,
+                                  );
+                        await controller.updateTask(next);
                         Get.back();
                       },
                     );
@@ -1653,9 +1663,15 @@ class TaskDetailsMobilePage extends StatelessWidget {
                       confirmText: 'tasks.accept'.tr,
                       confirmColor: Colors.green,
                       onTap: () async {
-                        await controller.updateTask(
-                          task.copyWith(status: StorageKeys.status_approved),
-                        );
+                        final next =
+                            task.type == '0'
+                                ? task.copyWithPromotionStatusAligned(
+                                    StorageKeys.status_approved,
+                                  )
+                                : task.copyWith(
+                                    status: StorageKeys.status_approved,
+                                  );
+                        await controller.updateTask(next);
                         Get.back();
                       },
                     );

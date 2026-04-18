@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/ProgrammingModel.dart';
 import 'package:point/Models/TaskModel.dart';
+import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Clients/ClientsTable.dart';
@@ -26,8 +27,8 @@ void programmingDialog(BuildContext context, {TaskModel? model}) {
   final _key = GlobalKey<FormState>();
 
   final titleController = TextEditingController(text: model?.title);
-  final executorController = TextEditingController();
-  final clientController = TextEditingController();
+  final executorController = TextEditingController(text: model?.assignedTo);
+  final clientController = TextEditingController(text: model?.clientName);
   final homeController = Get.find<HomeController>();
   final isCustomClient = (clientController.text.isNotEmpty &&
           !homeController.clients.any((c) => c.id == clientController.text))
@@ -35,18 +36,26 @@ void programmingDialog(BuildContext context, {TaskModel? model}) {
   final customClientController = TextEditingController(
     text: isCustomClient.value ? clientController.text : '',
   );
-  final category = TextEditingController();
-  final priorityController = TextEditingController();
+  final category = TextEditingController(
+    text: model?.programmingModel?.category ?? '',
+  );
+  final priorityController = TextEditingController(text: model?.priority);
   final startDateController = TextEditingController(
+    text: FunHelper.formatdate(model?.fromDate),
   );
   final endDateController = TextEditingController(
+    text: FunHelper.formatdate(model?.toDate),
   );
-  final filesurl = TextEditingController();
-  final contenturl = TextEditingController();
-  final notesController = TextEditingController();
+  final filesurl = TextEditingController(
+    text: model?.programmingModel?.fileurl?.toString() ?? '',
+  );
+  final contenturl = TextEditingController(
+    text: model?.programmingModel?.contenturl ?? '',
+  );
+  final notesController = TextEditingController(text: model?.description ?? '');
 
-  DateTime? startAt;
-  DateTime? endAt;
+  DateTime? startAt = model?.fromDate;
+  DateTime? endAt = model?.toDate;
 
   Get.find<HomeController>().uploadedFilesPaths.assignAll(
     List.from(model?.files ?? []),

@@ -191,7 +191,7 @@ class TaskCard extends StatelessWidget {
                                       ),
                                     ),
                                   );
-                                } else if (!hideAccept && task.type != '0') {
+                                } else if (!hideAccept) {
                                   items.add(
                                     PopupMenuItem(
                                       value: 4,
@@ -376,13 +376,17 @@ class TaskCard extends StatelessWidget {
                                           'tasks.supervisor_approve_direct'.tr,
                                       confirmColor: Colors.green,
                                       onTap: () async {
-                                        await Get.find<HomeController>()
-                                            .updateTask(
-                                              task.copyWith(
-                                                status:
+                                        final next =
+                                            task.type == '0'
+                                                ? task.copyWithPromotionStatusAligned(
                                                     StorageKeys.status_approved,
-                                              ),
-                                            );
+                                                  )
+                                                : task.copyWith(
+                                                    status: StorageKeys
+                                                        .status_approved,
+                                                  );
+                                        await Get.find<HomeController>()
+                                            .updateTask(next);
                                       },
                                     );
                                   } else {
@@ -394,13 +398,17 @@ class TaskCard extends StatelessWidget {
                                       confirmText: 'tasks.accept'.tr,
                                       confirmColor: Colors.green,
                                       onTap: () async {
-                                        await Get.find<HomeController>()
-                                            .updateTask(
-                                              task.copyWith(
-                                                status:
+                                        final next =
+                                            task.type == '0'
+                                                ? task.copyWithPromotionStatusAligned(
                                                     StorageKeys.status_approved,
-                                              ),
-                                            );
+                                                  )
+                                                : task.copyWith(
+                                                    status: StorageKeys
+                                                        .status_approved,
+                                                  );
+                                        await Get.find<HomeController>()
+                                            .updateTask(next);
                                       },
                                     );
                                   }

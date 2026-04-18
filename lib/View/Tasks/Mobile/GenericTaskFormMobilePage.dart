@@ -116,7 +116,9 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
     );
     attachmentPromoController = TextEditingController(text: promo?.attachementurl);
     ageRangesController = TextEditingController(text: promo?.ageRanges);
-    platformsPromo = (promo?.platforms?.cast<String>() ?? []).obs;
+    platformsPromo = normalizeTaskFormPlatformSelections(
+      List<dynamic>.from(promo?.platforms ?? const []),
+    ).map((e) => e.toString()).toList().obs;
     countriesList = (promo?.countries ?? []).obs;
     interestsList = (promo?.interests ?? []).obs;
     cityList = (promo?.cities ?? []).obs;
@@ -124,7 +126,9 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
 
     // Photography (2)
     final photo = m?.photoGrapghyModel;
-    platformsPhoto = (photo?.platform.cast<String>() ?? []).obs;
+    platformsPhoto = normalizeTaskFormPlatformSelections(
+      List<dynamic>.from(photo?.platform ?? const []),
+    ).map((e) => e.toString()).toList().obs;
     shootingLocationController = TextEditingController(text: photo?.shootinglocation);
     shootingTypeController = TextEditingController(text: photo?.shootingtype);
     designCountPhotoController = TextEditingController(text: photo?.designCount?.toString());
@@ -132,14 +136,18 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
 
     // ContentWrite (3)
     final content = m?.contentWriteModel;
-    platformsContent = (content?.platform.cast<String>() ?? []).obs;
+    platformsContent = normalizeTaskFormPlatformSelections(
+      List<dynamic>.from(content?.platform ?? const []),
+    ).map((e) => e.toString()).toList().obs;
     contentTypeController = TextEditingController(text: content?.contenttype);
     designCountContentController = TextEditingController(text: content?.designCount?.toString());
     dimensionsContentController = TextEditingController(text: content?.designsDimensions);
 
     // Montage (4)
     final montage = m?.monatageModel;
-    platformsMontage = (montage?.platform.cast<String>() ?? []).obs;
+    platformsMontage = normalizeTaskFormPlatformSelections(
+      List<dynamic>.from(montage?.platform ?? const []),
+    ).map((e) => e.toString()).toList().obs;
     categoryMontageController = TextEditingController(text: montage?.category);
     dimensionsMontageController = TextEditingController(text: montage?.dimentioans);
     attachmentMontageController = TextEditingController(text: montage?.attachementurl);
@@ -151,7 +159,9 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
     contentUrlController = TextEditingController(text: publish?.contenturl ?? prog?.contenturl);
     fileUrlController = TextEditingController(text: publish?.fileurl ?? prog?.fileurl);
     categoryController = TextEditingController(text: publish?.category ?? prog?.category);
-    platformsPublish = (publish?.platform.cast<String>() ?? []).obs;
+    platformsPublish = normalizeTaskFormPlatformSelections(
+      List<dynamic>.from(publish?.platform ?? const []),
+    ).map((e) => e.toString()).toList().obs;
     dimensionsPublishController = TextEditingController(text: publish?.designsDimensions);
 
     final hc = Get.find<HomeController>();

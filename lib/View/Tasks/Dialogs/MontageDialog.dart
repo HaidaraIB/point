@@ -33,7 +33,9 @@ void montageDialog(BuildContext context, {TaskModel? model}) {
   // final taskTypeController = TextEditingController(
 
   // );
-  RxList platforms = (model?.monatageModel?.platform ?? []).obs;
+  RxList platforms = normalizeTaskFormPlatformSelections(
+    List<dynamic>.from(model?.monatageModel?.platform ?? const []),
+  ).obs;
 
   final clientController = TextEditingController(text: model?.clientName);
   final homeController = Get.find<HomeController>();
@@ -63,7 +65,7 @@ void montageDialog(BuildContext context, {TaskModel? model}) {
   final attachmentController = TextEditingController(
     text: model?.monatageModel?.attachementurl,
   );
-  final notesController = TextEditingController();
+  final notesController = TextEditingController(text: model?.description ?? '');
 
   DateTime? startAt = model?.fromDate;
   DateTime? endAt = model?.toDate;

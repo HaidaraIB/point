@@ -10,6 +10,7 @@ import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/t.dart';
 import 'package:point/View/Tasks/Dialogs/GenericTaskFormDialog.dart';
 import 'package:point/View/Tasks/Dialogs/TaskFormDialogDelegate.dart';
+import 'package:point/View/Tasks/Dialogs/task_dialog_constants.dart';
 import 'package:point/View/Tasks/Mobile/GenericTaskFormMobilePage.dart';
 
 void contentWriteDialog(BuildContext context, {TaskModel? model}) {
@@ -57,7 +58,11 @@ class ContentWriteFormDelegate extends TaskFormDialogDelegate {
   @override
   void initFromModel(TaskModel? model) {
     if (model == null) return;
-    platforms.assignAll(model.contentWriteModel?.platform ?? []);
+    platforms.assignAll(
+      normalizeTaskFormPlatformSelections(
+        List<dynamic>.from(model.contentWriteModel?.platform ?? const []),
+      ),
+    );
     designTypeController.text = model.contentWriteModel?.contenttype ?? '';
     designsCountController.text = model.contentWriteModel?.designCount ?? '';
     dimensionsController.text = model.contentWriteModel?.designsDimensions ?? '';

@@ -55,7 +55,9 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
     titleController = TextEditingController(text: m?.title);
     executorController = TextEditingController(text: m?.assignedTo);
     taskTypeController = TextEditingController(text: m?.designDetails?.taskType);
-    platforms = (m?.designDetails?.platform ?? []).obs;
+    platforms = normalizeTaskFormPlatformSelections(
+      List<dynamic>.from(m?.designDetails?.platform ?? const []),
+    ).obs;
     clientController = TextEditingController(text: m?.clientName);
     customClientController = TextEditingController();
     designTypeController = TextEditingController(text: m?.designDetails?.designType);
@@ -64,7 +66,7 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
     dimensionsController = TextEditingController(text: m?.designDetails?.designsDimensions);
     startDateController = TextEditingController(text: FunHelper.formatdate(m?.fromDate));
     endDateController = TextEditingController(text: FunHelper.formatdate(m?.toDate));
-    notesController = TextEditingController();
+    notesController = TextEditingController(text: m?.description ?? '');
     startAt = m?.fromDate;
     endAt = m?.toDate;
     Get.find<HomeController>().uploadedFilesPaths.assignAll(

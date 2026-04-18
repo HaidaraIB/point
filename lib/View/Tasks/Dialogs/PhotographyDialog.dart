@@ -30,7 +30,9 @@ void photographyDialog(BuildContext context, {TaskModel? model}) {
   final titleController = TextEditingController(text: model?.title);
   final executorController = TextEditingController(text: model?.assignedTo);
   // final taskTypeController = TextEditingController(text: model?.photoGrapghyModel.);
-  RxList platforms = (model?.photoGrapghyModel?.platform ?? []).obs;
+  RxList platforms = normalizeTaskFormPlatformSelections(
+    List<dynamic>.from(model?.photoGrapghyModel?.platform ?? const []),
+  ).obs;
 
   final clientController = TextEditingController(text: model?.clientName);
   final homeController = Get.find<HomeController>();
@@ -61,7 +63,7 @@ void photographyDialog(BuildContext context, {TaskModel? model}) {
     text: FunHelper.formatdate(model?.toDate),
   );
   // final attachmentController = TextEditingController();
-  final notesController = TextEditingController();
+  final notesController = TextEditingController(text: model?.description ?? '');
 
   DateTime? startAt = model?.fromDate;
   DateTime? endAt = model?.toDate;

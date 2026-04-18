@@ -57,7 +57,7 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
     _priorityController = TextEditingController(text: m?.priority);
     _startDateController = TextEditingController(text: FunHelper.formatdate(m?.fromDate));
     _endDateController = TextEditingController(text: FunHelper.formatdate(m?.toDate));
-    _notesController = TextEditingController();
+    _notesController = TextEditingController(text: m?.description ?? '');
     _startAt = m?.fromDate;
     _endAt = m?.toDate;
     Get.find<HomeController>().uploadedFilesPaths.assignAll(m?.files ?? []);
