@@ -1,6 +1,7 @@
 library point.home_controller;
 
 import 'dart:async';
+import 'dart:convert';
 import 'package:point/Utils/app_log.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -68,6 +69,8 @@ class HomeController extends GetxController {
   var selectedExecutor = ''.obs;
   var searchController = TextEditingController();
 
+  Timer? _employeeDashFilterSaveDebounce;
+
   // RxList<TaskModel> allTasks = <TaskModel>[].obs;
   RxList<TaskModel> tasksSearched = <TaskModel>[].obs;
 
@@ -77,14 +80,11 @@ class HomeController extends GetxController {
   void filterTasks() {
     final searchText = searchController.text.trim().toLowerCase();
 
-    // إن كانت الحالة المختارة منتهية (غير موجودة في قائمة الجارية) نُعيدها فارغة
+    // فلتر حالة حسب قسم الموظف (لا نخلط حالات الترويج مع بقية الأقسام)
     if (selectedStatus.value.isNotEmpty &&
-        !StorageKeys.statusListOngoing.contains(selectedStatus.value) &&
-        !StorageKeys.promotionTaskStatusListOngoing.contains(
+        !StorageKeys.isEmployeeDashboardStatusFilterAllowedForDepartment(
           selectedStatus.value,
-        ) &&
-        !StorageKeys.legacyPromotionOngoingTaskStatuses.contains(
-          selectedStatus.value,
+          currentEmployee.value?.department,
         )) {
       selectedStatus.value = '';
     }
@@ -122,6 +122,86 @@ class HomeController extends GetxController {
         employees: employees,
       ),
     );
+  }
+
+  /// Firestore employee docs may omit `id` in the payload; prefs must still use the doc id.
+  String? _employeeDashboardPrefsEmployeeId() {
+    final a = currentEmployee.value?.id?.trim() ?? '';
+    if (a.isNotEmpty) return a;
+    final b = lastKnownEmployee.value?.id?.trim() ?? '';
+    if (b.isNotEmpty) return b;
+    return null;
+  }
+
+  Future<void> persistEmployeeDashboardTaskFilters() async {
+    final id = _employeeDashboardPrefsEmployeeId();
+    if (id == null || id.isEmpty) return;
+    try {
+      final pref = await SharedPreferences.getInstance();
+      await pref.setString(
+        StorageKeys.prefsEmployeeDashboardTaskFiltersKey(id),
+        jsonEncode({
+          'priority': selectedPriority.value,
+          'status': selectedStatus.value,
+        }),
+      );
+    } catch (_) {}
+  }
+
+  void schedulePersistEmployeeDashboardTaskFilters() {
+    _employeeDashFilterSaveDebounce?.cancel();
+    _employeeDashFilterSaveDebounce = Timer(
+      const Duration(milliseconds: 450),
+      () => unawaited(persistEmployeeDashboardTaskFilters()),
+    );
+  }
+
+  Future<void> restoreEmployeeDashboardTaskFiltersFromPrefs() async {
+    final id = _employeeDashboardPrefsEmployeeId();
+    if (id == null || id.isEmpty) return;
+    try {
+      final pref = await SharedPreferences.getInstance();
+      final raw = pref.getString(
+        StorageKeys.prefsEmployeeDashboardTaskFiltersKey(id),
+      );
+      if (raw == null || raw.isEmpty) {
+        filterTasks();
+        return;
+      }
+      final map = jsonDecode(raw);
+      if (map is! Map<String, dynamic>) {
+        filterTasks();
+        return;
+      }
+      final p = (map['priority'] as String?)?.trim() ?? '';
+      final s = (map['status'] as String?)?.trim() ?? '';
+      if (p.isNotEmpty && StorageKeys.priority.contains(p)) {
+        selectedPriority.value = p;
+      } else {
+        selectedPriority.value = '';
+      }
+
+      if (s.isNotEmpty &&
+          StorageKeys.isEmployeeDashboardStatusFilterAllowedForDepartment(
+            s,
+            currentEmployee.value?.department,
+          )) {
+        selectedStatus.value = s;
+      } else {
+        selectedStatus.value = '';
+      }
+    } catch (_) {
+      // Keep current field values.
+    }
+    filterTasks();
+  }
+
+  Future<void> clearEmployeeDashboardTaskFilters() async {
+    searchController.clear();
+    selectedPriority.value = '';
+    selectedStatus.value = '';
+    filterTasks();
+    await persistEmployeeDashboardTaskFilters();
   }
 
   void filterTasksHistory() {
@@ -1839,8 +1919,14 @@ class HomeController extends GetxController {
     }
   }
 
+  static bool _isEmployeeRoleForDashboard(String role) =>
+      role.trim().toLowerCase() == 'employee';
+
   /// يملأ حالة الموظف والبثوث فورًا (تسجيل دخول صامت / استعادة جلسة) حتى يعمل [AuthMiddleware].
-  void applyEmployeeSessionAfterAuthRestore(EmployeeModel employee) {
+  ///
+  /// على الويب يجب انتظار [restoreEmployeeDashboardTaskFiltersFromPrefs] قبل التنقل،
+  /// وإلا تُبنى لوحة الموظف قبل اكتمال قراءة SharedPreferences.
+  Future<void> applyEmployeeSessionAfterAuthRestore(EmployeeModel employee) async {
     if (employee.id == null || employee.id!.isEmpty) return;
     currentEmployee.value = employee;
     lastKnownEmployee.value = employee;
@@ -1850,6 +1936,9 @@ class HomeController extends GetxController {
     _startTotalUnreadStream(employee.id!);
     listenToClient(employee.id!);
     fetchNotification(employee.id);
+    if (_isEmployeeRoleForDashboard(employee.role)) {
+      await restoreEmployeeDashboardTaskFiltersFromPrefs();
+    }
   }
 
   Future<EmployeeModel?> loginClient(email, pass) async {
@@ -1859,7 +1948,7 @@ class HomeController extends GetxController {
       // يجب تعبئة الجلسة هنا فورًا: AuthMiddleware يعتمد على currentemployee قبل التنقل،
       // بينما listenToClient يحدّثه فقط عند وصول أول snapshot من Firestore (متأخر عن أول إطار).
       if (result != null && result.id != null) {
-        applyEmployeeSessionAfterAuthRestore(result);
+        await applyEmployeeSessionAfterAuthRestore(result);
       }
       return result;
     } finally {
@@ -1882,7 +1971,8 @@ class HomeController extends GetxController {
         .listen(
           (snapshot) async {
             if (snapshot.exists && snapshot.data() != null) {
-              final employee = EmployeeModel.fromJson(snapshot.data()!);
+              final base = EmployeeModel.fromJson(snapshot.data()!);
+              final employee = base.copyWith(id: empid);
               currentEmployee.value = employee;
               lastKnownEmployee.value = employee;
               unawaited(FirestoreServices.syncAuthRoleForEmployee(employee));
@@ -2192,6 +2282,8 @@ class HomeController extends GetxController {
 
   @override
   void onClose() {
+    _employeeDashFilterSaveDebounce?.cancel();
+    _employeeDashFilterSaveDebounce = null;
     employeeWebContentSearchController.dispose();
     _employeeDocSub?.cancel();
     _employeeDocSub = null;
@@ -2217,7 +2309,7 @@ class HomeController extends GetxController {
       if (employee == null || employee.id == null) return;
       if (employee.status != 'active') return;
 
-      applyEmployeeSessionAfterAuthRestore(employee);
+      await applyEmployeeSessionAfterAuthRestore(employee);
       unawaited(setupFCM(employee.id));
     } catch (e, s) {
       appLog('restoreEmployeeSessionIfNeeded error: $e');

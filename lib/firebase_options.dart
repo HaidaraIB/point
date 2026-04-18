@@ -72,4 +72,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'point-agency-production.firebasestorage.app',
     iosBundleId: 'com.point.agency',
   );
+
 }

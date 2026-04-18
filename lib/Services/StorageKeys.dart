@@ -190,6 +190,72 @@ class StorageKeys {
     return statusListEnded.contains(t.status);
   }
 
+  /// Employee dashboard stat bucket index (0–3). Pass status from
+  /// [FunHelper.canonicalStoredStatus]. Covers [statusList] and [promotionTaskStatusList].
+  static const int employeeDashboardStatNeedsWork = 0;
+  static const int employeeDashboardStatAwaiting = 1;
+  static const int employeeDashboardStatCompleted = 2;
+  static const int employeeDashboardStatRejected = 3;
+
+  static int employeeDashboardStatIndex(String canonicalStatus) {
+    final s = canonicalStatus.trim();
+    if (s.isEmpty) return employeeDashboardStatNeedsWork;
+    if (s == status_rejected) return employeeDashboardStatRejected;
+    if (isTaskSuccessfulTerminalStatus(s) || s == status_promotion_finished) {
+      return employeeDashboardStatCompleted;
+    }
+    const needsWork = <String>{
+      status_not_start_yet,
+      status_processing,
+      status_in_edit,
+      status_edit_requested,
+      status_promotion_in_progress,
+      status_promotion_running,
+    };
+    if (needsWork.contains(s)) return employeeDashboardStatNeedsWork;
+    const awaiting = <String>{
+      status_under_revision,
+      status_ready_to_publish,
+      status_awaiting_manager,
+      status_approved,
+      status_scheduled,
+      status_promotion_ad_platform_review,
+    };
+    if (awaiting.contains(s)) return employeeDashboardStatAwaiting;
+    return employeeDashboardStatNeedsWork;
+  }
+
+  /// لوحة الموظف: أربع بطاقات عدّ (مهام جارية فقط). مرّر الحالة بعد [FunHelper.canonicalStoredStatus].
+  static const int employeeDashFourCardNotStarted = 0;
+  static const int employeeDashFourCardInProgress = 1;
+  static const int employeeDashFourCardSendForReview = 2;
+  static const int employeeDashFourCardApproved = 3;
+
+  static int employeeDashboardFourCardStatIndex(String canonicalStatus) {
+    final s = canonicalStatus.trim();
+    if (s.isEmpty) return employeeDashFourCardNotStarted;
+    if (s == status_not_start_yet) return employeeDashFourCardNotStarted;
+    const inProgress = <String>{
+      status_processing,
+      status_in_edit,
+      status_edit_requested,
+      status_promotion_in_progress,
+      status_promotion_running,
+    };
+    if (inProgress.contains(s)) return employeeDashFourCardInProgress;
+    const sendForReview = <String>{
+      status_under_revision,
+      status_ready_to_publish,
+      status_awaiting_manager,
+      status_promotion_ad_platform_review,
+    };
+    if (sendForReview.contains(s)) return employeeDashFourCardSendForReview;
+    if (s == status_approved || s == status_scheduled) {
+      return employeeDashFourCardApproved;
+    }
+    return employeeDashFourCardInProgress;
+  }
+
   static List<String> ongoingStatusFilterKeysForTaskType(String taskType) {
     if (taskType == '0') {
       return [
@@ -217,6 +283,51 @@ class StorageKeys {
     final allowed = ongoingStatusFilterKeysForTaskType(taskType).toSet();
     return allowed.contains(selected);
   }
+
+  /// Any "ongoing" status that can appear in the active task list (all departments + promotion).
+  static bool isOngoingCombinedStatusFilter(String status) =>
+      statusListOngoing.contains(status) ||
+      promotionTaskStatusListOngoing.contains(status) ||
+      legacyPromotionOngoingTaskStatuses.contains(status);
+
+  /// Status filter options on the employee dashboard, scoped by department so promotion-only
+  /// statuses are not mixed with the general workflow (avoids duplicate-looking labels).
+  static List<String> employeeDashboardTaskStatusFilterDropdownValuesForDepartment(
+    String? departmentRaw,
+  ) {
+    if (matchesDepartment(departmentRaw, departmentPromotion)) {
+      final seen = <String>{};
+      final out = <String>[];
+      for (final s in [
+        ...promotionTaskStatusListOngoing,
+        ...statusListOngoing,
+      ]) {
+        if (seen.add(s)) out.add(s);
+      }
+      return out;
+    }
+    return List<String>.from(statusListOngoing);
+  }
+
+  /// Whether a saved or selected status is valid for this employee’s department filter.
+  static bool isEmployeeDashboardStatusFilterAllowedForDepartment(
+    String status,
+    String? departmentRaw,
+  ) {
+    final s = status.trim();
+    if (s.isEmpty) return true;
+    if (matchesDepartment(departmentRaw, departmentPromotion)) {
+      final allowed = <String>{
+        ...promotionTaskStatusListOngoing,
+        ...statusListOngoing,
+      };
+      return allowed.contains(s);
+    }
+    return statusListOngoing.contains(s);
+  }
+
+  static String prefsEmployeeDashboardTaskFiltersKey(String employeeId) =>
+      'point_employee_dash_task_filters_v1_${employeeId.trim()}';
 
   static List<String> endedStatusFilterKeysForTaskType(String taskType) {
     if (taskType == '0') {
@@ -264,10 +375,13 @@ class StorageKeys {
   static const String finalWorkTypePost = 'final_work_post';
   static const String finalWorkTypeStory = 'final_work_story';
   static const String finalWorkTypeVideoReel = 'final_work_video_reel';
+  /// Saved on the task only; excluded from the Library (not post/story/video).
+  static const String finalWorkTypeOther = 'final_work_other';
   static const List<String> finalWorkTypes = [
     finalWorkTypePost,
     finalWorkTypeStory,
     finalWorkTypeVideoReel,
+    finalWorkTypeOther,
   ];
 
   //user

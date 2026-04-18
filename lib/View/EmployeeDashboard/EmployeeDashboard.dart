@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/AppConstants.dart';
@@ -20,7 +23,32 @@ import 'package:point/View/Tasks/DetailsDialogs/DPhotographyDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DProgrammingDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPromotionDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPublishDialog.dart';
-class EmployeeDashboard extends StatelessWidget {
+
+class EmployeeDashboard extends StatefulWidget {
+  const EmployeeDashboard({super.key});
+
+  @override
+  State<EmployeeDashboard> createState() => _EmployeeDashboardState();
+}
+
+class _EmployeeDashboardState extends State<EmployeeDashboard> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final c = Get.find<HomeController>();
+      await c.restoreEmployeeDashboardTaskFiltersFromPrefs();
+      c.update();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => const _EmployeeDashboardBody();
+}
+
+class _EmployeeDashboardBody extends StatelessWidget {
+  const _EmployeeDashboardBody();
+
   @override
   Widget build(BuildContext context) {
     return GetBuilder<HomeController>(
@@ -126,85 +154,66 @@ class EmployeeDashboard extends StatelessWidget {
                                 )
                                 .toList();
                         final isDesktop = Responsive.isDesktop(Get.context!);
-                        final boxWidth =
+                        final cardWidth =
                             isDesktop
-                                ? null
-                                : (Get.width / 5 - 30).clamp(
-                                  88.0,
-                                  double.infinity,
-                                );
+                                ? (Get.width - 100) / 4
+                                : (Get.width / 4 - 16).clamp(72.0, 140.0);
+                        var statNotStarted = 0;
+                        var statInProgress = 0;
+                        var statSendForReview = 0;
+                        var statApproved = 0;
+                        for (final a in tasks) {
+                          switch (StorageKeys.employeeDashboardFourCardStatIndex(
+                            FunHelper.canonicalStoredStatus(a.status),
+                          )) {
+                            case StorageKeys.employeeDashFourCardNotStarted:
+                              statNotStarted++;
+                              break;
+                            case StorageKeys.employeeDashFourCardInProgress:
+                              statInProgress++;
+                              break;
+                            case StorageKeys.employeeDashFourCardSendForReview:
+                              statSendForReview++;
+                              break;
+                            default:
+                              statApproved++;
+                          }
+                        }
                         final statRow = Row(
                           mainAxisSize: MainAxisSize.min,
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             _buildStatBox(
-                              tasks.length.toString(),
-                              'employee.dashboard.total_tasks'.tr,
+                              statNotStarted.toString(),
+                              FunHelper.translateAppKey(
+                                'employee.dashboard.stat_not_started',
+                              ),
+                              Colors.grey.shade700,
+                              width: cardWidth,
+                            ),
+                            _buildStatBox(
+                              statInProgress.toString(),
+                              FunHelper.translateAppKey(
+                                'employee.dashboard.stat_in_progress',
+                              ),
+                              Colors.amber.shade800,
+                              width: cardWidth,
+                            ),
+                            _buildStatBox(
+                              statSendForReview.toString(),
+                              FunHelper.translateAppKey(
+                                'employee.dashboard.stat_send_for_review',
+                              ),
                               Colors.blue,
-                              width: boxWidth,
+                              width: cardWidth,
                             ),
                             _buildStatBox(
-                              tasks
-                                  .where(
-                                    (a) =>
-                                        a.status ==
-                                            StorageKeys.status_processing ||
-                                        a.status ==
-                                            StorageKeys
-                                                .status_promotion_in_progress ||
-                                        a.status ==
-                                            StorageKeys.status_promotion_running,
-                                  )
-                                  .length
-                                  .toString(),
-                              'status_processing'.tr,
-                              Colors.amber,
-                              width: boxWidth,
-                            ),
-                            _buildStatBox(
-                              tasks
-                                  .where(
-                                    (a) =>
-                                        a.status ==
-                                            StorageKeys.status_under_revision ||
-                                        a.status ==
-                                            StorageKeys
-                                                .status_promotion_ad_platform_review,
-                                  )
-                                  .length
-                                  .toString(),
-                              'status_under_revision'.tr,
-                              Colors.blue,
-                              width: boxWidth,
-                            ),
-                            _buildStatBox(
-                              tasks
-                                  .where(
-                                    (a) =>
-                                        StorageKeys
-                                            .isTaskSuccessfulTerminalStatus(
-                                          a.status,
-                                        ) ||
-                                        a.status ==
-                                            StorageKeys.status_promotion_finished,
-                                  )
-                                  .length
-                                  .toString(),
-                              'employee.dashboard.completed'.tr,
+                              statApproved.toString(),
+                              FunHelper.translateAppKey(
+                                'employee.dashboard.stat_approved',
+                              ),
                               Colors.green,
-                              width: boxWidth,
-                            ),
-                            _buildStatBox(
-                              tasks
-                                  .where(
-                                    (a) =>
-                                        a.status == StorageKeys.status_rejected,
-                                  )
-                                  .length
-                                  .toString(),
-                              'employee.dashboard.cancelled'.tr,
-                              Colors.red,
-                              width: boxWidth,
+                              width: cardWidth,
                             ),
                           ],
                         );
@@ -244,10 +253,9 @@ class EmployeeDashboard extends StatelessWidget {
                             SizedBox(width: 10),
                             InkWell(
                               onTap: () {
-                                controller.searchController.clear();
-                                controller.selectedPriority.value = '';
-                                controller.selectedStatus.value = '';
-                                controller.filterTasks();
+                                unawaited(
+                                  controller.clearEmployeeDashboardTaskFilters(),
+                                );
                               },
                               child: SvgPicture.asset(
                                 'assets/svgs/icon_menu.svg',
@@ -301,10 +309,12 @@ class EmployeeDashboard extends StatelessWidget {
                                               ),
                                             )
                                             .toList(),
-                                    onChanged: (value) {
+                                    onChanged: (value) async {
                                       controller.selectedPriority.value =
                                           value ?? '';
                                       controller.filterTasks();
+                                      await controller
+                                          .persistEmployeeDashboardTaskFilters();
                                     },
                                   ),
                                 ),
@@ -346,7 +356,13 @@ class EmployeeDashboard extends StatelessWidget {
                                             ? null
                                             : controller.selectedStatus.value,
                                     items:
-                                        StorageKeys.statusList
+                                        StorageKeys
+                                            .employeeDashboardTaskStatusFilterDropdownValuesForDepartment(
+                                              controller
+                                                  .currentEmployee
+                                                  .value
+                                                  ?.department,
+                                            )
                                             .map(
                                               (e) => DropdownMenuItem(
                                                 value: e,
@@ -359,10 +375,12 @@ class EmployeeDashboard extends StatelessWidget {
                                               ),
                                             )
                                             .toList(),
-                                    onChanged: (value) {
+                                    onChanged: (value) async {
                                       controller.selectedStatus.value =
                                           value ?? '';
                                       controller.filterTasks();
+                                      await controller
+                                          .persistEmployeeDashboardTaskFilters();
                                     },
                                   ),
                                 ),
@@ -485,89 +503,67 @@ class EmployeeDashboard extends StatelessWidget {
                                           controller.currentEmployee.value?.id,
                                     )
                                     .toList();
+                            var statNotStarted = 0;
+                            var statInProgress = 0;
+                            var statSendForReview = 0;
+                            var statApproved = 0;
+                            for (final a in tasks) {
+                              switch (StorageKeys.employeeDashboardFourCardStatIndex(
+                                FunHelper.canonicalStoredStatus(a.status),
+                              )) {
+                                case StorageKeys.employeeDashFourCardNotStarted:
+                                  statNotStarted++;
+                                  break;
+                                case StorageKeys.employeeDashFourCardInProgress:
+                                  statInProgress++;
+                                  break;
+                                case StorageKeys.employeeDashFourCardSendForReview:
+                                  statSendForReview++;
+                                  break;
+                                default:
+                                  statApproved++;
+                              }
+                            }
+                            final half = (Get.width - 36) / 2;
                             return Column(
-                              // mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                _buildStatBox(
-                                  tasks.length.toString(),
-                                  'employee.dashboard.total_tasks'.tr,
-                                  Colors.blue,
-                                  width: Get.width - 30,
-                                ),
                                 Row(
                                   children: [
                                     _buildStatBox(
-                                      tasks
-                                          .where(
-                                            (a) =>
-                                                a.status ==
-                                                    StorageKeys
-                                                        .status_processing ||
-                                                a.status ==
-                                                    StorageKeys
-                                                        .status_promotion_in_progress ||
-                                                a.status ==
-                                                    StorageKeys
-                                                        .status_promotion_running,
-                                          )
-                                          .length
-                                          .toString(),
-                                      'status_processing'.tr,
-                                      Colors.amber,
-                                      width: Get.width / 2 - 30,
+                                      statNotStarted.toString(),
+                                      FunHelper.translateAppKey(
+                                        'employee.dashboard.stat_not_started',
+                                      ),
+                                      Colors.grey.shade700,
+                                      width: half,
                                     ),
                                     _buildStatBox(
-                                      tasks
-                                          .where(
-                                            (a) =>
-                                                a.status ==
-                                                    StorageKeys
-                                                        .status_under_revision ||
-                                                a.status ==
-                                                    StorageKeys
-                                                        .status_promotion_ad_platform_review,
-                                          )
-                                          .length
-                                          .toString(),
-                                      'status_under_revision'.tr,
-                                      Colors.blue,
-                                      width: Get.width / 2 - 30,
+                                      statInProgress.toString(),
+                                      FunHelper.translateAppKey(
+                                        'employee.dashboard.stat_in_progress',
+                                      ),
+                                      Colors.amber.shade800,
+                                      width: half,
                                     ),
                                   ],
                                 ),
-
                                 Row(
                                   children: [
                                     _buildStatBox(
-                                      tasks
-                                          .where(
-                                            (a) =>
-                                                StorageKeys
-                                                    .isTaskSuccessfulTerminalStatus(
-                                                  a.status,
-                                                ) ||
-                                                a.status ==
-                                                    StorageKeys
-                                                        .status_promotion_finished,
-                                          )
-                                          .length
-                                          .toString(),
-                                      'employee.dashboard.completed'.tr,
-                                      Colors.green,
-                                      width: Get.width / 2 - 30,
+                                      statSendForReview.toString(),
+                                      FunHelper.translateAppKey(
+                                        'employee.dashboard.stat_send_for_review',
+                                      ),
+                                      Colors.blue,
+                                      width: half,
                                     ),
                                     _buildStatBox(
-                                      tasks
-                                          .where(
-                                            (a) =>
-                                                a.status ==
-                                                StorageKeys.status_rejected,
-                                          )
-                                          .length
-                                          .toString(),
-                                      'employee.dashboard.cancelled'.tr,
-                                      Colors.red,
-                                      width: Get.width / 2 - 30,
+                                      statApproved.toString(),
+                                      FunHelper.translateAppKey(
+                                        'employee.dashboard.stat_approved',
+                                      ),
+                                      Colors.green,
+                                      width: half,
                                     ),
                                   ],
                                 ),
@@ -606,10 +602,10 @@ class EmployeeDashboard extends StatelessWidget {
                                     SizedBox(width: 10),
                                     InkWell(
                                       onTap: () {
-                                        controller.searchController.clear();
-                                        controller.selectedPriority.value = '';
-                                        controller.selectedStatus.value = '';
-                                        controller.filterTasks();
+                                        unawaited(
+                                          controller
+                                              .clearEmployeeDashboardTaskFilters(),
+                                        );
                                       },
                                       child: SvgPicture.asset(
                                         'assets/svgs/icon_menu.svg',
@@ -672,10 +668,12 @@ class EmployeeDashboard extends StatelessWidget {
                                                     ),
                                                   )
                                                   .toList(),
-                                          onChanged: (value) {
+                                          onChanged: (value) async {
                                             controller.selectedPriority.value =
                                                 value ?? '';
                                             controller.filterTasks();
+                                            await controller
+                                                .persistEmployeeDashboardTaskFilters();
                                           },
                                         ),
                                       ),
@@ -718,7 +716,13 @@ class EmployeeDashboard extends StatelessWidget {
                                                   ? null
                                                   : controller.selectedStatus.value,
                                           items:
-                                              StorageKeys.statusList
+                                              StorageKeys
+                                                  .employeeDashboardTaskStatusFilterDropdownValuesForDepartment(
+                                                    controller
+                                                        .currentEmployee
+                                                        .value
+                                                        ?.department,
+                                                  )
                                                   .map(
                                                     (e) => DropdownMenuItem(
                                                       value: e,
@@ -731,10 +735,12 @@ class EmployeeDashboard extends StatelessWidget {
                                                     ),
                                                   )
                                                   .toList(),
-                                          onChanged: (value) {
+                                          onChanged: (value) async {
                                             controller.selectedStatus.value =
                                                 value ?? '';
                                             controller.filterTasks();
+                                            await controller
+                                                .persistEmployeeDashboardTaskFilters();
                                           },
                                         ),
                                       ),
@@ -788,7 +794,7 @@ class EmployeeDashboard extends StatelessWidget {
   }) {
     final isDesktop = Responsive.isDesktop(Get.context!);
     final boxWidth =
-        width ?? (isDesktop ? Get.width / 5 - 78 : Get.width / 5 - 30);
+        width ?? (isDesktop ? Get.width / 4 - 78 : Get.width / 4 - 30);
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -813,20 +819,21 @@ class EmployeeDashboard extends StatelessWidget {
               ),
             ),
           ),
-          SizedBox(height: 25),
+          SizedBox(height: 16),
           SizedBox(
-            height: 48,
+            height: 56,
             width: double.infinity,
             child: Center(
               child: Text(
                 label,
                 textAlign: TextAlign.center,
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: Colors.grey,
                   fontWeight: FontWeight.bold,
-                  fontSize: 15,
+                  fontSize: 14,
+                  height: 1.2,
                 ),
               ),
             ),

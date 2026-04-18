@@ -444,9 +444,14 @@ class TaskCard extends StatelessWidget {
                                 } else if (value == 61 &&
                                     task.type != '0' &&
                                     canEditDirectly) {
-                                  openTaskFinalWorkDialog(
-                                    context: context,
-                                    task: task,
+                                  // Match quick "In progress" (60): set status directly. Do not use
+                                  // [openTaskFinalWorkDialog] — for admin/supervisor it opens the
+                                  // final-deliverable editor instead of changing status.
+                                  Get.find<HomeController>().updateTask(
+                                    task.copyWith(
+                                      status:
+                                          StorageKeys.status_under_revision,
+                                    ),
                                   );
                                 }
                               },

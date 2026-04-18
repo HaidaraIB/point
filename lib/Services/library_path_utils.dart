@@ -30,6 +30,10 @@ class LibraryPathUtils {
     return 'post';
   }
 
+  /// Types kept on the task but not listed in the Library drive.
+  static bool finalDeliverableTypeExcludedFromLibrary(String raw) =>
+      raw.trim() == StorageKeys.finalWorkTypeOther;
+
   static bool taskHasArchivablePayload(TaskModel t) {
     return t.finalDeliverableText.trim().isNotEmpty ||
         t.finalDeliverableFileUrls.isNotEmpty ||
@@ -47,7 +51,9 @@ class LibraryPathUtils {
 
   /// Completed task with final-work payload (shown in Library from live task data).
   static bool libraryEntryDesired(TaskModel t) {
-    return taskHasArchivablePayload(t) && taskEligibleForLibraryBrowse(t);
+    return taskHasArchivablePayload(t) &&
+        taskEligibleForLibraryBrowse(t) &&
+        !finalDeliverableTypeExcludedFromLibrary(t.finalDeliverableType);
   }
 
   /// Latest activity on final deliverable fields (timeline), for month folder grouping.

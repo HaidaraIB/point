@@ -38,7 +38,7 @@ Future<String?> attemptSilentLogin({bool allowRetry = true}) async {
   if (employee != null) {
     appLog("✅ تم تسجيل دخول الموظف: ${employee.email}");
     if (employee.status == 'active') {
-      homeController.applyEmployeeSessionAfterAuthRestore(employee);
+      await homeController.applyEmployeeSessionAfterAuthRestore(employee);
 
       if (!kIsWeb) {
         try {
