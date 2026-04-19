@@ -753,13 +753,37 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
     return _chats.where(_chatMatchesListSearch).toList();
   }
 
+  /// Android: system back while a [TextField] has focus can race the IME and
+  /// freeze the UI; defer [Navigator.pop] until after focus is cleared.
+  Widget _wrapAndroidChatsListHardwareBack(BuildContext context, Widget child) {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+      return child;
+    }
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, dynamic _) {
+        if (didPop) return;
+        FocusManager.instance.primaryFocus?.unfocus();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          }
+        });
+      },
+      child: child,
+    );
+  }
+
   // ---------------- build ----------------
   @override
   Widget build(BuildContext context) {
     return GetBuilder<HomeController>(
       builder: (controller) {
         final visibleChats = _visibleChatsOrderedForList();
-        return Scaffold(
+        return _wrapAndroidChatsListHardwareBack(
+          context,
+          Scaffold(
           appBar: PreferredSize(
             preferredSize: const Size.fromHeight(60.0), // تعيين حجم الـ AppBar
             child: AppBar(
@@ -853,6 +877,20 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                         },
                       ),
                     ),
+                    if (_isLoadingGroup)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              minHeight: 4,
+                              color: kChatUiAccent,
+                              backgroundColor: Colors.grey.shade200,
+                            ),
+                          ),
+                        ),
+                      ),
                     if (_currentUserDept != null &&
                         _currentUserDept!.isNotEmpty &&
                         _deptGroupTileVisibleForFolder())
@@ -932,18 +970,6 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                               ),
                             );
                           },
-                        ),
-                      ),
-                    if (_isLoadingGroup)
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: Center(
-                            child: LinearProgressIndicator(
-                              color: kChatUiAccent,
-                              backgroundColor: Colors.grey.shade200,
-                            ),
-                          ),
                         ),
                       ),
                     if (_loadingChats)
@@ -1113,7 +1139,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
               ),
             ),
           ),
-        );
+        ));
       },
     );
   }
@@ -1188,6 +1214,10 @@ class _MessageScreenState extends State<MessageScreen>
 
   static const _kScrollDiskDebounceMs = 350;
   Timer? _scrollDiskFlushTimer;
+
+  /// Avoid rebuilding on every [ItemPositionsListener] tick (same pattern as [ChatPage] / [ChatPopup]).
+  bool? _scrollFabVisibleLast;
+  int _scrollUnreadBelowLast = -1;
 
   bool get _enableContentInsertion =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
@@ -1310,7 +1340,27 @@ class _MessageScreenState extends State<MessageScreen>
         _scheduleDebouncedDiskPersist();
       }
     }
-    if (mounted) setState(() {});
+    final uid = widget.currentUserId;
+    final docs = _orderedChatMessageDocs;
+    final n = docs.length;
+    if (uid.isNotEmpty && n > 0) {
+      final showFab = !chatReverseListShowsLatest(
+        positionsListener: _chatItemPositionsListener,
+        itemCount: n,
+      );
+      final unreadBelow = chatReverseListUnreadIncomingBelowCount(
+        positionsListener: _chatItemPositionsListener,
+        itemCount: n,
+        docs: docs,
+        currentUserId: uid,
+      );
+      if (_scrollFabVisibleLast != showFab ||
+          _scrollUnreadBelowLast != unreadBelow) {
+        _scrollFabVisibleLast = showFab;
+        _scrollUnreadBelowLast = unreadBelow;
+        if (mounted) setState(() {});
+      }
+    }
   }
 
   void _onMessageFocusChanged() {
@@ -1449,11 +1499,11 @@ class _MessageScreenState extends State<MessageScreen>
   @override
   void dispose() {
     _flushScrollDiskTimer();
-    WidgetsBinding.instance.removeObserver(this);
-    unawaited(_persistScrollSnapshotNow());
     _chatItemPositionsListener.itemPositions.removeListener(
       _onChatScrollPositions,
     );
+    WidgetsBinding.instance.removeObserver(this);
+    unawaited(_persistScrollSnapshotNow());
     _imagePasteListener?.dispose();
     _messageSoundSubscription?.cancel();
     _markReadSubscription?.cancel();
@@ -1463,7 +1513,8 @@ class _MessageScreenState extends State<MessageScreen>
       FirestoreServices.syncEmployeeActiveChatId(widget.currentUserId, null),
     );
     _messageFocusNode.removeListener(_onMessageFocusChanged);
-    _messageFocusNode.unfocus();
+    // Do not call unfocus() here: during Android route pop it can deadlock the
+    // platform text input channel; dispose() releases focus.
     _messageFocusNode.dispose();
     _messageController.removeListener(_onComposerTextChanged);
     _messageController.dispose();
@@ -1707,10 +1758,36 @@ class _MessageScreenState extends State<MessageScreen>
     }
   }
 
+  /// Android: defer pop until IME/emoji UI is cleared (see [ChatsListScreen]).
+  Widget _wrapAndroidMessageHardwareBack(BuildContext context, Widget child) {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+      return child;
+    }
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (bool didPop, dynamic _) {
+        if (didPop) return;
+        if (_isEmojiVisible) {
+          setState(() => _isEmojiVisible = false);
+        }
+        FocusManager.instance.primaryFocus?.unfocus();
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          }
+        });
+      },
+      child: child,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isGroup = widget.chat['isGroup'] ?? false;
-    return Scaffold(
+    return _wrapAndroidMessageHardwareBack(
+      context,
+      Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFFEAE5ED),
         surfaceTintColor: Colors.transparent,
@@ -2192,7 +2269,7 @@ class _MessageScreenState extends State<MessageScreen>
           ],
         ),
       ),
-    );
+    ));
   }
 }
 

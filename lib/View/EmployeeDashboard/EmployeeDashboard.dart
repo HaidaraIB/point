@@ -163,9 +163,15 @@ class _EmployeeDashboardBody extends StatelessWidget {
                         var statSendForReview = 0;
                         var statApproved = 0;
                         for (final a in tasks) {
-                          switch (StorageKeys.employeeDashboardFourCardStatIndex(
-                            FunHelper.canonicalStoredStatus(a.status),
-                          )) {
+                          final bucket =
+                              StorageKeys.employeeDashboardFourCardStatBucket(
+                                canonicalStatus: FunHelper.canonicalStoredStatus(
+                                  a.status,
+                                ),
+                                taskType: a.type,
+                              );
+                          if (bucket == null) continue;
+                          switch (bucket) {
                             case StorageKeys.employeeDashFourCardNotStarted:
                               statNotStarted++;
                               break;
@@ -508,66 +514,85 @@ class _EmployeeDashboardBody extends StatelessWidget {
                             var statSendForReview = 0;
                             var statApproved = 0;
                             for (final a in tasks) {
-                              switch (StorageKeys.employeeDashboardFourCardStatIndex(
-                                FunHelper.canonicalStoredStatus(a.status),
-                              )) {
+                              final bucket =
+                                  StorageKeys
+                                      .employeeDashboardFourCardStatBucket(
+                                        canonicalStatus:
+                                            FunHelper.canonicalStoredStatus(
+                                              a.status,
+                                            ),
+                                        taskType: a.type,
+                                      );
+                              if (bucket == null) continue;
+                              switch (bucket) {
                                 case StorageKeys.employeeDashFourCardNotStarted:
                                   statNotStarted++;
                                   break;
                                 case StorageKeys.employeeDashFourCardInProgress:
                                   statInProgress++;
                                   break;
-                                case StorageKeys.employeeDashFourCardSendForReview:
+                                case StorageKeys
+                                    .employeeDashFourCardSendForReview:
                                   statSendForReview++;
                                   break;
                                 default:
                                   statApproved++;
                               }
                             }
-                            final half = (Get.width - 36) / 2;
-                            return Column(
-                              children: [
-                                Row(
+                            // [_buildStatBox] uses margin 10 on all sides → +20 horizontal per card.
+                            // Use parent width (not [Get.width]) so rows match padded constraints.
+                            return LayoutBuilder(
+                              builder: (context, constraints) {
+                                var mw = constraints.maxWidth;
+                                if (!mw.isFinite || mw <= 0) {
+                                  mw = MediaQuery.sizeOf(context).width - 20;
+                                }
+                                final innerW = ((mw - 40) / 2).clamp(48.0, 400.0);
+                                return Column(
                                   children: [
-                                    _buildStatBox(
-                                      statNotStarted.toString(),
-                                      FunHelper.translateAppKey(
-                                        'employee.dashboard.stat_not_started',
-                                      ),
-                                      Colors.grey.shade700,
-                                      width: half,
+                                    Row(
+                                      children: [
+                                        _buildStatBox(
+                                          statNotStarted.toString(),
+                                          FunHelper.translateAppKey(
+                                            'employee.dashboard.stat_not_started',
+                                          ),
+                                          Colors.grey.shade700,
+                                          width: innerW,
+                                        ),
+                                        _buildStatBox(
+                                          statInProgress.toString(),
+                                          FunHelper.translateAppKey(
+                                            'employee.dashboard.stat_in_progress',
+                                          ),
+                                          Colors.amber.shade800,
+                                          width: innerW,
+                                        ),
+                                      ],
                                     ),
-                                    _buildStatBox(
-                                      statInProgress.toString(),
-                                      FunHelper.translateAppKey(
-                                        'employee.dashboard.stat_in_progress',
-                                      ),
-                                      Colors.amber.shade800,
-                                      width: half,
+                                    Row(
+                                      children: [
+                                        _buildStatBox(
+                                          statSendForReview.toString(),
+                                          FunHelper.translateAppKey(
+                                            'employee.dashboard.stat_send_for_review',
+                                          ),
+                                          Colors.blue,
+                                          width: innerW,
+                                        ),
+                                        _buildStatBox(
+                                          statApproved.toString(),
+                                          FunHelper.translateAppKey(
+                                            'employee.dashboard.stat_approved',
+                                          ),
+                                          Colors.green,
+                                          width: innerW,
+                                        ),
+                                      ],
                                     ),
                                   ],
-                                ),
-                                Row(
-                                  children: [
-                                    _buildStatBox(
-                                      statSendForReview.toString(),
-                                      FunHelper.translateAppKey(
-                                        'employee.dashboard.stat_send_for_review',
-                                      ),
-                                      Colors.blue,
-                                      width: half,
-                                    ),
-                                    _buildStatBox(
-                                      statApproved.toString(),
-                                      FunHelper.translateAppKey(
-                                        'employee.dashboard.stat_approved',
-                                      ),
-                                      Colors.green,
-                                      width: half,
-                                    ),
-                                  ],
-                                ),
-                              ],
+                                );
+                              },
                             );
                           }),
 

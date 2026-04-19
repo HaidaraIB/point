@@ -874,7 +874,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
     _messageController.removeListener(_onComposerTextChanged);
     _messageController.dispose();
-    _messageFocusNode.unfocus();
+    // Do not call unfocus() here: during Android route pop it can deadlock the
+    // platform text input channel; dispose() releases focus.
     _messageFocusNode.dispose();
     _searchController.dispose();
     _clearStoredChatSelectionOnHome();
@@ -1584,6 +1585,18 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                             setState(() => _chatListFolder = f);
                           },
                         ),
+                        if (_isLoadingGroup)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: LinearProgressIndicator(
+                                minHeight: 4,
+                                color: kChatUiAccent,
+                                backgroundColor: Colors.grey.shade200,
+                              ),
+                            ),
+                          ),
 
                         // **عرض مجموعة القسم أولاً**
                         if (_currentUserDept != null &&
@@ -1659,13 +1672,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                               );
                             },
                           ),
-                        if (_isLoadingGroup)
-                          Center(
-                            child: LinearProgressIndicator(
-                              color: kChatUiAccent,
-                              backgroundColor: Colors.grey.shade200,
-                            ),
-                          ), // مؤشر تحميل المجموعة
                         // chats list
                         Expanded(
                           child: _loadingChats

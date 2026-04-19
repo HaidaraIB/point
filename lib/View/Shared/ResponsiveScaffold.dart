@@ -740,7 +740,8 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
     _markReadSubscription?.cancel();
     ChatAudioFocus.clearForegroundIfEqualsUnlessMainLayoutShows(_chatId);
     _messageFocusNode.removeListener(_onPopupInputFocus);
-    _messageFocusNode.unfocus();
+    // Do not call unfocus() here: during Android teardown it can deadlock IME;
+    // dispose() releases focus.
     _messageFocusNode.dispose();
     _messageController.removeListener(_onComposerTextChanged);
     _messageController.dispose();

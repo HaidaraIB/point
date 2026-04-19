@@ -165,7 +165,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
           AudioService.instance.unlockAudio();
         },
         child: GetMaterialApp(
-        key: navigatorKey,
+        navigatorKey: navigatorKey,
 
         title: 'Point Agency',
         enableLog: kDebugMode,
