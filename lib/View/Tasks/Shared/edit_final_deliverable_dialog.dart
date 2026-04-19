@@ -6,6 +6,7 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
+import 'package:point/Utils/final_deliverable_upload_names.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 
@@ -109,9 +110,16 @@ class _EditFinalDeliverableDialogState extends State<_EditFinalDeliverableDialog
         );
         continue;
       }
+      final slot = _urls.length;
+      final downloadName = finalDeliverableDownloadDisplayName(
+        taskTitle: _latestTask().title,
+        slotIndex: slot,
+        originalFileName: f.name,
+      );
       final url = await hc.uploadFiles(
         filePathOrBytes: bytes,
         fileName: f.name,
+        friendlyDownloadName: downloadName,
       );
       if (url != null && url.isNotEmpty) {
         setState(() => _urls.add(url));

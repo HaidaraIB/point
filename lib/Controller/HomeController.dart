@@ -26,6 +26,7 @@ import 'package:point/Services/NotificationService.dart';
 import 'package:point/Services/push_permissions_helper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/final_deliverable_upload_names.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:file_picker/file_picker.dart';
@@ -1864,6 +1865,8 @@ class HomeController extends GetxController {
     required dynamic filePathOrBytes,
     String? fileName,
     bool useBlockingUploadDialog = true,
+    /// When set, Supabase public URL gets `?download=` so browsers save under this name.
+    String? friendlyDownloadName,
   }) async {
     final uuid = Uuid();
     Timer? uploadProgressTimer;
@@ -1897,7 +1900,10 @@ class HomeController extends GetxController {
 
       uploadProgress.value = 1.0;
 
-      final url = bucket.getPublicUrl(uniqueName);
+      var url = bucket.getPublicUrl(uniqueName);
+      if (friendlyDownloadName != null && friendlyDownloadName.trim().isNotEmpty) {
+        url = appendSupabaseStorageDownloadQuery(url, friendlyDownloadName.trim());
+      }
 
       uploadedFilesPaths.add(url);
 

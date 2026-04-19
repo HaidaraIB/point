@@ -1661,12 +1661,19 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                           ),
                         if (_isLoadingGroup)
                           Center(
-                            child: LinearProgressIndicator(),
+                            child: LinearProgressIndicator(
+                              color: kChatUiAccent,
+                              backgroundColor: Colors.grey.shade200,
+                            ),
                           ), // مؤشر تحميل المجموعة
                         // chats list
                         Expanded(
                           child: _loadingChats
-                              ? Center(child: CircularProgressIndicator())
+                              ? const Center(
+                                  child: CircularProgressIndicator(
+                                    color: kChatUiAccent,
+                                  ),
+                                )
                               : _chats.isEmpty
                               ? Center(
                                   child: Text(AppLocaleKeys.chatNoChats.tr),

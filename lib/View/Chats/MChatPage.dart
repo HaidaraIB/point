@@ -783,6 +783,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                 color: Colors.white,
               ),
               child: RefreshIndicator(
+                color: kChatUiAccent,
                 onRefresh: () async {
                   await _initUserThenLoad();
                   await Future.delayed(const Duration(seconds: 1));
@@ -934,10 +935,15 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                         ),
                       ),
                     if (_isLoadingGroup)
-                      const SliverToBoxAdapter(
+                      SliverToBoxAdapter(
                         child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 8),
-                          child: Center(child: LinearProgressIndicator()),
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Center(
+                            child: LinearProgressIndicator(
+                              color: kChatUiAccent,
+                              backgroundColor: Colors.grey.shade200,
+                            ),
+                          ),
                         ),
                       ),
                     if (_loadingChats)
@@ -946,7 +952,9 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                         child: SizedBox(
                           height: Get.height * 0.5,
                           child: const Center(
-                            child: CircularProgressIndicator(),
+                            child: CircularProgressIndicator(
+                              color: kChatUiAccent,
+                            ),
                           ),
                         ),
                       )

@@ -237,13 +237,19 @@ class TaskDetailsDialogHelpers {
     }
   }
 
-  /// Last path segment of [raw] for display (decoded).
+  /// Last path segment of [raw] for display (decoded), or `download` query if present.
   static String attachmentFileNameFromUrl(String raw) {
     final v = raw.trim();
     if (v.isEmpty) return v;
     final uri = Uri.tryParse(v);
-    if (uri != null && uri.pathSegments.isNotEmpty) {
-      return Uri.decodeComponent(uri.pathSegments.last);
+    if (uri != null) {
+      final dl = uri.queryParameters['download'];
+      if (dl != null && dl.trim().isNotEmpty) {
+        return dl.trim();
+      }
+      if (uri.pathSegments.isNotEmpty) {
+        return Uri.decodeComponent(uri.pathSegments.last);
+      }
     }
     return v.length > 48 ? '${v.substring(0, 45)}…' : v;
   }

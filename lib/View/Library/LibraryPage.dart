@@ -7,6 +7,7 @@ import 'package:point/Services/library_path_utils.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
+import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 
 class _Nav {
   final int level;
@@ -216,22 +217,48 @@ class _LibraryPageState extends State<LibraryPage> {
   }
 
   Widget _breadcrumb(BuildContext context) {
-    final parts = <String>['library.title'.tr];
-    if (_nav.level >= 1) parts.add('library.completed_tasks_folder'.tr);
+    final labels = <String>['library.title'.tr];
+    final targets = <_Nav>[const _Nav()];
+
+    if (_nav.level >= 1) {
+      labels.add('library.completed_tasks_folder'.tr);
+      targets.add(const _Nav(level: 1));
+    }
     if (_nav.level >= 2 && _nav.clientName.isNotEmpty) {
-      parts.add(_nav.clientName);
+      labels.add(_nav.clientName);
+      targets.add(
+        _Nav(level: 2, clientId: _nav.clientId, clientName: _nav.clientName),
+      );
     }
     if (_nav.level >= 3 && _nav.yearMonth.isNotEmpty) {
-      parts.add(_monthLabel(_nav.yearMonth));
+      labels.add(_monthLabel(_nav.yearMonth));
+      targets.add(
+        _Nav(
+          level: 3,
+          clientId: _nav.clientId,
+          clientName: _nav.clientName,
+          yearMonth: _nav.yearMonth,
+        ),
+      );
     }
     if (_nav.level >= 4 && _nav.category.isNotEmpty) {
-      parts.add(_categoryTitle(_nav.category));
+      labels.add(_categoryTitle(_nav.category));
+      targets.add(
+        _Nav(
+          level: 4,
+          clientId: _nav.clientId,
+          clientName: _nav.clientName,
+          yearMonth: _nav.yearMonth,
+          category: _nav.category,
+        ),
+      );
     }
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          for (var i = 0; i < parts.length; i++) ...[
+          for (var i = 0; i < labels.length; i++) ...[
             if (i > 0)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -241,17 +268,39 @@ class _LibraryPageState extends State<LibraryPage> {
                   color: Colors.grey.shade600,
                 ),
               ),
-            Text(
-              parts[i],
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color:
-                    i == parts.length - 1
-                        ? AppColors.primary
-                        : Colors.grey.shade700,
+            if (i == labels.length - 1)
+              Text(
+                labels[i],
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.primary,
+                ),
+              )
+            else
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => setState(() => _nav = targets[i]),
+                  borderRadius: BorderRadius.circular(6),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 4,
+                    ),
+                    child: Text(
+                      labels[i],
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade700,
+                        decoration: TextDecoration.underline,
+                        decorationColor: Colors.grey.shade600,
+                      ),
+                    ),
+                  ),
+                ),
               ),
-            ),
           ],
         ],
       ),
@@ -520,21 +569,56 @@ class _FileEntryCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Wrap(
-                    spacing: 8,
-                    runSpacing: 6,
-                    children: [
-                      for (var i = 0; i < task.finalDeliverableFileUrls.length; i++)
-                        TextButton.icon(
-                          onPressed: () => openUrlPreferInAppMedia(
-                            task.finalDeliverableFileUrls[i],
+                    spacing: 12,
+                    runSpacing: 12,
+                    children: List.generate(
+                      task.finalDeliverableFileUrls.length,
+                      (i) {
+                        final u = task.finalDeliverableFileUrls[i];
+                        final name =
+                            TaskDetailsDialogHelpers.attachmentFileNameFromUrl(
+                              u,
+                            );
+                        return SizedBox(
+                          width: 104,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: 88,
+                                height: 88,
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: Colors.grey.shade300,
+                                    ),
+                                  ),
+                                  child: TaskDetailsDialogHelpers
+                                      .attachmentThumbnail(
+                                    u,
+                                    onOpen: () =>
+                                        openUrlPreferInAppMedia(u),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                name,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey.shade700,
+                                ),
+                              ),
+                            ],
                           ),
-                          icon: const Icon(Icons.attach_file, size: 18),
-                          label: Text(
-                            '${'library.files'.tr} ${i + 1}',
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                        ),
-                    ],
+                        );
+                      },
+                    ),
                   ),
                 ],
               ],

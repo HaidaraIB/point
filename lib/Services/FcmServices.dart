@@ -338,12 +338,7 @@ class NotificationService {
       return;
     }
 
-    // Android: رسائل تحمل كتلة notification من FCM قد تُعرض عبر مسار النظام؛
-    // تجنّب الإشعار المحلي المزدوج بعد إضافة notification على جذر الرسالة في الخادم.
-    if (Platform.isAndroid && message.notification != null) {
-      return;
-    }
-
+    // Android (وغير iOS): في المقدّمة لا يُنشر FCM إشعاراً تلقائياً من كتلة notification؛ العرض عبر المحلي.
     await _showLocalNotification(message);
   }
 

@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 
+/// Chat list chips, add button, and loading indicators (matches composer accent).
+const Color kChatUiAccent = Color(0xFF465FFF);
+
 /// Sidebar / mobile chat list folder (Telegram-style).
 enum ChatListFolder { all, privateChats, groups }
 
@@ -73,7 +76,7 @@ Widget chatListLeadingWithPinBadge({
             child: Icon(
               Icons.push_pin_rounded,
               size: 12,
-              color: Color(0xFF465FFF),
+              color: kChatUiAccent,
             ),
           ),
         ),
@@ -92,8 +95,6 @@ class ChatListFolderTabs extends StatelessWidget {
   final ChatListFolder selected;
   final ValueChanged<ChatListFolder> onSelected;
 
-  static const Color _accent = Color(0xFF465FFF);
-
   @override
   Widget build(BuildContext context) {
     Widget chip(ChatListFolder f, String label) {
@@ -105,12 +106,16 @@ class ChatListFolderTabs extends StatelessWidget {
           child: InkWell(
             onTap: () => onSelected(f),
             borderRadius: BorderRadius.circular(20),
+            splashColor: kChatUiAccent.withValues(alpha: 0.15),
+            highlightColor: kChatUiAccent.withValues(alpha: 0.08),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: sel ? _accent : Colors.white,
+                color: sel ? kChatUiAccent : Colors.white,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: sel ? _accent : Colors.grey.shade300),
+                border: Border.all(
+                  color: sel ? kChatUiAccent : Colors.grey.shade300,
+                ),
               ),
               child: Text(
                 label,
