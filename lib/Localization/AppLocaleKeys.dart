@@ -5,6 +5,11 @@ class AppLocaleKeys {
   static const appLanguageArabic = 'app.language.arabic';
   static const appLanguageEnglish = 'app.language.english';
   static const appVersionLine = 'app.version_line';
+  static const forceUpdateTitle = 'force_update.title';
+  static const forceUpdateBody = 'force_update.body';
+  static const forceUpdateMissingStoreUrl = 'force_update.missing_store_url';
+  static const forceUpdateOpenStore = 'force_update.open_store';
+  static const forceUpdateCheckAgain = 'force_update.check_again';
   static const appClose = 'app.close';
 
   static const commonConfirm = 'common.confirm';

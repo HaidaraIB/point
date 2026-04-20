@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Services/AutoLoginService.dart';
+import 'package:point/Services/mobile_version_gate.dart';
 import 'package:point/Utils/AppImages.dart';
 
 class MobileSplashDecider extends StatefulWidget {
@@ -35,6 +37,19 @@ class _MobileSplashDeciderState extends State<MobileSplashDecider> {
 
   Future<void> _decide() async {
     if (!mounted || _navigated) return;
+
+    if (!kIsWeb) {
+      final gate = await MobileVersionGate.evaluate();
+      if (!mounted || _navigated) return;
+      if (gate.blocked) {
+        _navigated = true;
+        Get.offAllNamed(
+          '/forceUpdate',
+          arguments: ForceUpdateArgs(storeUrl: gate.storeUrl),
+        );
+        return;
+      }
+    }
 
     final nextRoute = await attemptSilentLogin();
     final deepLinkTarget = _validatedNextRoute();

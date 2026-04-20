@@ -30,6 +30,7 @@ import 'package:point/View/Mobile/CreateUserAccount.dart';
 import 'package:point/View/Mobile/MobileClientSplashDecider.dart';
 import 'package:point/View/Mobile/LoginUserAccount.dart';
 import 'package:point/View/Mobile/MobileSplashDecider.dart';
+import 'package:point/View/Mobile/force_update_page.dart';
 import 'package:point/View/Statistics/Statistics.dart';
 import 'package:point/View/Tasks/Tasks.dart';
 
@@ -81,6 +82,10 @@ class AppRouting {
     GetPage(
       name: '/mobileClientSplash',
       page: () => const MobileClientSplashDecider(),
+    ),
+    GetPage(
+      name: '/forceUpdate',
+      page: () => const ForceUpdatePage(),
     ),
     GetPage(
       name: '/ClientHome',

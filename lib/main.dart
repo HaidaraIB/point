@@ -17,6 +17,7 @@ import 'package:point/Services/FcmServices.dart';
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FirebaseStorageService.dart';
 import 'package:point/Services/AutoLoginService.dart';
+import 'package:point/Services/mobile_version_gate.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_log.dart';
@@ -146,10 +147,23 @@ class _AppState extends State<App> with WidgetsBindingObserver {
     super.dispose();
   }
 
+  Future<void> _recheckMobileVersionGateOnResume() async {
+    final snap = await MobileVersionGate.evaluate();
+    if (!snap.blocked) return;
+    if (Get.currentRoute == '/forceUpdate') return;
+    Get.offAllNamed(
+      '/forceUpdate',
+      arguments: ForceUpdateArgs(storeUrl: snap.storeUrl),
+    );
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       unawaited(NotificationService().onAppResumed());
+      if (!kIsWeb) {
+        unawaited(_recheckMobileVersionGateOnResume());
+      }
     }
   }
 

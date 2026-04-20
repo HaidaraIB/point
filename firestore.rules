@@ -670,6 +670,13 @@ service cloud.firestore {
       allow read, update, delete: if isSignedIn() && hasAuthRole() && isAdmin();
     }
 
+    // إصدارات التطبيق: قراءة عامة لبوابة التحديث الإجباري على الموبايل (قبل تسجيل الدخول).
+    // أنشئ المستند `appVersionGate/mobile` من وحدة التحكم أو Admin SDK فقط.
+    match /appVersionGate/{docId} {
+      allow read: if true;
+      allow create, update, delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

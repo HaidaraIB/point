@@ -15,6 +15,16 @@ class AppConfig {
     defaultValue: '',
   );
 
+  /// Play / App Store listing URLs when Firestore `appVersionGate/mobile` omits them.
+  static const String androidStoreUrlFallback = String.fromEnvironment(
+    'ANDROID_STORE_URL',
+    defaultValue: '',
+  );
+  static const String iosStoreUrlFallback = String.fromEnvironment(
+    'IOS_STORE_URL',
+    defaultValue: '',
+  );
+
   /// Dev-only convenience. Do NOT pass this in production builds.
   static const String testAdminPassword = String.fromEnvironment(
     'TEST_ADMIN_PASSWORD',
