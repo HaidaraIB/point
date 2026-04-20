@@ -63,17 +63,21 @@ class _DynamicMultiSelectState<T> extends State<DynamicMultiSelect<T>> {
                 padding: EdgeInsets.all(16),
                 height: Get.height * 0.7,
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Row(
                       children: [
-                        Text(
-                          widget.label ?? '',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                        Expanded(
+                          child: Text(
+                            widget.label ?? '',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        Spacer(),
                         IconButton(
                           icon: Icon(Icons.close),
                           onPressed: () => Navigator.pop(context),
@@ -128,27 +132,32 @@ class _DynamicMultiSelectState<T> extends State<DynamicMultiSelect<T>> {
                         },
                       ),
                     ),
-                    SizedBox(
-                      width: Get.width * 0.4 - 260,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF5C5589),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(24),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Color(0xFF5C5589),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 16,
+                            ),
                           ),
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 48,
-                            vertical: 20,
+                          onPressed: () {
+                            setState(
+                              () => _selectedItems = List.from(tempList),
+                            );
+                            widget.onChanged(_selectedItems);
+                            Navigator.pop(context);
+                          },
+                          child: Text(
+                            'common.save'.tr,
+                            style: TextStyle(color: Colors.white),
                           ),
-                        ),
-                        onPressed: () {
-                          setState(() => _selectedItems = List.from(tempList));
-                          widget.onChanged(_selectedItems);
-                          Navigator.pop(context);
-                        },
-                        child: Text(
-                          'common.save'.tr,
-                          style: TextStyle(color: Colors.white),
                         ),
                       ),
                     ),

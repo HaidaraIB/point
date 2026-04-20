@@ -4,6 +4,7 @@ import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/EmployeeModel.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
+import 'package:point/Services/NotificationService.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppConstants.dart';
 import 'package:point/View/EmployeeDashboard/Shared/AddContentEmployeeDialog.dart';
@@ -29,6 +30,13 @@ String _resolvedAssignedAvatarUrl(TaskModel task, EmployeeModel? assignee) {
   final fromEmployee = assignee?.image?.trim() ?? '';
   if (fromEmployee.isNotEmpty) return fromEmployee;
   return kDefaultAvatarUrl;
+}
+
+/// "كل الأقسام" on the employee dashboard: show which department the task belongs to.
+bool _showTaskDepartmentBadge(HomeController controller) {
+  final e = controller.currentEmployee.value;
+  if (e == null || e.role.trim().toLowerCase() != 'employee') return false;
+  return controller.employeeDashboardDepartmentFilterArg == null;
 }
 
 class EmployeeTaskCard extends StatelessWidget {
@@ -231,16 +239,23 @@ class EmployeeTaskCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 8),
 
-                      // --- الحالة و الأولوية ---
-                      Row(
-                        children: [
-                          _buildStatusTag(task.status),
-                          const SizedBox(width: 8),
-                          _buildPriorityTag(task.priority),
-                        ],
-                      ),
+                      // --- القسم (عند «كل الأقسام») + الحالة + الأولوية ---
+                      Obx(() {
+                        controller.activeDepartmentFilter.value;
+                        return Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            if (_showTaskDepartmentBadge(controller))
+                              _buildTaskDepartmentBadge(task),
+                            _buildStatusTag(task.status),
+                            _buildPriorityTag(task.priority),
+                          ],
+                        );
+                      }),
                       const SizedBox(height: 8),
 
                       // --- الوصف ---
@@ -641,6 +656,29 @@ Widget employeeTaskCardActionRows({
     mainAxisSize: MainAxisSize.min,
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: rows,
+  );
+}
+
+Widget _buildTaskDepartmentBadge(TaskModel task) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+    decoration: BoxDecoration(
+      color: const Color(0xFFF4F0FF),
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(
+        color: const Color(0xFF5C5589).withValues(alpha: 0.35),
+      ),
+    ),
+    child: Text(
+      NotificationService.departmentNameFromTaskType(task.type),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        color: Color(0xFF5C5589),
+      ),
+    ),
   );
 }
 

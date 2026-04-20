@@ -82,14 +82,13 @@ Widget _buildMobileContent(
                       },
                     );
                   }),
-                  if (StorageKeys.matchesDepartment(
-                        controller.currentEmployee.value?.department,
-                        StorageKeys.departmentPromotion,
-                      ) ||
-                      StorageKeys.matchesDepartment(
-                        controller.currentEmployee.value?.department,
-                        StorageKeys.departmentPublishing,
-                      )) ...[
+                  if (controller.currentEmployee.value != null &&
+                      (controller.currentEmployee.value!.hasDepartment(
+                            StorageKeys.departmentPromotion,
+                          ) ||
+                          controller.currentEmployee.value!.hasDepartment(
+                            StorageKeys.departmentPublishing,
+                          ))) ...[
                     const SizedBox(width: 8),
                     MainButton(
                       width: 140,

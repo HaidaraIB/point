@@ -158,8 +158,7 @@ void montageDialog(BuildContext context, {TaskModel? model}) {
                                     items:
                                         controller.employees
                                             .where(
-                                              (a) => StorageKeys.matchesDepartment(
-                                                a.department,
+                                              (a) => a.hasDepartment(
                                                 StorageKeys.departmentMontage,
                                               ) ||
                                               (((controller.currentEmployee.value?.role ==

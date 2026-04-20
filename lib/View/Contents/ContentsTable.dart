@@ -279,14 +279,15 @@ class ContentsTable extends StatelessWidget {
                                 ],
                               );
                             }),
-                            if (StorageKeys.matchesDepartment(
-                                  controller.currentEmployee.value?.department,
-                                  StorageKeys.departmentPromotion,
-                                ) ||
-                                StorageKeys.matchesDepartment(
-                                  controller.currentEmployee.value?.department,
-                                  StorageKeys.departmentPublishing,
-                                ))
+                            if (controller.currentEmployee.value != null &&
+                                (controller.currentEmployee.value!
+                                        .hasDepartment(
+                                          StorageKeys.departmentPromotion,
+                                        ) ||
+                                    controller.currentEmployee.value!
+                                        .hasDepartment(
+                                          StorageKeys.departmentPublishing,
+                                        )))
                               MainButton(
                                 width: 180,
                                 height: 45,

@@ -216,7 +216,7 @@ class EmployeesMobileScreen extends StatelessWidget {
                         ),
                         child: Text(
                           emp.role == 'employee'
-                              ? '${emp.role.tr}\n(${StorageKeys.semanticDepartmentLabelKey(emp.department).tr})'
+                              ? '${emp.role.tr}\n(${emp.departments.map((d) => StorageKeys.semanticDepartmentLabelKey(d).tr).join(', ')})'
                               : emp.role.tr,
                           textAlign: TextAlign.center,
                           style: const TextStyle(

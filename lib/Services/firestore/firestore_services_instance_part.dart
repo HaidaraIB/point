@@ -8,7 +8,7 @@ const Set<String> _kGlobalRolesWithoutDepartment = {
 mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
   EmployeeModel _normalizeEmployeeDepartmentByRole(EmployeeModel employee) {
     if (_kGlobalRolesWithoutDepartment.contains(employee.role)) {
-      return employee.copyWith(department: null);
+      return employee.copyWith(departments: const []);
     }
     return employee;
   }
@@ -399,7 +399,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
         email: _kTestAdminDevEmail,
         phone: null,
         role: 'admin',
-        department: null,
+        departments: const [],
         fcmToken: null,
         onesignal: null,
         hireDate: null,
@@ -1029,25 +1029,37 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
   /// تيار مهام موظف عادي (ليس مشرفاً/مديراً): `assignedTo` أو `type` حسب القسم.
   Stream<List<TaskModel>> getTasksStreamForEmployee({
     required String employeeId,
-    String? departmentRaw,
+    List<String>? departments,
   }) {
     final trimmedId = employeeId.trim();
     if (trimmedId.isEmpty) {
       return Stream<List<TaskModel>>.value(const <TaskModel>[]);
     }
-    final dept = StorageKeys.normalizeDepartment(departmentRaw);
-    final typeCode = taskTypeCodeForNormalizedDepartment(dept);
+    final depts = StorageKeys.normalizeDepartments(departments ?? const []);
+    final typeCodes = <String>{};
+    for (final d in depts) {
+      final c = taskTypeCodeForNormalizedDepartment(d);
+      if (c != null) typeCodes.add(c);
+    }
+
+    final filters = <Filter>[
+      Filter('assignedTo', isEqualTo: trimmedId),
+      ...typeCodes.map((t) => Filter('type', isEqualTo: t)),
+    ];
+
+    final Filter combined;
+    if (filters.length == 1) {
+      combined = filters.single;
+    } else {
+      var acc = filters[0];
+      for (var i = 1; i < filters.length; i++) {
+        acc = Filter.or(acc, filters[i]);
+      }
+      combined = acc;
+    }
 
     final Query<Map<String, dynamic>> q =
-        (typeCode != null
-            ? _dbtask.where(
-                Filter.or(
-                  Filter('assignedTo', isEqualTo: trimmedId),
-                  Filter('type', isEqualTo: typeCode),
-                ),
-              )
-            : _dbtask.where('assignedTo', isEqualTo: trimmedId))
-            as Query<Map<String, dynamic>>;
+        _dbtask.where(combined) as Query<Map<String, dynamic>>;
 
     return safeFirestoreListStream(
       q.snapshots().map((snapshot) {

@@ -255,8 +255,7 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                   DynamicDropdown<EmployeeModel>(
                     items: safeEmployees
                         .where(
-                          (a) => StorageKeys.matchesDepartment(
-                            a.department,
+                          (a) => a.hasDepartment(
                             StorageKeys.departmentDesign,
                           ) ||
                           (((controller.currentEmployee.value?.role ==

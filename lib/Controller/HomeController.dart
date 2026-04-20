@@ -25,6 +25,9 @@ import 'package:point/Services/fcm_token_cache.dart';
 import 'package:point/Services/NotificationService.dart';
 import 'package:point/Services/push_permissions_helper.dart';
 import 'package:point/Services/StorageKeys.dart';
+import 'package:point/Services/firestore/firestore_task_utils.dart'
+    show taskTypeCodeForNormalizedDepartment;
+import 'package:point/Services/firestore/migrations/backfill_employee_departments.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/final_deliverable_upload_names.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -85,7 +88,7 @@ class HomeController extends GetxController {
     if (selectedStatus.value.isNotEmpty &&
         !StorageKeys.isEmployeeDashboardStatusFilterAllowedForDepartment(
           selectedStatus.value,
-          currentEmployee.value?.department,
+          employeeDashboardDepartmentFilterArg,
         )) {
       selectedStatus.value = '';
     }
@@ -93,6 +96,22 @@ class HomeController extends GetxController {
     // نعرض فقط المهام الجارية دائماً
     List<TaskModel> baseList =
         tasks.where((t) => StorageKeys.isTaskOngoing(t)).toList();
+
+    final empDash = currentEmployee.value;
+    if (empDash != null && empDash.role.trim().toLowerCase() == 'employee') {
+      final arg = employeeDashboardDepartmentFilterArg;
+      if (arg != null && arg.isNotEmpty) {
+        final typeCode = taskTypeCodeForNormalizedDepartment(
+          StorageKeys.normalizeDepartment(arg),
+        );
+        // Dept chip = show only tasks for that department's type. Do not OR
+        // `assignedTo == me` here: the task stream already includes assigned
+        // tasks, and that OR would show e.g. programming tasks under photography.
+        if (typeCode != null) {
+          baseList = baseList.where((t) => t.type == typeCode).toList();
+        }
+      }
+    }
 
     // إن وُجد فلتر حالة محددة (إحدى الحالات الجارية) نطبّقها
     if (selectedStatus.value.isNotEmpty) {
@@ -185,7 +204,7 @@ class HomeController extends GetxController {
       if (s.isNotEmpty &&
           StorageKeys.isEmployeeDashboardStatusFilterAllowedForDepartment(
             s,
-            currentEmployee.value?.department,
+            employeeDashboardDepartmentFilterArg,
           )) {
         selectedStatus.value = s;
       } else {
@@ -523,9 +542,9 @@ class HomeController extends GetxController {
       return;
     }
     if (r == 'employee') {
-      final d = StorageKeys.normalizeDepartment(emp.department);
-      if (d == StorageKeys.departmentPromotion ||
-          d == StorageKeys.departmentPublishing) {
+      final depts = emp.departments;
+      if (depts.contains(StorageKeys.departmentPromotion) ||
+          depts.contains(StorageKeys.departmentPublishing)) {
         contents.bindStream(_service.getContents());
         return;
       }
@@ -1936,6 +1955,11 @@ class HomeController extends GetxController {
     if (employee.id == null || employee.id!.isEmpty) return;
     currentEmployee.value = employee;
     lastKnownEmployee.value = employee;
+    syncActiveDepartmentFilterFromEmployee(employee);
+    final role = employee.role.trim().toLowerCase();
+    if (role == 'admin' || role == 'supervisor') {
+      unawaited(BackfillEmployeeDepartments.runIfNeeded(isManager: true));
+    }
     fetchEmployees();
     _rebindClientsAndTasksStreams();
     fetchContents();
@@ -1965,6 +1989,38 @@ class HomeController extends GetxController {
   final _clientCollection = FirebaseFirestore.instance.collection("employees");
   Rxn<EmployeeModel> currentEmployee = Rxn<EmployeeModel>();
   Rxn<EmployeeModel> lastKnownEmployee = Rxn<EmployeeModel>();
+
+  /// Employee dashboard: empty string = all departments; otherwise a slug from [StorageKeys.departmentSlugs].
+  final RxString activeDepartmentFilter = ''.obs;
+
+  /// Pass to [StorageKeys.isEmployeeDashboardStatusFilterAllowedForDepartment] / dropdown helpers.
+  String? get employeeDashboardDepartmentFilterArg {
+    final e = currentEmployee.value;
+    if (e == null || e.role.trim().toLowerCase() != 'employee') return null;
+    final v = activeDepartmentFilter.value.trim();
+    if (v.isEmpty) return null;
+    return v;
+  }
+
+  void syncActiveDepartmentFilterFromEmployee(EmployeeModel? e) {
+    if (e == null || e.role.trim().toLowerCase() != 'employee') {
+      activeDepartmentFilter.value = '';
+      return;
+    }
+    if (e.departments.isEmpty) {
+      activeDepartmentFilter.value = '';
+      return;
+    }
+    if (e.departments.length == 1) {
+      activeDepartmentFilter.value = e.departments.first;
+      return;
+    }
+    final cur = activeDepartmentFilter.value.trim();
+    if (cur.isNotEmpty && e.departments.contains(cur)) {
+      return;
+    }
+    activeDepartmentFilter.value = '';
+  }
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _employeeDocSub;
   EmployeeModel? get effectiveEmployee =>
       currentEmployee.value ?? lastKnownEmployee.value;
@@ -1981,6 +2037,7 @@ class HomeController extends GetxController {
               final employee = base.copyWith(id: empid);
               currentEmployee.value = employee;
               lastKnownEmployee.value = employee;
+              syncActiveDepartmentFilterFromEmployee(employee);
               unawaited(FirestoreServices.syncAuthRoleForEmployee(employee));
               _startTotalUnreadStream(empid);
             }

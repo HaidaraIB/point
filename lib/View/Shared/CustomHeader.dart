@@ -35,6 +35,17 @@ String localizedRoleWithDepartment(String role, String? department) {
   return '$rolePart · ${deptKey.tr}';
 }
 
+/// Role plus one or more departments (comma-separated labels).
+String localizedRoleWithDepartments(String role, List<String> departments) {
+  final rolePart = _localizedStoredRole(role);
+  final normalized = StorageKeys.normalizeDepartments(departments);
+  if (normalized.isEmpty) return rolePart;
+  final joined = normalized
+      .map((d) => StorageKeys.semanticDepartmentLabelKey(d).tr)
+      .join(', ');
+  return '$rolePart · $joined';
+}
+
 /// زر اللغة في شريط الويب لموظفي الأقسام (بجانب الإشعارات والمحادثات).
 Widget _webEmployeeLanguageMenuButton() {
   final lc = Get.find<LanguageController>();

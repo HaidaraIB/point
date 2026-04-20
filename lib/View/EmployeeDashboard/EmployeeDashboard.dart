@@ -24,6 +24,46 @@ import 'package:point/View/Tasks/DetailsDialogs/DProgrammingDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPromotionDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPublishDialog.dart';
 
+Widget _employeeDashboardDepartmentChips(HomeController controller) {
+  return Obx(() {
+    final emp = controller.currentEmployee.value;
+    if (emp == null ||
+        emp.role.trim().toLowerCase() != 'employee' ||
+        emp.departments.length <= 1) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          ChoiceChip(
+            label: Text('employee.dashboard.all_departments'.tr),
+            selected: controller.activeDepartmentFilter.value.isEmpty,
+            onSelected: (_) {
+              controller.activeDepartmentFilter.value = '';
+              controller.filterTasks();
+              controller.schedulePersistEmployeeDashboardTaskFilters();
+            },
+          ),
+          ...emp.departments.map(
+            (d) => ChoiceChip(
+              label: Text(StorageKeys.semanticDepartmentLabelKey(d).tr),
+              selected: controller.activeDepartmentFilter.value == d,
+              onSelected: (_) {
+                controller.activeDepartmentFilter.value = d;
+                controller.filterTasks();
+                controller.schedulePersistEmployeeDashboardTaskFilters();
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  });
+}
+
 class EmployeeDashboard extends StatefulWidget {
   const EmployeeDashboard({super.key});
 
@@ -85,7 +125,19 @@ class _EmployeeDashboardBody extends StatelessWidget {
                             name: controller.currentEmployee.value?.name ?? '',
                             role: controller.currentEmployee.value?.role ?? '',
                             department:
-                                controller.currentEmployee.value?.department,
+                                controller.currentEmployee.value?.departments
+                                            .isEmpty ??
+                                        true
+                                    ? null
+                                    : controller.currentEmployee.value!
+                                        .departments
+                                        .map(
+                                          (d) =>
+                                              StorageKeys.semanticDepartmentLabelKey(
+                                                d,
+                                              ).tr,
+                                        )
+                                        .join(', '),
                             avatarUrl:
                                 controller.currentEmployee.value?.image ??
                                 kDefaultAvatarUrl,
@@ -93,6 +145,7 @@ class _EmployeeDashboardBody extends StatelessWidget {
                         ),
                       ),
                       SizedBox(height: 20),
+                      _employeeDashboardDepartmentChips(controller),
 
                       Row(
                         children: [
@@ -105,14 +158,13 @@ class _EmployeeDashboardBody extends StatelessWidget {
                             ),
                           ),
                           Spacer(),
-                          if (StorageKeys.matchesDepartment(
-                                controller.currentEmployee.value?.department,
-                                StorageKeys.departmentPromotion,
-                              ) ||
-                              StorageKeys.matchesDepartment(
-                                controller.currentEmployee.value?.department,
-                                StorageKeys.departmentPublishing,
-                              ))
+                          if (controller.currentEmployee.value != null &&
+                              (controller.currentEmployee.value!.hasDepartment(
+                                    StorageKeys.departmentPromotion,
+                                  ) ||
+                                  controller.currentEmployee.value!.hasDepartment(
+                                    StorageKeys.departmentPublishing,
+                                  )))
                             MainButton(
                               width: 180,
                               height: 45,
@@ -365,9 +417,7 @@ class _EmployeeDashboardBody extends StatelessWidget {
                                         StorageKeys
                                             .employeeDashboardTaskStatusFilterDropdownValuesForDepartment(
                                               controller
-                                                  .currentEmployee
-                                                  .value
-                                                  ?.department,
+                                                  .employeeDashboardDepartmentFilterArg,
                                             )
                                             .map(
                                               (e) => DropdownMenuItem(
@@ -449,6 +499,7 @@ class _EmployeeDashboardBody extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const SizedBox(height: 8),
+                          _employeeDashboardDepartmentChips(controller),
 
                           Row(
                             children: [
@@ -461,14 +512,13 @@ class _EmployeeDashboardBody extends StatelessWidget {
                                 ),
                               ),
                               Spacer(),
-                              if (StorageKeys.matchesDepartment(
-                                controller.currentEmployee.value?.department,
-                                StorageKeys.departmentPromotion,
-                              ) ||
-                              StorageKeys.matchesDepartment(
-                                controller.currentEmployee.value?.department,
-                                StorageKeys.departmentPublishing,
-                              ))
+                              if (controller.currentEmployee.value != null &&
+                                  (controller.currentEmployee.value!.hasDepartment(
+                                        StorageKeys.departmentPromotion,
+                                      ) ||
+                                      controller.currentEmployee.value!.hasDepartment(
+                                        StorageKeys.departmentPublishing,
+                                      )))
                                 MainButton(
                                   width: 180,
                                   height: 45,
@@ -744,9 +794,7 @@ class _EmployeeDashboardBody extends StatelessWidget {
                                               StorageKeys
                                                   .employeeDashboardTaskStatusFilterDropdownValuesForDepartment(
                                                     controller
-                                                        .currentEmployee
-                                                        .value
-                                                        ?.department,
+                                                        .employeeDashboardDepartmentFilterArg,
                                                   )
                                                   .map(
                                                     (e) => DropdownMenuItem(

@@ -3,14 +3,8 @@ part of 'package:point/View/Contents/ContentsTable.dart';
 /// على الويب: موظفو قسم النشر أو الترويج يستخدمون جدول المحتوى الكامل (مثل الأدمن).
 bool _isWebPublishingOrPromotionEmployee(EmployeeModel? emp) {
   if (emp?.role != 'employee' || !kIsWeb) return false;
-  return StorageKeys.matchesDepartment(
-        emp?.department,
-        StorageKeys.departmentPublishing,
-      ) ||
-      StorageKeys.matchesDepartment(
-        emp?.department,
-        StorageKeys.departmentPromotion,
-      );
+  return emp!.hasDepartment(StorageKeys.departmentPublishing) ||
+      emp.hasDepartment(StorageKeys.departmentPromotion);
 }
 
 bool _useEmployeeContentDashboard(EmployeeModel? emp) {
@@ -511,7 +505,16 @@ class _EmployeeWebDesktopContentShell extends StatelessWidget {
                       name: controller.currentEmployee.value?.name ?? '',
                       role: controller.currentEmployee.value?.role ?? '',
                       department:
-                          controller.currentEmployee.value?.department,
+                          controller.currentEmployee.value?.departments.isEmpty ??
+                                  true
+                              ? null
+                              : controller.currentEmployee.value!.departments
+                                  .map(
+                                    (d) => StorageKeys.semanticDepartmentLabelKey(
+                                      d,
+                                    ).tr,
+                                  )
+                                  .join(', '),
                       avatarUrl:
                           controller.currentEmployee.value?.image ??
                           kDefaultAvatarUrl,

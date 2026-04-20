@@ -9,6 +9,7 @@ import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/PasswordValidator.dart';
 import 'package:point/View/Shared/CustomDropDown.dart';
+import 'package:point/View/Shared/MultiSelectDropDown.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/ReadOnlyAccountEmailField.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
@@ -252,7 +253,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                                 ),
                                                 child: Text(
                                                   emp.role == 'employee'
-                                                      ? '${emp.role.tr}\n(${StorageKeys.semanticDepartmentLabelKey(emp.department).tr})'
+                                                      ? '${emp.role.tr}\n(${emp.departments.map((d) => StorageKeys.semanticDepartmentLabelKey(d).tr).join(', ')})'
                                                       : emp.role.tr,
                                                   textAlign: TextAlign.center,
                                                   style: TextStyle(
@@ -408,8 +409,12 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
 
   String selectedRole = model?.role ?? "employee";
   if (selectedRole == 'accountholder') selectedRole = 'admin';
-  String selectedDepartment =
-      model?.department ?? StorageKeys.departmentPromotion;
+  List<String> selectedDepartments =
+      model == null
+          ? <String>[StorageKeys.departmentPromotion]
+          : (model.departments.isNotEmpty
+              ? List<String>.from(model.departments)
+              : <String>[StorageKeys.departmentPromotion]);
   List<String> roles = ["supervisor", "admin", "employee"];
   Get.find<HomeController>().uploadedFilesPaths.assignAll(
     model != null && model.image != null ? [model.image!] : [],
@@ -622,39 +627,43 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                     if (value != null) {
                                       selectedRole = value;
                                       if (selectedRole != 'employee') {
-                                        selectedDepartment =
-                                            StorageKeys.departmentPromotion;
+                                        selectedDepartments = [];
+                                      } else if (selectedDepartments.isEmpty) {
+                                        selectedDepartments = [
+                                          StorageKeys.departmentPromotion,
+                                        ];
                                       }
                                       newstate(() {});
                                     }
                                   },
                                 ),
                                 if (selectedRole == 'employee')
-                                  DynamicDropdown(
-                                    items:
-                                        StorageKeys.departments
-                                            .map(
-                                              (role) => DropdownMenuItem(
-                                                value: role,
-                                                child: Text(
-                                                  StorageKeys.semanticDepartmentLabelKey(
-                                                    role,
-                                                  ).tr,
-                                                ),
-                                              ),
-                                            )
-                                            .toList(),
-                                    value: selectedDepartment,
-                                    label: 'employees.department'.tr,
+                                  DynamicMultiSelect<String>(
+                                    items: StorageKeys.departments,
+                                    selectedValues: selectedDepartments,
+                                    itemLabel:
+                                        (d) =>
+                                            StorageKeys.semanticDepartmentLabelKey(
+                                              d,
+                                            ).tr,
+                                    label: 'employees.departments'.tr,
+                                    hint: 'employees.departments'.tr,
+                                    require: true,
                                     borderRadius: 5,
                                     borderColor: Colors.grey.shade300,
                                     height: 42,
                                     fillColor: Colors.white,
-                                    onChanged: (value) {
-                                      if (value != null) {
-                                        selectedDepartment = value;
-                                      }
+                                    onChanged: (list) {
+                                      selectedDepartments = List<String>.from(
+                                        list,
+                                      );
+                                      newstate(() {});
                                     },
+                                    validator:
+                                        (list) =>
+                                            (list == null || list.isEmpty)
+                                                ? ' '
+                                                : null,
                                   ),
                               ],
                             ),
@@ -684,10 +693,24 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                       ),
                                       onPressed: () {
                                         if (_key.currentState!.validate()) {
-                                          final departmentToSave =
+                                          if (selectedRole == 'employee' &&
+                                              selectedDepartments.isEmpty) {
+                                            FunHelper.showSnackbar(
+                                              'error'.tr,
+                                              'employees.departments_required'.tr,
+                                              snackPosition: SnackPosition.TOP,
+                                              backgroundColor: Colors.red,
+                                              colorText: Colors.white,
+                                            );
+                                            return;
+                                          }
+                                          final departmentsToSave =
                                               selectedRole == 'employee'
-                                                  ? selectedDepartment
-                                                  : null;
+                                                  ? StorageKeys
+                                                      .normalizeDepartments(
+                                                        selectedDepartments,
+                                                      )
+                                                  : <String>[];
                                           if (model == null) {
                                             controller
                                                 .addEmployee(
@@ -704,8 +727,8 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                                     name: nameController.text,
                                                     email: emailController.text,
                                                     role: selectedRole,
-                                                    department:
-                                                        departmentToSave,
+                                                    departments:
+                                                        departmentsToSave,
                                                     status: 'active',
                                                     createdAt: DateTime.now(),
                                                     image:
@@ -738,8 +761,8 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                                             : (model.email ??
                                                                 ''),
                                                     role: selectedRole,
-                                                    department:
-                                                        departmentToSave,
+                                                    departments:
+                                                        departmentsToSave,
                                                     image:
                                                         controller
                                                                 .uploadedFilesPaths

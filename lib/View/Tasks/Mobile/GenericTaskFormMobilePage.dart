@@ -656,7 +656,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
           final filteredEmployees = safeEmployees
               .where(
                 (a) =>
-                    StorageKeys.matchesDepartment(a.department, department) ||
+                    a.hasDepartment(department) ||
                     (((controller.currentEmployee.value?.role == 'admin') ||
                             (controller.currentEmployee.value?.role ==
                                 'supervisor')) &&

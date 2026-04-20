@@ -148,7 +148,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   String? _otherUserId;
   String? _currentUserName;
   // **إضافة لتخزين بيانات الموظف الحالي**
-  String? _currentUserDept;
+  List<String> _currentUserDepts = [];
   String? _currentUserRole;
 
   List<Map<String, dynamic>> _employees = []; // all employees
@@ -387,15 +387,15 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           homeController.currentEmployee.value?.email ??
           'Me'.tr;
       // **جلب بيانات القسم والدور للمستخدم الحالي**
-      _currentUserDept = StorageKeys.normalizeDepartment(
-        homeController.currentEmployee.value?.department,
+      _currentUserDepts = StorageKeys.normalizeDepartments(
+        homeController.currentEmployee.value?.departments ?? const [],
       );
       _currentUserRole = homeController.currentEmployee.value?.role;
     } else {
       // if no users at all, create a temporary id (but better to have employees collection)
       _currentUserId = 'temp_current_user';
       _currentUserName = 'Me'.tr;
-      _currentUserDept = null;
+      _currentUserDepts = [];
       _currentUserRole = null;
     }
 
@@ -479,7 +479,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             'name': data['name'] ?? '',
             'email': data['email'] ?? '',
             'image': data['image'] ?? '',
-            'dept': data['department'] ?? '', // **إضافة حقل القسم**
+            'departments': StorageKeys.normalizeDepartments(
+              (data['departments'] is List)
+                  ? (data['departments'] as List).map((e) => e?.toString())
+                  : [data['department']?.toString()],
+            ),
             'role': data['role'] ?? '', // **إضافة حقل الدور**
           };
         })
@@ -488,15 +492,16 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     // For employee role: show only allowed chat targets.
     // Managers can still chat with anyone.
     if (_currentUserRole == 'employee') {
-      final myDept = _currentUserDept;
+      final myDepts = _currentUserDepts;
       _employees = _employees.where((e) {
         final targetRole = e['role'];
-        final targetDept = e['dept'];
+        final targetDepts = List<String>.from(e['departments'] as List? ?? []);
         final isSpecialRole = StorageKeys.isChatElevatedRole(targetRole);
-        final isSameDept = myDept != null && myDept.isNotEmpty
-            ? StorageKeys.matchesDepartment(targetDept, myDept)
-            : false;
-        return isSpecialRole || isSameDept;
+        final overlap = StorageKeys.departmentListsOverlap(
+          myDepts,
+          targetDepts,
+        );
+        return isSpecialRole || overlap;
       }).toList();
     }
 
@@ -520,70 +525,77 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   // **---------------- Department Group Logic ----------------**
 
-  Future<void> _createOrLoadDepartmentGroup() async {
-    if (_currentUserId == null ||
-        _currentUserDept == null ||
-        _currentUserDept!.isEmpty) {
-      return; // لا يمكن إنشاء مجموعة بدون مُعرف مستخدم أو قسم
+  List<String> _sidebarDepartmentSlugsForChat() {
+    if (_currentUserRole == null) return [];
+    if (StorageKeys.isChatElevatedRole(_currentUserRole)) {
+      return List<String>.from(StorageKeys.departmentSlugs);
     }
+    return List<String>.from(_currentUserDepts);
+  }
+
+  Set<String> _sidebarPinnedDepartmentGroupIds() {
+    return _sidebarDepartmentSlugsForChat().map((s) => 'group_$s').toSet();
+  }
+
+  Future<void> _createOrLoadDepartmentGroup() async {
+    if (_currentUserId == null || _currentUserId == 'temp_current_user') {
+      return;
+    }
+    final slugs = _sidebarDepartmentSlugsForChat();
+    if (slugs.isEmpty) return;
 
     _isLoadingGroup = true;
     setState(() {});
 
-    final deptGroupName = _currentUserDept!;
+    for (final deptGroupName in slugs) {
+      await _syncSingleDepartmentGroup(deptGroupName);
+    }
+
+    _isLoadingGroup = false;
+    setState(() {});
+  }
+
+  Future<void> _syncSingleDepartmentGroup(String deptGroupName) async {
+    if (deptGroupName.isEmpty) return;
     final groupId = 'group_$deptGroupName';
     final groupRef = _firestore.collection('chats').doc(groupId);
 
-    // 1. تحديد المشاركين في المجموعة
-    // هم جميع الموظفين في نفس القسم + جميع الأدمن والسوبر فايزر
     final List<String> participantsIds = [];
     _groupParticipants.clear();
 
-    // إضافة الموظف الحالي
     participantsIds.add(_currentUserId!);
 
-    // إضافة الموظفين من نفس القسم والموظفين ذوي الأدوار الخاصة (Admin/Supervisor)
     _employees.forEach((emp) {
       final empId = emp['id'] as String;
-      final empDept = emp['dept'];
-
-      // تحقق إذا كان موظف من نفس القسم (ويستثنى الموظف الحالي الذي أضفناه بالفعل)
-      final isSameDept = StorageKeys.matchesDepartment(empDept, deptGroupName);
-
-      // تحقق إذا كان أدمن أو سوبر فايزر
+      final empDepts = List<String>.from(emp['departments'] as List? ?? []);
+      final isSameDept = empDepts.any(
+        (ed) => StorageKeys.matchesDepartment(ed, deptGroupName),
+      );
       final isSpecialRole = StorageKeys.isChatElevatedRole(emp['role']);
 
       if ((isSameDept || isSpecialRole) &&
           empId != _currentUserId &&
           !participantsIds.contains(empId)) {
         participantsIds.add(empId);
-        _groupParticipants.add(
-          emp,
-        ); // إضافة بيانات المشاركين الآخرين للاستخدام المحلي
+        _groupParticipants.add(emp);
       }
     });
 
-    // 2. تحديث/إنشاء المجموعة
     final groupSnapshot = await groupRef.get();
 
     if (!groupSnapshot.exists) {
-      // إنشاء مستند المجموعة إذا لم يكن موجودًا
       await groupRef.set({
-        'isGroup': true, // **علامة للمجموعة**
-        'title': deptGroupName, // canonical department key
+        'isGroup': true,
+        'title': deptGroupName,
         'participants': participantsIds,
         'lastMessage': '',
         'lastUpdated': FieldValue.serverTimestamp(),
         'createdAt': FieldValue.serverTimestamp(),
       });
     } else {
-      // تحديث قائمة المشاركين في حالة وجودها (لإضافة الأدمن/السوبر فايزر الجدد أو موظفي القسم الجدد)
-      // قد تحتاج إلى التحقق من Participants قبل التحديث لتجنب الكتابة المتكررة
       final existingParticipants = List<String>.from(
         groupSnapshot.data()?['participants'] ?? [],
       );
-      // Runtime: فقط تأكد أن الموظف الحالي موجود داخل المجموعة.
-      // باقي الأعضاء يتم ضبطهم عبر backfill/عمليات المديرين.
       if (!existingParticipants.contains(_currentUserId)) {
         await groupRef.update({
           'participants': [...existingParticipants, _currentUserId!],
@@ -591,9 +603,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         });
       }
     }
-
-    _isLoadingGroup = false;
-    setState(() {});
   }
 
   void _syncMessageSoundListener() {
@@ -960,10 +969,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   bool _deptGroupTileVisibleForSearch() {
     final q = _chatListSearchQuery.trim().toLowerCase();
     if (q.isEmpty) return true;
-    if (_currentUserDept == null || _currentUserDept!.isEmpty) return false;
-    final gid = 'group_$_currentUserDept';
-    for (final c in _chats) {
-      if (c['id'] == gid) return _chatMatchesListSearch(c);
+    for (final slug in _sidebarDepartmentSlugsForChat()) {
+      final gid = 'group_$slug';
+      for (final c in _chats) {
+        if (c['id'] == gid && _chatMatchesListSearch(c)) return true;
+      }
     }
     return false;
   }
@@ -1062,14 +1072,14 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   // **إضافة لفتح مجموعة القسم**
-  Future<void> _openDepartmentGroup() async {
-    if (_currentUserId == null || _currentUserDept == null) return;
+  Future<void> _openDepartmentGroupForSlug(String deptSlug) async {
+    if (_currentUserId == null || deptSlug.isEmpty) return;
     final prevId = _selectedChat?['id'] as String?;
     if (prevId != null) {
       await _persistScrollSnapshotForChatId(_currentUserId!, prevId);
     }
     _flushScrollDiskTimer();
-    final deptGroupName = _currentUserDept!;
+    final deptGroupName = deptSlug;
     final groupId = 'group_$deptGroupName';
     final groupRef = _firestore.collection('chats').doc(groupId);
 
@@ -1598,80 +1608,82 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                             ),
                           ),
 
-                        // **عرض مجموعة القسم أولاً**
-                        if (_currentUserDept != null &&
-                            _currentUserDept!.isNotEmpty &&
+                        // **عرض مجموعات الأقسام أولاً**
+                        if (_sidebarDepartmentSlugsForChat().isNotEmpty &&
                             _deptGroupTileVisibleForFolder())
-                          StreamBuilder<int>(
-                            stream: _firestoreServices
-                                .unreadIncomingCountStream(
-                                  'group_$_currentUserDept',
-                                  _currentUserId ?? '',
-                                ),
-                            builder: (context, snapshot) {
-                              final unreadCount = snapshot.data ?? 0;
-                              final deptChatId = 'group_$_currentUserDept';
-                              final deptPinned = _pinnedChatIds.contains(
-                                deptChatId,
-                              );
-                              return GestureDetector(
-                                onLongPressStart: (details) {
-                                  _showChatListPinMenu(
-                                    context,
-                                    details.globalPosition,
+                          ..._sidebarDepartmentSlugsForChat().map((deptSlug) {
+                            final deptChatId = 'group_$deptSlug';
+                            return StreamBuilder<int>(
+                              stream: _firestoreServices
+                                  .unreadIncomingCountStream(
                                     deptChatId,
-                                  );
-                                },
-                                child: ListTile(
-                                  leading: chatListLeadingWithPinBadge(
-                                    pinned: deptPinned,
-                                    avatarChild: CircleAvatar(
-                                      radius: 24,
-                                      backgroundColor: Colors.blueGrey.shade100,
-                                      child: Icon(
-                                        Icons.group,
-                                        color: Colors.blueGrey,
+                                    _currentUserId ?? '',
+                                  ),
+                              builder: (context, snapshot) {
+                                final unreadCount = snapshot.data ?? 0;
+                                final deptPinned = _pinnedChatIds.contains(
+                                  deptChatId,
+                                );
+                                return GestureDetector(
+                                  onLongPressStart: (details) {
+                                    _showChatListPinMenu(
+                                      context,
+                                      details.globalPosition,
+                                      deptChatId,
+                                    );
+                                  },
+                                  child: ListTile(
+                                    leading: chatListLeadingWithPinBadge(
+                                      pinned: deptPinned,
+                                      avatarChild: CircleAvatar(
+                                        radius: 24,
+                                        backgroundColor:
+                                            Colors.blueGrey.shade100,
+                                        child: Icon(
+                                          Icons.group,
+                                          color: Colors.blueGrey,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                  title: Text(
-                                    '${AppLocaleKeys.chatDepartmentGroup.tr} ${_currentUserDept!.tr}',
-                                    style: TextStyle(
-                                      fontWeight: unreadCount > 0
-                                          ? FontWeight.bold
-                                          : FontWeight.w400,
-                                      color: Colors.blue.shade700,
+                                    title: Text(
+                                      '${AppLocaleKeys.chatDepartmentGroup.tr} ${StorageKeys.semanticDepartmentLabelKey(deptSlug).tr}',
+                                      style: TextStyle(
+                                        fontWeight: unreadCount > 0
+                                            ? FontWeight.bold
+                                            : FontWeight.w400,
+                                        color: Colors.blue.shade700,
+                                      ),
                                     ),
-                                  ),
-                                  subtitle: Builder(
-                                    builder: (context) {
-                                      final dept = _currentUserDept;
-                                      final fb = AppLocaleKeys
-                                          .chatGroupConversation
-                                          .tr;
-                                      if (dept == null || dept.isEmpty) {
-                                        return Text(fb);
-                                      }
-                                      final gid = 'group_$dept';
-                                      for (final c in _chats) {
-                                        if (c['id'] == gid) {
-                                          return _chatListSubtitleWidget(c, fb);
+                                    subtitle: Builder(
+                                      builder: (context) {
+                                        final fb = AppLocaleKeys
+                                            .chatGroupConversation
+                                            .tr;
+                                        for (final c in _chats) {
+                                          if (c['id'] == deptChatId) {
+                                            return _chatListSubtitleWidget(
+                                              c,
+                                              fb,
+                                            );
+                                          }
                                         }
-                                      }
-                                      return Text(fb);
-                                    },
+                                        return Text(fb);
+                                      },
+                                    ),
+                                    tileColor:
+                                        _selectedChat != null &&
+                                            _selectedChat!['id'] == deptChatId
+                                        ? Colors.blue.shade50
+                                        : null,
+                                    onTap:
+                                        () => _openDepartmentGroupForSlug(
+                                          deptSlug,
+                                        ),
                                   ),
-                                  tileColor:
-                                      _selectedChat != null &&
-                                          _selectedChat!['id'] ==
-                                              'group_$_currentUserDept'
-                                      ? Colors.blue.shade50
-                                      : null,
-                                  onTap: _openDepartmentGroup,
-                                ),
-                              );
-                            },
-                          ),
+                                );
+                              },
+                            );
+                          }),
                         // chats list
                         Expanded(
                           child: _loadingChats
@@ -1718,8 +1730,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                       titleColor = Colors.blue.shade700;
 
                                       // تخطي عرض مجموعة القسم مرة أخرى إذا تم عرضها بالفعل في الأعلى
-                                      if (chatId == 'group_$_currentUserDept')
-                                        return SizedBox.shrink();
+                                      if (_sidebarPinnedDepartmentGroupIds()
+                                          .contains(chatId)) {
+                                        return const SizedBox.shrink();
+                                      }
                                     } else {
                                       // محادثة فردية
                                       final participants = List<String>.from(

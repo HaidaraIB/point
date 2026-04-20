@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/AppConstants.dart';
@@ -87,9 +88,21 @@ class ResponsiveScaffold extends StatelessWidget {
                                     role:
                                         controller.effectiveEmployee?.role ??
                                         '',
-                                    department: controller
-                                        .effectiveEmployee
-                                        ?.department,
+                                    department:
+                                        controller.effectiveEmployee?.departments
+                                                    .isEmpty ??
+                                                true
+                                            ? null
+                                            : controller
+                                                .effectiveEmployee!
+                                                .departments
+                                                .map(
+                                                  (d) =>
+                                                      StorageKeys.semanticDepartmentLabelKey(
+                                                        d,
+                                                      ).tr,
+                                                )
+                                                .join(', '),
                                     avatarUrl:
                                         controller.effectiveEmployee?.image ??
                                         kDefaultAvatarUrl,

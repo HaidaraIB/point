@@ -1,5 +1,16 @@
 part of 'package:point/Controller/HomeController.dart';
 
+List<String> _departmentsFromFirestoreMap(Map<String, dynamic>? m) {
+  if (m == null) return const [];
+  final raw = m['departments'];
+  if (raw is List && raw.isNotEmpty) {
+    return StorageKeys.normalizeDepartments(
+      raw.map((e) => e?.toString()),
+    );
+  }
+  return StorageKeys.normalizeDepartments([m['department']?.toString()]);
+}
+
 /// منطق إعادة ربط تيّاري العملاء والمهام حسب الدور (مستخرج لتقليل حجم [HomeController]).
 Future<void> homeRebindClientsAndTasksStreamsAsync(
   HomeController c,
@@ -38,13 +49,13 @@ Future<void> homeRebindClientsAndTasksStreamsAsync(
     if (role == 'employee') {
       final employeeId =
           roleSnap.data()?['employeeId']?.toString().trim() ?? '';
-      final department = roleSnap.data()?['department']?.toString();
+      final departments = _departmentsFromFirestoreMap(roleSnap.data());
       c.clients.bindStream(c._service.getClientsStream());
       if (employeeId.isNotEmpty) {
         c.tasks.bindStream(
           c._service.getTasksStreamForEmployee(
             employeeId: employeeId,
-            departmentRaw: department,
+            departments: departments,
           ),
         );
       } else {
@@ -82,7 +93,7 @@ Future<void> homeRebindClientsAndTasksStreamsAsync(
       final empData = empDoc.data();
       final empRole = empData['role']?.toString().trim() ?? '';
       final empId = empDoc.id;
-      final dept = empData['department']?.toString();
+      final departments = _departmentsFromFirestoreMap(empData);
       c.clients.bindStream(c._service.getClientsStream());
       if (empRole == 'admin' || empRole == 'supervisor') {
         c.tasks.bindStream(c._service.getTasks());
@@ -90,7 +101,7 @@ Future<void> homeRebindClientsAndTasksStreamsAsync(
         c.tasks.bindStream(
           c._service.getTasksStreamForEmployee(
             employeeId: empId,
-            departmentRaw: dept,
+            departments: departments,
           ),
         );
       } else {

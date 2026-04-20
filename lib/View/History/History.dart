@@ -592,14 +592,14 @@ class History extends StatelessWidget {
                                                                   .value
                                                                   ?.role !=
                                                               'supervisor' &&
-                                                          !StorageKeys.matchesDepartment(
-                                                            controller
-                                                                .currentEmployee
-                                                                .value
-                                                                ?.department,
-                                                            StorageKeys
-                                                                .departmentPromotion,
-                                                          )) {
+                                                          !(controller
+                                                                  .currentEmployee
+                                                                  .value
+                                                                  ?.hasDepartment(
+                                                                    StorageKeys
+                                                                        .departmentPromotion,
+                                                                  ) ??
+                                                              false)) {
                                                         FunHelper.showSnackbar(
                                                           'error'.tr,
                                                           'errors.no_promotion_permission'

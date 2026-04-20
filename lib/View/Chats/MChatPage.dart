@@ -68,7 +68,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
   // local caches
   String? _currentUserId;
   String? _currentUserName;
-  String? _currentUserDept;
+  List<String> _currentUserDepts = [];
   String? _currentUserRole;
 
   List<Map<String, dynamic>> _employees = []; // all employees
@@ -119,13 +119,13 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
           homecontroller.currentEmployee.value?.email ??
           AppLocaleKeys.me.tr;
       _currentUserRole = homecontroller.currentEmployee.value?.role;
-      _currentUserDept = StorageKeys.normalizeDepartment(
-        homecontroller.currentEmployee.value?.department,
+      _currentUserDepts = StorageKeys.normalizeDepartments(
+        homecontroller.currentEmployee.value?.departments ?? const [],
       );
     } else {
       _currentUserId = 'temp_current_user';
       _currentUserName = AppLocaleKeys.me.tr;
-      _currentUserDept = null;
+      _currentUserDepts = [];
       _currentUserRole = null;
     }
 
@@ -208,7 +208,11 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
             'name': data['name'] ?? '',
             'email': data['email'] ?? '',
             'image': data['image'] ?? '',
-            'dept': data['department'] ?? '',
+            'departments': StorageKeys.normalizeDepartments(
+              (data['departments'] is List)
+                  ? (data['departments'] as List).map((e) => e?.toString())
+                  : [data['department']?.toString()],
+            ),
             'role': data['role'] ?? '',
           };
         })
@@ -219,15 +223,16 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
     // - same department as current user
     // This is a UX constraint; final enforcement is done in Firestore rules.
     if (_currentUserRole == 'employee') {
-      final myDept = _currentUserDept;
+      final myDepts = _currentUserDepts;
       _employees = all.where((e) {
         final targetRole = e['role'];
-        final targetDept = e['dept'];
+        final targetDepts = List<String>.from(e['departments'] as List? ?? []);
         final isSpecialRole = StorageKeys.isChatElevatedRole(targetRole);
-        final isSameDept = myDept != null && myDept.isNotEmpty
-            ? StorageKeys.matchesDepartment(targetDept, myDept)
-            : false;
-        return isSpecialRole || isSameDept;
+        final overlap = StorageKeys.departmentListsOverlap(
+          myDepts,
+          targetDepts,
+        );
+        return isSpecialRole || overlap;
       }).toList();
     } else {
       _employees = all;
@@ -252,21 +257,41 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
   }
 
   // ---------------- Department Group Logic ----------------
+  List<String> _sidebarDepartmentSlugsForChat() {
+    if (_currentUserRole == null) return [];
+    if (StorageKeys.isChatElevatedRole(_currentUserRole)) {
+      return List<String>.from(StorageKeys.departmentSlugs);
+    }
+    return List<String>.from(_currentUserDepts);
+  }
+
+  Set<String> _sidebarPinnedDepartmentGroupIds() {
+    return _sidebarDepartmentSlugsForChat().map((s) => 'group_$s').toSet();
+  }
+
   Future<void> _createOrLoadDepartmentGroup() async {
-    if (_currentUserId == null ||
-        _currentUserDept == null ||
-        _currentUserDept!.isEmpty) {
+    if (_currentUserId == null || _currentUserId == 'temp_current_user') {
       return;
     }
+    final slugs = _sidebarDepartmentSlugsForChat();
+    if (slugs.isEmpty) return;
 
     _isLoadingGroup = true;
     if (mounted) setState(() {});
 
-    final deptGroupName = _currentUserDept!;
+    for (final deptGroupName in slugs) {
+      await _syncSingleDepartmentGroup(deptGroupName);
+    }
+
+    _isLoadingGroup = false;
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _syncSingleDepartmentGroup(String deptGroupName) async {
+    if (deptGroupName.isEmpty) return;
     final groupId = 'group_$deptGroupName';
     final groupRef = _firestore.collection('chats').doc(groupId);
 
-    // 1. تحديد المشاركين في المجموعة
     final List<String> participantsIds = [];
     _groupParticipants.clear();
 
@@ -274,10 +299,10 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
 
     _employees.forEach((emp) {
       final empId = emp['id'] as String;
-      final empDept = emp['dept']; // تم تعديلها لتتوافق مع الكاش
-
-      final isSameDept = StorageKeys.matchesDepartment(empDept, deptGroupName);
-
+      final empDepts = List<String>.from(emp['departments'] as List? ?? []);
+      final isSameDept = empDepts.any(
+        (ed) => StorageKeys.matchesDepartment(ed, deptGroupName),
+      );
       final isSpecialRole = StorageKeys.isChatElevatedRole(emp['role']);
 
       if ((isSameDept || isSpecialRole) &&
@@ -288,7 +313,6 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
       }
     });
 
-    // 2. تحديث/إنشاء المجموعة
     final groupSnapshot = await groupRef.get();
 
     if (!groupSnapshot.exists) {
@@ -301,8 +325,6 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
         'createdAt': FieldValue.serverTimestamp(),
       });
     } else {
-      // Keep group participants controlled by backfill; at runtime we only
-      // ensure the current user exists inside the department group.
       final existingParticipants = List<String>.from(
         groupSnapshot.data()?['participants'] ?? [],
       );
@@ -313,9 +335,6 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
         });
       }
     }
-
-    _isLoadingGroup = false;
-    if (mounted) setState(() {});
   }
 
   // ---------------- Chats (Private & Group) ----------------
@@ -509,9 +528,9 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
 
   // لفتح مجموعة القسم والانتقال لشاشة الرسائل
   Future<void> _openDepartmentGroup(Map<String, dynamic> groupChat) async {
-    if (_currentUserId == null || _currentUserDept == null) return;
-    final deptGroupName = _currentUserDept!;
-    final groupId = 'group_$deptGroupName';
+    if (_currentUserId == null) return;
+    final groupId = (groupChat['id'] as String?)?.trim() ?? '';
+    if (!groupId.startsWith('group_')) return;
     final groupRef = _firestore.collection('chats').doc(groupId);
 
     final groupDoc = await groupRef.get();
@@ -739,10 +758,11 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
   bool _deptGroupTileVisibleForSearch() {
     final q = _chatListSearchQuery.trim().toLowerCase();
     if (q.isEmpty) return true;
-    if (_currentUserDept == null || _currentUserDept!.isEmpty) return false;
-    final gid = 'group_$_currentUserDept';
-    for (final c in _chats) {
-      if (c['id'] == gid) return _chatMatchesListSearch(c);
+    for (final slug in _sidebarDepartmentSlugsForChat()) {
+      final gid = 'group_$slug';
+      for (final c in _chats) {
+        if (c['id'] == gid && _chatMatchesListSearch(c)) return true;
+      }
     }
     return false;
   }
@@ -891,87 +911,91 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                           ),
                         ),
                       ),
-                    if (_currentUserDept != null &&
-                        _currentUserDept!.isNotEmpty &&
+                    if (_sidebarDepartmentSlugsForChat().isNotEmpty &&
                         _deptGroupTileVisibleForFolder())
-                      SliverToBoxAdapter(
-                        child: StreamBuilder<int>(
-                          stream: _firestoreServices.unreadIncomingCountStream(
-                            'group_$_currentUserDept',
-                            _currentUserId ?? '',
-                          ),
-                          builder: (context, snapshot) {
-                            final unreadCount = snapshot.data ?? 0;
-                            final groupChatData = _chats.firstWhere(
-                              (c) => c['id'] == 'group_$_currentUserDept',
-                              orElse: () => {},
-                            );
-                            if (groupChatData.isEmpty) {
-                              return const SizedBox.shrink();
-                            }
-                            final deptChatId = 'group_$_currentUserDept';
-                            final deptPinned = _pinnedChatIds.contains(
+                      ..._sidebarDepartmentSlugsForChat().map((deptSlug) {
+                        final deptChatId = 'group_$deptSlug';
+                        return SliverToBoxAdapter(
+                          child: StreamBuilder<int>(
+                            stream: _firestoreServices.unreadIncomingCountStream(
                               deptChatId,
-                            );
+                              _currentUserId ?? '',
+                            ),
+                            builder: (context, snapshot) {
+                              final unreadCount = snapshot.data ?? 0;
+                              final groupChatData = _chats.firstWhere(
+                                (c) => c['id'] == deptChatId,
+                                orElse: () => <String, dynamic>{},
+                              );
+                              if (groupChatData.isEmpty) {
+                                return const SizedBox.shrink();
+                              }
+                              final deptPinned = _pinnedChatIds.contains(
+                                deptChatId,
+                              );
 
-                            return GestureDetector(
-                              onLongPressStart: (details) {
-                                _showChatListPinMenu(
-                                  context,
-                                  details.globalPosition,
-                                  deptChatId,
-                                );
-                              },
-                              child: ListTile(
-                                leading: chatListLeadingWithPinBadge(
-                                  pinned: deptPinned,
-                                  avatarChild: CircleAvatar(
-                                    radius: 24,
-                                    backgroundColor: Colors.blueGrey.shade100,
-                                    child: const Icon(
-                                      Icons.group,
-                                      color: Colors.blueGrey,
+                              return GestureDetector(
+                                onLongPressStart: (details) {
+                                  _showChatListPinMenu(
+                                    context,
+                                    details.globalPosition,
+                                    deptChatId,
+                                  );
+                                },
+                                child: ListTile(
+                                  leading: chatListLeadingWithPinBadge(
+                                    pinned: deptPinned,
+                                    avatarChild: CircleAvatar(
+                                      radius: 24,
+                                      backgroundColor:
+                                          Colors.blueGrey.shade100,
+                                      child: const Icon(
+                                        Icons.group,
+                                        color: Colors.blueGrey,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                title: Text(
-                                  _localizedGroupTitleFromChat(groupChatData),
-                                  style: TextStyle(
-                                    fontWeight: unreadCount > 0
-                                        ? FontWeight.bold
-                                        : FontWeight.w400,
-                                    color: Colors.blue.shade700,
+                                  title: Text(
+                                    _localizedGroupTitleFromChat(
+                                      groupChatData,
+                                    ),
+                                    style: TextStyle(
+                                      fontWeight: unreadCount > 0
+                                          ? FontWeight.bold
+                                          : FontWeight.w400,
+                                      color: Colors.blue.shade700,
+                                    ),
+                                  ),
+                                  subtitle: _chatListSubtitleWidget(
+                                    Map<String, dynamic>.from(groupChatData),
+                                    AppLocaleKeys.chatGroupConversation.tr,
+                                  ),
+                                  trailing: unreadCount > 0
+                                      ? Container(
+                                          padding: const EdgeInsets.all(6),
+                                          decoration: BoxDecoration(
+                                            color: Colors.red,
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                          child: Text(
+                                            unreadCount.toString(),
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        )
+                                      : null,
+                                  onTap: () => _openDepartmentGroup(
+                                    groupChatData,
                                   ),
                                 ),
-                                subtitle: _chatListSubtitleWidget(
-                                  Map<String, dynamic>.from(groupChatData),
-                                  AppLocaleKeys.chatGroupConversation.tr,
-                                ),
-                                trailing: unreadCount > 0
-                                    ? Container(
-                                        padding: const EdgeInsets.all(6),
-                                        decoration: BoxDecoration(
-                                          color: Colors.red,
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          unreadCount.toString(),
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      )
-                                    : null,
-                                onTap: () =>
-                                    _openDepartmentGroup(groupChatData),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
+                              );
+                            },
+                          ),
+                        );
+                      }),
                     if (_loadingChats)
                       SliverFillRemaining(
                         hasScrollBody: false,
@@ -1020,7 +1044,10 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                           final isGroup = ch['isGroup'] ?? false;
                           final chatId = ch['id'] as String;
 
-                          if (isGroup && chatId == 'group_$_currentUserDept') {
+                          if (isGroup &&
+                              _sidebarPinnedDepartmentGroupIds().contains(
+                                chatId,
+                              )) {
                             return const SizedBox.shrink();
                           }
 

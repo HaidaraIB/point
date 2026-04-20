@@ -117,9 +117,9 @@ class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidge
                         if (displayRole.isNotEmpty) ...[
                           if (displayName.isNotEmpty) const SizedBox(height: 2),
                           Text(
-                            localizedRoleWithDepartment(
+                            localizedRoleWithDepartments(
                               displayRole,
-                              emp?.department,
+                              emp?.departments ?? const [],
                             ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,

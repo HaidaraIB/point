@@ -9,18 +9,12 @@ class ContentPermissions {
 
   static bool isPromotionEmployee(EmployeeModel? e) {
     if (!_isEmployee(e)) return false;
-    return StorageKeys.matchesDepartment(
-      e?.department,
-      StorageKeys.departmentPromotion,
-    );
+    return e!.hasDepartment(StorageKeys.departmentPromotion);
   }
 
   static bool isPublishingEmployee(EmployeeModel? e) {
     if (!_isEmployee(e)) return false;
-    return StorageKeys.matchesDepartment(
-      e?.department,
-      StorageKeys.departmentPublishing,
-    );
+    return e!.hasDepartment(StorageKeys.departmentPublishing);
   }
 
   /// إضافة أو تعديل محتوى (نموذج كامل) — النشر والإدارة فقط.

@@ -1030,7 +1030,7 @@ class FirestoreFcmApi {
       final snap =
           await FirebaseFirestore.instance
               .collection('employees')
-              .where('department', isEqualTo: normalized)
+              .where('departments', arrayContains: normalized)
               .get();
       return snap.docs.map((d) => d.id).where((id) => id.isNotEmpty).toList();
     } catch (e) {

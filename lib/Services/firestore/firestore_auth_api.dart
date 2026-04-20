@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:point/Models/ClientModel.dart';
 import 'package:point/Models/EmployeeModel.dart';
+import 'package:point/Services/StorageKeys.dart';
 
 /// مزامنة مستندات [authRoles] مع ملفات الموظف/العميل.
 class FirestoreAuthApi {
@@ -18,12 +19,18 @@ class FirestoreAuthApi {
     final eid = employee.id?.trim();
     if (uid == null || uid.isEmpty || eid == null || eid.isEmpty) return;
     try {
+      final normalizedDepartments = StorageKeys.normalizeDepartments(
+        employee.departments,
+      );
       await FirebaseFirestore.instance.collection(authRolesCollection).doc(uid).set(
         {
           'role': employee.role,
           'employeeId': eid,
           'clientId': null,
-          'department': employee.department,
+          'departments': normalizedDepartments,
+          // Temporary compatibility for old clients still using singular key.
+          'department':
+              normalizedDepartments.isEmpty ? '' : normalizedDepartments.first,
           'updatedAt': FieldValue.serverTimestamp(),
         },
         SetOptions(merge: true),
@@ -45,7 +52,7 @@ class FirestoreAuthApi {
           'role': 'client',
           'employeeId': null,
           'clientId': cid,
-          'department': null,
+          'departments': <String>[],
           'updatedAt': FieldValue.serverTimestamp(),
         },
         SetOptions(merge: true),

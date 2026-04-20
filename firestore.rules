@@ -49,8 +49,35 @@ service cloud.firestore {
       return authRoleData().clientId;
     }
 
-    function myDepartment() {
-      return authRoleData().department;
+    function sliceDepartments(m) {
+      let dd = m.get('departments', []);
+      return dd is list ? dd : [];
+    }
+
+    function myDepartmentsList() {
+      let prim = sliceDepartments(authRoleData());
+      return prim.size() > 0
+        ? prim
+        : (
+            authRoleData().keys().hasAny(['department'])
+            && authRoleData().department is string
+            && authRoleData().department != ''
+            ? [authRoleData().department]
+            : []
+          );
+    }
+
+    function employeeDepartments(emp) {
+      let prim = sliceDepartments(emp);
+      return prim.size() > 0
+        ? prim
+        : (
+            emp.keys().hasAny(['department'])
+            && emp.department is string
+            && emp.department != ''
+            ? [emp.department]
+            : []
+          );
     }
 
     // مستند employees: تطابق صاحب الحساب (authUid أو بريد JWT عند غياب authUid في البيانات القديمة).
@@ -67,14 +94,26 @@ service cloud.firestore {
       return isClientRole() ? myClientId() : myEmployeeId();
     }
 
-    function authRoleDeptMatchesEmployee(emp, dDept) {
-      let d = dDept == null ? '' : dDept;
+    function authRoleDeptMatchesEmployee(emp, deptsFromRequest) {
       let r = emp.role;
-      let ed = emp.department == null ? '' : emp.department;
-      // Managers: allow empty department in authRoles payload, or exact match with employees doc.
+      let ed = employeeDepartments(emp);
+      let dr = deptsFromRequest is list ? deptsFromRequest : [];
       return (r == 'admin' || r == 'supervisor')
-        ? (d == '' || d == null || ed == d)
-        : (ed == d);
+        ? (dr.size() == 0 || (ed.hasAll(dr) && dr.hasAll(ed)))
+        : (ed.hasAll(dr) && dr.hasAll(ed) && ed.size() == dr.size());
+    }
+
+    function requestedAuthRoleDepartments(d) {
+      let prim = sliceDepartments(d);
+      return prim.size() > 0
+        ? prim
+        : (
+            d.keys().hasAny(['department'])
+            && d.department is string
+            && d.department != ''
+            ? [d.department]
+            : []
+          );
     }
 
     // authRoles sync runs on login; employees.authUid may still be empty (chicken-and-egg vs hasAuthRole()).
@@ -93,7 +132,10 @@ service cloud.firestore {
       return exists(empPath)
         && employeeAuthUidMatchesForAuthRolesSync(get(empPath).data)
         && get(empPath).data.role == d.role
-        && authRoleDeptMatchesEmployee(get(empPath).data, d.department);
+        && authRoleDeptMatchesEmployee(
+          get(empPath).data,
+          requestedAuthRoleDepartments(d),
+        );
     }
 
     function clientAuthUidLooksUnset(cl) {
@@ -121,7 +163,23 @@ service cloud.firestore {
     }
 
     function authRoleDocKeysAllowed() {
-      return request.resource.data.keys().hasOnly(['role', 'employeeId', 'clientId', 'department', 'updatedAt']);
+      return request.resource.data.keys().hasOnly([
+        'role',
+        'employeeId',
+        'clientId',
+        'departments',
+        'department',
+        'updatedAt',
+      ]);
+    }
+
+    function authRolesDepartmentsMigrationByAdmin(uid) {
+      return exists(/databases/$(database)/documents/authRoles/$(uid))
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['departments', 'department', 'updatedAt'])
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.employeeId == resource.data.employeeId
+        && request.resource.data.clientId == resource.data.clientId;
     }
 
     function validateAuthRoleWrite() {
@@ -131,20 +189,20 @@ service cloud.firestore {
             || (d.role != 'client' && validateEmployeeAuthRolePayload()));
     }
 
-    function taskTypeMatchesDepartment(taskType, dept) {
-      return (dept == 'promotion' && taskType == '0')
-        || (dept == 'design' && taskType == '1')
-        || (dept == 'photography' && taskType == '2')
-        || (dept == 'content-writing' && taskType == '3')
-        || (dept == 'montage' && taskType == '4')
-        || (dept == 'publishing' && taskType == '5')
-        || (dept == 'programming' && taskType == '6');
+    function taskMatchesAnyEmployeeDepartment(taskType, depts) {
+      return (taskType == '0' && depts.hasAny(['promotion']))
+        || (taskType == '1' && depts.hasAny(['design']))
+        || (taskType == '2' && depts.hasAny(['photography']))
+        || (taskType == '3' && depts.hasAny(['content-writing']))
+        || (taskType == '4' && depts.hasAny(['montage']))
+        || (taskType == '5' && depts.hasAny(['publishing']))
+        || (taskType == '6' && depts.hasAny(['programming']));
     }
 
     function canReadTaskDoc() {
       return isManager()
         || (isEmployeeRole() && (
-          taskTypeMatchesDepartment(resource.data.type, myDepartment())
+          taskMatchesAnyEmployeeDepartment(resource.data.type, myDepartmentsList())
           || resource.data.assignedTo == myEmployeeId()
         ));
     }
@@ -170,19 +228,19 @@ service cloud.firestore {
 
     function canReadContentsDoc() {
       return isManager()
-        || (isEmployeeRole() && (myDepartment() == 'promotion' || myDepartment() == 'publishing'))
+        || (isEmployeeRole() && myDepartmentsList().hasAny(['promotion', 'publishing']))
         || (isClientRole() && resource.data.clientId == myClientId());
     }
 
     // موظف ترويج: يعدّل حقل promotion فقط.
     function promotionEmployeeContentUpdateAllowed() {
-      return isEmployeeRole() && myDepartment() == 'promotion'
+      return isEmployeeRole() && myDepartmentsList().hasAny(['promotion'])
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['promotion']);
     }
 
     // موظف نشر: يعدّل دون لمس promotion (لا حذف — allow delete منفصل).
     function publishingEmployeeContentUpdateAllowed() {
-      return isEmployeeRole() && myDepartment() == 'publishing'
+      return isEmployeeRole() && myDepartmentsList().hasAny(['publishing'])
         && request.resource.data.clientId == resource.data.clientId
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['promotion']);
     }
@@ -205,9 +263,15 @@ service cloud.firestore {
 
     function isMyDepartmentGroupChat(chatIdParam) {
       return isEmployeeRole()
-        && myDepartment() != null
-        && myDepartment() != ''
-        && chatIdParam == ('group_' + myDepartment());
+        && (
+          (myDepartmentsList().hasAny(['promotion']) && chatIdParam == 'group_promotion')
+          || (myDepartmentsList().hasAny(['design']) && chatIdParam == 'group_design')
+          || (myDepartmentsList().hasAny(['photography']) && chatIdParam == 'group_photography')
+          || (myDepartmentsList().hasAny(['content-writing']) && chatIdParam == 'group_content-writing')
+          || (myDepartmentsList().hasAny(['montage']) && chatIdParam == 'group_montage')
+          || (myDepartmentsList().hasAny(['publishing']) && chatIdParam == 'group_publishing')
+          || (myDepartmentsList().hasAny(['programming']) && chatIdParam == 'group_programming')
+        );
     }
 
     // محادثات مجموعة الأقسام: معرّفات group_<slug> (انظر StorageKeys.departmentSlugs).
@@ -320,7 +384,7 @@ service cloud.firestore {
         && (
           get(otherPath).data.role == 'admin'
           || get(otherPath).data.role == 'supervisor'
-          || get(otherPath).data.department == myDepartment()
+          || employeeDepartments(get(otherPath).data).hasAny(myDepartmentsList())
         );
     }
 
@@ -373,7 +437,7 @@ service cloud.firestore {
           'email',
           'phone',
           'role',
-          'department',
+          'departments',
           'fcmToken',
           'onesignal',
           'hireDate',
@@ -385,8 +449,23 @@ service cloud.firestore {
     }
 
     match /authRoles/{uid} {
-      allow read: if isSignedIn() && request.auth.uid == uid;
-      allow create, update: if isSignedIn() && request.auth.uid == uid && validateAuthRoleWrite();
+      // Own doc: always (incl. before first sync completes). Managers: list/query all for dashboards + migration.
+      allow read: if isSignedIn()
+        && (
+          request.auth.uid == uid
+          || (hasAuthRole() && isManager())
+        );
+      allow create: if isSignedIn() && request.auth.uid == uid && validateAuthRoleWrite();
+      allow update: if (isSignedIn() && request.auth.uid == uid && validateAuthRoleWrite())
+        || (isSignedIn() && hasAuthRole() && isManager() && authRolesDepartmentsMigrationByAdmin(uid));
+      allow delete: if false;
+    }
+
+    match /meta/{docId} {
+      allow read: if isSignedIn() && hasAuthRole() && isManager();
+      // Supervisors run the same client backfill path as admins.
+      allow create, update: if isSignedIn() && hasAuthRole() && isManager()
+        && docId == 'employee_departments_v1';
       allow delete: if false;
     }
 
@@ -400,7 +479,7 @@ service cloud.firestore {
       allow delete: if isSignedIn() && hasAuthRole() && isAdmin()
         && employeeId != myEmployeeId();
 
-      // موظف عادي: توكن/دردشة، أو تعديل name/image على مستنده فقط (لا role/department/email).
+      // موظف عادي: توكن/دردشة، أو تعديل name/image على مستنده فقط (لا role/departments/email).
       allow update: if isSignedIn() && hasAuthRole() && isManager()
         || employeeAuthBootstrapUpdate()
         || (isSignedIn() && hasAuthRole() && isEmployeeRole()
@@ -446,7 +525,7 @@ service cloud.firestore {
 
       allow create: if isSignedIn() && hasAuthRole()
         && (isManager()
-          || (isEmployeeRole() && myDepartment() == 'publishing'));
+          || (isEmployeeRole() && myDepartmentsList().hasAny(['publishing'])));
 
       allow delete: if isSignedIn() && hasAuthRole() && isManager();
 

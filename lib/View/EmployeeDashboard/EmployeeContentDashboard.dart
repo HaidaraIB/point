@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/AppConstants.dart';
@@ -155,7 +156,16 @@ class EmployeeContentDashboard extends StatelessWidget {
                   name: controller.currentEmployee.value?.name ?? '',
                   role: controller.currentEmployee.value?.role ?? '',
                   department:
-                      controller.currentEmployee.value?.department,
+                      controller.currentEmployee.value?.departments.isEmpty ??
+                              true
+                          ? null
+                          : controller.currentEmployee.value!.departments
+                              .map(
+                                (d) => StorageKeys.semanticDepartmentLabelKey(
+                                  d,
+                                ).tr,
+                              )
+                              .join(', '),
                   avatarUrl:
                       controller.currentEmployee.value?.image ??
                       kDefaultAvatarUrl,

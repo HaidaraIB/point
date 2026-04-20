@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/EmployeeModel.dart';
+import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Shared/CustomDropDown.dart';
+import 'package:point/View/Shared/MultiSelectDropDown.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/ReadOnlyAccountEmailField.dart';
 import 'package:point/Utils/PasswordValidator.dart';
@@ -30,7 +32,7 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
 
   bool obscurePassword = true;
   String selectedRole = "employee";
-  String selectedDepartment = StorageKeys.departmentPromotion;
+  List<String> selectedDepartments = [StorageKeys.departmentPromotion];
   static const List<String> _roles = [
     "supervisor",
     "admin",
@@ -57,7 +59,12 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
     emailController = TextEditingController(text: m?.email);
     passwordController = TextEditingController();
     selectedRole = m?.role ?? "employee";
-    selectedDepartment = m?.department ?? StorageKeys.departmentPromotion;
+    selectedDepartments =
+        m == null
+            ? <String>[StorageKeys.departmentPromotion]
+            : (m.departments.isNotEmpty
+                ? List<String>.from(m.departments)
+                : <String>[StorageKeys.departmentPromotion]);
     final controller = Get.find<HomeController>();
     controller.uploadedFilesPaths.assignAll(
       m != null && m.image != null ? [m.image!] : [],
@@ -76,7 +83,20 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
     if (!_formKey.currentState!.validate()) return;
     final controller = Get.find<HomeController>();
     final model = widget.model;
-    final departmentToSave = selectedRole == 'employee' ? selectedDepartment : null;
+    if (selectedRole == 'employee' && selectedDepartments.isEmpty) {
+      FunHelper.showSnackbar(
+        'error'.tr,
+        'employees.departments_required'.tr,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+    final departmentsToSave =
+        selectedRole == 'employee'
+            ? StorageKeys.normalizeDepartments(selectedDepartments)
+            : <String>[];
 
     if (model == null) {
       final success = await controller.addEmployee(
@@ -89,7 +109,7 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
           name: nameController.text,
           email: emailController.text,
           role: selectedRole,
-          department: departmentToSave,
+          departments: departmentsToSave,
           status: 'active',
           createdAt: DateTime.now(),
           image:
@@ -112,7 +132,7 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                   ? emailController.text
                   : (model.email ?? ''),
           role: selectedRole,
-          department: departmentToSave,
+          departments: departmentsToSave,
           image:
               controller.uploadedFilesPaths.isNotEmpty
                   ? controller.uploadedFilesPaths.last
@@ -288,7 +308,11 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                         setState(() {
                           selectedRole = value;
                           if (selectedRole != 'employee') {
-                            selectedDepartment = StorageKeys.departmentPromotion;
+                            selectedDepartments = [];
+                          } else if (selectedDepartments.isEmpty) {
+                            selectedDepartments = [
+                              StorageKeys.departmentPromotion,
+                            ];
                           }
                         });
                       }
@@ -296,31 +320,24 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                   ),
                   if (selectedRole == 'employee') ...[
                     const SizedBox(height: 16),
-                    DynamicDropdown<String>(
-                      items:
-                          StorageKeys.departments
-                              .map(
-                                (d) => DropdownMenuItem(
-                                  value: d,
-                                  child: Text(
-                                    StorageKeys.semanticDepartmentLabelKey(
-                                      d,
-                                    ).tr,
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                      value: selectedDepartment,
-                      label: 'employees.department'.tr,
+                    DynamicMultiSelect<String>(
+                      items: StorageKeys.departments,
+                      selectedValues: selectedDepartments,
+                      itemLabel:
+                          (d) => StorageKeys.semanticDepartmentLabelKey(d).tr,
+                      label: 'employees.departments'.tr,
+                      hint: 'employees.departments'.tr,
+                      require: true,
                       borderRadius: 8,
                       borderColor: Colors.grey.shade300,
                       height: 48,
                       fillColor: Colors.white,
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() => selectedDepartment = value);
-                        }
+                      onChanged: (list) {
+                        setState(() => selectedDepartments = List<String>.from(list));
                       },
+                      validator:
+                          (list) =>
+                              (list == null || list.isEmpty) ? ' ' : null,
                     ),
                   ],
                   const SizedBox(height: 32),

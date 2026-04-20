@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Models/EmployeeModel.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Shared/app_version_label.dart';
@@ -91,10 +92,12 @@ class _EmployeeProfileFormState extends State<EmployeeProfileForm> {
     }
   }
 
-  static String departmentLabel(String? department) {
-    final d = (department ?? '').trim();
-    if (d.isEmpty) return '—';
-    return StorageKeys.semanticDepartmentLabelKey(d).tr;
+  static String departmentsLabel(EmployeeModel? emp) {
+    final list = emp?.departments ?? const <String>[];
+    if (list.isEmpty) return '—';
+    return list
+        .map((d) => StorageKeys.semanticDepartmentLabelKey(d).tr)
+        .join(', ');
   }
 
   @override
@@ -201,7 +204,7 @@ class _EmployeeProfileFormState extends State<EmployeeProfileForm> {
                   const SizedBox(height: 12),
                   _readOnlyLine(
                     label: 'employee.profile.department'.tr,
-                    value: departmentLabel(emp?.department),
+                    value: departmentsLabel(emp),
                   ),
                   const SizedBox(height: 32),
                   Obx(

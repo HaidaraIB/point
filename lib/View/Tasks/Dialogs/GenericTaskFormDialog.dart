@@ -143,8 +143,7 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
           child: DynamicDropdown(
             items: controller.employees
                 .where(
-                  (a) => StorageKeys.matchesDepartment(
-                    a.department,
+                  (a) => a.hasDepartment(
                     widget.delegate.executorDepartment,
                   ) ||
                   (((controller.currentEmployee.value?.role == 'admin') ||

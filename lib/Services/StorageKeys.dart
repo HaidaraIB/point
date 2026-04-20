@@ -329,6 +329,17 @@ class StorageKeys {
   static List<String> employeeDashboardTaskStatusFilterDropdownValuesForDepartment(
     String? departmentRaw,
   ) {
+    if (departmentRaw == null || departmentRaw.trim().isEmpty) {
+      final seen = <String>{};
+      final out = <String>[];
+      for (final s in [
+        ...promotionTaskStatusListOngoing,
+        ...statusListOngoing,
+      ]) {
+        if (seen.add(s)) out.add(s);
+      }
+      return out;
+    }
     if (matchesDepartment(departmentRaw, departmentPromotion)) {
       final seen = <String>{};
       final out = <String>[];
@@ -350,6 +361,14 @@ class StorageKeys {
   ) {
     final s = status.trim();
     if (s.isEmpty) return true;
+    if (departmentRaw == null || departmentRaw.trim().isEmpty) {
+      final allowed = <String>{
+        ...promotionTaskStatusListOngoing,
+        ...statusListOngoing,
+        ...legacyPromotionOngoingTaskStatuses,
+      };
+      return allowed.contains(s);
+    }
     if (matchesDepartment(departmentRaw, departmentPromotion)) {
       final allowed = <String>{
         ...promotionTaskStatusListOngoing,
@@ -492,6 +511,31 @@ class StorageKeys {
 
   static bool matchesDepartment(String? value, String semanticDepartment) =>
       normalizeDepartment(value) == normalizeDepartment(semanticDepartment);
+
+  /// Normalizes, de-duplicates, and keeps only known department slugs.
+  static List<String> normalizeDepartments(Iterable<String?> raw) {
+    final out = <String>[];
+    final seen = <String>{};
+    for (final r in raw) {
+      final n = normalizeDepartment(r);
+      if (n.isEmpty || seen.contains(n)) continue;
+      seen.add(n);
+      out.add(n);
+    }
+    return out;
+  }
+
+  /// True if [a] and [b] share at least one normalized department slug.
+  static bool departmentListsOverlap(Iterable<String> a, Iterable<String> b) {
+    final sa = normalizeDepartments(a);
+    final sb = normalizeDepartments(b);
+    if (sa.isEmpty || sb.isEmpty) return false;
+    final setB = sb.toSet();
+    for (final x in sa) {
+      if (setB.contains(x)) return true;
+    }
+    return false;
+  }
 
   /// أدوار تُضاف تلقائياً إلى كل مجموعات أقسام الدردشة (مدير / مشرف).
   static bool isChatElevatedRole(dynamic role) {
