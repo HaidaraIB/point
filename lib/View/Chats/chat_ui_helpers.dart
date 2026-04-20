@@ -76,8 +76,10 @@ class ChatReplyDraft {
   final String messageId;
   final String preview;
   final String? replySenderName;
+
   /// Thumbnail URL when the quoted message is an image (`attachmentUrl`).
   final String? replyImageUrl;
+
   /// Video file URL when the quoted message is a video (thumbnail generated client-side).
   final String? replyVideoUrl;
 
@@ -231,15 +233,40 @@ Widget chatLeadingAvatar({
   required Color backgroundColor,
   required String initial,
   IconData? groupIcon,
+  String? assetImagePath,
   String? imageUrl,
   Color iconColor = Colors.blueGrey,
   Color initialTextColor = Colors.black,
 }) {
+  Widget fallbackChild() {
+    if (groupIcon != null) {
+      return Icon(groupIcon, color: iconColor);
+    }
+    return Text(initial, style: TextStyle(color: initialTextColor));
+  }
+
+  final localAsset = assetImagePath?.trim() ?? '';
+  if (localAsset.isNotEmpty) {
+    final dim = radius * 2;
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: backgroundColor,
+      child: ClipOval(
+        child: Image.asset(
+          localAsset,
+          width: dim,
+          height: dim,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => fallbackChild(),
+        ),
+      ),
+    );
+  }
   if (groupIcon != null) {
     return CircleAvatar(
       radius: radius,
       backgroundColor: backgroundColor,
-      child: Icon(groupIcon, color: iconColor),
+      child: fallbackChild(),
     );
   }
   if (isChatImageHttpUrl(imageUrl)) {
@@ -254,11 +281,10 @@ Widget chatLeadingAvatar({
           width: dim,
           height: dim,
           fit: BoxFit.cover,
-          errorBuilder:
-              (_, __, ___) => Text(
-                initial,
-                style: TextStyle(color: initialTextColor, fontSize: 14),
-              ),
+          errorBuilder: (_, __, ___) => Text(
+            initial,
+            style: TextStyle(color: initialTextColor, fontSize: 14),
+          ),
         ),
       ),
     );
@@ -266,9 +292,6 @@ Widget chatLeadingAvatar({
   return CircleAvatar(
     radius: radius,
     backgroundColor: backgroundColor,
-    child: Text(
-      initial,
-      style: TextStyle(color: initialTextColor),
-    ),
+    child: fallbackChild(),
   );
 }

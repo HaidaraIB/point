@@ -414,11 +414,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     _pinnedChatIds = await ChatListPinsPersistence.loadPinnedChatIds(uid);
   }
 
-  bool _deptGroupTileVisibleForFolder() {
-    if (_chatListFolder == ChatListFolder.privateChats) return false;
-    return _deptGroupTileVisibleForSearch();
-  }
-
   List<Map<String, dynamic>> _visibleChatsOrderedForSidebar() {
     final searched = _visibleChatsForSearch();
     final foldered = filterChatsByFolder(searched, _chatListFolder);
@@ -531,10 +526,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       return List<String>.from(StorageKeys.departmentSlugs);
     }
     return List<String>.from(_currentUserDepts);
-  }
-
-  Set<String> _sidebarPinnedDepartmentGroupIds() {
-    return _sidebarDepartmentSlugsForChat().map((s) => 'group_$s').toSet();
   }
 
   Future<void> _createOrLoadDepartmentGroup() async {
@@ -934,6 +925,40 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     return AppLocaleKeys.chatDepartmentGroup.tr;
   }
 
+  String? _departmentGroupAssetPathFromSlug(String rawDepartment) {
+    final department = StorageKeys.normalizeDepartment(rawDepartment);
+    if (department.isEmpty) return null;
+    switch (department) {
+      case StorageKeys.departmentContentWriting:
+        return 'assets/images/content_writing_group_pic.png';
+      case StorageKeys.departmentDesign:
+        return 'assets/images/design_group_pic.png';
+      case StorageKeys.departmentMontage:
+        return 'assets/images/montage_group_pic.png';
+      case StorageKeys.departmentPhotography:
+        return 'assets/images/photograph_group_pic.png';
+      case StorageKeys.departmentProgramming:
+        return 'assets/images/programming_group_pic.png';
+      case StorageKeys.departmentPromotion:
+        return 'assets/images/promotion_group_pic.png';
+      case StorageKeys.departmentPublishing:
+        return 'assets/images/publish_group_pic.png';
+      default:
+        return null;
+    }
+  }
+
+  String? _departmentGroupAssetPathFromChat(Map<String, dynamic> chat) {
+    final chatId = (chat['id'] ?? '').toString();
+    final rawTitle = (chat['title'] ?? '').toString();
+    final fromChatId = chatId.startsWith('group_') && chatId.length > 6
+        ? chatId.substring(6)
+        : '';
+    return _departmentGroupAssetPathFromSlug(
+      fromChatId.isNotEmpty ? fromChatId : rawTitle,
+    );
+  }
+
   bool _chatMatchesListSearch(Map<String, dynamic> ch) {
     final q = _chatListSearchQuery.trim().toLowerCase();
     if (q.isEmpty) return true;
@@ -962,18 +987,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
     if (otherId.length <= 10) {
       return otherId.toLowerCase().contains(q);
-    }
-    return false;
-  }
-
-  bool _deptGroupTileVisibleForSearch() {
-    final q = _chatListSearchQuery.trim().toLowerCase();
-    if (q.isEmpty) return true;
-    for (final slug in _sidebarDepartmentSlugsForChat()) {
-      final gid = 'group_$slug';
-      for (final c in _chats) {
-        if (c['id'] == gid && _chatMatchesListSearch(c)) return true;
-      }
     }
     return false;
   }
@@ -1069,47 +1082,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       _scrollUnreadBelowLast = -1;
     });
     _syncMessageSoundListener();
-  }
-
-  // **إضافة لفتح مجموعة القسم**
-  Future<void> _openDepartmentGroupForSlug(String deptSlug) async {
-    if (_currentUserId == null || deptSlug.isEmpty) return;
-    final prevId = _selectedChat?['id'] as String?;
-    if (prevId != null) {
-      await _persistScrollSnapshotForChatId(_currentUserId!, prevId);
-    }
-    _flushScrollDiskTimer();
-    final deptGroupName = deptSlug;
-    final groupId = 'group_$deptGroupName';
-    final groupRef = _firestore.collection('chats').doc(groupId);
-
-    final groupDoc = await groupRef.get();
-    if (groupDoc.exists) {
-      final chatData = groupDoc.data() ?? {};
-      final gid = groupDoc.id;
-      final openSnap = await ChatScrollPersistence.load(_currentUserId!, gid);
-      _selectedChat = {
-        'id': gid,
-        'participants': List<String>.from(chatData['participants'] ?? []),
-        'lastMessage': chatData['lastMessage'] ?? '',
-        'isGroup': chatData['isGroup'] ?? false,
-        'title': chatData['title'],
-      };
-
-      _syncMessagesStreamWithSelection();
-      _otherUserId = null; // لا يوجد طرف آخر محدد في المجموعة
-      setState(() {
-        _scrollSnapshotCache.remove(gid);
-        if (prevId != gid) {
-          _chatMessageListEpoch++;
-        }
-        _persistedOpenScroll = openSnap;
-        _persistedOpenScrollForChatId = gid;
-        _scrollFabVisibleLast = null;
-        _scrollUnreadBelowLast = -1;
-      });
-      _syncMessageSoundListener();
-    }
   }
 
   // -----------// إرسال رسالة (نص أو مرفق)
@@ -1608,82 +1580,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                             ),
                           ),
 
-                        // **عرض مجموعات الأقسام أولاً**
-                        if (_sidebarDepartmentSlugsForChat().isNotEmpty &&
-                            _deptGroupTileVisibleForFolder())
-                          ..._sidebarDepartmentSlugsForChat().map((deptSlug) {
-                            final deptChatId = 'group_$deptSlug';
-                            return StreamBuilder<int>(
-                              stream: _firestoreServices
-                                  .unreadIncomingCountStream(
-                                    deptChatId,
-                                    _currentUserId ?? '',
-                                  ),
-                              builder: (context, snapshot) {
-                                final unreadCount = snapshot.data ?? 0;
-                                final deptPinned = _pinnedChatIds.contains(
-                                  deptChatId,
-                                );
-                                return GestureDetector(
-                                  onLongPressStart: (details) {
-                                    _showChatListPinMenu(
-                                      context,
-                                      details.globalPosition,
-                                      deptChatId,
-                                    );
-                                  },
-                                  child: ListTile(
-                                    leading: chatListLeadingWithPinBadge(
-                                      pinned: deptPinned,
-                                      avatarChild: CircleAvatar(
-                                        radius: 24,
-                                        backgroundColor:
-                                            Colors.blueGrey.shade100,
-                                        child: Icon(
-                                          Icons.group,
-                                          color: Colors.blueGrey,
-                                        ),
-                                      ),
-                                    ),
-                                    title: Text(
-                                      '${AppLocaleKeys.chatDepartmentGroup.tr} ${StorageKeys.semanticDepartmentLabelKey(deptSlug).tr}',
-                                      style: TextStyle(
-                                        fontWeight: unreadCount > 0
-                                            ? FontWeight.bold
-                                            : FontWeight.w400,
-                                        color: Colors.blue.shade700,
-                                      ),
-                                    ),
-                                    subtitle: Builder(
-                                      builder: (context) {
-                                        final fb = AppLocaleKeys
-                                            .chatGroupConversation
-                                            .tr;
-                                        for (final c in _chats) {
-                                          if (c['id'] == deptChatId) {
-                                            return _chatListSubtitleWidget(
-                                              c,
-                                              fb,
-                                            );
-                                          }
-                                        }
-                                        return Text(fb);
-                                      },
-                                    ),
-                                    tileColor:
-                                        _selectedChat != null &&
-                                            _selectedChat!['id'] == deptChatId
-                                        ? Colors.blue.shade50
-                                        : null,
-                                    onTap:
-                                        () => _openDepartmentGroupForSlug(
-                                          deptSlug,
-                                        ),
-                                  ),
-                                );
-                              },
-                            );
-                          }),
                         // chats list
                         Expanded(
                           child: _loadingChats
@@ -1719,6 +1615,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                     String? employImage;
                                     Color avatarColor;
                                     IconData? avatarIcon;
+                                    String? groupAssetPath;
                                     Color? titleColor;
 
                                     if (isGroup) {
@@ -1727,13 +1624,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                       initial = _initialFromName(displayName);
                                       avatarColor = Colors.blueGrey.shade100;
                                       avatarIcon = Icons.group;
+                                      groupAssetPath =
+                                          _departmentGroupAssetPathFromChat(ch);
                                       titleColor = Colors.blue.shade700;
-
-                                      // تخطي عرض مجموعة القسم مرة أخرى إذا تم عرضها بالفعل في الأعلى
-                                      if (_sidebarPinnedDepartmentGroupIds()
-                                          .contains(chatId)) {
-                                        return const SizedBox.shrink();
-                                      }
                                     } else {
                                       // محادثة فردية
                                       final participants = List<String>.from(
@@ -1761,6 +1654,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                       employImage = other['image'];
                                       avatarColor = Colors.grey.shade200;
                                       avatarIcon = null;
+                                      groupAssetPath = null;
                                       titleColor = Colors.black;
                                     }
 
@@ -1862,50 +1756,23 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                               });
                                               _syncMessageSoundListener();
                                             },
-                                            leading: chatListLeadingWithPinBadge(
-                                              pinned: isPinned,
-                                              avatarChild: CircleAvatar(
-                                                radius: 24,
-                                                backgroundColor: avatarColor,
-                                                child: avatarIcon != null
-                                                    ? Icon(
-                                                        avatarIcon,
-                                                        color: Colors.black54,
-                                                      )
-                                                    : (employImage != null &&
-                                                          employImage
-                                                              .toString()
-                                                              .trim()
-                                                              .isNotEmpty)
-                                                    ? ClipOval(
-                                                        child: Image.network(
-                                                          employImage
-                                                              .toString(),
-                                                          width: 48,
-                                                          height: 48,
-                                                          fit: BoxFit.cover,
-                                                          errorBuilder:
-                                                              (
-                                                                _,
-                                                                __,
-                                                                ___,
-                                                              ) => Text(
-                                                                initial,
-                                                                style: TextStyle(
-                                                                  color: Colors
-                                                                      .black,
-                                                                ),
-                                                              ),
-                                                        ),
-                                                      )
-                                                    : Text(
-                                                        initial,
-                                                        style: TextStyle(
-                                                          color: Colors.black,
-                                                        ),
+                                            leading:
+                                                chatListLeadingWithPinBadge(
+                                                  pinned: isPinned,
+                                                  avatarChild:
+                                                      chatLeadingAvatar(
+                                                        radius: 24,
+                                                        backgroundColor:
+                                                            avatarColor,
+                                                        initial: initial,
+                                                        groupIcon: avatarIcon,
+                                                        assetImagePath:
+                                                            groupAssetPath,
+                                                        imageUrl: employImage
+                                                            ?.toString()
+                                                            .trim(),
                                                       ),
-                                              ),
-                                            ),
+                                                ),
                                             title: Text(
                                               displayName,
                                               style: TextStyle(
@@ -1998,6 +1865,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                               ),
                                               groupIcon: isGroup
                                                   ? Icons.group
+                                                  : null,
+                                              assetImagePath: isGroup
+                                                  ? _departmentGroupAssetPathFromChat(
+                                                      _selectedChat!,
+                                                    )
                                                   : null,
                                               imageUrl: isGroup
                                                   ? null
