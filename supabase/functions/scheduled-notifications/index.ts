@@ -1244,12 +1244,40 @@ function buildProgressTierReminderPayload(
   return null;
 }
 
-/** مهام انتهت من ناحية سير العمل — لا نرسل تذكير اقتراب موعد. */
-const TASK_ENDED_STATUSES = new Set([
+/** مهام انتهت من ناحية سير العمل — لا نرسل تذكير اقتراب موعد / متأخر. (يتوافق مع StorageKeys + نصوص قديمة) */
+const TASK_ENDED_STATUSES_ARRAY = [
   "status_approved",
   "status_published",
   "status_rejected",
-]);
+  "status_task_completed",
+  "status_promotion_finished",
+  // نصوص عربية/إنجليزية قد تُخزَّن كقيمة status في بيانات قديمة (FunHelper._displayLabelToStatusKey)
+  "مهمة مكتملة",
+  "تم النشر",
+  "مرفوض",
+  "انتهاء الترويج",
+  "تمت الموافقة",
+  "Task completed",
+  "Published",
+  "Rejected",
+  "Approved",
+  "task completed",
+  "published",
+  "rejected",
+  "approved",
+] as const;
+
+const TASK_ENDED_STATUSES = new Set<string>(TASK_ENDED_STATUSES_ARRAY);
+const TASK_ENDED_STATUSES_LOWER = new Set(
+  TASK_ENDED_STATUSES_ARRAY.map((s) => s.toLowerCase()),
+);
+
+function taskIsEndedForReminders(raw: string | undefined | null): boolean {
+  const s = (raw ?? "").trim();
+  if (!s) return false;
+  if (TASK_ENDED_STATUSES.has(s)) return true;
+  return TASK_ENDED_STATUSES_LOWER.has(s.toLowerCase());
+}
 
 /** حالات جارية — للفحص عن جمود/تحديث (يتطابق مع التطبيق). */
 const TASK_ONGOING_STATUSES: string[] = [
@@ -1318,7 +1346,7 @@ async function handleTaskReminders({
     const assignedTo = (f?.assignedTo?.stringValue as string) ?? "";
     if (!assignedTo) continue;
     const st = getStringField(f, "status") ?? "";
-    if (TASK_ENDED_STATUSES.has(st)) continue;
+    if (taskIsEndedForReminders(st)) continue;
     const emp = byEmpId.get(assignedTo);
     const empName = emp?.name ?? assignedTo;
     const msgBody = `تجاوزت موعد التسليم: ${title} — الموظف: ${empName}`;
@@ -1388,7 +1416,7 @@ async function handleTaskReminders({
     const toDateStr = getStringField(f, "toDate");
     const status = getStringField(f, "status") ?? "";
     if (!assignedTo || !toDateStr) continue;
-    if (TASK_ENDED_STATUSES.has(status)) continue;
+    if (taskIsEndedForReminders(status)) continue;
 
     const toDate = new Date(toDateStr);
     if (Number.isNaN(toDate.getTime())) continue;
@@ -1637,7 +1665,7 @@ async function handleTaskReminders({
     const title = (f?.title?.stringValue as string) ?? "مهمة";
     const assignedTo = (f?.assignedTo?.stringValue as string) ?? "";
     const st = getStringField(f, "status") ?? "";
-    if (!assignedTo || TASK_ENDED_STATUSES.has(st)) continue;
+    if (!assignedTo || taskIsEndedForReminders(st)) continue;
 
     const emp = byEmpId.get(assignedTo);
 
