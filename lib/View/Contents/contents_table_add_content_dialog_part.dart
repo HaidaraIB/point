@@ -68,6 +68,53 @@ Future<void> _openAttachmentUrl(String rawUrl) async {
   await openUrlPreferInAppMedia(rawUrl);
 }
 
+Widget _buildAttachmentSourceInput({
+  required String labelText,
+  required VoidCallback onTap,
+  bool loading = false,
+}) {
+  return GestureDetector(
+    onTap: onTap,
+    child: InputText(
+      labelText: labelText,
+      hintText: ''.tr,
+      validator: (_) => null,
+      enable: false,
+      height: 100,
+      fillColor: Colors.white,
+      expanded: true,
+      body: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(color: Colors.grey.shade200),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 10),
+              child: Text(
+                'dragfile'.tr,
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+            ),
+            MainButton(
+              width: 150,
+              borderSize: 5,
+              height: 30,
+              fontSize: 11,
+              load: loading,
+              title: 'content.attachment_add_from_source'.tr,
+              backgroundColor: Colors.white,
+              fontColor: AppColors.primaryfontColor,
+            ),
+          ],
+        ),
+      ),
+      borderRadius: 5,
+      borderColor: Colors.grey.shade300,
+    ),
+  );
+}
+
 void showAddContentDialog(
   BuildContext context, {
   ContentModel? model,
@@ -96,6 +143,78 @@ void showAddContentDialog(
   final postAttachmentController = TextEditingController();
   final storyAttachmentController = TextEditingController();
   var submitStatus = StorageKeys.status_under_revision;
+  List<String> splitAttachmentInput(String raw) {
+    return raw
+        .split(RegExp(r'[\n,]'))
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+  }
+
+  void appendAttachmentLinks(
+    TextEditingController controller,
+    List<String> urls,
+  ) {
+    if (urls.isEmpty) return;
+    final current = splitAttachmentInput(controller.text);
+    final merged = {...current, ...urls}.toList();
+    controller.text = merged.join('\n');
+  }
+
+  Future<void> pickMainAttachmentFromLocal() async {
+    final files = await hc.pickMultiFiles();
+    for (final file in files) {
+      final bytes = file.bytes;
+      if (bytes == null) continue;
+      await hc.uploadFiles(filePathOrBytes: bytes, fileName: file.name);
+    }
+  }
+
+  Future<void> pickMainAttachmentWithSource(BuildContext context) async {
+    final source = await showContentAttachmentSourceDialog(context);
+    if (source == null) return;
+    if (source == ContentAttachmentSource.local) {
+      await pickMainAttachmentFromLocal();
+      return;
+    }
+    final selected = await showLibraryAttachmentPickerDialog(context);
+    if (selected.isEmpty) return;
+    final merged = <String>{
+      ...hc.uploadedFilesPaths.map((e) => e.toString().trim()),
+      ...selected.map((e) => e.trim()),
+    }.where((e) => e.isNotEmpty).toList();
+    hc.uploadedFilesPaths.assignAll(merged);
+  }
+
+  Future<void> pickAttachmentFieldFromLocal(
+    TextEditingController targetController,
+  ) async {
+    final files = await hc.pickMultiFiles();
+    final added = <String>[];
+    for (final file in files) {
+      final bytes = file.bytes;
+      if (bytes == null) continue;
+      final url = await hc.uploadFiles(filePathOrBytes: bytes, fileName: file.name);
+      if (url != null && url.trim().isNotEmpty) {
+        added.add(url.trim());
+      }
+    }
+    appendAttachmentLinks(targetController, added);
+  }
+
+  Future<void> pickAttachmentFieldWithSource(
+    BuildContext context,
+    TextEditingController targetController,
+  ) async {
+    final source = await showContentAttachmentSourceDialog(context);
+    if (source == null) return;
+    if (source == ContentAttachmentSource.local) {
+      await pickAttachmentFieldFromLocal(targetController);
+      return;
+    }
+    final selected = await showLibraryAttachmentPickerDialog(context);
+    appendAttachmentLinks(targetController, selected);
+  }
 
   final publishDatectr = TextEditingController(
     text: FunHelper.formatdate(model?.publishDate),
@@ -393,76 +512,13 @@ void showAddContentDialog(
                                       ),
                                       SizedBox(
                                         width: (Get.width * 0.7 / 2) - 30,
-                                        child: GestureDetector(
-                                          onTap: () async {
-                                            final files =
-                                                await controller
-                                                    .pickMultiFiles();
-                                            for (var file in files) {
-                                              controller.uploadFiles(
-                                                filePathOrBytes: file.bytes!,
-                                                fileName: file.name,
-                                              );
-                                            }
-                                          },
-                                          child: InputText(
-                                            labelText: 'dragfile'.tr,
-                                            hintText: ''.tr,
-                                            validator: (_) => null,
-                                            enable: false,
-                                            height: 100,
-                                            fillColor: Colors.white,
-                                            // controller: notesController,
-                                            expanded: true,
-
-                                            body: Container(
-                                              padding: EdgeInsets.symmetric(
-                                                vertical: 10,
+                                        child: _buildAttachmentSourceInput(
+                                          labelText: 'dragfile'.tr,
+                                          onTap:
+                                              () => pickMainAttachmentWithSource(
+                                                context,
                                               ),
-                                              decoration: BoxDecoration(
-                                                color: Colors.grey.shade200,
-                                              ),
-                                              child: Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceBetween,
-                                                children: [
-                                                  Container(
-                                                    margin:
-                                                        EdgeInsets.symmetric(
-                                                          horizontal: 10,
-                                                        ),
-                                                    child: Text(
-                                                      'dragfile'.tr,
-                                                      style: TextStyle(
-                                                        fontSize: 12,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  MainButton(
-                                                    width: 100,
-                                                    borderSize: 5,
-                                                    height: 30,
-                                                    fontSize: 12,
-                                                    load:
-                                                        controller
-                                                            .isUploading
-                                                            .value,
-                                                    title: 'uploadfile'.tr,
-                                                    backgroundColor:
-                                                        Colors.white,
-                                                    fontColor:
-                                                        AppColors
-                                                            .primaryfontColor,
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            borderRadius: 5,
-                                            borderColor: Colors.grey.shade300,
-                                          ),
+                                          loading: controller.isUploading.value,
                                         ),
                                       ),
 
@@ -548,30 +604,29 @@ void showAddContentDialog(
                               children: [
                                 SizedBox(
                                   width: (Get.width * 0.7 / 2) - 30,
-                                  child: InputText(
+                                  child: _buildAttachmentSourceInput(
                                     labelText: 'content.post_attachment'.tr,
-                                    hintText: 'content.form.insert_link'.tr,
-                                    height: 42,
-                                    fillColor: Colors.white,
-                                    controller: postAttachmentController,
-                                    borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
+                                    onTap:
+                                        () => pickAttachmentFieldWithSource(
+                                          context,
+                                          postAttachmentController,
+                                        ),
                                   ),
                                 ),
                                 SizedBox(
                                   width: (Get.width * 0.7 / 2) - 30,
-                                  child: InputText(
+                                  child: _buildAttachmentSourceInput(
                                     labelText: 'content.story_attachment'.tr,
-                                    hintText: 'content.form.insert_link'.tr,
-                                    height: 42,
-                                    fillColor: Colors.white,
-                                    controller: storyAttachmentController,
-                                    borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
+                                    onTap:
+                                        () => pickAttachmentFieldWithSource(
+                                          context,
+                                          storyAttachmentController,
+                                        ),
                                   ),
                                 ),
                               ],
                             ),
+                            const SizedBox(height: 8),
                           ],
                         ),
                       ),
@@ -598,6 +653,20 @@ void showAddContentDialog(
                                     ),
                                     onPressed: () async {
                                       if (_key.currentState!.validate()) {
+                                        final enteredPost = splitAttachmentInput(
+                                          postAttachmentController.text,
+                                        );
+                                        final enteredStory = splitAttachmentInput(
+                                          storyAttachmentController.text,
+                                        );
+                                        final mergedPost = [
+                                          ...?(model?.postAttachments),
+                                          ...enteredPost,
+                                        ].toSet().toList();
+                                        final mergedStory = [
+                                          ...?(model?.storyAttachments),
+                                          ...enteredStory,
+                                        ].toSet().toList();
                                         if (model == null) {
                                           await controller
                                               .addContent(
@@ -631,14 +700,8 @@ void showAddContentDialog(
                                                   createdAt: DateTime.now(),
                                                   notes: notesController.text,
                                                   caption: captionController.text,
-                                                  postAttachments:
-                                                      postAttachmentController.text.trim().isEmpty
-                                                          ? (model?.postAttachments ?? [])
-                                                          : [postAttachmentController.text.trim()],
-                                                  storyAttachments:
-                                                      storyAttachmentController.text.trim().isEmpty
-                                                          ? (model?.storyAttachments ?? [])
-                                                          : [storyAttachmentController.text.trim()],
+                                                  postAttachments: mergedPost,
+                                                  storyAttachments: mergedStory,
                                                 ),
                                               )
                                               .then((v) async {
@@ -701,14 +764,8 @@ void showAddContentDialog(
 
                                                   notes: notesController.text,
                                                   caption: captionController.text,
-                                                  postAttachments:
-                                                      postAttachmentController.text.trim().isEmpty
-                                                          ? (model.postAttachments ?? [])
-                                                          : [postAttachmentController.text.trim()],
-                                                  storyAttachments:
-                                                      storyAttachmentController.text.trim().isEmpty
-                                                          ? (model.storyAttachments ?? [])
-                                                          : [storyAttachmentController.text.trim()],
+                                                  postAttachments: mergedPost,
+                                                  storyAttachments: mergedStory,
                                                 ),
                                               )
                                               .then((v) async {

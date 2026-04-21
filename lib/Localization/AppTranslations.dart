@@ -491,6 +491,17 @@ class AppTranslations extends Translations {
       'auth.footer.copyright': '© @year Point Agency. All rights reserved.',
       'auth.preparing_session': 'Preparing your session...',
       'content.notify.design_video_new': 'Design / new video',
+      'content.attachment_source_title': 'Choose attachment source',
+      'content.attachment_source_library': 'Select from library',
+      'content.attachment_source_local': 'Upload from local drive',
+      'content.attachment_add_from_source': 'Add from library/local',
+      'content.attachment_field_hint':
+          'Paste links (one per line) or use Add from source',
+      'content.library_picker_title': 'Pick attachments from library',
+      'content.library_picker_search_hint':
+          'Search by task, client, month, or file name',
+      'content.library_picker_empty': 'No library files found.',
+      'content.library_picker_select_count': 'Select (@count)',
       'tasks.fcm.new_task_assigned': 'You were assigned a new task',
       'tasks.fcm.new_task_content_write':
           'You were assigned a new task @title in the content writing department',
@@ -1525,6 +1536,17 @@ class AppTranslations extends Translations {
       "auth.footer.copyright": "© @year Point Agency. جميع الحقوق محفوظة",
       "auth.preparing_session": "جاري تجهيز جلستك...",
       "content.notify.design_video_new": "تصميم / فيديو جديد",
+      "content.attachment_source_title": "اختر مصدر المرفق",
+      "content.attachment_source_library": "اختيار من المكتبة",
+      "content.attachment_source_local": "رفع من الجهاز",
+      "content.attachment_add_from_source": "إضافة من المكتبة/الجهاز",
+      "content.attachment_field_hint":
+          "الصق الروابط (كل رابط بسطر) أو استخدم الإضافة من المصدر",
+      "content.library_picker_title": "اختر مرفقات من المكتبة",
+      "content.library_picker_search_hint":
+          "ابحث بالعنوان أو العميل أو الشهر أو اسم الملف",
+      "content.library_picker_empty": "لا توجد ملفات في المكتبة.",
+      "content.library_picker_select_count": "اختيار (@count)",
       "tasks.fcm.new_task_assigned": "تم تعيينك علي مهمة جديدة",
       "tasks.fcm.new_task_content_write":
           "تم تعيينك علي مهمة جديدة @title بقسم كتابة المحتوى",

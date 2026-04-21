@@ -12,6 +12,7 @@ import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/ContentPermissions.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Clients/ClientsTable.dart' show customDatePicker;
+import 'package:point/View/Contents/Shared/content_library_attachment_picker.dart';
 import 'package:point/View/Shared/CustomDropDown.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
@@ -98,6 +99,85 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
     await openUrlPreferInAppMedia(rawUrl);
   }
 
+  List<String> _splitAttachmentInput(String raw) {
+    return raw
+        .split(RegExp(r'[\n,]'))
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+  }
+
+  void _appendAttachmentLinks(
+    TextEditingController controller,
+    List<String> urls,
+  ) {
+    if (urls.isEmpty) return;
+    final current = _splitAttachmentInput(controller.text);
+    final merged = {...current, ...urls}.toList();
+    controller.text = merged.join('\n');
+  }
+
+  Future<void> _pickAttachmentFieldFromLocal(
+    TextEditingController targetController,
+  ) async {
+    final hc = Get.find<HomeController>();
+    if (hc.isUploading.value) return;
+    final files = await hc.pickMultiFiles();
+    final added = <String>[];
+    for (final file in files) {
+      final bytes = file.bytes;
+      if (bytes == null) continue;
+      final url = await hc.uploadFiles(filePathOrBytes: bytes, fileName: file.name);
+      if (url != null && url.trim().isNotEmpty) {
+        added.add(url.trim());
+      }
+    }
+    if (!mounted || added.isEmpty) return;
+    setState(() => _appendAttachmentLinks(targetController, added));
+  }
+
+  Future<void> _pickAttachmentFieldWithSource(
+    TextEditingController targetController,
+  ) async {
+    final source = await showContentAttachmentSourceDialog(context);
+    if (source == null || !mounted) return;
+    if (source == ContentAttachmentSource.local) {
+      await _pickAttachmentFieldFromLocal(targetController);
+      return;
+    }
+    final selected = await showLibraryAttachmentPickerDialog(context);
+    if (!mounted || selected.isEmpty) return;
+    setState(() => _appendAttachmentLinks(targetController, selected));
+  }
+
+  Future<void> _pickMainAttachmentFromLocal() async {
+    final hc = Get.find<HomeController>();
+    if (hc.isUploading.value) return;
+    final files = await hc.pickMultiFiles();
+    for (final file in files) {
+      final bytes = file.bytes;
+      if (bytes == null) continue;
+      await hc.uploadFiles(filePathOrBytes: bytes, fileName: file.name);
+    }
+  }
+
+  Future<void> _pickMainAttachmentWithSource() async {
+    final hc = Get.find<HomeController>();
+    final source = await showContentAttachmentSourceDialog(context);
+    if (source == null || !mounted) return;
+    if (source == ContentAttachmentSource.local) {
+      await _pickMainAttachmentFromLocal();
+      return;
+    }
+    final selected = await showLibraryAttachmentPickerDialog(context);
+    if (!mounted || selected.isEmpty) return;
+    final merged = <String>{
+      ...hc.uploadedFilesPaths.map((e) => e.toString().trim()),
+      ...selected.map((e) => e.trim()),
+    }.where((e) => e.isNotEmpty).toList();
+    hc.uploadedFilesPaths.assignAll(merged);
+  }
+
   Future<void> _pickPublishDate() async {
     final picked = await customDatePicker(context);
     if (picked != null && mounted) {
@@ -112,16 +192,16 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final controller = Get.find<HomeController>();
+    final enteredPost = _splitAttachmentInput(postAttachmentController.text);
+    final enteredStory = _splitAttachmentInput(storyAttachmentController.text);
     final postAttachments = [
       ...?widget.model?.postAttachments,
-      if (postAttachmentController.text.trim().isNotEmpty)
-        postAttachmentController.text.trim(),
-    ];
+      ...enteredPost,
+    ].toSet().toList();
     final storyAttachments = [
       ...?widget.model?.storyAttachments,
-      if (storyAttachmentController.text.trim().isNotEmpty)
-        storyAttachmentController.text.trim(),
-    ];
+      ...enteredStory,
+    ].toSet().toList();
     final files = [
       ...controller.uploadedFilesPaths,
       if (fileController.text.trim().isNotEmpty) fileController.text.trim(),
@@ -380,38 +460,120 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                     borderColor: Colors.grey.shade300,
                   ),
                   const SizedBox(height: 16),
-                  InputText(
-                    labelText: 'content.post_attachment'.tr,
-                    hintText: 'content.form.insert_link'.tr,
-                    height: 48,
-                    fillColor: Colors.white,
-                    controller: postAttachmentController,
-                    validator: (_) => null,
-                    borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
+                  GestureDetector(
+                    onTap:
+                        () =>
+                            _pickAttachmentFieldWithSource(postAttachmentController),
+                    child: InputText(
+                      labelText: 'content.post_attachment'.tr,
+                      hintText: ''.tr,
+                      enable: false,
+                      height: 92,
+                      fillColor: Colors.white,
+                      controller: postAttachmentController,
+                      validator: (_) => null,
+                      expanded: true,
+                      body: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'content.attachment_field_hint'.tr,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey.shade700,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            MainButton(
+                              width: 132,
+                              borderSize: 5,
+                              height: 34,
+                              fontSize: 11,
+                              title: 'content.attachment_add_from_source'.tr,
+                              backgroundColor: Colors.white,
+                              fontColor: AppColors.primaryfontColor,
+                            ),
+                          ],
+                        ),
+                      ),
+                      borderRadius: 8,
+                      borderColor: Colors.grey.shade300,
+                    ),
                   ),
                   const SizedBox(height: 16),
-                  InputText(
-                    labelText: 'content.story_attachment'.tr,
-                    hintText: 'content.form.insert_link'.tr,
-                    height: 48,
-                    fillColor: Colors.white,
-                    controller: storyAttachmentController,
-                    validator: (_) => null,
-                    borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
+                  GestureDetector(
+                    onTap:
+                        () => _pickAttachmentFieldWithSource(
+                          storyAttachmentController,
+                        ),
+                    child: InputText(
+                      labelText: 'content.story_attachment'.tr,
+                      hintText: ''.tr,
+                      enable: false,
+                      height: 92,
+                      fillColor: Colors.white,
+                      controller: storyAttachmentController,
+                      validator: (_) => null,
+                      expanded: true,
+                      body: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'content.attachment_field_hint'.tr,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey.shade700,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            MainButton(
+                              width: 132,
+                              borderSize: 5,
+                              height: 34,
+                              fontSize: 11,
+                              title: 'content.attachment_add_from_source'.tr,
+                              backgroundColor: Colors.white,
+                              fontColor: AppColors.primaryfontColor,
+                            ),
+                          ],
+                        ),
+                      ),
+                      borderRadius: 8,
+                      borderColor: Colors.grey.shade300,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   GestureDetector(
                     onTap: () async {
-                      if (controller.isUploading.value) return;
-                      final files = await controller.pickMultiFiles();
-                      for (var file in files) {
-                        controller.uploadFiles(
-                          filePathOrBytes: file.bytes!,
-                          fileName: file.name,
-                        );
-                      }
+                      await _pickMainAttachmentWithSource();
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(
@@ -448,7 +610,8 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                                     borderSize: 5,
                                     height: 36,
                                     fontSize: 12,
-                                    title: 'uploadfile'.tr,
+                                    title:
+                                        'content.attachment_add_from_source'.tr,
                                     backgroundColor: Colors.white,
                                     fontColor: AppColors.primaryfontColor,
                                   ),
