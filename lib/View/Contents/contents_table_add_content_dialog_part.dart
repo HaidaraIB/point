@@ -68,53 +68,6 @@ Future<void> _openAttachmentUrl(String rawUrl) async {
   await openUrlPreferInAppMedia(rawUrl);
 }
 
-Widget _buildAttachmentSourceInput({
-  required String labelText,
-  required VoidCallback onTap,
-  bool loading = false,
-}) {
-  return GestureDetector(
-    onTap: onTap,
-    child: InputText(
-      labelText: labelText,
-      hintText: ''.tr,
-      validator: (_) => null,
-      enable: false,
-      height: 100,
-      fillColor: Colors.white,
-      expanded: true,
-      body: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(color: Colors.grey.shade200),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 10),
-              child: Text(
-                'dragfile'.tr,
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-              ),
-            ),
-            MainButton(
-              width: 150,
-              borderSize: 5,
-              height: 30,
-              fontSize: 11,
-              load: loading,
-              title: 'content.attachment_add_from_source'.tr,
-              backgroundColor: Colors.white,
-              fontColor: AppColors.primaryfontColor,
-            ),
-          ],
-        ),
-      ),
-      borderRadius: 5,
-      borderColor: Colors.grey.shade300,
-    ),
-  );
-}
-
 void showAddContentDialog(
   BuildContext context, {
   ContentModel? model,
@@ -512,8 +465,9 @@ void showAddContentDialog(
                                       ),
                                       SizedBox(
                                         width: (Get.width * 0.7 / 2) - 30,
-                                        child: _buildAttachmentSourceInput(
+                                        child: ContentAttachmentSourceInput(
                                           labelText: 'dragfile'.tr,
+                                          bodyHintText: 'dragfile'.tr,
                                           onTap:
                                               () => pickMainAttachmentWithSource(
                                                 context,
@@ -604,8 +558,9 @@ void showAddContentDialog(
                               children: [
                                 SizedBox(
                                   width: (Get.width * 0.7 / 2) - 30,
-                                  child: _buildAttachmentSourceInput(
+                                  child: ContentAttachmentSourceInput(
                                     labelText: 'content.post_attachment'.tr,
+                                    bodyHintText: 'dragfile'.tr,
                                     onTap:
                                         () => pickAttachmentFieldWithSource(
                                           context,
@@ -615,8 +570,9 @@ void showAddContentDialog(
                                 ),
                                 SizedBox(
                                   width: (Get.width * 0.7 / 2) - 30,
-                                  child: _buildAttachmentSourceInput(
+                                  child: ContentAttachmentSourceInput(
                                     labelText: 'content.story_attachment'.tr,
+                                    bodyHintText: 'dragfile'.tr,
                                     onTap:
                                         () => pickAttachmentFieldWithSource(
                                           context,

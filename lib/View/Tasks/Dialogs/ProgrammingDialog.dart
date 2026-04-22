@@ -764,7 +764,6 @@ void programmingDialog(BuildContext context, {TaskModel? model}) {
                                                 '',
                                             actionText: '',
                                             files:
-                                                model.files +
                                                 controller.uploadedFilesPaths
                                                     .cast<String>()
                                                     .toList(),

@@ -177,17 +177,8 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
           clientName: resolvedClientName,
           assignedImageUrl: safeEmployees.firstWhereOrNull((a) => a.id == executorController.text)?.image ?? '',
           actionText: '',
-          files: model.files + controller.uploadedFilesPaths.cast<String>().toList(),
-          notes: model.notes +
-              (notesController.text.isEmpty
-                  ? []
-                  : [
-                      NoteModel(
-                        note: notesController.text,
-                        byWho: controller.currentEmployee.value?.name ?? '',
-                        timestamp: DateTime.now(),
-                      ),
-                    ]),
+          files: controller.uploadedFilesPaths.cast<String>().toList(),
+          notes: model.notes,
           type: '1',
           designDetails: DesignTaskModel(
             designsDimensions: dimensionsController.text,

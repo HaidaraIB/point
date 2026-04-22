@@ -18,6 +18,7 @@ import 'package:point/View/Auth/WebAuthSplashDecider.dart';
 import 'package:point/View/Clients/ClientsTable.dart';
 import 'package:point/View/ClientDashboard/client_profile_screen.dart';
 import 'package:point/View/Contents/ContentsTable.dart';
+import 'package:point/View/Publish/PublishTable.dart';
 import 'package:point/View/Library/LibraryPage.dart';
 import 'package:point/View/EmployeeDashboard/EmployeeDashboard.dart';
 import 'package:point/View/EmployeeDashboard/employee_profile_screen.dart';
@@ -184,6 +185,11 @@ class AppRouting {
           page: () {
             return ContentsTable();
           },
+          middlewares: [AuthMiddleware()],
+        ),
+        GetPage(
+          name: '/publish',
+          page: () => const PublishTable(),
           middlewares: [AuthMiddleware()],
         ),
         GetPage(

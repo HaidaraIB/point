@@ -13,6 +13,7 @@ import 'package:get/get.dart';
 
 import 'package:point/Models/ClientModel.dart';
 import 'package:point/Models/ContentModel.dart';
+import 'package:point/Models/MetaPostModel.dart';
 import 'package:point/Models/EmployeeModel.dart';
 import 'package:point/Models/NotificationModel.dart';
 import 'package:point/Models/TaskModel.dart';
@@ -552,6 +553,24 @@ class HomeController extends GetxController {
     contents.bindStream(Stream<List<ContentModel>>.value([]));
   }
 
+  void fetchMetaPosts() {
+    if (FirebaseAuth.instance.currentUser == null) {
+      metaPosts.bindStream(Stream<List<MetaPostModel>>.value([]));
+      return;
+    }
+    final emp = effectiveEmployee;
+    if (emp == null) {
+      metaPosts.bindStream(Stream<List<MetaPostModel>>.value([]));
+      return;
+    }
+    final r = emp.role;
+    if (r == 'admin' || r == 'supervisor') {
+      metaPosts.bindStream(_service.getMetaPosts());
+      return;
+    }
+    metaPosts.bindStream(Stream<List<MetaPostModel>>.value([]));
+  }
+
   void clearEmployeeWebContentFilters() {
     employeeWebContentSearchController.clear();
     employeeWebContentStatusFilter.value = '';
@@ -620,7 +639,7 @@ class HomeController extends GetxController {
     return ok;
   }
 
-  /// Bulk publish — UI retained; implementation pending.
+  /// Content publish is intentionally disabled for now.
   Future<bool> publishSelectedContents() async {
     return false;
   }
@@ -754,6 +773,53 @@ class HomeController extends GetxController {
     return result;
   }
 
+  Future<bool> addMetaPost(MetaPostModel post) async {
+    isLoading.value = true;
+    final result = await _service.addMetaPost(post);
+    isLoading.value = false;
+    return result;
+  }
+
+  Future<bool> updateMetaPost(MetaPostModel post) async {
+    isLoading.value = true;
+    final result = await _service.updateMetaPost(post);
+    isLoading.value = false;
+    return result;
+  }
+
+  Future<bool> deleteMetaPost(String id) async {
+    isLoading.value = true;
+    final result = await _service.deleteMetaPost(id);
+    isLoading.value = false;
+    return result;
+  }
+
+  /// Queue a saved [MetaPostModel] row for bot-worker publishing.
+  /// No direct Meta Graph call from Flutter.
+  Future<bool> publishMetaPost(String id) async {
+    final post = metaPosts.firstWhereOrNull((p) => p.id == id);
+    if (post == null) return false;
+    final nowUtc = DateTime.now().toUtc();
+    final queued = post.copyWith(
+      status: 'queued_now',
+      scheduledAt: nowUtc,
+      lastError: null,
+      metaResponse: null,
+      lang: Get.locale?.languageCode ?? post.lang ?? 'ar',
+    );
+    final ok = await updateMetaPost(queued);
+    if (ok) {
+      FunHelper.showSnackbar(
+        'common.save'.tr,
+        'publish.queued_now'.tr,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+    }
+    return ok;
+  }
+
   void fetchTasks() {
     _rebindClientsAndTasksStreams();
   }
@@ -763,6 +829,7 @@ class HomeController extends GetxController {
     fetchClients();
     fetchTasks();
     fetchContents();
+    fetchMetaPosts();
   }
 
   Future<bool> addTask(TaskModel task) async {
@@ -1963,6 +2030,7 @@ class HomeController extends GetxController {
     fetchEmployees();
     _rebindClientsAndTasksStreams();
     fetchContents();
+    fetchMetaPosts();
     _startTotalUnreadStream(employee.id!);
     listenToClient(employee.id!);
     fetchNotification(employee.id);
@@ -2053,6 +2121,7 @@ class HomeController extends GetxController {
   var employees = <EmployeeModel>[].obs;
   var clients = <ClientModel>[].obs;
   var contents = <ContentModel>[].obs;
+  var metaPosts = <MetaPostModel>[].obs;
   var searchedContents = <ContentModel>[].obs;
 
   /// تصفية قائمة المحتوى في واجهة موظف الويب (مثل شاشة المهام).

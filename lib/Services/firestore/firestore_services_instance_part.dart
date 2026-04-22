@@ -980,6 +980,58 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
     );
   }
 
+  Stream<List<MetaPostModel>> getMetaPosts() {
+    return safeFirestoreListStream(
+      _metaPostsCollection
+          .orderBy('createdAt', descending: true)
+          .snapshots()
+          .map(
+            (snapshot) =>
+                snapshot.docs
+                    .map(
+                      (doc) => MetaPostModel.fromJson(
+                        doc.data()! as Map<String, dynamic>,
+                        doc.id,
+                      ),
+                    )
+                    .toList(),
+          ),
+      'meta_posts',
+    );
+  }
+
+  Future<bool> addMetaPost(MetaPostModel post) async {
+    try {
+      final docRef = _metaPostsCollection.doc();
+      await docRef.set(post.copyWith(id: docRef.id).toJson());
+      return true;
+    } catch (e) {
+      appLog('❌ Error addMetaPost: $e');
+      return false;
+    }
+  }
+
+  Future<bool> updateMetaPost(MetaPostModel post) async {
+    try {
+      if (post.id == null) throw Exception('id is null');
+      await _metaPostsCollection.doc(post.id).update(post.toJson());
+      return true;
+    } catch (e) {
+      appLog('❌ Error updateMetaPost: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deleteMetaPost(String id) async {
+    try {
+      await _metaPostsCollection.doc(id).delete();
+      return true;
+    } catch (e) {
+      appLog('❌ Error deleteMetaPost: $e');
+      return false;
+    }
+  }
+
   Future<bool> addTask(TaskModel task) async {
     try {
       final docRef = _dbtask.doc(); // auto id

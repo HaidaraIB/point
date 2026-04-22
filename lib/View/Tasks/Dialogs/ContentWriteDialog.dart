@@ -158,24 +158,20 @@ class ContentWriteFormDelegate extends TaskFormDialogDelegate {
     final keepStatusUnchanged =
         controller.currentEmployee.value?.role == 'admin' ||
         controller.currentEmployee.value?.role == 'supervisor';
-    final notes = existing != null
-        ? [
-            ...existing.notes,
-            if (common.newNoteText != null && common.newNoteText!.isNotEmpty)
-              NoteModel(
-                note: common.newNoteText!,
-                byWho: common.newNoteAuthor ?? '',
-                timestamp: DateTime.now(),
-              ),
-          ]
-        : [
-            if (common.newNoteText != null && common.newNoteText!.isNotEmpty)
-              NoteModel(
-                note: common.newNoteText!,
-                byWho: common.newNoteAuthor ?? '',
-                timestamp: DateTime.now(),
-              ),
-          ];
+    // New tasks: optional initial note from the form. Edits: description only —
+    // timeline comments come from [TaskModel.notes] via dedicated add-comment UI.
+    final notes =
+        existing != null
+            ? existing.notes
+            : [
+                if (common.newNoteText != null &&
+                    common.newNoteText!.isNotEmpty)
+                  NoteModel(
+                    note: common.newNoteText!,
+                    byWho: common.newNoteAuthor ?? '',
+                    timestamp: DateTime.now(),
+                  ),
+              ];
     final contentWriteModel = ContentWriteModel(
       platform: platforms.toList(),
       contenttype: designTypeController.text,

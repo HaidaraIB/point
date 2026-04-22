@@ -4,6 +4,13 @@ import 'package:point/Services/StorageKeys.dart';
 /// صلاحيات محتوى الويب/الجدول: قسم الترويج vs قسم النشر vs الإدارة.
 class ContentPermissions {
   ContentPermissions._();
+  /// Publish section (Meta queue/settings) is manager-only for now.
+  static bool canAccessPublishSection(EmployeeModel? e) {
+    if (e == null) return false;
+    final r = e.role.trim().toLowerCase();
+    return r == 'admin' || r == 'supervisor';
+  }
+
 
   static bool _isEmployee(EmployeeModel? e) => e?.role == 'employee';
 

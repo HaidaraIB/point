@@ -9,6 +9,7 @@ import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/AppConstants.dart';
 import 'package:point/Utils/AppImages.dart';
+import 'package:point/Utils/ContentPermissions.dart';
 
 class CustomSidebar extends StatefulWidget {
   final int selectedTab;
@@ -276,6 +277,25 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                 },
                                 // onTap: () => Get.toNamed('/users'),
                               ),
+                              if (ContentPermissions.canAccessPublishSection(
+                                controller.effectiveEmployee,
+                              ))
+                                _buildTile(
+                                  selectedTab: 10,
+                                  icon: 'assets/images/nav_content.png',
+                                  text: 'publish.sidebar'.tr,
+                                  iconData: Icons.send_rounded,
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedTab = 10;
+                                    });
+                                    WidgetsBinding.instance.addPostFrameCallback((
+                                      _,
+                                    ) {
+                                      Get.toNamed('/publish');
+                                    });
+                                  },
+                                ),
 
                               _buildTile(
                                 selectedTab: 9,
@@ -558,6 +578,25 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                   });
                                 },
                               ),
+                              if (ContentPermissions.canAccessPublishSection(
+                                controller.effectiveEmployee,
+                              ))
+                                _buildTile(
+                                  selectedTab: 10,
+                                  icon: 'assets/images/nav_content.png',
+                                  text: 'publish.sidebar'.tr,
+                                  iconData: Icons.send_rounded,
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedTab = 10;
+                                    });
+                                    WidgetsBinding.instance.addPostFrameCallback((
+                                      _,
+                                    ) {
+                                      Get.toNamed('/publish');
+                                    });
+                                  },
+                                ),
                               _buildTile(
                                 selectedTab: 9,
                                 icon: 'assets/images/nav_content.png',
@@ -735,6 +774,25 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                 },
                                 // onTap: () => Get.toNamed('/users'),
                               ),
+                              if (ContentPermissions.canAccessPublishSection(
+                                controller.effectiveEmployee,
+                              ))
+                                _buildTile(
+                                  selectedTab: 10,
+                                  icon: 'assets/images/nav_content.png',
+                                  text: 'publish.sidebar'.tr,
+                                  iconData: Icons.send_rounded,
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedTab = 10;
+                                    });
+                                    WidgetsBinding.instance.addPostFrameCallback((
+                                      _,
+                                    ) {
+                                      Get.toNamed('/publish');
+                                    });
+                                  },
+                                ),
 
                               _buildExpansion(
                                 id: 'tasks',

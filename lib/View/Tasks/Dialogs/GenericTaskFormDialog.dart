@@ -643,7 +643,11 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
               ?.image ??
           '',
       notes: notes,
-      newNoteText: _notesController.text.isEmpty ? null : _notesController.text,
+      // On edit, the notes field is [TaskModel.description] only — comments use
+      // [TaskModel.notes] via add-comment flows; do not treat description as newNoteText.
+      newNoteText: widget.model == null
+          ? (_notesController.text.isEmpty ? null : _notesController.text)
+          : null,
       newNoteAuthor: controller.currentEmployee.value?.name,
       files: controller.uploadedFilesPaths.cast<String>().toList(),
     );

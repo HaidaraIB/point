@@ -1098,26 +1098,7 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                                 title: titleController.text,
                                                 description:
                                                     notesController.text,
-                                                notes:
-                                                    model.notes +
-                                                    [
-                                                      if (notesController
-                                                          .text
-                                                          .isNotEmpty)
-                                                        NoteModel(
-                                                          note:
-                                                              notesController
-                                                                  .text,
-                                                          byWho:
-                                                              controller
-                                                                  .currentEmployee
-                                                                  .value
-                                                                  ?.name ??
-                                                              '',
-                                                          timestamp:
-                                                              DateTime.now(),
-                                                        ),
-                                                    ],
+                                                notes: model.notes,
                                                 status: nextTaskStatus,
                                                 priority:
                                                     priorityController.text,

@@ -866,28 +866,10 @@ void designDialog(BuildContext context, {TaskModel? model}) {
                                                 '',
                                             actionText: '',
                                             files:
-                                                model.files +
                                                 controller.uploadedFilesPaths
                                                     .cast<String>()
                                                     .toList(),
-                                            notes:
-                                                model.notes +
-                                                [
-                                                  if (notesController
-                                                      .text
-                                                      .isNotEmpty)
-                                                    NoteModel(
-                                                      note:
-                                                          notesController.text,
-                                                      byWho:
-                                                          controller
-                                                              .currentEmployee
-                                                              .value
-                                                              ?.name ??
-                                                          '',
-                                                      timestamp: DateTime.now(),
-                                                    ),
-                                                ],
+                                            notes: model.notes,
                                             type: '1',
                                             designDetails: DesignTaskModel(
                                               designsDimensions:

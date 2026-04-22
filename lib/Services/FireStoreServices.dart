@@ -10,6 +10,7 @@ import 'package:point/config/app_config.dart';
 import 'package:point/Models/ChatMetaData.dart';
 import 'package:point/Models/ClientModel.dart';
 import 'package:point/Models/ContentModel.dart';
+import 'package:point/Models/MetaPostModel.dart';
 import 'package:point/Models/EmployeeModel.dart';
 import 'package:point/Models/NotificationModel.dart';
 import 'package:point/Models/TaskModel.dart';
@@ -38,6 +39,8 @@ class FirestoreServicesBase {
       FirebaseFirestore.instance.collection('contents');
   final CollectionReference _dbtask =
       FirebaseFirestore.instance.collection('tasks');
+  final CollectionReference _metaPostsCollection =
+      FirebaseFirestore.instance.collection('meta_posts');
 }
 
 /// واجهة Firestore الرئيسية للتطبيق؛ المنطق مُقسّم على [FirestoreFcmApi] ووحدات أخرى.

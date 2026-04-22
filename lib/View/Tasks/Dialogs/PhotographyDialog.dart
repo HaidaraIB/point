@@ -883,26 +883,8 @@ void photographyDialog(BuildContext context, {TaskModel? model}) {
                                             priority: priorityController.text,
                                             fromDate: effectiveStartAt,
                                             toDate: effectiveEndAt,
-                                            notes:
-                                                model.notes +
-                                                [
-                                                  if (notesController
-                                                      .text
-                                                      .isNotEmpty)
-                                                    NoteModel(
-                                                      note:
-                                                          notesController.text,
-                                                      byWho:
-                                                          controller
-                                                              .currentEmployee
-                                                              .value
-                                                              ?.name ??
-                                                          '',
-                                                      timestamp: DateTime.now(),
-                                                    ),
-                                                ],
+                                            notes: model.notes,
                                             files:
-                                                model.files +
                                                 controller.uploadedFilesPaths
                                                     .cast<String>()
                                                     .toList(),

@@ -783,24 +783,7 @@ void publishDialog(BuildContext context, {TaskModel? model}) {
                                             id: model.id,
                                             title: titleController.text,
                                             description: notesController.text,
-                                            notes:
-                                                model.notes +
-                                                [
-                                                  if (notesController
-                                                      .text
-                                                      .isNotEmpty)
-                                                    NoteModel(
-                                                      note:
-                                                          notesController.text,
-                                                      byWho:
-                                                          controller
-                                                              .currentEmployee
-                                                              .value
-                                                              ?.name ??
-                                                          '',
-                                                      timestamp: DateTime.now(),
-                                                    ),
-                                                ],
+                                            notes: model.notes,
                                             status:
                                                 ((controller.currentEmployee.value?.role ==
                                                             'admin') ||
@@ -826,7 +809,6 @@ void publishDialog(BuildContext context, {TaskModel? model}) {
                                                 '',
                                             actionText: '',
                                             files:
-                                                model.files +
                                                 controller.uploadedFilesPaths
                                                     .cast<String>()
                                                     .toList(),

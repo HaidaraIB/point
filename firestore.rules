@@ -232,6 +232,36 @@ service cloud.firestore {
         || (isClientRole() && resource.data.clientId == myClientId());
     }
 
+    // authRoles قد يتأخر عن employees (role / departments) — نفس منطق الواجهة تقريباً.
+    function metaPublishCallerEmployeeExists() {
+      return hasAuthRole()
+        && !isClientRole()
+        && authRoleData().keys().hasAny(['employeeId'])
+        && authRoleData().employeeId is string
+        && authRoleData().employeeId != ''
+        && exists(/databases/$(database)/documents/employees/$(authRoleData().employeeId));
+    }
+
+    function metaPublishEmployeeRoleIsManager(r) {
+      return r in ['admin', 'Admin', 'supervisor', 'Supervisor'];
+    }
+
+    function metaPublishEmployeeDocShowsManager() {
+      return metaPublishCallerEmployeeExists()
+        && metaPublishEmployeeRoleIsManager(
+          get(/databases/$(database)/documents/employees/$(authRoleData().employeeId)).data.role
+        );
+    }
+
+    function metaPublishCanReadAppSettingsOrMetaPosts() {
+      return isManager()
+        || metaPublishEmployeeDocShowsManager();
+    }
+
+    function metaPublishCanWriteAppSettingsMeta() {
+      return isManager() || metaPublishEmployeeDocShowsManager();
+    }
+
     // موظف ترويج: يعدّل حقل promotion فقط.
     function promotionEmployeeContentUpdateAllowed() {
       return isEmployeeRole() && myDepartmentsList().hasAny(['promotion'])
@@ -754,6 +784,35 @@ service cloud.firestore {
     match /appVersionGate/{docId} {
       allow read: if true;
       allow create, update, delete: if false;
+    }
+
+    // إعدادات Meta المشتركة: `app_settings/meta` (accessToken + graphVersion من التطبيق).
+    // الوصول حالياً مقصور على الإدارة (admin/supervisor) فقط.
+    match /app_settings/{docId} {
+      allow read: if isSignedIn() && hasAuthRole() && docId == 'meta'
+        && metaPublishCanReadAppSettingsOrMetaPosts();
+
+      allow create, update: if isSignedIn() && hasAuthRole() && docId == 'meta'
+        && metaPublishCanWriteAppSettingsMeta()
+        && request.resource.data.keys().hasAll(['accessToken', 'graphVersion'])
+        && request.resource.data.accessToken is string
+        && request.resource.data.graphVersion is string;
+
+      allow delete: if false;
+    }
+
+    // مسودات وسجل النشر إلى Meta (MetaPostModel) — إدارة فقط.
+    match /meta_posts/{postId} {
+      allow read: if isSignedIn() && hasAuthRole()
+        && metaPublishCanReadAppSettingsOrMetaPosts();
+
+      allow create: if isSignedIn() && hasAuthRole()
+        && metaPublishCanReadAppSettingsOrMetaPosts();
+
+      allow update: if isSignedIn() && hasAuthRole()
+        && metaPublishCanReadAppSettingsOrMetaPosts();
+
+      allow delete: if isSignedIn() && hasAuthRole() && metaPublishCanWriteAppSettingsMeta();
     }
 
     match /{document=**} {

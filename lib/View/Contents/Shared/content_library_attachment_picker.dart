@@ -79,9 +79,17 @@ Future<ContentAttachmentSource?> showContentAttachmentSourceDialog(
 Future<List<String>> showLibraryAttachmentPickerDialog(
   BuildContext context, {
   List<String> initiallySelected = const <String>[],
+  /// `1` = one attachment only (e.g. Meta publish). Omit or `null` = multi-select (Content).
+  int? maxSelections,
+  String? title,
 }) async {
   final hc = Get.find<HomeController>();
-  final selected = Set<String>.from(initiallySelected);
+  final single = maxSelections == 1;
+  final initial =
+      single && initiallySelected.length > 1
+          ? <String>[initiallySelected.first]
+          : initiallySelected;
+  final selected = Set<String>.from(initial);
   final search = TextEditingController();
   final allItems = _buildLibraryItemsFromTasks(
     hc.tasks.where(LibraryPathUtils.libraryEntryDesired).toList(growable: false),
@@ -103,8 +111,53 @@ Future<List<String>> showLibraryAttachmentPickerDialog(
                               .toLowerCase();
                       return haystack.contains(q);
                     }).toList(growable: false);
+            void applySelectionTap(String url, {required bool currentlySelected}) {
+              if (single) {
+                if (currentlySelected) {
+                  selected.remove(url);
+                } else {
+                  selected
+                    ..clear()
+                    ..add(url);
+                }
+              } else {
+                if (currentlySelected) {
+                  selected.remove(url);
+                } else {
+                  final cap = maxSelections;
+                  if (cap == null || selected.length < cap) {
+                    selected.add(url);
+                  }
+                }
+              }
+            }
+
             return AlertDialog(
-              title: Text('content.library_picker_title'.tr),
+              title:
+                  single
+                      ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            title ?? 'publish.library_picker_title'.tr,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 18,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'publish.library_picker_single_hint'.tr,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey.shade700,
+                              height: 1.35,
+                            ),
+                          ),
+                        ],
+                      )
+                      : Text(title ?? 'content.library_picker_title'.tr),
               content: SizedBox(
                 width: 780,
                 height: 520,
@@ -152,11 +205,10 @@ Future<List<String>> showLibraryAttachmentPickerDialog(
                                       borderRadius: BorderRadius.circular(10),
                                       onTap: () {
                                         setState(() {
-                                          if (checked) {
-                                            selected.remove(item.url);
-                                          } else {
-                                            selected.add(item.url);
-                                          }
+                                          applySelectionTap(
+                                            item.url,
+                                            currentlySelected: checked,
+                                          );
                                         });
                                       },
                                       child: Padding(
@@ -171,11 +223,10 @@ Future<List<String>> showLibraryAttachmentPickerDialog(
                                                   value: checked,
                                                   onChanged: (_) {
                                                     setState(() {
-                                                      if (checked) {
-                                                        selected.remove(item.url);
-                                                      } else {
-                                                        selected.add(item.url);
-                                                      }
+                                                      applySelectionTap(
+                                                        item.url,
+                                                        currentlySelected: checked,
+                                                      );
                                                     });
                                                   },
                                                 ),
@@ -238,11 +289,17 @@ Future<List<String>> showLibraryAttachmentPickerDialog(
                 ),
                 ElevatedButton(
                   onPressed:
-                      () => Navigator.of(dialogCtx).pop(selected.toList()),
+                      single && selected.isEmpty
+                          ? null
+                          : () => Navigator.of(dialogCtx).pop(selected.toList()),
                   child: Text(
-                    'content.library_picker_select_count'.trParams({
-                      'count': '${selected.length}',
-                    }),
+                    single
+                        ? (selected.isEmpty
+                            ? 'publish.library_picker_select_one'.tr
+                            : 'common.confirm'.tr)
+                        : 'content.library_picker_select_count'.trParams({
+                            'count': '${selected.length}',
+                          }),
                   ),
                 ),
               ],

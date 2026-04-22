@@ -32,16 +32,14 @@ Widget MainButton({
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(borderSize ?? 30),
           border: borderColor != null ? Border.all(color: borderColor) : null,
+          // Default: solid brand purple. Pass [linearGradient] for a custom gradient
+          // (e.g. auth screens use AppColors.authLoginButtonGradient).
           gradient:
               linearGradient ??
               LinearGradient(
                 colors: [
                   backgroundColor ?? AppColors.primary,
-                  backgroundColor ?? Color(0xff095D71),
-                  backgroundColor ?? Color(0xff095D71),
-                  backgroundColor ?? Color(0xff0B3954),
-
-                  // backgroundcolor ?? AppColors.primary,
+                  backgroundColor ?? AppColors.primary,
                 ],
                 end: Alignment.centerRight,
                 begin: Alignment.centerLeft,

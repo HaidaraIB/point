@@ -18,6 +18,7 @@ import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Clients/ClientsTable.dart';
 import 'package:point/View/Contents/ContentDialogDetails.dart';
 import 'package:point/View/Contents/Mobile/ContentFormMobilePage.dart';
+import 'package:point/View/Contents/Shared/content_attachment_source_input.dart';
 import 'package:point/View/Contents/Shared/content_library_attachment_picker.dart';
 import 'package:point/View/EmployeeDashboard/EmployeeContentDashboard.dart';
 import 'package:point/View/Mobile/ContentStatusCard.dart';

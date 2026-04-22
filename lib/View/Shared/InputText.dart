@@ -69,11 +69,14 @@ class InputText extends StatelessWidget {
     final double fieldVerticalPadding =
         isCompactHeight ? (kIsWeb ? 8.0 : 5.0) : 12.0;
 
+    // Single-line fields: same min/max height on web so the outer wrapper does not
+    // grow past the outline (avoids a "double box" under Material + web layout).
+    final bool singleLineField = expanded != true;
     final BoxConstraints boxConstraints =
         height != null
-            ? (!kIsWeb
-                ? BoxConstraints(minHeight: height!, maxHeight: height!)
-                : BoxConstraints(minHeight: height!))
+            ? (kIsWeb && !singleLineField
+                ? BoxConstraints(minHeight: height!)
+                : BoxConstraints(minHeight: height!, maxHeight: height!))
             : const BoxConstraints();
 
     /// [TextFormField] path keeps the original web min-only behavior; custom
@@ -154,10 +157,6 @@ class InputText extends StatelessWidget {
         Container(
           constraints: boxConstraints,
           width: double.infinity,
-          decoration: BoxDecoration(
-            color: fillColor ?? Color(0xffF1F5F9),
-            borderRadius: BorderRadius.circular(borderRadiusValue),
-          ),
           child: TextFormField(
             controller: controller,
             focusNode: focusNode,
@@ -180,6 +179,8 @@ class InputText extends StatelessWidget {
             inputFormatters: inputFormatters,
 
             decoration: InputDecoration(
+              filled: true,
+              fillColor: fillColor ?? const Color(0xffF1F5F9),
               isDense: isCompactHeight,
               hintText: hintText,
               hintStyle:

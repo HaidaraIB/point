@@ -257,17 +257,8 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
       Get.back();
       controller.uploadedFilesPaths.clear();
     } else {
-      final updatedFiles = model.files + controller.uploadedFilesPaths.cast<String>().toList();
-      final updatedNotes = model.notes +
-          (notesController.text.isEmpty
-              ? []
-              : [
-                  NoteModel(
-                    note: notesController.text,
-                    byWho: controller.currentEmployee.value?.name ?? '',
-                    timestamp: DateTime.now(),
-                  ),
-                ]);
+      final updatedFiles = controller.uploadedFilesPaths.cast<String>().toList();
+      final updatedNotes = model.notes;
       TaskModel updated;
       switch (taskType) {
         case '0':
