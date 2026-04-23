@@ -143,6 +143,15 @@ const Map<String, String> notifyTranslationsEn = {
   'notify.mgr.client_approved.body': 'Client: @name — Content: @title',
   'notify.mgr.client_approved.action':
       'Approved — you can proceed to the next step.',
+  'notify.mgr.deadline_extension.title': 'Deadline extension requested',
+  'notify.mgr.deadline_extension.body': 'Task: @title — Employee: @name',
+  'notify.mgr.deadline_extension.action':
+      'Review the request in the task details.',
+  'notify.emp.deadline_extension.title': 'Deadline extension update',
+  'notify.emp.deadline_extension.approved.body':
+      'Approved: @title — New due: @date',
+  'notify.emp.deadline_extension.denied.body': 'Denied: @title',
+  'notify.emp.deadline_extension.action': 'Open the task for details.',
   'notify.client.pending.title': '@type uploaded, pending your approval',
   'notify.client.pending.body': 'Please review and approve or request changes',
   'notify.client.pending.action': 'Open the content and make your decision.',
@@ -371,6 +380,15 @@ const Map<String, String> notifyTranslationsAr = {
   'notify.mgr.client_approved.body': 'العميل: @name — المحتوى: @title',
   'notify.mgr.client_approved.action':
       'تمت الموافقة، يمكن المتابعة للمرحلة التالية.',
+  'notify.mgr.deadline_extension.title': 'طلب تمديد موعد تسليم',
+  'notify.mgr.deadline_extension.body': 'المهمة: @title — الموظف: @name',
+  'notify.mgr.deadline_extension.action':
+      'راجع الطلب من تفاصيل المهمة.',
+  'notify.emp.deadline_extension.title': 'تحديث طلب تمديد التسليم',
+  'notify.emp.deadline_extension.approved.body':
+      'تمت الموافقة: @title — الموعد الجديد: @date',
+  'notify.emp.deadline_extension.denied.body': 'تم الرفض: @title',
+  'notify.emp.deadline_extension.action': 'افتح المهمة للتفاصيل.',
   'notify.client.pending.title': 'تم رفع @type بانتظار موافقتك',
   'notify.client.pending.body': 'يرجى الاطلاع والموافقة أو طلب التعديل',
   'notify.client.pending.action': 'يرجى فتح المحتوى واتخاذ القرار المناسب.',

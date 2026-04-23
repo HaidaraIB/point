@@ -8,6 +8,7 @@ import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/attachment_download.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Shared/TaskTimelineWidget.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
@@ -18,9 +19,22 @@ import 'package:point/View/Tasks/Dialogs/PhotographyDialog.dart';
 import 'package:point/View/Tasks/Dialogs/ProgrammingDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PromotionDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PublishDialog.dart';
+import 'package:point/View/Tasks/Shared/deadline_extension_request_dialog.dart';
+import 'package:point/View/Tasks/Shared/task_details_feedback_widgets.dart';
+import 'package:point/View/Tasks/Shared/task_attachment_gallery.dart';
 import 'package:point/View/Tasks/Shared/edit_final_deliverable_dialog.dart';
 import 'package:point/View/Tasks/Shared/open_task_final_work.dart';
+import 'package:point/View/Tasks/Shared/reject_task_dialog.dart';
+import 'package:point/View/Tasks/Shared/request_task_modification_dialog.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
+
+bool _taskInManagementReviewMobile(TaskModel task) {
+  final s = FunHelper.canonicalStoredStatus(task.status);
+  if (task.type == '0') {
+    return s == StorageKeys.status_promotion_ad_platform_review;
+  }
+  return s == StorageKeys.status_under_revision;
+}
 
 bool _employeeMayEditFinalDeliverableInDetails(TaskModel t, String role) {
   if (role != 'employee') return false;
@@ -240,7 +254,35 @@ class TaskDetailsMobilePage extends StatelessWidget {
                 );
               }),
               const SizedBox(height: 12),
-              _buildNotesAndAttachmentsCard(context),
+              Obx(() {
+                final live =
+                    Get.find<HomeController>().tasks.firstWhereOrNull(
+                          (x) => x.id == task.id,
+                        ) ??
+                        task;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TaskDetailsFeedbackWidgets.feedbackBanners(
+                      context,
+                      live,
+                    ),
+                    TaskDetailsFeedbackWidgets.deadlineExtensionPanel(
+                      context,
+                      live,
+                    ),
+                  ],
+                );
+              }),
+              const SizedBox(height: 12),
+              Obx(() {
+                final live =
+                    Get.find<HomeController>().tasks.firstWhereOrNull(
+                          (x) => x.id == task.id,
+                        ) ??
+                        task;
+                return _buildNotesAndAttachmentsCard(context, live);
+              }),
               Obx(() {
                 final live =
                     Get.find<HomeController>().tasks.firstWhereOrNull(
@@ -363,6 +405,57 @@ class TaskDetailsMobilePage extends StatelessWidget {
 
   Future<void> _launchAttachmentUrl(String rawUrl) async {
     await openUrlPreferInAppMedia(rawUrl);
+  }
+
+  Widget _mobileAttachmentTile(
+    BuildContext context,
+    String att,
+    List<String> imageUrls,
+  ) {
+    final url = att.toString();
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          height: 72,
+          width: double.infinity,
+          child: TaskDetailsDialogHelpers.attachmentThumbnail(
+            url,
+            onOpen: () => _launchAttachmentUrl(url),
+          ),
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            IconButton(
+              tooltip: 'tasks.open_attachment'.tr,
+              iconSize: 20,
+              onPressed: () => _launchAttachmentUrl(url),
+              icon: const Icon(Icons.open_in_new),
+            ),
+            IconButton(
+              tooltip: 'tasks.download'.tr,
+              iconSize: 20,
+              onPressed: () => launchAttachmentDownload(url),
+              icon: const Icon(Icons.download_outlined),
+            ),
+            if (isImageMediaUrl(url))
+              IconButton(
+                tooltip: 'tasks.attachment_gallery'.tr,
+                iconSize: 20,
+                onPressed: () {
+                  final i = imageUrls.indexOf(url);
+                  openTaskAttachmentGallery(
+                    imageUrls: imageUrls,
+                    initialIndex: i >= 0 ? i : 0,
+                  );
+                },
+                icon: const Icon(Icons.collections_outlined),
+              ),
+          ],
+        ),
+      ],
+    );
   }
 
   Widget _linkFieldRow(BuildContext context, String label, String? raw) {
@@ -562,14 +655,13 @@ class TaskDetailsMobilePage extends StatelessWidget {
                   crossAxisCount: crossCount,
                   crossAxisSpacing: 10,
                   mainAxisSpacing: 10,
-                  mainAxisExtent: 84,
+                  mainAxisExtent: 118,
                 ),
                 itemBuilder: (context, index) {
                   final att = urls[index];
-                  return TaskDetailsDialogHelpers.attachmentThumbnail(
-                    att,
-                    onOpen: () => _launchAttachmentUrl(att),
-                  );
+                  final imgs =
+                      urls.where((u) => isImageMediaUrl(u.toString())).toList();
+                  return _mobileAttachmentTile(context, att, imgs);
                 },
               ),
             ),
@@ -579,10 +671,9 @@ class TaskDetailsMobilePage extends StatelessWidget {
     );
   }
 
-  Widget _buildNotesAndAttachmentsCard(BuildContext context) {
+  Widget _buildNotesAndAttachmentsCard(BuildContext context, TaskModel t) {
     final textTheme = Theme.of(context).textTheme;
-    final latestNote =
-        task.notes.isNotEmpty ? task.notes.last : null;
+    final latestNote = t.notes.isNotEmpty ? t.notes.last : null;
     final screenW = MediaQuery.sizeOf(context).width;
     final contentW = (screenW - 64).clamp(240.0, 800.0);
     final crossCount = contentW < 340 ? 1 : (contentW < 560 ? 2 : 3);
@@ -620,7 +711,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.grey.shade300),
             ),
-            child: task.notes.isEmpty
+            child: t.notes.isEmpty
                 ? Center(
                     child: Text(
                       'content.dialog.no_notes'.tr,
@@ -681,7 +772,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
                         ),
                         const SizedBox(height: 10),
                       ],
-                      ...task.notes.map(
+                      ...t.notes.map(
                         (note) => Padding(
                           padding: const EdgeInsets.only(bottom: 8),
                           child: Column(
@@ -724,7 +815,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
             ),
             padding: const EdgeInsets.all(10),
             child:
-                task.files.isEmpty
+                t.files.isEmpty
                     ? Center(
                       child: Text(
                         'content.dialog.no_attachments'.tr,
@@ -738,19 +829,21 @@ class TaskDetailsMobilePage extends StatelessWidget {
                     : GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      itemCount: task.files.length,
+                      itemCount: t.files.length,
                       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: crossCount,
                         crossAxisSpacing: 10,
                         mainAxisSpacing: 10,
-                        mainAxisExtent: 84,
+                        mainAxisExtent: 118,
                       ),
                       itemBuilder: (context, index) {
-                        final att = task.files[index];
-                        return TaskDetailsDialogHelpers.attachmentThumbnail(
-                          att,
-                          onOpen: () => _launchAttachmentUrl(att),
-                        );
+                        final att = t.files[index].toString();
+                        final imgs =
+                            t.files
+                                .map((e) => e.toString())
+                                .where(isImageMediaUrl)
+                                .toList();
+                        return _mobileAttachmentTile(context, att, imgs);
                       },
                     ),
           ),
@@ -1442,6 +1535,10 @@ class TaskDetailsMobilePage extends StatelessWidget {
         FunHelper.taskStatusAllowsSupervisorDirectOrEscalate(task.status);
     final hideAccept =
         FunHelper.supervisorShouldHideTaskAccept(role, task.status);
+    final employeeRejectedReadOnly =
+        isEmployee &&
+        FunHelper.canonicalStoredStatus(task.status) ==
+            StorageKeys.status_rejected;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1455,19 +1552,62 @@ class TaskDetailsMobilePage extends StatelessWidget {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
-        const SizedBox(height: 10),
-        OutlinedButton.icon(
-          onPressed: () => _openEditDialog(context, task),
-          icon: const Icon(Icons.edit_outlined, size: 18),
-          label: Text(
-            canEditDirectly ? 'edit'.tr : 'tasks.request_edit'.tr,
+        if (!employeeRejectedReadOnly) ...[
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: () => _openEditDialog(context, task),
+            icon: const Icon(Icons.edit_outlined, size: 18),
+            label: Text(
+              canEditDirectly ? 'edit'.tr : 'tasks.request_edit'.tr,
+            ),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
           ),
-          style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          if (canEditDirectly && _taskInManagementReviewMobile(task)) ...[
+            const SizedBox(height: 10),
+            FilledButton.icon(
+              onPressed: () => showRequestTaskModificationDialog(
+                context: context,
+                task: task,
+              ),
+              icon: const Icon(Icons.edit_note_outlined, size: 18),
+              label: Text('tasks.request_modification_menu'.tr),
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.deepOrange.shade700,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 10),
+        ],
+        if (isEmployee &&
+            task.assignedTo.trim() ==
+                (controller.currentEmployee.value?.id ?? '').trim() &&
+            StorageKeys.isTaskOngoing(task) &&
+            task.deadlineExtensionStatus.trim() !=
+                TaskModel.kDeadlineExtensionPending) ...[
+          OutlinedButton.icon(
+            onPressed: () => showDeadlineExtensionRequestDialog(
+              context: context,
+              task: task,
+            ),
+            icon: const Icon(Icons.event_repeat_outlined, size: 18),
+            label: Text('tasks.deadline_extension_button'.tr),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
           ),
-        ),
-        const SizedBox(height: 10),
+          const SizedBox(height: 10),
+        ],
         if (!isEmployee) ...[
         if (task.type != '0' && canEscalate) ...[
           Row(
@@ -1475,18 +1615,10 @@ class TaskDetailsMobilePage extends StatelessWidget {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () {
-                    FunHelper.showConfirmDailog(
-                      context,
-                      title: 'tasks.confirm_reject_title'.tr,
-                      message: 'tasks.confirm_reject_message'.tr,
-                      confirmText: 'tasks.reject'.tr,
-                      confirmColor: Colors.red,
-                      onTap: () async {
-                        await controller.updateTask(
-                          task.copyWith(status: StorageKeys.status_rejected),
-                        );
-                        Get.back();
-                      },
+                    showRejectTaskDialog(
+                      context: context,
+                      task: task,
+                      onSuccess: () => Get.back(),
                     );
                   },
                   icon: const Icon(Icons.close_rounded, size: 18),
@@ -1587,22 +1719,10 @@ class TaskDetailsMobilePage extends StatelessWidget {
         ] else if (hideAccept) ...[
           OutlinedButton.icon(
             onPressed: () {
-              FunHelper.showConfirmDailog(
-                context,
-                title: 'tasks.confirm_reject_title'.tr,
-                message: 'tasks.confirm_reject_message'.tr,
-                confirmText: 'tasks.reject'.tr,
-                confirmColor: Colors.red,
-                onTap: () async {
-                  final next =
-                      task.type == '0'
-                          ? task.copyWithPromotionStatusAligned(
-                              StorageKeys.status_rejected,
-                            )
-                          : task.copyWith(status: StorageKeys.status_rejected);
-                  await controller.updateTask(next);
-                  Get.back();
-                },
+              showRejectTaskDialog(
+                context: context,
+                task: task,
+                onSuccess: () => Get.back(),
               );
             },
             icon: const Icon(Icons.close_rounded, size: 18),
@@ -1621,24 +1741,10 @@ class TaskDetailsMobilePage extends StatelessWidget {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () {
-                    FunHelper.showConfirmDailog(
-                      context,
-                      title: 'tasks.confirm_reject_title'.tr,
-                      message: 'tasks.confirm_reject_message'.tr,
-                      confirmText: 'tasks.reject'.tr,
-                      confirmColor: Colors.red,
-                      onTap: () async {
-                        final next =
-                            task.type == '0'
-                                ? task.copyWithPromotionStatusAligned(
-                                    StorageKeys.status_rejected,
-                                  )
-                                : task.copyWith(
-                                    status: StorageKeys.status_rejected,
-                                  );
-                        await controller.updateTask(next);
-                        Get.back();
-                      },
+                    showRejectTaskDialog(
+                      context: context,
+                      task: task,
+                      onSuccess: () => Get.back(),
                     );
                   },
                   icon: const Icon(Icons.close_rounded, size: 18),

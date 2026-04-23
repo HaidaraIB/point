@@ -11,6 +11,7 @@ import 'package:point/Utils/ContentPermissions.dart';
 import 'package:point/View/Contents/Shared/content_attachment_source_input.dart';
 import 'package:point/View/Contents/Shared/content_library_attachment_picker.dart';
 import 'package:point/View/Publish/publish_meta_settings_dialog.dart';
+import 'package:point/View/Shared/app_date_time_picker.dart';
 import 'package:point/View/Shared/CustomDropDown.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
@@ -267,26 +268,15 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
 
   Future<void> _pickScheduleDateTime() async {
     final now = DateTime.now();
-    final initialDate = _scheduledAt.value?.toLocal() ?? now.add(const Duration(minutes: 5));
-    final pickedDate = await showDatePicker(
-      context: context,
-      initialDate: initialDate,
+    final initialDate =
+        _scheduledAt.value?.toLocal() ?? now.add(const Duration(minutes: 5));
+    final local = await pickAppDateTime(
+      context,
+      initialDateTime: initialDate,
       firstDate: now,
       lastDate: now.add(const Duration(days: 365)),
     );
-    if (pickedDate == null || !mounted) return;
-    final pickedTime = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(initialDate),
-    );
-    if (pickedTime == null || !mounted) return;
-    final local = DateTime(
-      pickedDate.year,
-      pickedDate.month,
-      pickedDate.day,
-      pickedTime.hour,
-      pickedTime.minute,
-    );
+    if (local == null || !mounted) return;
     _scheduledAt.value = local.toUtc();
   }
 

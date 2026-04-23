@@ -174,7 +174,10 @@ void showAddNotifications(BuildContext context) {
                             ),
                             InputText(
                               onTap: () async {
-                                final picked = await customDatePicker(context);
+                                final picked = await customDatePicker(
+                                  context,
+                                  initialDateTime: date,
+                                );
                                 if (picked != null) {
                                   date = picked;
                                   datectr.text = DateFormat(

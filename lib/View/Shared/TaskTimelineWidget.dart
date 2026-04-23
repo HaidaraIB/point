@@ -5,28 +5,60 @@ import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/Utils/AppColors.dart';
 
-class TaskTimelineWidget extends StatelessWidget {
+class TaskTimelineWidget extends StatefulWidget {
   final List<TaskTimelineEvent> events;
 
   const TaskTimelineWidget({super.key, required this.events});
 
   @override
+  State<TaskTimelineWidget> createState() => _TaskTimelineWidgetState();
+}
+
+class _TaskTimelineWidgetState extends State<TaskTimelineWidget> {
+  /// Default: oldest at top (story order).
+  bool _oldestFirst = true;
+
+  int _compareEvents(TaskTimelineEvent a, TaskTimelineEvent b) {
+    final byTime = a.timestamp.compareTo(b.timestamp);
+    if (byTime != 0) return _oldestFirst ? byTime : -byTime;
+    final byType = a.type.compareTo(b.type);
+    if (byType != 0) return byType;
+    return a.label.compareTo(b.label);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (events.isEmpty) {
+    if (widget.events.isEmpty) {
       return const SizedBox.shrink();
     }
-    final sorted = List<TaskTimelineEvent>.from(events)
-      ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    final sorted = List<TaskTimelineEvent>.from(widget.events)
+      ..sort(_compareEvents);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'tasks.timeline_title'.tr,
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: AppColors.primaryfontColor,
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'tasks.timeline_title'.tr,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primaryfontColor,
+                    ),
               ),
+            ),
+            TextButton(
+              onPressed: () => setState(() => _oldestFirst = !_oldestFirst),
+              child: Text('tasks.timeline.toggle_order'.tr),
+            ),
+          ],
+        ),
+        Text(
+          _oldestFirst
+              ? 'tasks.timeline.order_oldest_first'.tr
+              : 'tasks.timeline.order_newest_first'.tr,
+          style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
         ),
         const SizedBox(height: 12),
         Container(
@@ -39,8 +71,46 @@ class TaskTimelineWidget extends StatelessWidget {
           child: Column(
             children: [
               for (var i = 0; i < sorted.length; i++) ...[
-                _TimelineRow(event: sorted[i]),
-                if (i < sorted.length - 1) const SizedBox(height: 16),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 28,
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 2,
+                            height: 10,
+                            color:
+                                i == 0
+                                    ? Colors.transparent
+                                    : Colors.grey.shade300,
+                          ),
+                          Text(
+                            '${i + 1}',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                          Container(
+                            width: 2,
+                            height: 10,
+                            color:
+                                i == sorted.length - 1
+                                    ? Colors.transparent
+                                    : Colors.grey.shade300,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(child: _TimelineRow(event: sorted[i])),
+                  ],
+                ),
+                if (i < sorted.length - 1) const SizedBox(height: 12),
               ],
             ],
           ),
@@ -104,6 +174,16 @@ class _TimelineRow extends StatelessWidget {
         return Icons.attach_file;
       case 'final_deliverable_attachment_added':
         return Icons.outbox_outlined;
+      case 'management_edit_request':
+        return Icons.edit_note_outlined;
+      case 'rejection_feedback':
+        return Icons.cancel_outlined;
+      case 'deadline_extension_requested':
+        return Icons.event_repeat_outlined;
+      case 'deadline_extension_approved':
+        return Icons.event_available_outlined;
+      case 'deadline_extension_denied':
+        return Icons.event_busy_outlined;
       case 'audience_changed':
         return Icons.people_outline;
       case 'category_changed':
@@ -165,7 +245,7 @@ class _TimelineRow extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      event.byUserName.tr,
+                      event.byUserName,
                       maxLines: 1,
                       softWrap: false,
                       overflow: TextOverflow.ellipsis,

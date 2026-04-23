@@ -94,12 +94,31 @@ class HomeController extends GetxController {
       selectedStatus.value = '';
     }
 
-    // نعرض فقط المهام الجارية دائماً
-    List<TaskModel> baseList =
-        tasks.where((t) => StorageKeys.isTaskOngoing(t)).toList();
-
     final empDash = currentEmployee.value;
-    if (empDash != null && empDash.role.trim().toLowerCase() == 'employee') {
+    final isEmployee =
+        empDash != null && empDash.role.trim().toLowerCase() == 'employee';
+    final empId = empDash?.id?.trim() ?? '';
+    final rejectedFilterActive =
+        isEmployee &&
+        empId.isNotEmpty &&
+        FunHelper.canonicalStoredStatus(selectedStatus.value) ==
+            StorageKeys.status_rejected;
+
+    // Employees: rejected tasks only when explicitly filtering by rejected;
+    // otherwise ongoing tasks only (same as admins/supervisors).
+    late List<TaskModel> baseList;
+    if (rejectedFilterActive) {
+      baseList =
+          tasks.where((t) {
+            if (t.assignedTo.trim() != empId) return false;
+            return FunHelper.canonicalStoredStatus(t.status) ==
+                StorageKeys.status_rejected;
+          }).toList();
+    } else {
+      baseList = tasks.where((t) => StorageKeys.isTaskOngoing(t)).toList();
+    }
+
+    if (isEmployee) {
       final arg = employeeDashboardDepartmentFilterArg;
       if (arg != null && arg.isNotEmpty) {
         final typeCode = taskTypeCodeForNormalizedDepartment(
@@ -114,8 +133,8 @@ class HomeController extends GetxController {
       }
     }
 
-    // إن وُجد فلتر حالة محددة (إحدى الحالات الجارية) نطبّقها
-    if (selectedStatus.value.isNotEmpty) {
+    // Status filter (skipped when list is already the rejected-only employee view).
+    if (selectedStatus.value.isNotEmpty && !rejectedFilterActive) {
       baseList =
           baseList
               .where(
@@ -936,8 +955,13 @@ class HomeController extends GetxController {
           taskTitle: newTask.title,
         );
       }
-      if (newTask.status == StorageKeys.status_edit_requested &&
-          assigneeId.isNotEmpty) {
+      if (assigneeId.isNotEmpty &&
+          (newTask.status == StorageKeys.status_edit_requested ||
+              (newTask.type == '0' &&
+                  oldTask.status ==
+                      StorageKeys.status_promotion_ad_platform_review &&
+                  newTask.status ==
+                      StorageKeys.status_promotion_in_progress))) {
         await NotificationService.notifyEmployeeEditRequestedByManagement(
           employeeId: assigneeId,
           taskTitle: newTask.title,
@@ -1013,6 +1037,35 @@ class HomeController extends GetxController {
           progressPercent: ((newNorm ?? 0) * 100).round(),
         );
       }
+    }
+
+    final oldDe = oldTask.deadlineExtensionStatus.trim();
+    final newDe = newTask.deadlineExtensionStatus.trim();
+    if (oldDe != TaskModel.kDeadlineExtensionPending &&
+        newDe == TaskModel.kDeadlineExtensionPending) {
+      await NotificationService.notifyManagersDeadlineExtensionRequested(
+        employeeName: assigneeName,
+        taskTitle: newTask.title,
+      );
+    }
+    if (oldDe == TaskModel.kDeadlineExtensionPending &&
+        newDe.isEmpty &&
+        newTask.toDate != oldTask.toDate &&
+        assigneeId.isNotEmpty) {
+      final fmt = FunHelper.formatdate(newTask.toDate);
+      await NotificationService.notifyEmployeeDeadlineExtensionApproved(
+        employeeId: assigneeId,
+        taskTitle: newTask.title,
+        newDueLabel: fmt ?? newTask.toDate.toIso8601String(),
+      );
+    }
+    if (oldDe == TaskModel.kDeadlineExtensionPending &&
+        newDe == TaskModel.kDeadlineExtensionDenied &&
+        assigneeId.isNotEmpty) {
+      await NotificationService.notifyEmployeeDeadlineExtensionDenied(
+        employeeId: assigneeId,
+        taskTitle: newTask.title,
+      );
     }
   }
 
@@ -1098,7 +1151,9 @@ class HomeController extends GetxController {
     final emp = currentEmployee.value;
     final userId = emp?.id ?? '';
     final userName = emp?.name ?? 'system.user';
-    final now = DateTime.now();
+    final baseNow = DateTime.now();
+    var tsSeq = 0;
+    DateTime ts() => baseNow.add(Duration(microseconds: ++tsSeq));
     final List<TaskTimelineEvent> events = [];
 
     // --- الحقول الأساسية للمهمة ---
@@ -1117,7 +1172,7 @@ class HomeController extends GetxController {
           newValue: newName,
           byUserId: userId,
           byUserName: userName,
-          timestamp: now,
+          timestamp: ts(),
         ),
       );
     }
@@ -1128,7 +1183,7 @@ class HomeController extends GetxController {
       newTask.title,
       userId,
       userName,
-      now,
+      ts(),
       fieldKey: 'title',
     );
     _addIfChanged(
@@ -1138,7 +1193,7 @@ class HomeController extends GetxController {
       newTask.description,
       userId,
       userName,
-      now,
+      ts(),
       fieldKey: 'description',
     );
     final normalizedOldProgress = _normalizeProgressStep(oldTask.progress);
@@ -1159,7 +1214,7 @@ class HomeController extends GetxController {
         newP,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'progress',
       );
     }
@@ -1170,7 +1225,7 @@ class HomeController extends GetxController {
       newTask.clientName,
       userId,
       userName,
-      now,
+      ts(),
       fieldKey: 'clientName',
     );
     _addIfChanged(
@@ -1180,7 +1235,7 @@ class HomeController extends GetxController {
       newTask.actionText,
       userId,
       userName,
-      now,
+      ts(),
       fieldKey: 'actionText',
     );
     _addIfChanged(
@@ -1190,7 +1245,7 @@ class HomeController extends GetxController {
       newTask.type,
       userId,
       userName,
-      now,
+      ts(),
       fieldKey: 'type',
     );
     if (oldTask.fromDate != newTask.fromDate) {
@@ -1202,7 +1257,7 @@ class HomeController extends GetxController {
           newValue: _formatTimelineValue(newTask.fromDate),
           byUserId: userId,
           byUserName: userName,
-          timestamp: now,
+          timestamp: ts(),
         ),
       );
     }
@@ -1215,7 +1270,7 @@ class HomeController extends GetxController {
           newValue: _formatTimelineValue(newTask.toDate),
           byUserId: userId,
           byUserName: userName,
-          timestamp: now,
+          timestamp: ts(),
         ),
       );
     }
@@ -1228,7 +1283,7 @@ class HomeController extends GetxController {
           newValue: newTask.priority,
           byUserId: userId,
           byUserName: userName,
-          timestamp: now,
+          timestamp: ts(),
         ),
       );
     }
@@ -1241,7 +1296,7 @@ class HomeController extends GetxController {
           newValue: newTask.status,
           byUserId: userId,
           byUserName: userName,
-          timestamp: now,
+          timestamp: ts(),
         ),
       );
     }
@@ -1258,7 +1313,7 @@ class HomeController extends GetxController {
           newValue: snippet.isEmpty ? null : snippet,
           byUserId: userId,
           byUserName: userName,
-          timestamp: now,
+          timestamp: ts(),
         ),
       );
     }
@@ -1286,7 +1341,7 @@ class HomeController extends GetxController {
             newValue: file.isEmpty ? null : file,
             byUserId: userId,
             byUserName: userName,
-            timestamp: now,
+            timestamp: ts(),
           ),
         );
       }
@@ -1299,7 +1354,7 @@ class HomeController extends GetxController {
       newTask.finalDeliverableText,
       userId,
       userName,
-      now,
+      ts(),
       fieldKey: 'finalDeliverableText',
     );
 
@@ -1328,7 +1383,7 @@ class HomeController extends GetxController {
             newValue: file.isEmpty ? null : file,
             byUserId: userId,
             byUserName: userName,
-            timestamp: now,
+            timestamp: ts(),
           ),
         );
       }
@@ -1345,7 +1400,7 @@ class HomeController extends GetxController {
         newD?.taskType,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'designDetails.taskType',
       );
       _addIfChanged(
@@ -1355,7 +1410,7 @@ class HomeController extends GetxController {
         newD?.platform,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'designDetails.platform',
       );
       _addIfChanged(
@@ -1365,7 +1420,7 @@ class HomeController extends GetxController {
         newD?.designType,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'designDetails.designType',
       );
       _addIfChanged(
@@ -1375,7 +1430,7 @@ class HomeController extends GetxController {
         newD?.designCount,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'designDetails.designCount',
       );
       _addIfChanged(
@@ -1385,7 +1440,7 @@ class HomeController extends GetxController {
         newD?.designsDimensions,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'designDetails.designsDimensions',
       );
     }
@@ -1401,7 +1456,7 @@ class HomeController extends GetxController {
         newCw?.platform,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'contentWriteModel.platform',
       );
       _addIfChanged(
@@ -1411,7 +1466,7 @@ class HomeController extends GetxController {
         newCw?.contenttype,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'contentWriteModel.contenttype',
       );
       _addIfChanged(
@@ -1421,7 +1476,7 @@ class HomeController extends GetxController {
         newCw?.designCount,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'contentWriteModel.designCount',
       );
       _addIfChanged(
@@ -1431,7 +1486,7 @@ class HomeController extends GetxController {
         newCw?.designsDimensions,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'contentWriteModel.designsDimensions',
       );
     }
@@ -1447,7 +1502,7 @@ class HomeController extends GetxController {
         newPh?.shootingtype,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'photoGrapghyModel.shootingtype',
       );
       _addIfChanged(
@@ -1457,7 +1512,7 @@ class HomeController extends GetxController {
         newPh?.platform,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'photoGrapghyModel.platform',
       );
       _addIfChanged(
@@ -1467,7 +1522,7 @@ class HomeController extends GetxController {
         newPh?.shootinglocation,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'photoGrapghyModel.shootinglocation',
       );
       _addIfChanged(
@@ -1477,7 +1532,7 @@ class HomeController extends GetxController {
         newPh?.designCount,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'photoGrapghyModel.designCount',
       );
       _addIfChanged(
@@ -1487,7 +1542,7 @@ class HomeController extends GetxController {
         newPh?.duration,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'photoGrapghyModel.duration',
       );
     }
@@ -1503,7 +1558,7 @@ class HomeController extends GetxController {
         newMo?.category,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'monatageModel.category',
       );
       _addIfChanged(
@@ -1513,7 +1568,7 @@ class HomeController extends GetxController {
         newMo?.platform,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'monatageModel.platform',
       );
       _addIfChanged(
@@ -1523,7 +1578,7 @@ class HomeController extends GetxController {
         newMo?.dimentioans,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'monatageModel.dimentioans',
       );
       _addIfChanged(
@@ -1533,7 +1588,7 @@ class HomeController extends GetxController {
         newMo?.attachementurl,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'monatageModel.attachementurl',
       );
       _addIfChanged(
@@ -1543,7 +1598,7 @@ class HomeController extends GetxController {
         newMo?.duration,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'monatageModel.duration',
       );
     }
@@ -1559,7 +1614,7 @@ class HomeController extends GetxController {
         newPu?.contenturl,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'publishModel.contenturl',
       );
       _addIfChanged(
@@ -1569,7 +1624,7 @@ class HomeController extends GetxController {
         newPu?.platform,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'publishModel.platform',
       );
       _addIfChanged(
@@ -1579,7 +1634,7 @@ class HomeController extends GetxController {
         newPu?.category,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'publishModel.category',
       );
       _addIfChanged(
@@ -1589,7 +1644,7 @@ class HomeController extends GetxController {
         newPu?.fileurl,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'publishModel.fileurl',
       );
       _addIfChanged(
@@ -1599,7 +1654,7 @@ class HomeController extends GetxController {
         newPu?.designsDimensions,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'publishModel.designsDimensions',
       );
     }
@@ -1615,7 +1670,7 @@ class HomeController extends GetxController {
         newPr?.contenturl,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'programmingModel.contenturl',
       );
       _addIfChanged(
@@ -1625,7 +1680,7 @@ class HomeController extends GetxController {
         newPr?.category,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'programmingModel.category',
       );
       _addIfChanged(
@@ -1635,7 +1690,7 @@ class HomeController extends GetxController {
         newPr?.fileurl,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'programmingModel.fileurl',
       );
       _addIfChanged(
@@ -1645,7 +1700,7 @@ class HomeController extends GetxController {
         newPr?.designsDimensions,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'programmingModel.designsDimensions',
       );
     }
@@ -1661,7 +1716,7 @@ class HomeController extends GetxController {
         newPromo?.name,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'promotionModel.name',
       );
       _addIfChanged(
@@ -1671,7 +1726,7 @@ class HomeController extends GetxController {
         newPromo?.target,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'promotionModel.target',
       );
       _addIfChanged(
@@ -1681,7 +1736,7 @@ class HomeController extends GetxController {
         newPromo?.campaignName,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'promotionModel.campaignName',
       );
       _addIfChanged(
@@ -1691,7 +1746,7 @@ class HomeController extends GetxController {
         newPromo?.type,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'promotionModel.type',
       );
       _addIfChanged(
@@ -1701,7 +1756,7 @@ class HomeController extends GetxController {
         newPromo?.priority,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'promotionModel.priority',
       );
       _addIfChanged(
@@ -1711,7 +1766,7 @@ class HomeController extends GetxController {
         newPromo?.status,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'promotionModel.status',
       );
       _addIfChanged(
@@ -1721,7 +1776,7 @@ class HomeController extends GetxController {
         newPromo?.description,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'promotionModel.description',
       );
       _addIfChanged(
@@ -1731,7 +1786,7 @@ class HomeController extends GetxController {
         newPromo?.executorId,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'promotionModel.executorId',
       );
       _addIfChanged(
@@ -1741,7 +1796,7 @@ class HomeController extends GetxController {
         newPromo?.startDate,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'promotionModel.startDate',
       );
       _addIfChanged(
@@ -1751,7 +1806,7 @@ class HomeController extends GetxController {
         newPromo?.endDate,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'promotionModel.endDate',
       );
       _addIfChanged(
@@ -1761,7 +1816,7 @@ class HomeController extends GetxController {
         newPromo?.duration,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'promotionModel.duration',
       );
       _addIfChanged(
@@ -1771,7 +1826,7 @@ class HomeController extends GetxController {
         newPromo?.campaignBudget,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'promotionModel.campaignBudget',
       );
       _addIfChanged(
@@ -1781,7 +1836,7 @@ class HomeController extends GetxController {
         newPromo?.tags,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'promotionModel.tags',
       );
       _addIfChanged(
@@ -1791,7 +1846,7 @@ class HomeController extends GetxController {
         newPromo?.platforms,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'promotionModel.platforms',
       );
       _addIfChanged(
@@ -1801,7 +1856,7 @@ class HomeController extends GetxController {
         newPromo?.interests,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'promotionModel.interests',
       );
       _addIfChanged(
@@ -1811,7 +1866,7 @@ class HomeController extends GetxController {
         newPromo?.cities,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'promotionModel.cities',
       );
       _addIfChanged(
@@ -1821,7 +1876,7 @@ class HomeController extends GetxController {
         newPromo?.countries,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'promotionModel.countries',
       );
       _addIfChanged(
@@ -1831,7 +1886,7 @@ class HomeController extends GetxController {
         newPromo?.specializations,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'promotionModel.specializations',
       );
       _addIfChanged(
@@ -1841,7 +1896,7 @@ class HomeController extends GetxController {
         newPromo?.ageRanges,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'promotionModel.ageRanges',
       );
       _addIfChanged(
@@ -1851,7 +1906,7 @@ class HomeController extends GetxController {
         newPromo?.notes,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'promotionModel.notes',
       );
       _addIfChanged(
@@ -1861,8 +1916,114 @@ class HomeController extends GetxController {
         newPromo?.attachementurl,
         userId,
         userName,
-        now,
+        ts(),
         fieldKey: 'promotionModel.attachementurl',
+      );
+    }
+
+    final editMsgChanged =
+        oldTask.managementEditRequestMessage.trim() !=
+        newTask.managementEditRequestMessage.trim();
+    final editFilesChanged = !_valuesEqual(
+      oldTask.managementEditRequestFileUrls,
+      newTask.managementEditRequestFileUrls,
+    );
+    if ((editMsgChanged || editFilesChanged) &&
+        (newTask.managementEditRequestMessage.trim().isNotEmpty ||
+            newTask.managementEditRequestFileUrls.isNotEmpty)) {
+      final snippet = newTask.managementEditRequestMessage.trim();
+      final clip =
+          snippet.length > _timelineValueMaxLength
+              ? '${snippet.substring(0, _timelineValueMaxLength)}...'
+              : snippet;
+      events.add(
+        TaskTimelineEvent(
+          type: 'management_edit_request',
+          label: 'tasks.timeline.management_edit_request',
+          newValue: clip.isEmpty ? null : clip,
+          byUserId: userId,
+          byUserName: userName,
+          timestamp: ts(),
+        ),
+      );
+    }
+
+    final rejMsgChanged =
+        oldTask.rejectionMessage.trim() != newTask.rejectionMessage.trim();
+    final rejFilesChanged = !_valuesEqual(
+      oldTask.rejectionFileUrls,
+      newTask.rejectionFileUrls,
+    );
+    if (newTask.status == StorageKeys.status_rejected &&
+        (rejMsgChanged || rejFilesChanged) &&
+        (newTask.rejectionMessage.trim().isNotEmpty ||
+            newTask.rejectionFileUrls.isNotEmpty)) {
+      final snippet = newTask.rejectionMessage.trim();
+      final clip =
+          snippet.length > _timelineValueMaxLength
+              ? '${snippet.substring(0, _timelineValueMaxLength)}...'
+              : snippet;
+      events.add(
+        TaskTimelineEvent(
+          type: 'rejection_feedback',
+          label: 'tasks.timeline.rejection_feedback',
+          newValue: clip.isEmpty ? null : clip,
+          byUserId: userId,
+          byUserName: userName,
+          timestamp: ts(),
+        ),
+      );
+    }
+
+    final oldExt = oldTask.deadlineExtensionStatus.trim();
+    final newExt = newTask.deadlineExtensionStatus.trim();
+    if (oldExt != TaskModel.kDeadlineExtensionPending &&
+        newExt == TaskModel.kDeadlineExtensionPending) {
+      final toStr = newTask.deadlineExtensionRequestedTo != null
+          ? _formatTimelineValue(newTask.deadlineExtensionRequestedTo!)
+          : '';
+      events.add(
+        TaskTimelineEvent(
+          type: 'deadline_extension_requested',
+          label: 'tasks.timeline.deadline_extension_requested',
+          oldValue: _formatTimelineValue(oldTask.toDate),
+          newValue: toStr.isEmpty ? null : toStr,
+          byUserId: userId,
+          byUserName: userName,
+          timestamp: ts(),
+        ),
+      );
+    } else if (oldExt == TaskModel.kDeadlineExtensionPending &&
+        newExt.isEmpty &&
+        newTask.toDate != oldTask.toDate) {
+      events.add(
+        TaskTimelineEvent(
+          type: 'deadline_extension_approved',
+          label: 'tasks.timeline.deadline_extension_approved',
+          oldValue: _formatTimelineValue(oldTask.toDate),
+          newValue: _formatTimelineValue(newTask.toDate),
+          byUserId: userId,
+          byUserName: userName,
+          timestamp: ts(),
+        ),
+      );
+    } else if (oldExt == TaskModel.kDeadlineExtensionPending &&
+        newExt == TaskModel.kDeadlineExtensionDenied) {
+      events.add(
+        TaskTimelineEvent(
+          type: 'deadline_extension_denied',
+          label: 'tasks.timeline.deadline_extension_denied',
+          newValue:
+              newTask.deadlineExtensionDeniedNote.trim().isEmpty
+                  ? null
+                  : (newTask.deadlineExtensionDeniedNote.trim().length >
+                          _timelineValueMaxLength
+                      ? '${newTask.deadlineExtensionDeniedNote.trim().substring(0, _timelineValueMaxLength)}...'
+                      : newTask.deadlineExtensionDeniedNote.trim()),
+          byUserId: userId,
+          byUserName: userName,
+          timestamp: ts(),
+        ),
       );
     }
 

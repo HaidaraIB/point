@@ -17,6 +17,7 @@ import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/HorizontalScroll.dart';
 import 'package:point/View/Shared/TableCellCenter.dart';
 import 'package:point/View/Shared/responsive.dart';
+import 'package:point/View/Shared/app_date_time_picker.dart';
 import 'package:point/View/Shared/table_actions_menu_row.dart';
 import 'package:point/Utils/PasswordValidator.dart';
 import 'package:uuid/uuid.dart';
@@ -641,6 +642,7 @@ void showAddEmployeeDialog(BuildContext context, {ClientModel? model}) {
                                         onTap: () async {
                                           final picked = await customDatePicker(
                                             context,
+                                            initialDateTime: startAt,
                                           );
                                           if (picked != null) {
                                             startAt = picked;
@@ -683,6 +685,7 @@ void showAddEmployeeDialog(BuildContext context, {ClientModel? model}) {
                                         onTap: () async {
                                           final picked = await customDatePicker(
                                             context,
+                                            initialDateTime: endAt,
                                           );
                                           if (picked != null) {
                                             endAt = picked;
@@ -939,256 +942,14 @@ void showAddEmployeeDialog(BuildContext context, {ClientModel? model}) {
 //     return null;
 //   }
 // }
-Future<DateTime?> customDatePicker(BuildContext context) async {
-  DateTime selectedDate = DateTime.now();
-
-  // 🗓️ أول خطوة: اختيار التاريخ
-  final pickedDate = await showDialog<DateTime>(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        content: SizedBox(
-          height: 400,
-          width: 350,
-          child: CalendarDatePicker(
-            initialDate: DateTime.now(),
-            firstDate: DateTime(2000),
-            lastDate: DateTime(2100),
-            onDateChanged: (date) {
-              selectedDate = date;
-            },
-          ),
-        ),
-        actions: [
-          SizedBox(
-            width: 160,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF5C5589),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                padding: EdgeInsets.symmetric(horizontal: 48, vertical: 20),
-              ),
-              onPressed: () async {
-                final pickedTime = await showDialog<TimeOfDay>(
-                  context: context,
-                  builder: (context) {
-                    TimeOfDay selectedTime = TimeOfDay.now();
-
-                    return AlertDialog(
-                      backgroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      content: SizedBox(
-                        height: 200,
-                        width: 300,
-                        child: Center(
-                          child: TimePickerSpinnerWidget(
-                            initialTime: selectedTime,
-                            onTimeChanged: (time) {
-                              selectedTime = time;
-                            },
-                          ),
-                        ),
-                      ),
-                      actions: [
-                        SizedBox(
-                          width: 160,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Color(0xFF5C5589),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(24),
-                              ),
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 48,
-                                vertical: 20,
-                              ),
-                            ),
-                            onPressed: () {
-                              Navigator.pop(context, selectedTime);
-                            },
-                            child: Text(
-                              'common.confirm'.tr,
-                              style: TextStyle(color: Colors.white),
-                            ),
-                          ),
-                        ),
-                        SizedBox(
-                          width: 160,
-                          child: OutlinedButton(
-                            style: OutlinedButton.styleFrom(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(24),
-                              ),
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 32,
-                                vertical: 20,
-                              ),
-                            ),
-                            onPressed: () => Navigator.pop(context),
-                            child: Text('common.cancel'.tr),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                );
-
-                if (pickedTime != null) {
-                  selectedDate = DateTime(
-                    selectedDate.year,
-                    selectedDate.month,
-                    selectedDate.day,
-                    pickedTime.hour,
-                    pickedTime.minute,
-                  );
-                }
-
-                Navigator.pop(context, selectedDate);
-              },
-              child: Text(
-                'common.confirm'.tr,
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ),
-          SizedBox(
-            width: 160,
-            child: OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                padding: EdgeInsets.symmetric(horizontal: 32, vertical: 20),
-              ),
-              onPressed: () => Navigator.pop(context),
-              child: Text('common.cancel'.tr),
-            ),
-          ),
-        ],
-      );
-    },
+Future<DateTime?> customDatePicker(
+  BuildContext context, {
+  DateTime? initialDateTime,
+}) {
+  return pickAppDateTime(
+    context,
+    initialDateTime: initialDateTime,
+    firstDate: DateTime(2000),
+    lastDate: DateTime(2100),
   );
-
-  if (pickedDate != null) {
-    // log("✅ Selected: $pickedDate");
-    return pickedDate;
-  } else {
-    // log("❌ Cancelled");
-    return null;
-  }
-}
-
-class TimePickerSpinnerWidget extends StatefulWidget {
-  final TimeOfDay initialTime;
-  final ValueChanged<TimeOfDay> onTimeChanged;
-
-  const TimePickerSpinnerWidget({
-    Key? key,
-    required this.initialTime,
-    required this.onTimeChanged,
-  }) : super(key: key);
-
-  @override
-  State<TimePickerSpinnerWidget> createState() =>
-      _TimePickerSpinnerWidgetState();
-}
-
-class _TimePickerSpinnerWidgetState extends State<TimePickerSpinnerWidget> {
-  late int hour;
-  late int minute;
-
-  @override
-  void initState() {
-    super.initState();
-    hour = widget.initialTime.hour;
-    minute = widget.initialTime.minute;
-  }
-
-  String get period => hour >= 12 ? 'م' : 'ص';
-
-  int get displayHour {
-    int h = hour % 12;
-    return h == 0 ? 12 : h; // علشان الساعة 0 تبقى 12
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          "${displayHour.toString().padLeft(2, '0')} : ${minute.toString().padLeft(2, '0')} $period",
-          style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 16),
-        // ⏰ الساعة يمين - الدقايق شمال
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // ⏰ الساعة
-            Column(
-              children: [
-                IconButton(
-                  icon: Icon(Icons.keyboard_arrow_up, color: Colors.black87),
-                  onPressed: () {
-                    setState(() {
-                      hour = (hour + 1) % 24;
-                      widget.onTimeChanged(
-                        TimeOfDay(hour: hour, minute: minute),
-                      );
-                    });
-                  },
-                ),
-                IconButton(
-                  icon: Icon(Icons.keyboard_arrow_down, color: Colors.black87),
-                  onPressed: () {
-                    setState(() {
-                      hour = (hour - 1) < 0 ? 23 : hour - 1;
-                      widget.onTimeChanged(
-                        TimeOfDay(hour: hour, minute: minute),
-                      );
-                    });
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(width: 40),
-            // ⏱️ الدقايق
-            Column(
-              children: [
-                IconButton(
-                  icon: Icon(Icons.keyboard_arrow_up, color: Colors.black87),
-                  onPressed: () {
-                    setState(() {
-                      minute = (minute + 1) % 60;
-                      widget.onTimeChanged(
-                        TimeOfDay(hour: hour, minute: minute),
-                      );
-                    });
-                  },
-                ),
-                IconButton(
-                  icon: Icon(Icons.keyboard_arrow_down, color: Colors.black87),
-                  onPressed: () {
-                    setState(() {
-                      minute = (minute - 1) < 0 ? 59 : minute - 1;
-                      widget.onTimeChanged(
-                        TimeOfDay(hour: hour, minute: minute),
-                      );
-                    });
-                  },
-                ),
-              ],
-            ),
-          ],
-        ),
-      ],
-    );
-  }
 }

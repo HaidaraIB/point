@@ -6,6 +6,7 @@ import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/ClientModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/View/Shared/app_date_time_picker.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/ReadOnlyAccountEmailField.dart';
 import 'package:point/Utils/PasswordValidator.dart';
@@ -76,43 +77,29 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
   }
 
   Future<void> _pickStartDate() async {
-    final date = await showDatePicker(
-      context: context,
-      initialDate: startAt ?? DateTime.now(),
+    final picked = await pickAppDateTime(
+      context,
+      initialDateTime: startAt,
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
-    if (date == null || !mounted) return;
-    final time = await showTimePicker(
-      context: context,
-      initialTime: startAt != null
-          ? TimeOfDay.fromDateTime(startAt!)
-          : TimeOfDay.now(),
-    );
-    if (time == null || !mounted) return;
+    if (picked == null || !mounted) return;
     setState(() {
-      startAt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+      startAt = picked;
       startDateController.text = FunHelper.formatdate(startAt) ?? '';
     });
   }
 
   Future<void> _pickEndDate() async {
-    final date = await showDatePicker(
-      context: context,
-      initialDate: endAt ?? DateTime.now(),
+    final picked = await pickAppDateTime(
+      context,
+      initialDateTime: endAt,
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
-    if (date == null || !mounted) return;
-    final time = await showTimePicker(
-      context: context,
-      initialTime: endAt != null
-          ? TimeOfDay.fromDateTime(endAt!)
-          : TimeOfDay.now(),
-    );
-    if (time == null || !mounted) return;
+    if (picked == null || !mounted) return;
     setState(() {
-      endAt = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+      endAt = picked;
       endDateController.text = FunHelper.formatdate(endAt) ?? '';
     });
   }

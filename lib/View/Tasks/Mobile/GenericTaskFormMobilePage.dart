@@ -207,7 +207,10 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
   }
 
   Future<void> _pickStartDate() async {
-    final picked = await customDatePicker(context);
+    final picked = await customDatePicker(
+      context,
+      initialDateTime: startAt,
+    );
     if (picked != null && mounted) {
       setState(() {
         startAt = picked;
@@ -217,7 +220,10 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
   }
 
   Future<void> _pickEndDate() async {
-    final picked = await customDatePicker(context);
+    final picked = await customDatePicker(
+      context,
+      initialDateTime: endAt,
+    );
     if (picked != null && mounted) {
       setState(() {
         endAt = picked;

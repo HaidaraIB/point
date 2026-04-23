@@ -5,11 +5,17 @@ import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/attachment_download.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Shared/TaskTimelineWidget.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
+import 'package:point/View/Tasks/Shared/deadline_extension_request_dialog.dart';
+import 'package:point/View/Tasks/Shared/task_details_feedback_widgets.dart';
 import 'package:point/View/Tasks/Shared/edit_final_deliverable_dialog.dart';
 import 'package:point/View/Tasks/Shared/open_task_final_work.dart';
+import 'package:point/View/Tasks/Shared/reject_task_dialog.dart';
+import 'package:point/View/Tasks/Shared/request_task_modification_dialog.dart';
+import 'package:point/View/Tasks/Shared/task_attachment_gallery.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
 
 /// Generic web dialog for task details. Renders common shell (header, notes,
@@ -66,6 +72,26 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
     return _taskHasFinalDeliverable(t) || _canManageFinalDeliverable();
   }
 
+  bool _taskInManagementReviewWeb(TaskModel t) {
+    final s = FunHelper.canonicalStoredStatus(t.status);
+    if (t.type == '0') {
+      return s == StorageKeys.status_promotion_ad_platform_review;
+    }
+    return s == StorageKeys.status_under_revision;
+  }
+
+  bool _employeeMayRequestDeadlineExtension(TaskModel t) {
+    final role = Get.find<HomeController>().currentEmployee.value?.role ?? '';
+    final empId = Get.find<HomeController>().currentEmployee.value?.id ?? '';
+    if (role != 'employee' || empId.isEmpty) return false;
+    if (t.assignedTo.trim() != empId) return false;
+    if (t.deadlineExtensionStatus.trim() ==
+        TaskModel.kDeadlineExtensionPending) {
+      return false;
+    }
+    return StorageKeys.isTaskOngoing(t);
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -120,6 +146,50 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
                         _buildHeader(context, dialogWidth),
                         const SizedBox(height: 12),
                         _buildGeneralMetaRow(dialogWidth, colorScheme),
+                        Obx(() {
+                          final live = _liveTask();
+                          final r =
+                              Get.find<HomeController>()
+                                  .currentEmployee
+                                  .value
+                                  ?.role ??
+                              '';
+                          final mgr = r == 'admin' || r == 'supervisor';
+                          if (!mgr || !_taskInManagementReviewWeb(live)) {
+                            return const SizedBox.shrink();
+                          }
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 10),
+                            child: Wrap(
+                              spacing: 10,
+                              runSpacing: 8,
+                              children: [
+                                OutlinedButton.icon(
+                                  onPressed: () =>
+                                      showRequestTaskModificationDialog(
+                                        context: context,
+                                        task: live,
+                                      ),
+                                  icon: const Icon(Icons.edit_note_outlined),
+                                  label: Text(
+                                    'tasks.request_modification_menu'.tr,
+                                  ),
+                                ),
+                                OutlinedButton.icon(
+                                  onPressed: () => showRejectTaskDialog(
+                                    context: context,
+                                    task: live,
+                                  ),
+                                  icon: const Icon(Icons.close_rounded),
+                                  label: Text('tasks.reject'.tr),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.red.shade800,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -180,14 +250,45 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
                         ),
                       );
                     }),
-                    _buildSectionShell(
-                      context: context,
-                      title: 'content.dialog.notes_attachments_section'.tr,
-                      icon: Icons.attach_file_outlined,
-                      child: _buildNotesAndAttachmentsSection(
-                        context,
-                        textTheme,
-                        dialogWidth,
+                    Obx(
+                      () => _buildSectionShell(
+                        context: context,
+                        title: 'content.dialog.notes_attachments_section'.tr,
+                        icon: Icons.attach_file_outlined,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            TaskDetailsFeedbackWidgets.feedbackBanners(
+                              context,
+                              _liveTask(),
+                            ),
+                            TaskDetailsFeedbackWidgets.deadlineExtensionPanel(
+                              context,
+                              _liveTask(),
+                            ),
+                            if (_employeeMayRequestDeadlineExtension(_liveTask()))
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: OutlinedButton.icon(
+                                  onPressed: () =>
+                                      showDeadlineExtensionRequestDialog(
+                                        context: context,
+                                        task: _liveTask(),
+                                      ),
+                                  icon: const Icon(Icons.event_repeat_outlined),
+                                  label: Text(
+                                    'tasks.deadline_extension_button'.tr,
+                                  ),
+                                ),
+                              ),
+                            _buildNotesAndAttachmentsSection(
+                              context,
+                              textTheme,
+                              dialogWidth,
+                              _liveTask(),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -368,10 +469,62 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
     );
   }
 
+  Widget _attachmentGridTile(
+    BuildContext context,
+    String att,
+    List<String> imageUrls,
+  ) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          height: 72,
+          width: double.infinity,
+          child: TaskDetailsDialogHelpers.attachmentThumbnail(
+            att,
+            onOpen: () => openUrlPreferInAppMedia(att),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            IconButton(
+              tooltip: 'tasks.open_attachment'.tr,
+              iconSize: 20,
+              onPressed: () => openUrlPreferInAppMedia(att),
+              icon: const Icon(Icons.open_in_new),
+            ),
+            IconButton(
+              tooltip: 'tasks.download'.tr,
+              iconSize: 20,
+              onPressed: () => launchAttachmentDownload(att),
+              icon: const Icon(Icons.download_outlined),
+            ),
+            if (isImageMediaUrl(att))
+              IconButton(
+                tooltip: 'tasks.attachment_gallery'.tr,
+                iconSize: 20,
+                onPressed: () => openTaskAttachmentGallery(
+                  imageUrls: imageUrls,
+                  initialIndex: () {
+                  final i = imageUrls.indexOf(att);
+                  return i >= 0 ? i : 0;
+                }(),
+                ),
+                icon: const Icon(Icons.collections_outlined),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
   Widget _buildNotesAndAttachmentsSection(
     BuildContext context,
     TextTheme textTheme,
     double dialogWidth,
+    TaskModel task,
   ) {
     final bool stacked = dialogWidth < 720;
     final contentWidth =
@@ -379,8 +532,7 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
             ? (dialogWidth - 80).clamp(240.0, 760.0)
             : ((dialogWidth - 90) / 2).clamp(260.0, 700.0);
 
-    final latestNote =
-        widget.task.notes.isNotEmpty ? widget.task.notes.last : null;
+    final latestNote = task.notes.isNotEmpty ? task.notes.last : null;
     final notesSection = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -397,7 +549,7 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
               color: Theme.of(context).colorScheme.outlineVariant,
             ),
           ),
-          child: widget.task.notes.isEmpty
+          child: task.notes.isEmpty
               ? Center(
                   child: Text(
                     'content.dialog.no_notes'.tr,
@@ -462,7 +614,7 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       children: [
-                        for (var note in widget.task.notes)
+                        for (var note in task.notes)
                           Padding(
                             padding: const EdgeInsets.only(bottom: 8),
                             child: Column(
@@ -515,7 +667,7 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
           ),
           padding: const EdgeInsets.all(10),
           child:
-              widget.task.files.isEmpty
+              task.files.isEmpty
                   ? Center(
                     child: Text(
                       'content.dialog.no_attachments'.tr,
@@ -526,22 +678,30 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
                       ),
                     ),
                   )
-                  : GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: widget.task.files.length,
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount:
-                          contentWidth < 340 ? 1 : (contentWidth < 560 ? 2 : 3),
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 10,
-                      mainAxisExtent: 84,
-                    ),
-                    itemBuilder: (context, index) {
-                      final att = widget.task.files[index];
-                      return TaskDetailsDialogHelpers.attachmentThumbnail(
-                        att,
-                        onOpen: () => _launchUrl(att),
+                  : Builder(
+                    builder: (ctx) {
+                      final urls =
+                          task.files
+                              .map((e) => e.toString())
+                              .where((u) => isImageMediaUrl(u))
+                              .toList();
+                      return GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: task.files.length,
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount:
+                              contentWidth < 340
+                                  ? 1
+                                  : (contentWidth < 560 ? 2 : 3),
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                          mainAxisExtent: 118,
+                        ),
+                        itemBuilder: (context, index) {
+                          final att = task.files[index].toString();
+                          return _attachmentGridTile(ctx, att, urls);
+                        },
                       );
                     },
                   ),
@@ -565,10 +725,6 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [notesSection, attachmentsSection],
     );
-  }
-
-  Future<void> _launchUrl(String rawUrl) async {
-    await openUrlPreferInAppMedia(rawUrl);
   }
 
   Widget _buildSectionShell({
@@ -771,21 +927,24 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
               border: Border.all(color: colorScheme.outlineVariant),
             ),
             padding: const EdgeInsets.all(10),
-            child: GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: urls.length,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: crossCount,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                mainAxisExtent: 84,
-              ),
-              itemBuilder: (context, index) {
-                final att = urls[index];
-                return TaskDetailsDialogHelpers.attachmentThumbnail(
-                  att,
-                  onOpen: () => _launchUrl(att),
+            child: Builder(
+              builder: (ctx) {
+                final imgUrls =
+                    urls.where((u) => isImageMediaUrl(u)).toList();
+                return GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: urls.length,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossCount,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                    mainAxisExtent: 118,
+                  ),
+                  itemBuilder: (context, index) {
+                    final att = urls[index];
+                    return _attachmentGridTile(ctx, att, imgUrls);
+                  },
                 );
               },
             ),

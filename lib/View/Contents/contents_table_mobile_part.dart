@@ -218,13 +218,13 @@ Widget _buildMobileContent(
                       const SizedBox(width: 8),
                       IconButton(
                         onPressed: () async {
-                          final picked = await showDatePicker(
-                            context: context,
-                            firstDate: DateTime(2020),
-                            lastDate: DateTime(2100),
-                            initialDate:
+                          final picked = await pickAppDateTime(
+                            context,
+                            initialDateTime:
                                 c.employeeWebContentDateFilter.value ??
                                 DateTime.now(),
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime(2100),
                           );
                           if (picked == null) return;
                           c.employeeWebContentDateFilter.value = picked;

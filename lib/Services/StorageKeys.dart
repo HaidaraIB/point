@@ -338,6 +338,7 @@ class StorageKeys {
       ]) {
         if (seen.add(s)) out.add(s);
       }
+      if (seen.add(status_rejected)) out.add(status_rejected);
       return out;
     }
     if (matchesDepartment(departmentRaw, departmentPromotion)) {
@@ -349,9 +350,10 @@ class StorageKeys {
       ]) {
         if (seen.add(s)) out.add(s);
       }
+      if (seen.add(status_rejected)) out.add(status_rejected);
       return out;
     }
-    return List<String>.from(statusListOngoing);
+    return [...statusListOngoing, status_rejected];
   }
 
   /// Whether a saved or selected status is valid for this employee’s department filter.
@@ -366,6 +368,7 @@ class StorageKeys {
         ...promotionTaskStatusListOngoing,
         ...statusListOngoing,
         ...legacyPromotionOngoingTaskStatuses,
+        status_rejected,
       };
       return allowed.contains(s);
     }
@@ -373,10 +376,11 @@ class StorageKeys {
       final allowed = <String>{
         ...promotionTaskStatusListOngoing,
         ...statusListOngoing,
+        status_rejected,
       };
       return allowed.contains(s);
     }
-    return statusListOngoing.contains(s);
+    return statusListOngoing.contains(s) || s == status_rejected;
   }
 
   static String prefsEmployeeDashboardTaskFiltersKey(String employeeId) =>

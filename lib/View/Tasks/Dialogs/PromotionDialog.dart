@@ -455,7 +455,10 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                       width: (Get.width * 0.7 / 2) - 25,
                                       child: InputText(
                                         onTap: () async {
-                                          await customDatePicker(context).then((
+                                          await customDatePicker(
+                                            context,
+                                            initialDateTime: startAt,
+                                          ).then((
                                             picked,
                                           ) {
                                             if (picked != null) {
@@ -495,7 +498,10 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                         hintText: '1/10/2026'.tr,
                                         readOnly: true,
                                         onTap: () async {
-                                          await customDatePicker(context).then((
+                                          await customDatePicker(
+                                            context,
+                                            initialDateTime: endAt,
+                                          ).then((
                                             picked,
                                           ) {
                                             if (picked != null) {

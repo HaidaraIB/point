@@ -13,7 +13,18 @@ import 'package:point/View/Tasks/Dialogs/PromotionDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PublishDialog.dart';
 import 'package:point/View/Tasks/Shared/add_task_comment_dialog.dart';
 import 'package:point/View/Tasks/Shared/open_task_final_work.dart';
+import 'package:point/View/Tasks/Shared/reject_task_dialog.dart';
+import 'package:point/View/Tasks/Shared/request_task_modification_dialog.dart';
+import 'package:point/View/Tasks/Shared/task_details_feedback_widgets.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
+
+bool _taskInManagementReview(TaskModel task) {
+  final s = FunHelper.canonicalStoredStatus(task.status);
+  if (task.type == '0') {
+    return s == StorageKeys.status_promotion_ad_platform_review;
+  }
+  return s == StorageKeys.status_under_revision;
+}
 
 class TaskCard extends StatelessWidget {
   final TaskModel task;
@@ -149,6 +160,26 @@ class TaskCard extends StatelessWidget {
                                       ],
                                     ),
                                   ),
+                                  if (canEditDirectly &&
+                                      _taskInManagementReview(task))
+                                    PopupMenuItem(
+                                      value: 70,
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            'tasks.request_modification_menu'
+                                                .tr,
+                                          ),
+                                          Icon(
+                                            Icons.edit_note_outlined,
+                                            color: Colors.deepOrange,
+                                            size: 20,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                 ];
                                 if (canEscalate && task.type != '0') {
                                   items.add(
@@ -329,25 +360,14 @@ class TaskCard extends StatelessWidget {
                                     },
                                   );
                                 } else if (value == 3) {
-                                  FunHelper.showConfirmDailog(
-                                    context,
-                                    title: 'tasks.confirm_reject_title'.tr,
-                                    message: 'tasks.confirm_reject_message'.tr,
-                                    confirmText: 'tasks.reject'.tr,
-                                    confirmColor: Colors.red,
-                                    onTap: () async {
-                                      final next =
-                                          task.type == '0'
-                                              ? task.copyWithPromotionStatusAligned(
-                                                StorageKeys.status_rejected,
-                                              )
-                                              : task.copyWith(
-                                                status:
-                                                    StorageKeys.status_rejected,
-                                              );
-                                      await Get.find<HomeController>()
-                                          .updateTask(next);
-                                    },
+                                  showRejectTaskDialog(
+                                    context: context,
+                                    task: task,
+                                  );
+                                } else if (value == 70) {
+                                  showRequestTaskModificationDialog(
+                                    context: context,
+                                    task: task,
                                   );
                                 } else if (value >= 20 &&
                                     value <= 23 &&
@@ -473,7 +493,189 @@ class TaskCard extends StatelessWidget {
                       _buildpriortyTag(task.priority),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  Obx(() {
+                    final hc = Get.find<HomeController>();
+                    final live =
+                        hc.tasks.firstWhereOrNull((x) => x.id == task.id) ??
+                        task;
+                    if (live.deadlineExtensionStatus.trim() !=
+                        TaskModel.kDeadlineExtensionPending) {
+                      return const SizedBox(height: 8);
+                    }
+                    final role = hc.currentEmployee.value?.role ?? '';
+                    final mgr = role == 'admin' || role == 'supervisor';
+                    final req = live.deadlineExtensionRequestedTo;
+                    final theme = Theme.of(context);
+                    final cs = theme.colorScheme;
+                    const stripPurple = Color(0xFF5C5589);
+                    const stripBg = Color(0xFFF7F6FF);
+                    const stripBorder = Color(0xFFE4DEF7);
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(height: 8),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: stripBg,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: stripBorder),
+                            boxShadow: [
+                              BoxShadow(
+                                color: cs.primary.withValues(alpha: 0.06),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                            clipBehavior: Clip.antiAlias,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              child: Row(
+                                children: [
+                                  DecoratedBox(
+                                    decoration: BoxDecoration(
+                                      color: cs.primaryContainer.withValues(
+                                        alpha: 0.45,
+                                      ),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(8),
+                                      child: Icon(
+                                        Icons.schedule_send_rounded,
+                                        color: cs.primary,
+                                        size: 18,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: InkWell(
+                                      onTap: onTap,
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 4,
+                                        ),
+                                        child: Text(
+                                          'tasks.deadline_extension_pending_card_strip'
+                                              .tr,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: theme.textTheme.bodyMedium
+                                              ?.copyWith(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                                color: stripPurple,
+                                                height: 1.25,
+                                              ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  if (mgr) ...[
+                                    const SizedBox(width: 10),
+                                    Tooltip(
+                                      message:
+                                          'tasks.deadline_extension_approve'.tr,
+                                      child: IconButton(
+                                        visualDensity: VisualDensity.compact,
+                                        style: IconButton.styleFrom(
+                                          backgroundColor: const Color(
+                                            0xFF3D9142,
+                                          ),
+                                          foregroundColor: Colors.white,
+                                          disabledBackgroundColor:
+                                              Colors.grey.shade300,
+                                          minimumSize: const Size(36, 36),
+                                          maximumSize: const Size(36, 36),
+                                          padding: EdgeInsets.zero,
+                                          tapTargetSize:
+                                              MaterialTapTargetSize.shrinkWrap,
+                                          shape: const CircleBorder(),
+                                          elevation: 0,
+                                        ),
+                                        onPressed:
+                                            req == null
+                                                ? null
+                                                : () async {
+                                                  await hc.updateTask(
+                                                    live.copyWith(
+                                                      toDate: req,
+                                                      deadlineExtensionStatus:
+                                                          '',
+                                                      deadlineExtensionReason:
+                                                          '',
+                                                      deadlineExtensionRequestedAt:
+                                                          '',
+                                                      deadlineExtensionRequestedBy:
+                                                          '',
+                                                      deadlineExtensionDeniedNote:
+                                                          '',
+                                                      clearDeadlineExtensionRequestedTo:
+                                                          true,
+                                                    ),
+                                                  );
+                                                },
+                                        icon: const Icon(
+                                          Icons.check_rounded,
+                                          size: 20,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Tooltip(
+                                      message:
+                                          'tasks.deadline_extension_deny'.tr,
+                                      child: IconButton(
+                                        visualDensity: VisualDensity.compact,
+                                        style: IconButton.styleFrom(
+                                          backgroundColor:
+                                              cs.surfaceContainerLowest,
+                                          foregroundColor: cs.error,
+                                          minimumSize: const Size(36, 36),
+                                          maximumSize: const Size(36, 36),
+                                          padding: EdgeInsets.zero,
+                                          tapTargetSize:
+                                              MaterialTapTargetSize.shrinkWrap,
+                                          shape: CircleBorder(
+                                            side: BorderSide(
+                                              color: cs.error.withValues(
+                                                alpha: 0.35,
+                                              ),
+                                            ),
+                                          ),
+                                          elevation: 0,
+                                        ),
+                                        onPressed:
+                                            () =>
+                                                TaskDetailsFeedbackWidgets.showDenyDeadlineExtensionDialog(
+                                                  context,
+                                                  live,
+                                                ),
+                                        icon: const Icon(
+                                          Icons.close_rounded,
+                                          size: 20,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                    );
+                  }),
 
                   // --- الوصف ---
                   Text(

@@ -159,6 +159,39 @@ class NotificationService {
     );
   }
 
+  static Future<void> notifyEmployeeDeadlineExtensionApproved({
+    required String employeeId,
+    required String taskTitle,
+    required String newDueLabel,
+  }) async {
+    await FirestoreServices.sendFcm(
+      userId: employeeId,
+      title: 'notify.emp.deadline_extension.title'.tr,
+      body: 'notify.emp.deadline_extension.approved.body'
+          .trParams({'title': taskTitle, 'date': newDueLabel}),
+      notificationType: 'employee_deadline_extension_approved',
+      actionText: 'notify.emp.deadline_extension.action'.tr,
+      referenceId: taskTitle,
+      emailDetails: _emailLabels({'notify.email.task': taskTitle}),
+    );
+  }
+
+  static Future<void> notifyEmployeeDeadlineExtensionDenied({
+    required String employeeId,
+    required String taskTitle,
+  }) async {
+    await FirestoreServices.sendFcm(
+      userId: employeeId,
+      title: 'notify.emp.deadline_extension.title'.tr,
+      body: 'notify.emp.deadline_extension.denied.body'
+          .trParams({'title': taskTitle}),
+      notificationType: 'employee_deadline_extension_denied',
+      actionText: 'notify.emp.deadline_extension.action'.tr,
+      referenceId: taskTitle,
+      emailDetails: _emailLabels({'notify.email.task': taskTitle}),
+    );
+  }
+
   // ─── Manager / admin ─────────────────────────────────────────────────────
 
   static Future<void> notifyManagersTaskProgressUpdated({
@@ -328,6 +361,28 @@ class NotificationService {
       referenceId: taskTitle,
       emailDetails: _emailLabels({
         'notify.email.department': departmentNameAr,
+        'notify.email.task': taskTitle,
+      }),
+    );
+  }
+
+  static Future<void> notifyManagersDeadlineExtensionRequested({
+    required String employeeName,
+    required String taskTitle,
+  }) async {
+    final ids = await FirestoreServices.getEmployeeIdsByRole(
+      ['admin', 'supervisor'],
+    );
+    await FirestoreServices.sendFcmToEmployees(
+      userIds: ids,
+      title: 'notify.mgr.deadline_extension.title'.tr,
+      body: 'notify.mgr.deadline_extension.body'
+          .trParams({'name': employeeName, 'title': taskTitle}),
+      notificationType: 'manager_deadline_extension_requested',
+      actionText: 'notify.mgr.deadline_extension.action'.tr,
+      referenceId: taskTitle,
+      emailDetails: _emailLabels({
+        'notify.email.employee': employeeName,
         'notify.email.task': taskTitle,
       }),
     );

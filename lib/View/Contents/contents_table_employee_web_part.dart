@@ -398,13 +398,13 @@ Widget _EmployeeWebContentFiltersRow(
           child: Obx(
             () => InkWell(
               onTap: () async {
-                final picked = await showDatePicker(
-                  context: context,
-                  firstDate: DateTime(2020),
-                  lastDate: DateTime(2100),
-                  initialDate:
+                final picked = await pickAppDateTime(
+                  context,
+                  initialDateTime:
                       controller.employeeWebContentDateFilter.value ??
                       DateTime.now(),
+                  firstDate: DateTime(2020),
+                  lastDate: DateTime(2100),
                 );
                 if (picked == null) return;
                 controller.employeeWebContentDateFilter.value = picked;
@@ -421,7 +421,7 @@ Widget _EmployeeWebContentFiltersRow(
                 child: Text(
                   controller.employeeWebContentDateFilter.value == null
                       ? 'publish_date'.tr
-                      : DateFormat('yyyy-MM-dd').format(
+                      : DateFormat('yyyy-MM-dd HH:mm').format(
                         controller.employeeWebContentDateFilter.value!,
                       ),
                 ),

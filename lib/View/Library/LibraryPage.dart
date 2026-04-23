@@ -5,7 +5,9 @@ import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/library_path_utils.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/attachment_download.dart';
 import 'package:point/Utils/media_url_opener.dart';
+import 'package:point/View/Tasks/Shared/task_attachment_gallery.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 
@@ -579,6 +581,14 @@ class _FileEntryCard extends StatelessWidget {
                             TaskDetailsDialogHelpers.attachmentFileNameFromUrl(
                               u,
                             );
+                        final imgs =
+                            task.finalDeliverableFileUrls
+                                .where(
+                                  (x) => isImageMediaUrl(x.toString()),
+                                )
+                                .map((x) => x.toString())
+                                .toList();
+                        final gi = imgs.indexOf(u);
                         return SizedBox(
                           width: 104,
                           child: Column(
@@ -602,6 +612,32 @@ class _FileEntryCard extends StatelessWidget {
                                         openUrlPreferInAppMedia(u),
                                   ),
                                 ),
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  IconButton(
+                                    tooltip: 'library.download_file'.tr,
+                                    iconSize: 20,
+                                    onPressed: () =>
+                                        launchAttachmentDownload(u),
+                                    icon: const Icon(Icons.download_outlined),
+                                  ),
+                                  if (isImageMediaUrl(u))
+                                    IconButton(
+                                      tooltip: 'tasks.attachment_gallery'.tr,
+                                      iconSize: 20,
+                                      onPressed: () =>
+                                          openTaskAttachmentGallery(
+                                            imageUrls: imgs,
+                                            initialIndex: gi >= 0 ? gi : 0,
+                                          ),
+                                      icon: const Icon(
+                                        Icons.collections_outlined,
+                                      ),
+                                    ),
+                                ],
                               ),
                               const SizedBox(height: 6),
                               Text(

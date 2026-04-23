@@ -11,7 +11,9 @@ import 'package:point/View/EmployeeDashboard/Shared/AddContentEmployeeDialog.dar
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
 import 'package:point/View/Tasks/Shared/add_task_comment_dialog.dart';
+import 'package:point/View/Tasks/Shared/deadline_extension_request_dialog.dart';
 import 'package:point/View/Tasks/Shared/open_task_final_work.dart';
+import 'package:point/View/Tasks/Shared/task_details_feedback_widgets.dart';
 
 /// صورة المكلَّف في البطاقة: الحقل المخزّن في المهمة قد يكون فارغاً لمهام قديمة،
 /// فيُستكمل من بيانات الموظف الحالية كما في الهيدر.
@@ -19,9 +21,15 @@ import 'package:point/View/Tasks/Shared/open_task_final_work.dart';
 /// from the quick menu — use final work instead.
 bool _employeeHideQuickStatusChangeMenu(TaskModel task) {
   final s = FunHelper.canonicalStoredStatus(task.status);
+  if (s == StorageKeys.status_rejected) return true;
   if (s == StorageKeys.status_approved) return true;
   if (StorageKeys.isTaskSuccessfulTerminalStatus(s)) return true;
   return false;
+}
+
+bool _employeeRejectedReadOnlyView(TaskModel task) {
+  return FunHelper.canonicalStoredStatus(task.status) ==
+      StorageKeys.status_rejected;
 }
 
 String _resolvedAssignedAvatarUrl(TaskModel task, EmployeeModel? assignee) {
@@ -37,6 +45,17 @@ bool _showTaskDepartmentBadge(HomeController controller) {
   final e = controller.currentEmployee.value;
   if (e == null || e.role.trim().toLowerCase() != 'employee') return false;
   return controller.employeeDashboardDepartmentFilterArg == null;
+}
+
+bool _employeeMayShowDeadlineExtension(HomeController c, TaskModel t) {
+  final id = c.currentEmployee.value?.id ?? '';
+  if (id.isEmpty || t.assignedTo.trim() != id) return false;
+  if (!StorageKeys.isTaskOngoing(t)) return false;
+  if (t.deadlineExtensionStatus.trim() ==
+      TaskModel.kDeadlineExtensionPending) {
+    return false;
+  }
+  return true;
 }
 
 class EmployeeTaskCard extends StatelessWidget {
@@ -256,6 +275,17 @@ class EmployeeTaskCard extends StatelessWidget {
                           ],
                         );
                       }),
+                      Obx(() {
+                        final live =
+                            controller.tasks.firstWhereOrNull(
+                              (x) => x.id == task.id,
+                            ) ??
+                            task;
+                        return TaskDetailsFeedbackWidgets.compactEmployeeAlerts(
+                          context,
+                          live,
+                        );
+                      }),
                       const SizedBox(height: 8),
 
                       // --- الوصف ---
@@ -278,18 +308,31 @@ class EmployeeTaskCard extends StatelessWidget {
                       SizedBox(
                         width: constraints.maxWidth,
                         height: 56,
-                        child: DraggableProgressBar(
-                          initialValue: task.progress ?? 0,
-                          color: Colors.blue,
-                          backgroundColor: Colors.grey.shade200,
-                          height: 10,
-                          borderRadius: BorderRadius.circular(20),
-                          onChanged: (value) {
-                            controller.updateTask(
-                              task.copyWith(progress: value),
-                            );
-                          },
-                        ),
+                        child:
+                            _employeeRejectedReadOnlyView(task)
+                                ? Center(
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(20),
+                                    child: LinearProgressIndicator(
+                                      value: task.progress ?? 0,
+                                      minHeight: 10,
+                                      backgroundColor: Colors.grey.shade200,
+                                      color: Colors.blue,
+                                    ),
+                                  ),
+                                )
+                                : DraggableProgressBar(
+                                  initialValue: task.progress ?? 0,
+                                  color: Colors.blue,
+                                  backgroundColor: Colors.grey.shade200,
+                                  height: 10,
+                                  borderRadius: BorderRadius.circular(20),
+                                  onChanged: (value) {
+                                    controller.updateTask(
+                                      task.copyWith(progress: value),
+                                    );
+                                  },
+                                ),
                       ),
 
                       const SizedBox(height: 12),
@@ -442,6 +485,33 @@ class EmployeeTaskCard extends StatelessWidget {
                         ),
                         child: Builder(
                           builder: (context) {
+                            if (_employeeRejectedReadOnlyView(task)) {
+                              // [Padding] above uses 12+12 horizontal; fill that row width.
+                              final rowW = (constraints.maxWidth - 24)
+                                  .clamp(0.0, double.infinity);
+                              return SizedBox(
+                                width: rowW,
+                                child: OutlinedButton(
+                                  style: OutlinedButton.styleFrom(
+                                    minimumSize: Size(rowW, 48),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(24),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
+                                  ),
+                                  onPressed: onTap,
+                                  child: Text(
+                                    'tasks.view_task_details'.tr,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(fontSize: 13),
+                                  ),
+                                ),
+                              );
+                            }
                             final columnGap =
                                 Responsive.isDesktop(context) ? 12.0 : 8.0;
                             const rowGap = 10.0;
@@ -528,6 +598,39 @@ class EmployeeTaskCard extends StatelessWidget {
                                   ],
                                 ),
                                 SizedBox(height: rowGap),
+                                if (_employeeMayShowDeadlineExtension(
+                                  controller,
+                                  task,
+                                )) ...[
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: OutlinedButton(
+                                      style: OutlinedButton.styleFrom(
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            24,
+                                          ),
+                                        ),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 10,
+                                        ),
+                                      ),
+                                      onPressed: () =>
+                                          showDeadlineExtensionRequestDialog(
+                                            context: context,
+                                            task: task,
+                                          ),
+                                      child: Text(
+                                        'tasks.deadline_extension_button'.tr,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(fontSize: 12),
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(height: rowGap),
+                                ],
                                 if (shouldShowPrimaryFinalWorkTaskButton(
                                       task,
                                       controller.currentEmployee.value?.role ??

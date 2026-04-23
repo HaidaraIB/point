@@ -292,7 +292,10 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
             width: w,
             child: InputText(
               onTap: () async {
-                final picked = await customDatePicker(context);
+                final picked = await customDatePicker(
+                  context,
+                  initialDateTime: _startAt,
+                );
                 if (picked != null) {
                   setState(() {
                     _startAt = picked;
@@ -318,7 +321,10 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
             width: w,
             child: InputText(
               onTap: () async {
-                final picked = await customDatePicker(context);
+                final picked = await customDatePicker(
+                  context,
+                  initialDateTime: _endAt,
+                );
                 if (picked != null) {
                   setState(() {
                     _endAt = picked;

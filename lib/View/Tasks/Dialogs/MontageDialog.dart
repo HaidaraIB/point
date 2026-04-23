@@ -426,6 +426,7 @@ void montageDialog(BuildContext context, {TaskModel? model}) {
                                     onTap: () async {
                                       final picked = await customDatePicker(
                                         context,
+                                        initialDateTime: startAt,
                                       );
                                       if (picked != null) {
                                         startAt = picked;
@@ -461,6 +462,7 @@ void montageDialog(BuildContext context, {TaskModel? model}) {
                                     onTap: () async {
                                       final picked = await customDatePicker(
                                         context,
+                                        initialDateTime: endAt,
                                       );
                                       if (picked != null) {
                                         endAt = picked;

@@ -13,8 +13,13 @@ Future<void> showSubmitTaskForReviewDialog({
   final nextStatus = task.type == '0'
       ? StorageKeys.status_promotion_ad_platform_review
       : StorageKeys.status_under_revision;
+  final cleared = task.copyWith(
+    managementEditRequestMessage: '',
+    managementEditRequestFileUrls: const [],
+    managementEditRequestAt: '',
+  );
   final updated = task.type == '0'
-      ? task.copyWithPromotionStatusAligned(nextStatus)
-      : task.copyWith(status: nextStatus);
+      ? cleared.copyWithPromotionStatusAligned(nextStatus)
+      : cleared.copyWith(status: nextStatus);
   await hc.updateTask(updated);
 }

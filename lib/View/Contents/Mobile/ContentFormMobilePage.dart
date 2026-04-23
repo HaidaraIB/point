@@ -179,7 +179,10 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
   }
 
   Future<void> _pickPublishDate() async {
-    final picked = await customDatePicker(context);
+    final picked = await customDatePicker(
+      context,
+      initialDateTime: publishDate,
+    );
     if (picked != null && mounted) {
       setState(() {
         publishDate = picked;

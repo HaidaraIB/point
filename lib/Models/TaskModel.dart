@@ -68,6 +68,27 @@ class TaskModel {
   /// طابع ISO لتذكير الموظف: المهمة قيد التنفيذ لكن لا تقدم مسجّل بعد.
   final String? noProgressRemindedAt;
 
+  /// طلب تعديل من الإدارة أثناء/بعد المراجعة (نص + مرفقات منفصلة عن [files]).
+  final String managementEditRequestMessage;
+  final List<String> managementEditRequestFileUrls;
+  final String managementEditRequestAt;
+
+  /// سبب الرفض مع مرفقات اختيارية.
+  final String rejectionMessage;
+  final List<String> rejectionFileUrls;
+  final String rejectionAt;
+
+  /// تمديد تاريخ التسليم: '', [kDeadlineExtensionPending], [kDeadlineExtensionDenied].
+  final String deadlineExtensionStatus;
+  final DateTime? deadlineExtensionRequestedTo;
+  final String deadlineExtensionReason;
+  final String deadlineExtensionRequestedAt;
+  final String deadlineExtensionRequestedBy;
+  final String deadlineExtensionDeniedNote;
+
+  static const String kDeadlineExtensionPending = 'pending';
+  static const String kDeadlineExtensionDenied = 'denied';
+
   TaskModel({
     this.id,
     required this.title,
@@ -108,6 +129,18 @@ class TaskModel {
     this.managerNoActionNotifiedAt,
     this.managerStalledNotifiedAt,
     this.noProgressRemindedAt,
+    this.managementEditRequestMessage = '',
+    this.managementEditRequestFileUrls = const [],
+    this.managementEditRequestAt = '',
+    this.rejectionMessage = '',
+    this.rejectionFileUrls = const [],
+    this.rejectionAt = '',
+    this.deadlineExtensionStatus = '',
+    this.deadlineExtensionRequestedTo,
+    this.deadlineExtensionReason = '',
+    this.deadlineExtensionRequestedAt = '',
+    this.deadlineExtensionRequestedBy = '',
+    this.deadlineExtensionDeniedNote = '',
   });
 
   /// قيمة عددية لـ [progressMilestoneMask]؛ يُحوَّل الترميز القديم (1–31) إلى 32|64|128|256.
@@ -245,6 +278,34 @@ class TaskModel {
       managerNoActionNotifiedAt: json['managerNoActionNotifiedAt'] as String?,
       managerStalledNotifiedAt: json['managerStalledNotifiedAt'] as String?,
       noProgressRemindedAt: json['noProgressRemindedAt'] as String?,
+      managementEditRequestMessage:
+          json['managementEditRequestMessage']?.toString() ?? '',
+      managementEditRequestFileUrls:
+          json['managementEditRequestFileUrls'] != null
+              ? List<String>.from(json['managementEditRequestFileUrls'] as List)
+              : <String>[],
+      managementEditRequestAt:
+          json['managementEditRequestAt']?.toString() ?? '',
+      rejectionMessage: json['rejectionMessage']?.toString() ?? '',
+      rejectionFileUrls:
+          json['rejectionFileUrls'] != null
+              ? List<String>.from(json['rejectionFileUrls'] as List)
+              : <String>[],
+      rejectionAt: json['rejectionAt']?.toString() ?? '',
+      deadlineExtensionStatus:
+          json['deadlineExtensionStatus']?.toString() ?? '',
+      deadlineExtensionRequestedTo:
+          json['deadlineExtensionRequestedTo'] != null &&
+                  json['deadlineExtensionRequestedTo'].toString().trim().isNotEmpty
+              ? DateTime.tryParse(json['deadlineExtensionRequestedTo'].toString())
+              : null,
+      deadlineExtensionReason: json['deadlineExtensionReason']?.toString() ?? '',
+      deadlineExtensionRequestedAt:
+          json['deadlineExtensionRequestedAt']?.toString() ?? '',
+      deadlineExtensionRequestedBy:
+          json['deadlineExtensionRequestedBy']?.toString() ?? '',
+      deadlineExtensionDeniedNote:
+          json['deadlineExtensionDeniedNote']?.toString() ?? '',
     );
   }
 
@@ -302,6 +363,19 @@ class TaskModel {
         'managerStalledNotifiedAt': managerStalledNotifiedAt,
       if (noProgressRemindedAt != null)
         'noProgressRemindedAt': noProgressRemindedAt,
+      'managementEditRequestMessage': managementEditRequestMessage,
+      'managementEditRequestFileUrls': managementEditRequestFileUrls,
+      'managementEditRequestAt': managementEditRequestAt,
+      'rejectionMessage': rejectionMessage,
+      'rejectionFileUrls': rejectionFileUrls,
+      'rejectionAt': rejectionAt,
+      'deadlineExtensionStatus': deadlineExtensionStatus,
+      'deadlineExtensionRequestedTo': deadlineExtensionRequestedTo
+          ?.toIso8601String(),
+      'deadlineExtensionReason': deadlineExtensionReason,
+      'deadlineExtensionRequestedAt': deadlineExtensionRequestedAt,
+      'deadlineExtensionRequestedBy': deadlineExtensionRequestedBy,
+      'deadlineExtensionDeniedNote': deadlineExtensionDeniedNote,
     };
   }
 
@@ -345,6 +419,19 @@ class TaskModel {
     String? managerNoActionNotifiedAt,
     String? managerStalledNotifiedAt,
     String? noProgressRemindedAt,
+    String? managementEditRequestMessage,
+    List<String>? managementEditRequestFileUrls,
+    String? managementEditRequestAt,
+    String? rejectionMessage,
+    List<String>? rejectionFileUrls,
+    String? rejectionAt,
+    String? deadlineExtensionStatus,
+    DateTime? deadlineExtensionRequestedTo,
+    bool clearDeadlineExtensionRequestedTo = false,
+    String? deadlineExtensionReason,
+    String? deadlineExtensionRequestedAt,
+    String? deadlineExtensionRequestedBy,
+    String? deadlineExtensionDeniedNote,
   }) {
     return TaskModel(
       id: id ?? this.id,
@@ -397,6 +484,28 @@ class TaskModel {
           managerStalledNotifiedAt ?? this.managerStalledNotifiedAt,
       noProgressRemindedAt:
           noProgressRemindedAt ?? this.noProgressRemindedAt,
+      managementEditRequestMessage:
+          managementEditRequestMessage ?? this.managementEditRequestMessage,
+      managementEditRequestFileUrls:
+          managementEditRequestFileUrls ?? this.managementEditRequestFileUrls,
+      managementEditRequestAt:
+          managementEditRequestAt ?? this.managementEditRequestAt,
+      rejectionMessage: rejectionMessage ?? this.rejectionMessage,
+      rejectionFileUrls: rejectionFileUrls ?? this.rejectionFileUrls,
+      rejectionAt: rejectionAt ?? this.rejectionAt,
+      deadlineExtensionStatus:
+          deadlineExtensionStatus ?? this.deadlineExtensionStatus,
+      deadlineExtensionRequestedTo: clearDeadlineExtensionRequestedTo
+          ? null
+          : (deadlineExtensionRequestedTo ?? this.deadlineExtensionRequestedTo),
+      deadlineExtensionReason:
+          deadlineExtensionReason ?? this.deadlineExtensionReason,
+      deadlineExtensionRequestedAt:
+          deadlineExtensionRequestedAt ?? this.deadlineExtensionRequestedAt,
+      deadlineExtensionRequestedBy:
+          deadlineExtensionRequestedBy ?? this.deadlineExtensionRequestedBy,
+      deadlineExtensionDeniedNote:
+          deadlineExtensionDeniedNote ?? this.deadlineExtensionDeniedNote,
     );
   }
 

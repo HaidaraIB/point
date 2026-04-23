@@ -13,6 +13,7 @@ import 'package:point/Utils/ContentPermissions.dart';
 import 'package:point/View/Contents/Shared/content_attachment_source_input.dart';
 import 'package:point/View/Contents/Shared/content_library_attachment_picker.dart';
 import 'package:point/View/Publish/publish_add_mobile_page.dart';
+import 'package:point/View/Shared/app_date_time_picker.dart';
 import 'package:point/View/Shared/CustomDropDown.dart';
 import 'package:point/View/Publish/publish_meta_settings_dialog.dart';
 import 'package:point/View/Shared/InputText.dart';
@@ -406,26 +407,15 @@ Future<void> showAddPublishDialog({MetaPostModel? existing}) async {
                           ),
                           onPressed: () async {
                             final now = DateTime.now();
-                            final initialDate = t?.toLocal() ?? now.add(const Duration(minutes: 5));
-                            final pickedDate = await showDatePicker(
-                              context: dialogContext,
-                              initialDate: initialDate,
+                            final initialDate =
+                                t?.toLocal() ?? now.add(const Duration(minutes: 5));
+                            final local = await pickAppDateTime(
+                              dialogContext,
+                              initialDateTime: initialDate,
                               firstDate: now,
                               lastDate: now.add(const Duration(days: 365)),
                             );
-                            if (pickedDate == null) return;
-                            final pickedTime = await showTimePicker(
-                              context: dialogContext,
-                              initialTime: TimeOfDay.fromDateTime(initialDate),
-                            );
-                            if (pickedTime == null) return;
-                            final local = DateTime(
-                              pickedDate.year,
-                              pickedDate.month,
-                              pickedDate.day,
-                              pickedTime.hour,
-                              pickedTime.minute,
-                            );
+                            if (local == null) return;
                             scheduledAt.value = local.toUtc();
                             controller.update();
                           },
