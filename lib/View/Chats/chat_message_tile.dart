@@ -9,6 +9,7 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/chat_message_actions.dart';
 import 'package:point/View/Chats/chat_message_display.dart';
 import 'package:point/View/Chats/chat_reply_draft_banner.dart';
@@ -598,115 +599,16 @@ class _ChatMessageTileState extends State<ChatMessageTile>
     if (!mounted) return;
     if (_shouldSkipFeedback(dedupeKey, dedupeWindow)) return;
     final bg = isError ? const Color(0xFF8E1A1A) : const Color(0xFF2D2D2D);
-    final bottomInset = MediaQuery.paddingOf(context).bottom;
 
-    final messenger = ScaffoldMessenger.maybeOf(context);
-    if (messenger != null) {
-      messenger.hideCurrentSnackBar();
-      messenger.showSnackBar(
-        SnackBar(
-          behavior: SnackBarBehavior.floating,
-          elevation: 8,
-          backgroundColor: Colors.transparent,
-          padding: EdgeInsets.zero,
-          margin: EdgeInsets.fromLTRB(16, 0, 16, 12 + bottomInset),
-          content: DecoratedBox(
-            decoration: BoxDecoration(
-              color: bg,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x66000000),
-                  blurRadius: 12,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(
-                    isError
-                        ? Icons.error_outline_rounded
-                        : Icons.check_circle_outline_rounded,
-                    color: Colors.white,
-                    size: 22,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 15,
-                            height: 1.2,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          message,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.95),
-                            fontSize: 14,
-                            height: 1.35,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
-
-    Get.snackbar(
+    FunHelper.showSnackbar(
       title,
       message,
-      snackPosition: SnackPosition.BOTTOM,
       backgroundColor: bg,
+      autoHideAfter: dedupeWindow,
+      snackPosition: SnackPosition.BOTTOM,
       colorText: Colors.white,
-      barBlur: 0,
-      borderRadius: 12,
-      margin: const EdgeInsets.all(16),
-      duration: const Duration(seconds: 2),
-      icon: Icon(
-        isError
-            ? Icons.error_outline_rounded
-            : Icons.check_circle_outline_rounded,
-        color: Colors.white,
-      ),
-      shouldIconPulse: false,
-      titleText: Text(
-        title,
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w700,
-          fontSize: 15,
-        ),
-      ),
-      messageText: Text(
-        message,
-        style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.95),
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
     );
+
   }
 
   void _openContextMenu() {

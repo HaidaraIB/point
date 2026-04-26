@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Services/FunHelper.dart';
 import 'package:point/Models/ClientModel.dart';
 import 'package:point/Models/ContentWriteModel.dart';
 import 'package:point/Models/EmployeeModel.dart';
@@ -11,7 +12,6 @@ import 'package:point/Models/ProgrammingModel.dart';
 import 'package:point/Models/PromotionModel.dart';
 import 'package:point/Models/PublishModel.dart';
 import 'package:point/Models/TaskModel.dart';
-import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Clients/ClientsTable.dart';
@@ -613,9 +613,13 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
           ),
         );
       default:
-        Get.snackbar(
+        FunHelper.showSnackbar(
           'validation.title'.tr,
           'validation.unsupported_task_type'.tr,
+          snackPosition: SnackPosition.BOTTOM,
+          colorText: Colors.white,
+          backgroundColor: Colors.red,
+          autoHideAfter: const Duration(seconds: 4),
         );
         return null;
     }

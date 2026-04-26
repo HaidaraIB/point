@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Services/FunHelper.dart';
 import 'package:record/record.dart';
 
 /// تسجيل صوتي على الهاتف/سطح المكتب؛ على الويب يُفتح منتقي ملفات صوتية.
@@ -167,10 +168,13 @@ class _ChatVoiceRecordButtonState extends State<ChatVoiceRecordButton> {
 
     if (bytes == null || bytes.isEmpty) {
       if (mounted) {
-        Get.snackbar(
+        FunHelper.showSnackbar(
           AppLocaleKeys.errorTitle.tr,
           AppLocaleKeys.chatVoiceSaveFailed.tr,
           snackPosition: SnackPosition.BOTTOM,
+          colorText: Colors.white,
+          backgroundColor: Colors.red,
+          autoHideAfter: const Duration(seconds: 4),
         );
       }
       return;

@@ -107,9 +107,14 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     if (startAt == null || endAt == null) {
-      Get.snackbar(
+      FunHelper.showSnackbar(
         'validation.title'.tr,
         'validation.pick_dates'.tr,
+        snackPosition: SnackPosition.BOTTOM,
+        colorText: Colors.white,
+        backgroundColor: Colors.red,
+        autoHideAfter: const Duration(seconds: 4),
+
       );
       return;
     }
