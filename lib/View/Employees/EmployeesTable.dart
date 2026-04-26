@@ -95,10 +95,9 @@ class _EmployeeTableState extends State<EmployeeTable> {
                   scrollDirection: Axis.vertical,
                   child: Container(
                     padding: EdgeInsets.all(10),
-                    width:
-                        Responsive.isDesktop(context)
-                            ? Get.width - 270
-                            : Get.width,
+                    width: Responsive.isDesktop(context)
+                        ? Get.width - 270
+                        : Get.width,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -209,175 +208,156 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                     ),
                                   ),
                                 ],
-                                rows:
-                                    controller.employees.map((emp) {
-                                      return DataRow(
-                                        cells: [
-                                          DataCell(
-                                            TableCellCenter(
-                                              child: Text(
-                                                emp.name ?? '',
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  color:
-                                                      AppColors.fontColorGrey,
-                                                ),
+                                rows: controller.employees.map((emp) {
+                                  return DataRow(
+                                    cells: [
+                                      DataCell(
+                                        TableCellCenter(
+                                          child: Text(
+                                            emp.name ?? '',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: AppColors.fontColorGrey,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      DataCell(
+                                        TableCellCenter(
+                                          child: Text(
+                                            emp.email ?? '',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              color: AppColors.fontColorGrey,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      DataCell(
+                                        TableCellCenter(
+                                          child: Container(
+                                            alignment: Alignment.center,
+                                            height: 40,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: Colors.purple.shade50,
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                            child: Text(
+                                              emp.role == 'employee'
+                                                  ? '${emp.role.tr}\n(${emp.departments.map((d) => StorageKeys.semanticDepartmentLabelKey(d).tr).join(', ')})'
+                                                  : emp.role.tr,
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                color: Colors.purple,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 13,
                                               ),
                                             ),
                                           ),
-                                          DataCell(
-                                            TableCellCenter(
-                                              child: Text(
-                                                emp.email ?? '',
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  color:
-                                                      AppColors.fontColorGrey,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                          DataCell(
-                                            TableCellCenter(
-                                              child: Container(
-                                                alignment: Alignment.center,
-                                                height: 40,
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                    ),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.purple.shade50,
-                                                  borderRadius:
-                                                      BorderRadius.circular(12),
-                                                ),
-                                                child: Text(
-                                                  emp.role == 'employee'
-                                                      ? '${emp.role.tr}\n(${emp.departments.map((d) => StorageKeys.semanticDepartmentLabelKey(d).tr).join(', ')})'
-                                                      : emp.role.tr,
-                                                  textAlign: TextAlign.center,
-                                                  style: TextStyle(
-                                                    color: Colors.purple,
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 13,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          ),
+                                        ),
+                                      ),
 
-                                          DataCell(
-                                            TableCellCenter(
-                                              child: PopupMenuButton<int>(
-                                                tooltip:
-                                                    'tasks.options_tooltip'.tr,
-                                                padding: EdgeInsets.zero,
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(12),
+                                      DataCell(
+                                        TableCellCenter(
+                                          child: PopupMenuButton<int>(
+                                            tooltip: 'tasks.options_tooltip'.tr,
+                                            padding: EdgeInsets.zero,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                            color: Colors.white,
+                                            elevation: 4,
+                                            itemBuilder: (context) => [
+                                              PopupMenuItem(
+                                                value: 0,
+                                                child: tableActionsMenuRow(
+                                                  label: 'edit'.tr,
+                                                  icon: Icons.edit_outlined,
+                                                  iconColor: AppColors.success,
                                                 ),
-                                                color: Colors.white,
-                                                elevation: 4,
-                                                itemBuilder: (context) => [
-                                                  PopupMenuItem(
-                                                    value: 0,
-                                                    child: tableActionsMenuRow(
-                                                      label: 'edit'.tr,
-                                                      icon:
-                                                          Icons
-                                                              .edit_outlined,
-                                                      iconColor:
-                                                          AppColors.success,
-                                                    ),
-                                                  ),
-                                                  if (canDeleteEmployees &&
-                                                      emp.id !=
-                                                          controller
-                                                              .effectiveEmployee
-                                                              ?.id)
-                                                    PopupMenuItem(
-                                                      value: 1,
-                                                      child: tableActionsMenuRow(
-                                                        label: 'delete'.tr,
-                                                        icon:
-                                                            Icons
-                                                                .delete_outline,
-                                                        iconColor:
-                                                            AppColors
-                                                                .destructive,
-                                                      ),
-                                                    ),
-                                                ],
-                                                onSelected: (value) {
-                                                  if (value == 0) {
-                                                    if (emp.role == 'admin' &&
-                                                        controller
-                                                                .effectiveEmployee
-                                                                ?.role !=
-                                                            'admin') {
-                                                      FunHelper.showSnackbar(
-                                                        'error'.tr,
-                                                        'errors.no_permission'
-                                                            .tr,
-                                                        snackPosition:
-                                                            SnackPosition.TOP,
-                                                        backgroundColor:
-                                                            Colors.red,
-                                                        colorText: Colors.white,
-                                                      );
-                                                      return;
-                                                    }
-                                                    showAddEmployeeDialog(
-                                                      context,
-                                                      model: emp,
-                                                    );
-                                                  } else if (canDeleteEmployees &&
-                                                      value == 1) {
-                                                    if (emp.role == 'admin' &&
-                                                        controller
-                                                                .effectiveEmployee
-                                                                ?.role !=
-                                                            'admin') {
-                                                      FunHelper.showSnackbar(
-                                                        'error'.tr,
-                                                        'errors.no_permission'
-                                                            .tr,
-                                                        snackPosition:
-                                                            SnackPosition.TOP,
-                                                        backgroundColor:
-                                                            Colors.red,
-                                                        colorText: Colors.white,
-                                                      );
-                                                      return;
-                                                    }
-                                                    FunHelper.showConfirmDailog(
-                                                      context,
-                                                      onTap: () {
-                                                        controller
-                                                            .deleteEmployee(
-                                                              emp.id ?? '',
-                                                            );
-                                                      },
-                                                    );
-                                                  }
-                                                },
-                                                child: Padding(
-                                                  padding: const EdgeInsets.all(
-                                                    8,
-                                                  ),
-                                                  child: Icon(
-                                                    Icons.more_vert,
-                                                    color:
-                                                        AppColors
-                                                            .primaryfontColor,
+                                              ),
+                                              if (canDeleteEmployees &&
+                                                  emp.id !=
+                                                      controller
+                                                          .effectiveEmployee
+                                                          ?.id)
+                                                PopupMenuItem(
+                                                  value: 1,
+                                                  child: tableActionsMenuRow(
+                                                    label: 'delete'.tr,
+                                                    icon: Icons.delete_outline,
+                                                    iconColor:
+                                                        AppColors.destructive,
                                                   ),
                                                 ),
+                                            ],
+                                            onSelected: (value) {
+                                              if (value == 0) {
+                                                if (emp.role == 'admin' &&
+                                                    controller
+                                                            .effectiveEmployee
+                                                            ?.role !=
+                                                        'admin') {
+                                                  FunHelper.showSnackbar(
+                                                    'error'.tr,
+                                                    'errors.no_permission'.tr,
+                                                    snackPosition:
+                                                        SnackPosition.TOP,
+                                                    backgroundColor: Colors.red,
+                                                    colorText: Colors.white,
+                                                  );
+                                                  return;
+                                                }
+                                                showAddEmployeeDialog(
+                                                  context,
+                                                  model: emp,
+                                                );
+                                              } else if (canDeleteEmployees &&
+                                                  value == 1) {
+                                                if (emp.role == 'admin' &&
+                                                    controller
+                                                            .effectiveEmployee
+                                                            ?.role !=
+                                                        'admin') {
+                                                  FunHelper.showSnackbar(
+                                                    'error'.tr,
+                                                    'errors.no_permission'.tr,
+                                                    snackPosition:
+                                                        SnackPosition.TOP,
+                                                    backgroundColor: Colors.red,
+                                                    colorText: Colors.white,
+                                                  );
+                                                  return;
+                                                }
+                                                FunHelper.showConfirmDailog(
+                                                  context,
+                                                  onTap: () {
+                                                    controller.deleteEmployee(
+                                                      emp.id ?? '',
+                                                    );
+                                                  },
+                                                );
+                                              }
+                                            },
+                                            child: Padding(
+                                              padding: const EdgeInsets.all(8),
+                                              child: Icon(
+                                                Icons.more_vert,
+                                                color:
+                                                    AppColors.primaryfontColor,
                                               ),
                                             ),
                                           ),
-                                        ],
-                                      );
-                                    }).toList(),
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                }).toList(),
                               ),
                             ),
                           ),
@@ -409,12 +389,11 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
 
   String selectedRole = model?.role ?? "employee";
   if (selectedRole == 'accountholder') selectedRole = 'admin';
-  List<String> selectedDepartments =
-      model == null
-          ? <String>[StorageKeys.departmentPromotion]
-          : (model.departments.isNotEmpty
-              ? List<String>.from(model.departments)
-              : <String>[StorageKeys.departmentPromotion]);
+  List<String> selectedDepartments = model == null
+      ? <String>[StorageKeys.departmentPromotion]
+      : (model.departments.isNotEmpty
+            ? List<String>.from(model.departments)
+            : <String>[StorageKeys.departmentPromotion]);
   List<String> roles = ["supervisor", "admin", "employee"];
   Get.find<HomeController>().uploadedFilesPaths.assignAll(
     model != null && model.image != null ? [model.image!] : [],
@@ -486,49 +465,41 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                             child: Column(
                               children: [
                                 Builder(
-                                  builder:
-                                      (c) => InkWell(
-                                        onTap: () async {
-                                          await controller.pickoneImage().then((
-                                            v,
-                                          ) {
-                                            if (v.isNotEmpty) {
-                                              controller.uploadFiles(
-                                                filePathOrBytes: v.first.bytes!,
-                                                fileName: v.first.name,
-                                              );
-                                            }
-                                          });
-                                        },
-                                        child: CircleAvatar(
-                                          backgroundColor: Colors.grey.shade200,
-                                          radius: 50,
-                                          child: Obx(
-                                            () =>
-                                                controller
-                                                        .uploadedFilesPaths
-                                                        .isNotEmpty
-                                                    ? ClipRRect(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            50,
-                                                          ),
-                                                      child: Image.network(
-                                                        controller
-                                                            .uploadedFilesPaths
-                                                            .last,
-                                                        width: 100,
-                                                        height: 100,
-                                                        fit: BoxFit.cover,
-                                                      ),
-                                                    )
-                                                    : Icon(
-                                                      Icons.camera_alt,
-                                                      size: 50,
-                                                    ),
-                                          ),
-                                        ),
+                                  builder: (c) => InkWell(
+                                    onTap: () async {
+                                      await controller.pickoneImage().then((v) {
+                                        if (v.isNotEmpty) {
+                                          controller.uploadFiles(
+                                            filePathOrBytes: v.first.bytes!,
+                                            fileName: v.first.name,
+                                          );
+                                        }
+                                      });
+                                    },
+                                    child: CircleAvatar(
+                                      backgroundColor: Colors.grey.shade200,
+                                      radius: 50,
+                                      child: Obx(
+                                        () =>
+                                            controller
+                                                .uploadedFilesPaths
+                                                .isNotEmpty
+                                            ? ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.circular(50),
+                                                child: Image.network(
+                                                  controller
+                                                      .uploadedFilesPaths
+                                                      .last,
+                                                  width: 100,
+                                                  height: 100,
+                                                  fit: BoxFit.cover,
+                                                ),
+                                              )
+                                            : Icon(Icons.camera_alt, size: 50),
                                       ),
+                                    ),
+                                  ),
                                 ),
 
                                 InputText(
@@ -577,10 +548,9 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                   ),
                                 if (model == null || canEditCredentials)
                                   InputText(
-                                    hintText:
-                                        model == null
-                                            ? '******'.tr
-                                            : 'leave_empty_unchanged'.tr,
+                                    hintText: model == null
+                                        ? '******'.tr
+                                        : 'leave_empty_unchanged'.tr,
                                     labelText: 'password'.tr,
                                     obscureText: obscurePassword,
                                     controller: passwordController,
@@ -608,15 +578,14 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                     borderColor: Colors.grey.shade300,
                                   ),
                                 DynamicDropdown(
-                                  items:
-                                      roles
-                                          .map(
-                                            (role) => DropdownMenuItem(
-                                              value: role,
-                                              child: Text(role.tr),
-                                            ),
-                                          )
-                                          .toList(),
+                                  items: roles
+                                      .map(
+                                        (role) => DropdownMenuItem(
+                                          value: role,
+                                          child: Text(role.tr),
+                                        ),
+                                      )
+                                      .toList(),
                                   value: selectedRole,
                                   label: 'role'.tr,
                                   borderRadius: 5,
@@ -641,11 +610,10 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                   DynamicMultiSelect<String>(
                                     items: StorageKeys.departments,
                                     selectedValues: selectedDepartments,
-                                    itemLabel:
-                                        (d) =>
-                                            StorageKeys.semanticDepartmentLabelKey(
-                                              d,
-                                            ).tr,
+                                    itemLabel: (d) =>
+                                        StorageKeys.semanticDepartmentLabelKey(
+                                          d,
+                                        ).tr,
                                     label: 'employees.departments'.tr,
                                     hint: 'employees.departments'.tr,
                                     require: true,
@@ -659,11 +627,10 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                       );
                                       newstate(() {});
                                     },
-                                    validator:
-                                        (list) =>
-                                            (list == null || list.isEmpty)
-                                                ? ' '
-                                                : null,
+                                    validator: (list) =>
+                                        (list == null || list.isEmpty)
+                                        ? ' '
+                                        : null,
                                   ),
                               ],
                             ),
@@ -695,9 +662,12 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                         if (_key.currentState!.validate()) {
                                           if (selectedRole == 'employee' &&
                                               selectedDepartments.isEmpty) {
-                                            FunHelper.showSnackbar(
+                                            FunHelper.showSnackbarDeduped(
                                               'error'.tr,
-                                              'employees.departments_required'.tr,
+                                              'employees.departments_required'
+                                                  .tr,
+                                              dedupeKey:
+                                                  'employee_departments_required',
                                               snackPosition: SnackPosition.TOP,
                                               backgroundColor: Colors.red,
                                               colorText: Colors.white,
@@ -706,22 +676,20 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                           }
                                           final departmentsToSave =
                                               selectedRole == 'employee'
-                                                  ? StorageKeys
-                                                      .normalizeDepartments(
-                                                        selectedDepartments,
-                                                      )
-                                                  : <String>[];
+                                              ? StorageKeys.normalizeDepartments(
+                                                  selectedDepartments,
+                                                )
+                                              : <String>[];
                                           if (model == null) {
                                             controller
                                                 .addEmployee(
                                                   password:
                                                       passwordController.text
-                                                              .trim()
-                                                              .isEmpty
-                                                          ? 'TempPass@123'
-                                                          : passwordController
-                                                              .text
-                                                              .trim(),
+                                                          .trim()
+                                                          .isEmpty
+                                                      ? 'TempPass@123'
+                                                      : passwordController.text
+                                                            .trim(),
                                                   EmployeeModel(
                                                     id: const Uuid().v4(),
                                                     name: nameController.text,
@@ -733,12 +701,12 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                                     createdAt: DateTime.now(),
                                                     image:
                                                         controller
-                                                                .uploadedFilesPaths
-                                                                .isNotEmpty
-                                                            ? controller
-                                                                .uploadedFilesPaths
-                                                                .last
-                                                            : null,
+                                                            .uploadedFilesPaths
+                                                            .isNotEmpty
+                                                        ? controller
+                                                              .uploadedFilesPaths
+                                                              .last
+                                                        : null,
                                                   ),
                                                 )
                                                 .then((v) {
@@ -754,34 +722,30 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                                 .updateEmployee(
                                                   model.copyWith(
                                                     name: nameController.text,
-                                                    email:
-                                                        canEditCredentials
-                                                            ? emailController
-                                                                .text
-                                                            : (model.email ??
-                                                                ''),
+                                                    email: canEditCredentials
+                                                        ? emailController.text
+                                                        : (model.email ?? ''),
                                                     role: selectedRole,
                                                     departments:
                                                         departmentsToSave,
                                                     image:
                                                         controller
-                                                                .uploadedFilesPaths
-                                                                .isNotEmpty
-                                                            ? controller
-                                                                .uploadedFilesPaths
-                                                                .last
-                                                            : model.image,
+                                                            .uploadedFilesPaths
+                                                            .isNotEmpty
+                                                        ? controller
+                                                              .uploadedFilesPaths
+                                                              .last
+                                                        : model.image,
                                                   ),
                                                   newPassword:
                                                       !canEditCredentials ||
-                                                              passwordController
-                                                                  .text
-                                                                  .trim()
-                                                                  .isEmpty
-                                                          ? null
-                                                          : passwordController
+                                                          passwordController
                                                               .text
-                                                              .trim(),
+                                                              .trim()
+                                                              .isEmpty
+                                                      ? null
+                                                      : passwordController.text
+                                                            .trim(),
                                                 )
                                                 .then((v) {
                                                   if (v) {
@@ -795,20 +759,18 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                           }
                                         }
                                       },
-                                      child:
-                                          controller.isLoading.value
-                                              ? Center(
-                                                child:
-                                                    CircularProgressIndicator(
-                                                      color: Colors.white,
-                                                    ),
-                                              )
-                                              : Text(
-                                                'common.confirm'.tr,
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                ),
+                                      child: controller.isLoading.value
+                                          ? Center(
+                                              child: CircularProgressIndicator(
+                                                color: Colors.white,
                                               ),
+                                            )
+                                          : Text(
+                                              'common.confirm'.tr,
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                              ),
+                                            ),
                                     ),
                                   ),
                                 ),

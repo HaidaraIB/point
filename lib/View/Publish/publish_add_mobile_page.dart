@@ -35,8 +35,10 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
   final RxString _postType = 'feed'.obs;
   final RxString _scheduleMode = 'now'.obs;
   final Rxn<DateTime> _scheduledAt = Rxn<DateTime>();
-  final RxList<String> _platforms =
-      <String>[StorageKeys.platformList[0], StorageKeys.platformList[1]].obs;
+  final RxList<String> _platforms = <String>[
+    StorageKeys.platformList[0],
+    StorageKeys.platformList[1],
+  ].obs;
   final Rxn<String> _mediaUrl = Rxn<String>();
   final Rxn<String> _mediaType = Rxn<String>();
   final RxString _clientId = '__none__'.obs;
@@ -103,10 +105,13 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
   }
 
   Future<void> _bootstrap() async {
-    if (!ContentPermissions.canAccessPublishSection(_controller.currentEmployee.value)) {
-      FunHelper.showSnackbar(
+    if (!ContentPermissions.canAccessPublishSection(
+      _controller.currentEmployee.value,
+    )) {
+      FunHelper.showSnackbarDeduped(
         'error'.tr,
         'errors.forbidden'.tr,
+        dedupeKey: 'publish_access_forbidden',
         snackPosition: SnackPosition.TOP,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -127,9 +132,10 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
       final reloadedSettings = await MetaAppSettings.load();
       if (!mounted) return;
       if (reloadedSettings == null) {
-        FunHelper.showSnackbar(
+        FunHelper.showSnackbarDeduped(
           'error'.tr,
           'meta_err_settings_missing'.tr,
+          dedupeKey: 'publish_settings_missing',
           snackPosition: SnackPosition.TOP,
           backgroundColor: Colors.red,
           colorText: Colors.white,
@@ -146,21 +152,30 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
         if (existing != null) {
           _titleController.text = existing.title;
           _captionController.text = existing.caption ?? '';
-          _postType.value = existing.postType.trim().isEmpty ? 'feed' : existing.postType;
-          _scheduleMode.value = existing.status == 'scheduled' ? 'schedule' : 'now';
+          _postType.value = existing.postType.trim().isEmpty
+              ? 'feed'
+              : existing.postType;
+          _scheduleMode.value = existing.status == 'scheduled'
+              ? 'schedule'
+              : 'now';
           _scheduledAt.value = existing.scheduledAt;
           final existingMedia = existing.mediaUrl?.trim();
           if (existingMedia != null && existingMedia.isNotEmpty) {
             _controller.uploadedFilesPaths.add(existingMedia);
             _mediaUrl.value = existingMedia;
-            _mediaType.value = existing.mediaType ?? _publishMediaTypeFromUrl(existingMedia);
+            _mediaType.value =
+                existing.mediaType ?? _publishMediaTypeFromUrl(existingMedia);
           } else {
             _mediaType.value = existing.mediaType;
           }
           final existingClient = existing.clientId?.trim();
           _clientId.value =
-              (existingClient != null && existingClient.isNotEmpty) ? existingClient : _noneClient;
-          final pset = existing.platforms.map((e) => e.toString().toLowerCase()).toSet();
+              (existingClient != null && existingClient.isNotEmpty)
+              ? existingClient
+              : _noneClient;
+          final pset = existing.platforms
+              .map((e) => e.toString().toLowerCase())
+              .toSet();
           final initialPlatforms = <String>[
             if (pset.contains('facebook')) StorageKeys.platformList[0],
             if (pset.contains('instagram')) StorageKeys.platformList[1],
@@ -176,9 +191,10 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
           }
         }
       } else {
-        FunHelper.showSnackbar(
+        FunHelper.showSnackbarDeduped(
           'error'.tr,
           'publish.no_pages'.tr,
+          dedupeKey: 'publish_no_pages',
           snackPosition: SnackPosition.TOP,
           backgroundColor: Colors.red,
           colorText: Colors.white,
@@ -188,9 +204,10 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
       }
     } catch (e) {
       if (!mounted) return;
-      FunHelper.showSnackbar(
+      FunHelper.showSnackbarDeduped(
         'error'.tr,
         formatMetaPublishFailure(e, Get.locale?.languageCode ?? 'ar'),
+        dedupeKey: 'publish_bootstrap_error',
         snackPosition: SnackPosition.TOP,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -208,9 +225,10 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
     final files = await _controller.pickMultiFiles();
     if (files.isEmpty) return;
     if (files.length > 1) {
-      FunHelper.showSnackbar(
+      FunHelper.showSnackbarDeduped(
         'common.info'.tr,
         'publish.local_extra_files_snackbar'.tr,
+        dedupeKey: 'publish_local_extra_files',
         snackPosition: SnackPosition.TOP,
         backgroundColor: Colors.blueGrey.shade700,
         colorText: Colors.white,
@@ -244,8 +262,10 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
       title: 'publish.library_picker_title'.tr,
     );
     if (!mounted) return;
-    final urls =
-        selected.map((e) => e.trim()).where((e) => e.isNotEmpty).toList(growable: false);
+    final urls = selected
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList(growable: false);
     if (urls.isEmpty) return;
     final url = urls.first;
     _controller.uploadedFilesPaths.clear();
@@ -289,9 +309,10 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
     if (_scheduleMode.value == 'schedule') {
       final s = _scheduledAt.value;
       if (s == null) {
-        FunHelper.showSnackbar(
+        FunHelper.showSnackbarDeduped(
           'error'.tr,
           'publish.schedule_time_required'.tr,
+          dedupeKey: 'publish_schedule_required',
           snackPosition: SnackPosition.TOP,
           backgroundColor: Colors.red,
           colorText: Colors.white,
@@ -299,9 +320,10 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
         return;
       }
       if (s.isBefore(DateTime.now().toUtc().add(const Duration(minutes: 1)))) {
-        FunHelper.showSnackbar(
+        FunHelper.showSnackbarDeduped(
           'error'.tr,
           'publish.schedule_time_future'.tr,
+          dedupeKey: 'publish_schedule_future',
           snackPosition: SnackPosition.TOP,
           backgroundColor: Colors.red,
           colorText: Colors.white,
@@ -312,9 +334,10 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
 
     final fs = _normalizePlatformsForFirestore(_platforms);
     if (fs.isEmpty) {
-      FunHelper.showSnackbar(
+      FunHelper.showSnackbarDeduped(
         'error'.tr,
         'meta_err_no_platforms'.tr,
+        dedupeKey: 'publish_no_platforms',
         snackPosition: SnackPosition.TOP,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -323,7 +346,9 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
     }
 
     final emp = _controller.currentEmployee.value;
-    final nextStatus = _scheduleMode.value == 'schedule' ? 'scheduled' : 'created';
+    final nextStatus = _scheduleMode.value == 'schedule'
+        ? 'scheduled'
+        : 'created';
     final post = MetaPostModel(
       title: title,
       pageId: asset.pageId,
@@ -340,7 +365,9 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
       clientId: _clientId.value == _noneClient ? null : _clientId.value.trim(),
       createdBy: widget.initialPost?.createdBy ?? emp?.id,
       lang: Get.locale?.languageCode ?? 'ar',
-      scheduledAt: _scheduleMode.value == 'schedule' ? _scheduledAt.value : null,
+      scheduledAt: _scheduleMode.value == 'schedule'
+          ? _scheduledAt.value
+          : null,
       createdAt: widget.initialPost?.createdAt ?? DateTime.now(),
     );
     final ok = widget.initialPost == null
@@ -368,9 +395,10 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
     _controller.uploadedFilesPaths.clear();
     if (!mounted) return;
     if (ok && _scheduleMode.value == 'schedule') {
-      FunHelper.showSnackbar(
+      FunHelper.showSnackbarDeduped(
         'common.save'.tr,
         'publish.schedule_saved'.tr,
+        dedupeKey: 'publish_schedule_saved',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green,
         colorText: Colors.white,
@@ -420,7 +448,10 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
                         .map(
                           (a) => DropdownMenuItem(
                             value: a,
-                            child: Text(a.label, overflow: TextOverflow.ellipsis),
+                            child: Text(
+                              a.label,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         )
                         .toList(),
@@ -460,8 +491,10 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Text('publish.schedule_mode'.tr,
-                    style: const TextStyle(fontWeight: FontWeight.w600)),
+                Text(
+                  'publish.schedule_mode'.tr,
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
                 const SizedBox(height: 6),
                 Obx(
                   () => Wrap(
@@ -530,12 +563,13 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: files.length,
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        crossAxisSpacing: 10,
-                        mainAxisSpacing: 10,
-                        mainAxisExtent: 96,
-                      ),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 10,
+                            mainAxisSpacing: 10,
+                            mainAxisExtent: 96,
+                          ),
                       itemBuilder: (_, i) {
                         final fileUrl = files[i].toString();
                         final kind = _publishFileKindFromUrl(fileUrl);
@@ -552,19 +586,24 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
                                         ? Image.network(
                                             fileUrl,
                                             fit: BoxFit.cover,
-                                            errorBuilder: (_, __, ___) => Container(
-                                              color: Colors.blueGrey.shade100,
-                                              child: Icon(
-                                                Icons.broken_image_outlined,
-                                                color: Colors.blueGrey.shade700,
-                                              ),
-                                            ),
+                                            errorBuilder: (_, __, ___) =>
+                                                Container(
+                                                  color:
+                                                      Colors.blueGrey.shade100,
+                                                  child: Icon(
+                                                    Icons.broken_image_outlined,
+                                                    color: Colors
+                                                        .blueGrey
+                                                        .shade700,
+                                                  ),
+                                                ),
                                           )
                                         : Container(
                                             color: Colors.blueGrey.shade100,
                                             child: Icon(
                                               kind == 'video'
-                                                  ? Icons.play_circle_fill_rounded
+                                                  ? Icons
+                                                        .play_circle_fill_rounded
                                                   : Icons.link,
                                               color: Colors.blueGrey.shade700,
                                               size: kind == 'video' ? 40 : 28,
@@ -577,7 +616,9 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
                                   right: 4,
                                   child: InkWell(
                                     onTap: () {
-                                      _controller.uploadedFilesPaths.remove(fileUrl);
+                                      _controller.uploadedFilesPaths.remove(
+                                        fileUrl,
+                                      );
                                       _syncMediaFromUploadedList();
                                       _controller.update();
                                     },
@@ -619,7 +660,10 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
                 Obx(
                   () => DynamicDropdownMultiSelect<String>(
                     key: ValueKey(_platforms.join(',')),
-                    items: [StorageKeys.platformList[0], StorageKeys.platformList[1]],
+                    items: [
+                      StorageKeys.platformList[0],
+                      StorageKeys.platformList[1],
+                    ],
                     selectedValues: _platforms.toList(),
                     itemLabel: (k) => k.tr,
                     label: 'publish.platforms'.tr,

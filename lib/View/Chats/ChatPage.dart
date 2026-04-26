@@ -16,6 +16,7 @@ import 'package:point/Services/AudioService.dart';
 import 'package:point/Services/ChatAudioFocus.dart';
 import 'package:point/Services/ChatIncomingMessageSound.dart';
 import 'package:point/Services/FireStoreServices.dart';
+import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/firestore/firestore_chat_api.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Services/chat_clipboard_image_reader.dart';
@@ -1358,8 +1359,14 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   void _showPasteImageFailed() {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(AppLocaleKeys.chatPasteImageFailed.tr)),
+    FunHelper.showSnackbarDeduped(
+      AppLocaleKeys.errorTitle.tr,
+      AppLocaleKeys.chatPasteImageFailed.tr,
+      dedupeKey: 'chat_paste_image_failed',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.red,
+      colorText: Colors.white,
+      autoHideAfter: const Duration(seconds: 2),
     );
   }
 
@@ -2195,304 +2202,344 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                               // input text and send button
                               Padding(
                                 padding: const EdgeInsets.all(16.0),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    const ChatUploadProgressBanner(),
-                                    if (_replyDraft != null)
-                                      ChatReplyDraftBanner(
-                                        draft: _replyDraft!,
-                                        onCancel: () =>
-                                            setState(() => _replyDraft = null),
-                                      ),
-                                    if (_pendingAttachment != null)
-                                      PendingAttachmentStrip(
-                                        pending: _pendingAttachment!,
-                                        onCancel: () => setState(
-                                          () => _pendingAttachment = null,
-                                        ),
-                                        onTapPreview:
-                                            (_pendingAttachment!.messageType ==
-                                                    'image' ||
-                                                _pendingAttachment!
-                                                        .messageType ==
-                                                    'video')
-                                            ? () => openChatMediaFromUrl(
-                                                _pendingAttachment!
-                                                    .attachmentUrl,
-                                              )
-                                            : null,
-                                      ),
-                                    Obx(() {
-                                      final busy = controller.isUploading.value;
-                                      return Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
-                                        children: [
-                                          IconButton(
-                                            icon: Icon(
-                                              Icons
-                                                  .sentiment_satisfied_alt_outlined,
+                                child: Align(
+                                  alignment: Alignment.center,
+                                  child: ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      maxWidth: 860,
+                                    ),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        const ChatUploadProgressBanner(),
+                                        if (_replyDraft != null)
+                                          ChatReplyDraftBanner(
+                                            draft: _replyDraft!,
+                                            onCancel: () => setState(
+                                              () => _replyDraft = null,
                                             ),
-                                            onPressed: busy
-                                                ? null
-                                                : () {
-                                                    setState(() {
-                                                      _isEmojiVisible =
-                                                          !_isEmojiVisible;
-                                                      FocusScope.of(
-                                                        context,
-                                                      ).unfocus();
-                                                    });
-                                                  },
                                           ),
-                                          IconButton(
-                                            tooltip: AppLocaleKeys
-                                                .chatAttachGallery
-                                                .tr,
-                                            icon: const Icon(
-                                              Icons.perm_media_outlined,
+                                        if (_pendingAttachment != null)
+                                          PendingAttachmentStrip(
+                                            pending: _pendingAttachment!,
+                                            onCancel: () => setState(
+                                              () => _pendingAttachment = null,
                                             ),
-                                            onPressed: busy
-                                                ? null
-                                                : () async {
-                                                    final v = await controller
-                                                        .pickOneChatGalleryMedia();
-                                                    if (v.isEmpty ||
-                                                        v.first.bytes == null) {
-                                                      return;
-                                                    }
-                                                    final picked = v.first;
-                                                    final url = await controller
-                                                        .uploadFiles(
-                                                          filePathOrBytes:
-                                                              picked.bytes!,
-                                                          fileName: picked.name,
-                                                          useBlockingUploadDialog:
-                                                              false,
+                                            onTapPreview:
+                                                (_pendingAttachment!
+                                                            .messageType ==
+                                                        'image' ||
+                                                    _pendingAttachment!
+                                                            .messageType ==
+                                                        'video')
+                                                ? () => openChatMediaFromUrl(
+                                                    _pendingAttachment!
+                                                        .attachmentUrl,
+                                                  )
+                                                : null,
+                                          ),
+                                        Obx(() {
+                                          final busy =
+                                              controller.isUploading.value;
+                                          return Row(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.center,
+                                            children: [
+                                              IconButton(
+                                                icon: Icon(
+                                                  Icons
+                                                      .sentiment_satisfied_alt_outlined,
+                                                ),
+                                                onPressed: busy
+                                                    ? null
+                                                    : () {
+                                                        setState(() {
+                                                          _isEmojiVisible =
+                                                              !_isEmojiVisible;
+                                                          FocusScope.of(
+                                                            context,
+                                                          ).unfocus();
+                                                        });
+                                                      },
+                                              ),
+                                              IconButton(
+                                                tooltip: AppLocaleKeys
+                                                    .chatAttachGallery
+                                                    .tr,
+                                                icon: const Icon(
+                                                  Icons.perm_media_outlined,
+                                                ),
+                                                onPressed: busy
+                                                    ? null
+                                                    : () async {
+                                                        final v = await controller
+                                                            .pickOneChatGalleryMedia();
+                                                        if (v.isEmpty ||
+                                                            v.first.bytes ==
+                                                                null) {
+                                                          return;
+                                                        }
+                                                        final picked = v.first;
+                                                        final url = await controller
+                                                            .uploadFiles(
+                                                              filePathOrBytes:
+                                                                  picked.bytes!,
+                                                              fileName:
+                                                                  picked.name,
+                                                              useBlockingUploadDialog:
+                                                                  false,
+                                                            );
+                                                        if (url == null) {
+                                                          return;
+                                                        }
+                                                        final isVid =
+                                                            chatAttachmentIsVideo(
+                                                              picked.name,
+                                                            );
+                                                        setState(
+                                                          () => _pendingAttachment =
+                                                              PendingChatAttachment(
+                                                                messageType:
+                                                                    isVid
+                                                                    ? 'video'
+                                                                    : 'image',
+                                                                attachmentUrl:
+                                                                    url,
+                                                                fileName: isVid
+                                                                    ? picked
+                                                                          .name
+                                                                    : null,
+                                                              ),
                                                         );
-                                                    if (url == null) {
-                                                      return;
-                                                    }
-                                                    final isVid =
-                                                        chatAttachmentIsVideo(
-                                                          picked.name,
+                                                        controller
+                                                            .uploadedFilesPaths
+                                                            .clear();
+                                                      },
+                                              ),
+                                              IconButton(
+                                                tooltip: AppLocaleKeys
+                                                    .chatAttachFile
+                                                    .tr,
+                                                icon: const Icon(
+                                                  Icons.attach_file,
+                                                ),
+                                                onPressed: busy
+                                                    ? null
+                                                    : () async {
+                                                        final v = await controller
+                                                            .pickOneChatFile();
+                                                        if (v.isEmpty ||
+                                                            v.first.bytes ==
+                                                                null) {
+                                                          return;
+                                                        }
+                                                        final url = await controller
+                                                            .uploadFiles(
+                                                              filePathOrBytes: v
+                                                                  .first
+                                                                  .bytes!,
+                                                              fileName:
+                                                                  v.first.name,
+                                                              useBlockingUploadDialog:
+                                                                  false,
+                                                            );
+                                                        if (url == null) {
+                                                          return;
+                                                        }
+                                                        setState(
+                                                          () => _pendingAttachment =
+                                                              PendingChatAttachment(
+                                                                messageType:
+                                                                    'file',
+                                                                attachmentUrl:
+                                                                    url,
+                                                                fileName: v
+                                                                    .first
+                                                                    .name,
+                                                              ),
                                                         );
-                                                    setState(
-                                                      () => _pendingAttachment =
-                                                          PendingChatAttachment(
-                                                            messageType: isVid
-                                                                ? 'video'
-                                                                : 'image',
-                                                            attachmentUrl: url,
-                                                            fileName: isVid
-                                                                ? picked.name
-                                                                : null,
+                                                        controller
+                                                            .uploadedFilesPaths
+                                                            .clear();
+                                                      },
+                                              ),
+                                              IconButton(
+                                                tooltip: AppLocaleKeys
+                                                    .chatPasteImage
+                                                    .tr,
+                                                icon: const Icon(
+                                                  Icons.content_paste,
+                                                ),
+                                                onPressed: busy
+                                                    ? null
+                                                    : _pasteImageFromClipboard,
+                                              ),
+                                              ChatVoiceRecordButton(
+                                                onUploaded: (url, sec) async {
+                                                  setState(
+                                                    () => _pendingAttachment =
+                                                        PendingChatAttachment(
+                                                          messageType: 'voice',
+                                                          attachmentUrl: url,
+                                                          durationSec: sec > 0
+                                                              ? sec
+                                                              : null,
+                                                        ),
+                                                  );
+                                                  controller.uploadedFilesPaths
+                                                      .clear();
+                                                },
+                                              ),
+                                              Expanded(
+                                                child: Theme(
+                                                  data: Theme.of(context).copyWith(
+                                                    textSelectionTheme:
+                                                        const TextSelectionThemeData(
+                                                          cursorColor: Color(
+                                                            0xFF465FFF,
                                                           ),
-                                                    );
-                                                    controller
-                                                        .uploadedFilesPaths
-                                                        .clear();
-                                                  },
-                                          ),
-                                          IconButton(
-                                            tooltip:
-                                                AppLocaleKeys.chatAttachFile.tr,
-                                            icon: const Icon(Icons.attach_file),
-                                            onPressed: busy
-                                                ? null
-                                                : () async {
-                                                    final v = await controller
-                                                        .pickOneChatFile();
-                                                    if (v.isEmpty ||
-                                                        v.first.bytes == null) {
-                                                      return;
-                                                    }
-                                                    final url = await controller
-                                                        .uploadFiles(
-                                                          filePathOrBytes:
-                                                              v.first.bytes!,
-                                                          fileName:
-                                                              v.first.name,
-                                                          useBlockingUploadDialog:
-                                                              false,
-                                                        );
-                                                    if (url == null) {
-                                                      return;
-                                                    }
-                                                    setState(
-                                                      () => _pendingAttachment =
-                                                          PendingChatAttachment(
-                                                            messageType: 'file',
-                                                            attachmentUrl: url,
-                                                            fileName:
-                                                                v.first.name,
+                                                          selectionHandleColor:
+                                                              Color(0xFF465FFF),
+                                                          selectionColor: Color(
+                                                            0x33465FFF,
                                                           ),
-                                                    );
-                                                    controller
-                                                        .uploadedFilesPaths
-                                                        .clear();
-                                                  },
-                                          ),
-                                          IconButton(
-                                            tooltip:
-                                                AppLocaleKeys.chatPasteImage.tr,
-                                            icon: const Icon(
-                                              Icons.content_paste,
-                                            ),
-                                            onPressed: busy
-                                                ? null
-                                                : _pasteImageFromClipboard,
-                                          ),
-                                          ChatVoiceRecordButton(
-                                            onUploaded: (url, sec) async {
-                                              setState(
-                                                () => _pendingAttachment =
-                                                    PendingChatAttachment(
-                                                      messageType: 'voice',
-                                                      attachmentUrl: url,
-                                                      durationSec: sec > 0
-                                                          ? sec
-                                                          : null,
-                                                    ),
-                                              );
-                                              controller.uploadedFilesPaths
-                                                  .clear();
-                                            },
-                                          ),
-                                          Expanded(
-                                            child: Theme(
-                                              data: Theme.of(context).copyWith(
-                                                textSelectionTheme:
-                                                    const TextSelectionThemeData(
-                                                      cursorColor: Color(
+                                                        ),
+                                                  ),
+                                                  child: Focus(
+                                                    onKeyEvent:
+                                                        _onComposerKeyEvent,
+                                                    child: TextField(
+                                                      cursorColor: const Color(
                                                         0xFF465FFF,
                                                       ),
-                                                      selectionHandleColor:
-                                                          Color(0xFF465FFF),
-                                                      selectionColor: Color(
-                                                        0x33465FFF,
-                                                      ),
-                                                    ),
-                                              ),
-                                              child: Focus(
-                                                onKeyEvent: _onComposerKeyEvent,
-                                                child: TextField(
-                                                  cursorColor: const Color(
-                                                    0xFF465FFF,
-                                                  ),
-                                                  controller:
-                                                      _messageController,
-                                                  focusNode: _messageFocusNode,
-                                                  contentInsertionConfiguration:
-                                                      _enableContentInsertion
-                                                      ? ContentInsertionConfiguration(
-                                                          allowedMimeTypes:
-                                                              const <String>[
-                                                                'image/png',
-                                                                'image/jpeg',
-                                                                'image/webp',
-                                                                'image/gif',
-                                                              ],
-                                                          onContentInserted:
-                                                              (
-                                                                KeyboardInsertedContent
-                                                                content,
-                                                              ) {
-                                                                final data =
-                                                                    content
-                                                                        .data;
-                                                                if (data ==
-                                                                        null ||
-                                                                    data.isEmpty) {
-                                                                  _showPasteImageFailed();
-                                                                  return;
-                                                                }
-                                                                unawaited(
-                                                                  _handlePastedImage(
-                                                                    data,
-                                                                    content
-                                                                        .mimeType,
-                                                                  ),
-                                                                );
-                                                              },
-                                                        )
-                                                      : null,
-                                                  minLines: 1,
-                                                  maxLines: 6,
-                                                  keyboardType:
-                                                      TextInputType.multiline,
-                                                  readOnly: busy,
-                                                  textAlignVertical:
-                                                      TextAlignVertical.center,
-                                                  textDirection:
-                                                      textDirectionForTypedChatMessage(
-                                                        _messageController.text,
-                                                        Directionality.of(
-                                                          context,
+                                                      controller:
+                                                          _messageController,
+                                                      focusNode:
+                                                          _messageFocusNode,
+                                                      contentInsertionConfiguration:
+                                                          _enableContentInsertion
+                                                          ? ContentInsertionConfiguration(
+                                                              allowedMimeTypes:
+                                                                  const <
+                                                                    String
+                                                                  >[
+                                                                    'image/png',
+                                                                    'image/jpeg',
+                                                                    'image/webp',
+                                                                    'image/gif',
+                                                                  ],
+                                                              onContentInserted:
+                                                                  (
+                                                                    KeyboardInsertedContent
+                                                                    content,
+                                                                  ) {
+                                                                    final data =
+                                                                        content
+                                                                            .data;
+                                                                    if (data ==
+                                                                            null ||
+                                                                        data.isEmpty) {
+                                                                      _showPasteImageFailed();
+                                                                      return;
+                                                                    }
+                                                                    unawaited(
+                                                                      _handlePastedImage(
+                                                                        data,
+                                                                        content
+                                                                            .mimeType,
+                                                                      ),
+                                                                    );
+                                                                  },
+                                                            )
+                                                          : null,
+                                                      minLines: 1,
+                                                      maxLines: 6,
+                                                      keyboardType:
+                                                          TextInputType
+                                                              .multiline,
+                                                      readOnly: busy,
+                                                      textAlignVertical:
+                                                          TextAlignVertical
+                                                              .center,
+                                                      textDirection:
+                                                          textDirectionForTypedChatMessage(
+                                                            _messageController
+                                                                .text,
+                                                            Directionality.of(
+                                                              context,
+                                                            ),
+                                                          ),
+                                                      textAlign:
+                                                          TextAlign.start,
+                                                      decoration: InputDecoration(
+                                                        hintText: AppLocaleKeys
+                                                            .chatWriteMessage
+                                                            .tr,
+                                                        filled: true,
+                                                        fillColor: Colors
+                                                            .grey
+                                                            .shade100,
+                                                        border: OutlineInputBorder(
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                12,
+                                                              ),
+                                                          borderSide:
+                                                              BorderSide.none,
                                                         ),
+                                                        contentPadding:
+                                                            EdgeInsets.symmetric(
+                                                              horizontal: 16,
+                                                              vertical: 8,
+                                                            ),
                                                       ),
-                                                  textAlign: TextAlign.start,
-                                                  decoration: InputDecoration(
-                                                    hintText: AppLocaleKeys
-                                                        .chatWriteMessage
-                                                        .tr,
-                                                    filled: true,
-                                                    fillColor:
-                                                        Colors.grey.shade100,
-                                                    border: OutlineInputBorder(
+                                                      onTap: () {
+                                                        if (_isEmojiVisible) {
+                                                          setState(
+                                                            () =>
+                                                                _isEmojiVisible =
+                                                                    false,
+                                                          );
+                                                        }
+                                                      },
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              MouseRegion(
+                                                cursor:
+                                                    SystemMouseCursors.click,
+                                                child: GestureDetector(
+                                                  onTap: busy
+                                                      ? null
+                                                      : _sendMessage,
+                                                  child: Container(
+                                                    width: 45,
+                                                    height: 45,
+                                                    decoration: BoxDecoration(
+                                                      color: Color(0xff465FFF),
                                                       borderRadius:
                                                           BorderRadius.circular(
-                                                            12,
+                                                            15,
                                                           ),
-                                                      borderSide:
-                                                          BorderSide.none,
                                                     ),
-                                                    contentPadding:
-                                                        EdgeInsets.symmetric(
-                                                          horizontal: 16,
-                                                          vertical: 8,
-                                                        ),
+                                                    child: Icon(
+                                                      Icons.send,
+                                                      color: Colors.white,
+                                                      size: 20,
+                                                    ),
                                                   ),
-                                                  onTap: () {
-                                                    if (_isEmojiVisible) {
-                                                      setState(
-                                                        () => _isEmojiVisible =
-                                                            false,
-                                                      );
-                                                    }
-                                                  },
                                                 ),
                                               ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          MouseRegion(
-                                            cursor: SystemMouseCursors.click,
-                                            child: GestureDetector(
-                                              onTap: busy ? null : _sendMessage,
-                                              child: Container(
-                                                width: 45,
-                                                height: 45,
-                                                decoration: BoxDecoration(
-                                                  color: Color(0xff465FFF),
-                                                  borderRadius:
-                                                      BorderRadius.circular(15),
-                                                ),
-                                                child: Icon(
-                                                  Icons.send,
-                                                  color: Colors.white,
-                                                  size: 20,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      );
-                                    }),
-                                  ],
+                                            ],
+                                          );
+                                        }),
+                                      ],
+                                    ),
+                                  ),
                                 ),
                               ),
 

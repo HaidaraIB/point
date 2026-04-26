@@ -58,86 +58,86 @@ Widget _buildDesktopLayout() {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                  Text(
-                    'createuseraccount'.tr,
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w600,
-                      wordSpacing: 1.2,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  SizedBox(height: 10),
-
-                  Text(
-                    'enteremailandpassword'.tr,
-                    style: TextStyle(color: Colors.grey, fontSize: 13),
-                  ),
-                  InputText(
-                    labelText: 'companyname'.tr,
-                    hintText: 'entername'.tr,
-                    height: 42,
-                    fillColor: Colors.white,
-                    controller: nameController,
-                    validator: (v) {
-                      if (v == null || v.isEmpty) {
-                        return ' ';
-                      }
-                      return null;
-                    },
-
-                    borderRadius: 5,
-                    borderColor: Colors.grey.shade300,
-                  ),
-                  InputText(
-                    labelText: 'email'.tr,
-                    hintText: 'example@example.com'.tr,
-                    height: 42,
-                    fillColor: Colors.white,
-                    controller: emailController,
-                    validator: (v) {
-                      if (v == null || v.isEmpty) {
-                        return ' ';
-                      }
-                      return null;
-                    },
-
-                    borderRadius: 5,
-                    borderColor: Colors.grey.shade300,
-                  ),
-                  InputText(
-                    hintText: ''.tr,
-                    labelText: 'password'.tr,
-                    obscureText: controller.obSecure,
-                    height: 42,
-                    fillColor: Colors.white,
-                    controller: passwordController,
-                    suffixIcon: InkWell(
-                      onTap: () => controller.changeObsecure(),
-                      child: Icon(
-                        controller.obSecure
-                            ? Icons.visibility_off
-                            : Icons.visibility,
-                        color: Colors.grey,
-                        size: 12,
+                    Text(
+                      'createuseraccount'.tr,
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w600,
+                        wordSpacing: 1.2,
+                        letterSpacing: 0.5,
                       ),
                     ),
-                    // require: true,
-                    validator: (v) {
-                      if (v == null || v.isEmpty) {
-                        return ' ';
-                      }
-                      return validatePasswordStrong(v);
-                    },
-                    borderRadius: 5,
-                    borderColor: Colors.grey.shade300,
-                  ),
-                  // SizedBox(height: 10),
-                  // Text(
-                  //   'forgotpassword'.tr,
-                  //   style: TextStyle(color: Colors.grey, fontSize: 13),
-                  // ),
-                  SizedBox(height: 25),
+                    SizedBox(height: 10),
+
+                    Text(
+                      'enteremailandpassword'.tr,
+                      style: TextStyle(color: Colors.grey, fontSize: 13),
+                    ),
+                    InputText(
+                      labelText: 'companyname'.tr,
+                      hintText: 'entername'.tr,
+                      height: 42,
+                      fillColor: Colors.white,
+                      controller: nameController,
+                      validator: (v) {
+                        if (v == null || v.isEmpty) {
+                          return ' ';
+                        }
+                        return null;
+                      },
+
+                      borderRadius: 5,
+                      borderColor: Colors.grey.shade300,
+                    ),
+                    InputText(
+                      labelText: 'email'.tr,
+                      hintText: 'example@example.com'.tr,
+                      height: 42,
+                      fillColor: Colors.white,
+                      controller: emailController,
+                      validator: (v) {
+                        if (v == null || v.isEmpty) {
+                          return ' ';
+                        }
+                        return null;
+                      },
+
+                      borderRadius: 5,
+                      borderColor: Colors.grey.shade300,
+                    ),
+                    InputText(
+                      hintText: ''.tr,
+                      labelText: 'password'.tr,
+                      obscureText: controller.obSecure,
+                      height: 42,
+                      fillColor: Colors.white,
+                      controller: passwordController,
+                      suffixIcon: InkWell(
+                        onTap: () => controller.changeObsecure(),
+                        child: Icon(
+                          controller.obSecure
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          color: Colors.grey,
+                          size: 12,
+                        ),
+                      ),
+                      // require: true,
+                      validator: (v) {
+                        if (v == null || v.isEmpty) {
+                          return ' ';
+                        }
+                        return validatePasswordStrong(v);
+                      },
+                      borderRadius: 5,
+                      borderColor: Colors.grey.shade300,
+                    ),
+                    // SizedBox(height: 10),
+                    // Text(
+                    //   'forgotpassword'.tr,
+                    //   style: TextStyle(color: Colors.grey, fontSize: 13),
+                    // ),
+                    SizedBox(height: 25),
                     Obx(
                       () => MainButton(
                         load: Get.find<HomeController>().isLoading.value,
@@ -145,25 +145,25 @@ Widget _buildDesktopLayout() {
                         height: 40,
                         borderSize: 10,
                         margin: EdgeInsets.all(0),
-                    // lineargrad: ,
-                    linearGradient: LinearGradient(
-                      colors: [
-                        Color(0xff19133F),
-                        Color(0xff19133F),
-                        Color(0xff19133F),
-                        Color(0xff19133F),
-                        Color(0xff19133F),
-                        Color.fromARGB(255, 47, 19, 63),
-                        Color.fromARGB(255, 47, 19, 63),
-                        Color.fromARGB(255, 47, 19, 63),
-                        Color.fromARGB(255, 47, 19, 63),
+                        // lineargrad: ,
+                        linearGradient: LinearGradient(
+                          colors: [
+                            Color(0xff19133F),
+                            Color(0xff19133F),
+                            Color(0xff19133F),
+                            Color(0xff19133F),
+                            Color(0xff19133F),
+                            Color.fromARGB(255, 47, 19, 63),
+                            Color.fromARGB(255, 47, 19, 63),
+                            Color.fromARGB(255, 47, 19, 63),
+                            Color.fromARGB(255, 47, 19, 63),
 
-                        // Color(0xff5B0E4E),
-                      ],
+                            // Color(0xff5B0E4E),
+                          ],
 
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomRight,
-                    ),
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomRight,
+                        ),
                         title: 'createaccount'.tr,
                         onPressed: () async {
                           if (_key.currentState!.validate()) {
@@ -172,8 +172,9 @@ Widget _buildDesktopLayout() {
                                   password: passwordController.text.trim(),
                                   ClientModel(
                                     name: nameController.text,
-                                    email:
-                                        emailController.text.trim().toLowerCase(),
+                                    email: emailController.text
+                                        .trim()
+                                        .toLowerCase(),
                                     status: StorageKeys.status_user_pending,
                                     createdAt: DateTime.now(),
                                     startAt: DateTime.now(),
@@ -183,9 +184,10 @@ Widget _buildDesktopLayout() {
                                 )
                                 .then((v) {
                                   if (v == true) {
-                                    FunHelper.showSnackbar(
+                                    FunHelper.showSnackbarDeduped(
                                       'success'.tr,
                                       'accountcreatedsuccessfully'.tr,
+                                      dedupeKey: 'auth_create_account_success',
                                       snackPosition: SnackPosition.TOP,
                                       backgroundColor: Colors.green,
                                       colorText: Colors.white,

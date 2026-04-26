@@ -33,11 +33,7 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
   bool obscurePassword = true;
   String selectedRole = "employee";
   List<String> selectedDepartments = [StorageKeys.departmentPromotion];
-  static const List<String> _roles = [
-    "supervisor",
-    "admin",
-    "employee",
-  ];
+  static const List<String> _roles = ["supervisor", "admin", "employee"];
 
   bool get _canEditCredentials {
     final m = widget.model;
@@ -59,12 +55,11 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
     emailController = TextEditingController(text: m?.email);
     passwordController = TextEditingController();
     selectedRole = m?.role ?? "employee";
-    selectedDepartments =
-        m == null
-            ? <String>[StorageKeys.departmentPromotion]
-            : (m.departments.isNotEmpty
-                ? List<String>.from(m.departments)
-                : <String>[StorageKeys.departmentPromotion]);
+    selectedDepartments = m == null
+        ? <String>[StorageKeys.departmentPromotion]
+        : (m.departments.isNotEmpty
+              ? List<String>.from(m.departments)
+              : <String>[StorageKeys.departmentPromotion]);
     final controller = Get.find<HomeController>();
     controller.uploadedFilesPaths.assignAll(
       m != null && m.image != null ? [m.image!] : [],
@@ -84,26 +79,25 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
     final controller = Get.find<HomeController>();
     final model = widget.model;
     if (selectedRole == 'employee' && selectedDepartments.isEmpty) {
-      FunHelper.showSnackbar(
+      FunHelper.showSnackbarDeduped(
         'error'.tr,
         'employees.departments_required'.tr,
+        dedupeKey: 'employee_departments_required',
         snackPosition: SnackPosition.TOP,
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
       return;
     }
-    final departmentsToSave =
-        selectedRole == 'employee'
-            ? StorageKeys.normalizeDepartments(selectedDepartments)
-            : <String>[];
+    final departmentsToSave = selectedRole == 'employee'
+        ? StorageKeys.normalizeDepartments(selectedDepartments)
+        : <String>[];
 
     if (model == null) {
       final success = await controller.addEmployee(
-        password:
-            passwordController.text.trim().isEmpty
-                ? 'TempPass@123'
-                : passwordController.text.trim(),
+        password: passwordController.text.trim().isEmpty
+            ? 'TempPass@123'
+            : passwordController.text.trim(),
         EmployeeModel(
           id: const Uuid().v4(),
           name: nameController.text,
@@ -112,10 +106,9 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
           departments: departmentsToSave,
           status: 'active',
           createdAt: DateTime.now(),
-          image:
-              controller.uploadedFilesPaths.isNotEmpty
-                  ? controller.uploadedFilesPaths.last
-                  : null,
+          image: controller.uploadedFilesPaths.isNotEmpty
+              ? controller.uploadedFilesPaths.last
+              : null,
         ),
       );
       if (!mounted) return;
@@ -127,21 +120,19 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
       final success = await controller.updateEmployee(
         model.copyWith(
           name: nameController.text,
-          email:
-              _canEditCredentials
-                  ? emailController.text
-                  : (model.email ?? ''),
+          email: _canEditCredentials
+              ? emailController.text
+              : (model.email ?? ''),
           role: selectedRole,
           departments: departmentsToSave,
-          image:
-              controller.uploadedFilesPaths.isNotEmpty
-                  ? controller.uploadedFilesPaths.last
-                  : model.image,
+          image: controller.uploadedFilesPaths.isNotEmpty
+              ? controller.uploadedFilesPaths.last
+              : model.image,
         ),
         newPassword:
             !_canEditCredentials || passwordController.text.trim().isEmpty
-                ? null
-                : passwordController.text.trim(),
+            ? null
+            : passwordController.text.trim(),
       );
       if (!mounted) return;
       if (success) {
@@ -196,22 +187,21 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                         () => CircleAvatar(
                           backgroundColor: Colors.grey.shade200,
                           radius: 50,
-                          child:
-                              controller.uploadedFilesPaths.isNotEmpty
-                                  ? ClipRRect(
-                                    borderRadius: BorderRadius.circular(50),
-                                    child: Image.network(
-                                      controller.uploadedFilesPaths.last,
-                                      width: 100,
-                                      height: 100,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  )
-                                  : Icon(
-                                    Icons.camera_alt,
-                                    size: 50,
-                                    color: AppColors.primary,
+                          child: controller.uploadedFilesPaths.isNotEmpty
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(50),
+                                  child: Image.network(
+                                    controller.uploadedFilesPaths.last,
+                                    width: 100,
+                                    height: 100,
+                                    fit: BoxFit.cover,
                                   ),
+                                )
+                              : Icon(
+                                  Icons.camera_alt,
+                                  size: 50,
+                                  color: AppColors.primary,
+                                ),
                         ),
                       ),
                     ),
@@ -247,10 +237,9 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                     ),
                     const SizedBox(height: 16),
                     InputText(
-                      hintText:
-                          widget.model == null
-                              ? '******'.tr
-                              : 'leave_empty_unchanged'.tr,
+                      hintText: widget.model == null
+                          ? '******'.tr
+                          : 'leave_empty_unchanged'.tr,
                       labelText: 'password'.tr,
                       obscureText: obscurePassword,
                       controller: passwordController,
@@ -288,15 +277,14 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                     const SizedBox(height: 16),
                   ],
                   DynamicDropdown<String>(
-                    items:
-                        _roles
-                            .map(
-                              (role) => DropdownMenuItem(
-                                value: role,
-                                child: Text(role.tr),
-                              ),
-                            )
-                            .toList(),
+                    items: _roles
+                        .map(
+                          (role) => DropdownMenuItem(
+                            value: role,
+                            child: Text(role.tr),
+                          ),
+                        )
+                        .toList(),
                     value: selectedRole,
                     label: 'role'.tr,
                     borderRadius: 8,
@@ -323,8 +311,8 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                     DynamicMultiSelect<String>(
                       items: StorageKeys.departments,
                       selectedValues: selectedDepartments,
-                      itemLabel:
-                          (d) => StorageKeys.semanticDepartmentLabelKey(d).tr,
+                      itemLabel: (d) =>
+                          StorageKeys.semanticDepartmentLabelKey(d).tr,
                       label: 'employees.departments'.tr,
                       hint: 'employees.departments'.tr,
                       require: true,
@@ -333,11 +321,12 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                       height: 48,
                       fillColor: Colors.white,
                       onChanged: (list) {
-                        setState(() => selectedDepartments = List<String>.from(list));
+                        setState(
+                          () => selectedDepartments = List<String>.from(list),
+                        );
                       },
-                      validator:
-                          (list) =>
-                              (list == null || list.isEmpty) ? ' ' : null,
+                      validator: (list) =>
+                          (list == null || list.isEmpty) ? ' ' : null,
                     ),
                   ],
                   const SizedBox(height: 32),
@@ -353,24 +342,23 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                           ),
                         ),
                         onPressed: controller.isLoading.value ? null : _submit,
-                        child:
-                            controller.isLoading.value
-                                ? const SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                                : Text(
-                                  'common.confirm'.tr,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
+                        child: controller.isLoading.value
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
                                 ),
+                              )
+                            : Text(
+                                'common.confirm'.tr,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
                       ),
                     ),
                   ),

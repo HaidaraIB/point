@@ -9,6 +9,8 @@ import 'package:point/View/Mobile/Shared/VideoCart.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 
+const Color _kChatAccentBlue = Color(0xFF465FFF);
+
 /// روابط داخل نص الرسالة (للرسائل النصية التقليدية).
 final urlRegex = RegExp(r'(https?:\/\/[^\s]+)', caseSensitive: false);
 
@@ -100,10 +102,9 @@ Widget chatMessageBubbleContent(Map<String, dynamic> msg, bool isMe) {
   final text = (msg['text'] ?? '') as String;
 
   if (type == 'voice') {
-    final url =
-        (attachmentUrl != null && attachmentUrl.isNotEmpty)
-            ? attachmentUrl
-            : text;
+    final url = (attachmentUrl != null && attachmentUrl.isNotEmpty)
+        ? attachmentUrl
+        : text;
     if (url.startsWith('http')) {
       var caption = text.trim();
       if (caption.isNotEmpty &&
@@ -231,12 +232,10 @@ class _VoiceMessageRowState extends State<VoiceMessageRow> {
       final svc = Get.find<ChatVoicePlaybackService>();
       final isActive = svc.activeUrl.value == widget.url;
       final playing = isActive && svc.playing.value;
-      final position =
-          isActive ? svc.position.value : Duration.zero;
-      final effectiveDur =
-          isActive
-              ? svc.effectiveDuration(widget.durationSec)
-              : _voiceHintDuration(widget.durationSec);
+      final position = isActive ? svc.position.value : Duration.zero;
+      final effectiveDur = isActive
+          ? svc.effectiveDuration(widget.durationSec)
+          : _voiceHintDuration(widget.durationSec);
       final busy = isActive && svc.loadCount.value > 0;
       final err = isActive ? svc.playbackError.value : null;
 
@@ -248,26 +247,18 @@ class _VoiceMessageRowState extends State<VoiceMessageRow> {
         return (position.inMilliseconds / ms).clamp(0.0, 1.0);
       }
 
-      final primary =
-          widget.isMe
-              ? Colors.white
-              : Theme.of(context).colorScheme.onSurface;
-      final secondary =
-          widget.isMe
-              ? Colors.white.withValues(alpha: 0.72)
-              : Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.55);
-      final track =
-          widget.isMe
-              ? Colors.white.withValues(alpha: 0.35)
-              : Theme.of(
-                context,
-              ).colorScheme.onSurface.withValues(alpha: 0.18);
-      final progress =
-          widget.isMe
-              ? Colors.white.withValues(alpha: 0.92)
-              : Theme.of(context).colorScheme.primary;
+      final primary = widget.isMe
+          ? Colors.white
+          : Theme.of(context).colorScheme.onSurface;
+      final secondary = widget.isMe
+          ? Colors.white.withValues(alpha: 0.72)
+          : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55);
+      final track = widget.isMe
+          ? Colors.white.withValues(alpha: 0.35)
+          : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.18);
+      final progress = widget.isMe
+          ? Colors.white.withValues(alpha: 0.92)
+          : _kChatAccentBlue;
 
       return Directionality(
         textDirection: TextDirection.ltr,
@@ -283,35 +274,33 @@ class _VoiceMessageRowState extends State<VoiceMessageRow> {
                   SizedBox(
                     width: 44,
                     height: 44,
-                    child:
-                        busy
-                            ? Center(
-                              child: SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: primary,
-                                ),
-                              ),
-                            )
-                            : IconButton(
-                              padding: EdgeInsets.zero,
-                              onPressed:
-                                  () => unawaited(
-                                    svc.toggle(
-                                      widget.url,
-                                      durationHintSec: widget.durationSec,
-                                    ),
-                                  ),
-                              icon: Icon(
-                                playing
-                                    ? Icons.pause_rounded
-                                    : Icons.play_arrow_rounded,
+                    child: busy
+                        ? Center(
+                            child: SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
                                 color: primary,
-                                size: 34,
                               ),
                             ),
+                          )
+                        : IconButton(
+                            padding: EdgeInsets.zero,
+                            onPressed: () => unawaited(
+                              svc.toggle(
+                                widget.url,
+                                durationHintSec: widget.durationSec,
+                              ),
+                            ),
+                            icon: Icon(
+                              playing
+                                  ? Icons.pause_rounded
+                                  : Icons.play_arrow_rounded,
+                              color: primary,
+                              size: 34,
+                            ),
+                          ),
                   ),
                   Expanded(
                     child: SliderTheme(
@@ -330,22 +319,17 @@ class _VoiceMessageRowState extends State<VoiceMessageRow> {
                       ),
                       child: Slider(
                         value: sliderValue().clamp(0.0, 1.0),
-                        onChanged:
-                            canScrub && isActive
-                                ? (v) => setState(() => _dragFraction = v)
-                                : null,
-                        onChangeEnd:
-                            canScrub && isActive
-                                ? (v) {
-                                  setState(() => _dragFraction = null);
-                                  unawaited(
-                                    svc.seekToFraction(
-                                      v,
-                                      widget.durationSec,
-                                    ),
-                                  );
-                                }
-                                : null,
+                        onChanged: canScrub && isActive
+                            ? (v) => setState(() => _dragFraction = v)
+                            : null,
+                        onChangeEnd: canScrub && isActive
+                            ? (v) {
+                                setState(() => _dragFraction = null);
+                                unawaited(
+                                  svc.seekToFraction(v, widget.durationSec),
+                                );
+                              }
+                            : null,
                       ),
                     ),
                   ),
@@ -360,9 +344,8 @@ class _VoiceMessageRowState extends State<VoiceMessageRow> {
                       _fmtVoiceDuration(
                         _dragFraction != null && ms > 0
                             ? Duration(
-                              milliseconds:
-                                  (_dragFraction! * ms).round(),
-                            )
+                                milliseconds: (_dragFraction! * ms).round(),
+                              )
                             : position,
                       ),
                       style: TextStyle(fontSize: 11.5, color: secondary),
@@ -381,10 +364,9 @@ class _VoiceMessageRowState extends State<VoiceMessageRow> {
                     AppLocaleKeys.errorsServer.tr,
                     style: TextStyle(
                       fontSize: 11,
-                      color:
-                          widget.isMe
-                              ? Colors.orange.shade100
-                              : Theme.of(context).colorScheme.error,
+                      color: widget.isMe
+                          ? Colors.orange.shade100
+                          : Theme.of(context).colorScheme.error,
                     ),
                   ),
                 ),
@@ -461,32 +443,31 @@ class _RetryableChatImageState extends State<_RetryableChatImage> {
           child: const Center(child: CircularProgressIndicator()),
         );
       },
-      errorBuilder:
-          (_, __, ___) => InkWell(
-            onTap: _retry,
-            child: SizedBox(
-              height: widget.loadingHeight,
-              width: widget.width,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.refresh,
-                    size: 24,
-                    color: widget.isMe ? Colors.white70 : Colors.black54,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Retry',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: widget.isMe ? Colors.white70 : Colors.black54,
-                    ),
-                  ),
-                ],
+      errorBuilder: (_, __, ___) => InkWell(
+        onTap: _retry,
+        child: SizedBox(
+          height: widget.loadingHeight,
+          width: widget.width,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.refresh,
+                size: 24,
+                color: widget.isMe ? Colors.white70 : Colors.black54,
               ),
-            ),
+              const SizedBox(height: 4),
+              Text(
+                'Retry',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: widget.isMe ? Colors.white70 : Colors.black54,
+                ),
+              ),
+            ],
           ),
+        ),
+      ),
     );
     if (widget.onImageTap == null) return image;
     return InkWell(onTap: widget.onImageTap, child: image);
@@ -516,10 +497,9 @@ class _ChatVideoBubbleState extends State<_ChatVideoBubble> {
   @override
   void initState() {
     super.initState();
-    _controller =
-        VideoPlayerController.networkUrl(Uri.parse(widget.url))
-          ..setLooping(false)
-          ..setVolume(0);
+    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.url))
+      ..setLooping(false)
+      ..setVolume(0);
     _controller
         .initialize()
         .then((_) {
@@ -553,19 +533,17 @@ class _ChatVideoBubbleState extends State<_ChatVideoBubble> {
       width: maxW,
       height: maxW * 9 / 16,
       alignment: Alignment.center,
-      color:
-          widget.isMe
-              ? Colors.black.withValues(alpha: 0.22)
-              : Colors.black.withValues(alpha: 0.07),
+      color: widget.isMe
+          ? Colors.black.withValues(alpha: 0.22)
+          : Colors.black.withValues(alpha: 0.07),
       child: SizedBox(
         width: 30,
         height: 30,
         child: CircularProgressIndicator(
           strokeWidth: 2.2,
-          color:
-              widget.isMe
-                  ? Colors.white70
-                  : Theme.of(context).colorScheme.primary,
+          color: widget.isMe
+              ? Colors.white70
+              : Theme.of(context).colorScheme.primary,
         ),
       ),
     );
@@ -578,52 +556,51 @@ class _ChatVideoBubbleState extends State<_ChatVideoBubble> {
           borderRadius: BorderRadius.circular(10),
           child: SizedBox(
             width: maxW,
-            child:
-                _ready && _controller.value.aspectRatio > 0
-                    ? AspectRatio(
-                      aspectRatio: _controller.value.aspectRatio,
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          ColoredBox(
-                            color: Colors.black,
-                            child: VideoPlayer(_controller),
-                          ),
-                          Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: () => openChatMediaFromUrl(widget.url),
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      Colors.black.withValues(alpha: 0.02),
-                                      Colors.black.withValues(alpha: 0.52),
-                                    ],
-                                  ),
+            child: _ready && _controller.value.aspectRatio > 0
+                ? AspectRatio(
+                    aspectRatio: _controller.value.aspectRatio,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        ColoredBox(
+                          color: Colors.black,
+                          child: VideoPlayer(_controller),
+                        ),
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () => openChatMediaFromUrl(widget.url),
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.black.withValues(alpha: 0.02),
+                                    Colors.black.withValues(alpha: 0.52),
+                                  ],
                                 ),
-                                child: const Center(
-                                  child: Icon(
-                                    Icons.play_circle_rounded,
-                                    size: 58,
-                                    color: Colors.white,
-                                    shadows: [
-                                      Shadow(
-                                        blurRadius: 12,
-                                        color: Colors.black54,
-                                      ),
-                                    ],
-                                  ),
+                              ),
+                              child: const Center(
+                                child: Icon(
+                                  Icons.play_circle_rounded,
+                                  size: 58,
+                                  color: Colors.white,
+                                  shadows: [
+                                    Shadow(
+                                      blurRadius: 12,
+                                      color: Colors.black54,
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
                           ),
-                        ],
-                      ),
-                    )
-                    : placeholder,
+                        ),
+                      ],
+                    ),
+                  )
+                : placeholder,
           ),
         ),
         if ((widget.fileName ?? '').trim().isNotEmpty)
@@ -661,36 +638,33 @@ class _FileBubble extends StatelessWidget {
 
     final rawTitle = stored.isNotEmpty ? stored : fallbackBase;
     final titleBase = _basenameFromUrlOrName(rawTitle);
-    final title =
-        _isStorageStyleUuidName(titleBase)
-            ? AppLocaleKeys.chatFileUntitled.tr
-            : titleBase;
+    final title = _isStorageStyleUuidName(titleBase)
+        ? AppLocaleKeys.chatFileUntitled.tr
+        : titleBase;
 
     final tapHint = AppLocaleKeys.chatFileTapToOpen.tr;
-    final subtitle =
-        ext.isNotEmpty ? '${ext.toUpperCase()} · $tapHint' : tapHint;
+    final subtitle = ext.isNotEmpty
+        ? '${ext.toUpperCase()} · $tapHint'
+        : tapHint;
 
-    final primary =
-        isMe ? Colors.white : Theme.of(context).colorScheme.onSurface;
-    final secondary =
-        isMe
-            ? Colors.white.withValues(alpha: 0.72)
-            : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55);
-    final iconBg =
-        isMe
-            ? Colors.white.withValues(alpha: 0.22)
-            : Theme.of(context).colorScheme.primary.withValues(alpha: 0.12);
+    final primary = isMe
+        ? Colors.white
+        : Theme.of(context).colorScheme.onSurface;
+    final secondary = isMe
+        ? Colors.white.withValues(alpha: 0.72)
+        : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55);
+    final iconBg = isMe
+        ? Colors.white.withValues(alpha: 0.22)
+        : Theme.of(context).colorScheme.primary.withValues(alpha: 0.12);
     final iconFg = isMe ? Colors.white : Theme.of(context).colorScheme.primary;
-    final tileBg =
-        isMe
-            ? Colors.white.withValues(alpha: 0.2)
-            : Theme.of(
-              context,
-            ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.65);
-    final borderColor =
-        isMe
-            ? Colors.white.withValues(alpha: 0.35)
-            : Theme.of(context).colorScheme.outline.withValues(alpha: 0.35);
+    final tileBg = isMe
+        ? Colors.white.withValues(alpha: 0.2)
+        : Theme.of(
+            context,
+          ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.65);
+    final borderColor = isMe
+        ? Colors.white.withValues(alpha: 0.35)
+        : Theme.of(context).colorScheme.outline.withValues(alpha: 0.35);
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 260),
@@ -866,14 +840,13 @@ List<InlineSpan> buildMessageSpans(String text, bool isMe) {
                       child: Center(child: CircularProgressIndicator()),
                     );
                   },
-                  errorBuilder:
-                      (_, __, ___) => _RetryableChatImage(
-                        url: url,
-                        width: 200,
-                        fit: BoxFit.cover,
-                        isMe: isMe,
-                        loadingHeight: 150,
-                      ),
+                  errorBuilder: (_, __, ___) => _RetryableChatImage(
+                    url: url,
+                    width: 200,
+                    fit: BoxFit.cover,
+                    isMe: isMe,
+                    loadingHeight: 150,
+                  ),
                 ),
               ),
             ),
@@ -888,8 +861,8 @@ List<InlineSpan> buildMessageSpans(String text, bool isMe) {
             color: linkColor,
             decoration: TextDecoration.underline,
           ),
-          recognizer:
-              TapGestureRecognizer()..onTap = () => openChatMediaFromUrl(url),
+          recognizer: TapGestureRecognizer()
+            ..onTap = () => openChatMediaFromUrl(url),
         ),
       );
     }

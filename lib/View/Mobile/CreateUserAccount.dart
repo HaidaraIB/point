@@ -162,8 +162,9 @@ Widget _buildDesktopLayout() {
                               .addClient(
                                 ClientModel(
                                   name: nameController.text,
-                                  email:
-                                      emailController.text.trim().toLowerCase(),
+                                  email: emailController.text
+                                      .trim()
+                                      .toLowerCase(),
                                   status: StorageKeys.status_user_pending,
                                   createdAt: DateTime.now(),
                                   startAt: DateTime.now(),
@@ -175,9 +176,10 @@ Widget _buildDesktopLayout() {
                               .then((v) {
                                 if (v == true) {
                                   Get.back();
-                                  FunHelper.showSnackbar(
+                                  FunHelper.showSnackbarDeduped(
                                     'success'.tr,
                                     'accountcreatedsuccessfully'.tr,
+                                    dedupeKey: 'auth_create_account_success',
                                     snackPosition: SnackPosition.TOP,
                                     backgroundColor: Colors.green,
                                     colorText: Colors.white,

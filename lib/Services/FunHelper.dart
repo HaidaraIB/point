@@ -26,6 +26,7 @@ enum StoredValueKind {
 }
 
 class FunHelper {
+  static final Map<String, DateTime> _snackbarDedupeLastShownAt = {};
   static final Map<String, String> _legacyPriorityToKey = {
     'normal': 'normal',
     'important': 'imp',
@@ -319,11 +320,7 @@ class FunHelper {
       if (e is Map) {
         if (kind == StoredValueKind.platform) {
           final v =
-              e['platform'] ??
-              e['name'] ??
-              e['label'] ??
-              e['id'] ??
-              e['value'];
+              e['platform'] ?? e['name'] ?? e['label'] ?? e['id'] ?? e['value'];
           if (v != null) return v.toString().trim();
         }
         final v = e['name'] ?? e['label'] ?? e['id'] ?? e['value'];
@@ -498,90 +495,84 @@ class FunHelper {
     final dialogWidth = Get.width > 900 ? 420.0 : Get.width * 0.82;
     return showDialog<String>(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            backgroundColor: Colors.white,
-            insetPadding: const EdgeInsets.symmetric(
-              horizontal: 24,
-              vertical: 24,
-            ),
-            contentPadding: const EdgeInsets.fromLTRB(28, 24, 28, 12),
-            actionsPadding: EdgeInsets.zero,
-            actionsAlignment: MainAxisAlignment.center,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(15),
-            ),
-            content: SizedBox(
-              width: dialogWidth,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.info_outline_rounded,
-                    color: AppColors.primary,
-                    size: 40,
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    resolvedTitle,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 28,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    resolvedMessage,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                ],
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        contentPadding: const EdgeInsets.fromLTRB(28, 24, 28, 12),
+        actionsPadding: EdgeInsets.zero,
+        actionsAlignment: MainAxisAlignment.center,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        content: SizedBox(
+          width: dialogWidth,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.info_outline_rounded,
+                color: AppColors.primary,
+                size: 40,
               ),
-            ),
-
-            actions: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 6, 20, 20),
-                // لا نستخدم LayoutBuilder هنا: AlertDialog يمرّ بقياس intrinsic وLayoutBuilder لا يدعمه (تجمّد/خطأ).
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: MainButton(
-                        icon: false,
-                        title: cancelText ?? 'cancel'.tr,
-                        fontColor: Colors.white,
-                        backgroundColor: cancelColor,
-                        margin: EdgeInsets.zero,
-                        width: double.infinity,
-                        borderSize: 12,
-                        height: 56,
-                        onPressed: () {
-                          Get.back();
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: MainButton(
-                        icon: false,
-                        title: resolvedConfirm,
-                        fontColor: Colors.white,
-                        backgroundColor: confirmColor ?? AppColors.primary,
-                        margin: EdgeInsets.zero,
-                        width: double.infinity,
-                        borderSize: 12,
-                        height: 56,
-                        onPressed: () async {
-                          await Future.sync(onTap);
-                          Get.back();
-                        },
-                      ),
-                    ),
-                  ],
+              const SizedBox(height: 10),
+              Text(
+                resolvedTitle,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 28,
                 ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                resolvedMessage,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 16),
               ),
             ],
           ),
+        ),
+
+        actions: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 6, 20, 20),
+            // لا نستخدم LayoutBuilder هنا: AlertDialog يمرّ بقياس intrinsic وLayoutBuilder لا يدعمه (تجمّد/خطأ).
+            child: Row(
+              children: [
+                Expanded(
+                  child: MainButton(
+                    icon: false,
+                    title: cancelText ?? 'cancel'.tr,
+                    fontColor: Colors.white,
+                    backgroundColor: cancelColor,
+                    margin: EdgeInsets.zero,
+                    width: double.infinity,
+                    borderSize: 12,
+                    height: 56,
+                    onPressed: () {
+                      Get.back();
+                    },
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: MainButton(
+                    icon: false,
+                    title: resolvedConfirm,
+                    fontColor: Colors.white,
+                    backgroundColor: confirmColor ?? AppColors.primary,
+                    margin: EdgeInsets.zero,
+                    width: double.infinity,
+                    borderSize: 12,
+                    height: 56,
+                    onPressed: () async {
+                      await Future.sync(onTap);
+                      Get.back();
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -622,32 +613,123 @@ class FunHelper {
     final context = Get.context;
     if (context == null) return;
     final messenger = ScaffoldMessenger.of(context);
-    messenger.showMaterialBanner(
-      MaterialBanner(
-        backgroundColor: backgroundColor,
-        content: Text(
-          '$title: $subtitle',
-          style: TextStyle(color: colorText),
+
+    final media = MediaQuery.of(context);
+    final topInset = media.padding.top + 12;
+    final bottomInset = media.padding.bottom + 12;
+    final isBottom = snackPosition == SnackPosition.BOTTOM;
+
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        elevation: 8,
+        backgroundColor: Colors.transparent,
+        padding: EdgeInsets.zero,
+        margin: EdgeInsets.fromLTRB(
+          12,
+          isBottom ? 0 : topInset,
+          12,
+          isBottom ? bottomInset : 0,
         ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              messenger.hideCurrentMaterialBanner();
-            },
-            child: Text(
-              AppLocaleKeys.appClose.tr,
-              style: TextStyle(color: colorText),
+        content: DecoratedBox(
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x55000000),
+                blurRadius: 10,
+                offset: Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  backgroundColor == Colors.green
+                      ? Icons.check_circle_outline
+                      : Icons.error_outline,
+                  color: colorText,
+                  size: 20,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        (title ?? '').toString(),
+                        style: TextStyle(
+                          color: colorText,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                          height: 1.2,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        (subtitle ?? '').toString(),
+                        style: TextStyle(
+                          color: colorText.withValues(alpha: 0.95),
+                          fontWeight: FontWeight.w500,
+                          fontSize: 13,
+                          height: 1.25,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
+        duration: autoHideAfter,
       ),
     );
-    if (autoHideAfter > Duration.zero) {
-      Future.delayed(autoHideAfter, () {
-        if (!messenger.mounted) return;
-        messenger.hideCurrentMaterialBanner();
-      });
+  }
+
+  /// Prevents back-to-back duplicate snackbar banners for the same action.
+  static bool _shouldSkipDuplicateSnackbar(
+    String dedupeKey,
+    Duration dedupeWindow,
+  ) {
+    final now = DateTime.now();
+    final last = _snackbarDedupeLastShownAt[dedupeKey];
+    if (last != null && now.difference(last) < dedupeWindow) {
+      return true;
     }
+    _snackbarDedupeLastShownAt[dedupeKey] = now;
+    return false;
+  }
+
+  static void showSnackbarDeduped(
+    String? title,
+    String? subtitle, {
+    required String dedupeKey,
+    Duration dedupeWindow = const Duration(milliseconds: 1200),
+    snackPosition = SnackPosition.TOP,
+    backgroundColor = Colors.red,
+    colorText = Colors.white,
+    Duration autoHideAfter = const Duration(seconds: 4),
+  }) {
+    if (_shouldSkipDuplicateSnackbar(dedupeKey, dedupeWindow)) return;
+    showSnackbar(
+      title,
+      subtitle,
+      snackPosition: snackPosition,
+      backgroundColor: backgroundColor,
+      colorText: colorText,
+      autoHideAfter: autoHideAfter,
+    );
   }
 
   static saveLoginData(email) async {
@@ -714,40 +796,39 @@ class TopToast {
     late OverlayEntry entry;
 
     entry = OverlayEntry(
-      builder:
-          (_) => Positioned(
-            top: MediaQuery.of(context).padding.top + 16,
-            left: 16,
-            right: 16,
-            child: Material(
-              color: Colors.transparent,
-              child: Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: backgroundColor,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.2),
-                      blurRadius: 10,
-                    ),
-                  ],
+      builder: (_) => Positioned(
+        top: MediaQuery.of(context).padding.top + 16,
+        left: 16,
+        right: 16,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: backgroundColor,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  blurRadius: 10,
                 ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.error, color: Colors.white),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        '$title\n$subtitle',
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ],
+              ],
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    '$title\n$subtitle',
+                    style: const TextStyle(color: Colors.white),
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
+        ),
+      ),
     );
 
     overlay.insert(entry);

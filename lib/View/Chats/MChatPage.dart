@@ -19,6 +19,7 @@ import 'package:point/Services/AudioService.dart';
 import 'package:point/Services/ChatAudioFocus.dart';
 import 'package:point/Services/ChatIncomingMessageSound.dart';
 import 'package:point/Services/FireStoreServices.dart';
+import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/firestore/firestore_chat_api.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Services/chat_clipboard_image_reader.dart';
@@ -1550,8 +1551,14 @@ class _MessageScreenState extends State<MessageScreen>
 
   void _showPasteImageFailed() {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(AppLocaleKeys.chatPasteImageFailed.tr)),
+    FunHelper.showSnackbarDeduped(
+      AppLocaleKeys.errorTitle.tr,
+      AppLocaleKeys.chatPasteImageFailed.tr,
+      dedupeKey: 'chat_paste_image_failed',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.red,
+      colorText: Colors.white,
+      autoHideAfter: const Duration(seconds: 2),
     );
   }
 
@@ -1987,182 +1994,195 @@ class _MessageScreenState extends State<MessageScreen>
                 ),
 
               // 2. إدخال الرسالة والإيموجي
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeOutCubic,
-                margin: EdgeInsets.fromLTRB(
-                  10,
-                  6,
-                  10,
-                  _messageFocusNode.hasFocus ? 14 : 10,
-                ),
-                padding: EdgeInsets.symmetric(
-                  horizontal: _messageFocusNode.hasFocus ? 4 : 8,
-                  vertical: _messageFocusNode.hasFocus ? 6 : 4,
-                ),
-                constraints: BoxConstraints(
-                  minHeight: _messageFocusNode.hasFocus ? 54 : 50,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(
-                    _messageFocusNode.hasFocus ? 26 : 24,
-                  ),
-                  border: Border.all(
-                    color: _messageFocusNode.hasFocus
-                        ? const Color(0xFF465FFF).withValues(alpha: 0.35)
-                        : Colors.grey.shade200,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.06),
-                      blurRadius: _messageFocusNode.hasFocus ? 12 : 6,
-                      offset: const Offset(0, 2),
+              Align(
+                alignment: Alignment.center,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 860),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeOutCubic,
+                    margin: EdgeInsets.fromLTRB(
+                      10,
+                      6,
+                      10,
+                      _messageFocusNode.hasFocus ? 14 : 10,
                     ),
-                  ],
-                ),
-                child: Obx(() {
-                  final busy = Get.find<HomeController>().isUploading.value;
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      IconButton(
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(
-                          minWidth: 44,
-                          minHeight: 48,
-                        ),
-                        icon: Icon(
-                          _isEmojiVisible
-                              ? Icons.keyboard
-                              : Icons.emoji_emotions,
-                          color: Colors.grey.shade700,
-                          size: 26,
-                        ),
-                        onPressed: busy
-                            ? null
-                            : () {
-                                final showEmoji = !_isEmojiVisible;
-                                setState(() => _isEmojiVisible = showEmoji);
-                                if (showEmoji) {
-                                  FocusScope.of(context).unfocus();
-                                } else {
-                                  _messageFocusNode.requestFocus();
-                                }
-                              },
+                    padding: EdgeInsets.symmetric(
+                      horizontal: _messageFocusNode.hasFocus ? 4 : 8,
+                      vertical: _messageFocusNode.hasFocus ? 6 : 4,
+                    ),
+                    constraints: BoxConstraints(
+                      minHeight: _messageFocusNode.hasFocus ? 54 : 50,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(
+                        _messageFocusNode.hasFocus ? 26 : 24,
                       ),
-                      Builder(
-                        builder: (buttonContext) {
-                          return IconButton(
+                      border: Border.all(
+                        color: _messageFocusNode.hasFocus
+                            ? const Color(0xFF465FFF).withValues(alpha: 0.35)
+                            : Colors.grey.shade200,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.06),
+                          blurRadius: _messageFocusNode.hasFocus ? 12 : 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Obx(() {
+                      final busy = Get.find<HomeController>().isUploading.value;
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          IconButton(
                             padding: EdgeInsets.zero,
                             constraints: const BoxConstraints(
                               minWidth: 44,
                               minHeight: 48,
                             ),
-                            tooltip: AppLocaleKeys.chatAttachSheetTitle.tr,
                             icon: Icon(
-                              Icons.add_circle_outline,
+                              _isEmojiVisible
+                                  ? Icons.keyboard
+                                  : Icons.emoji_emotions,
                               color: Colors.grey.shade700,
-                              size: 28,
+                              size: 26,
                             ),
                             onPressed: busy
                                 ? null
-                                : () => _showAttachmentMenu(buttonContext),
-                          );
-                        },
-                      ),
-                      Expanded(
-                        child: Theme(
-                          data: Theme.of(context).copyWith(
-                            textSelectionTheme: const TextSelectionThemeData(
-                              cursorColor: Color(0xFF465FFF),
-                              selectionHandleColor: Color(0xFF465FFF),
-                              selectionColor: Color(0x33465FFF),
+                                : () {
+                                    final showEmoji = !_isEmojiVisible;
+                                    setState(() => _isEmojiVisible = showEmoji);
+                                    if (showEmoji) {
+                                      FocusScope.of(context).unfocus();
+                                    } else {
+                                      _messageFocusNode.requestFocus();
+                                    }
+                                  },
+                          ),
+                          Builder(
+                            builder: (buttonContext) {
+                              return IconButton(
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(
+                                  minWidth: 44,
+                                  minHeight: 48,
+                                ),
+                                tooltip: AppLocaleKeys.chatAttachSheetTitle.tr,
+                                icon: Icon(
+                                  Icons.add_circle_outline,
+                                  color: Colors.grey.shade700,
+                                  size: 28,
+                                ),
+                                onPressed: busy
+                                    ? null
+                                    : () => _showAttachmentMenu(buttonContext),
+                              );
+                            },
+                          ),
+                          Expanded(
+                            child: Theme(
+                              data: Theme.of(context).copyWith(
+                                textSelectionTheme:
+                                    const TextSelectionThemeData(
+                                      cursorColor: Color(0xFF465FFF),
+                                      selectionHandleColor: Color(0xFF465FFF),
+                                      selectionColor: Color(0x33465FFF),
+                                    ),
+                              ),
+                              child: Focus(
+                                onKeyEvent: _onComposerKeyEvent,
+                                child: TextField(
+                                  cursorColor: const Color(0xFF465FFF),
+                                  controller: _messageController,
+                                  focusNode: _messageFocusNode,
+                                  contentInsertionConfiguration:
+                                      _enableContentInsertion
+                                      ? ContentInsertionConfiguration(
+                                          allowedMimeTypes: const <String>[
+                                            'image/png',
+                                            'image/jpeg',
+                                            'image/webp',
+                                            'image/gif',
+                                          ],
+                                          onContentInserted:
+                                              (
+                                                KeyboardInsertedContent content,
+                                              ) {
+                                                final data = content.data;
+                                                if (data == null ||
+                                                    data.isEmpty) {
+                                                  _showPasteImageFailed();
+                                                  return;
+                                                }
+                                                unawaited(
+                                                  _handlePastedImage(
+                                                    data,
+                                                    content.mimeType,
+                                                  ),
+                                                );
+                                              },
+                                        )
+                                      : null,
+                                  minLines: 1,
+                                  maxLines: 6,
+                                  keyboardType: TextInputType.multiline,
+                                  readOnly: busy,
+                                  textAlignVertical: TextAlignVertical.center,
+                                  textDirection:
+                                      textDirectionForTypedChatMessage(
+                                        _messageController.text,
+                                        Directionality.of(context),
+                                      ),
+                                  textAlign: TextAlign.start,
+                                  style: TextStyle(
+                                    fontSize: _messageFocusNode.hasFocus
+                                        ? 17
+                                        : 16,
+                                    height: 1.35,
+                                  ),
+                                  decoration: InputDecoration(
+                                    hintText: AppLocaleKeys.chatWriteMessage.tr,
+                                    hintStyle: TextStyle(
+                                      color: Colors.grey.shade500,
+                                      fontSize: 16,
+                                    ),
+                                    border: InputBorder.none,
+                                    isDense: true,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 12,
+                                    ),
+                                  ),
+                                  onTap: () {
+                                    if (_isEmojiVisible) {
+                                      setState(() => _isEmojiVisible = false);
+                                    }
+                                  },
+                                ),
+                              ),
                             ),
                           ),
-                          child: Focus(
-                            onKeyEvent: _onComposerKeyEvent,
-                            child: TextField(
-                              cursorColor: const Color(0xFF465FFF),
-                              controller: _messageController,
-                              focusNode: _messageFocusNode,
-                              contentInsertionConfiguration:
-                                  _enableContentInsertion
-                                  ? ContentInsertionConfiguration(
-                                      allowedMimeTypes: const <String>[
-                                        'image/png',
-                                        'image/jpeg',
-                                        'image/webp',
-                                        'image/gif',
-                                      ],
-                                      onContentInserted:
-                                          (KeyboardInsertedContent content) {
-                                            final data = content.data;
-                                            if (data == null || data.isEmpty) {
-                                              _showPasteImageFailed();
-                                              return;
-                                            }
-                                            unawaited(
-                                              _handlePastedImage(
-                                                data,
-                                                content.mimeType,
-                                              ),
-                                            );
-                                          },
-                                    )
-                                  : null,
-                              minLines: 1,
-                              maxLines: 6,
-                              keyboardType: TextInputType.multiline,
-                              readOnly: busy,
-                              textAlignVertical: TextAlignVertical.center,
-                              textDirection: textDirectionForTypedChatMessage(
-                                _messageController.text,
-                                Directionality.of(context),
-                              ),
-                              textAlign: TextAlign.start,
-                              style: TextStyle(
-                                fontSize: _messageFocusNode.hasFocus ? 17 : 16,
-                                height: 1.35,
-                              ),
-                              decoration: InputDecoration(
-                                hintText: AppLocaleKeys.chatWriteMessage.tr,
-                                hintStyle: TextStyle(
-                                  color: Colors.grey.shade500,
-                                  fontSize: 16,
-                                ),
-                                border: InputBorder.none,
-                                isDense: true,
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 12,
-                                ),
-                              ),
-                              onTap: () {
-                                if (_isEmojiVisible) {
-                                  setState(() => _isEmojiVisible = false);
-                                }
-                              },
+                          IconButton(
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 48,
+                              minHeight: 48,
                             ),
+                            icon: const Icon(
+                              Icons.send_rounded,
+                              color: Color(0xFF465FFF),
+                              size: 28,
+                            ),
+                            onPressed: busy ? null : _sendMessage,
                           ),
-                        ),
-                      ),
-                      IconButton(
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(
-                          minWidth: 48,
-                          minHeight: 48,
-                        ),
-                        icon: const Icon(
-                          Icons.send_rounded,
-                          color: Color(0xFF465FFF),
-                          size: 28,
-                        ),
-                        onPressed: busy ? null : _sendMessage,
-                      ),
-                    ],
-                  );
-                }),
+                        ],
+                      );
+                    }),
+                  ),
+                ),
               ),
               // عرض لوحة الإيموجي
               Offstage(

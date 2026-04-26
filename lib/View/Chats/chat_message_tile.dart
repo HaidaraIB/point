@@ -1,6 +1,7 @@
 import 'dart:async' show unawaited;
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
@@ -18,6 +19,7 @@ const Color _kChatMenuBg = Color(0xFF2C2F3E);
 const double _kChatMenuWidth = 200;
 const double _kEditHistoryPanelW = 280;
 const double _kEditHistoryPanelH = 360;
+
 /// Must match [ActionPane.extentRatio] for swipe-to-reply without tapping the action.
 const double _kReplySwipeExtentRatio = 0.22;
 
@@ -34,6 +36,7 @@ class ChatMessageTile extends StatefulWidget {
   final String Function(Timestamp?) formatTime;
   final bool isAdmin;
   final String currentUserId;
+
   /// Display name of the signed-in user (for edit history and saving [editedByName]).
   final String? currentUserDisplayName;
   final void Function(ChatReplyDraft draft) onReply;
@@ -41,9 +44,11 @@ class ChatMessageTile extends StatefulWidget {
   final double maxWidthFactor;
   final Alignment alignment;
   final CrossAxisAlignment columnCrossAxis;
+
   /// When true and [isMe], shows delivered/read icons (mobile/popup chat).
   final bool showReadReceipts;
   final bool messageIsRead;
+
   /// Scroll the chat list so the referenced message is visible (Telegram-style).
   final void Function(String replyToMessageId)? onReplyPreviewTap;
 
@@ -77,6 +82,7 @@ class ChatMessageTile extends StatefulWidget {
 
 class _ChatMessageTileState extends State<ChatMessageTile>
     with SingleTickerProviderStateMixin {
+  static final Map<String, DateTime> _feedbackDedupeLastShownAt = {};
   final GlobalKey _bubbleKey = GlobalKey(debugLabel: 'chatMessageBubble');
 
   late final SlidableController _slidableController;
@@ -141,6 +147,17 @@ class _ChatMessageTileState extends State<ChatMessageTile>
 
   bool get _deleted => widget.message['deleted'] == true;
 
+  double _effectiveBubbleMaxWidth(double screenWidth) {
+    final relativeCap = screenWidth * widget.maxWidthFactor;
+    final bool desktopLike = kIsWeb || screenWidth >= 1000;
+    final bool tabletLike = !desktopLike && screenWidth >= 600;
+    final double absoluteCap = desktopLike
+        ? 700.0
+        : (tabletLike ? 560.0 : 430.0);
+    final double safeCap = (screenWidth - 28).clamp(220.0, screenWidth);
+    return relativeCap.clamp(220.0, absoluteCap).clamp(220.0, safeCap);
+  }
+
   bool get _canEditText {
     if (_deleted) return false;
     final t = (widget.message['messageType'] as String?)?.trim();
@@ -156,7 +173,8 @@ class _ChatMessageTileState extends State<ChatMessageTile>
     if (_deleted) return '';
     final type = (widget.message['messageType'] as String?)?.trim() ?? 'text';
     final raw = (widget.message['text'] ?? '').toString().trim();
-    final attachmentUrl = (widget.message['attachmentUrl'] as String?)?.trim() ?? '';
+    final attachmentUrl =
+        (widget.message['attachmentUrl'] as String?)?.trim() ?? '';
 
     if (type == 'text' || type.isEmpty) {
       return raw;
@@ -192,10 +210,9 @@ class _ChatMessageTileState extends State<ChatMessageTile>
 
   void _emitReply() {
     final preview = chatReplyPreviewFromMessage(widget.message);
-    final name =
-        widget.isGroup
-            ? (widget.message['senderName'] as String?)?.trim()
-            : null;
+    final name = widget.isGroup
+        ? (widget.message['senderName'] as String?)?.trim()
+        : null;
     widget.onReply(
       ChatReplyDraft(
         messageId: widget.messageId,
@@ -247,10 +264,7 @@ class _ChatMessageTileState extends State<ChatMessageTile>
 
     final pad = MediaQuery.paddingOf(context);
     double top = bubbleInOverlay.center.dy - panelH / 2;
-    top = top.clamp(
-      pad.top + 8,
-      s.height - panelH - pad.bottom - 8,
-    );
+    top = top.clamp(pad.top + 8, s.height - panelH - pad.bottom - 8);
     return Rect.fromLTWH(left, top, panelW, panelH);
   }
 
@@ -275,12 +289,8 @@ class _ChatMessageTileState extends State<ChatMessageTile>
     // Vertically center menu on bubble; clamp to safe area
     final pad = MediaQuery.paddingOf(context);
     final estMenuH = 42.0 * _menuItemCount() + 8;
-    double top =
-        bubbleInOverlay.center.dy - estMenuH / 2;
-    top = top.clamp(
-      pad.top + 8,
-      s.height - estMenuH - pad.bottom - 8,
-    );
+    double top = bubbleInOverlay.center.dy - estMenuH / 2;
+    top = top.clamp(pad.top + 8, s.height - estMenuH - pad.bottom - 8);
     final anchor = Rect.fromLTWH(left, top, menuW, 1);
     return RelativeRect.fromRect(anchor, Offset.zero & s);
   }
@@ -393,11 +403,9 @@ class _ChatMessageTileState extends State<ChatMessageTile>
                         color: theme.dividerColor,
                       ),
                       Expanded(
-                        child: StreamBuilder<
-                          QuerySnapshot<Map<String, dynamic>>
-                        >(
-                          stream:
-                              fs
+                        child:
+                            StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+                              stream: fs
                                   .collection('chats')
                                   .doc(widget.chatId)
                                   .collection('messages')
@@ -406,68 +414,69 @@ class _ChatMessageTileState extends State<ChatMessageTile>
                                   .orderBy('editedAt', descending: true)
                                   .limit(24)
                                   .snapshots(),
-                          builder: (context, snap) {
-                            if (!snap.hasData) {
-                              return const Center(
-                                child: SizedBox(
-                                  width: 28,
-                                  height: 28,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2.5,
-                                  ),
-                                ),
-                              );
-                            }
-                            final docs = snap.data!.docs;
-                            if (docs.isEmpty) {
-                              return Center(
-                                child: Padding(
-                                  padding: const EdgeInsets.all(20),
-                                  child: Text(
-                                    AppLocaleKeys.chatEditedLabel.tr,
-                                    textAlign: TextAlign.center,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: theme.colorScheme.onSurfaceVariant,
+                              builder: (context, snap) {
+                                if (!snap.hasData) {
+                                  return const Center(
+                                    child: SizedBox(
+                                      width: 28,
+                                      height: 28,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.5,
+                                      ),
                                     ),
-                                  ),
-                                ),
-                              );
-                            }
-                            return ListView.separated(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              itemCount: docs.length,
-                              separatorBuilder:
-                                  (_, __) => Divider(
+                                  );
+                                }
+                                final docs = snap.data!.docs;
+                                if (docs.isEmpty) {
+                                  return Center(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(20),
+                                      child: Text(
+                                        AppLocaleKeys.chatEditedLabel.tr,
+                                        textAlign: TextAlign.center,
+                                        style: theme.textTheme.bodyMedium
+                                            ?.copyWith(
+                                              color: theme
+                                                  .colorScheme
+                                                  .onSurfaceVariant,
+                                            ),
+                                      ),
+                                    ),
+                                  );
+                                }
+                                return ListView.separated(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  itemCount: docs.length,
+                                  separatorBuilder: (_, __) => Divider(
                                     height: 1,
                                     thickness: 1,
                                     color: theme.dividerColor.withValues(
                                       alpha: 0.5,
                                     ),
                                   ),
-                              itemBuilder: (context, i) {
-                                final d = docs[i].data();
-                                final prev =
-                                    (d['previousText'] ?? '').toString();
-                                final ts = d['editedAt'] as Timestamp?;
-                                final when =
-                                    ts != null
+                                  itemBuilder: (context, i) {
+                                    final d = docs[i].data();
+                                    final prev = (d['previousText'] ?? '')
+                                        .toString();
+                                    final ts = d['editedAt'] as Timestamp?;
+                                    final when = ts != null
                                         ? DateFormat(
-                                          'MMM d, yyyy · HH:mm',
-                                          Localizations.localeOf(
-                                            context,
-                                          ).toString(),
-                                        ).format(ts.toDate())
+                                            'MMM d, yyyy · HH:mm',
+                                            Localizations.localeOf(
+                                              context,
+                                            ).toString(),
+                                          ).format(ts.toDate())
                                         : '';
-                                final editorLabel = _editorLabelForEdit(d);
-                                return _ChatEditHistoryEntryRow(
-                                  previousText: prev,
-                                  editorLabel: editorLabel,
-                                  whenLabel: when,
+                                    final editorLabel = _editorLabelForEdit(d);
+                                    return _ChatEditHistoryEntryRow(
+                                      previousText: prev,
+                                      editorLabel: editorLabel,
+                                      whenLabel: when,
+                                    );
+                                  },
                                 );
                               },
-                            );
-                          },
-                        ),
+                            ),
                       ),
                     ],
                   ),
@@ -518,12 +527,11 @@ class _ChatMessageTileState extends State<ChatMessageTile>
         previousText: prev,
         newText: next.trim(),
         editedBy: widget.currentUserId,
-        editedByName:
-            (editorName != null && editorName.isNotEmpty)
-                ? editorName
-                : (widget.isMe
-                    ? widget.senderName
-                    : AppLocaleKeys.chatSenderFallback.tr),
+        editedByName: (editorName != null && editorName.isNotEmpty)
+            ? editorName
+            : (widget.isMe
+                  ? widget.senderName
+                  : AppLocaleKeys.chatSenderFallback.tr),
       );
     } catch (e) {
       _showChatFeedback(
@@ -568,15 +576,28 @@ class _ChatMessageTileState extends State<ChatMessageTile>
     }
   }
 
+  bool _shouldSkipFeedback(String? dedupeKey, Duration dedupeWindow) {
+    if (dedupeKey == null || dedupeKey.isEmpty) return false;
+    final now = DateTime.now();
+    final last = _feedbackDedupeLastShownAt[dedupeKey];
+    if (last != null && now.difference(last) < dedupeWindow) {
+      return true;
+    }
+    _feedbackDedupeLastShownAt[dedupeKey] = now;
+    return false;
+  }
+
   /// Opaque, high-contrast feedback (avoids GetX default frosted/blurred snackbar).
   void _showChatFeedback(
     String title,
     String message, {
     bool isError = false,
+    String? dedupeKey,
+    Duration dedupeWindow = const Duration(milliseconds: 1200),
   }) {
     if (!mounted) return;
-    final bg =
-        isError ? const Color(0xFF8E1A1A) : const Color(0xFF2D2D2D);
+    if (_shouldSkipFeedback(dedupeKey, dedupeWindow)) return;
+    final bg = isError ? const Color(0xFF8E1A1A) : const Color(0xFF2D2D2D);
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     final messenger = ScaffoldMessenger.maybeOf(context);
@@ -663,7 +684,9 @@ class _ChatMessageTileState extends State<ChatMessageTile>
       margin: const EdgeInsets.all(16),
       duration: const Duration(seconds: 2),
       icon: Icon(
-        isError ? Icons.error_outline_rounded : Icons.check_circle_outline_rounded,
+        isError
+            ? Icons.error_outline_rounded
+            : Icons.check_circle_outline_rounded,
         color: Colors.white,
       ),
       shouldIconPulse: false,
@@ -720,6 +743,7 @@ class _ChatMessageTileState extends State<ChatMessageTile>
               _showChatFeedback(
                 AppLocaleKeys.successTitle.tr,
                 AppLocaleKeys.chatCopyDone.tr,
+                dedupeKey: 'chat_copy_${widget.messageId}',
               );
             });
           },
@@ -744,14 +768,12 @@ class _ChatMessageTileState extends State<ChatMessageTile>
           padding: const EdgeInsets.symmetric(horizontal: 12),
           onTap: () => runAfterClose(_togglePinnedState),
           child: _ChatMenuRow(
-            icon:
-                widget.message['isPinned'] == true
-                    ? Icons.push_pin
-                    : Icons.push_pin_outlined,
-            label:
-                widget.message['isPinned'] == true
-                    ? AppLocaleKeys.chatActionUnpin.tr
-                    : AppLocaleKeys.chatActionPin.tr,
+            icon: widget.message['isPinned'] == true
+                ? Icons.push_pin
+                : Icons.push_pin_outlined,
+            label: widget.message['isPinned'] == true
+                ? AppLocaleKeys.chatActionUnpin.tr
+                : AppLocaleKeys.chatActionPin.tr,
           ),
         ),
       if (editedFlag)
@@ -798,25 +820,23 @@ class _ChatMessageTileState extends State<ChatMessageTile>
     if (id == null || id.isEmpty) return const SizedBox.shrink();
     final preview = replyQuotePreviewLine(widget.message);
     final name = (widget.message['replySenderName'] as String?)?.trim();
-    final thumb =
-        (widget.message['replyImageUrl'] as String?)?.trim() ?? '';
+    final thumb = (widget.message['replyImageUrl'] as String?)?.trim() ?? '';
     final videoThumb =
         (widget.message['replyVideoUrl'] as String?)?.trim() ?? '';
     final border = widget.isMe ? Colors.white24 : Colors.black26;
     final fg = widget.isMe ? Colors.white70 : Colors.black54;
     final mq = MediaQuery.sizeOf(context);
-    final maxBar =
-        (mq.width * widget.maxWidthFactor - 24).clamp(120.0, mq.width);
+    final bubbleMaxWidth = _effectiveBubbleMaxWidth(mq.width);
+    final maxBar = (bubbleMaxWidth - 24).clamp(120.0, bubbleMaxWidth);
 
     final inner = Container(
       constraints: BoxConstraints(maxWidth: maxBar),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
         border: Border(left: BorderSide(color: border, width: 3)),
-        color:
-            widget.isMe
-                ? Colors.white.withValues(alpha: 0.12)
-                : Colors.black.withValues(alpha: 0.05),
+        color: widget.isMe
+            ? Colors.white.withValues(alpha: 0.12)
+            : Colors.black.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
@@ -861,38 +881,39 @@ class _ChatMessageTileState extends State<ChatMessageTile>
     final tap = widget.onReplyPreviewTap;
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
-      child:
-          tap != null
-              ? Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () => tap(id),
-                  borderRadius: BorderRadius.circular(6),
-                  child: inner,
-                ),
-              )
-              : inner,
+      child: tap != null
+          ? Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => tap(id),
+                borderRadius: BorderRadius.circular(6),
+                child: inner,
+              ),
+            )
+          : inner,
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final mq = MediaQuery.sizeOf(context);
+    final bubbleMaxWidth = _effectiveBubbleMaxWidth(mq.width);
     final replyLabel = AppLocaleKeys.chatActionReply.tr;
     final bubbleColor = widget.bubbleDecoration.color;
-    final bubbleGreen =
-        bubbleColor != null ? (bubbleColor.g * 255.0).round().clamp(0, 255) : 0;
-    final bubbleRed =
-        bubbleColor != null ? (bubbleColor.r * 255.0).round().clamp(0, 255) : 0;
+    final bubbleGreen = bubbleColor != null
+        ? (bubbleColor.g * 255.0).round().clamp(0, 255)
+        : 0;
+    final bubbleRed = bubbleColor != null
+        ? (bubbleColor.r * 255.0).round().clamp(0, 255)
+        : 0;
     final telegramLikeOutgoing =
         widget.isMe &&
         bubbleColor != null &&
         bubbleGreen >= 210 &&
         bubbleRed >= 160;
-    final footerTextColor =
-        telegramLikeOutgoing
-            ? const Color(0xFF667781)
-            : (widget.isMe ? Colors.white.withValues(alpha: 0.78) : Colors.black45);
+    final footerTextColor = telegramLikeOutgoing
+        ? const Color(0xFF667781)
+        : (widget.isMe ? Colors.white.withValues(alpha: 0.78) : Colors.black45);
     final slidableChild = GestureDetector(
       behavior: HitTestBehavior.deferToChild,
       onDoubleTap: _emitReply,
@@ -900,7 +921,7 @@ class _ChatMessageTileState extends State<ChatMessageTile>
       child: Align(
         alignment: widget.alignment,
         child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: mq.width * widget.maxWidthFactor),
+          constraints: BoxConstraints(maxWidth: bubbleMaxWidth),
           child: Column(
             crossAxisAlignment: widget.columnCrossAxis,
             mainAxisSize: MainAxisSize.min,
@@ -920,7 +941,10 @@ class _ChatMessageTileState extends State<ChatMessageTile>
               Container(
                 key: _bubbleKey,
                 decoration: widget.bubbleDecoration,
-                padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 11,
+                  vertical: 8,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
@@ -959,8 +983,7 @@ class _ChatMessageTileState extends State<ChatMessageTile>
                               style: TextStyle(
                                 fontSize: 10,
                                 fontStyle: FontStyle.italic,
-                                color:
-                                    footerTextColor,
+                                color: footerTextColor,
                                 decoration: TextDecoration.underline,
                               ),
                             ),
@@ -973,12 +996,11 @@ class _ChatMessageTileState extends State<ChatMessageTile>
                                 ? Icons.done_all_rounded
                                 : Icons.done_rounded,
                             size: 15,
-                            color:
-                                widget.messageIsRead
-                                    ? const Color(0xFF53BDEB)
-                                    : (telegramLikeOutgoing
-                                        ? const Color(0xFF8696A0)
-                                        : footerTextColor),
+                            color: widget.messageIsRead
+                                ? const Color(0xFF53BDEB)
+                                : (telegramLikeOutgoing
+                                      ? const Color(0xFF8696A0)
+                                      : footerTextColor),
                             shadows: const [
                               Shadow(
                                 color: Color(0x66000000),
@@ -1072,7 +1094,9 @@ class _ChatEditHistoryEntryRow extends StatelessWidget {
                 if (editorLabel.isNotEmpty) ...[
                   const SizedBox(height: 6),
                   Text(
-                    AppLocaleKeys.chatEditHistoryBy.trParams({'name': editorLabel}),
+                    AppLocaleKeys.chatEditHistoryBy.trParams({
+                      'name': editorLabel,
+                    }),
                     style: theme.textTheme.labelSmall?.copyWith(
                       fontSize: 11.5,
                       color: muted,
@@ -1115,10 +1139,9 @@ class _ChatMenuRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fg =
-        destructive && dangerColor != null
-            ? dangerColor!
-            : Colors.white.withValues(alpha: 0.95);
+    final fg = destructive && dangerColor != null
+        ? dangerColor!
+        : Colors.white.withValues(alpha: 0.95);
     return Row(
       children: [
         Icon(icon, size: 20, color: fg),

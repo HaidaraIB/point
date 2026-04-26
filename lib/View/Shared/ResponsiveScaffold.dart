@@ -18,6 +18,7 @@ import 'package:point/Services/AudioService.dart';
 import 'package:point/Services/ChatAudioFocus.dart';
 import 'package:point/Services/ChatIncomingMessageSound.dart';
 import 'package:point/Services/FireStoreServices.dart';
+import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/firestore/firestore_chat_api.dart';
 import 'package:point/Services/chat_clipboard_image_reader.dart';
 import 'package:point/Services/chat_scroll_persistence.dart';
@@ -89,20 +90,22 @@ class ResponsiveScaffold extends StatelessWidget {
                                         controller.effectiveEmployee?.role ??
                                         '',
                                     department:
-                                        controller.effectiveEmployee?.departments
-                                                    .isEmpty ??
-                                                true
-                                            ? null
-                                            : controller
-                                                .effectiveEmployee!
-                                                .departments
-                                                .map(
-                                                  (d) =>
-                                                      StorageKeys.semanticDepartmentLabelKey(
-                                                        d,
-                                                      ).tr,
-                                                )
-                                                .join(', '),
+                                        controller
+                                                .effectiveEmployee
+                                                ?.departments
+                                                .isEmpty ??
+                                            true
+                                        ? null
+                                        : controller
+                                              .effectiveEmployee!
+                                              .departments
+                                              .map(
+                                                (d) =>
+                                                    StorageKeys.semanticDepartmentLabelKey(
+                                                      d,
+                                                    ).tr,
+                                              )
+                                              .join(', '),
                                     avatarUrl:
                                         controller.effectiveEmployee?.image ??
                                         kDefaultAvatarUrl,
@@ -537,9 +540,15 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
 
   void _showPasteImageFailed() {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('chat.paste_image_failed'.tr)));
+    FunHelper.showSnackbarDeduped(
+      AppLocaleKeys.errorTitle.tr,
+      'chat.paste_image_failed'.tr,
+      dedupeKey: 'chat_paste_image_failed',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.red,
+      colorText: Colors.white,
+      autoHideAfter: const Duration(seconds: 2),
+    );
   }
 
   Future<void> _showPopupVoiceAttachmentSheet() async {
