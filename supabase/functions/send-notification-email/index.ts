@@ -4,7 +4,7 @@
 // (المحرر قد يظهر خطأ "Cannot find name 'Deno'" لأن الكود لـ Deno وليس Node — الدالة تعمل عند النشر)
 
 import "https://deno.land/std@0.177.0/http/server.ts";
-import { buildEmailHtml } from "./email-template.ts";
+import { buildEmailHtml, type EmailLocale } from "./email-template.ts";
 
 const RESEND_URL = "https://api.resend.com/emails";
 const FROM_EMAIL = "Point Agency <no-reply@mail.point-iq.app>";
@@ -38,6 +38,7 @@ async function sendOneViaResend(
   subject: string,
   rawBody: string,
   isHtml: boolean,
+  language?: EmailLocale,
 ): Promise<{ ok: boolean; status: number; id?: string; details?: unknown }> {
   let textPart: string;
   let htmlPart: string;
@@ -47,7 +48,7 @@ async function sendOneViaResend(
     if (!textPart) textPart = subject.trim() || "إشعار من Point Agency";
   } else {
     textPart = rawBody;
-    htmlPart = buildEmailHtml(rawBody);
+    htmlPart = buildEmailHtml(rawBody, language);
   }
 
   const res = await fetch(RESEND_URL, {
@@ -72,6 +73,14 @@ async function sendOneViaResend(
   return { ok: true, status: res.status, id: (data as { id?: string })?.id };
 }
 
+function normalizeLanguageCode(value: unknown): EmailLocale | undefined {
+  const raw = typeof value === "string" ? value.trim().toLowerCase() : "";
+  if (!raw) return undefined;
+  if (raw === "ar" || raw.startsWith("ar-")) return "ar";
+  if (raw === "en" || raw.startsWith("en-")) return "en";
+  return undefined;
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { status: 200, headers: corsHeaders() });
@@ -88,11 +97,13 @@ Deno.serve(async (req: Request) => {
       subject?: string;
       body?: string;
       isHtml?: boolean;
+      language?: string;
       messages?: Array<{
         toEmail?: string;
         subject?: string;
         body?: string;
         isHtml?: boolean;
+        language?: string;
       }>;
     };
 
@@ -133,7 +144,8 @@ Deno.serve(async (req: Request) => {
         const subject = m?.subject ?? "";
         const rawBody = m?.body ?? "";
         const isHtml = m?.isHtml === true;
-        const out = await sendOneViaResend(apiKey, toEmail, subject, rawBody, isHtml);
+        const language = normalizeLanguageCode(m?.language);
+        const out = await sendOneViaResend(apiKey, toEmail, subject, rawBody, isHtml, language);
         if (out.ok) okCount++;
         results.push({
           index: i,
@@ -156,12 +168,13 @@ Deno.serve(async (req: Request) => {
     const subject = body?.subject ?? "";
     const rawBody = body?.body ?? "";
     const isHtml = body?.isHtml === true;
+    const language = normalizeLanguageCode(body?.language);
 
     if (!toEmail) {
       return jsonResponse({ errorCode: "ERR_EMAIL_REQUIRED" }, 400);
     }
 
-    const out = await sendOneViaResend(apiKey, toEmail, subject, rawBody, isHtml);
+    const out = await sendOneViaResend(apiKey, toEmail, subject, rawBody, isHtml, language);
     if (!out.ok) {
       return jsonResponse({ errorCode: "ERR_SERVER", details: out.details }, out.status);
     }

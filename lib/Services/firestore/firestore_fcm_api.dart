@@ -97,6 +97,14 @@ class FirestoreFcmApi {
 
   static String _emailDedupeKey(String email) => email.trim().toLowerCase();
 
+  static String? _normalizePreferredLanguageCode(Object? raw) {
+    final v = raw?.toString().trim().toLowerCase() ?? '';
+    if (v.isEmpty) return null;
+    if (v == 'ar' || v.startsWith('ar-')) return 'ar';
+    if (v == 'en' || v.startsWith('en-')) return 'en';
+    return null;
+  }
+
   static bool _fcmPayloadImpliesInvalidToken(Object? details) {
     final s = details?.toString().toLowerCase() ?? '';
     return s.contains('unregistered') ||
@@ -580,6 +588,9 @@ class FirestoreFcmApi {
       final email = data?['email']?.toString().trim();
       final tokens = _extractFcmTokens(data);
       final rawRecipientName = data?['name']?.toString().trim();
+      final preferredLanguageCode = _normalizePreferredLanguageCode(
+        data?['language'],
+      );
       final recipientRole = data?['role'];
       final recipientName =
           (rawRecipientName != null && rawRecipientName.isNotEmpty)
@@ -628,6 +639,7 @@ class FirestoreFcmApi {
             actionText: actionText,
             referenceId: referenceId,
             details: details,
+            languageCode: preferredLanguageCode,
           ),
         );
       } else if (effectiveSendEmail &&
@@ -752,6 +764,9 @@ class FirestoreFcmApi {
       final email = data?['email']?.toString().trim();
       final tokens = _extractFcmTokens(data);
       final rawRecipientName = data?['name']?.toString().trim();
+      final preferredLanguageCode = _normalizePreferredLanguageCode(
+        data?['language'],
+      );
       final recipientName =
           (rawRecipientName != null && rawRecipientName.isNotEmpty)
               ? rawRecipientName
@@ -797,6 +812,7 @@ class FirestoreFcmApi {
             actionText: actionText,
             referenceId: referenceId,
             details: details,
+            languageCode: preferredLanguageCode,
           ),
         );
       } else if (effectiveSendEmail &&
@@ -1020,19 +1036,19 @@ class FirestoreFcmApi {
         'الموضوع': topic,
         if (emailDetails != null) ...emailDetails,
       };
-      final html = EmailNotificationService.buildDetailedNotificationHtml(
-        title: title,
-        body: body,
-        notificationType: notificationType ?? 'إشعار جماعي',
-        actionText: actionText,
-        referenceId: referenceId,
-        details: details,
-      );
+      final plainLines = <String>[
+        body.trim(),
+        '',
+        for (final e in details.entries)
+          if (e.key.trim().isNotEmpty && e.value.trim().isNotEmpty)
+            '${e.key.trim()}: ${e.value.trim()}',
+      ];
+      final wrapperBody = plainLines.join('\n').trim();
       unawaited(
-        EmailNotificationService.sendPregeneratedHtmlBatch(
+        EmailNotificationService.sendPlainNotificationBatch(
           toEmails: dedupedEmails,
           subject: title,
-          htmlBody: html,
+          body: wrapperBody,
         ),
       );
     } catch (e) {
@@ -1128,6 +1144,9 @@ class FirestoreFcmApi {
       final email = data?['email']?.toString().trim();
       final tokens = _extractFcmTokens(data);
       final rawRecipientName = data?['name']?.toString().trim();
+      final preferredLanguageCode = _normalizePreferredLanguageCode(
+        data?['language'],
+      );
       final recipientRole = data?['role'];
       final recipientName =
           (rawRecipientName != null && rawRecipientName.isNotEmpty)
@@ -1173,6 +1192,7 @@ class FirestoreFcmApi {
             actionText: actionText,
             referenceId: referenceId ?? trimmedUserId,
             details: details,
+            languageCode: preferredLanguageCode,
           ),
         );
       } else if (effectiveSendEmail && (email == null || email.isEmpty)) {
@@ -1209,7 +1229,12 @@ class FirestoreFcmApi {
     }
 
     if (emailItems.isNotEmpty) {
-      unawaited(EmailNotificationService.sendDetailedNotificationBatch(emailItems));
+      unawaited(
+        EmailNotificationService.sendDetailedNotificationBatch(
+          emailItems,
+          useSupabaseTemplateWrapper: true,
+        ),
+      );
     }
 
     if (fcmRecipients.isEmpty) return;

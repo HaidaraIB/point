@@ -8,6 +8,8 @@ import 'package:point/Utils/EdgeFunctionRateLimiter.dart';
 const String _functionName = 'send-notification-email';
 
 /// One row for [EmailNotificationService.sendDetailedNotificationBatch] (Edge `messages[]`).
+/// The same item can be rendered through Supabase wrapper (`isHtml: false`) or
+/// local HTML template (`isHtml: true`) based on call configuration.
 class DetailedEmailBatchItem {
   const DetailedEmailBatchItem({
     required this.toEmail,
@@ -19,6 +21,7 @@ class DetailedEmailBatchItem {
     this.referenceId,
     this.details,
     this.sentAt,
+    this.languageCode,
   });
 
   final String toEmail;
@@ -30,6 +33,7 @@ class DetailedEmailBatchItem {
   final String? referenceId;
   final Map<String, String>? details;
   final DateTime? sentAt;
+  final String? languageCode;
 }
 
 class EmailNotificationService {
@@ -42,12 +46,16 @@ class EmailNotificationService {
   @Deprecated('Use Supabase Edge Function; set RESEND_API_KEY in Supabase secrets')
   static String? apiKey;
 
-  /// يرسل إيميل إشعار عبر Edge Function. لا يرمي استثناءً أبداً؛ يسجّل الخطأ فقط ولا يوقف التطبيق.
+  /// Sends one email via Supabase Edge Function.
+  /// - `isHtml: false` => Supabase wrapper template (`email-template.ts`)
+  /// - `isHtml: true`  => use provided HTML as-is
+  /// Never throws; logs failures only.
   static Future<void> send({
     required String toEmail,
     required String subject,
     required String body,
     bool isHtml = false,
+    String? languageCode,
   }) async {
     if (toEmail.trim().isEmpty) return;
 
@@ -61,6 +69,7 @@ class EmailNotificationService {
             'subject': subject,
             'body': body,
             'isHtml': isHtml,
+            if (languageCode != null) 'language': languageCode,
           },
         );
       });
@@ -81,7 +90,7 @@ class EmailNotificationService {
     }
   }
 
-  /// إشعار بعنوان ونص (مثل push notification). لا يرمي استثناءً أبداً.
+  /// Simple title/body notification via Supabase wrapper (`isHtml: false`).
   static Future<void> sendNotification({
     required String toEmail,
     required String title,
@@ -100,12 +109,15 @@ class EmailNotificationService {
     }
   }
 
-  /// إرسال إشعار بريد مفصل بصيغة HTML مع تفاصيل ديناميكية.
+  /// Detailed notification email with dynamic fields.
+  /// - `useSupabaseTemplateWrapper: true` uses wrapper template (`isHtml: false`)
+  /// - otherwise uses local generated HTML (`isHtml: true`)
   static Future<void> sendDetailedNotification({
     required String toEmail,
     required String title,
     required String body,
     bool useSupabaseTemplateWrapper = false,
+    String? languageCode,
     String? recipientLabel,
     String? notificationType,
     String? actionText,
@@ -116,6 +128,7 @@ class EmailNotificationService {
     try {
       final locale = _resolveLocale(
         '$title\n$body\n${(details ?? const <String, String>{}).entries.map((e) => '${e.key} ${e.value}').join(' ')}',
+        preferredLanguageCode: languageCode,
       );
       final safeDetails = <String, String>{
         if (details != null) ...details,
@@ -132,6 +145,7 @@ class EmailNotificationService {
         actionText: actionText,
         details: safeDetails,
         sentAt: sentAt ?? DateTime.now(),
+        localeCode: locale,
       );
 
       if (useSupabaseTemplateWrapper) {
@@ -142,9 +156,21 @@ class EmailNotificationService {
           sentAt: sentAt ?? DateTime.now(),
           locale: locale,
         );
-        await send(toEmail: toEmail, subject: title, body: wrapperBody, isHtml: false);
+        await send(
+          toEmail: toEmail,
+          subject: title,
+          body: wrapperBody,
+          isHtml: false,
+          languageCode: locale,
+        );
       } else {
-        await send(toEmail: toEmail, subject: title, body: html, isHtml: true);
+        await send(
+          toEmail: toEmail,
+          subject: title,
+          body: html,
+          isHtml: true,
+          languageCode: locale,
+        );
       }
     } catch (e, st) {
       appLog("❌ EmailNotificationService sendDetailedNotification error: $e");
@@ -153,8 +179,8 @@ class EmailNotificationService {
     }
   }
 
-  /// Builds the same HTML as [sendDetailedNotification] for batch or custom sends.
-  static String buildDetailedNotificationHtml({
+  /// Builds local detailed HTML (legacy-compatible path for batch when wrapper is disabled).
+  static String _buildDetailedNotificationHtml({
     required String title,
     required String body,
     String? recipientLabel,
@@ -163,9 +189,11 @@ class EmailNotificationService {
     String? referenceId,
     Map<String, String>? details,
     DateTime? sentAt,
+    String? languageCode,
   }) {
     final locale = _resolveLocale(
       '$title\n$body\n${(details ?? const <String, String>{}).entries.map((e) => '${e.key} ${e.value}').join(' ')}',
+      preferredLanguageCode: languageCode,
     );
     final safeDetails = <String, String>{
       if (details != null) ...details,
@@ -181,12 +209,15 @@ class EmailNotificationService {
       actionText: actionText,
       details: safeDetails,
       sentAt: sentAt ?? DateTime.now(),
+      localeCode: locale,
     );
   }
 
-  /// Sends many distinct HTML emails in one or few Edge invocations (`messages[]`, max 40 each).
+  /// Sends many distinct emails in one/few Edge invocations (`messages[]`, max 40 each).
+  /// Default is wrapper-first when `useSupabaseTemplateWrapper` is true.
   static Future<void> sendDetailedNotificationBatch(
     List<DetailedEmailBatchItem> items,
+    {bool useSupabaseTemplateWrapper = false}
   ) async {
     if (items.isEmpty) return;
     const maxChunk = 40;
@@ -195,21 +226,44 @@ class EmailNotificationService {
       final chunk = items.sublist(i, end);
       final messages = <Map<String, dynamic>>[];
       for (final item in chunk) {
-        final html = buildDetailedNotificationHtml(
+        final locale = _resolveLocale(
+          '${item.title}\n${item.body}\n${(item.details ?? const <String, String>{}).entries.map((e) => '${e.key} ${e.value}').join(' ')}',
+          preferredLanguageCode: item.languageCode,
+        );
+        final safeDetails = <String, String>{
+          if (item.details != null) ...item.details!,
+          if (item.notificationType != null &&
+              item.notificationType!.trim().isNotEmpty)
+            locale == 'ar'
+                ? 'نوع الإشعار'
+                : 'Notification type': item.notificationType!.trim(),
+          if (item.referenceId != null && item.referenceId!.trim().isNotEmpty)
+            locale == 'ar' ? 'المرجع' : 'Reference': item.referenceId!.trim(),
+        };
+        final html = _buildDetailedNotificationHtml(
           title: item.title,
           body: item.body,
           recipientLabel: item.recipientLabel,
           notificationType: item.notificationType,
           actionText: item.actionText,
           referenceId: item.referenceId,
-          details: item.details,
+          details: safeDetails,
           sentAt: item.sentAt,
+          languageCode: locale,
+        );
+        final wrapperBody = _buildWrapperFriendlyBody(
+          body: item.body,
+          details: safeDetails,
+          actionText: item.actionText,
+          sentAt: item.sentAt ?? DateTime.now(),
+          locale: locale,
         );
         messages.add(<String, dynamic>{
           'toEmail': item.toEmail.trim(),
           'subject': item.title,
-          'body': html,
-          'isHtml': true,
+          'body': useSupabaseTemplateWrapper ? wrapperBody : html,
+          'isHtml': !useSupabaseTemplateWrapper,
+          'language': locale,
         });
       }
       try {
@@ -239,33 +293,32 @@ class EmailNotificationService {
     }
   }
 
-  /// Same HTML body to many addresses (e.g. topic broadcast); chunks to 40 per request.
-  static Future<void> sendPregeneratedHtmlBatch({
+  /// Same plain body to many addresses, rendered via Supabase wrapper (`isHtml: false`).
+  static Future<void> sendPlainNotificationBatch({
     required List<String> toEmails,
     required String subject,
-    required String htmlBody,
+    required String body,
+    String? languageCode,
   }) async {
     final trimmed =
-        toEmails
-            .map((e) => e.trim())
-            .where((e) => e.isNotEmpty)
-            .toList();
+        toEmails.map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
     if (trimmed.isEmpty) return;
+    final locale = _resolveLocale(body, preferredLanguageCode: languageCode);
     const maxChunk = 40;
     for (var i = 0; i < trimmed.length; i += maxChunk) {
       final end = (i + maxChunk > trimmed.length) ? trimmed.length : i + maxChunk;
       final chunk = trimmed.sublist(i, end);
-      final messages =
-          chunk
-              .map(
-                (e) => <String, dynamic>{
-                  'toEmail': e,
-                  'subject': subject,
-                  'body': htmlBody,
-                  'isHtml': true,
-                },
-              )
-              .toList();
+      final messages = chunk
+          .map(
+            (e) => <String, dynamic>{
+              'toEmail': e,
+              'subject': subject,
+              'body': body,
+              'isHtml': false,
+              'language': locale,
+            },
+          )
+          .toList();
       try {
         final client = Supabase.instance.client;
         final res = await EdgeFunctionRateLimiter.instance.run(() {
@@ -276,18 +329,13 @@ class EmailNotificationService {
         });
         if (res.status == 200 && res.data != null) {
           final data = res.data as Map<String, dynamic>?;
-          if (data?['ok'] == true) {
-            appLog(
-              '✅ Email pregenerated batch chunk ${i ~/ maxChunk + 1} (${chunk.length})',
-            );
-            continue;
-          }
+          if (data?['ok'] == true) continue;
         }
         appLog(
-          '❌ Email pregenerated batch failed. status=${res.status}, data=${res.data}',
+          '❌ Email plain batch failed. status=${res.status}, data=${res.data}',
         );
       } catch (e, st) {
-        appLog('❌ EmailNotificationService sendPregeneratedHtmlBatch: $e');
+        appLog('❌ EmailNotificationService sendPlainNotificationBatch: $e');
         appLog('$st');
       }
     }
@@ -300,8 +348,10 @@ class EmailNotificationService {
     String? recipientLabel,
     String? actionText,
     Map<String, String>? details,
+    String? localeCode,
   }) {
-    final locale = _resolveLocale(
+    final locale = localeCode ??
+        _resolveLocale(
       '$title\n$body\n${(details ?? const <String, String>{}).keys.join(' ')}',
     );
     final isArabic = locale == 'ar';
@@ -448,8 +498,20 @@ class EmailNotificationService {
     return null;
   }
 
-  static String _resolveLocale(String text) {
+  static String _resolveLocale(
+    String text, {
+    String? preferredLanguageCode,
+  }) {
+    final normalized = _normalizeLanguageCode(preferredLanguageCode);
+    if (normalized != null) return normalized;
     return RegExp(r'[\u0600-\u06FF]').hasMatch(text) ? 'ar' : 'en';
+  }
+
+  static String? _normalizeLanguageCode(String? code) {
+    final v = (code ?? '').trim().toLowerCase();
+    if (v == 'ar' || v.startsWith('ar-')) return 'ar';
+    if (v == 'en' || v.startsWith('en-')) return 'en';
+    return null;
   }
 
   static String _buildWrapperFriendlyBody({
