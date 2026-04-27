@@ -8,6 +8,7 @@ import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Services/meta/meta_graph_client.dart';
 import 'package:point/Services/meta/meta_errors.dart';
+import 'package:point/Services/meta/meta_media_util.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/ContentPermissions.dart';
 import 'package:point/View/Contents/Shared/content_attachment_source_input.dart';
@@ -25,50 +26,6 @@ List<String> get _publishPlatformChoiceKeys => [
   StorageKeys.platformList[0],
   StorageKeys.platformList[1],
 ];
-
-List<String> _normalizePlatformsForFirestore(List<dynamic> selectedKeys) {
-  final out = <String>{};
-  for (final s in selectedKeys) {
-    final t = s.toString().toLowerCase();
-    if (t.contains('facebook')) out.add('facebook');
-    if (t.contains('instagram')) out.add('instagram');
-  }
-  return out.toList();
-}
-
-/// Path segment before `?` — Supabase URLs keep extension in the last segment.
-String _publishPathLower(String url) => url.split('?').first.toLowerCase();
-
-String _publishFileKindFromUrl(String url) {
-  final p = _publishPathLower(url);
-  if (p.endsWith('.jpg') ||
-      p.endsWith('.jpeg') ||
-      p.endsWith('.png') ||
-      p.endsWith('.webp') ||
-      p.endsWith('.gif')) {
-    return 'image';
-  }
-  if (p.endsWith('.mp4') ||
-      p.endsWith('.mov') ||
-      p.endsWith('.webm') ||
-      p.endsWith('.m4v') ||
-      p.endsWith('.avi') ||
-      p.endsWith('.mkv')) {
-    return 'video';
-  }
-  return 'unknown';
-}
-
-String? _publishMediaTypeFromUrl(String url) {
-  switch (_publishFileKindFromUrl(url)) {
-    case 'image':
-      return 'photo';
-    case 'video':
-      return 'video';
-    default:
-      return null;
-  }
-}
 
 Future<void> _pickAndUploadSinglePublishMedia({
   required HomeController controller,
@@ -97,7 +54,7 @@ Future<void> _pickAndUploadSinglePublishMedia({
   );
   if (url != null && url.isNotEmpty) {
     mediaUrl.value = url;
-    mediaType.value = _publishMediaTypeFromUrl(url) ?? 'photo';
+    mediaType.value = publishMediaTypeFromUrl(url) ?? 'photo';
     controller.update();
   }
 }
@@ -114,7 +71,7 @@ void _syncMediaFromUploadedList(
   }
   final last = controller.uploadedFilesPaths.last.toString();
   mediaUrl.value = last;
-  mediaType.value = _publishMediaTypeFromUrl(last);
+  mediaType.value = publishMediaTypeFromUrl(last);
 }
 
 /// Library vs local drive — same flow as Content attachments.
@@ -151,16 +108,28 @@ Future<void> _pickPublishMediaWithSource({
   controller.uploadedFilesPaths.clear();
   controller.uploadedFilesPaths.add(url);
   mediaUrl.value = url;
-  mediaType.value = _publishMediaTypeFromUrl(url) ?? 'photo';
+  mediaType.value = publishMediaTypeFromUrl(url) ?? 'photo';
   controller.update();
 }
 
-Future<void> showAddPublishDialog({MetaPostModel? existing}) async {
+Future<void> showAddPublishDialog({
+  MetaPostModel? existing,
+  MetaPostModel? initialDraft,
+  String? initialScheduleMode,
+  bool forceSingleMediaSelection = false,
+}) async {
   // Open full-screen add page on native OR compact web widths.
   // This keeps behavior aligned with the table responsive breakpoint.
   final bool useMobilePage = !kIsWeb || Get.width <= 850;
   if (useMobilePage) {
-    await Get.to(() => PublishAddMobilePage(initialPost: existing));
+    await Get.to(
+      () => PublishAddMobilePage(
+        initialPost: existing,
+        initialDraft: initialDraft,
+        initialScheduleMode: initialScheduleMode,
+        forceSingleMediaSelection: forceSingleMediaSelection,
+      ),
+    );
     return;
   }
   final hc = Get.find<HomeController>();
@@ -177,9 +146,14 @@ Future<void> showAddPublishDialog({MetaPostModel? existing}) async {
   }
 
   MetaAppSettings? settings;
+  Get.dialog(
+    const Center(child: CircularProgressIndicator()),
+    barrierDismissible: false,
+  );
   try {
     settings = await MetaAppSettings.load();
   } catch (e) {
+    if (Get.isDialogOpen == true) Get.back();
     FunHelper.showSnackbarDeduped(
       'error'.tr,
       '${'publish.settings_load_failed'.tr}\n${e.toString()}',
@@ -191,6 +165,7 @@ Future<void> showAddPublishDialog({MetaPostModel? existing}) async {
     return;
   }
   if (settings == null) {
+    if (Get.isDialogOpen == true) Get.back();
     await Get.dialog<void>(
       AlertDialog(
         title: Text('error'.tr),
@@ -215,6 +190,7 @@ Future<void> showAddPublishDialog({MetaPostModel? existing}) async {
   try {
     assets = await MetaGraphClient.listBusinessAssets(settings);
   } catch (e) {
+    if (Get.isDialogOpen == true) Get.back();
     FunHelper.showSnackbarDeduped(
       'error'.tr,
       formatMetaPublishFailure(e, Get.locale?.languageCode ?? 'ar'),
@@ -226,6 +202,7 @@ Future<void> showAddPublishDialog({MetaPostModel? existing}) async {
     return;
   }
   if (assets.isEmpty) {
+    if (Get.isDialogOpen == true) Get.back();
     FunHelper.showSnackbarDeduped(
       'error'.tr,
       'publish.no_pages'.tr,
@@ -236,6 +213,7 @@ Future<void> showAddPublishDialog({MetaPostModel? existing}) async {
     );
     return;
   }
+  if (Get.isDialogOpen == true) Get.back();
 
   final titleController = TextEditingController();
   final captionController = TextEditingController();
@@ -253,29 +231,33 @@ Future<void> showAddPublishDialog({MetaPostModel? existing}) async {
   const noneClient = '__none__';
 
   hc.uploadedFilesPaths.clear();
-  if (existing != null) {
-    titleController.text = existing.title;
-    captionController.text = existing.caption ?? '';
-    postType.value = existing.postType.trim().isEmpty
+  final seed = existing ?? initialDraft;
+  if (seed != null) {
+    titleController.text = seed.title;
+    captionController.text = seed.caption ?? '';
+    postType.value = seed.postType.trim().isEmpty
         ? 'feed'
-        : existing.postType;
-    scheduleMode.value = existing.status == 'scheduled' ? 'schedule' : 'now';
-    scheduledAt.value = existing.scheduledAt;
-    final existingMedia = existing.mediaUrl?.trim();
+        : seed.postType;
+    scheduleMode.value =
+        (initialScheduleMode ?? (seed.status == 'scheduled' ? 'schedule' : 'now')) ==
+            'schedule'
+        ? 'schedule'
+        : 'now';
+    scheduledAt.value = seed.scheduledAt;
+    final existingMedia = seed.mediaUrl?.trim();
     if (existingMedia != null && existingMedia.isNotEmpty) {
       hc.uploadedFilesPaths.add(existingMedia);
       mediaUrl.value = existingMedia;
-      mediaType.value =
-          existing.mediaType ?? _publishMediaTypeFromUrl(existingMedia);
+      mediaType.value = seed.mediaType ?? publishMediaTypeFromUrl(existingMedia);
     } else {
       mediaUrl.value = null;
-      mediaType.value = existing.mediaType;
+      mediaType.value = seed.mediaType;
     }
-    final existingClient = existing.clientId?.trim();
+    final existingClient = seed.clientId?.trim();
     clientId.value = (existingClient != null && existingClient.isNotEmpty)
         ? existingClient
         : noneClient;
-    final pset = existing.platforms
+    final pset = seed.platforms
         .map((e) => e.toString().toLowerCase())
         .toSet();
     final initialPlatforms = <String>[
@@ -286,7 +268,7 @@ Future<void> showAddPublishDialog({MetaPostModel? existing}) async {
       platforms.assignAll(initialPlatforms);
     }
     for (final a in assets) {
-      if (a.pageId == existing.pageId) {
+      if (a.pageId == seed.pageId) {
         selectedAsset.value = a;
         break;
       }
@@ -487,7 +469,7 @@ Future<void> showAddPublishDialog({MetaPostModel? existing}) async {
                                 ),
                             itemBuilder: (_, i) {
                               final fileUrl = files[i].toString();
-                              final kind = _publishFileKindFromUrl(fileUrl);
+                              final kind = publishFileKindFromUrl(fileUrl);
                               return Center(
                                 child: SizedBox(
                                   width: 88,
@@ -621,7 +603,20 @@ Future<void> showAddPublishDialog({MetaPostModel? existing}) async {
                                 ),
                           ],
                           onChanged: (v) {
-                            if (v != null) clientId.value = v;
+                            if (v == null) return;
+                            clientId.value = v;
+                            if (v == noneClient) return;
+                            final selectedClient = controller.clients
+                                .firstWhereOrNull((c) => c.id == v);
+                            final linkedPageId =
+                                (selectedClient?.metaPageId ?? '').trim();
+                            if (linkedPageId.isEmpty) return;
+                            final linkedAsset = assets.firstWhereOrNull(
+                              (a) => a.pageId == linkedPageId,
+                            );
+                            if (linkedAsset != null) {
+                              selectedAsset.value = linkedAsset;
+                            }
                           },
                         ),
                       ),
@@ -669,6 +664,19 @@ Future<void> showAddPublishDialog({MetaPostModel? existing}) async {
                               if (asset == null) return;
                               final title = titleController.text.trim();
                               if (title.isEmpty) return;
+                              if (forceSingleMediaSelection &&
+                                  (mediaUrl.value == null ||
+                                      mediaUrl.value!.trim().isEmpty)) {
+                                FunHelper.showSnackbarDeduped(
+                                  'error'.tr,
+                                  'publish.pick_single_dedicated_media'.tr,
+                                  dedupeKey: 'publish_pick_single_media',
+                                  snackPosition: SnackPosition.TOP,
+                                  backgroundColor: Colors.red,
+                                  colorText: Colors.white,
+                                );
+                                return;
+                              }
                               if (scheduleMode.value == 'schedule') {
                                 final s = scheduledAt.value;
                                 if (s == null) {
@@ -698,7 +706,7 @@ Future<void> showAddPublishDialog({MetaPostModel? existing}) async {
                                   return;
                                 }
                               }
-                              final fs = _normalizePlatformsForFirestore(
+                              final fs = normalizeMetaPlatformsForFirestore(
                                 platforms,
                               );
                               if (fs.isEmpty) {

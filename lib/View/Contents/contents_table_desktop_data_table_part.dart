@@ -826,9 +826,50 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                                         },
                                       );
                                     } else if (value == 2) {
-                                      // Publish — reserved for future implementation.
+                                      final contentType =
+                                          emp.contentType.toLowerCase();
+                                      final dedicated = (contentType
+                                                  .contains('reel')
+                                              ? emp.reelAttachments
+                                              : (contentType.contains('story')
+                                                  ? emp.storyAttachments
+                                                  : emp.postAttachments)) ??
+                                          const <dynamic>[];
+                                      final draft = controller
+                                          .buildMetaDraftFromContent(
+                                            emp,
+                                            schedule: false,
+                                          );
+                                      if (draft != null) {
+                                        showAddPublishDialog(
+                                          initialDraft: draft,
+                                          initialScheduleMode: 'now',
+                                          forceSingleMediaSelection:
+                                              dedicated.length > 1,
+                                        );
+                                      }
                                     } else if (value == 3) {
-                                      // Schedule — reserved for future implementation.
+                                      final contentType =
+                                          emp.contentType.toLowerCase();
+                                      final dedicated = (contentType
+                                                  .contains('reel')
+                                              ? emp.reelAttachments
+                                              : (contentType.contains('story')
+                                                  ? emp.storyAttachments
+                                                  : emp.postAttachments)) ??
+                                          const <dynamic>[];
+                                      final draft = controller
+                                          .buildScheduledMetaDraftFromContent(
+                                            emp,
+                                          );
+                                      if (draft != null) {
+                                        showAddPublishDialog(
+                                          initialDraft: draft,
+                                          initialScheduleMode: 'schedule',
+                                          forceSingleMediaSelection:
+                                              dedicated.length > 1,
+                                        );
+                                      }
                                     }
                                   },
                                   child: Icon(Icons.more_vert),

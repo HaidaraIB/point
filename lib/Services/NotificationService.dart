@@ -142,19 +142,23 @@ class NotificationService {
     required String employeeId,
     required String taskTitle,
     required String newStatus,
+    required String changedBy,
   }) async {
     final label = statusLabelAr(newStatus);
+    final actor =
+        changedBy.trim().isEmpty ? 'notify.unknown_actor'.tr : changedBy.trim();
     await FirestoreServices.sendFcm(
       userId: employeeId,
       title: 'notify.emp.status_changed.title'.tr,
       body: 'notify.emp.status_changed.body'
-          .trParams({'title': taskTitle, 'label': label}),
+          .trParams({'title': taskTitle, 'label': label, 'by': actor}),
       notificationType: 'employee_task_status_changed',
       actionText: 'notify.emp.status_changed.action'.tr,
       referenceId: taskTitle,
       emailDetails: _emailLabels({
         'notify.email.task': taskTitle,
         'notify.email.new_status': label,
+        'notify.email.changed_by': actor,
       }),
     );
   }

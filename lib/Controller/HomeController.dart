@@ -22,10 +22,13 @@ import 'package:point/Services/audio_tab_visibility.dart';
 import 'package:point/Services/ChatAudioFocus.dart';
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
+import 'package:point/Localization/LanguageController.dart';
+import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Services/fcm_token_cache.dart';
 import 'package:point/Services/NotificationService.dart';
 import 'package:point/Services/push_permissions_helper.dart';
 import 'package:point/Services/StorageKeys.dart';
+import 'package:point/Services/meta/meta_media_util.dart';
 import 'package:point/Services/firestore/firestore_task_utils.dart'
     show taskTypeCodeForNormalizedDepartment;
 import 'package:point/Services/firestore/migrations/backfill_employee_departments.dart';
@@ -658,14 +661,72 @@ class HomeController extends GetxController {
     return ok;
   }
 
-  /// Content publish is intentionally disabled for now.
-  Future<bool> publishSelectedContents() async {
-    return false;
+  MetaPostModel? buildMetaDraftFromContent(
+    ContentModel content, {
+    required bool schedule,
+  }) {
+    final linkedClient = clients.firstWhereOrNull((c) => c.id == content.clientId);
+    final pageId = (linkedClient?.metaPageId ?? '').trim();
+    final pageAccessToken = (linkedClient?.metaPageAccessToken ?? '').trim();
+    if (pageId.isEmpty || pageAccessToken.isEmpty) {
+      FunHelper.showSnackbar(
+        'error'.tr,
+        AppLocaleKeys.publishClientMetaPageRequired.tr,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return null;
+    }
+    final contentType = content.contentType.toLowerCase();
+    final bool isReel = contentType.contains('reel');
+    final bool isStory = contentType.contains('story');
+    final List<dynamic>? dedicatedRaw = isReel
+        ? content.reelAttachments
+        : (isStory ? content.storyAttachments : content.postAttachments);
+    String? mediaUrl;
+    for (final file in (dedicatedRaw ?? []).whereType<String>()) {
+      final trimmed = file.trim();
+      if (trimmed.isEmpty) continue;
+      mediaUrl = trimmed;
+      break;
+    }
+    return MetaPostModel(
+      title: content.title,
+      pageId: pageId,
+      pageAccessToken: pageAccessToken,
+      pageName: linkedClient?.metaPageName,
+      instagramUserId: linkedClient?.metaInstagramUserId,
+      instagramUserName: linkedClient?.metaInstagramUserName,
+      postType: isReel ? 'reel' : (isStory ? 'story' : 'feed'),
+      mediaType: mediaUrl == null ? null : publishMediaTypeFromUrl(mediaUrl),
+      mediaUrl: mediaUrl,
+      caption: content.caption,
+      platforms: normalizeMetaPlatformsForFirestore(content.platform),
+      status: schedule ? 'scheduled' : 'queued_now',
+      clientId: content.clientId,
+      createdBy: currentEmployee.value?.id,
+      lang: Get.locale?.languageCode ?? 'ar',
+      scheduledAt: schedule
+          ? content.publishDate?.toUtc()
+          : DateTime.now().toUtc(),
+      createdAt: DateTime.now(),
+    );
   }
 
-  /// Bulk schedule — UI retained; implementation pending.
-  Future<bool> scheduleSelectedContents() async {
-    return false;
+  MetaPostModel? buildScheduledMetaDraftFromContent(ContentModel content) {
+    final publishDate = content.publishDate;
+    if (publishDate == null || publishDate.toUtc().isBefore(DateTime.now().toUtc())) {
+      FunHelper.showSnackbar(
+        'error'.tr,
+        AppLocaleKeys.publishFutureDateRequired.tr,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return null;
+    }
+    return buildMetaDraftFromContent(content, schedule: true);
   }
 
   Future<bool> deleteSelectedContents() async {
@@ -928,6 +989,7 @@ class HomeController extends GetxController {
           employeeId: assigneeId,
           taskTitle: newTask.title,
           newStatus: newTask.status,
+          changedBy: (emp?.name ?? '').trim(),
         );
       }
       if (isUpdateByAssignee) {
@@ -2388,6 +2450,7 @@ class HomeController extends GetxController {
                 role: 'employee',
                 userId: empId.toString(),
               );
+              await LanguageController.syncPersistedLocaleToFirestore();
               break;
             } catch (e) {
               if (attempt == 2) {
@@ -2421,6 +2484,7 @@ class HomeController extends GetxController {
                 role: 'employee',
                 userId: idStr,
               );
+              await LanguageController.syncPersistedLocaleToFirestore();
               appLog('FCM token refreshed for employee $idStr');
               return;
             } catch (e) {

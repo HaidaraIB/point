@@ -523,6 +523,7 @@ service cloud.firestore {
               'activeChatUpdatedAt',
               'name',
               'image',
+              'language',
             ]));
     }
 

@@ -56,6 +56,9 @@ class AppLocaleKeys {
   static const chatSearch = 'chat.search';
   static const chatSearchEmployee = 'chat.search_employee';
   static const chatNoEmployees = 'chat.no_employees';
+  static const chatPickerGroupsSection = 'chat.picker_groups_section';
+  static const chatGroupJoined = 'chat.group_joined';
+  static const chatGroupTapToJoin = 'chat.group_tap_to_join';
   static const chatNoChats = 'chat.no_chats';
   static const chatSelectFromList = 'chat.select_from_list';
   static const chatDepartmentGroup = 'chat.department_group';
@@ -171,6 +174,8 @@ class AppLocaleKeys {
   static const contentDialogOpenLinkFailed = 'content.dialog.open_link_failed';
   static const contentDialogTapToChange = 'content.dialog.tap_to_change';
   static const contentQuickStatus = 'content.quick_status';
+  static const publishClientMetaPageRequired = 'publish.client_meta_page_required';
+  static const publishFutureDateRequired = 'publish.future_date_required';
 
   static const pushTestOpenButton = 'push_test.open_button';
   static const pushTestTitle = 'push_test.title';
@@ -187,6 +192,7 @@ class AppLocaleKeys {
   static const pushTestClearRecipients = 'push_test.clear_recipients';
   static const pushTestSendPush = 'push_test.send_push';
   static const pushTestSendEmail = 'push_test.send_email';
+  static const pushTestUseSupabaseWrapper = 'push_test.use_supabase_wrapper';
   static const pushTestSend = 'push_test.send';
   static const pushTestNoTargetsClosed = 'push_test.no_targets_closed';
   static const pushTestNoRecipients = 'push_test.no_recipients';

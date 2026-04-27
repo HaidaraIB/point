@@ -6,6 +6,7 @@ import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/ClientModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/Services/meta/meta_graph_client.dart';
 import 'package:point/View/Shared/app_date_time_picker.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/ReadOnlyAccountEmailField.dart';
@@ -35,6 +36,11 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
   DateTime? startAt;
   DateTime? endAt;
   bool obscurePassword = true;
+  final RxList<MetaBusinessAsset> _metaAssets = <MetaBusinessAsset>[].obs;
+  final RxString _selectedMetaAssetValue = '__unlink_meta_asset__'.obs;
+  final RxnString _metaLoadError = RxnString();
+  final RxBool _metaLoading = false.obs;
+  static const String _unlinkMetaAssetValue = '__unlink_meta_asset__';
 
   bool get _canEditCredentials {
     final m = widget.model;
@@ -63,6 +69,7 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
     Get.find<HomeController>().uploadedFilesPaths.assignAll(
       m != null && m.image != null ? [m.image!] : [],
     );
+    _loadMetaAssets();
   }
 
   @override
@@ -74,6 +81,38 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
     startDateController.dispose();
     endDateController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadMetaAssets() async {
+    _metaLoading.value = true;
+    try {
+      final settings = await MetaAppSettings.load();
+      if (!mounted) return;
+      if (settings == null) {
+        _metaAssets.clear();
+        _metaLoadError.value = 'Set Meta token in Publish settings';
+        _selectedMetaAssetValue.value = _unlinkMetaAssetValue;
+        return;
+      }
+      final assets = await MetaGraphClient.listBusinessAssets(settings);
+      if (!mounted) return;
+      _metaAssets.assignAll(assets);
+      _metaLoadError.value = null;
+      final linkedPageId = (widget.model?.metaPageId ?? '').trim();
+      if (linkedPageId.isNotEmpty &&
+          assets.any((asset) => asset.pageId == linkedPageId)) {
+        _selectedMetaAssetValue.value = linkedPageId;
+      } else {
+        _selectedMetaAssetValue.value = _unlinkMetaAssetValue;
+      }
+    } catch (_) {
+      if (!mounted) return;
+      _metaAssets.clear();
+      _metaLoadError.value = 'Set Meta token in Publish settings';
+      _selectedMetaAssetValue.value = _unlinkMetaAssetValue;
+    } finally {
+      _metaLoading.value = false;
+    }
   }
 
   Future<void> _pickStartDate() async {
@@ -120,6 +159,9 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
     }
     final controller = Get.find<HomeController>();
     final model = widget.model;
+    final selectedMetaAsset = _metaAssets.firstWhereOrNull(
+      (asset) => asset.pageId == _selectedMetaAssetValue.value,
+    );
 
     if (model == null) {
       final success = await controller.addClient(
@@ -137,6 +179,11 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
           createdAt: DateTime.now(),
           startAt: startAt,
           endAt: endAt,
+          metaPageId: selectedMetaAsset?.pageId,
+          metaPageName: selectedMetaAsset?.pageName,
+          metaPageAccessToken: selectedMetaAsset?.pageAccessToken,
+          metaInstagramUserId: selectedMetaAsset?.instagramUserId,
+          metaInstagramUserName: selectedMetaAsset?.instagramUserName,
         ),
       );
       if (!mounted) return;
@@ -156,6 +203,11 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
           startAt: startAt,
           endAt: endAt,
           description: descController.text,
+          metaPageId: selectedMetaAsset?.pageId,
+          metaPageName: selectedMetaAsset?.pageName,
+          metaPageAccessToken: selectedMetaAsset?.pageAccessToken,
+          metaInstagramUserId: selectedMetaAsset?.instagramUserId,
+          metaInstagramUserName: selectedMetaAsset?.instagramUserName,
         ),
         newPassword:
             !_canEditCredentials || passwordController.text.trim().isEmpty
@@ -308,6 +360,74 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
                     borderRadius: 8,
                     borderColor: Colors.grey.shade300,
                   ),
+                  const SizedBox(height: 16),
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: Text(
+                      'Meta page',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade800,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Obx(() {
+                    if (_metaLoading.value) {
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: LinearProgressIndicator(minHeight: 3),
+                      );
+                    }
+                    if (_metaLoadError.value != null) {
+                      return Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: Text(
+                          _metaLoadError.value!,
+                          style: TextStyle(
+                            color: Colors.orange.shade800,
+                            fontSize: 12,
+                          ),
+                        ),
+                      );
+                    }
+                    return DropdownButtonFormField<String>(
+                      initialValue: _selectedMetaAssetValue.value,
+                      decoration: InputDecoration(
+                        isDense: true,
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                      ),
+                      items: [
+                        const DropdownMenuItem<String>(
+                          value: _unlinkMetaAssetValue,
+                          child: Text('Unlink'),
+                        ),
+                        ..._metaAssets.map(
+                          (asset) => DropdownMenuItem<String>(
+                            value: asset.pageId,
+                            child: Text(
+                              asset.label,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value == null) return;
+                        _selectedMetaAssetValue.value = value;
+                      },
+                    );
+                  }),
                   const SizedBox(height: 16),
                   InputText(
                     onTap: _pickStartDate,

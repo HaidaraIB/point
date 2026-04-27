@@ -45,6 +45,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
   late final TextEditingController fileController;
   late final TextEditingController postAttachmentController;
   late final TextEditingController storyAttachmentController;
+  late final TextEditingController reelAttachmentController;
   late final RxList<dynamic> platforms;
   DateTime? publishDate;
 
@@ -62,8 +63,15 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
     notesController = TextEditingController(text: m?.clientNotes);
     captionController = TextEditingController(text: m?.caption);
     fileController = TextEditingController();
-    postAttachmentController = TextEditingController();
-    storyAttachmentController = TextEditingController();
+    postAttachmentController = TextEditingController(
+      text: (m?.postAttachments ?? []).whereType<String>().join('\n'),
+    );
+    storyAttachmentController = TextEditingController(
+      text: (m?.storyAttachments ?? []).whereType<String>().join('\n'),
+    );
+    reelAttachmentController = TextEditingController(
+      text: (m?.reelAttachments ?? []).whereType<String>().join('\n'),
+    );
     platforms = (m?.platform ?? []).obs;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -92,6 +100,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
     fileController.dispose();
     postAttachmentController.dispose();
     storyAttachmentController.dispose();
+    reelAttachmentController.dispose();
     super.dispose();
   }
 
@@ -197,6 +206,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
     final controller = Get.find<HomeController>();
     final enteredPost = _splitAttachmentInput(postAttachmentController.text);
     final enteredStory = _splitAttachmentInput(storyAttachmentController.text);
+    final enteredReel = _splitAttachmentInput(reelAttachmentController.text);
     final postAttachments = [
       ...?widget.model?.postAttachments,
       ...enteredPost,
@@ -204,6 +214,10 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
     final storyAttachments = [
       ...?widget.model?.storyAttachments,
       ...enteredStory,
+    ].toSet().toList();
+    final reelAttachments = [
+      ...?widget.model?.reelAttachments,
+      ...enteredReel,
     ].toSet().toList();
     final files = [
       ...controller.uploadedFilesPaths,
@@ -234,6 +248,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
           caption: captionController.text,
           postAttachments: postAttachments,
           storyAttachments: storyAttachments,
+          reelAttachments: reelAttachments,
         ),
       );
       if (!mounted) return;
@@ -276,6 +291,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
           caption: captionController.text,
           postAttachments: postAttachments,
           storyAttachments: storyAttachments,
+          reelAttachments: reelAttachments,
         ),
       );
       if (!mounted) return;
@@ -530,6 +546,62 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                       height: 92,
                       fillColor: Colors.white,
                       controller: storyAttachmentController,
+                      validator: (_) => null,
+                      expanded: true,
+                      body: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'content.attachment_field_hint'.tr,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey.shade700,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            MainButton(
+                              width: 132,
+                              borderSize: 5,
+                              height: 34,
+                              fontSize: 11,
+                              title: 'content.attachment_add_from_source'.tr,
+                              backgroundColor: Colors.white,
+                              fontColor: AppColors.primaryfontColor,
+                            ),
+                          ],
+                        ),
+                      ),
+                      borderRadius: 8,
+                      borderColor: Colors.grey.shade300,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  GestureDetector(
+                    onTap:
+                        () => _pickAttachmentFieldWithSource(
+                          reelAttachmentController,
+                        ),
+                    child: InputText(
+                      labelText: 'content.reel_attachment'.tr,
+                      hintText: ''.tr,
+                      enable: false,
+                      height: 92,
+                      fillColor: Colors.white,
+                      controller: reelAttachmentController,
                       validator: (_) => null,
                       expanded: true,
                       body: Container(

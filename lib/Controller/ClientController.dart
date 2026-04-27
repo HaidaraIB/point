@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:point/Utils/app_log.dart';
 import 'package:point/Models/ClientModel.dart';
 import 'package:point/Models/ContentModel.dart';
+import 'package:point/Localization/LanguageController.dart';
 import 'package:point/Services/fcm_token_cache.dart';
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
@@ -199,6 +200,7 @@ class ClientController extends GetxController {
               role: 'client',
               userId: cid,
             );
+            await LanguageController.syncPersistedLocaleToFirestore();
             break;
           } catch (e) {
             if (attempt == 2) {
@@ -229,6 +231,7 @@ class ClientController extends GetxController {
               role: 'client',
               userId: clientId,
             );
+            await LanguageController.syncPersistedLocaleToFirestore();
             appDebugPrint('FCM token refreshed for client $clientId');
             return;
           } catch (e) {

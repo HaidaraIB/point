@@ -21,9 +21,11 @@ import 'package:point/View/Shared/task_status_visuals.dart';
 bool _taskInManagementReview(TaskModel task) {
   final s = FunHelper.canonicalStoredStatus(task.status);
   if (task.type == '0') {
-    return s == StorageKeys.status_promotion_ad_platform_review;
+    return s == StorageKeys.status_promotion_ad_platform_review ||
+        s == StorageKeys.status_awaiting_manager;
   }
-  return s == StorageKeys.status_under_revision;
+  return s == StorageKeys.status_under_revision ||
+      s == StorageKeys.status_awaiting_manager;
 }
 
 class TaskCard extends StatelessWidget {

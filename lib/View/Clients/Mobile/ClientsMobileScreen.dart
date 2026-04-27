@@ -232,6 +232,9 @@ class ClientsMobileScreen extends StatelessWidget {
                             '${'endat'.tr}: ${FunHelper.formatdate(client.endAt) ?? ''}',
                           ),
                           _mobileInfoChip(
+                            '${'publish.page_label'.tr}: ${((client.metaPageName ?? '').trim().isEmpty) ? '--' : client.metaPageName!.trim()}',
+                          ),
+                          _mobileInfoChip(
                             active ? 'common.enable'.tr : 'common.disable'.tr,
                             backgroundColor:
                                 active

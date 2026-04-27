@@ -16,6 +16,7 @@ class ContentModel {
   final String? caption;
   final List<dynamic>? postAttachments;
   final List<dynamic>? storyAttachments;
+  final List<dynamic>? reelAttachments;
 
   ContentModel({
     this.id,
@@ -35,6 +36,7 @@ class ContentModel {
     this.caption,
     this.postAttachments,
     this.storyAttachments,
+    this.reelAttachments,
   });
 
   ContentModel copyWith({
@@ -55,6 +57,7 @@ class ContentModel {
     String? caption,
     List<dynamic>? postAttachments,
     List<dynamic>? storyAttachments,
+    List<dynamic>? reelAttachments,
   }) {
     return ContentModel(
       id: id ?? this.id,
@@ -74,6 +77,7 @@ class ContentModel {
       caption: caption ?? this.caption,
       postAttachments: postAttachments ?? this.postAttachments,
       storyAttachments: storyAttachments ?? this.storyAttachments,
+      reelAttachments: reelAttachments ?? this.reelAttachments,
     );
   }
 
@@ -99,6 +103,7 @@ class ContentModel {
       caption: json['caption'],
       postAttachments: json['postAttachments'],
       storyAttachments: json['storyAttachments'],
+      reelAttachments: json['reelAttachments'],
     );
   }
 
@@ -120,6 +125,7 @@ class ContentModel {
       "caption": caption,
       "postAttachments": postAttachments,
       "storyAttachments": storyAttachments,
+      "reelAttachments": reelAttachments,
     };
   }
 }

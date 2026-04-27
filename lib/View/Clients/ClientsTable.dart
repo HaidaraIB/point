@@ -20,6 +20,7 @@ import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/app_date_time_picker.dart';
 import 'package:point/View/Shared/table_actions_menu_row.dart';
 import 'package:point/Utils/PasswordValidator.dart';
+import 'package:point/Services/meta/meta_graph_client.dart';
 import 'package:uuid/uuid.dart';
 
 bool _canEditClientCredentials(ClientModel? model) {
@@ -171,6 +172,17 @@ class ClientsTable extends StatelessWidget {
                                   DataColumn(
                                     headingRowAlignment:
                                         MainAxisAlignment.center,
+                                    label: Text(
+                                      'publish.page_label'.tr,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.fontColorGrey,
+                                      ),
+                                    ),
+                                  ),
+                                  DataColumn(
+                                    headingRowAlignment:
+                                        MainAxisAlignment.center,
 
                                     label: Text(
                                       'startat'.tr,
@@ -229,6 +241,27 @@ class ClientsTable extends StatelessWidget {
                                                   emp.description ?? '--',
                                                   overflow:
                                                       TextOverflow.ellipsis,
+                                                  textAlign: TextAlign.center,
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.bold,
+                                                    color:
+                                                        AppColors.fontColorGrey,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          DataCell(
+                                            TableCellCenter(
+                                              child: Container(
+                                                constraints: BoxConstraints(
+                                                  maxWidth: 170,
+                                                ),
+                                                child: Text(
+                                                  (emp.metaPageName?.trim().isNotEmpty ?? false)
+                                                      ? emp.metaPageName!
+                                                      : '--',
+                                                  overflow: TextOverflow.ellipsis,
                                                   textAlign: TextAlign.center,
                                                   style: TextStyle(
                                                     fontWeight: FontWeight.bold,
@@ -401,7 +434,7 @@ class ClientsTable extends StatelessWidget {
   }
 }
 
-void showAddEmployeeDialog(BuildContext context, {ClientModel? model}) {
+Future<void> showAddEmployeeDialog(BuildContext context, {ClientModel? model}) async {
   if (Responsive.isMobile(context)) {
     Get.to(() => ClientFormMobilePage(model: model));
     return;
@@ -426,6 +459,30 @@ void showAddEmployeeDialog(BuildContext context, {ClientModel? model}) {
   var _key = GlobalKey<FormState>();
   bool obscurePassword = true;
   final canEditCredentials = _canEditClientCredentials(model);
+  const unlinkMetaAssetValue = '__unlink_meta_asset__';
+  final metaAssets = <MetaBusinessAsset>[];
+  String? metaLoadError;
+  Get.dialog(
+    const Center(child: CircularProgressIndicator()),
+    barrierDismissible: false,
+  );
+  try {
+    final settings = await MetaAppSettings.load();
+    if (settings != null) {
+      metaAssets.addAll(await MetaGraphClient.listBusinessAssets(settings));
+    }
+  } catch (_) {
+    metaLoadError = 'Set Meta token in Publish settings';
+  } finally {
+    if (Get.isDialogOpen == true) Get.back();
+  }
+  final selectedMetaAssetValue = (() {
+    final linkedPageId = (model?.metaPageId ?? '').trim();
+    if (linkedPageId.isEmpty) return unlinkMetaAssetValue;
+    final matched = metaAssets.firstWhereOrNull((a) => a.pageId == linkedPageId);
+    if (matched != null) return matched.pageId;
+    return unlinkMetaAssetValue;
+  })().obs;
   showDialog(
     barrierDismissible: false,
     context: context,
@@ -632,6 +689,72 @@ void showAddEmployeeDialog(BuildContext context, {ClientModel? model}) {
                                   borderRadius: 5,
                                   borderColor: Colors.grey.shade300,
                                 ),
+                                const SizedBox(height: 8),
+                                Align(
+                                  alignment: AlignmentDirectional.centerStart,
+                                  child: Text(
+                                    'Meta page',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey.shade800,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                if (metaLoadError != null)
+                                  Align(
+                                    alignment: AlignmentDirectional.centerStart,
+                                    child: Text(
+                                      metaLoadError,
+                                      style: TextStyle(
+                                        color: Colors.orange.shade800,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  )
+                                else
+                                  Obx(
+                                    () => DropdownButtonFormField<String>(
+                                      initialValue: selectedMetaAssetValue.value,
+                                      decoration: InputDecoration(
+                                        isDense: true,
+                                        filled: true,
+                                        fillColor: Colors.white,
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(5),
+                                          borderSide: BorderSide(
+                                            color: Colors.grey.shade300,
+                                          ),
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(5),
+                                          borderSide: BorderSide(
+                                            color: Colors.grey.shade300,
+                                          ),
+                                        ),
+                                      ),
+                                      items: [
+                                        const DropdownMenuItem<String>(
+                                          value: unlinkMetaAssetValue,
+                                          child: Text('Unlink'),
+                                        ),
+                                        ...metaAssets.map(
+                                          (asset) => DropdownMenuItem<String>(
+                                            value: asset.pageId,
+                                            child: Text(
+                                              asset.label,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                      onChanged: (value) {
+                                        if (value == null) return;
+                                        selectedMetaAssetValue.value = value;
+                                      },
+                                    ),
+                                  ),
                                 Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceEvenly,
@@ -745,6 +868,12 @@ void showAddEmployeeDialog(BuildContext context, {ClientModel? model}) {
                                       onPressed: () {
                                         if (_key.currentState!.validate()) {
                                           if (model == null) {
+                                            final selectedAsset = metaAssets
+                                                .firstWhereOrNull(
+                                                  (a) =>
+                                                      a.pageId ==
+                                                      selectedMetaAssetValue.value,
+                                                );
                                             controller
                                                 .addClient(
                                                   password:
@@ -767,6 +896,19 @@ void showAddEmployeeDialog(BuildContext context, {ClientModel? model}) {
 
                                                     startAt: startAt,
                                                     endAt: endAt,
+                                                    metaPageId:
+                                                        selectedAsset?.pageId,
+                                                    metaPageName:
+                                                        selectedAsset?.pageName,
+                                                    metaPageAccessToken:
+                                                        selectedAsset
+                                                            ?.pageAccessToken,
+                                                    metaInstagramUserId:
+                                                        selectedAsset
+                                                            ?.instagramUserId,
+                                                    metaInstagramUserName:
+                                                        selectedAsset
+                                                            ?.instagramUserName,
                                                   ),
                                                 )
                                                 .then((v) {
@@ -779,6 +921,12 @@ void showAddEmployeeDialog(BuildContext context, {ClientModel? model}) {
                                                   }
                                                 });
                                           } else {
+                                            final selectedAsset = metaAssets
+                                                .firstWhereOrNull(
+                                                  (a) =>
+                                                      a.pageId ==
+                                                      selectedMetaAssetValue.value,
+                                                );
                                             // log(
                                             //   controller
                                             //       .uploadedFilesPaths
@@ -803,6 +951,19 @@ void showAddEmployeeDialog(BuildContext context, {ClientModel? model}) {
                                                     endAt: endAt,
                                                     description:
                                                         desccontroller.text,
+                                                    metaPageId:
+                                                        selectedAsset?.pageId,
+                                                    metaPageName:
+                                                        selectedAsset?.pageName,
+                                                    metaPageAccessToken:
+                                                        selectedAsset
+                                                            ?.pageAccessToken,
+                                                    metaInstagramUserId:
+                                                        selectedAsset
+                                                            ?.instagramUserId,
+                                                    metaInstagramUserName:
+                                                        selectedAsset
+                                                            ?.instagramUserName,
                                                   ),
                                                   newPassword:
                                                       !canEditCredentials ||

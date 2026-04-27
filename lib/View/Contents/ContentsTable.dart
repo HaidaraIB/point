@@ -22,6 +22,7 @@ import 'package:point/View/Contents/Shared/content_attachment_source_input.dart'
 import 'package:point/View/Contents/Shared/content_library_attachment_picker.dart';
 import 'package:point/View/EmployeeDashboard/EmployeeContentDashboard.dart';
 import 'package:point/View/Mobile/ContentStatusCard.dart';
+import 'package:point/View/Publish/publish_add_dialog.dart';
 import 'package:point/View/Shared/CustomHeader.dart';
 import 'package:point/View/Shared/CustomDropDown.dart';
 import 'package:point/View/Shared/InputText.dart';
@@ -93,7 +94,6 @@ Widget _bulkContentActionsControls(
   HomeController controller, {
   required bool expandInParentRow,
 }) {
-  const scheduleAccent = Color(0xFF1565C0);
   return Obx(() {
     final selectedCount = controller.selectedContentIds.length;
     if (selectedCount == 0) return const SizedBox.shrink();
@@ -113,24 +113,6 @@ Widget _bulkContentActionsControls(
               icon: Icons.check_circle_outline_rounded,
               onPressed: () async {
                 await controller.approveSelectedContents();
-              },
-            ),
-            const SizedBox(width: 6),
-            _bulkActionChipButton(
-              label: '${'content.publish_now'.tr} ($selectedCount)',
-              accentColor: AppColors.primary,
-              icon: Icons.publish_rounded,
-              onPressed: () async {
-                await controller.publishSelectedContents();
-              },
-            ),
-            const SizedBox(width: 6),
-            _bulkActionChipButton(
-              label: '${'content.schedule'.tr} ($selectedCount)',
-              accentColor: scheduleAccent,
-              icon: Icons.schedule_rounded,
-              onPressed: () async {
-                await controller.scheduleSelectedContents();
               },
             ),
           ],

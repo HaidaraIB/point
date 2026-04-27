@@ -233,6 +233,43 @@ class FirestoreFcmApi {
         });
   }
 
+  /// Persists UI locale (`ar`|`en`) for scheduled digest push/email localization.
+  static Future<void> setEmployeeLanguage({
+    required String employeeId,
+    required String code,
+  }) async {
+    final cleanedId = employeeId.trim();
+    if (cleanedId.isEmpty) return;
+    if (code != 'ar' && code != 'en') return;
+    try {
+      await FirebaseFirestore.instance
+          .collection('employees')
+          .doc(cleanedId)
+          .update({'language': code});
+    } catch (e, st) {
+      appLog('setEmployeeLanguage failed: $e');
+      appLog('$st');
+    }
+  }
+
+  static Future<void> setClientLanguage({
+    required String clientId,
+    required String code,
+  }) async {
+    final cleanedId = clientId.trim();
+    if (cleanedId.isEmpty) return;
+    if (code != 'ar' && code != 'en') return;
+    try {
+      await FirebaseFirestore.instance
+          .collection('clients')
+          .doc(cleanedId)
+          .update({'language': code});
+    } catch (e, st) {
+      appLog('setClientLanguage failed: $e');
+      appLog('$st');
+    }
+  }
+
   static Future<void> _removeEmployeeFcmToken({
     required String employeeId,
     required String token,
@@ -516,6 +553,7 @@ class FirestoreFcmApi {
     /// يُدمج في حمولة `data` لـ FCM (مثل `chatId` لإشعارات الدردشة).
     Map<String, String>? fcmDataExtras,
     bool sendPush = true,
+    bool useSupabaseTemplateWrapper = false,
     /// إن وُجد يُستخدم كما هو؛ وإلا تُطبَّق [NotificationEmailPolicy] حسب [notificationType].
     bool? sendEmail,
     Set<String>? batchSeenTokens,
@@ -577,7 +615,6 @@ class FirestoreFcmApi {
         // إرسال إيميل حتى عند غياب FCM (من لم يثبت التطبيق أو عطّل الإشعارات يظل يحصل على الإيميل)
         final details = <String, String>{
           'المستلم': recipientName,
-          'معرف المستلم': trimmedUserId,
           if (emailDetails != null) ...emailDetails,
         };
         unawaited(
@@ -585,10 +622,11 @@ class FirestoreFcmApi {
             toEmail: email!,
             title: title,
             body: body,
+            useSupabaseTemplateWrapper: useSupabaseTemplateWrapper,
             recipientLabel: recipientName,
             notificationType: notificationType ?? 'إشعار موظف',
             actionText: actionText,
-            referenceId: referenceId ?? trimmedUserId,
+            referenceId: referenceId,
             details: details,
           ),
         );
@@ -688,6 +726,7 @@ class FirestoreFcmApi {
     Map<String, String>? emailDetails,
     Map<String, String>? fcmDataExtras,
     bool sendPush = true,
+    bool useSupabaseTemplateWrapper = false,
     /// إن وُجد يُستخدم كما هو؛ وإلا تُطبَّق [NotificationEmailPolicy] حسب [notificationType].
     bool? sendEmail,
     Set<String>? batchSeenTokens,
@@ -745,7 +784,6 @@ class FirestoreFcmApi {
       if (sendThisClientEmail) {
         final details = <String, String>{
           'المستلم': recipientName,
-          'معرف المستلم': trimmedUserId,
           if (emailDetails != null) ...emailDetails,
         };
         unawaited(
@@ -753,10 +791,11 @@ class FirestoreFcmApi {
             toEmail: email!,
             title: title,
             body: body,
+            useSupabaseTemplateWrapper: useSupabaseTemplateWrapper,
             recipientLabel: recipientName,
             notificationType: notificationType ?? 'إشعار عميل',
             actionText: actionText,
-            referenceId: referenceId ?? trimmedUserId,
+            referenceId: referenceId,
             details: details,
           ),
         );

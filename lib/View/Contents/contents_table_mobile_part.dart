@@ -405,22 +405,6 @@ Widget _buildMobileContent(
                           expandWidth: true,
                           onPressed: () => controller.approveSelectedContents(),
                         ),
-                        const SizedBox(height: 8),
-                        _bulkActionChipButton(
-                          label: '${'content.publish_now'.tr} ($selected)',
-                          accentColor: AppColors.primary,
-                          icon: Icons.publish_rounded,
-                          expandWidth: true,
-                          onPressed: () => controller.publishSelectedContents(),
-                        ),
-                        const SizedBox(height: 8),
-                        _bulkActionChipButton(
-                          label: '${'content.schedule'.tr} ($selected)',
-                          accentColor: const Color(0xFF1565C0),
-                          icon: Icons.schedule_rounded,
-                          expandWidth: true,
-                          onPressed: () => controller.scheduleSelectedContents(),
-                        ),
                       ],
                       if (canStatus && canDel) const SizedBox(height: 8),
                       if (canDel)

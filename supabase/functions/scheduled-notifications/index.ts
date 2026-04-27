@@ -19,6 +19,7 @@ import {
   buildChatUnreadDigestEmailHtml,
   buildEmailHtml,
   type ChatDigestRow,
+  type EmailLocale,
 } from "../send-notification-email/email-template.ts";
 
 // نطاق يغطي Firestore REST و FCM v1؛ `firebase.messaging` وحدها تسبب 403 على list/query في Firestore.
@@ -727,6 +728,39 @@ function chatIdFromDocumentName(name: string): string {
   return parts[parts.length - 1] ?? "";
 }
 
+/** Firestore `language` on employees/clients — default Arabic to match the app. */
+function normalizeDigestLang(raw: string | null | undefined): EmailLocale {
+  const s = (raw ?? "").trim().toLowerCase();
+  return s === "en" ? "en" : "ar";
+}
+
+const CHAT_UNREAD_DIGEST_COPY: Record<
+  EmailLocale,
+  { pushTitle: string; pushBody: string; emailSubject: string; emailIntro: string }
+> = {
+  ar: {
+    pushTitle: "Point",
+    pushBody: "لديك رسائل غير مقروءة. افتح التطبيق لقراءتها.",
+    emailSubject: "رسائل غير مقروءة — Point Agency",
+    emailIntro: "لديك رسائل لم تُقرأ في المحادثات التالية:",
+  },
+  en: {
+    pushTitle: "Point",
+    pushBody: "You have unread messages. Open the app to read them.",
+    emailSubject: "Unread messages — Point Agency",
+    emailIntro: "You have unread messages in the following chats:",
+  },
+};
+
+function chatUnreadDigestRowPlain(lang: EmailLocale, n: number, label: string): string {
+  const k = Math.max(0, Math.floor(n));
+  if (lang === "en") {
+    return `You have ${k} unread message${k === 1 ? "" : "s"} from ${label}`;
+  }
+  const word = k === 1 ? "رسالة" : k === 2 ? "رسالتان" : "رسائل";
+  return `لديك ${k} ${word} غير مقروءة من ${label}`;
+}
+
 async function getFirestoreDocument(
   accessToken: string,
   firestoreBase: string,
@@ -753,6 +787,8 @@ type ResolvedProfile = {
   fcmTokens: string[];
   /** Where this profile was loaded from (for token invalidation). */
   sourceCollection: "employees" | "clients";
+  /** UI locale from Firestore `language` — `ar`|`en`; default `ar`. */
+  language: EmailLocale;
 };
 
 async function resolveUserProfile(
@@ -779,6 +815,7 @@ async function resolveUserProfile(
     email: getStringField(f, "email"),
     fcmTokens: extractFcmTokensFromFirestoreFields(f),
     sourceCollection,
+    language: normalizeDigestLang(getStringField(f, "language")),
   };
   cache.set(userId, prof);
   return prof;
@@ -901,10 +938,6 @@ async function handleUnreadChatDigest(args: {
   } while (pageToken);
 
   const DIGEST_TYPE = "chat_unread_digest";
-  const pushTitle = "Point";
-  const pushBody = "You have unread messages. Open the app to read them.";
-  const emailSubject = "Unread messages — Point Agency";
-  const emailIntroAr = "لديك رسائل لم تُقرأ في المحادثات التالية:";
 
   for (const [userId, rows] of digestByUser) {
     if (rows.length === 0) continue;
@@ -912,25 +945,31 @@ async function handleUnreadChatDigest(args: {
     if (!me) continue;
     const email = me.email?.trim() || null;
 
+    const lang = me.language;
+    const t = CHAT_UNREAD_DIGEST_COPY[lang];
     const plainLines = [
-      emailIntroAr,
+      t.emailIntro,
       "",
-      ...rows.map((r) => `You have ${r.count} unread message(s) from ${r.label}`),
+      ...rows.map((r) => chatUnreadDigestRowPlain(lang, r.count, r.label)),
     ];
     const plainBody = plainLines.join("\n");
-    const html = buildChatUnreadDigestEmailHtml({ intro: emailIntroAr, rows });
+    const html = buildChatUnreadDigestEmailHtml({
+      intro: t.emailIntro,
+      rows,
+      language: lang,
+    });
 
     if (!email && me.fcmTokens.length === 0) continue;
 
     if (email) {
-      await sendEmailIfPolicyAllows(DIGEST_TYPE, email, emailSubject, plainBody, html);
+      await sendEmailIfPolicyAllows(DIGEST_TYPE, email, t.emailSubject, plainBody, html);
     }
     await sendFcm({
       accessToken,
       fcmUrl,
       tokens: me.fcmTokens,
-      title: pushTitle,
-      body: pushBody,
+      title: t.pushTitle,
+      body: t.pushBody,
       notificationType: DIGEST_TYPE,
       recipientId: userId,
       recipientKind: me.sourceCollection === "clients" ? "client" : "employee",
@@ -1349,10 +1388,10 @@ async function handleTaskReminders({
     if (taskIsEndedForReminders(st)) continue;
     const emp = byEmpId.get(assignedTo);
     const empName = emp?.name ?? assignedTo;
-    const msgBody = `تجاوزت موعد التسليم: ${title} — الموظف: ${empName}`;
+      const msgBody = `المهمة "${title}" متأخرة. الموظف: ${empName}.`;
     for (const id of managers) {
       const m = byEmpId.get(id);
-      await sendEmailIfPolicyAllows("manager_task_overdue", m?.email ?? null, "مهمة متأخرة", msgBody);
+      await sendEmailIfPolicyAllows("manager_task_overdue", m?.email ?? null, "تنبيه مهمة متأخرة", msgBody);
       await sendFcm({
         accessToken,
         fcmUrl,
@@ -1371,8 +1410,8 @@ async function handleTaskReminders({
     const lastEmp = overdueEmpNotified ? new Date(overdueEmpNotified).getTime() : 0;
     const canEmp = !overdueEmpNotified || now.getTime() - lastEmp >= dayMs;
     if (canEmp && emp) {
-      const empTitle = "❌ مهمة متأخرة";
-      const empBody = `تجاوز موعد التسليم: ${title}`;
+      const empTitle = "مهمة متأخرة";
+      const empBody = `انتهى موعد تسليم المهمة "${title}".`;
       await sendEmailIfPolicyAllows("employee_task_overdue", emp.email ?? null, empTitle, empBody);
       await sendFcm({
         accessToken,
@@ -1430,8 +1469,8 @@ async function handleTaskReminders({
 
     // متبقي أكثر من 23 ساعة وأقل أو يساوي 24 ساعة
     if (hoursUntil <= 24 && hoursUntil > 23 && !notified24) {
-      const msgTitle = "⏳ اقتراب موعد التسليم";
-      const msgBody = `بقي وقت قليل — ${title}`;
+      const msgTitle = "اقتراب موعد التسليم";
+      const msgBody = `المهمة "${title}" تقترب من موعد التسليم.`;
       await sendEmailIfPolicyAllows("employee_task_due_soon", emp?.email ?? null, msgTitle, msgBody);
       await sendFcm({
         accessToken,
@@ -1448,8 +1487,8 @@ async function handleTaskReminders({
     }
 
     if (hoursUntil <= 12 && hoursUntil > 11 && !notified12h) {
-      const msgTitle = "⏳ متابعة: المهمة ما زالت بانتظار إجراء";
-      const msgBody = `${title} — يرجى التصرف قبل الموعد.`;
+      const msgTitle = "متابعة المهمة";
+      const msgBody = `المهمة "${title}" ما زالت بانتظار الإجراء.`;
       await sendEmailIfPolicyAllows("employee_task_followup", emp?.email ?? null, msgTitle, msgBody);
       await sendFcm({
         accessToken,
@@ -1466,8 +1505,8 @@ async function handleTaskReminders({
     }
 
     if (hoursUntil <= 6 && hoursUntil > 5 && !notified6) {
-      const msgTitle = "⏳ اقتراب موعد التسليم (6 ساعات)";
-      const msgBody = `بقي وقت قليل — ${title}`;
+      const msgTitle = "اقتراب موعد التسليم (6 ساعات)";
+      const msgBody = `المهمة "${title}" تقترب من الموعد النهائي.`;
       await sendEmailIfPolicyAllows("employee_task_due_soon", emp?.email ?? null, msgTitle, msgBody);
       await sendFcm({
         accessToken,
@@ -1484,7 +1523,7 @@ async function handleTaskReminders({
     }
 
     if (hoursUntil <= 1 && hoursUntil > 1 / 60 && !notified1h) {
-      const msgTitle = "⏳ متبقي حوالي ساعة على التسليم";
+      const msgTitle = "متبقي حوالي ساعة على التسليم";
       const msgBody = title;
       await sendEmailIfPolicyAllows("employee_task_due_soon_1h", emp?.email ?? null, msgTitle, msgBody);
       await sendFcm({
@@ -1532,8 +1571,8 @@ async function handleTaskReminders({
     const startN = getStringField(f, "startReminderNotifiedAt");
     if (hoursSinceIso(startN, now) < 24) continue;
     const emp = byEmpId.get(assignedTo);
-    const msgTitle = "⏰ تذكير بالبدء";
-    const msgBody = `لم تبدأ بعد — ${title}`;
+      const msgTitle = "تذكير بالبدء";
+      const msgBody = `لم يبدأ العمل على "${title}" بعد.`;
     await sendEmailIfPolicyAllows("employee_task_start_reminder", emp?.email ?? null, msgTitle, msgBody);
     await sendFcm({
       accessToken,
@@ -1562,10 +1601,10 @@ async function handleTaskReminders({
     if (hoursSinceIso(mgrN, now) < 24) continue;
     const emp = byEmpId.get(assignedTo);
     const empName = emp?.name ?? assignedTo;
-    const msgBody = `«${title}» — ${empName} لم يبدأ بعد تاريخ البدء.`;
+    const msgBody = `الموظف ${empName} لم يبدأ المهمة "${title}" بعد تاريخ البدء.`;
     for (const id of managers) {
       const m = byEmpId.get(id);
-      await sendEmailIfPolicyAllows("manager_task_no_action", m?.email ?? null, "⚠️ لم يتخذ موظف إجراءً على المهمة", msgBody);
+      await sendEmailIfPolicyAllows("manager_task_no_action", m?.email ?? null, "تنبيه: لا يوجد إجراء على المهمة", msgBody);
       await sendFcm({
         accessToken,
         fcmUrl,
@@ -1613,8 +1652,8 @@ async function handleTaskReminders({
     const np = getStringField(f, "noProgressRemindedAt");
     if (hoursSinceIso(np, now) < 72) continue;
     const emp = byEmpId.get(assignedTo);
-    const msgTitle = "📌 لا يزال بلا تقدم مسجّل";
-    const msgBody = `${title} — سجّل تقدمك.`;
+    const msgTitle = "لا يوجد تقدم مسجّل";
+    const msgBody = `المهمة "${title}" لا تحتوي على تقدم مسجّل بعد.`;
     await sendEmailIfPolicyAllows("employee_task_no_progress_yet", emp?.email ?? null, msgTitle, msgBody);
     await sendFcm({
       accessToken,
@@ -1713,8 +1752,8 @@ async function handleTaskReminders({
 
     const staleN = getStringField(f, "staleUpdateNotifiedAt");
     if (hoursSinceIso(staleN, now) >= 72) {
-      const msgTitle = "📝 تحديث المهمة مطلوب";
-      const msgBody = `لم يُحدَّث «${title}» منذ فترة.`;
+      const msgTitle = "تحديث المهمة مطلوب";
+      const msgBody = `لا يوجد تحديث جديد على "${title}" منذ فترة.`;
       await sendEmailIfPolicyAllows("employee_task_stale_update", emp?.email ?? null, msgTitle, msgBody);
       await sendFcm({
         accessToken,
@@ -1732,10 +1771,10 @@ async function handleTaskReminders({
 
     const stallN = getStringField(f, "managerStalledNotifiedAt");
     if (hoursSinceIso(stallN, now) >= 72) {
-      const msgBody = `لا تسجيل لتقدم جديد على «${title}» (${empName}) منذ فترة.`;
+      const msgBody = `لا يوجد تقدم جديد على "${title}" (${empName}) منذ فترة.`;
       for (const id of managers) {
         const m = byEmpId.get(id);
-        await sendEmailIfPolicyAllows("manager_task_progress_stalled", m?.email ?? null, "⛔ توقف التقدم", msgBody);
+        await sendEmailIfPolicyAllows("manager_task_progress_stalled", m?.email ?? null, "تنبيه توقف التقدم", msgBody);
         await sendFcm({
           accessToken,
           fcmUrl,
@@ -1801,7 +1840,7 @@ async function handleContentPendingOver24h({
     const title = (f?.title?.stringValue as string) ?? "محتوى";
     if (!clientId) continue;
     const client = byClientId.get(clientId);
-    const msgTitle = "لديك محتوى بانتظار المراجعة منذ أكثر من 24 ساعة";
+    const msgTitle = "محتوى بانتظار المراجعة لأكثر من 24 ساعة";
     await sendEmailIfPolicyAllows("client_pending_over_24h", client?.email ?? null, msgTitle, title);
     await sendFcm({
       accessToken,
@@ -1875,7 +1914,7 @@ async function handlePublishReminders({
     const targetId = executor || publishDept[0];
     const target = targetId ? byEmpId.get(targetId) : null;
     if (!targetId || !target) continue;
-    const msgTitle = "تذكير: لديك منشور مجدول سيتم نشره خلال ساعة";
+    const msgTitle = "تذكير نشر خلال ساعة";
     await sendEmailIfPolicyAllows("publish_post_one_hour", target.email ?? null, msgTitle, title);
     await sendFcm({
       accessToken,

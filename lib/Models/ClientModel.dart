@@ -15,6 +15,11 @@ class ClientModel {
   final String? authStatus; // pendingActivation, active, pendingEmailVerification
   final String? fcmToken; // 👈 توكن الإشعارات
   final String? onesignal; // 👈 توكن الإشعارات
+  final String? metaPageId;
+  final String? metaPageName;
+  final String? metaPageAccessToken;
+  final String? metaInstagramUserId;
+  final String? metaInstagramUserName;
   final DateTime createdAt;
 
   ClientModel({
@@ -32,6 +37,11 @@ class ClientModel {
     this.authStatus,
     this.fcmToken,
     this.onesignal,
+    this.metaPageId,
+    this.metaPageName,
+    this.metaPageAccessToken,
+    this.metaInstagramUserId,
+    this.metaInstagramUserName,
     required this.createdAt,
   });
 
@@ -50,6 +60,11 @@ class ClientModel {
     String? authStatus,
     String? fcmToken,
     String? onesignal,
+    String? metaPageId,
+    String? metaPageName,
+    String? metaPageAccessToken,
+    String? metaInstagramUserId,
+    String? metaInstagramUserName,
     DateTime? createdAt,
   }) {
     return ClientModel(
@@ -66,6 +81,11 @@ class ClientModel {
       authUid: authUid ?? this.authUid,
       authStatus: authStatus ?? this.authStatus,
       fcmToken: fcmToken ?? this.fcmToken,
+      metaPageId: metaPageId ?? this.metaPageId,
+      metaPageName: metaPageName ?? this.metaPageName,
+      metaPageAccessToken: metaPageAccessToken ?? this.metaPageAccessToken,
+      metaInstagramUserId: metaInstagramUserId ?? this.metaInstagramUserId,
+      metaInstagramUserName: metaInstagramUserName ?? this.metaInstagramUserName,
       createdAt: createdAt ?? this.createdAt,
       onesignal: onesignal ?? this.onesignal,
     );
@@ -93,6 +113,11 @@ class ClientModel {
       authUid: json['authUid'] as String?,
       authStatus: json['authStatus'] as String?,
       fcmToken: json['fcmToken'] as String?,
+      metaPageId: json['metaPageId'] as String?,
+      metaPageName: json['metaPageName'] as String?,
+      metaPageAccessToken: json['metaPageAccessToken'] as String?,
+      metaInstagramUserId: json['metaInstagramUserId'] as String?,
+      metaInstagramUserName: json['metaInstagramUserName'] as String?,
       createdAt: _parseDateTime(json['createdAt']) ?? DateTime.now(),
       onesignal: json['onesignal'] as String?,
     );
@@ -113,6 +138,11 @@ class ClientModel {
       if (authUid != null) "authUid": authUid,
       if (authStatus != null) "authStatus": authStatus,
       "fcmToken": fcmToken,
+      "metaPageId": metaPageId,
+      "metaPageName": metaPageName,
+      "metaPageAccessToken": metaPageAccessToken,
+      "metaInstagramUserId": metaInstagramUserId,
+      "metaInstagramUserName": metaInstagramUserName,
       "createdAt": createdAt,
       'onesignal': onesignal,
     };

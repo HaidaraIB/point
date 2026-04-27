@@ -75,9 +75,11 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
   bool _taskInManagementReviewWeb(TaskModel t) {
     final s = FunHelper.canonicalStoredStatus(t.status);
     if (t.type == '0') {
-      return s == StorageKeys.status_promotion_ad_platform_review;
+      return s == StorageKeys.status_promotion_ad_platform_review ||
+          s == StorageKeys.status_awaiting_manager;
     }
-    return s == StorageKeys.status_under_revision;
+    return s == StorageKeys.status_under_revision ||
+        s == StorageKeys.status_awaiting_manager;
   }
 
   bool _employeeMayRequestDeadlineExtension(TaskModel t) {

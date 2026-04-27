@@ -7,6 +7,7 @@ import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Services/meta/meta_graph_client.dart';
 import 'package:point/Services/meta/meta_errors.dart';
+import 'package:point/Services/meta/meta_media_util.dart';
 import 'package:point/Utils/ContentPermissions.dart';
 import 'package:point/View/Contents/Shared/content_attachment_source_input.dart';
 import 'package:point/View/Contents/Shared/content_library_attachment_picker.dart';
@@ -18,9 +19,18 @@ import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/t.dart';
 
 class PublishAddMobilePage extends StatefulWidget {
-  const PublishAddMobilePage({super.key, this.initialPost});
+  const PublishAddMobilePage({
+    super.key,
+    this.initialPost,
+    this.initialDraft,
+    this.initialScheduleMode,
+    this.forceSingleMediaSelection = false,
+  });
 
   final MetaPostModel? initialPost;
+  final MetaPostModel? initialDraft;
+  final String? initialScheduleMode;
+  final bool forceSingleMediaSelection;
 
   @override
   State<PublishAddMobilePage> createState() => _PublishAddMobilePageState();
@@ -59,49 +69,6 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
     _titleController.dispose();
     _captionController.dispose();
     super.dispose();
-  }
-
-  List<String> _normalizePlatformsForFirestore(List<dynamic> selectedKeys) {
-    final out = <String>{};
-    for (final s in selectedKeys) {
-      final t = s.toString().toLowerCase();
-      if (t.contains('facebook')) out.add('facebook');
-      if (t.contains('instagram')) out.add('instagram');
-    }
-    return out.toList();
-  }
-
-  String _publishPathLower(String url) => url.split('?').first.toLowerCase();
-
-  String _publishFileKindFromUrl(String url) {
-    final p = _publishPathLower(url);
-    if (p.endsWith('.jpg') ||
-        p.endsWith('.jpeg') ||
-        p.endsWith('.png') ||
-        p.endsWith('.webp') ||
-        p.endsWith('.gif')) {
-      return 'image';
-    }
-    if (p.endsWith('.mp4') ||
-        p.endsWith('.mov') ||
-        p.endsWith('.webm') ||
-        p.endsWith('.m4v') ||
-        p.endsWith('.avi') ||
-        p.endsWith('.mkv')) {
-      return 'video';
-    }
-    return 'unknown';
-  }
-
-  String? _publishMediaTypeFromUrl(String url) {
-    switch (_publishFileKindFromUrl(url)) {
-      case 'image':
-        return 'photo';
-      case 'video':
-        return 'video';
-      default:
-        return null;
-    }
   }
 
   Future<void> _bootstrap() async {
@@ -148,32 +115,33 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
       _assets.assignAll(assets);
       if (assets.isNotEmpty) {
         _selectedAsset.value = assets.first;
-        final existing = widget.initialPost;
-        if (existing != null) {
-          _titleController.text = existing.title;
-          _captionController.text = existing.caption ?? '';
-          _postType.value = existing.postType.trim().isEmpty
+        final seed = widget.initialPost ?? widget.initialDraft;
+        if (seed != null) {
+          _titleController.text = seed.title;
+          _captionController.text = seed.caption ?? '';
+          _postType.value = seed.postType.trim().isEmpty
               ? 'feed'
-              : existing.postType;
-          _scheduleMode.value = existing.status == 'scheduled'
-              ? 'schedule'
-              : 'now';
-          _scheduledAt.value = existing.scheduledAt;
-          final existingMedia = existing.mediaUrl?.trim();
+              : seed.postType;
+          final mode =
+              widget.initialScheduleMode ??
+              (seed.status == 'scheduled' ? 'schedule' : 'now');
+          _scheduleMode.value = mode == 'schedule' ? 'schedule' : 'now';
+          _scheduledAt.value = seed.scheduledAt;
+          final existingMedia = seed.mediaUrl?.trim();
           if (existingMedia != null && existingMedia.isNotEmpty) {
             _controller.uploadedFilesPaths.add(existingMedia);
             _mediaUrl.value = existingMedia;
             _mediaType.value =
-                existing.mediaType ?? _publishMediaTypeFromUrl(existingMedia);
+                seed.mediaType ?? publishMediaTypeFromUrl(existingMedia);
           } else {
-            _mediaType.value = existing.mediaType;
+            _mediaType.value = seed.mediaType;
           }
-          final existingClient = existing.clientId?.trim();
+          final existingClient = seed.clientId?.trim();
           _clientId.value =
               (existingClient != null && existingClient.isNotEmpty)
               ? existingClient
               : _noneClient;
-          final pset = existing.platforms
+          final pset = seed.platforms
               .map((e) => e.toString().toLowerCase())
               .toSet();
           final initialPlatforms = <String>[
@@ -184,7 +152,7 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
             _platforms.assignAll(initialPlatforms);
           }
           for (final a in assets) {
-            if (a.pageId == existing.pageId) {
+            if (a.pageId == seed.pageId) {
               _selectedAsset.value = a;
               break;
             }
@@ -242,7 +210,7 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
     );
     if (url != null && url.isNotEmpty) {
       _mediaUrl.value = url;
-      _mediaType.value = _publishMediaTypeFromUrl(url) ?? 'photo';
+      _mediaType.value = publishMediaTypeFromUrl(url) ?? 'photo';
       _controller.update();
     }
   }
@@ -271,7 +239,7 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
     _controller.uploadedFilesPaths.clear();
     _controller.uploadedFilesPaths.add(url);
     _mediaUrl.value = url;
-    _mediaType.value = _publishMediaTypeFromUrl(url) ?? 'photo';
+    _mediaType.value = publishMediaTypeFromUrl(url) ?? 'photo';
     _controller.update();
   }
 
@@ -283,7 +251,7 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
     }
     final last = _controller.uploadedFilesPaths.last.toString();
     _mediaUrl.value = last;
-    _mediaType.value = _publishMediaTypeFromUrl(last);
+    _mediaType.value = publishMediaTypeFromUrl(last);
   }
 
   Future<void> _pickScheduleDateTime() async {
@@ -305,6 +273,18 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
     if (asset == null) return;
     final title = _titleController.text.trim();
     if (title.isEmpty) return;
+    if (widget.forceSingleMediaSelection &&
+        (_mediaUrl.value == null || _mediaUrl.value!.trim().isEmpty)) {
+      FunHelper.showSnackbarDeduped(
+        'error'.tr,
+        'publish.pick_single_dedicated_media'.tr,
+        dedupeKey: 'publish_pick_single_media',
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
 
     if (_scheduleMode.value == 'schedule') {
       final s = _scheduledAt.value;
@@ -332,7 +312,7 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
       }
     }
 
-    final fs = _normalizePlatformsForFirestore(_platforms);
+    final fs = normalizeMetaPlatformsForFirestore(_platforms);
     if (fs.isEmpty) {
       FunHelper.showSnackbarDeduped(
         'error'.tr,
@@ -572,7 +552,7 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
                           ),
                       itemBuilder: (_, i) {
                         final fileUrl = files[i].toString();
-                        final kind = _publishFileKindFromUrl(fileUrl);
+                        final kind = publishFileKindFromUrl(fileUrl);
                         return Center(
                           child: SizedBox(
                             width: 88,
@@ -696,7 +676,20 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
                           ),
                     ],
                     onChanged: (v) {
-                      if (v != null) _clientId.value = v;
+                      if (v == null) return;
+                      _clientId.value = v;
+                      if (v == _noneClient) return;
+                      final selectedClient = _controller.clients
+                          .firstWhereOrNull((c) => c.id == v);
+                      final linkedPageId =
+                          (selectedClient?.metaPageId ?? '').trim();
+                      if (linkedPageId.isEmpty) return;
+                      final linkedAsset = _assets.firstWhereOrNull(
+                        (a) => a.pageId == linkedPageId,
+                      );
+                      if (linkedAsset != null) {
+                        _selectedAsset.value = linkedAsset;
+                      }
                     },
                   ),
                 ),

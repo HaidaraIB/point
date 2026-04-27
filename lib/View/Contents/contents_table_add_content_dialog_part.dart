@@ -93,8 +93,15 @@ void showAddContentDialog(
   final notesController = TextEditingController(text: model?.clientNotes);
   final captionController = TextEditingController(text: model?.caption);
   final filecontroller = TextEditingController();
-  final postAttachmentController = TextEditingController();
-  final storyAttachmentController = TextEditingController();
+  final postAttachmentController = TextEditingController(
+    text: (model?.postAttachments ?? []).whereType<String>().join('\n'),
+  );
+  final storyAttachmentController = TextEditingController(
+    text: (model?.storyAttachments ?? []).whereType<String>().join('\n'),
+  );
+  final reelAttachmentController = TextEditingController(
+    text: (model?.reelAttachments ?? []).whereType<String>().join('\n'),
+  );
   var submitStatus = StorageKeys.status_under_revision;
   List<String> splitAttachmentInput(String raw) {
     return raw
@@ -581,6 +588,18 @@ void showAddContentDialog(
                                         ),
                                   ),
                                 ),
+                                SizedBox(
+                                  width: (Get.width * 0.7 / 2) - 30,
+                                  child: ContentAttachmentSourceInput(
+                                    labelText: 'content.reel_attachment'.tr,
+                                    bodyHintText: 'dragfile'.tr,
+                                    onTap:
+                                        () => pickAttachmentFieldWithSource(
+                                          context,
+                                          reelAttachmentController,
+                                        ),
+                                  ),
+                                ),
                               ],
                             ),
                             const SizedBox(height: 8),
@@ -616,6 +635,9 @@ void showAddContentDialog(
                                         final enteredStory = splitAttachmentInput(
                                           storyAttachmentController.text,
                                         );
+                                        final enteredReel = splitAttachmentInput(
+                                          reelAttachmentController.text,
+                                        );
                                         final mergedPost = [
                                           ...?(model?.postAttachments),
                                           ...enteredPost,
@@ -623,6 +645,10 @@ void showAddContentDialog(
                                         final mergedStory = [
                                           ...?(model?.storyAttachments),
                                           ...enteredStory,
+                                        ].toSet().toList();
+                                        final mergedReel = [
+                                          ...?(model?.reelAttachments),
+                                          ...enteredReel,
                                         ].toSet().toList();
                                         if (model == null) {
                                           await controller
@@ -659,6 +685,7 @@ void showAddContentDialog(
                                                   caption: captionController.text,
                                                   postAttachments: mergedPost,
                                                   storyAttachments: mergedStory,
+                                                  reelAttachments: mergedReel,
                                                 ),
                                               )
                                               .then((v) async {
@@ -723,6 +750,7 @@ void showAddContentDialog(
                                                   caption: captionController.text,
                                                   postAttachments: mergedPost,
                                                   storyAttachments: mergedStory,
+                                                  reelAttachments: mergedReel,
                                                 ),
                                               )
                                               .then((v) async {

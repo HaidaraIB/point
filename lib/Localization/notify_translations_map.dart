@@ -18,6 +18,9 @@ const Map<String, String> notifyTranslationsEn = {
   'notify.email.reference': 'Reference',
   'notify.email.update_type': 'Update type',
   'notify.email.changed_by': 'Changed by',
+  'notify.email.notification_time': 'Notification time',
+  'notify.email.recipient': 'Recipient',
+  'notify.email.recipient_id': 'Recipient ID',
   'notify.unknown_actor': 'Unknown',
   'notify.email.state_reopened': 'Reopened',
   'notify.emp.assigned.title': 'You have been assigned a new task',
@@ -89,9 +92,11 @@ const Map<String, String> notifyTranslationsEn = {
   'notify.emp.new_comment.title': 'New comment on your task',
   'notify.emp.new_comment.body': '@name added a comment on «@title»',
   'notify.emp.new_comment.action': 'Open the task and read the comment.',
-  'notify.emp.status_changed.title': 'Task status changed',
-  'notify.emp.status_changed.body': '@title — to: @label',
-  'notify.emp.status_changed.action': 'Follow the new task status.',
+  'notify.emp.status_changed.title': 'Task status updated',
+  'notify.emp.status_changed.body':
+      'Task status changed for @title to @label by @by',
+  'notify.emp.status_changed.action':
+      'Open the task to continue based on the latest status.',
   'notify.mgr.received.title':
       'Employee accepted the task; it is now in progress',
   'notify.mgr.received.body': 'Employee: @name — Task: @title',
@@ -253,6 +258,9 @@ const Map<String, String> notifyTranslationsAr = {
   'notify.email.reference': 'المرجع',
   'notify.email.update_type': 'نوع التحديث',
   'notify.email.changed_by': 'تم التغيير بواسطة',
+  'notify.email.notification_time': 'وقت الإشعار',
+  'notify.email.recipient': 'المستلم',
+  'notify.email.recipient_id': 'معرف المستلم',
   'notify.unknown_actor': 'غير معروف',
   'notify.email.state_reopened': 'أعيد فتحها',
   'notify.emp.assigned.title': 'تم تعيينك على مهمة جديدة',
@@ -324,9 +332,11 @@ const Map<String, String> notifyTranslationsAr = {
   'notify.emp.new_comment.title': 'تعليق جديد على مهمتك',
   'notify.emp.new_comment.body': 'أضاف @name تعليقاً على «@title»',
   'notify.emp.new_comment.action': 'افتح المهمة واطّلع على التعليق.',
-  'notify.emp.status_changed.title': 'تم تغيير حالة المهمة',
-  'notify.emp.status_changed.body': '@title — إلى: @label',
-  'notify.emp.status_changed.action': 'يرجى متابعة الحالة الجديدة للمهمة.',
+  'notify.emp.status_changed.title': 'تم تحديث حالة المهمة',
+  'notify.emp.status_changed.body':
+      'تم تغيير حالة المهمة @title إلى @label بواسطة @by',
+  'notify.emp.status_changed.action':
+      'افتح المهمة للمتابعة حسب الحالة الجديدة.',
   'notify.mgr.received.title':
       'تم استلام المهمة من قبل الموظف وهي قيد التنفيذ الآن',
   'notify.mgr.received.body': 'الموظف: @name — المهمة: @title',

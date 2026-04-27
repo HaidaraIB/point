@@ -68,6 +68,18 @@ class FirestoreServices extends FirestoreServicesBase
   }) =>
       FirestoreFcmApi.addClientFcmToken(clientId: clientId, token: token);
 
+  static Future<void> setEmployeeLanguage({
+    required String employeeId,
+    required String code,
+  }) =>
+      FirestoreFcmApi.setEmployeeLanguage(employeeId: employeeId, code: code);
+
+  static Future<void> setClientLanguage({
+    required String clientId,
+    required String code,
+  }) =>
+      FirestoreFcmApi.setClientLanguage(clientId: clientId, code: code);
+
   static Future<void> logClientDiagnosticError({
     required String source,
     required String code,
@@ -161,6 +173,7 @@ class FirestoreServices extends FirestoreServicesBase
     Map<String, String>? emailDetails,
     Map<String, String>? fcmDataExtras,
     bool sendPush = true,
+    bool useSupabaseTemplateWrapper = false,
     bool? sendEmail,
     Set<String>? batchSeenTokens,
     Set<String>? batchSeenEmails,
@@ -175,6 +188,7 @@ class FirestoreServices extends FirestoreServicesBase
         emailDetails: emailDetails,
         fcmDataExtras: fcmDataExtras,
         sendPush: sendPush,
+        useSupabaseTemplateWrapper: useSupabaseTemplateWrapper,
         sendEmail: sendEmail,
         batchSeenTokens: batchSeenTokens,
         batchSeenEmails: batchSeenEmails,
@@ -190,6 +204,7 @@ class FirestoreServices extends FirestoreServicesBase
     Map<String, String>? emailDetails,
     Map<String, String>? fcmDataExtras,
     bool sendPush = true,
+    bool useSupabaseTemplateWrapper = false,
     bool? sendEmail,
     Set<String>? batchSeenTokens,
     Set<String>? batchSeenEmails,
@@ -204,6 +219,7 @@ class FirestoreServices extends FirestoreServicesBase
         emailDetails: emailDetails,
         fcmDataExtras: fcmDataExtras,
         sendPush: sendPush,
+        useSupabaseTemplateWrapper: useSupabaseTemplateWrapper,
         sendEmail: sendEmail,
         batchSeenTokens: batchSeenTokens,
         batchSeenEmails: batchSeenEmails,

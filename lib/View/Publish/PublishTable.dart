@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/MetaPostModel.dart';
+import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/ContentPermissions.dart';
 import 'package:point/View/Publish/publish_add_dialog.dart';
@@ -491,7 +492,16 @@ class PublishTable extends StatelessWidget {
           return;
         }
         if (value == 'delete') {
-          await controller.deleteMetaPost(p.id!);
+          await FunHelper.showConfirmDailog(
+            Get.context!,
+            title: 'publish.delete'.tr,
+            message: 'content.bulk_delete_confirm_title'.tr,
+            confirmText: 'delete'.tr,
+            confirmColor: Colors.red,
+            onTap: () async {
+              await controller.deleteMetaPost(p.id!);
+            },
+          );
         }
       },
       child: compact

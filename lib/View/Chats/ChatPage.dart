@@ -209,6 +209,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   bool get _enableContentInsertion =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
+  bool get _isMobileSoftKeyboardPlatform =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS);
+
   @override
   void initState() {
     super.initState();
@@ -363,8 +368,36 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   KeyEventResult _onComposerKeyEvent(FocusNode node, KeyEvent event) {
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
     final key = event.logicalKey;
+    final isArrowLeft = key == LogicalKeyboardKey.arrowLeft;
+    final isArrowRight = key == LogicalKeyboardKey.arrowRight;
+    if (isArrowLeft || isArrowRight) {
+      final value = _messageController.value;
+      final hasComposingRegion =
+          value.composing.isValid && !value.composing.isCollapsed;
+      final shouldRemapForRtl = shouldUseRtlVisualCaretNavigation(
+        value.text,
+        Directionality.of(context),
+      );
+      if (!hasComposingRegion && shouldRemapForRtl) {
+        final remapped = remapHorizontalArrowForRtlVisual(
+          text: value.text,
+          selection: value.selection,
+          isArrowLeft: isArrowLeft,
+          shiftPressed: composerShiftPressed(),
+          ctrlPressed: composerControlPressed(),
+        );
+        if (remapped != null && remapped != value.selection) {
+          _messageController.selection = remapped;
+          return KeyEventResult.handled;
+        }
+      }
+      return KeyEventResult.ignored;
+    }
+
     final isEnter =
         key == LogicalKeyboardKey.enter ||
         key == LogicalKeyboardKey.numpadEnter;
@@ -527,6 +560,28 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       return List<String>.from(StorageKeys.departmentSlugs);
     }
     return List<String>.from(_currentUserDepts);
+  }
+
+  List<Map<String, dynamic>> _joinableDepartmentGroups() {
+    final slugs = _sidebarDepartmentSlugsForChat();
+    final groups = <Map<String, dynamic>>[];
+    for (final slug in slugs) {
+      final normalized = StorageKeys.normalizeDepartment(slug);
+      if (normalized.isEmpty) continue;
+      final chatId = 'group_$normalized';
+      final existing = _chats.where((c) => c['id'] == chatId);
+      final isJoined = existing.any((c) {
+        final p = List<String>.from(c['participants'] ?? const []);
+        return _currentUserId != null && p.contains(_currentUserId);
+      });
+      groups.add({
+        'id': chatId,
+        'slug': normalized,
+        'title': normalized,
+        'isJoined': isJoined,
+      });
+    }
+    return groups;
   }
 
   Future<void> _createOrLoadDepartmentGroup() async {
@@ -1085,6 +1140,71 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     _syncMessageSoundListener();
   }
 
+  Future<void> _openOrJoinDepartmentGroup(String rawSlug) async {
+    if (_currentUserId == null || _currentUserId == 'temp_current_user') return;
+
+    final slug = StorageKeys.normalizeDepartment(rawSlug);
+    if (slug.isEmpty) return;
+
+    final prevId = _selectedChat?['id'] as String?;
+    if (prevId != null) {
+      await _persistScrollSnapshotForChatId(_currentUserId!, prevId);
+    }
+    _flushScrollDiskTimer();
+
+    final chatId = 'group_$slug';
+    final chatRef = _firestore.collection('chats').doc(chatId);
+    final snap = await chatRef.get();
+    if (!snap.exists) {
+      await chatRef.set({
+        'isGroup': true,
+        'title': slug,
+        'participants': [_currentUserId!],
+        'lastMessage': '',
+        'lastUpdated': FieldValue.serverTimestamp(),
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } else {
+      final participants = List<String>.from(
+        snap.data()?['participants'] ?? [],
+      );
+      if (!participants.contains(_currentUserId)) {
+        await chatRef.update({
+          'participants': [...participants, _currentUserId!],
+          'lastUpdated': FieldValue.serverTimestamp(),
+        });
+      }
+    }
+
+    final chatDoc = await chatRef.get();
+    final chatData = chatDoc.data() ?? {};
+    final openSnap = await ChatScrollPersistence.load(_currentUserId!, chatId);
+    final row = {
+      'id': chatId,
+      'participants': List<String>.from(chatData['participants'] ?? []),
+      'lastMessage': chatData['lastMessage'] ?? '',
+      'lastUpdated': chatData['lastUpdated'],
+      'isGroup': chatData['isGroup'] ?? true,
+      'title': chatData['title'] ?? slug,
+    };
+
+    _selectedChat = Map<String, dynamic>.from(row);
+    Get.find<HomeController>().selectedChat = Map<String, dynamic>.from(row);
+    _syncMessagesStreamWithSelection();
+
+    setState(() {
+      _scrollSnapshotCache.remove(chatId);
+      if (prevId != chatId) {
+        _chatMessageListEpoch++;
+      }
+      _persistedOpenScroll = openSnap;
+      _persistedOpenScrollForChatId = chatId;
+      _scrollFabVisibleLast = null;
+      _scrollUnreadBelowLast = -1;
+    });
+    _syncMessageSoundListener();
+  }
+
   // -----------// إرسال رسالة (نص أو مرفق)
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
@@ -1383,6 +1503,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   Future<void> _showAddChatDialog() async {
     _searchController.clear();
     _filterEmployees('');
+    final groups = _joinableDepartmentGroups();
     await showDialog(
       context: context,
       builder: (ctx) {
@@ -1409,6 +1530,19 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 setStateDialog(() {});
               }
 
+              final qlower = _searchController.text.trim().toLowerCase();
+              final filteredGroups = qlower.isEmpty
+                  ? groups
+                  : groups.where((g) {
+                      final localized = _localizedGroupTitleFromChat(
+                        g,
+                      ).toLowerCase();
+                      final raw = (g['title'] ?? '').toString().toLowerCase();
+                      return localized.contains(qlower) || raw.contains(qlower);
+                    }).toList();
+              final hasItems =
+                  _filteredEmployees.isNotEmpty || filteredGroups.isNotEmpty;
+
               return Container(
                 width: 420,
                 padding: const EdgeInsets.all(12),
@@ -1416,7 +1550,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      AppLocaleKeys.chatPickEmployee.tr,
+                      AppLocaleKeys.chatSearch.tr,
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
@@ -1436,30 +1570,95 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       constraints: BoxConstraints(maxHeight: 360),
                       child: _loadingEmployees
                           ? Center(child: CircularProgressIndicator())
-                          : _filteredEmployees.isEmpty
+                          : !hasItems
                           ? Center(
                               child: Text(AppLocaleKeys.chatNoEmployees.tr),
                             )
-                          : ListView.builder(
-                              itemCount: _filteredEmployees.length,
-                              itemBuilder: (context, idx) {
-                                final emp = _filteredEmployees[idx];
-                                return ListTile(
-                                  leading: CircleAvatar(
-                                    backgroundColor: Colors.grey.shade200,
+                          : ListView(
+                              children: [
+                                if (filteredGroups.isNotEmpty) ...[
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      16,
+                                      6,
+                                      16,
+                                      4,
+                                    ),
                                     child: Text(
-                                      _initialFromName(emp['name']),
-                                      style: TextStyle(color: Colors.black),
+                                      AppLocaleKeys.chatPickerGroupsSection.tr,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.blueGrey.shade700,
+                                      ),
                                     ),
                                   ),
-                                  title: Text(emp['name']),
-                                  subtitle: Text(emp['email'] ?? ''),
-                                  onTap: () async {
-                                    Navigator.of(ctx).pop();
-                                    await _openOrCreateChatWith(emp['id']);
-                                  },
-                                );
-                              },
+                                  ...filteredGroups.map((group) {
+                                    final joined = group['isJoined'] == true;
+                                    final displayName =
+                                        _localizedGroupTitleFromChat(group);
+                                    return ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor:
+                                            Colors.blueGrey.shade100,
+                                        child: const Icon(
+                                          Icons.group,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                      title: Text(displayName),
+                                      subtitle: Text(
+                                        joined
+                                            ? AppLocaleKeys.chatGroupJoined.tr
+                                            : AppLocaleKeys
+                                                  .chatGroupTapToJoin
+                                                  .tr,
+                                      ),
+                                      onTap: () async {
+                                        Navigator.of(ctx).pop();
+                                        await _openOrJoinDepartmentGroup(
+                                          (group['slug'] ?? '')
+                                              .toString()
+                                              .trim(),
+                                        );
+                                      },
+                                    );
+                                  }),
+                                ],
+                                if (_filteredEmployees.isNotEmpty) ...[
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      16,
+                                      10,
+                                      16,
+                                      4,
+                                    ),
+                                    child: Text(
+                                      AppLocaleKeys.chatPickEmployee.tr,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.blueGrey.shade700,
+                                      ),
+                                    ),
+                                  ),
+                                  ..._filteredEmployees.map((emp) {
+                                    return ListTile(
+                                      leading: CircleAvatar(
+                                        backgroundColor: Colors.grey.shade200,
+                                        child: Text(
+                                          _initialFromName(emp['name']),
+                                          style: TextStyle(color: Colors.black),
+                                        ),
+                                      ),
+                                      title: Text(emp['name']),
+                                      subtitle: Text(emp['email'] ?? ''),
+                                      onTap: () async {
+                                        Navigator.of(ctx).pop();
+                                        await _openOrCreateChatWith(emp['id']);
+                                      },
+                                    );
+                                  }),
+                                ],
+                              ],
                             ),
                     ),
                   ],
@@ -2459,6 +2658,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                       keyboardType:
                                                           TextInputType
                                                               .multiline,
+                                                      textInputAction:
+                                                          _isMobileSoftKeyboardPlatform
+                                                          ? TextInputAction
+                                                                .newline
+                                                          : TextInputAction
+                                                                .send,
                                                       readOnly: busy,
                                                       textAlignVertical:
                                                           TextAlignVertical
@@ -2552,32 +2757,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                     onEmojiSelected: (category, emoji) {
                                       _messageController.text += emoji.emoji;
                                     },
-                                    //   config: const Config(
-                                    //     columns: 7,
-                                    //     emojiSizeMax: 32.0,
-                                    //     verticalSpacing: 0,
-                                    //     horizontalSpacing: 0,
-                                    //     gridPadding: EdgeInsets.zero,
-                                    //     initCategory: Category.RECENT,
-                                    //     bgColor: Color(0xFFF2F2F2),
-                                    //     indicatorColor: Colors.blue,
-                                    //     iconColor: Colors.grey,
-                                    //     iconColorSelected: Colors.blue,
-                                    //     backspaceColor: Colors.blue,
-                                    //     skinToneDialogBgColor: Colors.white,
-                                    //     skinToneIndicatorColor: Colors.grey,
-                                    //     enableSkinTones: true,
-                                    //     showRecentsTab: true,
-                                    //     recentsLimit: 28,
-                                    //     noRecents: Text(
-                                    //       'لا توجد رموز حديثة',
-                                    //       textAlign: TextAlign.center,
-                                    //     ),
-                                    //     // textDirection: TextDirection.rtl,
-                                    //     tabIndicatorAnimDuration: kTabScrollDuration,
-                                    //     categoryIcons: CategoryIcons(),
-                                    //     buttonMode: ButtonMode.MATERIAL,
-                                    //   ),
                                   ),
                                 ),
                               ),

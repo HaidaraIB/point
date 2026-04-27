@@ -1,5 +1,6 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:point/Localization/LanguageController.dart';
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -31,6 +32,7 @@ class FcmTokenCache {
   /// إن تغيّر التوكن أثناء إغلاق التطبيق، ارفع النسخة الجديدة.
   static Future<void> resyncIfChanged() async {
     if (kIsWeb) return;
+    await LanguageController.syncPersistedLocaleToFirestore();
     final token = await FirebaseMessaging.instance.getToken();
     if (token == null || token.isEmpty) return;
     final p = await SharedPreferences.getInstance();

@@ -102,6 +102,9 @@ class AppTranslations extends Translations {
       'chat.search': 'Search',
       'chat.search_employee': 'Search by employee name',
       'chat.no_employees': 'No employees found',
+      'chat.picker_groups_section': 'Groups',
+      'chat.group_joined': 'Joined',
+      'chat.group_tap_to_join': 'Tap to join',
       'chat.no_chats': 'No chats yet',
       'chat.select_from_list': 'Select a chat from the list',
       'chat.department_group': 'Department group',
@@ -210,6 +213,7 @@ class AppTranslations extends Translations {
       'push_test.clear_recipients': 'Clear selection',
       'push_test.send_push': 'Send push',
       'push_test.send_email': 'Send email too',
+      'push_test.use_supabase_wrapper': 'Use Supabase email template wrapper',
       'push_test.send': 'Send test',
       'push_test.no_targets_closed':
           'No recipients selected — nothing was sent. Dialog closed.',
@@ -470,6 +474,9 @@ class AppTranslations extends Translations {
       'content.caption_hint': 'Write content caption',
       'content.post_attachment': 'Post attachment',
       'content.story_attachment': 'Story attachment',
+      'content.reel_attachment': 'Reel attachment',
+      'content.attachment_single_only':
+          'Only one attachment is allowed for this field.',
       'content.add_success': 'Content added successfully',
       'content.bulk_delete_confirm_title': 'Delete selected content?',
       'content.bulk_delete_confirm_message':
@@ -526,6 +533,11 @@ class AppTranslations extends Translations {
       'publish.scheduled': 'Scheduled',
       'publish.cancelled': 'Cancelled',
       'publish.cancel_schedule': 'Cancel schedule',
+      'publish.client_meta_page_required':
+          'Link a Meta page in this client details first.',
+      'publish.future_date_required': 'Set a future publish date first.',
+      'publish.pick_single_dedicated_media':
+          'This content has multiple dedicated attachments. Please keep only one in Publish media before saving.',
       'publish.no_pages': 'No Facebook Pages found for this token.',
       'publish.content_select_approved':
           'Select approved content items to publish.',
@@ -1296,6 +1308,9 @@ class AppTranslations extends Translations {
       "chat.search": "ابحث",
       "chat.search_employee": "ابحث باسم الموظف",
       "chat.no_employees": "لا يوجد موظفين",
+      "chat.picker_groups_section": "المجموعات",
+      "chat.group_joined": "منضم",
+      "chat.group_tap_to_join": "اضغط للانضمام",
       "chat.no_chats": "لا توجد محادثات حالياً",
       "chat.select_from_list": "اختر محادثة من القائمة",
       "chat.department_group": "مجموعة القسم",
@@ -1401,6 +1416,7 @@ class AppTranslations extends Translations {
       "push_test.clear_recipients": "مسح التحديد",
       "push_test.send_push": "إرسال Push",
       "push_test.send_email": "إرسال بريد أيضاً",
+      "push_test.use_supabase_wrapper": "استخدام قالب Supabase للبريد",
       "push_test.send": "إرسال تجريبي",
       "push_test.no_targets_closed":
           "لم يُحدد أي مستلم — لم يُرسل شيء. تم إغلاق الحوار.",
@@ -1654,6 +1670,8 @@ class AppTranslations extends Translations {
       "content.caption_hint": "اكتب كابشن المحتوى",
       "content.post_attachment": "مرفق البوست",
       "content.story_attachment": "مرفق الستوري",
+      "content.reel_attachment": "مرفق الريل",
+      "content.attachment_single_only": "مسموح بمرفق واحد فقط لهذا الحقل.",
       "content.add_success": "تمت إضافة المحتوى بنجاح",
       "content.bulk_delete_confirm_title": "حذف المحتوى المحدد؟",
       "content.bulk_delete_confirm_message":
@@ -1711,6 +1729,11 @@ class AppTranslations extends Translations {
       "publish.scheduled": "مجدول",
       "publish.cancelled": "ملغي",
       "publish.cancel_schedule": "إلغاء الجدولة",
+      "publish.client_meta_page_required":
+          "اربط صفحة Meta في تفاصيل هذا العميل أولاً.",
+      "publish.future_date_required": "حدد تاريخ نشر مستقبلي أولاً.",
+      "publish.pick_single_dedicated_media":
+          "هذا المحتوى يحتوي على عدة مرفقات مخصصة. يرجى الإبقاء على مرفق واحد فقط في وسائط النشر قبل الحفظ.",
       "publish.no_pages": "لا توجد صفحات فيسبوك لهذا الرمز.",
       "publish.content_select_approved": "اختر محتوى معتمداً للنشر.",
       "publish.content_map_failed": "تعذر تجهيز الوسائط لـ: @title",

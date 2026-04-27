@@ -143,6 +143,7 @@ Future<void> showPublishMetaSettingsDialog() async {
                     ? 'v25.0'
                     : versionController.text.trim(),
               );
+              MetaGraphClient.clearResponseCache();
               FunHelper.showSnackbar(
                 'common.save'.tr,
                 'publish.settings_saved'.tr,

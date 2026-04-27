@@ -53,6 +53,7 @@ class _PushNotificationTestDialogBodyState
   final Set<String> _clientIds = <String>{};
   bool _sendPush = true;
   bool _sendEmail = false;
+  bool _useSupabaseTemplateWrapper = false;
   bool _sending = false;
 
   @override
@@ -139,9 +140,9 @@ class _PushNotificationTestDialogBodyState
       return;
     }
 
-    final title = '[TEST] ${_selected.notificationType}';
-    final body =
-        'Push test • ${DateTime.now().toIso8601String()} • ${c.effectiveEmployee?.name ?? ''}';
+    final sample = _sampleCopyForType(_selected.notificationType);
+    final title = sample.$1;
+    final body = sample.$2;
 
     setState(() => _sending = true);
     try {
@@ -155,6 +156,7 @@ class _PushNotificationTestDialogBodyState
           notificationType: _selected.notificationType,
           sendPush: _sendPush,
           sendEmail: _sendEmail,
+          useSupabaseTemplateWrapper: _useSupabaseTemplateWrapper,
           batchSeenTokens: batchSeenTokens,
           batchSeenEmails: batchSeenEmails,
         );
@@ -167,6 +169,7 @@ class _PushNotificationTestDialogBodyState
           notificationType: _selected.notificationType,
           sendPush: _sendPush,
           sendEmail: _sendEmail,
+          useSupabaseTemplateWrapper: _useSupabaseTemplateWrapper,
           batchSeenTokens: batchSeenTokens,
           batchSeenEmails: batchSeenEmails,
         );
@@ -188,6 +191,111 @@ class _PushNotificationTestDialogBodyState
     } finally {
       if (mounted) setState(() => _sending = false);
     }
+  }
+
+  (String, String) _sampleCopyForType(String notificationType) {
+    final params = <String, String>{
+      'title': 'مهمة تجريبية',
+      'name': 'الموظف',
+      'label': 'status_task_completed'.tr,
+      'by': 'الموظف',
+      'pct': '50',
+      'client': 'العميل',
+      'platform': 'Instagram',
+      'date': '2026-04-27',
+      'time': '10:00',
+      'ref': 'REF-1001',
+      'dept': 'التصميم',
+      'type': 'محتوى',
+      'supervisor': 'المشرف',
+    };
+
+    final prefixByType = <String, String>{
+      'chat_message': 'notify.emp.new_comment',
+      'chat_unread_digest': 'notify.emp.new_comment',
+      'employee_task_assigned': 'notify.emp.assigned',
+      'employee_task_due_soon': 'notify.emp.due_soon',
+      'employee_task_edit_requested': 'notify.emp.edit_mgmt',
+      'employee_task_rejected': 'notify.emp.rejected',
+      'employee_task_reopened': 'notify.emp.reopened',
+      'employee_task_new_attachments': 'notify.emp.attachments',
+      'employee_task_new_comment': 'notify.emp.new_comment',
+      'employee_task_status_changed': 'notify.emp.status_changed',
+      'employee_task_start_reminder': 'notify.emp.start_reminder',
+      'employee_task_stale_update': 'notify.emp.stale_update',
+      'employee_task_followup': 'notify.emp.followup',
+      'employee_task_overdue': 'notify.emp.overdue',
+      'employee_task_due_soon_1h': 'notify.emp.due_soon_1h',
+      'employee_task_no_progress_yet': 'notify.emp.no_progress_yet',
+      'employee_progress_quarter': 'notify.emp.milestone.on_track',
+      'employee_progress_half': 'notify.emp.milestone.halfway',
+      'employee_progress_three_quarter': 'notify.emp.milestone.near_end',
+      'employee_progress_finished': 'notify.emp.milestone.finished',
+      'employee_progress_reminder_0': 'notify.emp.no_progress_yet',
+      'employee_progress_reminder_25': 'notify.emp.milestone.on_track',
+      'employee_progress_reminder_50': 'notify.emp.milestone.halfway',
+      'employee_progress_reminder_75_a': 'notify.emp.milestone.near_end',
+      'employee_progress_reminder_75_b': 'notify.emp.milestone.near_end',
+      'employee_progress_reminder_100': 'notify.emp.milestone.finished',
+      'manager_task_received': 'notify.mgr.received',
+      'manager_task_completed': 'notify.mgr.completed',
+      'manager_task_edited': 'notify.mgr.edited',
+      'manager_task_comment': 'notify.mgr.edited',
+      'manager_content_submitted_by_client': 'notify.mgr.content_submitted',
+      'manager_task_overdue': 'notify.mgr.overdue',
+      'manager_task_progress_updated': 'notify.mgr.progress_updated',
+      'manager_task_no_action': 'notify.mgr.no_action',
+      'manager_task_progress_stalled': 'notify.mgr.stalled',
+      'manager_new_task_department': 'notify.mgr.new_task_dept',
+      'manager_client_notes': 'notify.mgr.client_notes',
+      'manager_client_approved_content': 'notify.mgr.client_approved',
+      'client_content_pending_approval': 'notify.client.pending',
+      'client_pending_over_24h': 'notify.client.pending_24h',
+      'client_approval_confirmed': 'notify.client.approval_confirmed',
+      'client_edits_done': 'notify.client.edits_done',
+      'client_content_updated': 'notify.client.updated',
+      'client_content_scheduled': 'notify.client.scheduled',
+      'publish_content_added': 'notify.publish.added',
+      'publish_client_edit_request': 'notify.publish.edit_req',
+      'publish_client_approved': 'notify.publish.approved',
+      'publish_client_rejected': 'notify.publish.rejected',
+      'publish_post_one_hour': 'notify.publish.one_hour',
+      'publish_post_not_confirmed_today': 'notify.publish.today_not_confirmed',
+      'publish_no_posts_tomorrow': 'notify.publish.no_posts_tomorrow',
+      'publish_post_published': 'notify.publish.published',
+      'publish_link_added': 'notify.publish.link_added',
+      'publish_notes_after_publish': 'notify.publish.notes_after',
+      'publish_scheduled_cancelled': 'notify.publish.cancelled',
+      'admin_promotion_status_changed': 'notify.admin.promo_changed',
+      'admin_content_status_changed': 'notify.admin.status_changed',
+      'promotion_new_published_content': 'notify.promo.new_published',
+      'broadcast_topic': 'notify.publish.added',
+    };
+
+    final prefix = prefixByType[notificationType];
+    if (prefix != null) {
+      final title = '$prefix.title'.trParams(params);
+      final rawBody = '$prefix.body'.trParams(params);
+      final body =
+          rawBody == '$prefix.body'
+              ? '$prefix.action'.trParams(params)
+              : rawBody;
+      if (title != '$prefix.title') {
+        return (title, body == '$prefix.action' ? _genericBody() : body);
+      }
+    }
+
+    final isArabic = Get.locale?.languageCode.toLowerCase() == 'ar';
+    return isArabic
+        ? ('إشعار جديد', 'لديك تحديث جديد في النظام.')
+        : ('New notification', 'You have a new update in the system.');
+  }
+
+  String _genericBody() {
+    final isArabic = Get.locale?.languageCode.toLowerCase() == 'ar';
+    return isArabic
+        ? 'يرجى فتح التطبيق للاطلاع على التفاصيل.'
+        : 'Open the app to view details.';
   }
 
   @override
@@ -312,34 +420,62 @@ class _PushNotificationTestDialogBodyState
   }
 
   Widget _buildChannelRow() {
-    return Row(
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Expanded(
-          child: CheckboxListTile(
+        Row(
+          children: [
+            Expanded(
+              child: CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _sendPush,
+                onChanged:
+                    _sending ? null : (v) => setState(() => _sendPush = v ?? true),
+                title: Text(
+                  AppLocaleKeys.pushTestSendPush.tr,
+                  style: const TextStyle(fontSize: 13),
+                ),
+                controlAffinity: ListTileControlAffinity.leading,
+              ),
+            ),
+            Expanded(
+              child: CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _sendEmail,
+                onChanged:
+                    _sending
+                        ? null
+                        : (v) => setState(() {
+                          _sendEmail = v ?? false;
+                          if (!_sendEmail) {
+                            _useSupabaseTemplateWrapper = false;
+                          }
+                        }),
+                title: Text(
+                  AppLocaleKeys.pushTestSendEmail.tr,
+                  style: const TextStyle(fontSize: 13),
+                ),
+                controlAffinity: ListTileControlAffinity.leading,
+              ),
+            ),
+          ],
+        ),
+        if (_sendEmail)
+          CheckboxListTile(
             contentPadding: EdgeInsets.zero,
-            value: _sendPush,
+            value: _useSupabaseTemplateWrapper,
             onChanged:
-                _sending ? null : (v) => setState(() => _sendPush = v ?? true),
+                _sending
+                    ? null
+                    : (v) => setState(
+                      () => _useSupabaseTemplateWrapper = v ?? false,
+                    ),
             title: Text(
-              AppLocaleKeys.pushTestSendPush.tr,
+              AppLocaleKeys.pushTestUseSupabaseWrapper.tr,
               style: const TextStyle(fontSize: 13),
             ),
             controlAffinity: ListTileControlAffinity.leading,
           ),
-        ),
-        Expanded(
-          child: CheckboxListTile(
-            contentPadding: EdgeInsets.zero,
-            value: _sendEmail,
-            onChanged:
-                _sending ? null : (v) => setState(() => _sendEmail = v ?? false),
-            title: Text(
-              AppLocaleKeys.pushTestSendEmail.tr,
-              style: const TextStyle(fontSize: 13),
-            ),
-            controlAffinity: ListTileControlAffinity.leading,
-          ),
-        ),
       ],
     );
   }

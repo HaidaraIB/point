@@ -10,6 +10,7 @@ import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/ContentPermissions.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Contents/Mobile/ContentFormMobilePage.dart';
+import 'package:point/View/Publish/publish_add_dialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
 
@@ -340,7 +341,43 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
               },
               onSelected: (v) {
                 if (v == 0) _openEdit(hc, emp);
-                // Publish (1) and schedule (2): reserved for future implementation.
+                if (v == 1) {
+                  final contentType = _task.contentType.toLowerCase();
+                  final dedicated = (contentType.contains('reel')
+                          ? _task.reelAttachments
+                          : (contentType.contains('story')
+                              ? _task.storyAttachments
+                              : _task.postAttachments)) ??
+                      const <dynamic>[];
+                  final draft = hc.buildMetaDraftFromContent(
+                    _task,
+                    schedule: false,
+                  );
+                  if (draft != null) {
+                    showAddPublishDialog(
+                      initialDraft: draft,
+                      initialScheduleMode: 'now',
+                      forceSingleMediaSelection: dedicated.length > 1,
+                    );
+                  }
+                }
+                if (v == 2) {
+                  final contentType = _task.contentType.toLowerCase();
+                  final dedicated = (contentType.contains('reel')
+                          ? _task.reelAttachments
+                          : (contentType.contains('story')
+                              ? _task.storyAttachments
+                              : _task.postAttachments)) ??
+                      const <dynamic>[];
+                  final draft = hc.buildScheduledMetaDraftFromContent(_task);
+                  if (draft != null) {
+                    showAddPublishDialog(
+                      initialDraft: draft,
+                      initialScheduleMode: 'schedule',
+                      forceSingleMediaSelection: dedicated.length > 1,
+                    );
+                  }
+                }
                 if (v == 3) _confirmDelete(hc);
               },
             ),

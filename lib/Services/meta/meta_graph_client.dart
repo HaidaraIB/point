@@ -96,16 +96,31 @@ class MetaGraphClient {
   MetaGraphClient(this.settings);
 
   final MetaAppSettings settings;
+  static final Map<String, _MetaCachedResponse> _responseCache = {};
+  static const Duration _defaultCacheTtl = Duration(minutes: 5);
 
   String get _base => 'https://graph.facebook.com/${settings.graphVersion}';
+
+  static void clearResponseCache() {
+    _responseCache.clear();
+  }
 
   /// GET [path] starting with `/`, e.g. `/me/accounts`.
   Future<Map<String, dynamic>> get(
     String path, {
     Map<String, String>? query,
     String? accessToken,
+    Duration cacheTtl = _defaultCacheTtl,
+    bool useCache = true,
   }) {
-    return _request('GET', path, query: query, accessToken: accessToken);
+    return _request(
+      'GET',
+      path,
+      query: query,
+      accessToken: accessToken,
+      cacheTtl: cacheTtl,
+      useCache: useCache,
+    );
   }
 
   /// POST application/x-www-form-urlencoded (default Graph style).
@@ -175,11 +190,25 @@ class MetaGraphClient {
     String path, {
     Map<String, String>? query,
     String? accessToken,
+    Duration cacheTtl = _defaultCacheTtl,
+    bool useCache = false,
   }) async {
     final token = accessToken ?? settings.accessToken;
     final q = <String, String>{'access_token': token, ...?query};
     final uri = Uri.parse('$_base${path.startsWith('/') ? path : '/$path'}')
         .replace(queryParameters: q);
+    final shouldUseCache = method == 'GET' && useCache;
+    final cacheKey = shouldUseCache ? '$method|$uri' : null;
+    if (shouldUseCache && cacheKey != null) {
+      final cached = _responseCache[cacheKey];
+      if (cached != null && DateTime.now().isBefore(cached.expiresAt)) {
+        appLog(
+          'MetaGraph cache HIT ${uri.replace(queryParameters: {...q, 'access_token': '<redacted>'})}',
+        );
+        return Map<String, dynamic>.from(cached.body);
+      }
+      _responseCache.remove(cacheKey);
+    }
     appLog('MetaGraph $method ${uri.replace(queryParameters: {...q, 'access_token': '<redacted>'})}');
     // Graph accepts POST params on query string (matches python-telegram-bot aiohttp usage).
     final resp = method == 'GET' ? await http.get(uri) : await http.post(uri);
@@ -199,6 +228,12 @@ class MetaGraphClient {
     if (jsonBody == null) {
       throw MetaPublishUserError('meta_err_graph', {'detail': resp.body});
     }
+    if (shouldUseCache && cacheKey != null) {
+      _responseCache[cacheKey] = _MetaCachedResponse(
+        body: Map<String, dynamic>.from(jsonBody),
+        expiresAt: DateTime.now().add(cacheTtl),
+      );
+    }
     return jsonBody;
   }
 
@@ -211,6 +246,7 @@ class MetaGraphClient {
       query: {
         'fields': 'id,name,access_token,instagram_business_account{id,username}',
       },
+      useCache: true,
     );
     final data = body['data'];
     if (data is! List) return [];
@@ -220,4 +256,11 @@ class MetaGraphClient {
         .where((a) => a.pageId.isNotEmpty && a.pageAccessToken.isNotEmpty)
         .toList();
   }
+}
+
+class _MetaCachedResponse {
+  const _MetaCachedResponse({required this.body, required this.expiresAt});
+
+  final Map<String, dynamic> body;
+  final DateTime expiresAt;
 }

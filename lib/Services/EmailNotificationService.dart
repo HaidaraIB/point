@@ -105,6 +105,7 @@ class EmailNotificationService {
     required String toEmail,
     required String title,
     required String body,
+    bool useSupabaseTemplateWrapper = false,
     String? recipientLabel,
     String? notificationType,
     String? actionText,
@@ -113,12 +114,15 @@ class EmailNotificationService {
     DateTime? sentAt,
   }) async {
     try {
+      final locale = _resolveLocale(
+        '$title\n$body\n${(details ?? const <String, String>{}).entries.map((e) => '${e.key} ${e.value}').join(' ')}',
+      );
       final safeDetails = <String, String>{
         if (details != null) ...details,
         if (notificationType != null && notificationType.trim().isNotEmpty)
-          'نوع الإشعار': notificationType.trim(),
+          locale == 'ar' ? 'نوع الإشعار' : 'Notification type': notificationType.trim(),
         if (referenceId != null && referenceId.trim().isNotEmpty)
-          'المرجع': referenceId.trim(),
+          locale == 'ar' ? 'المرجع' : 'Reference': referenceId.trim(),
       };
 
       final html = _buildHtmlTemplate(
@@ -130,7 +134,18 @@ class EmailNotificationService {
         sentAt: sentAt ?? DateTime.now(),
       );
 
-      await send(toEmail: toEmail, subject: title, body: html, isHtml: true);
+      if (useSupabaseTemplateWrapper) {
+        final wrapperBody = _buildWrapperFriendlyBody(
+          body: body,
+          details: safeDetails,
+          actionText: actionText,
+          sentAt: sentAt ?? DateTime.now(),
+          locale: locale,
+        );
+        await send(toEmail: toEmail, subject: title, body: wrapperBody, isHtml: false);
+      } else {
+        await send(toEmail: toEmail, subject: title, body: html, isHtml: true);
+      }
     } catch (e, st) {
       appLog("❌ EmailNotificationService sendDetailedNotification error: $e");
       appLog("$st");
@@ -149,12 +164,15 @@ class EmailNotificationService {
     Map<String, String>? details,
     DateTime? sentAt,
   }) {
+    final locale = _resolveLocale(
+      '$title\n$body\n${(details ?? const <String, String>{}).entries.map((e) => '${e.key} ${e.value}').join(' ')}',
+    );
     final safeDetails = <String, String>{
       if (details != null) ...details,
       if (notificationType != null && notificationType.trim().isNotEmpty)
-        'نوع الإشعار': notificationType.trim(),
+        locale == 'ar' ? 'نوع الإشعار' : 'Notification type': notificationType.trim(),
       if (referenceId != null && referenceId.trim().isNotEmpty)
-        'المرجع': referenceId.trim(),
+        locale == 'ar' ? 'المرجع' : 'Reference': referenceId.trim(),
     };
     return _buildHtmlTemplate(
       title: title,
@@ -283,19 +301,29 @@ class EmailNotificationService {
     String? actionText,
     Map<String, String>? details,
   }) {
-    final summary = _escapeHtml(body);
+    final locale = _resolveLocale(
+      '$title\n$body\n${(details ?? const <String, String>{}).keys.join(' ')}',
+    );
+    final isArabic = locale == 'ar';
+    final align = isArabic ? 'right' : 'left';
+    final dir = isArabic ? 'rtl' : 'ltr';
     final safeTitle = _escapeHtml(title);
     final safeRecipient = _escapeHtml(
       recipientLabel == null || recipientLabel.trim().isEmpty
-          ? 'مستخدم النظام'
+          ? (isArabic ? 'مستخدم النظام' : 'System user')
           : recipientLabel.trim(),
     );
     final safeAction = _escapeHtml(
       actionText == null || actionText.trim().isEmpty
-          ? 'يرجى مراجعة النظام للاطلاع على التفاصيل الكاملة.'
+          ? (isArabic
+              ? 'افتح التطبيق للاطلاع على التفاصيل الكاملة.'
+              : 'Open the app for full details.')
           : actionText.trim(),
     );
     final sentAtText = _escapeHtml(_formatDateTime(sentAt));
+    final conciseSummary = _escapeHtml(
+      _composeConciseSummary(body: body, details: details, isArabic: isArabic),
+    );
 
     final detailRows =
         (details ?? const <String, String>{})
@@ -303,7 +331,7 @@ class EmailNotificationService {
             .where((e) => e.key.trim().isNotEmpty && e.value.trim().isNotEmpty)
             .map(
               (e) =>
-                  '<tr><td style="padding:8px 10px;border:1px solid #e5e7eb;background:#f9fafb;font-weight:600;">${_escapeHtml(e.key)}</td><td style="padding:8px 10px;border:1px solid #e5e7eb;">${_escapeHtml(e.value)}</td></tr>',
+                  '<tr><td style="padding:9px 12px;border:1px solid #E6E8EC;background:#FAFAFC;font-weight:600;color:#4b5563;">${_escapeHtml(e.key)}</td><td style="padding:9px 12px;border:1px solid #E6E8EC;color:#111827;">${_escapeHtml(e.value)}</td></tr>',
             )
             .join();
 
@@ -311,7 +339,7 @@ class EmailNotificationService {
         detailRows.isEmpty
             ? ''
             : '''
-      <h3 style="margin:20px 0 8px;color:#111827;font-size:16px;">تفاصيل الإشعار</h3>
+      <h3 style="margin:20px 0 10px;color:#111827;font-size:15px;">${isArabic ? 'تفاصيل سريعة' : 'Quick details'}</h3>
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;font-size:14px;color:#1f2937;">
         $detailRows
       </table>
@@ -319,45 +347,47 @@ class EmailNotificationService {
 
     return '''
 <!doctype html>
-<html lang="ar" dir="rtl">
+<html lang="$locale" dir="$dir">
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>$safeTitle</title>
   </head>
-  <body style="margin:0;padding:0;background:#f3f4f6;font-family:Tahoma,Arial,sans-serif;color:#111827;">
+  <body style="margin:0;padding:0;background:#F2F3F5;font-family:'Segoe UI',Tahoma,Arial,sans-serif;color:#111827;">
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:24px 12px;">
       <tr>
         <td align="center">
-          <table role="presentation" width="640" cellspacing="0" cellpadding="0" style="max-width:640px;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;">
+          <table role="presentation" width="640" cellspacing="0" cellpadding="0" style="max-width:640px;background:#ffffff;border:1px solid #E6E8EC;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(16,24,40,0.06);">
             <tr>
-              <td style="background:#111827;color:#ffffff;padding:18px 20px;font-size:20px;font-weight:700;">
-                $safeTitle
+              <td style="background:linear-gradient(135deg,#6736AE 0%,#552A8E 100%);color:#ffffff;padding:20px 22px;text-align:$align;">
+                <p style="margin:0;font-size:20px;font-weight:700;">Point Agency</p>
+                <p style="margin:6px 0 0;font-size:13px;opacity:0.92;">${isArabic ? 'إشعار من التطبيق' : 'App notification'}</p>
               </td>
             </tr>
             <tr>
-              <td style="padding:20px;">
-                <p style="margin:0 0 10px;font-size:14px;color:#374151;">مرحباً $safeRecipient،</p>
-                <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#111827;">$summary</p>
+              <td style="padding:22px;text-align:$align;">
+                <p style="margin:0 0 12px;font-size:14px;color:#4B5563;">${isArabic ? 'مرحباً' : 'Hello'} $safeRecipient،</p>
+                <h2 style="margin:0 0 10px;font-size:20px;line-height:1.35;color:#111827;">$safeTitle</h2>
+                <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#111827;">$conciseSummary</p>
 
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #e5e7eb;border-radius:8px;background:#f9fafb;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #E6E8EC;border-radius:10px;background:#FAFAFC;">
                   <tr>
-                    <td style="padding:12px 14px;font-size:13px;color:#4b5563;">
-                      <strong>وقت الإشعار:</strong> $sentAtText
+                    <td style="padding:12px 14px;font-size:13px;color:#4b5563;text-align:$align;">
+                      <strong>${isArabic ? 'وقت الإشعار' : 'Notification time'}:</strong> $sentAtText
                     </td>
                   </tr>
                 </table>
 
                 $detailsSection
 
-                <p style="margin:18px 0 0;font-size:14px;color:#111827;line-height:1.7;">
-                  <strong>الإجراء المقترح:</strong> $safeAction
+                <p style="margin:16px 0 0;padding:12px 14px;background:#F8F5FD;border-radius:10px;font-size:14px;color:#111827;line-height:1.7;">
+                  <strong>${isArabic ? 'الإجراء' : 'Action'}:</strong> $safeAction
                 </p>
               </td>
             </tr>
             <tr>
-              <td style="padding:14px 20px;background:#f9fafb;border-top:1px solid #e5e7eb;color:#6b7280;font-size:12px;">
-                تم إرسال هذا الإشعار تلقائياً من نظام $_systemName.
+              <td style="padding:14px 20px;background:#FAFAFC;border-top:1px solid #E6E8EC;color:#6b7280;font-size:12px;text-align:$align;">
+                ${isArabic ? 'تم إرسال هذا الإشعار تلقائياً من نظام $_systemName.' : 'This notification was sent automatically from $_systemName.'}
               </td>
             </tr>
           </table>
@@ -367,6 +397,99 @@ class EmailNotificationService {
   </body>
 </html>
 ''';
+  }
+
+  static String _composeConciseSummary({
+    required String body,
+    required Map<String, String>? details,
+    required bool isArabic,
+  }) {
+    final source = details ?? const <String, String>{};
+    final task = _findDetailValue(source, const [
+      'المهمة',
+      'عنوان المهمة',
+      'Task',
+      'Task title',
+    ]);
+    final status = _findDetailValue(source, const [
+      'الحالة الجديدة',
+      'الحالة',
+      'New status',
+      'Status',
+    ]);
+    final actor = _findDetailValue(source, const [
+      'تم التغيير بواسطة',
+      'الموظف',
+      'Changed by',
+      'Employee',
+    ]);
+
+    if (task != null && status != null) {
+      if (isArabic) {
+        final actorPart = actor == null ? '' : ' من قبل $actor';
+        return 'تم تغيير حالة المهمة $task إلى $status$actorPart.';
+      }
+      final actorPart = actor == null ? '' : ' by $actor';
+      return 'Task status changed for $task to $status$actorPart.';
+    }
+
+    return body.trim().isEmpty
+        ? (isArabic ? 'لديك تحديث جديد.' : 'You have a new update.')
+        : body.trim();
+  }
+
+  static String? _findDetailValue(Map<String, String> details, List<String> keys) {
+    for (final key in keys) {
+      final value = details[key];
+      if (value != null && value.trim().isNotEmpty) {
+        return value.trim();
+      }
+    }
+    return null;
+  }
+
+  static String _resolveLocale(String text) {
+    return RegExp(r'[\u0600-\u06FF]').hasMatch(text) ? 'ar' : 'en';
+  }
+
+  static String _buildWrapperFriendlyBody({
+    required String body,
+    required Map<String, String> details,
+    required DateTime sentAt,
+    required String locale,
+    String? actionText,
+  }) {
+    final isArabic = locale == 'ar';
+    final lines = <String>[];
+    lines.add(
+      isArabic ? 'لديك إشعار جديد من النظام.' : 'You have a new notification from the system.',
+    );
+    final cleanBody = body.trim();
+    if (cleanBody.isNotEmpty) {
+      lines.add(cleanBody);
+    }
+    lines.add('');
+    if (details.isNotEmpty) {
+      for (final e in details.entries) {
+        final key = e.key.trim();
+        final value = e.value.trim();
+        if (key.isEmpty || value.isEmpty) continue;
+        lines.add('$key: $value');
+      }
+      lines.add('');
+    }
+    lines.add(
+      isArabic
+          ? 'وقت الإشعار: ${_formatDateTime(sentAt)}'
+          : 'Notification time: ${_formatDateTime(sentAt)}',
+    );
+    final cleanAction = actionText?.trim() ?? '';
+    if (cleanAction.isNotEmpty) {
+      lines.add(
+        isArabic ? 'الإجراء: $cleanAction' : 'Action: $cleanAction',
+      );
+    }
+    return lines.join('\n').trim();
   }
 
   static String _formatDateTime(DateTime dt) {
