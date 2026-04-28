@@ -435,6 +435,16 @@ function apnsExpirationHeaderValue(): string {
   return String(Math.floor(Date.now() / 1000) + FCM_NOTIFICATION_TTL_SEC);
 }
 
+/** Android: same `tag` replaces the previous notification in the shade (per-chat merge). */
+function androidChatCollapseTagFromData(data: Record<string, string>): string | undefined {
+  const t = (data.notificationType ?? "").trim();
+  if (t !== "chat_message") return undefined;
+  const cid = (data.chatId ?? "").trim();
+  if (!cid) return undefined;
+  const raw = `point_chat_${cid}`;
+  return raw.length <= 64 ? raw : raw.slice(0, 64);
+}
+
 /**
  * جذر `notification` يحسّن التسليم على Android/iOS عند إغلاق التطبيق؛ الويب يبقى عبر
  * `webpush.notification` + tag لتقليل الازدواجية.
@@ -462,6 +472,16 @@ function buildFcmV1NotificationMessage(args: {
     "apns-expiration": apnsExpirationHeaderValue(),
   };
 
+  const androidCollapseTag = androidChatCollapseTagFromData(args.dataPayload);
+  const androidNotification: Record<string, unknown> = {
+    title: args.title,
+    body: args.body,
+    ...androidExtra,
+  };
+  if (androidCollapseTag) {
+    androidNotification.tag = androidCollapseTag;
+  }
+
   const msg: Record<string, unknown> = {
     ...(args.token ? { token: args.token } : {}),
     ...(args.topic ? { topic: args.topic } : {}),
@@ -472,11 +492,7 @@ function buildFcmV1NotificationMessage(args: {
     android: {
       priority: "high",
       ttl: `${FCM_NOTIFICATION_TTL_SEC}s`,
-      notification: {
-        title: args.title,
-        body: args.body,
-        ...androidExtra,
-      },
+      notification: androidNotification,
     },
     apns: {
       headers: apnsHeaders,

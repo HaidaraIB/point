@@ -50,20 +50,10 @@ Future<DateTime?> pickAppDateTime(
           ),
         ),
         actions: [
-          SizedBox(
-            width: 160,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _kAppPickerPrimary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 48,
-                  vertical: 20,
-                ),
-              ),
-              onPressed: () async {
+          _AppPickerDialogActionsRow(
+            confirmLabel: 'common.confirm'.tr,
+            cancelLabel: 'common.cancel'.tr,
+            onConfirm: () async {
                 final pickedTime = await showDialog<TimeOfDay>(
                   context: dialogContext,
                   builder: (timeContext) {
@@ -81,48 +71,18 @@ Future<DateTime?> pickAppDateTime(
                         ),
                       ),
                       actions: [
-                        SizedBox(
-                          width: 160,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _kAppPickerPrimary,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(24),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 48,
-                                vertical: 20,
-                              ),
-                            ),
-                            onPressed: () {
-                              timePanelKey.currentState?.commitFieldEdits();
-                              final tod =
-                                  timePanelKey.currentState?.currentTimeOfDay();
-                              if (tod != null) {
-                                Navigator.pop(timeContext, tod);
-                              }
-                            },
-                            child: Text(
-                              'common.confirm'.tr,
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                          ),
-                        ),
-                        SizedBox(
-                          width: 160,
-                          child: OutlinedButton(
-                            style: OutlinedButton.styleFrom(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(24),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 32,
-                                vertical: 20,
-                              ),
-                            ),
-                            onPressed: () => Navigator.pop(timeContext),
-                            child: Text('common.cancel'.tr),
-                          ),
+                        _AppPickerDialogActionsRow(
+                          confirmLabel: 'common.confirm'.tr,
+                          cancelLabel: 'common.cancel'.tr,
+                          onConfirm: () {
+                            timePanelKey.currentState?.commitFieldEdits();
+                            final tod =
+                                timePanelKey.currentState?.currentTimeOfDay();
+                            if (tod != null) {
+                              Navigator.pop(timeContext, tod);
+                            }
+                          },
+                          onCancel: () => Navigator.pop(timeContext),
                         ),
                       ],
                     );
@@ -142,24 +102,7 @@ Future<DateTime?> pickAppDateTime(
                   Navigator.pop(dialogContext, result);
                 }
               },
-              child: Text(
-                'common.confirm'.tr,
-                style: const TextStyle(color: Colors.white),
-              ),
-            ),
-          ),
-          SizedBox(
-            width: 160,
-            child: OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
-              ),
-              onPressed: () => Navigator.pop(dialogContext),
-              child: Text('common.cancel'.tr),
-            ),
+            onCancel: () => Navigator.pop(dialogContext),
           ),
         ],
       );
@@ -167,6 +110,58 @@ Future<DateTime?> pickAppDateTime(
   );
 
   return picked;
+}
+
+/// Single action row so [AlertDialog] does not stack wide [SizedBox] children vertically.
+class _AppPickerDialogActionsRow extends StatelessWidget {
+  const _AppPickerDialogActionsRow({
+    required this.confirmLabel,
+    required this.cancelLabel,
+    required this.onConfirm,
+    required this.onCancel,
+  });
+
+  final String confirmLabel;
+  final String cancelLabel;
+  final VoidCallback onConfirm;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            ),
+            onPressed: onCancel,
+            child: Text(cancelLabel),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _kAppPickerPrimary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            ),
+            onPressed: onConfirm,
+            child: Text(
+              confirmLabel,
+              style: const TextStyle(color: Colors.white),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 int _hour12From24Hour(int h24) {
@@ -344,34 +339,38 @@ class _AppTimePickerPanelState extends State<_AppTimePickerPanel> {
         ValueListenableBuilder<int>(
           valueListenable: _wheelUiTick,
           builder: (context, _, __) {
-            return Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                SizedBox(
-                  width: 72,
-                  child: TextField(
-                    controller: _hourController,
-                    keyboardType: TextInputType.number,
-                    textAlign: TextAlign.center,
-                    maxLength: 2,
-                    decoration: InputDecoration(
-                      counterText: '',
-                      labelText:
-                          MaterialLocalizations.of(context).timePickerHourLabel,
-                      isDense: true,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
+            return FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.center,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 72,
+                    child: TextField(
+                      controller: _hourController,
+                      keyboardType: TextInputType.number,
+                      textAlign: TextAlign.center,
+                      maxLength: 2,
+                      decoration: InputDecoration(
+                        counterText: '',
+                        labelText: MaterialLocalizations.of(context)
+                            .timePickerHourLabel,
+                        isDense: true,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                      ],
+                      onEditingComplete: _applyHourFromField,
+                      onSubmitted: (_) => _applyHourFromField(),
                     ),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                    ],
-                    onEditingComplete: _applyHourFromField,
-                    onSubmitted: (_) => _applyHourFromField(),
                   ),
-                ),
                 const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  padding: EdgeInsets.symmetric(horizontal: 4),
                   child: Text(':', style: TextStyle(fontSize: 22)),
                 ),
                 SizedBox(
@@ -397,7 +396,7 @@ class _AppTimePickerPanelState extends State<_AppTimePickerPanel> {
                     onSubmitted: (_) => _applyMinuteFromField(),
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 6),
                 SegmentedButton<bool>(
                   showSelectedIcon: false,
                   style: SegmentedButton.styleFrom(
@@ -422,6 +421,7 @@ class _AppTimePickerPanelState extends State<_AppTimePickerPanel> {
                   },
                 ),
               ],
+            ),
             );
           },
         ),

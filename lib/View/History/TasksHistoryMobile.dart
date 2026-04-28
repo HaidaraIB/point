@@ -12,6 +12,7 @@ import 'package:point/View/Tasks/DetailsDialogs/DContentWriteDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DDesignDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DMontageDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPhotographyDialog.dart';
+import 'package:point/View/Tasks/DetailsDialogs/DAdministrativeDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DProgrammingDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPromotionDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPublishDialog.dart';
@@ -28,6 +29,7 @@ class TasksHistoryMobile extends StatelessWidget {
     StorageKeys.departmentMontage,
     StorageKeys.departmentPublishing,
     StorageKeys.departmentProgramming,
+    StorageKeys.departmentAdministration,
   ];
 
   final int selectedIndex;
@@ -456,6 +458,9 @@ class TasksHistoryMobile extends StatelessWidget {
         break;
       case 6:
         showProgrammingDialog(context, task: task);
+        break;
+      case 7:
+        showAdministrativeTaskDetailsDialog(context, task: task);
         break;
       default:
     }

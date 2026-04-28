@@ -8,6 +8,7 @@ import 'package:point/Models/ContentWriteModel.dart';
 import 'package:point/Models/EmployeeModel.dart';
 import 'package:point/Models/MontageModel.dart';
 import 'package:point/Models/PhotographyModel.dart';
+import 'package:point/Models/AdministrationTaskModel.dart';
 import 'package:point/Models/ProgrammingModel.dart';
 import 'package:point/Models/PromotionModel.dart';
 import 'package:point/Models/PublishModel.dart';
@@ -24,7 +25,7 @@ import 'package:point/View/Tasks/Dialogs/task_dialog_constants.dart';
 /// (Design uses DesignTaskFormMobilePage). Web dialogs are not touched.
 class GenericTaskFormMobilePage extends StatefulWidget {
   final TaskModel? model;
-  /// When adding (model == null), pass the task type as string '0'-'6'.
+  /// When adding (model == null), pass the task type as string '0'–'7'.
   final String? typeForNew;
 
   const GenericTaskFormMobilePage({super.key, this.model, this.typeForNew});
@@ -425,6 +426,28 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             ),
           );
           break;
+        case '7':
+          updated = model.copyWith(
+            title: titleController.text,
+            description: notesController.text,
+            priority: priorityController.text,
+            fromDate: effectiveStartAt,
+            toDate: effectiveEndAt,
+            assignedTo: executorController.text,
+            clientName: resolvedClientName,
+            assignedImageUrl: execImage,
+            status: keepStatusUnchanged
+                ? model.status
+                : StorageKeys.status_edit_requested,
+            notes: updatedNotes,
+            files: updatedFiles,
+            administrationModel: AdministrationTaskModel(
+              extra: Map<String, dynamic>.from(
+                model.administrationModel?.extra ?? const {},
+              ),
+            ),
+          );
+          break;
         default:
           updated = model.copyWith(
             title: titleController.text,
@@ -612,6 +635,23 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             designsDimensions: '',
           ),
         );
+      case '7':
+        return TaskModel(
+          title: titleController.text,
+          description: notesController.text,
+          status: StorageKeys.status_not_start_yet,
+          priority: priorityController.text,
+          fromDate: effectiveStartAt,
+          toDate: effectiveEndAt,
+          assignedTo: executorController.text,
+          clientName: resolvedClientName,
+          assignedImageUrl: assignedImageUrl,
+          actionText: '',
+          files: files,
+          notes: notesList,
+          type: '7',
+          administrationModel: AdministrationTaskModel(extra: const {}),
+        );
       default:
         FunHelper.showSnackbar(
           'validation.title'.tr,
@@ -761,34 +801,30 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                   ),
                   const SizedBox(height: 16),
                   _sectionLabel('tasks.form.section_dates'.tr),
-                  InkWell(
+                  InputText(
                     onTap: _pickStartDate,
-                    child: InputText(
-                      labelText: 'startat'.tr,
-                      hintText: 'common.select_date'.tr,
-                      height: 48,
-                      fillColor: Colors.white,
-                      controller: startDateController,
-                      readOnly: true,
-                      validator: (v) => (v == null || v.isEmpty) ? ' ' : null,
-                      borderRadius: 8,
-                      borderColor: Colors.grey.shade300,
-                    ),
+                    labelText: 'startat'.tr,
+                    hintText: 'common.select_date'.tr,
+                    height: 48,
+                    fillColor: Colors.white,
+                    controller: startDateController,
+                    readOnly: true,
+                    validator: (v) => (v == null || v.isEmpty) ? ' ' : null,
+                    borderRadius: 8,
+                    borderColor: Colors.grey.shade300,
                   ),
                   const SizedBox(height: 16),
-                  InkWell(
+                  InputText(
                     onTap: _pickEndDate,
-                    child: InputText(
-                      labelText: 'endat'.tr,
-                      hintText: 'common.select_date'.tr,
-                      height: 48,
-                      fillColor: Colors.white,
-                      controller: endDateController,
-                      readOnly: true,
-                      validator: (v) => (v == null || v.isEmpty) ? ' ' : null,
-                      borderRadius: 8,
-                      borderColor: Colors.grey.shade300,
-                    ),
+                    labelText: 'endat'.tr,
+                    hintText: 'common.select_date'.tr,
+                    height: 48,
+                    fillColor: Colors.white,
+                    controller: endDateController,
+                    readOnly: true,
+                    validator: (v) => (v == null || v.isEmpty) ? ' ' : null,
+                    borderRadius: 8,
+                    borderColor: Colors.grey.shade300,
                   ),
                   ..._buildTypeSpecificFields(),
                   const SizedBox(height: 16),
@@ -1261,6 +1297,11 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
           InputText(labelText: 'task_details.files_link'.tr, hintText: 'task_details.files_link'.tr, height: 48, fillColor: Colors.white, controller: fileUrlController, borderRadius: 8, borderColor: Colors.grey.shade300),
           pad,
           InputText(labelText: 'task_details.category'.tr, hintText: 'task_details.category'.tr, height: 48, fillColor: Colors.white, controller: categoryController, validator: (v) => (v == null || v.isEmpty) ? ' ' : null, borderRadius: 8, borderColor: Colors.grey.shade300),
+        ];
+      case '7': // Administration (common fields only; optional extra in model)
+        return [
+          const SizedBox(height: 12),
+          _sectionLabel('tasks.form.section_administration'.tr),
         ];
       default:
         return [];

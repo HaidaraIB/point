@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
@@ -16,10 +17,12 @@ import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/app_version_label.dart';
 import 'package:point/View/Shared/responsive.dart';
+import 'package:point/View/Shared/task_status_visuals.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DContentWriteDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DDesignDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DMontageDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPhotographyDialog.dart';
+import 'package:point/View/Tasks/DetailsDialogs/DAdministrativeDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DProgrammingDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPromotionDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPublishDialog.dart';
@@ -62,6 +65,31 @@ Widget _employeeDashboardDepartmentChips(HomeController controller) {
       ),
     );
   });
+}
+
+/// Per-status counts for assigned tasks, ordered like the status filter dropdown.
+/// Only statuses with count > 0 are returned.
+List<MapEntry<String, int>> employeeDashboardAssignedTaskStatEntriesOrdered({
+  required Iterable<TaskModel> assignedTasks,
+  required String? departmentFilterArg,
+}) {
+  final ordered =
+      StorageKeys.employeeDashboardTaskStatusFilterDropdownValuesForDepartment(
+        departmentFilterArg,
+      );
+  final allowed = ordered.toSet();
+  final counts = <String, int>{};
+  for (final t in assignedTasks) {
+    final c = FunHelper.canonicalStoredStatus(t.status);
+    if (!allowed.contains(c)) continue;
+    counts[c] = (counts[c] ?? 0) + 1;
+  }
+  final out = <MapEntry<String, int>>[];
+  for (final s in ordered) {
+    final n = counts[s] ?? 0;
+    if (n > 0) out.add(MapEntry(s, n));
+  }
+  return out;
 }
 
 class EmployeeDashboard extends StatefulWidget {
@@ -196,92 +224,7 @@ class _EmployeeDashboardBody extends StatelessWidget {
                         ],
                       ),
                       SizedBox(height: 10),
-                      Obx(() {
-                        final tasks =
-                            controller.tasksSearched
-                                .where(
-                                  (a) =>
-                                      a.assignedTo ==
-                                      controller.currentEmployee.value?.id,
-                                )
-                                .toList();
-                        final isDesktop = Responsive.isDesktop(Get.context!);
-                        final cardWidth =
-                            isDesktop
-                                ? (Get.width - 100) / 4
-                                : (Get.width / 4 - 16).clamp(72.0, 140.0);
-                        var statNotStarted = 0;
-                        var statInProgress = 0;
-                        var statSendForReview = 0;
-                        var statApproved = 0;
-                        for (final a in tasks) {
-                          final bucket =
-                              StorageKeys.employeeDashboardFourCardStatBucket(
-                                canonicalStatus: FunHelper.canonicalStoredStatus(
-                                  a.status,
-                                ),
-                                taskType: a.type,
-                              );
-                          if (bucket == null) continue;
-                          switch (bucket) {
-                            case StorageKeys.employeeDashFourCardNotStarted:
-                              statNotStarted++;
-                              break;
-                            case StorageKeys.employeeDashFourCardInProgress:
-                              statInProgress++;
-                              break;
-                            case StorageKeys.employeeDashFourCardSendForReview:
-                              statSendForReview++;
-                              break;
-                            default:
-                              statApproved++;
-                          }
-                        }
-                        final statRow = Row(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            _buildStatBox(
-                              statNotStarted.toString(),
-                              FunHelper.translateAppKey(
-                                'employee.dashboard.stat_not_started',
-                              ),
-                              Colors.grey.shade700,
-                              width: cardWidth,
-                            ),
-                            _buildStatBox(
-                              statInProgress.toString(),
-                              FunHelper.translateAppKey(
-                                'employee.dashboard.stat_in_progress',
-                              ),
-                              Colors.amber.shade800,
-                              width: cardWidth,
-                            ),
-                            _buildStatBox(
-                              statSendForReview.toString(),
-                              FunHelper.translateAppKey(
-                                'employee.dashboard.stat_send_for_review',
-                              ),
-                              Colors.blue,
-                              width: cardWidth,
-                            ),
-                            _buildStatBox(
-                              statApproved.toString(),
-                              FunHelper.translateAppKey(
-                                'employee.dashboard.stat_approved',
-                              ),
-                              Colors.green,
-                              width: cardWidth,
-                            ),
-                          ],
-                        );
-                        return isDesktop
-                            ? statRow
-                            : SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: statRow,
-                            );
-                      }),
+                      _buildAssignedTaskPerStatusStats(controller),
 
                       SizedBox(height: 15),
                       Padding(
@@ -550,101 +493,7 @@ class _EmployeeDashboardBody extends StatelessWidget {
                             ],
                           ),
                           SizedBox(height: 10),
-                          Obx(() {
-                            final tasks =
-                                controller.tasksSearched
-                                    .where(
-                                      (a) =>
-                                          a.assignedTo ==
-                                          controller.currentEmployee.value?.id,
-                                    )
-                                    .toList();
-                            var statNotStarted = 0;
-                            var statInProgress = 0;
-                            var statSendForReview = 0;
-                            var statApproved = 0;
-                            for (final a in tasks) {
-                              final bucket =
-                                  StorageKeys
-                                      .employeeDashboardFourCardStatBucket(
-                                        canonicalStatus:
-                                            FunHelper.canonicalStoredStatus(
-                                              a.status,
-                                            ),
-                                        taskType: a.type,
-                                      );
-                              if (bucket == null) continue;
-                              switch (bucket) {
-                                case StorageKeys.employeeDashFourCardNotStarted:
-                                  statNotStarted++;
-                                  break;
-                                case StorageKeys.employeeDashFourCardInProgress:
-                                  statInProgress++;
-                                  break;
-                                case StorageKeys
-                                    .employeeDashFourCardSendForReview:
-                                  statSendForReview++;
-                                  break;
-                                default:
-                                  statApproved++;
-                              }
-                            }
-                            // [_buildStatBox] uses margin 10 on all sides → +20 horizontal per card.
-                            // Use parent width (not [Get.width]) so rows match padded constraints.
-                            return LayoutBuilder(
-                              builder: (context, constraints) {
-                                var mw = constraints.maxWidth;
-                                if (!mw.isFinite || mw <= 0) {
-                                  mw = MediaQuery.sizeOf(context).width - 20;
-                                }
-                                final innerW = ((mw - 40) / 2).clamp(48.0, 400.0);
-                                return Column(
-                                  children: [
-                                    Row(
-                                      children: [
-                                        _buildStatBox(
-                                          statNotStarted.toString(),
-                                          FunHelper.translateAppKey(
-                                            'employee.dashboard.stat_not_started',
-                                          ),
-                                          Colors.grey.shade700,
-                                          width: innerW,
-                                        ),
-                                        _buildStatBox(
-                                          statInProgress.toString(),
-                                          FunHelper.translateAppKey(
-                                            'employee.dashboard.stat_in_progress',
-                                          ),
-                                          Colors.amber.shade800,
-                                          width: innerW,
-                                        ),
-                                      ],
-                                    ),
-                                    Row(
-                                      children: [
-                                        _buildStatBox(
-                                          statSendForReview.toString(),
-                                          FunHelper.translateAppKey(
-                                            'employee.dashboard.stat_send_for_review',
-                                          ),
-                                          Colors.blue,
-                                          width: innerW,
-                                        ),
-                                        _buildStatBox(
-                                          statApproved.toString(),
-                                          FunHelper.translateAppKey(
-                                            'employee.dashboard.stat_approved',
-                                          ),
-                                          Colors.green,
-                                          width: innerW,
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                );
-                              },
-                            );
-                          }),
+                          _buildAssignedTaskPerStatusStats(controller),
 
                           SizedBox(height: 15),
                           Padding(
@@ -859,6 +708,51 @@ class _EmployeeDashboardBody extends StatelessWidget {
     );
   }
 
+  /// One stat card per visible canonical task status (no merged buckets).
+  Widget _buildAssignedTaskPerStatusStats(HomeController controller) {
+    return Obx(() {
+      controller.activeDepartmentFilter.value;
+      final empId = controller.currentEmployee.value?.id?.trim();
+      final tasks =
+          empId == null || empId.isEmpty
+              ? <TaskModel>[]
+              : controller.tasksSearched
+                  .where((a) => a.assignedTo.trim() == empId)
+                  .toList();
+      final entries = employeeDashboardAssignedTaskStatEntriesOrdered(
+        assignedTasks: tasks,
+        departmentFilterArg: controller.employeeDashboardDepartmentFilterArg,
+      );
+      if (entries.isEmpty) {
+        return const SizedBox.shrink();
+      }
+      final ctx = Get.context;
+      if (ctx == null) {
+        return const SizedBox.shrink();
+      }
+      final isDesktop = Responsive.isDesktop(ctx);
+      final cardWidth = (isDesktop ? 120.0 : 100.0).clamp(72.0, 140.0);
+      return SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final e in entries)
+              _buildStatBox(
+                e.value.toString(),
+                FunHelper.trStored(
+                  e.key,
+                  kind: StoredValueKind.taskStatus,
+                ),
+                TaskStatusVisuals.iconTintFor(e.key),
+                width: cardWidth,
+              ),
+          ],
+        ),
+      );
+    });
+  }
+
   Widget _buildStatBox(
     String value,
     String label,
@@ -966,6 +860,12 @@ class TasksGridPage extends StatelessWidget {
                       case '6':
                         showProgrammingDialog(context, task: tasks[index]);
                         break;
+                      case '7':
+                        showAdministrativeTaskDetailsDialog(
+                          context,
+                          task: tasks[index],
+                        );
+                        break;
                       default:
                     }
                   },
@@ -1023,6 +923,12 @@ class TasksListPage extends StatelessWidget {
                         break;
                       case '6':
                         showProgrammingDialog(context, task: tasks[index]);
+                        break;
+                      case '7':
+                        showAdministrativeTaskDetailsDialog(
+                          context,
+                          task: tasks[index],
+                        );
                         break;
                       default:
                     }

@@ -16,6 +16,7 @@ import 'package:point/View/Tasks/Dialogs/ContentWriteDialog.dart';
 import 'package:point/View/Tasks/Dialogs/DesignDialog.dart';
 import 'package:point/View/Tasks/Dialogs/MontageDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PhotographyDialog.dart';
+import 'package:point/View/Tasks/Dialogs/AdministrativeDialog.dart';
 import 'package:point/View/Tasks/Dialogs/ProgrammingDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PromotionDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PublishDialog.dart';
@@ -1345,6 +1346,27 @@ class TaskDetailsMobilePage extends StatelessWidget {
         _appendTaskDateRows(context, fields);
         break;
 
+      // 7: Administration
+      case '7':
+        final adm = task.administrationModel;
+        final ex = adm?.extra ?? const {};
+        for (final e in ex.entries) {
+          fields.add(
+            _fieldRow(context, e.key, e.value?.toString() ?? '-'),
+          );
+        }
+        if (ex.isEmpty) {
+          fields.add(
+            _fieldRow(
+              context,
+              'task_details.section_fallback'.tr,
+              '-',
+            ),
+          );
+        }
+        _appendTaskDateRows(context, fields);
+        break;
+
       default:
         fields.add(
           _fieldRow(context, 'task_details.section_fallback'.tr, '-'),
@@ -1849,6 +1871,9 @@ class TaskDetailsMobilePage extends StatelessWidget {
         break;
       case '6':
         programmingDialog(context, model: task);
+        break;
+      case '7':
+        administrationDialog(context, model: task);
         break;
       default:
         break;

@@ -8,6 +8,7 @@ import 'package:point/View/Tasks/Dialogs/ContentWriteDialog.dart';
 import 'package:point/View/Tasks/Dialogs/DesignDialog.dart';
 import 'package:point/View/Tasks/Dialogs/MontageDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PhotographyDialog.dart';
+import 'package:point/View/Tasks/Dialogs/AdministrativeDialog.dart';
 import 'package:point/View/Tasks/Dialogs/ProgrammingDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PromotionDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PublishDialog.dart';
@@ -346,6 +347,9 @@ class TaskCard extends StatelessWidget {
                                       break;
                                     case '6':
                                       programmingDialog(context, model: task);
+                                      break;
+                                    case '7':
+                                      administrationDialog(context, model: task);
                                       break;
                                     default:
                                   }

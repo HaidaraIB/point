@@ -1767,6 +1767,22 @@ class HomeController extends GetxController {
       );
     }
 
+    // --- AdministrationTaskModel ---
+    final oldAd = oldTask.administrationModel;
+    final newAd = newTask.administrationModel;
+    if (oldAd != null || newAd != null) {
+      _addIfChanged(
+        events,
+        'تم تغيير الحقول الإضافية (الإداري)',
+        jsonEncode(oldAd?.extra ?? {}),
+        jsonEncode(newAd?.extra ?? {}),
+        userId,
+        userName,
+        ts(),
+        fieldKey: 'administrationDetails.extra',
+      );
+    }
+
     // --- PromotionModel (كل الحقول) ---
     final oldPromo = oldTask.promotionModel;
     final newPromo = newTask.promotionModel;

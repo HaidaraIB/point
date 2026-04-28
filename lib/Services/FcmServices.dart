@@ -4,16 +4,18 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:point/Controller/ClientController.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Services/chat_push_notification_ids.dart';
 import 'package:point/Services/ChatAudioFocus.dart';
 import 'package:point/Services/fcm_token_cache.dart';
 import 'package:point/Services/push_notification_sound.dart';
+import 'package:point/Services/push_permissions_helper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/app_log.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -30,6 +32,11 @@ class NotificationService {
   Future<void>? _initFuture;
   StreamSubscription<RemoteMessage>? _foregroundSub;
 
+  static const Duration _kChatForegroundDebounce = Duration(milliseconds: 450);
+  final Map<String, Timer> _chatForegroundDebounceTimers = {};
+  final Map<String, List<String>> _chatForegroundLineBuffers = {};
+  final Map<String, Map<String, String>> _chatForegroundLatestData = {};
+
   Future<void> init() {
     _initFuture ??= () async {
       if (_isInitialized) return;
@@ -45,6 +52,28 @@ class NotificationService {
       _listenToForegroundMessages();
     }();
     return _initFuture!;
+  }
+
+  /// Clears the tray slot for [chatId] and any pending foreground merge buffer.
+  Future<void> dismissChatMessageNotification(String chatId) async {
+    if (kIsWeb) return;
+    final c = chatId.trim();
+    if (c.isEmpty) return;
+    _clearChatForegroundDebounce(c);
+    try {
+      await init();
+      await _localNotificationsPlugin.cancel(
+        id: localNotificationIdForChat(c),
+      );
+    } catch (e, st) {
+      appLog('dismissChatMessageNotification: $e\n$st');
+    }
+  }
+
+  void _clearChatForegroundDebounce(String chatId) {
+    _chatForegroundDebounceTimers.remove(chatId)?.cancel();
+    _chatForegroundLineBuffers.remove(chatId);
+    _chatForegroundLatestData.remove(chatId);
   }
 
   /// بعد استئناف التطبيق: استهلاك طلبات المزامنة الصامتة ومقارنة توكن FCM.
@@ -126,12 +155,12 @@ class NotificationService {
   }
 
   Future<void> _configureForegroundPresentation() async {
-    // iOS: عرض أصلي في المقدّمة (alert/sound/badge). الإشعار المحلي يُستخدم على Android
-    // وعلى iOS لرسائل data-only التي تحمل title في data.
+    // iOS: لا نعرض تنبيهاً مزدوجاً — العرض في المقدّمة عبر الإشعار المحلي فقط
+    // (نفس مسار Android). Badge من النظام؛ الصوت من تفاصيل الإشعار المحلي.
     await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
-      alert: true,
+      alert: false,
       badge: true,
-      sound: true,
+      sound: false,
     );
   }
 
@@ -192,6 +221,17 @@ class NotificationService {
   }
 
   Future<void> _showLocalNotification(RemoteMessage message) async {
+    if (Platform.isAndroid) {
+      final allowed =
+          await PushPermissionsHelper.androidPostNotificationsGranted();
+      if (!allowed) {
+        appLog(
+          'FCM foreground: skipping local notification (Android POST_NOTIFICATIONS not granted)',
+        );
+        return;
+      }
+    }
+
     final notification = message.notification;
 
     final title = notification?.title ?? message.data['title']?.toString();
@@ -223,6 +263,21 @@ class NotificationService {
       );
     }
 
+    final chatIdForSlot = message.data['chatId']?.toString().trim();
+    final notifTypeTrim = message.data['notificationType']?.toString().trim();
+    final int notificationId =
+        (notifTypeTrim == 'chat_message' &&
+                chatIdForSlot != null &&
+                chatIdForSlot.isNotEmpty)
+            ? localNotificationIdForChat(chatIdForSlot)
+            : (notification?.hashCode ?? title.hashCode);
+    final String? iosThreadId =
+        (notifTypeTrim == 'chat_message' &&
+                chatIdForSlot != null &&
+                chatIdForSlot.isNotEmpty)
+            ? chatIdForSlot
+            : null;
+
     final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
       channelId,
       channelName,
@@ -238,6 +293,7 @@ class NotificationService {
       presentBadge: true,
       presentSound: true,
       sound: iosSoundFile,
+      threadIdentifier: iosThreadId,
     );
 
     NotificationDetails notificationDetails = NotificationDetails(
@@ -246,11 +302,131 @@ class NotificationService {
     );
 
     await _localNotificationsPlugin.show(
-      id: notification?.hashCode ?? title.hashCode,
+      id: notificationId,
       title: title,
       body: body ?? '',
       notificationDetails: notificationDetails,
       payload: jsonEncode(message.data),
+    );
+  }
+
+  Future<void> _enqueueForegroundChatNotification(
+    RemoteMessage message,
+    Map<String, String> data,
+    String chatId,
+  ) async {
+    final notification = message.notification;
+    final title = notification?.title ?? data['title'] ?? '';
+    final body = notification?.body ?? data['body'] ?? '';
+    var line = '${title.trim()}: ${body.trim()}'.trim();
+    if (line.isEmpty) line = body.trim();
+    if (line.length > 140) {
+      line = '${line.substring(0, 137)}...';
+    }
+
+    _chatForegroundLineBuffers.putIfAbsent(chatId, () => []).add(line);
+    _chatForegroundLatestData[chatId] = Map<String, String>.from(data);
+
+    _chatForegroundDebounceTimers[chatId]?.cancel();
+    _chatForegroundDebounceTimers[chatId] = Timer(_kChatForegroundDebounce, () {
+      _chatForegroundDebounceTimers.remove(chatId);
+      unawaited(_flushForegroundChatBuffer(chatId));
+    });
+  }
+
+  Future<void> _flushForegroundChatBuffer(String chatId) async {
+    final lines = _chatForegroundLineBuffers.remove(chatId) ?? [];
+    final latest = _chatForegroundLatestData.remove(chatId);
+    if (lines.isEmpty || latest == null) return;
+    await _showMergedChatLocalNotification(
+      chatId: chatId,
+      lines: lines,
+      latestData: latest,
+    );
+  }
+
+  Future<void> _showMergedChatLocalNotification({
+    required String chatId,
+    required List<String> lines,
+    required Map<String, String> latestData,
+  }) async {
+    if (Platform.isAndroid) {
+      final allowed =
+          await PushPermissionsHelper.androidPostNotificationsGranted();
+      if (!allowed) {
+        appLog(
+          'FCM foreground: skip merged chat notification (Android POST_NOTIFICATIONS not granted)',
+        );
+        return;
+      }
+    }
+
+    final displayLines =
+        lines.length > 5 ? lines.sublist(lines.length - 5) : List<String>.from(lines);
+    final summaryCount = lines.length;
+    final title = (latestData['title'] ?? '').trim().isEmpty
+        ? 'Point'
+        : (latestData['title']!.trim());
+    final singleBody =
+        lines.length == 1 ? (latestData['body'] ?? '').trim() : '';
+
+    final rawFromData = latestData['pushSoundBase'];
+    final notificationType = latestData['notificationType'];
+    final soundBase = (rawFromData != null && rawFromData.isNotEmpty)
+        ? rawFromData
+        : pushSoundBaseForNotificationType(notificationType);
+    final channelId = pushChannelIdForSoundBase(soundBase);
+    final channelName =
+        soundBase != null ? 'Point: $soundBase' : 'General Notifications';
+    final iosSoundFile = iosPushSoundFile(soundBase);
+
+    final summaryText =
+        summaryCount > 1 ? '$summaryCount new messages' : null;
+
+    final StyleInformation? androidStyle = displayLines.length <= 1
+        ? null
+        : InboxStyleInformation(
+            displayLines,
+            contentTitle: title,
+            summaryText: summaryText,
+          );
+
+    final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+      channelId,
+      channelName,
+      styleInformation: androidStyle,
+      channelDescription: 'Point push notifications',
+      importance: Importance.max,
+      priority: Priority.high,
+      icon: '@drawable/ic_launcher_monochrome',
+    );
+
+    final resolvedBody = lines.length == 1
+        ? (singleBody.isNotEmpty ? singleBody : displayLines.first)
+        : (Platform.isAndroid ? displayLines.last : displayLines.join('\n'));
+    final clippedBody = resolvedBody.length > 350
+        ? '${resolvedBody.substring(0, 347)}...'
+        : resolvedBody;
+
+    final DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+      sound: iosSoundFile,
+      threadIdentifier: chatId,
+    );
+
+    final notificationDetails = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    await _localNotificationsPlugin.show(
+      id: localNotificationIdForChat(chatId),
+      title: title,
+      body: clippedBody,
+      notificationDetails: notificationDetails,
+      payload: jsonEncode(latestData),
     );
   }
 
@@ -301,7 +477,20 @@ class NotificationService {
     final incoming =
         message.data['chatId']?.toString().trim() ?? '';
     if (incoming.isEmpty) return false;
-    return ChatAudioFocus.incomingTreatAsInChat(incoming);
+    final suppress =
+        ChatAudioFocus.shouldSuppressForegroundFcmForChat(incoming);
+    if (suppress) {
+      appLog(
+        'FCM foreground: suppress chat_message tray for chatId=$incoming '
+        '(${ChatAudioFocus.describeForLog()}) dataKeys=${message.data.keys.toList()}',
+      );
+    } else if (kDebugMode) {
+      appLog(
+        'FCM foreground: show chat_message for chatId=$incoming '
+        '(${ChatAudioFocus.describeForLog()})',
+      );
+    }
+    return suppress;
   }
 
   bool _isSilentPushData(Map<String, String> data) {
@@ -327,18 +516,14 @@ class NotificationService {
       return;
     }
 
-    if (Platform.isIOS) {
-      if (message.notification != null) {
-        return;
-      }
-      final title = data['title']?.toString();
-      if (title != null && title.trim().isNotEmpty) {
-        await _showLocalNotification(message);
-      }
+    final type = data['notificationType']?.trim() ?? '';
+    final chatId = data['chatId']?.trim() ?? '';
+    if (type == 'chat_message' && chatId.isNotEmpty) {
+      unawaited(_enqueueForegroundChatNotification(message, data, chatId));
       return;
     }
 
-    // Android (وغير iOS): في المقدّمة لا يُنشر FCM إشعاراً تلقائياً من كتلة notification؛ العرض عبر المحلي.
+    // iOS وAndroid: في المقدّمة العرض عبر الإشعار المحلي (تفادي الاعتماد على تنبيه النظام على iOS).
     await _showLocalNotification(message);
   }
 
@@ -353,7 +538,12 @@ class NotificationService {
 
   void _listenToForegroundMessages() {
     _foregroundSub ??= FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      appLog('Received a message in foreground: ${message.notification?.title}');
+      final title = message.notification?.title ?? message.data['title'];
+      appLog(
+        'FCM onMessage foreground title=$title '
+        'notificationType=${message.data['notificationType']} '
+        'chatId=${message.data['chatId']}',
+      );
       if (_suppressForegroundChatNotification(message)) return;
       if (!kIsWeb) {
         unawaited(_handleForegroundPush(message));

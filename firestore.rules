@@ -196,7 +196,8 @@ service cloud.firestore {
         || (taskType == '3' && depts.hasAny(['content-writing']))
         || (taskType == '4' && depts.hasAny(['montage']))
         || (taskType == '5' && depts.hasAny(['publishing']))
-        || (taskType == '6' && depts.hasAny(['programming']));
+        || (taskType == '6' && depts.hasAny(['programming']))
+        || (taskType == '7' && depts.hasAny(['administration']));
     }
 
     function canReadTaskDoc() {
@@ -301,6 +302,7 @@ service cloud.firestore {
           || (myDepartmentsList().hasAny(['montage']) && chatIdParam == 'group_montage')
           || (myDepartmentsList().hasAny(['publishing']) && chatIdParam == 'group_publishing')
           || (myDepartmentsList().hasAny(['programming']) && chatIdParam == 'group_programming')
+          || (myDepartmentsList().hasAny(['administration']) && chatIdParam == 'group_administration')
         );
     }
 
@@ -335,6 +337,13 @@ service cloud.firestore {
       return actorParticipantId() in chatDataForId(chatIdParam).participants;
     }
 
+    /// يضمّ منطق قراءة رسائل المجموعة: مشارك، أو موظف بقسم يطابق المجموعة قبل الانضمام الرسمي.
+    function messageActorMayMarkRead(chatIdParam) {
+      return isManager()
+        || messageParticipantInChat(chatIdParam)
+        || (isEmployeeRole() && employeeCanReadGroupChatMessages(chatIdParam));
+    }
+
     function messageDocIsTextEditable(m) {
       return !m.keys().hasAny(['messageType'])
         || m.messageType == 'text'
@@ -349,7 +358,7 @@ service cloud.firestore {
       let d = request.resource.data.diff(resource.data).affectedKeys();
       return d.hasOnly(['isRead'])
         && resource.data.senderId != actorParticipantId()
-        && messageParticipantInChat(chatIdParam)
+        && messageActorMayMarkRead(chatIdParam)
         && request.resource.data.isRead == true
         && (!resource.data.keys().hasAny(['isRead']) || resource.data.isRead != true);
     }

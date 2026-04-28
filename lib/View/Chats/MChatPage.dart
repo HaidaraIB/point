@@ -29,6 +29,8 @@ import 'package:point/Services/chat_image_paste_listener.dart';
 
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Routing/app_route_observer.dart';
+import 'package:point/Services/FcmServices.dart' as fcm_notifications;
 import 'package:point/View/Chats/chat_message_display.dart';
 import 'package:point/View/Chats/chat_message_tile.dart';
 import 'package:point/View/Chats/pending_chat_attachment.dart';
@@ -1246,7 +1248,7 @@ class MessageScreen extends StatefulWidget {
 }
 
 class _MessageScreenState extends State<MessageScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, RouteAware {
   final TextEditingController _messageController = TextEditingController();
   final FocusNode _messageFocusNode = FocusNode();
   ChatImagePasteListener? _imagePasteListener;
@@ -1303,6 +1305,60 @@ class _MessageScreenState extends State<MessageScreen>
       (defaultTargetPlatform == TargetPlatform.android ||
           defaultTargetPlatform == TargetPlatform.iOS);
 
+  PageRoute<dynamic>? _routeObserved;
+
+  void _applyVisibleChatFocusToServices() {
+    unawaited(
+      fcm_notifications.NotificationService().dismissChatMessageNotification(
+        _chatId,
+      ),
+    );
+    ChatAudioFocus.setForeground(_chatId);
+    ChatAudioFocus.registerMainLayoutChatOpen(_chatId);
+    unawaited(
+      FirestoreServices.syncEmployeeActiveChatId(
+        widget.currentUserId,
+        _chatId,
+      ),
+    );
+  }
+
+  void _clearVisibleChatFocusFromServices() {
+    ChatAudioFocus.unregisterMainLayoutChatOpen(_chatId);
+    ChatAudioFocus.clearForegroundIfEquals(_chatId);
+    unawaited(
+      FirestoreServices.syncEmployeeActiveChatId(
+        widget.currentUserId,
+        null,
+      ),
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is! PageRoute<dynamic>) return;
+    if (_routeObserved == route) return;
+    if (_routeObserved != null) {
+      appRouteObserver.unsubscribe(this);
+    }
+    appRouteObserver.subscribe(this, route);
+    _routeObserved = route;
+  }
+
+  @override
+  void didPushNext() {
+    _clearVisibleChatFocusFromServices();
+  }
+
+  @override
+  void didPopNext() {
+    if (mounted) {
+      _applyVisibleChatFocusToServices();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -1321,11 +1377,7 @@ class _MessageScreenState extends State<MessageScreen>
         .orderBy('timestamp', descending: true)
         .snapshots();
 
-    ChatAudioFocus.setForeground(_chatId);
-    ChatAudioFocus.registerMainLayoutChatOpen(_chatId);
-    unawaited(
-      FirestoreServices.syncEmployeeActiveChatId(widget.currentUserId, _chatId),
-    );
+    _applyVisibleChatFocusToServices();
     _messageSoundSubscription = attachIncomingMessageSoundSubscription(
       stream: _messagesStream!,
       chatId: _chatId,
@@ -1607,6 +1659,10 @@ class _MessageScreenState extends State<MessageScreen>
 
   @override
   void dispose() {
+    if (_routeObserved != null) {
+      appRouteObserver.unsubscribe(this);
+      _routeObserved = null;
+    }
     _flushScrollDiskTimer();
     _chatItemPositionsListener.itemPositions.removeListener(
       _onChatScrollPositions,
@@ -1616,11 +1672,7 @@ class _MessageScreenState extends State<MessageScreen>
     _imagePasteListener?.dispose();
     _messageSoundSubscription?.cancel();
     _markReadSubscription?.cancel();
-    ChatAudioFocus.unregisterMainLayoutChatOpen(_chatId);
-    ChatAudioFocus.clearForegroundIfEquals(_chatId);
-    unawaited(
-      FirestoreServices.syncEmployeeActiveChatId(widget.currentUserId, null),
-    );
+    _clearVisibleChatFocusFromServices();
     _messageFocusNode.removeListener(_onMessageFocusChanged);
     // Do not call unfocus() here: during Android route pop it can deadlock the
     // platform text input channel; dispose() releases focus.

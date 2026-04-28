@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:point/Utils/app_log.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Services/FcmServices.dart' as fcm_notifications;
 
 /// Last row for chat list: sync string + optional image/video thumb URLs.
 class ChatListLastMessageMeta {
@@ -144,6 +147,11 @@ class FirestoreChatApi {
         rethrow;
       }
     }
+    unawaited(
+      fcm_notifications.NotificationService().dismissChatMessageNotification(
+        chatId,
+      ),
+    );
   }
 
   /// نص معاينة لقائمة المحادثات من مستند في `chats/.../messages`.

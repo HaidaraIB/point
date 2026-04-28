@@ -641,6 +641,12 @@ Widget tasksUnderProcessing(BuildContext context) {
                           case '6':
                             showProgrammingDialog(context, task: content);
                             break;
+                          case '7':
+                            showAdministrativeTaskDetailsDialog(
+                              context,
+                              task: content,
+                            );
+                            break;
                           default:
                         }
                       },

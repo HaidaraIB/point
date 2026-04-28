@@ -15,6 +15,7 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Services/AudioService.dart';
 import 'package:point/Services/ChatAudioFocus.dart';
 import 'package:point/Services/ChatIncomingMessageSound.dart';
+import 'package:point/Services/FcmServices.dart' as fcm_notifications;
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/firestore/firestore_chat_api.dart';
@@ -673,6 +674,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       return;
     }
     final chatId = sel['id'] as String;
+    unawaited(
+      fcm_notifications.NotificationService().dismissChatMessageNotification(
+        chatId,
+      ),
+    );
     ChatAudioFocus.setForeground(chatId);
     if (_messageSoundSubscription != null &&
         _messageSoundBoundChatId == chatId) {

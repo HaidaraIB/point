@@ -21,10 +21,11 @@ class NotificationService {
     for (final e in fields.entries) e.key.tr: e.value,
   };
 
-  /// Task type index 0–6 → localized department name.
+  /// Task type index aligned with [StorageKeys.departmentSlugs] → localized name.
   static String departmentNameFromTaskType(String type) {
     final idx = int.tryParse(type);
-    if (idx == null || idx < 0 || idx > 6) {
+    final max = StorageKeys.departmentSlugs.length - 1;
+    if (idx == null || idx < 0 || idx > max) {
       return 'notify.department_unknown'.tr;
     }
     final semantic = StorageKeys.departmentSlugs[idx];

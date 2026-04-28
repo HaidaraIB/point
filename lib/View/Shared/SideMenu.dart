@@ -461,6 +461,25 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                           });
                                     },
                                   ),
+                                  _buildSubTile(
+                                    selectedTab: 7,
+                                    text: _departmentText(
+                                      StorageKeys.departmentAdministration,
+                                    ),
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedSubTab = 7;
+                                      });
+                                      WidgetsBinding.instance
+                                          .addPostFrameCallback((_) {
+                                            Get.toNamed(
+                                              '/tasks?department=administration&id=7',
+                                              arguments: 7,
+                                              preventDuplicates: false,
+                                            );
+                                          });
+                                    },
+                                  ),
                                 ],
                               ),
                               _buildTile(
@@ -752,6 +771,25 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                           });
                                     },
                                   ),
+                                  _buildSubTile(
+                                    selectedTab: 7,
+                                    text: _departmentText(
+                                      StorageKeys.departmentAdministration,
+                                    ),
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedSubTab = 7;
+                                      });
+                                      WidgetsBinding.instance
+                                          .addPostFrameCallback((_) {
+                                            Get.toNamed(
+                                              '/tasks?department=administration&id=7',
+                                              arguments: 7,
+                                              preventDuplicates: false,
+                                            );
+                                          });
+                                    },
+                                  ),
                                 ],
                               ),
                             ],
@@ -936,6 +974,25 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                             Get.toNamed(
                                               '/tasks?department=programming&id=6',
                                               arguments: 2,
+                                              preventDuplicates: false,
+                                            );
+                                          });
+                                    },
+                                  ),
+                                  _buildSubTile(
+                                    selectedTab: 7,
+                                    text: _departmentText(
+                                      StorageKeys.departmentAdministration,
+                                    ),
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedSubTab = 7;
+                                      });
+                                      WidgetsBinding.instance
+                                          .addPostFrameCallback((_) {
+                                            Get.toNamed(
+                                              '/tasks?department=administration&id=7',
+                                              arguments: 7,
                                               preventDuplicates: false,
                                             );
                                           });

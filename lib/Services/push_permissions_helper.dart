@@ -73,4 +73,11 @@ class PushPermissionsHelper {
     }
     return settings;
   }
+
+  /// Android 13+ runtime permission for posting local notifications.
+  static Future<bool> androidPostNotificationsGranted() async {
+    if (kIsWeb || !Platform.isAndroid) return true;
+    final status = await Permission.notification.status;
+    return status.isGranted;
+  }
 }

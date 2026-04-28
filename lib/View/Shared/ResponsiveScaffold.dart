@@ -17,6 +17,7 @@ import 'package:point/Utils/text_input_bidi.dart';
 import 'package:point/Services/AudioService.dart';
 import 'package:point/Services/ChatAudioFocus.dart';
 import 'package:point/Services/ChatIncomingMessageSound.dart';
+import 'package:point/Services/FcmServices.dart' as fcm_notifications;
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/firestore/firestore_chat_api.dart';
@@ -626,6 +627,11 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
       return;
     }
     if (!widget.chat.minimized) {
+      unawaited(
+        fcm_notifications.NotificationService().dismissChatMessageNotification(
+          _chatId,
+        ),
+      );
       ChatAudioFocus.setForeground(_chatId);
       unawaited(FirestoreServices.syncEmployeeActiveChatId(uid, _chatId));
       _messageSoundSubscription = attachIncomingMessageSoundSubscription(

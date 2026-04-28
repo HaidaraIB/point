@@ -79,4 +79,24 @@ class ChatAudioFocus {
       foregroundChatId == chatId ||
       hasExpandedPopupFor(chatId) ||
       _mainLayoutOpenChatIds.contains(chatId);
+
+  /// Whether to skip a foreground FCM tray notification for [chatId].
+  ///
+  /// Uses only the **focused** thread and expanded desktop popups — not
+  /// [_mainLayoutOpenChatIds] alone — so a [MessageScreen] that remains in the
+  /// navigator stack but is **covered** by another route does not incorrectly
+  /// suppress pushes for that chat (focus is cleared via route visibility).
+  static bool shouldSuppressForegroundFcmForChat(String chatId) {
+    final c = chatId.trim();
+    if (c.isEmpty) return false;
+    return foregroundChatId == c || hasExpandedPopupFor(c);
+  }
+
+  /// Compact snapshot for FCM / focus diagnostics (debug logs).
+  static String describeForLog() {
+    final fg = foregroundChatId ?? '';
+    final main = _mainLayoutOpenChatIds.join(',');
+    final pop = _expandedPopupChatIds.join(',');
+    return 'ChatAudioFocus(foreground=$fg mainLayout=[$main] expandedPopup=[$pop])';
+  }
 }

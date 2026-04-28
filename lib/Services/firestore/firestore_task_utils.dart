@@ -17,6 +17,8 @@ String? taskTypeCodeForNormalizedDepartment(String normalizedDept) {
       return '5';
     case StorageKeys.departmentProgramming:
       return '6';
+    case StorageKeys.departmentAdministration:
+      return '7';
     default:
       return null;
   }

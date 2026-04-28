@@ -608,6 +608,16 @@ function apnsExpirationHeaderValueCron(): string {
   return String(Math.floor(Date.now() / 1000) + FCM_CRON_NOTIFICATION_TTL_SEC);
 }
 
+/** Matches [send-fcm] android.notification.tag for per-chat replacement on Android. */
+function androidChatCollapseTagFromDataCron(data: Record<string, string>): string | undefined {
+  const t = (data.notificationType ?? "").trim();
+  if (t !== "chat_message") return undefined;
+  const cid = (data.chatId ?? "").trim();
+  if (!cid) return undefined;
+  const raw = `point_chat_${cid}`;
+  return raw.length <= 64 ? raw : raw.slice(0, 64);
+}
+
 function buildFcmV1NotificationMessageCron(
   token: string,
   title: string,
@@ -630,6 +640,16 @@ function buildFcmV1NotificationMessageCron(
     "apns-expiration": apnsExpirationHeaderValueCron(),
   };
 
+  const androidCollapseTag = androidChatCollapseTagFromDataCron(dataPayload);
+  const androidNotification: Record<string, unknown> = {
+    title,
+    body,
+    ...androidExtra,
+  };
+  if (androidCollapseTag) {
+    androidNotification.tag = androidCollapseTag;
+  }
+
   const msg: Record<string, unknown> = {
     token,
     notification: {
@@ -639,11 +659,7 @@ function buildFcmV1NotificationMessageCron(
     android: {
       priority: "high",
       ttl: `${FCM_CRON_NOTIFICATION_TTL_SEC}s`,
-      notification: {
-        title,
-        body,
-        ...androidExtra,
-      },
+      notification: androidNotification,
     },
     apns: {
       headers: apnsHeaders,

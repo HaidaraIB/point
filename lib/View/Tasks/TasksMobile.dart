@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Controller/home_task_filters.dart';
 import 'package:point/Models/TaskModel.dart';
+import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Shared/InputText.dart';
@@ -12,6 +14,7 @@ import 'package:point/View/Tasks/DetailsDialogs/DContentWriteDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DDesignDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DMontageDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPhotographyDialog.dart';
+import 'package:point/View/Tasks/DetailsDialogs/DAdministrativeDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DProgrammingDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPromotionDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPublishDialog.dart';
@@ -19,9 +22,11 @@ import 'package:point/View/Tasks/Dialogs/ContentWriteDialog.dart';
 import 'package:point/View/Tasks/Dialogs/DesignDialog.dart';
 import 'package:point/View/Tasks/Dialogs/MontageDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PhotographyDialog.dart';
+import 'package:point/View/Tasks/Dialogs/AdministrativeDialog.dart';
 import 'package:point/View/Tasks/Dialogs/ProgrammingDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PromotionDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PublishDialog.dart';
+import 'package:point/View/Shared/task_status_visuals.dart';
 import 'package:point/View/Tasks/TaskCard.dart';
 
 /// Mobile-only tasks screen with a single scroll so the last item is fully visible.
@@ -34,6 +39,7 @@ class TasksMobile extends StatelessWidget {
     StorageKeys.departmentMontage,
     StorageKeys.departmentPublishing,
     StorageKeys.departmentProgramming,
+    StorageKeys.departmentAdministration,
   ];
 
   final int selectedIndex;
@@ -172,6 +178,9 @@ class TasksMobile extends StatelessWidget {
               case 6:
                 programmingDialog(context);
                 break;
+              case 7:
+                administrationDialog(context);
+                break;
               default:
             }
           },
@@ -186,6 +195,10 @@ class TasksMobile extends StatelessWidget {
     List<TaskModel> tasks,
   ) {
     final boxWidth = (Get.width / 5 - 30).clamp(88.0, double.infinity);
+    final perStatus = taskManagementOngoingStatEntriesOrdered(
+      tasks: tasks,
+      taskType: selectedIndex.toString(),
+    );
     final statRow = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -195,66 +208,16 @@ class TasksMobile extends StatelessWidget {
           Colors.blue,
           width: boxWidth,
         ),
-        _buildStatBox(
-          tasks
-              .where(
-                (a) =>
-                    a.status == StorageKeys.status_processing ||
-                    a.status ==
-                        StorageKeys.status_promotion_in_progress ||
-                    a.status == StorageKeys.status_promotion_running,
-              )
-              .length
-              .toString(),
-          'status_processing'.tr,
-          Colors.amber,
-          width: boxWidth,
-        ),
-        _buildStatBox(
-          tasks
-              .where(
-                (a) =>
-                    a.status == StorageKeys.status_under_revision ||
-                    a.status ==
-                        StorageKeys.status_promotion_ad_platform_review,
-              )
-              .length
-              .toString(),
-          'status_under_revision'.tr,
-          Colors.blue,
-          width: boxWidth,
-        ),
-        _buildStatBox(
-          tasks
-              .where((a) => a.status == StorageKeys.status_awaiting_manager)
-              .length
-              .toString(),
-          'status_awaiting_manager'.tr,
-          Colors.indigo,
-          width: boxWidth,
-        ),
-        _buildStatBox(
-          tasks
-              .where(
-                (a) =>
-                    StorageKeys.isTaskSuccessfulTerminalStatus(a.status) ||
-                    a.status == StorageKeys.status_promotion_finished,
-              )
-              .length
-              .toString(),
-          'employee.dashboard.completed'.tr,
-          Colors.green,
-          width: boxWidth,
-        ),
-        _buildStatBox(
-          tasks
-              .where((a) => a.status == StorageKeys.status_rejected)
-              .length
-              .toString(),
-          'employee.dashboard.cancelled'.tr,
-          Colors.red,
-          width: boxWidth,
-        ),
+        for (final e in perStatus)
+          _buildStatBox(
+            e.value.toString(),
+            FunHelper.trStored(
+              e.key,
+              kind: StoredValueKind.taskStatus,
+            ),
+            TaskStatusVisuals.iconTintFor(e.key),
+            width: boxWidth,
+          ),
       ],
     );
     return SingleChildScrollView(
@@ -296,13 +259,13 @@ class TasksMobile extends StatelessWidget {
           ),
           const SizedBox(height: 25),
           SizedBox(
-            height: 48,
+            height: 52,
             width: double.infinity,
             child: Center(
               child: Text(
                 label,
                 textAlign: TextAlign.center,
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: Colors.grey,
@@ -547,6 +510,9 @@ class TasksMobile extends StatelessWidget {
         break;
       case 6:
         showProgrammingDialog(context, task: task);
+        break;
+      case 7:
+        showAdministrativeTaskDetailsDialog(context, task: task);
         break;
       default:
     }

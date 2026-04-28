@@ -225,71 +225,6 @@ class StorageKeys {
     return employeeDashboardStatNeedsWork;
   }
 
-  /// Employee dashboard: four summary cards. Pass [canonicalStatus] from
-  /// [FunHelper.canonicalStoredStatus] and the task's [type] (`0` = promotion).
-  ///
-  /// Returns null when the status should not increment any card (unknown or
-  /// promotion-only status on a non-promotion task, etc.).
-  static const int employeeDashFourCardNotStarted = 0;
-  static const int employeeDashFourCardInProgress = 1;
-  static const int employeeDashFourCardSendForReview = 2;
-  static const int employeeDashFourCardApproved = 3;
-
-  static int? employeeDashboardFourCardStatBucket({
-    required String canonicalStatus,
-    required String taskType,
-  }) {
-    final s = canonicalStatus.trim();
-    if (s.isEmpty) return null;
-
-    final isPromotionTask = taskType.trim() == '0';
-
-    if (isPromotionTask) {
-      if (s == status_not_start_yet) return employeeDashFourCardNotStarted;
-      const inProgress = <String>{
-        status_promotion_in_progress,
-        status_processing,
-        status_in_edit,
-        status_edit_requested,
-      };
-      if (inProgress.contains(s)) return employeeDashFourCardInProgress;
-      const sendForReview = <String>{
-        status_promotion_ad_platform_review,
-        status_under_revision,
-        status_ready_to_publish,
-        status_awaiting_manager,
-      };
-      if (sendForReview.contains(s)) return employeeDashFourCardSendForReview;
-      const approved = <String>{
-        status_promotion_running,
-        status_approved,
-        status_scheduled,
-      };
-      if (approved.contains(s)) return employeeDashFourCardApproved;
-      return null;
-    }
-
-    if (promotionTaskStatusList.contains(s)) return null;
-
-    if (s == status_not_start_yet) return employeeDashFourCardNotStarted;
-    const inProgress = <String>{
-      status_processing,
-      status_in_edit,
-      status_edit_requested,
-    };
-    if (inProgress.contains(s)) return employeeDashFourCardInProgress;
-    const sendForReview = <String>{
-      status_under_revision,
-      status_ready_to_publish,
-      status_awaiting_manager,
-    };
-    if (sendForReview.contains(s)) return employeeDashFourCardSendForReview;
-    if (s == status_approved || s == status_scheduled) {
-      return employeeDashFourCardApproved;
-    }
-    return null;
-  }
-
   static List<String> ongoingStatusFilterKeysForTaskType(String taskType) {
     if (taskType == '0') {
       return [
@@ -459,6 +394,7 @@ class StorageKeys {
   static const String departmentMontage = 'montage';
   static const String departmentPublishing = 'publishing';
   static const String departmentProgramming = 'programming';
+  static const String departmentAdministration = 'administration';
 
   static const List<String> departmentSlugs = [
     departmentPromotion,
@@ -468,6 +404,7 @@ class StorageKeys {
     departmentMontage,
     departmentPublishing,
     departmentProgramming,
+    departmentAdministration,
   ];
 
   /// Canonical department values for new writes.
@@ -486,10 +423,19 @@ class StorageKeys {
       'promo': departmentPromotion,
       'publishing': departmentPublishing,
       'publish': departmentPublishing,
+      'administrative': departmentAdministration,
+      'administration': departmentAdministration,
+      'admin': departmentAdministration,
     };
     if (aliases.containsKey(value)) return aliases[value]!;
 
     // Arabic or mixed labels often stored in Firestore instead of slugs
+    if (raw.contains('إداري') ||
+        raw.contains('إدارية') ||
+        raw.contains('قسم إداري') ||
+        raw.contains('الإداري')) {
+      return departmentAdministration;
+    }
     if (raw.contains('ترويج')) return departmentPromotion;
     if (raw.contains('النشر') || raw.contains('قسم النشر')) {
       return departmentPublishing;
@@ -499,6 +445,9 @@ class StorageKeys {
     }
     if (value.contains('publishing') || value.contains('publish')) {
       return departmentPublishing;
+    }
+    if (value.contains('administration') || value.contains('administrative')) {
+      return departmentAdministration;
     }
 
     return '';

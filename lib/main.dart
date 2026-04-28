@@ -12,6 +12,7 @@ import 'package:get/get.dart';
 import 'package:point/Bindings/AppBindings.dart';
 import 'package:point/Localization/LanguageController.dart';
 import 'package:point/Localization/AppTranslations.dart';
+import 'package:point/Routing/app_route_observer.dart';
 import 'package:point/Routing/AppRouting.dart';
 import 'package:point/Services/FcmServices.dart';
 import 'package:point/Services/FireStoreServices.dart';
@@ -180,6 +181,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
         },
         child: GetMaterialApp(
         navigatorKey: navigatorKey,
+        navigatorObservers: <NavigatorObserver>[appRouteObserver],
 
         title: 'Point Agency',
         enableLog: kDebugMode,

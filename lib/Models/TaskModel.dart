@@ -1,3 +1,4 @@
+import 'package:point/Models/AdministrationTaskModel.dart';
 import 'package:point/Models/ContentWriteModel.dart';
 import 'package:point/Models/DesignTaskModel.dart';
 import 'package:point/Models/MontageModel.dart';
@@ -32,6 +33,7 @@ class TaskModel {
   PublishModel? publishModel;
   PromotionModel? promotionModel;
   ProgrammingModel? programmingModel;
+  AdministrationTaskModel? administrationModel;
   final List<dynamic> files;
   /// نص اختياري للتسليم النهائي عند الإرسال للمراجعة.
   final String finalDeliverableText;
@@ -111,6 +113,7 @@ class TaskModel {
     this.publishModel,
     this.promotionModel,
     this.programmingModel,
+    this.administrationModel,
     this.notes = const [],
     this.files = const [],
     this.finalDeliverableText = '',
@@ -240,6 +243,12 @@ class TaskModel {
                   _mapFromFirestoreNested(json['programmingModel']),
                 )
               : null,
+      administrationModel:
+          json['administrationDetails'] != null
+              ? AdministrationTaskModel.fromJson(
+                  _mapFromFirestoreNested(json['administrationDetails']),
+                )
+              : null,
       files:
           (json['files'] != null)
               ? List<String>.from(json['files'])
@@ -331,6 +340,7 @@ class TaskModel {
       'photoGrapghyModel': photoGrapghyModel?.toJson(),
       'publishModel': publishModel?.toJson(),
       'programmingModel': programmingModel?.toJson(),
+      'administrationDetails': administrationModel?.toJson(),
       'monatageModel': monatageModel?.toJson(),
       'promotionModel': promotionModel?.toJson(),
       'files': files,
@@ -405,6 +415,7 @@ class TaskModel {
     String? finalDeliverableType,
     PromotionModel? promotionModel,
     ProgrammingModel? programmingModel,
+    AdministrationTaskModel? administrationModel,
     List<NoteModel>? notes,
     List<TaskTimelineEvent>? timelineEvents,
     String? dueSoonNotifiedAt24h,
@@ -454,6 +465,7 @@ class TaskModel {
       publishModel: publishModel ?? this.publishModel,
       promotionModel: promotionModel ?? this.promotionModel,
       programmingModel: programmingModel ?? this.programmingModel,
+      administrationModel: administrationModel ?? this.administrationModel,
       files: files ?? this.files,
       finalDeliverableText:
           finalDeliverableText ?? this.finalDeliverableText,

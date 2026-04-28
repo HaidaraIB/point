@@ -26,6 +26,7 @@ import 'package:point/View/Tasks/DetailsDialogs/DContentWriteDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DDesignDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DMontageDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPhotographyDialog.dart';
+import 'package:point/View/Tasks/DetailsDialogs/DAdministrativeDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DProgrammingDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPromotionDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPublishDialog.dart';

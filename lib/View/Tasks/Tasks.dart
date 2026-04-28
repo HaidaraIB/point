@@ -3,16 +3,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Controller/home_task_filters.dart';
+import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/responsive.dart';
+import 'package:point/View/Shared/task_status_visuals.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DContentWriteDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DDesignDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DMontageDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPhotographyDialog.dart';
+import 'package:point/View/Tasks/DetailsDialogs/DAdministrativeDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DProgrammingDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPromotionDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPublishDialog.dart';
@@ -20,6 +24,7 @@ import 'package:point/View/Tasks/Dialogs/ContentWriteDialog.dart';
 import 'package:point/View/Tasks/Dialogs/DesignDialog.dart';
 import 'package:point/View/Tasks/Dialogs/MontageDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PhotographyDialog.dart';
+import 'package:point/View/Tasks/Dialogs/AdministrativeDialog.dart';
 import 'package:point/View/Tasks/Dialogs/ProgrammingDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PromotionDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PublishDialog.dart';
@@ -35,6 +40,7 @@ class Tasks extends StatelessWidget {
     StorageKeys.departmentMontage,
     StorageKeys.departmentPublishing,
     StorageKeys.departmentProgramming,
+    StorageKeys.departmentAdministration,
   ];
 
   int _resolveSelectedIndex() {
@@ -146,6 +152,9 @@ class Tasks extends StatelessWidget {
                                         case 6:
                                           programmingDialog(context);
                                           break;
+                                        case 7:
+                                          administrationDialog(context);
+                                          break;
                                         default:
                                       }
                                     },
@@ -172,6 +181,11 @@ class Tasks extends StatelessWidget {
                                           88.0,
                                           double.infinity,
                                         );
+                                final perStatus =
+                                    taskManagementOngoingStatEntriesOrdered(
+                                      tasks: tasks,
+                                      taskType: selectedIndex.toString(),
+                                    );
                                 final statRow = Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
@@ -181,88 +195,16 @@ class Tasks extends StatelessWidget {
                                       Colors.blue,
                                       width: boxWidth,
                                     ),
-                                    _buildStatBox(
-                                      tasks
-                                          .where(
-                                            (a) =>
-                                                a.status ==
-                                                    StorageKeys
-                                                        .status_processing ||
-                                                a.status ==
-                                                    StorageKeys
-                                                        .status_promotion_in_progress ||
-                                                a.status ==
-                                                    StorageKeys
-                                                        .status_promotion_running,
-                                          )
-                                          .length
-                                          .toString(),
-                                      'status_processing'.tr,
-                                      Colors.amber,
-                                      width: boxWidth,
-                                    ),
-                                    _buildStatBox(
-                                      tasks
-                                          .where(
-                                            (a) =>
-                                                a.status ==
-                                                    StorageKeys
-                                                        .status_under_revision ||
-                                                a.status ==
-                                                    StorageKeys
-                                                        .status_promotion_ad_platform_review,
-                                          )
-                                          .length
-                                          .toString(),
-                                      'status_under_revision'.tr,
-                                      Colors.blue,
-                                      width: boxWidth,
-                                    ),
-                                    _buildStatBox(
-                                      tasks
-                                          .where(
-                                            (a) =>
-                                                a.status ==
-                                                StorageKeys
-                                                    .status_awaiting_manager,
-                                          )
-                                          .length
-                                          .toString(),
-                                      'status_awaiting_manager'.tr,
-                                      Colors.indigo,
-                                      width: boxWidth,
-                                    ),
-                                    _buildStatBox(
-                                      tasks
-                                          .where(
-                                            (a) =>
-                                                StorageKeys
-                                                    .isTaskSuccessfulTerminalStatus(
-                                                  a.status,
-                                                ) ||
-                                                a.status ==
-                                                    StorageKeys
-                                                        .status_promotion_finished,
-                                          )
-                                          .length
-                                          .toString(),
-                                      'employee.dashboard.completed'.tr,
-                                      Colors.green,
-                                      width: boxWidth,
-                                    ),
-                                    _buildStatBox(
-                                      tasks
-                                          .where(
-                                            (a) =>
-                                                a.status ==
-                                                StorageKeys.status_rejected,
-                                          )
-                                          .length
-                                          .toString(),
-                                      'employee.dashboard.cancelled'.tr,
-                                      Colors.red,
-                                      width: boxWidth,
-                                    ),
+                                    for (final e in perStatus)
+                                      _buildStatBox(
+                                        e.value.toString(),
+                                        FunHelper.trStored(
+                                          e.key,
+                                          kind: StoredValueKind.taskStatus,
+                                        ),
+                                        TaskStatusVisuals.iconTintFor(e.key),
+                                        width: boxWidth,
+                                      ),
                                   ],
                                 );
                                 // تمرير أفقي على كل الأحجام: صناديق الإحصاءات كثيرة وقد تتجاوز عرض الشاشة.
@@ -628,13 +570,13 @@ class Tasks extends StatelessWidget {
           ),
           SizedBox(height: 25),
           SizedBox(
-            height: 48,
+            height: 52,
             width: double.infinity,
             child: Center(
               child: Text(
                 label,
                 textAlign: TextAlign.center,
-                maxLines: 1,
+                maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: Colors.grey,
@@ -698,6 +640,12 @@ class TasksGridPage extends StatelessWidget {
                         break;
                       case 6:
                         showProgrammingDialog(context, task: tasks[index]);
+                        break;
+                      case 7:
+                        showAdministrativeTaskDetailsDialog(
+                          context,
+                          task: tasks[index],
+                        );
                         break;
                       default:
                     }
