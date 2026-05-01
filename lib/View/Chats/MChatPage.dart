@@ -35,10 +35,10 @@ import 'package:point/View/Chats/chat_message_display.dart';
 import 'package:point/View/Chats/chat_message_tile.dart';
 import 'package:point/View/Chats/pending_chat_attachment.dart';
 import 'package:point/View/Chats/chat_scroll_to_latest_fab.dart';
+import 'package:point/View/Chats/chat_ui_helpers.dart';
 import 'package:point/View/Chats/chat_list_tile_media_subtitle.dart';
 import 'package:point/View/Chats/chat_reply_draft_banner.dart';
 import 'package:point/View/Chats/chat_list_folder_utils.dart';
-import 'package:point/View/Chats/chat_ui_helpers.dart';
 import 'package:point/View/Chats/chat_voice_record_button.dart';
 import 'package:point/View/Chats/telegram_style_attachment_menu.dart';
 
@@ -1269,6 +1269,12 @@ class _MessageScreenState extends State<MessageScreen>
     return parts.first[0].toUpperCase();
   }
 
+  String _conversationTitleForFcm() {
+    final fromMap = chatConversationTitleForPushDisplay(widget.chat);
+    if (fromMap.isNotEmpty) return fromMap;
+    return _displayName;
+  }
+
   void _scrollToRepliedMessage(String messageId) {
     final idx = _orderedChatMessageDocs.indexWhere((d) => d.id == messageId);
     if (idx < 0) return;
@@ -1875,13 +1881,20 @@ class _MessageScreenState extends State<MessageScreen>
       lastMessagePreview: lastMessagePreview,
     );
 
+    final fcmConvTitle = _conversationTitleForFcm();
     if (!isGroup && widget.otherUserId != null) {
       await FirestoreServices.sendFcm(
         userId: widget.otherUserId ?? '',
         title: widget.currentUserName,
         body: lastMessagePreview,
         notificationType: 'chat_message',
-        fcmDataExtras: {'chatId': _chatId},
+        fcmDataExtras: {
+          'chatId': _chatId,
+          'chatTitle': widget.currentUserName,
+          'chatDisplayName': fcmConvTitle,
+          'senderName': widget.currentUserName,
+          'isGroup': '0',
+        },
       );
     } else if (isGroup) {
       final participants = List<String>.from(widget.chat['participants'] ?? []);
@@ -1895,7 +1908,13 @@ class _MessageScreenState extends State<MessageScreen>
             }),
             body: lastMessagePreview,
             notificationType: 'chat_message',
-            fcmDataExtras: {'chatId': _chatId},
+            fcmDataExtras: {
+              'chatId': _chatId,
+              'chatTitle': fcmConvTitle,
+              'chatDisplayName': fcmConvTitle,
+              'senderName': widget.currentUserName,
+              'isGroup': '1',
+            },
           );
         }
       }

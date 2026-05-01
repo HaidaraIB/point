@@ -1387,13 +1387,20 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       lastMessagePreview: lastMessagePreview,
     );
 
+    final fcmChatLabel = _getSelectedChatNameSync();
     if (!isGroup && otherId.isNotEmpty && otherId != 'N/A') {
       await FirestoreServices.sendFcm(
         userId: otherId,
         title: '$_currentUserName',
         body: lastMessagePreview,
         notificationType: 'chat_message',
-        fcmDataExtras: {'chatId': chatId},
+        fcmDataExtras: {
+          'chatId': chatId,
+          'chatTitle': '$_currentUserName',
+          'chatDisplayName': fcmChatLabel,
+          'senderName': _currentUserName ?? '',
+          'isGroup': '0',
+        },
       );
     } else if (isGroup) {
       for (var id in participants) {
@@ -1406,7 +1413,13 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             }),
             body: lastMessagePreview,
             notificationType: 'chat_message',
-            fcmDataExtras: {'chatId': chatId},
+            fcmDataExtras: {
+              'chatId': chatId,
+              'chatTitle': _localizedGroupTitleFromChat(_selectedChat!),
+              'chatDisplayName': fcmChatLabel,
+              'senderName': _currentUserName ?? '',
+              'isGroup': '1',
+            },
           );
         }
       }

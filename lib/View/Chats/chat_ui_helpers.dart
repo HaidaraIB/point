@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Services/StorageKeys.dart';
 
 /// Scrolls a [ScrollablePositionedList] so the item at [index] is visible.
 ///
@@ -294,4 +295,29 @@ Widget chatLeadingAvatar({
     backgroundColor: backgroundColor,
     child: fallbackChild(),
   );
+}
+
+/// Human-readable chat title for list rows and FCM payloads (matches [ChatPage]
+/// and chat list localized department titles).
+String chatConversationTitleForPushDisplay(Map<String, dynamic> chat) {
+  final isGroup = chat['isGroup'] == true;
+  if (!isGroup) {
+    return (chat['displayName'] ?? '').toString().trim();
+  }
+  final rawTitle = (chat['title'] ?? '').toString().trim();
+  final chatId = (chat['id'] ?? '').toString();
+  String? department;
+  if (chatId.startsWith('group_') && chatId.length > 6) {
+    department = chatId.substring(6);
+  }
+  department = StorageKeys.normalizeDepartment(
+    (department == null || department.isEmpty) ? rawTitle : department,
+  );
+  if (department.isNotEmpty) {
+    return 'department.$department'.tr;
+  }
+  if (rawTitle.isNotEmpty) {
+    return rawTitle.tr;
+  }
+  return AppLocaleKeys.chatDepartmentGroup.tr;
 }

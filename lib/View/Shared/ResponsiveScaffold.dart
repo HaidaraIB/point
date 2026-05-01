@@ -1424,6 +1424,8 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
     final isGroup = data['isGroup'] == true;
     final participants = List<String>.from(data['participants'] ?? []);
     final title = data['title']?.toString() ?? widget.chat.name;
+    final chatForTitle = Map<String, dynamic>.from(data)..['id'] = _chatId;
+    final fcmChatLabel = chatConversationTitleForPushDisplay(chatForTitle);
 
     if (!isGroup) {
       final others = participants.where((id) => id != me.id).toList();
@@ -1433,7 +1435,13 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
           title: me.name ?? me.email ?? '',
           body: lastMessagePreview,
           notificationType: 'chat_message',
-          fcmDataExtras: {'chatId': _chatId},
+          fcmDataExtras: {
+            'chatId': _chatId,
+            'chatTitle': me.name ?? me.email ?? '',
+            'chatDisplayName': fcmChatLabel,
+            'senderName': me.name ?? me.email ?? '',
+            'isGroup': '0',
+          },
         );
       }
     } else {
@@ -1447,7 +1455,13 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
             }),
             body: lastMessagePreview,
             notificationType: 'chat_message',
-            fcmDataExtras: {'chatId': _chatId},
+            fcmDataExtras: {
+              'chatId': _chatId,
+              'chatTitle': title,
+              'chatDisplayName': fcmChatLabel,
+              'senderName': me.name ?? me.email ?? '',
+              'isGroup': '1',
+            },
           );
         }
       }

@@ -641,6 +641,7 @@ function buildFcmV1NotificationMessageCron(
   };
 
   const androidCollapseTag = androidChatCollapseTagFromDataCron(dataPayload);
+  const isAndroidChatDataOnly = androidCollapseTag !== undefined;
   const androidNotification: Record<string, unknown> = {
     title,
     body,
@@ -652,14 +653,10 @@ function buildFcmV1NotificationMessageCron(
 
   const msg: Record<string, unknown> = {
     token,
-    notification: {
-      title,
-      body,
-    },
     android: {
       priority: "high",
       ttl: `${FCM_CRON_NOTIFICATION_TTL_SEC}s`,
-      notification: androidNotification,
+      ...(isAndroidChatDataOnly ? {} : { notification: androidNotification }),
     },
     apns: {
       headers: apnsHeaders,
@@ -675,6 +672,12 @@ function buildFcmV1NotificationMessageCron(
       notification: { title, body, tag },
     },
   };
+  if (!isAndroidChatDataOnly) {
+    msg.notification = {
+      title,
+      body,
+    };
+  }
   if (Object.keys(dataPayload).length > 0) {
     msg.data = dataPayload;
   }

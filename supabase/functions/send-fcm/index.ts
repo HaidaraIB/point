@@ -473,6 +473,8 @@ function buildFcmV1NotificationMessage(args: {
   };
 
   const androidCollapseTag = androidChatCollapseTagFromData(args.dataPayload);
+  /** `chat_message` + `chatId`: no system banner — Flutter shows one aggregated local notification. */
+  const isChatLocalAggregation = androidCollapseTag !== undefined;
   const androidNotification: Record<string, unknown> = {
     title: args.title,
     body: args.body,
@@ -482,19 +484,20 @@ function buildFcmV1NotificationMessage(args: {
     androidNotification.tag = androidCollapseTag;
   }
 
-  const msg: Record<string, unknown> = {
-    ...(args.token ? { token: args.token } : {}),
-    ...(args.topic ? { topic: args.topic } : {}),
-    notification: {
-      title: args.title,
-      body: args.body,
-    },
-    android: {
-      priority: "high",
-      ttl: `${FCM_NOTIFICATION_TTL_SEC}s`,
-      notification: androidNotification,
-    },
-    apns: {
+  const apnsSection: Record<string, unknown> = isChatLocalAggregation
+    ? {
+      headers: {
+        "apns-push-type": "background",
+        "apns-priority": "5",
+        "apns-expiration": apnsExpirationHeaderValue(),
+      },
+      payload: {
+        aps: {
+          "content-available": 1,
+        },
+      },
+    }
+    : {
       headers: apnsHeaders,
       payload: {
         aps: {
@@ -505,7 +508,17 @@ function buildFcmV1NotificationMessage(args: {
           },
         },
       },
+    };
+
+  const msg: Record<string, unknown> = {
+    ...(args.token ? { token: args.token } : {}),
+    ...(args.topic ? { topic: args.topic } : {}),
+    android: {
+      priority: "high",
+      ttl: `${FCM_NOTIFICATION_TTL_SEC}s`,
+      ...(isChatLocalAggregation ? {} : { notification: androidNotification }),
     },
+    apns: apnsSection,
     webpush: {
       headers: { Urgency: "high" },
       notification: {
@@ -515,6 +528,12 @@ function buildFcmV1NotificationMessage(args: {
       },
     },
   };
+  if (!isChatLocalAggregation) {
+    msg.notification = {
+      title: args.title,
+      body: args.body,
+    };
+  }
   if (Object.keys(args.dataPayload).length > 0) {
     msg.data = args.dataPayload;
   }
