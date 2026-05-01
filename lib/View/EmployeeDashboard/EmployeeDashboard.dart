@@ -152,20 +152,9 @@ class _EmployeeDashboardBody extends StatelessWidget {
                             employee: true,
                             name: controller.currentEmployee.value?.name ?? '',
                             role: controller.currentEmployee.value?.role ?? '',
-                            department:
-                                controller.currentEmployee.value?.departments
-                                            .isEmpty ??
-                                        true
-                                    ? null
-                                    : controller.currentEmployee.value!
-                                        .departments
-                                        .map(
-                                          (d) =>
-                                              StorageKeys.semanticDepartmentLabelKey(
-                                                d,
-                                              ).tr,
-                                        )
-                                        .join(', '),
+                            departments:
+                                controller.currentEmployee.value?.departments ??
+                                const [],
                             avatarUrl:
                                 controller.currentEmployee.value?.image ??
                                 kDefaultAvatarUrl,

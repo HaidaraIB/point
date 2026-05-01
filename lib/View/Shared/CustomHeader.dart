@@ -401,6 +401,8 @@ class HeaderWidget extends StatelessWidget {
   final String avatarUrl;
   /// When set, shown after the role (e.g. `role · department`).
   final String? department;
+  /// Preferred department slugs; when non-empty they are used for display.
+  final List<String> departments;
   final bool? employee;
   final bool? client;
 
@@ -410,6 +412,7 @@ class HeaderWidget extends StatelessWidget {
     required this.role,
     required this.avatarUrl,
     this.department,
+    this.departments = const [],
     this.employee,
     this.client,
   });
@@ -488,7 +491,9 @@ class HeaderWidget extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
               Text(
-                localizedRoleWithDepartment(role, department),
+                departments.isNotEmpty
+                    ? localizedRoleWithDepartments(role, departments)
+                    : localizedRoleWithDepartment(role, department),
                 style: TextStyle(
                   color: Colors.grey,
                   fontSize: isMobile ? 11 : null,
