@@ -810,6 +810,20 @@ type ResolvedProfile = {
   language: EmailLocale;
 };
 
+type UnreadChatMessageRow = {
+  messageId: string;
+  text: string;
+  senderName: string;
+  timestampMs: number;
+};
+
+type UserChatPushRow = {
+  chatId: string;
+  chatTitle: string;
+  isGroup: boolean;
+  messages: UnreadChatMessageRow[];
+};
+
 async function resolveUserProfile(
   accessToken: string,
   firestoreBase: string,
@@ -881,6 +895,24 @@ async function queryUnreadMessagesForChat(
   return out;
 }
 
+function parseFirestoreTimestampMs(fields: Record<string, unknown>, key: string): number {
+  const raw = fields[key] as {
+    timestampValue?: string;
+    stringValue?: string;
+    integerValue?: string;
+  } | undefined;
+  const ts = raw?.timestampValue ?? raw?.stringValue ?? null;
+  if (typeof ts === "string" && ts.trim().length > 0) {
+    const n = new Date(ts).getTime();
+    if (!Number.isNaN(n)) return n;
+  }
+  if (typeof raw?.integerValue === "string") {
+    const n = Number(raw.integerValue);
+    if (Number.isFinite(n)) return n;
+  }
+  return Date.now();
+}
+
 /** كرون منفصل: بريد مفصّل + دفع خفيف لكل موظف/عميل لديه رسائل غير مقروءة واردة. */
 async function handleUnreadChatDigest(args: {
   accessToken: string;
@@ -891,6 +923,7 @@ async function handleUnreadChatDigest(args: {
   const { accessToken, firestoreBase, fcmUrl, projectId } = args;
   const profileCache = new Map<string, ResolvedProfile | null>();
   const digestByUser = new Map<string, ChatDigestRow[]>();
+  const pushRowsByUser = new Map<string, UserChatPushRow[]>();
 
   let pageToken: string | undefined;
   do {
@@ -914,23 +947,34 @@ async function handleUnreadChatDigest(args: {
       const messages = await queryUnreadMessagesForChat(accessToken, firestoreBase, chatId);
       if (messages.length === 0) continue;
 
-      const perParticipant = new Map<string, number>();
-      for (const p of participants) perParticipant.set(p, 0);
-
-      for (const msg of messages) {
-        const senderId = getStringField(msg.fields, "senderId");
-        for (const p of participants) {
-          if (senderId && senderId !== p) {
-            perParticipant.set(p, (perParticipant.get(p) ?? 0) + 1);
-          }
-        }
-      }
-
       const isGroup = getBooleanField(fields, "isGroup") || participants.length > 2;
       const groupTitle = getStringField(fields, "title") ?? "Group";
 
       for (const p of participants) {
-        const cnt = perParticipant.get(p) ?? 0;
+        const incomingRows: UnreadChatMessageRow[] = [];
+        for (const msg of messages) {
+          const senderId = getStringField(msg.fields, "senderId");
+          if (!senderId || senderId === p) continue;
+          const senderProfile = await resolveUserProfile(
+            accessToken,
+            firestoreBase,
+            senderId,
+            profileCache,
+          );
+          const senderName = senderProfile?.name?.trim() || senderId;
+          const text =
+            getStringField(msg.fields, "text") ??
+            getStringField(msg.fields, "body") ??
+            "";
+          if (!text.trim()) continue;
+          incomingRows.push({
+            messageId: chatIdFromDocumentName(msg.name),
+            text: text.trim(),
+            senderName,
+            timestampMs: parseFirestoreTimestampMs(msg.fields, "timestamp"),
+          });
+        }
+        const cnt = incomingRows.length;
         if (cnt <= 0) continue;
 
         let label: string;
@@ -951,6 +995,14 @@ async function handleUnreadChatDigest(args: {
           count: cnt,
           label,
           imageUrl,
+        });
+
+        if (!pushRowsByUser.has(p)) pushRowsByUser.set(p, []);
+        pushRowsByUser.get(p)!.push({
+          chatId,
+          chatTitle: label,
+          isGroup,
+          messages: incomingRows,
         });
       }
     }
@@ -983,17 +1035,38 @@ async function handleUnreadChatDigest(args: {
     if (email) {
       await sendEmailIfPolicyAllows(DIGEST_TYPE, email, t.emailSubject, plainBody, html);
     }
-    await sendFcm({
-      accessToken,
-      fcmUrl,
-      tokens: me.fcmTokens,
-      title: t.pushTitle,
-      body: t.pushBody,
-      notificationType: DIGEST_TYPE,
-      recipientId: userId,
-      recipientKind: me.sourceCollection === "clients" ? "client" : "employee",
-      projectId,
-    });
+
+    // Push: do not send generic digest line. Send per-chat unread messages
+    // (max 5 per chat), so the client can render one aggregated notification
+    // per chat with latest lines.
+    const perUserPushRows = pushRowsByUser.get(userId) ?? [];
+    for (const row of perUserPushRows) {
+      const ordered = [...row.messages].sort((a, b) => a.timestampMs - b.timestampMs);
+      const recent = ordered.length > 5 ? ordered.slice(ordered.length - 5) : ordered;
+      for (const m of recent) {
+        await sendFcm({
+          accessToken,
+          fcmUrl,
+          tokens: me.fcmTokens,
+          title: row.chatTitle,
+          body: m.text,
+          notificationType: "chat_message",
+          recipientId: userId,
+          recipientKind: me.sourceCollection === "clients" ? "client" : "employee",
+          projectId,
+          dataExtras: {
+            chatId: row.chatId,
+            chatTitle: row.chatTitle,
+            chatDisplayName: row.chatTitle,
+            senderName: m.senderName,
+            messageId: m.messageId,
+            text: m.text,
+            timestamp: String(m.timestampMs),
+            isGroup: row.isGroup ? "1" : "0",
+          },
+        });
+      }
+    }
   }
 }
 
@@ -1004,6 +1077,7 @@ async function sendFcm({
   title,
   body,
   notificationType,
+  dataExtras,
   recipientId,
   recipientKind,
   projectId,
@@ -1014,6 +1088,7 @@ async function sendFcm({
   title: string;
   body: string;
   notificationType?: string;
+  dataExtras?: Record<string, string>;
   /** معرّف الموظف أو العميل في Firestore — لحفظ نسخة في مجموعة notifications (مثل تدفق التطبيق). */
   recipientId?: string | null;
   recipientKind?: "employee" | "client";
@@ -1060,6 +1135,12 @@ async function sendFcm({
   }
   dataPayloadBase.title = title;
   dataPayloadBase.body = body;
+  if (dataExtras) {
+    for (const [k, v] of Object.entries(dataExtras)) {
+      if (k.trim().length === 0) continue;
+      dataPayloadBase[k] = v;
+    }
+  }
 
   for (const token of cleaned) {
     const webTag = `point-cron-${crypto.randomUUID()}`;

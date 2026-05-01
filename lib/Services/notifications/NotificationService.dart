@@ -16,6 +16,10 @@ class NotificationService {
 
   static final NotificationService instance = NotificationService._();
   static const Duration _debounceDuration = Duration(milliseconds: 450);
+  static const Set<String> _legacyUnreadDigestTitles = <String>{
+    // Old unread-digest local notification used id = title.hashCode.
+    'Point',
+  };
 
   final ChatStore _chatStore = ChatStore.instance;
   final Map<String, Timer> _debounceByChat = <String, Timer>{};
@@ -23,6 +27,7 @@ class NotificationService {
   /// when Android delivers several data messages close together.
   static final Map<String, Future<void>> _incomingChainByChat =
       <String, Future<void>>{};
+  static bool _legacyDigestCleanupDone = false;
 
   bool _initialized = false;
   Future<void>? _initFuture;
@@ -69,6 +74,7 @@ class NotificationService {
     );
 
     try {
+      await _clearLegacyUnreadDigestNotifications();
       final buffer = await _chatStore.loadBuffer(payload.chatId);
       final isDuplicate = buffer.messages.any(
         (m) => m.messageId == payload.message.messageId,
@@ -95,6 +101,20 @@ class NotificationService {
       appLog(
         'ChatPush handleIncomingMessage failed chat_id=${payload.chatId} message_id=${payload.message.messageId}: $e\n$st',
       );
+    }
+  }
+
+  Future<void> _clearLegacyUnreadDigestNotifications() async {
+    if (kIsWeb || !Platform.isAndroid) return;
+    if (_legacyDigestCleanupDone) return;
+    try {
+      for (final title in _legacyUnreadDigestTitles) {
+        await appLocalNotificationsPlugin.cancel(id: title.hashCode);
+      }
+      _legacyDigestCleanupDone = true;
+      appLog('ChatPush cleared legacy unread-digest local notifications');
+    } catch (e, st) {
+      appLog('ChatPush legacy unread-digest clear failed: $e\n$st');
     }
   }
 

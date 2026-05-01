@@ -46,9 +46,18 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     return;
   }
 
-  final title = data['title']?.toString().trim() ?? '';
+  // Non-chat pushes from send-fcm already include a system-level notification
+  // payload, so showing another local one here would duplicate it.
+  if (message.notification != null) {
+    appLog('FCM background non-chat: skip local duplicate (system notification present)');
+    return;
+  }
+
+  final title =
+      (message.notification?.title ?? data['title']?.toString() ?? '').trim();
   if (title.isEmpty) return;
-  final body = data['body']?.toString().trim() ?? '';
+  final body =
+      (message.notification?.body ?? data['body']?.toString() ?? '').trim();
 
   await ensureAppLocalNotificationsInitialized();
   final android = appLocalNotificationsPlugin
