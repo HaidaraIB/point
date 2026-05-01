@@ -10,6 +10,7 @@ import 'package:point/Services/chat_voice_playback_service.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
 import 'package:point/Bindings/AppBindings.dart';
+import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/LanguageController.dart';
 import 'package:point/Localization/AppTranslations.dart';
 import 'package:point/Routing/app_route_observer.dart';
@@ -29,6 +30,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:point/firebase_app_options.dart';
 import 'package:point/fcm_background_handler.dart';
+import 'package:point/View/Shared/internet_offline_guard.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -162,6 +164,9 @@ class _AppState extends State<App> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       unawaited(NotificationService().onAppResumed());
+      if (Get.isRegistered<HomeController>()) {
+        Get.find<HomeController>().handleAppLifecycleResumed();
+      }
       if (!kIsWeb) {
         unawaited(_recheckMobileVersionGateOnResume());
       }
@@ -193,7 +198,9 @@ class _AppState extends State<App> with WidgetsBindingObserver {
           final dir = code == 'ar' ? textDirections.first : textDirections.last;
           return Directionality(
             textDirection: dir,
-            child: child ?? const SizedBox.shrink(),
+            child: InternetOfflineGuard(
+              child: child ?? const SizedBox.shrink(),
+            ),
           );
         },
         theme: ThemeData(

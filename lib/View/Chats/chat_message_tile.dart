@@ -7,7 +7,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/chat_message_actions.dart';
@@ -147,6 +147,26 @@ class _ChatMessageTileState extends State<ChatMessageTile>
   }
 
   bool get _deleted => widget.message['deleted'] == true;
+
+  /// Hug the outer margin of outgoing bubbles and the peer-facing edge of incoming
+  /// ones, independently of ambient RTL/LTR (`Alignment.centerRight` is geometric).
+  CrossAxisAlignment _bubbleInnerCrossAxisAlignment(BuildContext context) {
+    final ltr = Directionality.of(context) == TextDirection.ltr;
+    final outbound = widget.alignment == Alignment.centerRight;
+    if (outbound) {
+      return ltr ? CrossAxisAlignment.end : CrossAxisAlignment.start;
+    }
+    return ltr ? CrossAxisAlignment.start : CrossAxisAlignment.end;
+  }
+
+  MainAxisAlignment _bubbleFooterMainAxis(BuildContext context) {
+    final ltr = Directionality.of(context) == TextDirection.ltr;
+    final outbound = widget.alignment == Alignment.centerRight;
+    if (outbound) {
+      return ltr ? MainAxisAlignment.end : MainAxisAlignment.start;
+    }
+    return ltr ? MainAxisAlignment.start : MainAxisAlignment.end;
+  }
 
   double _effectiveBubbleMaxWidth(double screenWidth) {
     final relativeCap = screenWidth * widget.maxWidthFactor;
@@ -848,7 +868,7 @@ class _ChatMessageTileState extends State<ChatMessageTile>
                   vertical: 8,
                 ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: _bubbleInnerCrossAxisAlignment(context),
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     _replyQuoteBar(context),
@@ -858,6 +878,7 @@ class _ChatMessageTileState extends State<ChatMessageTile>
                     ),
                     const SizedBox(height: 6),
                     Row(
+                      mainAxisAlignment: _bubbleFooterMainAxis(context),
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (widget.message['isPinned'] == true) ...[

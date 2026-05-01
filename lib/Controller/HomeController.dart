@@ -78,6 +78,9 @@ class HomeController extends GetxController {
   var searchController = TextEditingController();
 
   Timer? _employeeDashFilterSaveDebounce;
+  Timer? _presenceHeartbeatTimer;
+  String? _presenceHeartbeatEmployeeId;
+  static const Duration _presenceHeartbeatInterval = Duration(seconds: 75);
 
   // RxList<TaskModel> allTasks = <TaskModel>[].obs;
   RxList<TaskModel> tasksSearched = <TaskModel>[].obs;
@@ -111,12 +114,11 @@ class HomeController extends GetxController {
     // otherwise ongoing tasks only (same as admins/supervisors).
     late List<TaskModel> baseList;
     if (rejectedFilterActive) {
-      baseList =
-          tasks.where((t) {
-            if (t.assignedTo.trim() != empId) return false;
-            return FunHelper.canonicalStoredStatus(t.status) ==
-                StorageKeys.status_rejected;
-          }).toList();
+      baseList = tasks.where((t) {
+        if (t.assignedTo.trim() != empId) return false;
+        return FunHelper.canonicalStoredStatus(t.status) ==
+            StorageKeys.status_rejected;
+      }).toList();
     } else {
       baseList = tasks.where((t) => StorageKeys.isTaskOngoing(t)).toList();
     }
@@ -138,14 +140,11 @@ class HomeController extends GetxController {
 
     // Status filter (skipped when list is already the rejected-only employee view).
     if (selectedStatus.value.isNotEmpty && !rejectedFilterActive) {
-      baseList =
-          baseList
-              .where(
-                (t) =>
-                    t.status.toLowerCase() ==
-                    selectedStatus.value.toLowerCase(),
-              )
-              .toList();
+      baseList = baseList
+          .where(
+            (t) => t.status.toLowerCase() == selectedStatus.value.toLowerCase(),
+          )
+          .toList();
     }
 
     // إن لم يُختر أي فلتر آخر نعرض النتيجة فوراً
@@ -256,20 +255,18 @@ class HomeController extends GetxController {
       selectedStatus.value = '';
     }
 
-    List<TaskModel> baseList =
-        tasks.where((t) => StorageKeys.isTaskEnded(t)).toList();
+    List<TaskModel> baseList = tasks
+        .where((t) => StorageKeys.isTaskEnded(t))
+        .toList();
 
     if (selectedStatus.value.isNotEmpty &&
         (StorageKeys.statusListEnded.contains(selectedStatus.value) ||
             selectedStatus.value == StorageKeys.status_promotion_finished)) {
-      baseList =
-          baseList
-              .where(
-                (t) =>
-                    t.status.toLowerCase() ==
-                    selectedStatus.value.toLowerCase(),
-              )
-              .toList();
+      baseList = baseList
+          .where(
+            (t) => t.status.toLowerCase() == selectedStatus.value.toLowerCase(),
+          )
+          .toList();
     }
 
     if (searchText.isEmpty &&
@@ -383,14 +380,13 @@ class HomeController extends GetxController {
     isLoading.value = true;
     // نحتاج النسخة القديمة للمقارنة وتمريرها للـ service
     final existing = employees.firstWhereOrNull((e) => e.id == employee.id);
-    final result =
-        existing == null
-            ? await _service.updateEmployee(employee)
-            : await _service.updateEmployeeWithAuth(
-              existing: existing,
-              updated: employee,
-              newPassword: newPassword,
-            );
+    final result = existing == null
+        ? await _service.updateEmployee(employee)
+        : await _service.updateEmployeeWithAuth(
+            existing: existing,
+            updated: employee,
+            newPassword: newPassword,
+          );
     if (result && (employee.role == 'admin' || employee.role == 'supervisor')) {
       await addToGroups(employee.id!);
     }
@@ -521,14 +517,13 @@ class HomeController extends GetxController {
     }
     isLoading.value = true;
     final existing = clients.firstWhereOrNull((c) => c.id == client.id);
-    final result =
-        existing == null
-            ? await _service.updateClient(client)
-            : await _service.updateClientWithAuth(
-              existing: existing,
-              updated: client,
-              newPassword: newPassword,
-            );
+    final result = existing == null
+        ? await _service.updateClient(client)
+        : await _service.updateClientWithAuth(
+            existing: existing,
+            updated: client,
+            newPassword: newPassword,
+          );
     isLoading.value = false;
     return result;
   }
@@ -620,11 +615,10 @@ class HomeController extends GetxController {
   }
 
   void toggleSelectAllVisibleContents(List<ContentModel> visibleContents) {
-    final ids =
-        visibleContents
-            .map((c) => c.id?.trim() ?? '')
-            .where((id) => id.isNotEmpty)
-            .toList();
+    final ids = visibleContents
+        .map((c) => c.id?.trim() ?? '')
+        .where((id) => id.isNotEmpty)
+        .toList();
     if (ids.isEmpty) return;
     final allSelected = ids.every(selectedContentIds.contains);
     if (allSelected) {
@@ -637,15 +631,14 @@ class HomeController extends GetxController {
   }
 
   Future<bool> approveSelectedContents() async {
-    final selected =
-        contents
-            .where(
-              (c) =>
-                  c.id != null &&
-                  selectedContentIds.contains(c.id!) &&
-                  c.status != StorageKeys.status_approved,
-            )
-            .toList();
+    final selected = contents
+        .where(
+          (c) =>
+              c.id != null &&
+              selectedContentIds.contains(c.id!) &&
+              c.status != StorageKeys.status_approved,
+        )
+        .toList();
     if (selected.isEmpty) return false;
     var ok = true;
     for (final content in selected) {
@@ -665,7 +658,9 @@ class HomeController extends GetxController {
     ContentModel content, {
     required bool schedule,
   }) {
-    final linkedClient = clients.firstWhereOrNull((c) => c.id == content.clientId);
+    final linkedClient = clients.firstWhereOrNull(
+      (c) => c.id == content.clientId,
+    );
     final pageId = (linkedClient?.metaPageId ?? '').trim();
     final pageAccessToken = (linkedClient?.metaPageAccessToken ?? '').trim();
     if (pageId.isEmpty || pageAccessToken.isEmpty) {
@@ -716,7 +711,8 @@ class HomeController extends GetxController {
 
   MetaPostModel? buildScheduledMetaDraftFromContent(ContentModel content) {
     final publishDate = content.publishDate;
-    if (publishDate == null || publishDate.toUtc().isBefore(DateTime.now().toUtc())) {
+    if (publishDate == null ||
+        publishDate.toUtc().isBefore(DateTime.now().toUtc())) {
       FunHelper.showSnackbar(
         'error'.tr,
         AppLocaleKeys.publishFutureDateRequired.tr,
@@ -761,14 +757,13 @@ class HomeController extends GetxController {
     }
     final filterDate = employeeWebContentDateFilter.value;
     if (filterDate != null) {
-      list =
-          list.where((c) {
-            final d = c.publishDate;
-            if (d == null) return false;
-            return d.year == filterDate.year &&
-                d.month == filterDate.month &&
-                d.day == filterDate.day;
-          }).toList();
+      list = list.where((c) {
+        final d = c.publishDate;
+        if (d == null) return false;
+        return d.year == filterDate.year &&
+            d.month == filterDate.month &&
+            d.day == filterDate.day;
+      }).toList();
     }
     return list;
   }
@@ -1001,8 +996,7 @@ class HomeController extends GetxController {
           );
         } else if (newTask.status == StorageKeys.status_ready_to_publish ||
             newTask.status == StorageKeys.status_under_revision ||
-            newTask.status ==
-                StorageKeys.status_promotion_ad_platform_review ||
+            newTask.status == StorageKeys.status_promotion_ad_platform_review ||
             newTask.status == StorageKeys.status_task_completed) {
           await NotificationService.notifyManagersTaskCompletedByEmployee(
             employeeName: assigneeName,
@@ -1061,12 +1055,11 @@ class HomeController extends GetxController {
             newTask.files.length > oldTask.files.length)) {
       final addedNotes = newTask.notes.length > oldTask.notes.length;
       final addedFiles = newTask.files.length > oldTask.files.length;
-      final editKind =
-          addedNotes && addedFiles
-              ? ManagerTaskEditKind.both
-              : addedNotes
-              ? ManagerTaskEditKind.comment
-              : ManagerTaskEditKind.attachment;
+      final editKind = addedNotes && addedFiles
+          ? ManagerTaskEditKind.both
+          : addedNotes
+          ? ManagerTaskEditKind.comment
+          : ManagerTaskEditKind.attachment;
       await NotificationService.notifyManagersEmployeeEditedTask(
         employeeName: assigneeName,
         taskTitle: newTask.title,
@@ -1190,14 +1183,12 @@ class HomeController extends GetxController {
       TaskTimelineEvent(
         type: 'field_changed',
         label: label,
-        oldValue:
-            _formatTimelineValue(oldVal).isEmpty
-                ? null
-                : _formatTimelineValue(oldVal),
-        newValue:
-            _formatTimelineValue(newVal).isEmpty
-                ? null
-                : _formatTimelineValue(newVal),
+        oldValue: _formatTimelineValue(oldVal).isEmpty
+            ? null
+            : _formatTimelineValue(oldVal),
+        newValue: _formatTimelineValue(newVal).isEmpty
+            ? null
+            : _formatTimelineValue(newVal),
         byUserId: userId,
         byUserName: userName,
         timestamp: now,
@@ -1261,14 +1252,12 @@ class HomeController extends GetxController {
     final normalizedOldProgress = _normalizeProgressStep(oldTask.progress);
     final normalizedNewProgress = _normalizeProgressStep(newTask.progress);
     if (normalizedOldProgress != normalizedNewProgress) {
-      final oldP =
-          normalizedOldProgress != null
-              ? '${(normalizedOldProgress * 100).round()}%'
-              : '';
-      final newP =
-          normalizedNewProgress != null
-              ? '${(normalizedNewProgress * 100).round()}%'
-              : '';
+      final oldP = normalizedOldProgress != null
+          ? '${(normalizedOldProgress * 100).round()}%'
+          : '';
+      final newP = normalizedNewProgress != null
+          ? '${(normalizedNewProgress * 100).round()}%'
+          : '';
       _addIfChanged(
         events,
         'تم تغيير التقدم',
@@ -1364,10 +1353,9 @@ class HomeController extends GetxController {
     }
     if (newTask.notes.length > oldTask.notes.length) {
       final newNote = newTask.notes.isNotEmpty ? newTask.notes.last.note : '';
-      final snippet =
-          newNote.length > _timelineValueMaxLength
-              ? '${newNote.substring(0, _timelineValueMaxLength)}...'
-              : newNote;
+      final snippet = newNote.length > _timelineValueMaxLength
+          ? '${newNote.substring(0, _timelineValueMaxLength)}...'
+          : newNote;
       events.add(
         TaskTimelineEvent(
           type: 'note_added',
@@ -2010,10 +1998,9 @@ class HomeController extends GetxController {
         (newTask.managementEditRequestMessage.trim().isNotEmpty ||
             newTask.managementEditRequestFileUrls.isNotEmpty)) {
       final snippet = newTask.managementEditRequestMessage.trim();
-      final clip =
-          snippet.length > _timelineValueMaxLength
-              ? '${snippet.substring(0, _timelineValueMaxLength)}...'
-              : snippet;
+      final clip = snippet.length > _timelineValueMaxLength
+          ? '${snippet.substring(0, _timelineValueMaxLength)}...'
+          : snippet;
       events.add(
         TaskTimelineEvent(
           type: 'management_edit_request',
@@ -2037,10 +2024,9 @@ class HomeController extends GetxController {
         (newTask.rejectionMessage.trim().isNotEmpty ||
             newTask.rejectionFileUrls.isNotEmpty)) {
       final snippet = newTask.rejectionMessage.trim();
-      final clip =
-          snippet.length > _timelineValueMaxLength
-              ? '${snippet.substring(0, _timelineValueMaxLength)}...'
-              : snippet;
+      final clip = snippet.length > _timelineValueMaxLength
+          ? '${snippet.substring(0, _timelineValueMaxLength)}...'
+          : snippet;
       events.add(
         TaskTimelineEvent(
           type: 'rejection_feedback',
@@ -2091,13 +2077,12 @@ class HomeController extends GetxController {
         TaskTimelineEvent(
           type: 'deadline_extension_denied',
           label: 'tasks.timeline.deadline_extension_denied',
-          newValue:
-              newTask.deadlineExtensionDeniedNote.trim().isEmpty
-                  ? null
-                  : (newTask.deadlineExtensionDeniedNote.trim().length >
-                          _timelineValueMaxLength
-                      ? '${newTask.deadlineExtensionDeniedNote.trim().substring(0, _timelineValueMaxLength)}...'
-                      : newTask.deadlineExtensionDeniedNote.trim()),
+          newValue: newTask.deadlineExtensionDeniedNote.trim().isEmpty
+              ? null
+              : (newTask.deadlineExtensionDeniedNote.trim().length >
+                        _timelineValueMaxLength
+                    ? '${newTask.deadlineExtensionDeniedNote.trim().substring(0, _timelineValueMaxLength)}...'
+                    : newTask.deadlineExtensionDeniedNote.trim()),
           byUserId: userId,
           byUserName: userName,
           timestamp: ts(),
@@ -2161,7 +2146,9 @@ class HomeController extends GetxController {
       withData: true,
       type: FileType.media,
     );
-    appLog('Picked gallery media: ${result?.files.map((e) => e.name).toList()}');
+    appLog(
+      'Picked gallery media: ${result?.files.map((e) => e.name).toList()}',
+    );
     if (result != null && result.files.isNotEmpty) {
       return result.files;
     }
@@ -2190,6 +2177,7 @@ class HomeController extends GetxController {
     required dynamic filePathOrBytes,
     String? fileName,
     bool useBlockingUploadDialog = true,
+
     /// When set, Supabase public URL gets `?download=` so browsers save under this name.
     String? friendlyDownloadName,
   }) async {
@@ -2226,8 +2214,12 @@ class HomeController extends GetxController {
       uploadProgress.value = 1.0;
 
       var url = bucket.getPublicUrl(uniqueName);
-      if (friendlyDownloadName != null && friendlyDownloadName.trim().isNotEmpty) {
-        url = appendSupabaseStorageDownloadQuery(url, friendlyDownloadName.trim());
+      if (friendlyDownloadName != null &&
+          friendlyDownloadName.trim().isNotEmpty) {
+        url = appendSupabaseStorageDownloadQuery(
+          url,
+          friendlyDownloadName.trim(),
+        );
       }
 
       uploadedFilesPaths.add(url);
@@ -2257,7 +2249,9 @@ class HomeController extends GetxController {
   ///
   /// على الويب يجب انتظار [restoreEmployeeDashboardTaskFiltersFromPrefs] قبل التنقل،
   /// وإلا تُبنى لوحة الموظف قبل اكتمال قراءة SharedPreferences.
-  Future<void> applyEmployeeSessionAfterAuthRestore(EmployeeModel employee) async {
+  Future<void> applyEmployeeSessionAfterAuthRestore(
+    EmployeeModel employee,
+  ) async {
     if (employee.id == null || employee.id!.isEmpty) return;
     currentEmployee.value = employee;
     lastKnownEmployee.value = employee;
@@ -2271,6 +2265,7 @@ class HomeController extends GetxController {
     fetchContents();
     fetchMetaPosts();
     _startTotalUnreadStream(employee.id!);
+    _startPresenceHeartbeatForEmployee(employee.id!);
     listenToClient(employee.id!);
     fetchNotification(employee.id);
     if (_isEmployeeRoleForDashboard(employee.role)) {
@@ -2328,6 +2323,7 @@ class HomeController extends GetxController {
     }
     activeDepartmentFilter.value = '';
   }
+
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>? _employeeDocSub;
   EmployeeModel? get effectiveEmployee =>
       currentEmployee.value ?? lastKnownEmployee.value;
@@ -2342,11 +2338,18 @@ class HomeController extends GetxController {
             if (snapshot.exists && snapshot.data() != null) {
               final base = EmployeeModel.fromJson(snapshot.data()!);
               final employee = base.copyWith(id: empid);
-              currentEmployee.value = employee;
-              lastKnownEmployee.value = employee;
-              syncActiveDepartmentFilterFromEmployee(employee);
-              unawaited(FirestoreServices.syncAuthRoleForEmployee(employee));
-              _startTotalUnreadStream(empid);
+              final previous = currentEmployee.value;
+              final profileChanged = !_sameEmployeeProfileCore(
+                previous,
+                employee,
+              );
+              if (profileChanged) {
+                currentEmployee.value = employee;
+                lastKnownEmployee.value = employee;
+                syncActiveDepartmentFilterFromEmployee(employee);
+                unawaited(FirestoreServices.syncAuthRoleForEmployee(employee));
+                _startTotalUnreadStream(empid);
+              }
             }
           },
           onError: (e, s) {
@@ -2379,14 +2382,39 @@ class HomeController extends GetxController {
   /// Total unread messages across all chats (for header badge).
   RxInt totalUnreadMessages = 0.obs;
   StreamSubscription<int>? _totalUnreadSub;
+  String? _totalUnreadUserId;
   StreamSubscription<String>? _fcmTokenRefreshSub;
+  StreamSubscription<Map<String, DateTime>>? _employeePresenceSub;
+  final RxMap<String, DateTime> employeePresenceById = <String, DateTime>{}.obs;
   bool _fcmSetupInProgress = false;
 
+  static bool _sameEmployeeProfileCore(EmployeeModel? a, EmployeeModel b) {
+    if (a == null) return false;
+    final sameDepartments =
+        a.departments.length == b.departments.length &&
+        a.departments.asMap().entries.every(
+          (entry) => b.departments[entry.key] == entry.value,
+        );
+    return a.id == b.id &&
+        a.name == b.name &&
+        a.email == b.email &&
+        a.role == b.role &&
+        a.status == b.status &&
+        a.image == b.image &&
+        a.authUid == b.authUid &&
+        a.authStatus == b.authStatus &&
+        sameDepartments;
+  }
+
   void _startTotalUnreadStream(String userId) {
+    final id = userId.trim();
+    if (id.isEmpty) return;
+    if (_totalUnreadUserId == id && _totalUnreadSub != null) return;
     _totalUnreadSub?.cancel();
+    _totalUnreadUserId = id;
     _totalUnreadSub = _service
         .getTotalUnreadMessagesStream(
-          userId,
+          id,
           onPerChatUnreadIncrease: (chatId) {
             if (!kIsWeb) return;
             // Web: unread aggregate also fires when a message arrives; skip the
@@ -2417,7 +2445,54 @@ class HomeController extends GetxController {
   void _stopTotalUnreadStream() {
     _totalUnreadSub?.cancel();
     _totalUnreadSub = null;
+    _totalUnreadUserId = null;
     totalUnreadMessages.value = 0;
+  }
+
+  Future<void> _sendPresenceHeartbeat(String employeeId) async {
+    final id = employeeId.trim();
+    if (id.isEmpty) return;
+    await _service.syncEmployeePresenceHeartbeat(id);
+  }
+
+  void _startPresenceHeartbeatForEmployee(String employeeId) {
+    final id = employeeId.trim();
+    if (id.isEmpty) return;
+    if (_presenceHeartbeatEmployeeId == id && _presenceHeartbeatTimer != null) {
+      return;
+    }
+    _presenceHeartbeatTimer?.cancel();
+    _presenceHeartbeatTimer = null;
+    _presenceHeartbeatEmployeeId = id;
+    unawaited(_sendPresenceHeartbeat(id));
+    _presenceHeartbeatTimer = Timer.periodic(_presenceHeartbeatInterval, (_) {
+      unawaited(_sendPresenceHeartbeat(id));
+    });
+  }
+
+  void _stopPresenceHeartbeat() {
+    _presenceHeartbeatTimer?.cancel();
+    _presenceHeartbeatTimer = null;
+    _presenceHeartbeatEmployeeId = null;
+  }
+
+  void handleAppLifecycleResumed() {
+    final id = currentEmployee.value?.id?.trim();
+    if (id == null || id.isEmpty) return;
+    _startPresenceHeartbeatForEmployee(id);
+  }
+
+  void _startEmployeePresenceStream() {
+    _employeePresenceSub?.cancel();
+    _employeePresenceSub = _service.getEmployeePresenceMap().listen((map) {
+      employeePresenceById.assignAll(map);
+    });
+  }
+
+  DateTime? employeeLastSeenAt(String? employeeId) {
+    final id = employeeId?.trim() ?? '';
+    if (id.isEmpty) return null;
+    return employeePresenceById[id];
   }
 
   setupFCM(userId) async {
@@ -2448,8 +2523,15 @@ class HomeController extends GetxController {
 
         String? token;
         if (kIsWeb) {
-          const isTest = bool.fromEnvironment('USE_FIREBASE_TEST', defaultValue: false);
-          token = await messaging.getToken(vapidKey: isTest ? AppConfig.fcmVapidKeyTest : AppConfig.fcmVapidKeyProd);
+          const isTest = bool.fromEnvironment(
+            'USE_FIREBASE_TEST',
+            defaultValue: false,
+          );
+          token = await messaging.getToken(
+            vapidKey: isTest
+                ? AppConfig.fcmVapidKeyTest
+                : AppConfig.fcmVapidKeyProd,
+          );
         } else {
           token = await messaging.getToken();
         }
@@ -2523,7 +2605,8 @@ class HomeController extends GetxController {
     } catch (e) {
       // على الويب: token-subscribe-failed شائع لغياب OAuth/Service Worker
       appLog('setupFCM: $e');
-      if (kIsWeb) appDebugPrint('FCM on web may need service worker / OAuth: $e');
+      if (kIsWeb)
+        appDebugPrint('FCM on web may need service worker / OAuth: $e');
     } finally {
       _fcmSetupInProgress = false;
     }
@@ -2650,6 +2733,7 @@ class HomeController extends GetxController {
       filterTasksHistory();
     });
     _restoreEmployeeSessionIfNeeded();
+    _startEmployeePresenceStream();
     super.onInit();
   }
 
@@ -2660,9 +2744,12 @@ class HomeController extends GetxController {
     employeeWebContentSearchController.dispose();
     _employeeDocSub?.cancel();
     _employeeDocSub = null;
+    _stopPresenceHeartbeat();
     _stopTotalUnreadStream();
     _fcmTokenRefreshSub?.cancel();
     _fcmTokenRefreshSub = null;
+    _employeePresenceSub?.cancel();
+    _employeePresenceSub = null;
     super.onClose();
   }
 
@@ -2695,7 +2782,11 @@ class HomeController extends GetxController {
     lastKnownEmployee.value = null;
     _employeeDocSub?.cancel();
     _employeeDocSub = null;
+    _stopPresenceHeartbeat();
     _stopTotalUnreadStream();
+    _employeePresenceSub?.cancel();
+    _employeePresenceSub = null;
+    employeePresenceById.clear();
     employees.bindStream(Stream<List<EmployeeModel>>.value([]));
     clients.bindStream(Stream<List<ClientModel>>.value([]));
     contents.bindStream(Stream<List<ContentModel>>.value([]));

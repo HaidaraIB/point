@@ -66,6 +66,8 @@ class AppLocaleKeys {
   static const chatGroupType = 'chat.group_type';
   static const chatPrivateType = 'chat.private_type';
   static const chatNoMessages = 'chat.no_messages';
+  static const chatConnectedCount = 'chat.connected_count';
+  static const chatTyping = 'chat.typing';
   static const chatSenderFallback = 'chat.sender_fallback';
   static const chatWriteMessage = 'chat.write_message';
   static const chatAttachSheetTitle = 'chat.attach_sheet_title';
@@ -119,6 +121,13 @@ class AppLocaleKeys {
   static const errorsInvalidData = 'errors.invalid_data';
   static const errorsServer = 'errors.server';
   static const errorsEmailRequired = 'errors.email_required';
+  static const internetOnlineBadge = 'internet.badge.online';
+  static const internetOfflineBadge = 'internet.badge.offline';
+  static const internetOfflineSnackbar = 'internet.snackbar.offline';
+  static const internetBackOnlineSnackbar = 'internet.snackbar.online';
+  static const internetOfflineTitle = 'internet.offline.title';
+  static const internetOfflineBody = 'internet.offline.body';
+  static const internetRetry = 'internet.retry';
 
   static const funConfirmTitle = 'fun.confirm_title';
   static const funConfirmMessage = 'fun.confirm_message';
@@ -206,4 +215,8 @@ class AppLocaleKeys {
   static const pushTestCategoryClient = 'push_test.category.client';
   static const pushTestCategoryPublish = 'push_test.category.publish';
   static const pushTestCategoryAdminMeta = 'push_test.category.admin_meta';
+  static const employeesPresence = 'employees.presence';
+  static const employeesOnlineNow = 'employees.online_now';
+  static const employeesLastSeenAt = 'employees.last_seen_at';
+  static const employeesLastSeenUnknown = 'employees.last_seen_unknown';
 }

@@ -15,6 +15,7 @@ import 'package:point/Utils/AppNotificationInbox.dart';
 import 'package:point/View/Chats/ChatPage.dart';
 import 'package:point/View/Chats/MChatPage.dart';
 import 'package:point/View/Shared/in_app_notifications_panel.dart';
+import 'package:point/View/Shared/internet_status_badge.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/EmployeeDashboard/employee_profile_form.dart';
 import 'package:point/View/Shared/responsive.dart';
@@ -472,6 +473,10 @@ class HeaderWidget extends StatelessWidget {
               child: _webEmployeeLanguageMenuButton(),
             );
           }),
+        if (!isMobile && kIsWeb) ...[
+          const InternetStatusBadge(),
+          const SizedBox(width: 10),
+        ],
         _buildAvatar(avatarUrl, radius: isMobile ? 18 : 20),
         SizedBox(width: isMobile ? 6 : 15),
         Flexible(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
@@ -10,6 +11,7 @@ import 'package:point/Utils/AppNotificationInbox.dart';
 import 'package:point/View/Chats/MChatPage.dart';
 import 'package:point/View/EmployeeDashboard/employee_dashboard_dialogs.dart';
 import 'package:point/View/Shared/CustomHeader.dart';
+import 'package:point/View/Shared/internet_status_badge.dart';
 
 /// Shared white app bar for employee flows (dashboard, content management).
 class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -88,6 +90,10 @@ class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidge
             ),
             onPressed: () => Get.to(() => ChatsListScreen(onMinimize: () {})),
           ),
+          if (kIsWeb) ...[
+            const InternetStatusBadge(),
+            const SizedBox(width: 6),
+          ],
           Expanded(
             child: Obx(() {
               final emp = controller.currentEmployee.value;

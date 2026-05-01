@@ -4,6 +4,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Utils/chat_message_bidi.dart';
 import 'package:point/Services/chat_voice_playback_service.dart';
 import 'package:point/View/Mobile/Shared/VideoCart.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -729,20 +730,25 @@ class _FileBubble extends StatelessWidget {
 }
 
 Widget messageTextRich(String text, bool isMe) {
-  final matches = urlRegex.allMatches(text);
+  return Builder(
+    builder: (context) {
+      final resolvedDirection = chatMessageTextDirectionFromFirstWord(text) ??
+          Directionality.of(context);
+      final matches = urlRegex.allMatches(text);
 
-  if (matches.isEmpty) {
-    return Text(
-      text,
-      style: TextStyle(fontSize: 15, color: isMe ? Colors.white : Colors.black),
-    );
-  }
+      final style = TextStyle(
+        fontSize: 15,
+        color: isMe ? Colors.white : Colors.black,
+      );
 
-  return RichText(
-    text: TextSpan(
-      children: buildMessageSpans(text, isMe),
-      style: TextStyle(fontSize: 15, color: isMe ? Colors.white : Colors.black),
-    ),
+      final child = matches.isEmpty
+          ? Text(text, style: style)
+          : RichText(
+              text: TextSpan(children: buildMessageSpans(text, isMe), style: style),
+            );
+
+      return Directionality(textDirection: resolvedDirection, child: child);
+    },
   );
 }
 

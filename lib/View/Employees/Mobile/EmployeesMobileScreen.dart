@@ -1,11 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Models/EmployeeModel.dart';
+import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/table_actions_menu_row.dart';
 import 'package:point/Controller/HomeController.dart';
+
+bool _isEmployeeRecentlyOnline(DateTime? at) {
+  if (at == null) return false;
+  return DateTime.now().difference(at.toLocal()) <= const Duration(minutes: 2);
+}
+
+String _employeePresenceLabel(DateTime? at) {
+  if (_isEmployeeRecentlyOnline(at)) return 'employees.online_now'.tr;
+  if (at == null) return 'employees.last_seen_unknown'.tr;
+  final when = FunHelper.formatTimeAgo(at.toLocal());
+  return 'employees.last_seen_at'.trParams({'time': when});
+}
 
 class EmployeesMobileScreen extends StatelessWidget {
   final List<EmployeeModel> employees;
@@ -111,6 +124,9 @@ class EmployeesMobileScreen extends StatelessWidget {
               separatorBuilder: (_, __) => const SizedBox(height: 10),
               itemBuilder: (_, index) {
                 final emp = employees[index];
+                final lastSeenAt = Get.find<HomeController>().employeeLastSeenAt(
+                  emp.id,
+                );
                 final isSelf =
                     selfEmployeeId != null &&
                     selfEmployeeId!.isNotEmpty &&
@@ -201,6 +217,33 @@ class EmployeesMobileScreen extends StatelessWidget {
                           color: AppColors.fontColorGrey,
                           fontWeight: FontWeight.w600,
                         ),
+                      ),
+                      const SizedBox(height: 9),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 9,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _isEmployeeRecentlyOnline(lastSeenAt)
+                                  ? const Color(0xFFEAF8F1)
+                                  : const Color(0xFFF3F4F6),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              _employeePresenceLabel(lastSeenAt),
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: _isEmployeeRecentlyOnline(lastSeenAt)
+                                    ? const Color(0xFF0F9D58)
+                                    : AppColors.fontColorGrey,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 9),
                       Container(

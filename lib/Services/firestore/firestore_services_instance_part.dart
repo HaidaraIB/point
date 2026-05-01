@@ -456,6 +456,45 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
     }
   }
 
+  Stream<Map<String, DateTime>> getEmployeePresenceMap() {
+    return FirebaseFirestore.instance
+        .collection('employee_presence')
+        .snapshots()
+        .map((snapshot) {
+          final out = <String, DateTime>{};
+          for (final doc in snapshot.docs) {
+            final raw = doc.data();
+            final ts = raw['lastSeenAt'];
+            DateTime? dt;
+            if (ts is Timestamp) {
+              dt = ts.toDate();
+            } else if (ts is String) {
+              dt = DateTime.tryParse(ts);
+            }
+            if (dt != null) {
+              out[doc.id] = dt;
+            }
+          }
+          return out;
+        });
+  }
+
+  Future<void> syncEmployeePresenceHeartbeat(String employeeId) async {
+    final id = employeeId.trim();
+    if (id.isEmpty) return;
+    try {
+      await FirebaseFirestore.instance.collection('employee_presence').doc(id).set(
+        <String, dynamic>{
+          'employeeId': id,
+          'lastSeenAt': FieldValue.serverTimestamp(),
+        },
+        SetOptions(merge: true),
+      );
+    } catch (e) {
+      appLog('syncEmployeePresenceHeartbeat: $e');
+    }
+  }
+
   Future<bool> createClientWithAuth({
     required ClientModel client,
     required String password,

@@ -28,6 +28,7 @@ import 'package:point/View/Chats/chat_message_tile.dart';
 import 'package:point/View/Chats/chat_reply_draft_banner.dart';
 import 'package:point/View/Chats/pending_chat_attachment.dart';
 import 'package:point/View/Chats/chat_scroll_to_latest_fab.dart';
+import 'package:point/View/Chats/chat_private_typing.dart';
 import 'package:point/View/Chats/chat_ui_helpers.dart';
 import 'package:point/View/Chats/chat_voice_record_button.dart';
 import 'package:point/View/Chats/telegram_style_attachment_menu.dart';
@@ -347,6 +348,120 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
   bool? _scrollFabVisibleLast;
   int _scrollUnreadBelowLast = -1;
 
+  late final PrivateChatTypingWriter _typingWriter;
+  Worker? _presenceWorker;
+  /// Populated by [_ensurePopupChatContext] so private overlays get typing + presence.
+  String? _popupOtherUserId;
+  List<String> _popupParticipants = const [];
+
+  DateTime? _presenceOf(String? employeeId) {
+    final id = employeeId?.trim() ?? '';
+    if (id.isEmpty || !Get.isRegistered<HomeController>()) return null;
+    return Get.find<HomeController>().employeeLastSeenAt(id);
+  }
+
+  bool _isOnlinePresence(DateTime? at) {
+    if (at == null) return false;
+    return DateTime.now().difference(at.toLocal()) <= const Duration(minutes: 2);
+  }
+
+  String _privatePresenceLabel(String? otherEmployeeId) {
+    final at = _presenceOf(otherEmployeeId);
+    if (_isOnlinePresence(at)) {
+      final raw = 'employees.online_now'.tr;
+      final lang = Get.locale?.languageCode.toLowerCase() ?? '';
+      return lang == 'en' ? raw.toLowerCase() : raw;
+    }
+    if (at == null) return 'employees.last_seen_unknown'.tr;
+    final when = FunHelper.formatTimeAgo(at.toLocal());
+    return 'employees.last_seen_at'.trParams({'time': when});
+  }
+
+  int _connectedUsersCountForPopupGroup(String selfId) {
+    var count = 0;
+    for (final id in _popupParticipants) {
+      if (id == selfId) continue;
+      if (_isOnlinePresence(_presenceOf(id))) count++;
+    }
+    return count;
+  }
+
+  Widget _avatarWithOnlineDot({
+    required Widget avatar,
+    required bool showOnlineDot,
+  }) {
+    if (!showOnlineDot) return avatar;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        avatar,
+        Positioned(
+          right: -1,
+          bottom: -1,
+          child: Container(
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(
+              color: const Color(0xFF16A34A),
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  DocumentReference<Map<String, dynamic>>? _popupOtherTypingRef() {
+    if (widget.chat.isGroup) return null;
+    final other = _popupOtherUserId?.trim() ?? '';
+    if (other.isEmpty || other == 'N/A') return null;
+    return _firestore
+        .collection('chats')
+        .doc(_chatId)
+        .collection('typing')
+        .doc(other);
+  }
+
+  void _rebindTypingWriterForPopup() {
+    final uid = Get.find<HomeController>().currentEmployee.value?.id ?? '';
+    if (uid.isEmpty) {
+      _typingWriter.rebind(chatId: null, myUserId: '', isGroup: true);
+      return;
+    }
+    if (widget.chat.isGroup) {
+      _typingWriter.rebind(chatId: null, myUserId: uid, isGroup: true);
+      return;
+    }
+    _typingWriter.rebind(chatId: _chatId, myUserId: uid, isGroup: false);
+  }
+
+  Future<void> _ensurePopupChatContext() async {
+    try {
+      final snap = await _firestore.collection('chats').doc(_chatId).get();
+      if (!snap.exists || !mounted) return;
+      final data = snap.data() ?? {};
+      final parts = List<String>.from(data['participants'] ?? const []);
+      final selfId =
+          Get.find<HomeController>().currentEmployee.value?.id ?? '';
+      String? otherId;
+      if (!widget.chat.isGroup && selfId.isNotEmpty) {
+        for (final id in parts) {
+          if (id != selfId) {
+            otherId = id;
+            break;
+          }
+        }
+      }
+      if (!mounted) return;
+      setState(() {
+        _popupParticipants = parts;
+        _popupOtherUserId = otherId;
+      });
+      _rebindTypingWriterForPopup();
+    } catch (_) {}
+  }
+
   void _flushScrollDiskTimer() {
     _scrollDiskFlushTimer?.cancel();
     _scrollDiskFlushTimer = null;
@@ -406,6 +521,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
 
   void _onComposerTextChanged() {
     if (mounted) setState(() {});
+    _typingWriter.onComposerTextChanged(_messageController.text);
   }
 
   KeyEventResult _onComposerKeyEvent(FocusNode node, KeyEvent event) {
@@ -642,6 +758,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     _chatId = widget.chat.id;
+    _typingWriter = PrivateChatTypingWriter(_firestore);
     final uid = Get.find<HomeController>().currentEmployee.value?.id ?? '';
     _openScrollPrefsFuture = uid.isEmpty
         ? Future<ChatScrollSnapshot?>.value(null)
@@ -652,6 +769,16 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
         .collection('messages')
         .orderBy('timestamp', descending: true)
         .snapshots();
+
+    _rebindTypingWriterForPopup();
+    if (Get.isRegistered<HomeController>()) {
+      final hc = Get.find<HomeController>();
+      _presenceWorker = ever<Map<String, DateTime>>(hc.employeePresenceById, (_) {
+        if (!mounted) return;
+        setState(() {});
+      });
+    }
+    unawaited(_ensurePopupChatContext());
 
     _syncPopupSoundAndFocus();
     _syncExpandedPopupRegistration();
@@ -670,6 +797,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
         state == AppLifecycleState.detached ||
         state == AppLifecycleState.hidden) {
       _flushScrollDiskTimer();
+      unawaited(_typingWriter.clearTyping());
       final uid = Get.find<HomeController>().currentEmployee.value?.id;
       if (uid != null) {
         unawaited(_persistPopupScrollSnapshot(uid));
@@ -721,6 +849,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
       if (oldWidget.chat.minimized && !widget.chat.minimized) {
         unawaited(_reloadDiskScrollAfterExpand());
       } else if (!oldWidget.chat.minimized && widget.chat.minimized) {
+        unawaited(_typingWriter.clearTyping());
         _flushScrollDiskTimer();
         final uid = Get.find<HomeController>().currentEmployee.value?.id;
         if (uid != null) {
@@ -740,6 +869,9 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _presenceWorker?.dispose();
+    _presenceWorker = null;
+    unawaited(_typingWriter.dispose());
     ChatAudioFocus.unregisterExpandedChatPopup(_chatId);
     _flushScrollDiskTimer();
     WidgetsBinding.instance.removeObserver(this);
@@ -766,6 +898,18 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<HomeController>();
+    final selfPresenceId = controller.currentEmployee.value?.id ?? '';
+    final headerHeight = widget.chat.minimized ? 45.0 : 54.0;
+    final privateOnlineDot =
+        !widget.chat.isGroup &&
+        _isOnlinePresence(_presenceOf(_popupOtherUserId));
+    final subtitleText = widget.chat.minimized
+        ? ''
+        : (widget.chat.isGroup
+              ? AppLocaleKeys.chatConnectedCount.trParams({
+                  'count': '${_connectedUsersCountForPopupGroup(selfPresenceId)}',
+                })
+              : _privatePresenceLabel(_popupOtherUserId));
 
     return Listener(
       behavior: HitTestBehavior.translucent,
@@ -777,7 +921,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
         width: 280,
-        height: widget.chat.minimized ? 45 : 360,
+        height: widget.chat.minimized ? 45 : 369,
         margin: const EdgeInsets.symmetric(horizontal: 6),
         transform: Matrix4.translationValues(offset.dx, offset.dy, 0),
         decoration: BoxDecoration(
@@ -802,7 +946,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                 controller.clearUnread(widget.chat.id);
               },
               child: Container(
-                height: 45,
+                height: headerHeight,
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -819,27 +963,55 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                     Expanded(
                       child: Row(
                         children: [
-                          chatLeadingAvatar(
-                            radius: 14,
-                            backgroundColor: widget.chat.isGroup
-                                ? Colors.blueGrey.shade100
-                                : Colors.grey.shade200,
-                            initial: chatInitialFromName(widget.chat.name),
-                            groupIcon: widget.chat.isGroup ? Icons.group : null,
-                            imageUrl: widget.chat.isGroup
-                                ? null
-                                : widget.chat.avatar,
+                          _avatarWithOnlineDot(
+                            avatar: chatLeadingAvatar(
+                              radius: 14,
+                              backgroundColor: widget.chat.isGroup
+                                  ? Colors.blueGrey.shade100
+                                  : Colors.grey.shade200,
+                              initial:
+                                  chatInitialFromName(widget.chat.name),
+                              groupIcon:
+                                  widget.chat.isGroup ? Icons.group : null,
+                              imageUrl: widget.chat.isGroup
+                                  ? null
+                                  : widget.chat.avatar,
+                            ),
+                            showOnlineDot: privateOnlineDot,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
-                            child: Text(
-                              widget.chat.name,
-                              style: const TextStyle(
-                                color: Color(0xFF111827),
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                              ),
-                              overflow: TextOverflow.ellipsis,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  widget.chat.name,
+                                  style: const TextStyle(
+                                    color: Color(0xFF111827),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                if (!widget.chat.minimized &&
+                                    subtitleText.isNotEmpty)
+                                  Padding(
+                                    padding:
+                                        const EdgeInsets.only(top: 1),
+                                    child: Text(
+                                      subtitleText,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
                         ],
@@ -1103,6 +1275,11 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                       ),
                     ),
 
+                    if (!widget.chat.isGroup)
+                      PrivateChatTypingStrip(
+                        key: ValueKey('popup_typing_${_chatId}_$_popupOtherUserId'),
+                        otherUserTypingRef: _popupOtherTypingRef(),
+                      ),
                     const ChatUploadProgressBanner(),
                     if (_replyDraft != null)
                       ChatReplyDraftBanner(
@@ -1272,6 +1449,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
     final text = _messageController.text.trim();
     final pending = _pendingAttachment;
     if (text.isEmpty && pending == null) return;
+    unawaited(_typingWriter.clearTyping());
     _messageController.clear();
     if (!kIsWeb) {
       _messageFocusNode.requestFocus();
@@ -1345,6 +1523,8 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
         (attachmentUrl == null || attachmentUrl.trim().isEmpty)) {
       return;
     }
+
+    unawaited(_typingWriter.clearTyping());
 
     final hc = Get.find<HomeController>();
     final me = hc.currentEmployee.value;

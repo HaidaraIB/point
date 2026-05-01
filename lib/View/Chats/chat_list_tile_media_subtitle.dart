@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:point/Utils/chat_message_bidi.dart';
 import 'package:point/View/Chats/chat_reply_draft_banner.dart';
 
 /// Chat list subtitle: small media thumbnail + text (replaces raw 📷 / 🎬 in the row).
@@ -22,12 +23,20 @@ class ChatListTileMediaSubtitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final resolvedDirection =
+        chatMessageTextDirectionFromFirstWord(text) ??
+            Directionality.of(context);
+    final ambientDirection = Directionality.of(context);
+    final avatarSideAlign =
+        chatListSubtitleAlignToAmbientAvatarSide(ambientDirection);
     if (!_hasThumb) {
       return Text(
         text,
         maxLines: maxLines,
         overflow: TextOverflow.ellipsis,
         style: const TextStyle(),
+        textDirection: resolvedDirection,
+        textAlign: avatarSideAlign,
       );
     }
     return Row(
@@ -44,6 +53,8 @@ class ChatListTileMediaSubtitle extends StatelessWidget {
             text,
             maxLines: maxLines,
             overflow: TextOverflow.ellipsis,
+            textDirection: resolvedDirection,
+            textAlign: avatarSideAlign,
           ),
         ),
       ],

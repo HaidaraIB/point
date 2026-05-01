@@ -1,4 +1,5 @@
 import 'package:point/Services/StorageKeys.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class EmployeeModel {
   String? id;
@@ -16,6 +17,8 @@ class EmployeeModel {
   final String? authUid;
   final String? authStatus; // pendingActivation, active, pendingEmailVerification
   final String? image;
+  /// Presence heartbeat timestamp (used by employees table status).
+  final DateTime? activeChatUpdatedAt;
 
   EmployeeModel({
     this.id,
@@ -32,6 +35,7 @@ class EmployeeModel {
     this.authUid,
     this.authStatus,
     this.image,
+    this.activeChatUpdatedAt,
   });
 
   /// First department slug, if any (e.g. notifications / legacy single-field UX).
@@ -57,6 +61,7 @@ class EmployeeModel {
     String? authUid,
     String? authStatus,
     String? image,
+    DateTime? activeChatUpdatedAt,
   }) {
     return EmployeeModel(
       id: id ?? this.id,
@@ -73,7 +78,28 @@ class EmployeeModel {
       authUid: authUid ?? this.authUid,
       authStatus: authStatus ?? this.authStatus,
       image: image ?? this.image,
+      activeChatUpdatedAt: activeChatUpdatedAt ?? this.activeChatUpdatedAt,
     );
+  }
+
+  static DateTime? _parseDateTimeLike(dynamic raw) {
+    if (raw == null) return null;
+    if (raw is DateTime) return raw;
+    if (raw is Timestamp) return raw.toDate();
+    if (raw is int) {
+      final ms = raw >= 1000000000000 ? raw : raw * 1000;
+      return DateTime.fromMillisecondsSinceEpoch(ms);
+    }
+    if (raw is String) {
+      final parsed = DateTime.tryParse(raw.trim());
+      if (parsed != null) return parsed;
+      final asInt = int.tryParse(raw.trim());
+      if (asInt != null) {
+        final ms = asInt >= 1000000000000 ? asInt : asInt * 1000;
+        return DateTime.fromMillisecondsSinceEpoch(ms);
+      }
+    }
+    return null;
   }
 
   factory EmployeeModel.fromJson(Map<String, dynamic> json) {
@@ -105,6 +131,7 @@ class EmployeeModel {
       authUid: json['authUid'],
       authStatus: json['authStatus'],
       image: json['image'],
+      activeChatUpdatedAt: _parseDateTimeLike(json['activeChatUpdatedAt']),
     );
   }
 
@@ -128,6 +155,8 @@ class EmployeeModel {
       if (authUid != null) "authUid": authUid,
       if (authStatus != null) "authStatus": authStatus,
       "image": image,
+      if (activeChatUpdatedAt != null)
+        "activeChatUpdatedAt": activeChatUpdatedAt!.toIso8601String(),
     };
   }
 }

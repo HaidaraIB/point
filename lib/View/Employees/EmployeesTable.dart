@@ -33,6 +33,39 @@ bool _canEditEmployeeCredentials(EmployeeModel? model) {
       uid == au;
 }
 
+bool _isEmployeeRecentlyOnline(DateTime? at) {
+  if (at == null) return false;
+  return DateTime.now().difference(at.toLocal()) <= const Duration(minutes: 2);
+}
+
+String _employeePresenceLabel(DateTime? at) {
+  if (_isEmployeeRecentlyOnline(at)) return 'employees.online_now'.tr;
+  if (at == null) return 'employees.last_seen_unknown'.tr;
+  final when = FunHelper.formatTimeAgo(at.toLocal());
+  return 'employees.last_seen_at'.trParams({'time': when});
+}
+
+Widget _employeePresenceChip(DateTime? at) {
+  final online = _isEmployeeRecentlyOnline(at);
+  final fg = online ? const Color(0xFF0F9D58) : AppColors.fontColorGrey;
+  final bg = online ? const Color(0xFFEAF8F1) : const Color(0xFFF3F4F6);
+  return Container(
+    alignment: Alignment.center,
+    height: 36,
+    padding: const EdgeInsets.symmetric(horizontal: 10),
+    decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
+    child: Text(
+      _employeePresenceLabel(at),
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        color: fg,
+        fontWeight: FontWeight.w700,
+        fontSize: 12,
+      ),
+    ),
+  );
+}
+
 class EmployeeTable extends StatefulWidget {
   @override
   State<EmployeeTable> createState() => _EmployeeTableState();
@@ -200,6 +233,17 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                     headingRowAlignment:
                                         MainAxisAlignment.center,
                                     label: Text(
+                                      'employees.presence'.tr,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.fontColorGrey,
+                                      ),
+                                    ),
+                                  ),
+                                  DataColumn(
+                                    headingRowAlignment:
+                                        MainAxisAlignment.center,
+                                    label: Text(
                                       'actions'.tr,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
@@ -257,6 +301,14 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                                 fontSize: 13,
                                               ),
                                             ),
+                                          ),
+                                        ),
+                                      ),
+
+                                      DataCell(
+                                        TableCellCenter(
+                                          child: _employeePresenceChip(
+                                            controller.employeeLastSeenAt(emp.id),
                                           ),
                                         ),
                                       ),

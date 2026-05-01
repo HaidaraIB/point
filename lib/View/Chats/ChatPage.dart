@@ -30,6 +30,7 @@ import 'package:point/View/Chats/chat_message_tile.dart';
 import 'package:point/View/Chats/pending_chat_attachment.dart';
 import 'package:point/View/Chats/chat_scroll_to_latest_fab.dart';
 import 'package:point/View/Chats/chat_list_tile_media_subtitle.dart';
+import 'package:point/View/Chats/chat_private_typing.dart';
 import 'package:point/View/Chats/chat_reply_draft_banner.dart';
 import 'package:point/View/Chats/chat_ui_helpers.dart';
 import 'package:point/View/Chats/chat_voice_record_button.dart';
@@ -143,6 +144,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   // Firebase instances
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirestoreServices _firestoreServices = FirestoreServices();
+  late final PrivateChatTypingWriter _typingWriter;
   // final FirebaseAuth _auth = FirebaseAuth.instance;
 
   // local caches
@@ -207,6 +209,67 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   bool _loadingChats = true;
   bool _isLoadingGroup = false; // **إضافة حالة تحميل للمجموعة**
 
+  Worker? _presenceWorker;
+
+  DateTime? _presenceOf(String? employeeId) {
+    final id = employeeId?.trim() ?? '';
+    if (id.isEmpty || !Get.isRegistered<HomeController>()) return null;
+    return Get.find<HomeController>().employeeLastSeenAt(id);
+  }
+
+  bool _isOnlinePresence(DateTime? at) {
+    if (at == null) return false;
+    return DateTime.now().difference(at.toLocal()) <= const Duration(minutes: 2);
+  }
+
+  String _privatePresenceLabel(String? otherEmployeeId) {
+    final at = _presenceOf(otherEmployeeId);
+    if (_isOnlinePresence(at)) {
+      final raw = 'employees.online_now'.tr;
+      final lang = Get.locale?.languageCode.toLowerCase() ?? '';
+      return lang == 'en' ? raw.toLowerCase() : raw;
+    }
+    if (at == null) return 'employees.last_seen_unknown'.tr;
+    final when = FunHelper.formatTimeAgo(at.toLocal());
+    return 'employees.last_seen_at'.trParams({'time': when});
+  }
+
+  int _connectedUsersCountForGroup(Map<String, dynamic> chat) {
+    final participants = List<String>.from(chat['participants'] ?? const []);
+    var count = 0;
+    for (final id in participants) {
+      if (id == (_currentUserId ?? '')) continue;
+      if (_isOnlinePresence(_presenceOf(id))) count++;
+    }
+    return count;
+  }
+
+  Widget _avatarWithOnlineDot({
+    required Widget avatar,
+    required bool showOnlineDot,
+  }) {
+    if (!showOnlineDot) return avatar;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        avatar,
+        Positioned(
+          right: -1,
+          bottom: -1,
+          child: Container(
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(
+              color: const Color(0xFF16A34A),
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: 2),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   bool get _enableContentInsertion =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
@@ -218,6 +281,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    _typingWriter = PrivateChatTypingWriter(_firestore);
     _messageController.addListener(_onComposerTextChanged);
     _imagePasteListener = ChatImagePasteListener(
       onImagePasted: _handlePastedImage,
@@ -234,6 +298,13 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       _onChatScrollPositions,
     );
     WidgetsBinding.instance.addObserver(this);
+    if (Get.isRegistered<HomeController>()) {
+      final hc = Get.find<HomeController>();
+      _presenceWorker = ever<Map<String, DateTime>>(hc.employeePresenceById, (_) {
+        if (!mounted) return;
+        setState(() {});
+      });
+    }
     _initUserThenLoad();
   }
 
@@ -261,6 +332,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         state == AppLifecycleState.hidden) {
       _flushScrollDiskTimer();
       unawaited(_persistCurrentChatScrollIfAny());
+      unawaited(_typingWriter.clearTyping());
     }
   }
 
@@ -301,6 +373,48 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   void _onComposerTextChanged() {
     if (mounted) setState(() {});
+    _typingWriter.onComposerTextChanged(_messageController.text);
+  }
+
+  void _rebindTypingWriter() {
+    final uid = _currentUserId ?? '';
+    if (uid.isEmpty) {
+      _typingWriter.rebind(chatId: null, myUserId: '', isGroup: true);
+      return;
+    }
+    final sel = _selectedChat;
+    if (sel == null) {
+      _typingWriter.rebind(chatId: null, myUserId: uid, isGroup: true);
+      return;
+    }
+    final cid = sel['id'];
+    if (cid is! String || cid.isEmpty) {
+      _typingWriter.rebind(chatId: null, myUserId: uid, isGroup: true);
+      return;
+    }
+    final isGroup = sel['isGroup'] ?? false;
+    _typingWriter.rebind(
+      chatId: cid,
+      myUserId: uid,
+      isGroup: isGroup == true,
+    );
+  }
+
+  DocumentReference<Map<String, dynamic>>? _dmOtherTypingDocRef() {
+    if (_selectedChat == null || _currentUserId == null) return null;
+    if (_selectedChat!['isGroup'] == true) return null;
+    final chatId = _selectedChat!['id'];
+    if (chatId is! String || chatId.isEmpty) return null;
+    final parts = List<String>.from(_selectedChat!['participants'] ?? const []);
+    var otherId = '';
+    for (final id in parts) {
+      if (id != _currentUserId) {
+        otherId = id;
+        break;
+      }
+    }
+    if (otherId.isEmpty || otherId == 'N/A') return null;
+    return _firestore.collection('chats').doc(chatId).collection('typing').doc(otherId);
   }
 
   void _scrollToRepliedMessage(String messageId) {
@@ -714,10 +828,14 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         _messagesStreamChatId = null;
         _orderedChatMessageDocs = [];
       }
+      _rebindTypingWriter();
       return;
     }
     final id = _selectedChat!['id'] as String;
-    if (_messagesStreamChatId == id && _messagesStream != null) return;
+    if (_messagesStreamChatId == id && _messagesStream != null) {
+      _rebindTypingWriter();
+      return;
+    }
     if (_messagesStreamChatId != null && _messagesStreamChatId != id) {
       _flushScrollDiskTimer();
       _orderedChatMessageDocs = [];
@@ -731,6 +849,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         .collection('messages')
         .orderBy('timestamp', descending: true)
         .snapshots();
+    _rebindTypingWriter();
   }
 
   // **---------------- Chats (Private & Group) ----------------**
@@ -934,6 +1053,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         FirestoreServices.syncEmployeeActiveChatId(_currentUserId!, null),
       );
     }
+    unawaited(_typingWriter.dispose());
+    _presenceWorker?.dispose();
+    _presenceWorker = null;
     _messageController.removeListener(_onComposerTextChanged);
     _messageController.dispose();
     // Do not call unfocus() here: during Android route pop it can deadlock the
@@ -1216,6 +1338,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     final text = _messageController.text.trim();
     final pending = _pendingAttachment;
     if (text.isEmpty && pending == null) return;
+    unawaited(_typingWriter.clearTyping());
     _messageController.clear();
     if (!kIsWeb) {
       _messageFocusNode.requestFocus();
@@ -1313,6 +1436,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       return;
     }
 
+    unawaited(_typingWriter.clearTyping());
     final chatId = _selectedChat!['id'] as String;
     final isGroup = _selectedChat!['isGroup'] ?? false;
     if (ChatAudioFocus.incomingTreatAsInChat(chatId)) {
@@ -1842,6 +1966,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                     IconData? avatarIcon;
                                     String? groupAssetPath;
                                     Color? titleColor;
+                                    String? titleSubline;
+                                    var showPrivateOnlineDot = false;
+                                    String? otherIdForPresence;
 
                                     if (isGroup) {
                                       displayName =
@@ -1852,6 +1979,13 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                       groupAssetPath =
                                           _departmentGroupAssetPathFromChat(ch);
                                       titleColor = Colors.blue.shade700;
+                                      final connected =
+                                          _connectedUsersCountForGroup(ch);
+                                      titleSubline =
+                                          AppLocaleKeys.chatConnectedCount
+                                              .trParams({
+                                                'count': '$connected',
+                                              });
                                     } else {
                                       // محادثة فردية
                                       final participants = List<String>.from(
@@ -1864,6 +1998,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
                                       _otherUserId = otherId;
                                       appLog(_otherUserId.toString());
+                                      otherIdForPresence = otherId;
                                       final other = _employees.firstWhere(
                                         (e) => e['id'] == otherId,
                                         orElse: () => {},
@@ -1881,6 +2016,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                       avatarIcon = null;
                                       groupAssetPath = null;
                                       titleColor = Colors.black;
+                                      showPrivateOnlineDot = _isOnlinePresence(
+                                        _presenceOf(otherIdForPresence),
+                                      );
+                                      titleSubline =
+                                          _privatePresenceLabel(otherIdForPresence);
                                     }
 
                                     return StreamBuilder<int>(
@@ -1985,50 +2125,127 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                 chatListLeadingWithPinBadge(
                                                   pinned: isPinned,
                                                   avatarChild:
-                                                      chatLeadingAvatar(
-                                                        radius: 24,
-                                                        backgroundColor:
-                                                            avatarColor,
-                                                        initial: initial,
-                                                        groupIcon: avatarIcon,
-                                                        assetImagePath:
-                                                            groupAssetPath,
-                                                        imageUrl: employImage
-                                                            ?.toString()
-                                                            .trim(),
-                                                      ),
+                                                      _avatarWithOnlineDot(
+                                                    showOnlineDot: !isGroup &&
+                                                        showPrivateOnlineDot,
+                                                    avatar: chatLeadingAvatar(
+                                                      radius: 24,
+                                                      backgroundColor:
+                                                          avatarColor,
+                                                      initial: initial,
+                                                      groupIcon: avatarIcon,
+                                                      assetImagePath:
+                                                          groupAssetPath,
+                                                      imageUrl: employImage
+                                                          ?.toString()
+                                                          .trim(),
+                                                    ),
+                                                  ),
                                                 ),
-                                            title: Text(
-                                              displayName,
-                                              style: TextStyle(
-                                                fontWeight: unreadCount > 0
-                                                    ? FontWeight.bold
-                                                    : FontWeight.w400,
-                                                color: titleColor,
+                                            title: Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    displayName,
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                    style: TextStyle(
+                                                      fontWeight: unreadCount > 0
+                                                          ? FontWeight.bold
+                                                          : FontWeight.w400,
+                                                      color: titleColor,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            subtitle: Padding(
+                                              padding: const EdgeInsets.only(
+                                                top: 2,
+                                              ),
+                                              child: _chatListSubtitleWidget(
+                                                ch,
+                                                isGroup
+                                                    ? AppLocaleKeys
+                                                          .chatGroupConversation
+                                                          .tr
+                                                    : '',
                                               ),
                                             ),
-                                            subtitle: _chatListSubtitleWidget(
-                                              ch,
-                                              isGroup
-                                                  ? AppLocaleKeys
-                                                        .chatGroupConversation
-                                                        .tr
-                                                  : '',
-                                            ),
-                                            trailing: unreadCount > 0
-                                                ? CircleAvatar(
-                                                    radius: 10,
-                                                    backgroundColor:
-                                                        Colors.blue.shade100,
-                                                    child: Text(
-                                                      unreadCount.toString(),
-                                                      style: TextStyle(
-                                                        fontSize: 12,
-                                                        color: Colors.black87,
-                                                      ),
-                                                    ),
+                                            trailing: (titleSubline !=
+                                                    null ||
+                                                unreadCount > 0)
+                                                ? Column(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment.end,
+                                                    children: [
+                                                      if (titleSubline != null)
+                                                        ConstrainedBox(
+                                                          constraints:
+                                                              const BoxConstraints(
+                                                            maxWidth: 110,
+                                                          ),
+                                                          child: Text(
+                                                            titleSubline,
+                                                            textAlign:
+                                                                TextAlign.end,
+                                                            maxLines: 1,
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .ellipsis,
+                                                            style: TextStyle(
+                                                              fontSize: 11,
+                                                              color:
+                                                                  !isGroup &&
+                                                                      showPrivateOnlineDot
+                                                                  ? const Color(
+                                                                      0xFF16A34A,
+                                                                    )
+                                                                  : Colors.grey
+                                                                      .shade600,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w500,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      if (titleSubline !=
+                                                              null &&
+                                                          unreadCount > 0)
+                                                        const SizedBox(
+                                                          height: 4,
+                                                        ),
+                                                      if (unreadCount > 0)
+                                                        Container(
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .all(6),
+                                                          decoration:
+                                                              BoxDecoration(
+                                                            color: Colors.red,
+                                                            borderRadius:
+                                                                BorderRadius
+                                                                    .circular(
+                                                              12,
+                                                            ),
+                                                          ),
+                                                          child: Text(
+                                                            unreadCount
+                                                                .toString(),
+                                                            style:
+                                                                const TextStyle(
+                                                              color:
+                                                                  Colors.white,
+                                                              fontSize: 12,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                    ],
                                                   )
-                                                : const SizedBox.shrink(),
+                                                : null,
                                           ),
                                         );
                                       },
@@ -2070,54 +2287,178 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Row(
-                                      children: [
-                                        Builder(
-                                          builder: (context) {
-                                            final isGroup =
-                                                _selectedChat!['isGroup'] ==
-                                                true;
-                                            return chatLeadingAvatar(
-                                              radius: 28,
-                                              backgroundColor: isGroup
-                                                  ? Colors.blueGrey.shade100
-                                                  : Colors.grey.shade200,
-                                              initial: _initialFromName(
-                                                _getSelectedChatNameSync(),
-                                              ),
-                                              groupIcon: isGroup
-                                                  ? Icons.group
-                                                  : null,
-                                              assetImagePath: isGroup
-                                                  ? _departmentGroupAssetPathFromChat(
+                                    Expanded(
+                                      child: Builder(
+                                        builder: (context) {
+                                          final isGroup =
+                                              _selectedChat!['isGroup'] ==
+                                              true;
+                                          final name =
+                                              _getSelectedChatNameSync();
+                                          final rawOtherImg =
+                                              _getSelectedChatOtherImageUrlSync();
+                                          final otherUrlTrim =
+                                              rawOtherImg?.trim() ?? '';
+                                          String? otherParticipantId;
+                                          if (!isGroup &&
+                                              _currentUserId != null) {
+                                            final parts =
+                                                List<String>.from(
+                                              _selectedChat!['participants'] ??
+                                                  const [],
+                                            );
+                                            for (final id in parts) {
+                                              if (id != _currentUserId) {
+                                                otherParticipantId = id;
+                                                break;
+                                              }
+                                            }
+                                          }
+                                          final privatePresenceLabel =
+                                              !isGroup
+                                                  ? _privatePresenceLabel(
+                                                      otherParticipantId,
+                                                    )
+                                                  : null;
+                                          final privateOnlineDot =
+                                              !isGroup &&
+                                              _isOnlinePresence(
+                                                _presenceOf(otherParticipantId),
+                                              );
+                                          final groupConnected =
+                                              isGroup
+                                                  ? _connectedUsersCountForGroup(
                                                       _selectedChat!,
                                                     )
-                                                  : null,
-                                              imageUrl: isGroup
-                                                  ? null
-                                                  : _getSelectedChatOtherImageUrlSync(),
-                                            );
-                                          },
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              _getSelectedChatNameSync(),
-                                              style: TextStyle(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.bold,
+                                                  : 0;
+
+                                          Widget avatar;
+                                          if (!isGroup &&
+                                              isChatImageHttpUrl(rawOtherImg)) {
+                                            avatar = _avatarWithOnlineDot(
+                                              showOnlineDot: privateOnlineDot,
+                                              avatar: CircleAvatar(
+                                                radius: 28,
+                                                backgroundColor:
+                                                    Colors.grey.shade200,
+                                                child: ClipOval(
+                                                  child: Image.network(
+                                                    otherUrlTrim,
+                                                    width: 56,
+                                                    height: 56,
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder: (
+                                                      _,
+                                                      __,
+                                                      ___,
+                                                    ) =>
+                                                        Text(
+                                                      _initialFromName(name),
+                                                      style: const TextStyle(
+                                                        fontSize: 16,
+                                                        color: Colors.black,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
                                               ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
+                                            );
+                                          } else {
+                                            avatar = _avatarWithOnlineDot(
+                                              showOnlineDot:
+                                                  privateOnlineDot && !isGroup,
+                                              avatar: chatLeadingAvatar(
+                                                radius: 28,
+                                                backgroundColor: isGroup
+                                                    ? Colors
+                                                        .blueGrey
+                                                        .shade100
+                                                    : Colors.grey.shade200,
+                                                initial:
+                                                    _initialFromName(name),
+                                                groupIcon: isGroup
+                                                    ? Icons.group
+                                                    : null,
+                                                assetImagePath: isGroup
+                                                    ? _departmentGroupAssetPathFromChat(
+                                                        _selectedChat!,
+                                                      )
+                                                    : null,
+                                                imageUrl: isGroup
+                                                    ? null
+                                                    : (otherUrlTrim.isEmpty
+                                                          ? null
+                                                          : rawOtherImg),
+                                              ),
+                                            );
+                                          }
+
+                                          return Row(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              avatar,
+                                              const SizedBox(width: 12),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      name,
+                                                      maxLines: 1,
+                                                      overflow:
+                                                          TextOverflow
+                                                              .ellipsis,
+                                                      style: const TextStyle(
+                                                        fontSize: 18,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                    Text(
+                                                      isGroup
+                                                          ? AppLocaleKeys
+                                                                  .chatConnectedCount
+                                                                  .trParams({
+                                                                'count':
+                                                                    '$groupConnected',
+                                                              })
+                                                          : (privatePresenceLabel ??
+                                                                'employees.last_seen_unknown'
+                                                                    .tr),
+                                                      maxLines: 1,
+                                                      overflow:
+                                                          TextOverflow
+                                                              .ellipsis,
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        color:
+                                                            !isGroup &&
+                                                                privateOnlineDot
+                                                            ? const Color(
+                                                                0xFF16A34A,
+                                                              )
+                                                            : Colors
+                                                                .grey
+                                                                .shade700,
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                      ),
                                     ),
+                                    const SizedBox(width: 8),
                                     Text(
                                       _selectedChat!['isGroup'] == true
                                           ? AppLocaleKeys.chatGroupType.tr
@@ -2431,6 +2772,15 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.stretch,
                                       children: [
+                                        if (_selectedChat != null &&
+                                            _selectedChat!['isGroup'] != true)
+                                          PrivateChatTypingStrip(
+                                            key: ValueKey(
+                                              'dmtyping_${_selectedChat!['id']}',
+                                            ),
+                                            otherUserTypingRef:
+                                                _dmOtherTypingDocRef(),
+                                          ),
                                         const ChatUploadProgressBanner(),
                                         if (_replyDraft != null)
                                           ChatReplyDraftBanner(

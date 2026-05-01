@@ -337,6 +337,61 @@ service cloud.firestore {
       return actorParticipantId() in chatDataForId(chatIdParam).participants;
     }
 
+    // Typing subdocs: same access pattern as /chats/{id}/messages (read + create parity).
+    function privateTypingReaderAllowed(chatIdParam) {
+      return isSignedIn() && hasAuthRole()
+        && (
+          isManager()
+          || (
+            isEmployeeRole()
+            && (
+              employeeCanReadGroupChatMessages(chatIdParam)
+              || (
+                chatGet(chatIdParam).data.isGroup != true
+                && actorParticipantId() in chatGet(chatIdParam).data.participants
+              )
+            )
+          )
+          || (
+            isClientRole()
+            && actorParticipantId() in chatGet(chatIdParam).data.participants
+          )
+        );
+    }
+
+    function privateTypingActorMayWrite(chatIdParam, typingUserId) {
+      return isSignedIn() && hasAuthRole()
+        && typingUserId == actorParticipantId()
+        && (
+          isManager()
+          || (
+            isEmployeeRole()
+            && (
+              employeeCanReadGroupChatMessages(chatIdParam)
+              || (
+                chatGet(chatIdParam).data.isGroup != true
+                && actorParticipantId() in chatGet(chatIdParam).data.participants
+                && employeeOtherAllowedInPrivateChat(chatGet(chatIdParam).data.participants)
+              )
+            )
+          )
+          || (
+            isClientRole()
+            && actorParticipantId() in chatGet(chatIdParam).data.participants
+          )
+        );
+    }
+
+    function privateTypingCreateDataOk() {
+      return request.resource.data.keys().hasOnly(['updatedAtMs'])
+        && request.resource.data.updatedAtMs is int;
+    }
+
+    function privateTypingUpdateDataOk() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['updatedAtMs'])
+        && request.resource.data.updatedAtMs is int;
+    }
+
     /// يضمّ منطق قراءة رسائل المجموعة: مشارك، أو موظف بقسم يطابق المجموعة قبل الانضمام الرسمي.
     function messageActorMayMarkRead(chatIdParam) {
       return isManager()
@@ -776,6 +831,19 @@ service cloud.firestore {
           allow update, delete: if false;
         }
       }
+
+      // Ephemeral DM typing pulses (employeeId as doc id). Not used for groups.
+      match /typing/{userId} {
+        allow read: if privateTypingReaderAllowed(chatId);
+
+        allow create: if privateTypingActorMayWrite(chatId, userId)
+          && privateTypingCreateDataOk();
+
+        allow update: if privateTypingActorMayWrite(chatId, userId)
+          && privateTypingUpdateDataOk();
+
+        allow delete: if privateTypingActorMayWrite(chatId, userId);
+      }
     }
 
     match /push_diagnostics/{docId} {
@@ -823,6 +891,21 @@ service cloud.firestore {
         && metaPublishCanReadAppSettingsOrMetaPosts();
 
       allow delete: if isSignedIn() && hasAuthRole() && metaPublishCanWriteAppSettingsMeta();
+    }
+
+    // Presence heartbeat for lightweight online/last-seen (employees list + chat headers).
+    // Regular employees must read others' docs too (including admin/supervisor DMs).
+    // Clients do not participate in employee presence.
+    match /employee_presence/{employeeId} {
+      allow read: if isSignedIn() && hasAuthRole() && !isClientRole();
+
+      allow create, update: if isSignedIn() && hasAuthRole()
+        && authRoleData().role != 'client'
+        && employeeId == myEmployeeId()
+        && request.resource.data.keys().hasOnly(['employeeId', 'lastSeenAt'])
+        && request.resource.data.employeeId == employeeId;
+
+      allow delete: if false;
     }
 
     match /{document=**} {
