@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Models/AdministrationTaskModel.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/View/Shared/responsive.dart';
@@ -41,6 +42,8 @@ class AdministrationDetailsSection extends StatelessWidget {
         task.clientName;
 
     final extra = task.administrationModel?.extra ?? const {};
+    final aboutRaw = extra[AdministrationTaskModel.kAboutTaskKey];
+    final aboutText = aboutRaw?.toString().trim() ?? '';
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -79,17 +82,51 @@ class AdministrationDetailsSection extends StatelessWidget {
                       tr: true,
                     ),
                   ),
-                  ...extra.entries.map(
-                    (e) => TaskDetailsDialogHelpers.infoBox(
-                      e.key,
-                      e.value?.toString() ?? '',
-                      width: cellWidth,
-                      height: 110,
-                    ),
-                  ),
+                  ...extra.entries
+                      .where((e) => e.key != AdministrationTaskModel.kAboutTaskKey)
+                      .map(
+                        (e) => TaskDetailsDialogHelpers.infoBox(
+                          e.key,
+                          e.value?.toString() ?? '',
+                          width: cellWidth,
+                          height: 110,
+                        ),
+                      ),
                 ],
               ),
             ),
+            if (aboutText.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'task_details.about_task'.tr,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    SelectableText(
+                      aboutText,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade800,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 10),
             Container(
               constraints: const BoxConstraints(minHeight: 110),

@@ -4,6 +4,7 @@ import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/AdministrationTaskModel.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/StorageKeys.dart';
+import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Tasks/Dialogs/GenericTaskFormDialog.dart';
 import 'package:point/View/Tasks/Dialogs/TaskFormDialogDelegate.dart';
@@ -26,6 +27,12 @@ void administrationDialog(BuildContext context, {TaskModel? model}) {
 }
 
 class AdministrationTaskFormDelegate extends TaskFormDialogDelegate {
+  late final TextEditingController aboutTaskController;
+
+  AdministrationTaskFormDelegate() {
+    aboutTaskController = TextEditingController();
+  }
+
   @override
   String get taskType => '7';
 
@@ -40,11 +47,34 @@ class AdministrationTaskFormDelegate extends TaskFormDialogDelegate {
       'tasks.fcm.new_task_administration'.trParams({'title': taskTitle});
 
   @override
-  void initFromModel(TaskModel? model) {}
+  void initFromModel(TaskModel? model) {
+    final raw =
+        model?.administrationModel?.extra[AdministrationTaskModel.kAboutTaskKey];
+    aboutTaskController.text = raw?.toString() ?? '';
+  }
 
   @override
   Widget buildTypeSpecificFields(BuildContext context, double dialogWidth) {
-    return const SizedBox.shrink();
+    final w = (dialogWidth - 32).clamp(200.0, dialogWidth);
+    return Padding(
+      padding: const EdgeInsets.only(top: 16),
+      child: SizedBox(
+        width: w,
+        child: InputText(
+          labelText: 'tasks.form.about_task_label'.tr,
+          hintText: 'tasks.form.about_task_hint'.tr,
+          height: 148,
+          expanded: true,
+          minLines: 5,
+          fillColor: Colors.white,
+          controller: aboutTaskController,
+          textInputType: TextInputType.multiline,
+          textInputAction: TextInputAction.newline,
+          borderRadius: 5,
+          borderColor: Colors.grey.shade300,
+        ),
+      ),
+    );
   }
 
   @override
@@ -71,6 +101,12 @@ class AdministrationTaskFormDelegate extends TaskFormDialogDelegate {
     final extra = Map<String, dynamic>.from(
       existing?.administrationModel?.extra ?? const {},
     );
+    final aboutTrimmed = aboutTaskController.text.trim();
+    if (aboutTrimmed.isEmpty) {
+      extra.remove(AdministrationTaskModel.kAboutTaskKey);
+    } else {
+      extra[AdministrationTaskModel.kAboutTaskKey] = aboutTaskController.text;
+    }
     final administrationModel = AdministrationTaskModel(extra: extra);
 
     if (existing == null) {
@@ -109,5 +145,7 @@ class AdministrationTaskFormDelegate extends TaskFormDialogDelegate {
   }
 
   @override
-  void dispose() {}
+  void dispose() {
+    aboutTaskController.dispose();
+  }
 }

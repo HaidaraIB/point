@@ -11,6 +11,7 @@ import 'package:point/View/EmployeeDashboard/Shared/AddContentEmployeeDialog.dar
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
 import 'package:point/View/Tasks/Shared/add_task_comment_dialog.dart';
+import 'package:point/View/Tasks/Shared/task_client_display_name.dart';
 import 'package:point/View/Tasks/Shared/deadline_extension_request_dialog.dart';
 import 'package:point/View/Tasks/Shared/open_task_final_work.dart';
 import 'package:point/View/Tasks/Shared/task_details_feedback_widgets.dart';
@@ -275,6 +276,7 @@ class EmployeeTaskCard extends StatelessWidget {
                           ],
                         );
                       }),
+                      TaskCardClientNameRow(task: task),
                       Obx(() {
                         final live =
                             controller.tasks.firstWhereOrNull(

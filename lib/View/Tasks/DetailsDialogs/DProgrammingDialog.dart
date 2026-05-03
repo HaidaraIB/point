@@ -108,6 +108,38 @@ class ProgrammingDetailsSection extends StatelessWidget {
                 ],
               ),
             ),
+            if (task.programmingModel!.aboutTask.trim().isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'task_details.about_task'.tr,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    SelectableText(
+                      task.programmingModel!.aboutTask,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade800,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 10),
             Container(
               constraints: const BoxConstraints(minHeight: 110),

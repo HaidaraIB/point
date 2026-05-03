@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Models/AdministrationTaskModel.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
@@ -1343,6 +1344,11 @@ class TaskDetailsMobilePage extends StatelessWidget {
             m?.designsDimensions ?? '-',
           ),
         );
+        if (m != null && m.aboutTask.trim().isNotEmpty) {
+          fields.add(
+            _fieldRow(context, 'task_details.about_task'.tr, m.aboutTask),
+          );
+        }
         _appendTaskDateRows(context, fields);
         break;
 
@@ -1350,7 +1356,15 @@ class TaskDetailsMobilePage extends StatelessWidget {
       case '7':
         final adm = task.administrationModel;
         final ex = adm?.extra ?? const {};
+        final aboutRaw = ex[AdministrationTaskModel.kAboutTaskKey];
+        final aboutText = aboutRaw?.toString().trim() ?? '';
+        if (aboutText.isNotEmpty) {
+          fields.add(
+            _fieldRow(context, 'task_details.about_task'.tr, aboutText),
+          );
+        }
         for (final e in ex.entries) {
+          if (e.key == AdministrationTaskModel.kAboutTaskKey) continue;
           fields.add(
             _fieldRow(context, e.key, e.value?.toString() ?? '-'),
           );

@@ -2,6 +2,9 @@
 class AdministrationTaskModel {
   static const String kExtraKey = 'extra';
 
+  /// Long-form explanation of the task; stored inside [extra].
+  static const String kAboutTaskKey = 'aboutTask';
+
   final Map<String, dynamic> extra;
 
   AdministrationTaskModel({this.extra = const {}});

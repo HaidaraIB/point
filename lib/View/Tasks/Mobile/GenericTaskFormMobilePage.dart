@@ -85,6 +85,8 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
   late final TextEditingController categoryController;
   late final RxList<String> platformsPublish;
   late final TextEditingController dimensionsPublishController;
+  /// Programming (6) & administration (7): long description of the task.
+  late final TextEditingController aboutTaskController;
 
   DateTime? startAt;
   DateTime? endAt;
@@ -165,6 +167,16 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
     ).map((e) => e.toString()).toList().obs;
     dimensionsPublishController = TextEditingController(text: publish?.designsDimensions);
 
+    final typeKey = m?.type ?? widget.typeForNew ?? '0';
+    var aboutTaskInitial = '';
+    if (typeKey == '6') {
+      aboutTaskInitial = prog?.aboutTask ?? '';
+    } else if (typeKey == '7') {
+      final raw = m?.administrationModel?.extra[AdministrationTaskModel.kAboutTaskKey];
+      aboutTaskInitial = raw?.toString() ?? '';
+    }
+    aboutTaskController = TextEditingController(text: aboutTaskInitial);
+
     final hc = Get.find<HomeController>();
     if (m == null) {
       hc.uploadedFilesPaths.clear();
@@ -204,6 +216,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
     fileUrlController.dispose();
     categoryController.dispose();
     dimensionsPublishController.dispose();
+    aboutTaskController.dispose();
     super.dispose();
   }
 
@@ -423,10 +436,21 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
               category: categoryController.text,
               fileurl: fileUrlController.text,
               designsDimensions: '',
+              aboutTask: aboutTaskController.text,
             ),
           );
           break;
         case '7':
+          final admExtra = Map<String, dynamic>.from(
+            model.administrationModel?.extra ?? const {},
+          );
+          final aboutAdm = aboutTaskController.text.trim();
+          if (aboutAdm.isEmpty) {
+            admExtra.remove(AdministrationTaskModel.kAboutTaskKey);
+          } else {
+            admExtra[AdministrationTaskModel.kAboutTaskKey] =
+                aboutTaskController.text;
+          }
           updated = model.copyWith(
             title: titleController.text,
             description: notesController.text,
@@ -441,11 +465,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                 : StorageKeys.status_edit_requested,
             notes: updatedNotes,
             files: updatedFiles,
-            administrationModel: AdministrationTaskModel(
-              extra: Map<String, dynamic>.from(
-                model.administrationModel?.extra ?? const {},
-              ),
-            ),
+            administrationModel: AdministrationTaskModel(extra: admExtra),
           );
           break;
         default:
@@ -633,6 +653,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             category: categoryController.text,
             fileurl: fileUrlController.text,
             designsDimensions: '',
+            aboutTask: aboutTaskController.text,
           ),
         );
       case '7':
@@ -650,7 +671,14 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
           files: files,
           notes: notesList,
           type: '7',
-          administrationModel: AdministrationTaskModel(extra: const {}),
+          administrationModel: AdministrationTaskModel(
+            extra: aboutTaskController.text.trim().isEmpty
+                ? const {}
+                : {
+                    AdministrationTaskModel.kAboutTaskKey:
+                        aboutTaskController.text,
+                  },
+          ),
         );
       default:
         FunHelper.showSnackbar(
@@ -1297,11 +1325,38 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
           InputText(labelText: 'task_details.files_link'.tr, hintText: 'task_details.files_link'.tr, height: 48, fillColor: Colors.white, controller: fileUrlController, borderRadius: 8, borderColor: Colors.grey.shade300),
           pad,
           InputText(labelText: 'task_details.category'.tr, hintText: 'task_details.category'.tr, height: 48, fillColor: Colors.white, controller: categoryController, validator: (v) => (v == null || v.isEmpty) ? ' ' : null, borderRadius: 8, borderColor: Colors.grey.shade300),
+          pad,
+          InputText(
+            labelText: 'tasks.form.about_task_label'.tr,
+            hintText: 'tasks.form.about_task_hint'.tr,
+            height: 148,
+            expanded: true,
+            minLines: 5,
+            fillColor: Colors.white,
+            controller: aboutTaskController,
+            textInputType: TextInputType.multiline,
+            textInputAction: TextInputAction.newline,
+            borderRadius: 8,
+            borderColor: Colors.grey.shade300,
+          ),
         ];
       case '7': // Administration (common fields only; optional extra in model)
         return [
           const SizedBox(height: 12),
           _sectionLabel('tasks.form.section_administration'.tr),
+          InputText(
+            labelText: 'tasks.form.about_task_label'.tr,
+            hintText: 'tasks.form.about_task_hint'.tr,
+            height: 148,
+            expanded: true,
+            minLines: 5,
+            fillColor: Colors.white,
+            controller: aboutTaskController,
+            textInputType: TextInputType.multiline,
+            textInputAction: TextInputAction.newline,
+            borderRadius: 8,
+            borderColor: Colors.grey.shade300,
+          ),
         ];
       default:
         return [];

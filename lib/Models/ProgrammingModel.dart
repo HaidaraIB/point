@@ -4,6 +4,8 @@ class ProgrammingModel {
   final String category; // نوع التصميم
   final String? fileurl; // عدد التصاميم
   final String? designsDimensions; // القياسات
+  /// Long-form explanation of what the task involves (programming tasks).
+  final String aboutTask;
 
   ProgrammingModel({
     required this.contenturl,
@@ -11,6 +13,7 @@ class ProgrammingModel {
     required this.category,
     required this.fileurl,
     required this.designsDimensions,
+    this.aboutTask = '',
   });
 
   // ✅ fromJson
@@ -24,6 +27,7 @@ class ProgrammingModel {
           (json['designsDimensions'] != null)
               ? (json['designsDimensions'] as String?).toString()
               : null,
+      aboutTask: json['aboutTask']?.toString() ?? '',
     );
   }
 
@@ -35,6 +39,7 @@ class ProgrammingModel {
       'category': category,
       'fileurl': fileurl,
       'designsDimensions': designsDimensions,
+      'aboutTask': aboutTask,
     };
   }
 
@@ -44,7 +49,8 @@ class ProgrammingModel {
     // String? platform,
     String? category,
     String? fileurl,
-    List<String>? sizes,
+    String? designsDimensions,
+    String? aboutTask,
   }) {
     return ProgrammingModel(
       contenturl: contenturl ?? this.contenturl,
@@ -52,6 +58,7 @@ class ProgrammingModel {
       category: category ?? this.category,
       fileurl: fileurl ?? this.fileurl,
       designsDimensions: designsDimensions ?? this.designsDimensions,
+      aboutTask: aboutTask ?? this.aboutTask,
     );
   }
 }

@@ -367,12 +367,15 @@ class StorageKeys {
   static const String finalWorkTypePost = 'final_work_post';
   static const String finalWorkTypeStory = 'final_work_story';
   static const String finalWorkTypeVideoReel = 'final_work_video_reel';
+  /// PDFs, Office docs, and similar (Library folder: documents).
+  static const String finalWorkTypeDocuments = 'final_work_documents';
   /// Saved on the task only; excluded from the Library (not post/story/video).
   static const String finalWorkTypeOther = 'final_work_other';
   static const List<String> finalWorkTypes = [
     finalWorkTypePost,
     finalWorkTypeStory,
     finalWorkTypeVideoReel,
+    finalWorkTypeDocuments,
     finalWorkTypeOther,
   ];
 

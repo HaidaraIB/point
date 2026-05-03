@@ -16,6 +16,7 @@ import 'package:point/View/Tasks/Shared/add_task_comment_dialog.dart';
 import 'package:point/View/Tasks/Shared/open_task_final_work.dart';
 import 'package:point/View/Tasks/Shared/reject_task_dialog.dart';
 import 'package:point/View/Tasks/Shared/request_task_modification_dialog.dart';
+import 'package:point/View/Tasks/Shared/task_client_display_name.dart';
 import 'package:point/View/Tasks/Shared/task_details_feedback_widgets.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
 
@@ -499,6 +500,7 @@ class TaskCard extends StatelessWidget {
                       _buildpriortyTag(task.priority),
                     ],
                   ),
+                  TaskCardClientNameRow(task: task),
                   Obx(() {
                     final hc = Get.find<HomeController>();
                     final live =

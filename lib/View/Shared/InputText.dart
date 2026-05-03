@@ -31,6 +31,9 @@ class InputText extends StatelessWidget {
   final TextInputAction? textInputAction;
   final Iterable<String>? autofillHints;
   final FocusNode? focusNode;
+  /// When set with a multiline field ([expanded] true, [maxLines] null), reserves
+  /// this many lines of height while empty (textarea-style).
+  final int? minLines;
 
   InputText({
     super.key,
@@ -61,6 +64,7 @@ class InputText extends StatelessWidget {
     this.textInputAction,
     this.autofillHints,
     this.focusNode,
+    this.minLines,
   });
 
   @override
@@ -69,14 +73,12 @@ class InputText extends StatelessWidget {
     final double fieldVerticalPadding =
         isCompactHeight ? (kIsWeb ? 8.0 : 5.0) : 12.0;
 
-    // Single-line fields: same min/max height on web so the outer wrapper does not
-    // grow past the outline (avoids a "double box" under Material + web layout).
-    final bool singleLineField = expanded != true;
+    // Always bound [height] with maxHeight so the text field's hit-test region matches
+    // the outline (web multiline used min-only before, which left a tall I-beam zone
+    // below the visible border).
     final BoxConstraints boxConstraints =
         height != null
-            ? (kIsWeb && !singleLineField
-                ? BoxConstraints(minHeight: height!)
-                : BoxConstraints(minHeight: height!, maxHeight: height!))
+            ? BoxConstraints(minHeight: height!, maxHeight: height!)
             : const BoxConstraints();
 
     /// [TextFormField] path keeps the original web min-only behavior; custom
@@ -172,7 +174,9 @@ class InputText extends StatelessWidget {
             keyboardType: textInputType,
             maxLength: maxLength,
             maxLines: expanded == true ? null : 1,
-            textAlignVertical: TextAlignVertical.center,
+            minLines: expanded == true && minLines != null ? minLines : null,
+            textAlignVertical:
+                expanded == true ? TextAlignVertical.top : TextAlignVertical.center,
             style:
                 textStyle ??
                 TextStyle(fontSize: 13, color: AppColors.primaryfontColor),

@@ -52,6 +52,9 @@ void programmingDialog(BuildContext context, {TaskModel? model}) {
   final contenturl = TextEditingController(
     text: model?.programmingModel?.contenturl ?? '',
   );
+  final aboutTaskController = TextEditingController(
+    text: model?.programmingModel?.aboutTask ?? '',
+  );
   final notesController = TextEditingController(text: model?.description ?? '');
 
   DateTime? startAt = model?.fromDate;
@@ -340,6 +343,26 @@ void programmingDialog(BuildContext context, {TaskModel? model}) {
                                   ),
                                 ),
                               ],
+                            ),
+
+                            Padding(
+                              padding: const EdgeInsets.only(top: 16),
+                              child: SizedBox(
+                                width: (Get.width * 0.7) - 32,
+                                child: InputText(
+                                  labelText: 'tasks.form.about_task_label'.tr,
+                                  hintText: 'tasks.form.about_task_hint'.tr,
+                                  height: 148,
+                                  expanded: true,
+                                  minLines: 5,
+                                  fillColor: Colors.white,
+                                  controller: aboutTaskController,
+                                  textInputType: TextInputType.multiline,
+                                  textInputAction: TextInputAction.newline,
+                                  borderRadius: 5,
+                                  borderColor: Colors.grey.shade300,
+                                ),
+                              ),
                             ),
 
                             // صف 4: تاريخ البدء - تاريخ الانتهاء - رفع ملف
@@ -730,6 +753,7 @@ void programmingDialog(BuildContext context, {TaskModel? model}) {
                                               fileurl: filesurl.text,
                                               // platform: platformController.text,
                                               designsDimensions: '',
+                                              aboutTask: aboutTaskController.text,
                                             ),
                                           ),
                                         );
@@ -776,6 +800,7 @@ void programmingDialog(BuildContext context, {TaskModel? model}) {
                                               fileurl: filesurl.text,
                                               // platform: platformController.text,
                                               designsDimensions: '',
+                                              aboutTask: aboutTaskController.text,
                                             ),
                                           ),
                                         );

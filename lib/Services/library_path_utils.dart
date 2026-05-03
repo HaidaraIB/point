@@ -21,12 +21,18 @@ class LibraryPathUtils {
     return out;
   }
 
-  static const List<String> mediaCategories = ['post', 'story', 'video'];
+  static const List<String> mediaCategories = [
+    'post',
+    'story',
+    'video',
+    'documents',
+  ];
 
   static String categoryFromFinalType(String raw) {
     final t = raw.trim();
     if (t == StorageKeys.finalWorkTypeStory) return 'story';
     if (t == StorageKeys.finalWorkTypeVideoReel) return 'video';
+    if (t == StorageKeys.finalWorkTypeDocuments) return 'documents';
     return 'post';
   }
 

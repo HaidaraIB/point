@@ -1755,6 +1755,16 @@ class HomeController extends GetxController {
         ts(),
         fieldKey: 'programmingModel.designsDimensions',
       );
+      _addIfChanged(
+        events,
+        'تم تغيير وصف المهمة (البرمجة)',
+        oldPr?.aboutTask,
+        newPr?.aboutTask,
+        userId,
+        userName,
+        ts(),
+        fieldKey: 'programmingModel.aboutTask',
+      );
     }
 
     // --- AdministrationTaskModel ---
