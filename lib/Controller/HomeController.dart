@@ -2264,6 +2264,7 @@ class HomeController extends GetxController {
     _rebindClientsAndTasksStreams();
     fetchContents();
     fetchMetaPosts();
+    _startEmployeePresenceStream();
     _startTotalUnreadStream(employee.id!);
     _startPresenceHeartbeatForEmployee(employee.id!);
     listenToClient(employee.id!);
@@ -2484,9 +2485,22 @@ class HomeController extends GetxController {
 
   void _startEmployeePresenceStream() {
     _employeePresenceSub?.cancel();
-    _employeePresenceSub = _service.getEmployeePresenceMap().listen((map) {
-      employeePresenceById.assignAll(map);
-    });
+    _employeePresenceSub = null;
+    // employee_presence rules require isSignedIn() && hasAuthRole() — do not
+    // subscribe on the login screen (see HomeController.onInit).
+    if (FirebaseAuth.instance.currentUser == null) {
+      employeePresenceById.clear();
+      return;
+    }
+    _employeePresenceSub = _service.getEmployeePresenceMap().listen(
+      (map) {
+        employeePresenceById.assignAll(map);
+      },
+      onError: (Object e, StackTrace st) {
+        appLog('employee_presence stream: $e');
+        appLog('$st');
+      },
+    );
   }
 
   DateTime? employeeLastSeenAt(String? employeeId) {

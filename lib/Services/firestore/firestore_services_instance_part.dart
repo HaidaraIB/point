@@ -384,12 +384,10 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
       return;
     }
     try {
-      final existing =
-          await _employeeCollection
-              .where("email", isEqualTo: _kTestAdminDevEmail)
-              .limit(1)
-              .get();
-      if (existing.docs.isNotEmpty) {
+      // Fixed doc id (see [_kTestAdminDevId]); avoids collection query + index,
+      // and matches [testAdminDevEmployeeBootstrapCreate] in firestore.rules.
+      final existing = await _employeeCollection.doc(_kTestAdminDevId).get();
+      if (existing.exists) {
         appLog("✅ حساب $_kTestAdminDevEmail موجود مسبقاً");
         return;
       }
