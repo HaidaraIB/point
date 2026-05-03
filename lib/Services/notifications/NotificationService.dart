@@ -376,14 +376,31 @@ class NotificationService {
     Map<String, dynamic> data,
     String chatId,
   ) {
-    const keys = <String>[
-      'chatDisplayName',
-      'chat_display_name',
-      'conversationTitle',
-      'conversation_name',
-      'chatTitle',
-      'chat_title',
-    ];
+    // For 1:1, `chatDisplayName` is often the peer label from the *sender's* UI
+    // (the recipient's own name on their device). Prefer sender fields first so
+    // the notification title shows who wrote the message, not the receiver.
+    final isGroup = _parseIsGroupFlag(data);
+    final keys = isGroup
+        ? const <String>[
+            'chatDisplayName',
+            'chat_display_name',
+            'conversationTitle',
+            'conversation_name',
+            'chatTitle',
+            'chat_title',
+            'senderName',
+            'sender_name',
+          ]
+        : const <String>[
+            'senderName',
+            'sender_name',
+            'chatTitle',
+            'chat_title',
+            'chatDisplayName',
+            'chat_display_name',
+            'conversationTitle',
+            'conversation_name',
+          ];
     for (final k in keys) {
       final v = _ciGet(data, k)?.trim() ?? '';
       if (v.isNotEmpty && !_looksLikeInternalChatId(v)) {
