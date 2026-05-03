@@ -27,6 +27,8 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Services/fcm_token_cache.dart';
 import 'package:point/Services/NotificationService.dart';
 import 'package:point/Services/push_permissions_helper.dart';
+import 'package:point/Services/supabase_storage_binary_upload.dart';
+import 'package:point/Services/upload_limits.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Services/meta/meta_media_util.dart';
 import 'package:point/Services/firestore/firestore_task_utils.dart'
@@ -2182,9 +2184,23 @@ class HomeController extends GetxController {
     String? friendlyDownloadName,
   }) async {
     final uuid = Uuid();
-    Timer? uploadProgressTimer;
     var dialogShown = false;
     try {
+      final bytes = filePathOrBytes as Uint8List;
+      if (bytes.length > kMaxUploadBytes) {
+        appLog(
+          'Upload rejected: ${bytes.length} bytes exceeds $kMaxUploadBytes',
+        );
+        FunHelper.showSnackbar(
+          AppLocaleKeys.errorTitle.tr,
+          AppLocaleKeys.commonUploadMaxSizeExceeded.trParams({
+            'maxMb': '$kMaxUploadMegabytes',
+          }),
+          backgroundColor: Colors.deepOrange,
+        );
+        return null;
+      }
+
       isUploading.value = true;
       uploadProgress.value = 0.0;
 
@@ -2196,20 +2212,18 @@ class HomeController extends GetxController {
       final bucket = supabase.storage.from('point');
       final uniqueName = "${uuid.v1()}.${getExtension(fileName ?? '')}";
 
-      final bytes = filePathOrBytes as Uint8List;
-
-      // حركة تقدم تقريبية أثناء الرفع (Supabase لا يعرض progress حقيقي)
-      uploadProgressTimer = Timer.periodic(const Duration(milliseconds: 100), (
-        timer,
-      ) {
-        if (uploadProgress.value >= 0.95) {
-          timer.cancel();
-        } else {
-          uploadProgress.value += 0.05;
-        }
-      });
-
-      await bucket.uploadBinary(uniqueName, bytes);
+      await uploadStorageObjectBinary(
+        supabase: supabase,
+        bucketId: 'point',
+        objectPath: uniqueName,
+        data: bytes,
+        mimeLookupPath: fileName,
+        onProgress: (sent, total) {
+          if (total > 0) {
+            uploadProgress.value = sent / total;
+          }
+        },
+      );
 
       uploadProgress.value = 1.0;
 
@@ -2237,8 +2251,6 @@ class HomeController extends GetxController {
       }
       appLog("Error uploading file: $e");
       return null;
-    } finally {
-      uploadProgressTimer?.cancel();
     }
   }
 

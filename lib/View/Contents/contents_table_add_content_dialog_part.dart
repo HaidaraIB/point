@@ -562,10 +562,8 @@ void showAddContentDialog(
                               ],
                             ),
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                SizedBox(
-                                  width: (Get.width * 0.7 / 2) - 30,
+                                Expanded(
                                   child: ContentAttachmentSourceInput(
                                     labelText: 'content.post_attachment'.tr,
                                     bodyHintText: 'dragfile'.tr,
@@ -576,8 +574,8 @@ void showAddContentDialog(
                                         ),
                                   ),
                                 ),
-                                SizedBox(
-                                  width: (Get.width * 0.7 / 2) - 30,
+                                const SizedBox(width: 8),
+                                Expanded(
                                   child: ContentAttachmentSourceInput(
                                     labelText: 'content.story_attachment'.tr,
                                     bodyHintText: 'dragfile'.tr,
@@ -588,8 +586,8 @@ void showAddContentDialog(
                                         ),
                                   ),
                                 ),
-                                SizedBox(
-                                  width: (Get.width * 0.7 / 2) - 30,
+                                const SizedBox(width: 8),
+                                Expanded(
                                   child: ContentAttachmentSourceInput(
                                     labelText: 'content.reel_attachment'.tr,
                                     bodyHintText: 'dragfile'.tr,
