@@ -136,7 +136,11 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
     for (final file in files) {
       final bytes = file.bytes;
       if (bytes == null) continue;
-      final url = await hc.uploadFiles(filePathOrBytes: bytes, fileName: file.name);
+      final url = await hc.uploadFiles(
+        filePathOrBytes: bytes,
+        fileName: file.name,
+        addToUploadedFilesPathsList: false,
+      );
       if (url != null && url.trim().isNotEmpty) {
         added.add(url.trim());
       }
@@ -695,80 +699,109 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                       ),
                     ),
                   ),
-                  Obx(
-                    () =>
-                        controller.uploadedFilesPaths.isEmpty
-                            ? const SizedBox.shrink()
-                            : Padding(
-                              padding: const EdgeInsets.only(top: 12),
-                              child: GridView.builder(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                itemCount: controller.uploadedFilesPaths.length,
-                                gridDelegate:
-                                    const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 3,
-                                      crossAxisSpacing: 10,
-                                      mainAxisSpacing: 10,
-                                      mainAxisExtent: 96,
-                                    ),
-                                itemBuilder: (context, i) {
-                                  final filePath =
-                                      controller.uploadedFilesPaths[i]
-                                          .toString();
-                                  return Center(
-                                    child: SizedBox(
-                                      width: 88,
-                                      height: 88,
-                                      child: Stack(
-                                        clipBehavior: Clip.none,
-                                        children: [
-                                          Positioned.fill(
-                                            child:
-                                                TaskDetailsDialogHelpers.attachmentThumbnail(
-                                                  filePath,
-                                                  onOpen: () =>
-                                                      _openUploadedFile(
-                                                        filePath,
+                  ListenableBuilder(
+                    listenable: Listenable.merge([
+                      postAttachmentController,
+                      storyAttachmentController,
+                      reelAttachmentController,
+                    ]),
+                    builder: (context, _) {
+                      return Obx(
+                        () {
+                          final fieldUrls = <String>{
+                            ..._splitAttachmentInput(
+                              postAttachmentController.text,
+                            ),
+                            ..._splitAttachmentInput(
+                              storyAttachmentController.text,
+                            ),
+                            ..._splitAttachmentInput(
+                              reelAttachmentController.text,
+                            ),
+                          };
+                          final urls =
+                              controller.uploadedFilesPaths
+                                  .map((e) => e.toString())
+                                  .where((u) => !fieldUrls.contains(u))
+                                  .toList();
+                          if (urls.isEmpty) {
+                            return const SizedBox.shrink();
+                          }
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: urls.length,
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 3,
+                                    crossAxisSpacing: 10,
+                                    mainAxisSpacing: 10,
+                                    mainAxisExtent: 96,
+                                  ),
+                              itemBuilder: (context, i) {
+                                final filePath = urls[i];
+                                return Center(
+                                  child: SizedBox(
+                                    width: 88,
+                                    height: 88,
+                                    child: Stack(
+                                      clipBehavior: Clip.none,
+                                      children: [
+                                        Positioned.fill(
+                                          child:
+                                              TaskDetailsDialogHelpers.attachmentThumbnail(
+                                                filePath,
+                                                onOpen: () =>
+                                                    _openUploadedFile(
+                                                      filePath,
+                                                    ),
+                                              ),
+                                        ),
+                                        PositionedDirectional(
+                                          top: 4,
+                                          end: 4,
+                                          child: Material(
+                                            color: Colors.transparent,
+                                            child: InkWell(
+                                              onTap: () {
+                                                controller.uploadedFilesPaths
+                                                    .removeWhere(
+                                                      (e) =>
+                                                          e.toString() ==
+                                                          filePath,
+                                                    );
+                                              },
+                                              child: Container(
+                                                width: 22,
+                                                height: 22,
+                                                decoration: BoxDecoration(
+                                                  color: Colors.black54,
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                        11,
                                                       ),
                                                 ),
-                                          ),
-                                          PositionedDirectional(
-                                            top: 4,
-                                            end: 4,
-                                            child: Material(
-                                              color: Colors.transparent,
-                                              child: InkWell(
-                                                onTap: () {
-                                                  controller.uploadedFilesPaths
-                                                      .remove(filePath);
-                                                },
-                                                child: Container(
-                                                  width: 22,
-                                                  height: 22,
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.black54,
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          11,
-                                                        ),
-                                                  ),
-                                                  child: const Icon(
-                                                    Icons.close,
-                                                    color: Colors.white,
-                                                    size: 14,
-                                                  ),
+                                                child: const Icon(
+                                                  Icons.close,
+                                                  color: Colors.white,
+                                                  size: 14,
                                                 ),
                                               ),
                                             ),
                                           ),
-                                        ],
-                                      ),
+                                        ),
+                                      ],
                                     ),
-                                  );
-                                },
-                              ),
+                                  ),
+                                );
+                              },
                             ),
+                          );
+                        },
+                      );
+                    },
                   ),
                   const SizedBox(height: 32),
                   Obx(

@@ -75,66 +75,35 @@ class _InAppNotificationsPanelState extends State<InAppNotificationsPanel> {
     BuildContext context,
     List<String> ids,
   ) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('notifications.confirm_delete_bulk_title'.tr),
-        content: Text(
-          'notifications.confirm_delete_bulk_message'
-              .trParams({'count': '${ids.length}'}),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text('cancel'.tr),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(
-              'notifications.action.delete'.tr,
-              style: const TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-    );
-    if (ok == true && context.mounted) {
-      await FirestoreServices.deleteInAppNotifications(ids);
-      if (mounted) {
+    await FunHelper.showConfirmDailog(
+      context,
+      title: 'notifications.confirm_delete_bulk_title'.tr,
+      message: 'notifications.confirm_delete_bulk_message'
+          .trParams({'count': '${ids.length}'}),
+      confirmText: 'notifications.action.delete'.tr,
+      confirmColor: Colors.red,
+      onTap: () async {
+        await FirestoreServices.deleteInAppNotifications(ids);
+        if (!mounted) return;
         setState(() {
           selectedIds.clear();
           selectionMode = false;
         });
-      }
-    }
+      },
+    );
   }
 
   Future<void> _confirmDeleteSingle(BuildContext context, String id) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('notifications.confirm_delete_title'.tr),
-        content: Text('notifications.confirm_delete_message'.tr),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text('cancel'.tr),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text(
-              'notifications.action.delete'.tr,
-              style: const TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
+    await FunHelper.showConfirmDailog(
+      context,
+      title: 'notifications.confirm_delete_title'.tr,
+      message: 'notifications.confirm_delete_message'.tr,
+      confirmText: 'notifications.action.delete'.tr,
+      confirmColor: Colors.red,
+      onTap: () async {
+        await FirestoreServices.deleteInAppNotifications([id]);
+      },
     );
-    if (ok == true) {
-      await FirestoreServices.deleteInAppNotifications([id]);
-    }
   }
 
   @override

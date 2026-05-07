@@ -42,7 +42,9 @@ String finalDeliverableDownloadDisplayName({
   return '$base $slotIndex$ext';
 }
 
-/// Supabase public URLs accept a `download` query param for the saved file name.
+/// **Legacy — Supabase Storage only.** Supabase public URLs accept a `download`
+/// query param for the saved file name. R2 uploads use `Content-Disposition` set
+/// at upload time by the presign worker instead.
 String appendSupabaseStorageDownloadQuery(String publicUrl, String downloadFileName) {
   final trimmed = downloadFileName.trim();
   if (trimmed.isEmpty) return publicUrl;

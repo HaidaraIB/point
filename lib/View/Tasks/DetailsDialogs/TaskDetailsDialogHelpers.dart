@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/media_url_opener.dart';
+import 'package:point/View/Shared/attachment_thumbnail_tile.dart'
+    as attachment_thumb;
 
 /// Shared helpers for task details dialogs (web). Used by GenericTaskDetailsDialog
 /// and type-specific sections to avoid duplication.
@@ -229,14 +231,6 @@ class TaskDetailsDialogHelpers {
     );
   }
 
-  static String _attachmentPathLower(String rawUrl) {
-    try {
-      return Uri.parse(rawUrl).path.toLowerCase();
-    } catch (_) {
-      return rawUrl.toLowerCase();
-    }
-  }
-
   /// Last path segment of [raw] for display (decoded), or `download` query if present.
   static String attachmentFileNameFromUrl(String raw) {
     final v = raw.trim();
@@ -255,51 +249,8 @@ class TaskDetailsDialogHelpers {
   }
 
   /// Icon for non-image attachments from URL path extension.
-  static IconData iconForAttachmentUrl(String rawUrl) {
-    final p = _attachmentPathLower(rawUrl);
-    if (p.endsWith('.pdf')) return Icons.picture_as_pdf_outlined;
-    if (p.endsWith('.zip') ||
-        p.endsWith('.rar') ||
-        p.endsWith('.7z')) {
-      return Icons.folder_zip_outlined;
-    }
-    if (p.endsWith('.mp4') ||
-        p.endsWith('.mov') ||
-        p.endsWith('.webm') ||
-        p.endsWith('.mkv') ||
-        p.endsWith('.m4v')) {
-      return Icons.video_file_outlined;
-    }
-    if (p.endsWith('.mp3') ||
-        p.endsWith('.wav') ||
-        p.endsWith('.aac') ||
-        p.endsWith('.m4a') ||
-        p.endsWith('.flac')) {
-      return Icons.audio_file_outlined;
-    }
-    if (p.endsWith('.doc') ||
-        p.endsWith('.docx') ||
-        p.endsWith('.odt')) {
-      return Icons.description_outlined;
-    }
-    if (p.endsWith('.xls') ||
-        p.endsWith('.xlsx') ||
-        p.endsWith('.ods')) {
-      return Icons.table_chart_outlined;
-    }
-    if (p.endsWith('.ppt') ||
-        p.endsWith('.pptx') ||
-        p.endsWith('.odp')) {
-      return Icons.slideshow_outlined;
-    }
-    if (p.endsWith('.txt') ||
-        p.endsWith('.csv') ||
-        p.endsWith('.json') ||
-        p.endsWith('.xml')) {
-      return Icons.article_outlined;
-    }
-    return Icons.insert_drive_file_outlined;
-  }
+  static IconData iconForAttachmentUrl(String rawUrl) =>
+      attachment_thumb.iconForAttachmentUrl(rawUrl);
 
   /// Thumbnail tile used in task details dialogs.
   /// Tapping the thumbnail triggers [onOpen] (same behavior as "تنزيل").
@@ -307,54 +258,6 @@ class TaskDetailsDialogHelpers {
     String url, {
     required VoidCallback onOpen,
   }) {
-    final isImage = isImageMediaUrl(url);
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final double size =
-            constraints.maxWidth < constraints.maxHeight
-                ? constraints.maxWidth
-                : constraints.maxHeight;
-
-        final iconSize = (size * 0.38).clamp(22.0, 40.0);
-
-        return InkWell(
-          onTap: onOpen,
-          borderRadius: BorderRadius.circular(10),
-          child: Center(
-            child: SizedBox(
-              width: size,
-              height: size,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child:
-                    isImage
-                        ? Image.network(
-                          url,
-                          fit: BoxFit.cover,
-                          errorBuilder:
-                              (_, __, ___) => Container(
-                                color: Colors.blueGrey.shade100,
-                                child: Icon(
-                                  iconForAttachmentUrl(url),
-                                  color: Colors.blueGrey.shade700,
-                                  size: iconSize,
-                                ),
-                              ),
-                        )
-                        : Container(
-                          color: Colors.blueGrey.shade100,
-                          child: Icon(
-                            iconForAttachmentUrl(url),
-                            color: Colors.blueGrey.shade700,
-                            size: iconSize,
-                          ),
-                        ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
+    return attachment_thumb.AttachmentThumbnailTile(url: url, onTap: onOpen);
   }
 }

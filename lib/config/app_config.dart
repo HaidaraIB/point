@@ -15,6 +15,19 @@ class AppConfig {
     defaultValue: '',
   );
 
+  /// Cloudflare Worker base URL (no trailing slash), e.g. `https://r2-presign.xxx.workers.dev`
+  static const String r2SignerUrl = String.fromEnvironment(
+    'R2_SIGNER_URL',
+    defaultValue: '',
+  );
+
+  /// Same value as the Worker secret `R2_PUBLIC_BASE_URL` (optional `dart-define` for tooling/docs).
+  /// Uploads do not require this in the client: the Worker returns the full `publicUrl`.
+  static const String r2PublicBaseUrl = String.fromEnvironment(
+    'R2_PUBLIC_BASE_URL',
+    defaultValue: '',
+  );
+
   /// Play / App Store listing URLs when Firestore `appVersionGate/mobile` omits them.
   static const String androidStoreUrlFallback = String.fromEnvironment(
     'ANDROID_STORE_URL',
@@ -35,9 +48,15 @@ class AppConfig {
     defaultValue: '',
   );
 
-  /// Firebase project for this build. The Supabase secret for Edge Function
-  /// `send-fcm` must be a service account whose `project_id` equals this value
-  /// (FCM `messages:send` URL uses that project).
+  /// Firebase project for this build (from [FirebaseAppOptions]: debug/legacy vs
+  /// prod per `USE_FIREBASE_PROD` / `USE_FIREBASE_TEST` / `kDebugMode`).
+  ///
+  /// The Cloudflare **r2-presign** Worker expects secret `FIREBASE_PROJECT_IDS`
+  /// (comma-separated allowlist matching every project you ship against). Tokens
+  /// carry the correct `aud` automatically.
+  ///
+  /// The Supabase Edge Function `send-fcm` service account must still match the
+  /// project used for FCM when sending pushes.
   static String get firebaseProjectId =>
       FirebaseAppOptions.currentPlatform.projectId;
 

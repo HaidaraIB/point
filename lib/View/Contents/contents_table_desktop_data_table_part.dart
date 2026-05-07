@@ -579,8 +579,12 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                                           }
                                           await _openAttachmentUrl(file);
                                         },
-                                        child: _buildAttachmentPreviewTile(
-                                          file,
+                                        child: SizedBox(
+                                          width: 56,
+                                          height: 56,
+                                          child: AttachmentThumbnailTile(
+                                            url: file,
+                                          ),
                                         ),
                                       ),
                                   ],
@@ -924,7 +928,11 @@ void _showClientRevisionsPopup(
             for (final file in files)
               InkWell(
                 onTap: () => _openAttachmentUrl(file),
-                child: _buildAttachmentPreviewTile(file),
+                child: SizedBox(
+                  width: 56,
+                  height: 56,
+                  child: AttachmentThumbnailTile(url: file),
+                ),
               ),
           ],
         ),

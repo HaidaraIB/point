@@ -154,15 +154,16 @@ class TaskDetailsFeedbackWidgets {
             ),
           ),
           if (body.isNotEmpty)
-            Text(
+            LinkifiedText(
               body,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 11,
                 height: 1.25,
                 color: error ? Colors.red.shade900 : colorScheme.onSurface,
               ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              selectable: false,
             ),
         ],
       ),
@@ -345,9 +346,10 @@ class TaskDetailsFeedbackWidgets {
           ),
           if (body.isNotEmpty) ...[
             const SizedBox(height: 6),
-            SelectableText(
+            LinkifiedText(
               body,
               style: const TextStyle(fontSize: 13, height: 1.35),
+              selectable: true,
             ),
           ],
           if (fileUrls.isNotEmpty) ...[
@@ -403,4 +405,5 @@ class TaskDetailsFeedbackWidgets {
       ],
     );
   }
+
 }

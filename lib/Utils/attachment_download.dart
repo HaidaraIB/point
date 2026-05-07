@@ -6,7 +6,11 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'media_url_opener.dart';
 
-/// Opens [rawUrl] in the browser with a suggested filename (Supabase `download` query).
+/// Opens [rawUrl] in the browser with a suggested filename.
+///
+/// For **legacy Supabase** URLs, appends the `download` query via
+/// [appendSupabaseStorageDownloadQuery]. R2 public URLs already carry the
+/// filename in `Content-Disposition` when applicable; the extra query is harmless.
 Future<bool> launchAttachmentDownload(String rawUrl) async {
   final trimmed = normalizeUrlForLaunch(rawUrl.trim());
   if (trimmed.isEmpty) return false;

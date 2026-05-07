@@ -1,7 +1,7 @@
-/// Single-file upload limit for [HomeController.uploadFiles] and Supabase Storage.
+/// Single-file upload limit for [HomeController.uploadFiles] (Cloudflare R2).
 ///
-/// Ensure the Supabase Storage bucket **global file size limit** (Dashboard →
-/// Storage → bucket → configuration) is at least this value, or uploads will
-/// fail at the server.
-const int kMaxUploadMegabytes = 150;
+/// R2 allows large objects; this cap keeps memory usage predictable (files are
+/// read fully into RAM with `FilePicker(withData: true)` before upload).
+/// Adjust if you change the picker / streaming strategy.
+const int kMaxUploadMegabytes = 200;
 const int kMaxUploadBytes = kMaxUploadMegabytes * 1024 * 1024;

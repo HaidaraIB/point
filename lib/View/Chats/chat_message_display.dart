@@ -5,15 +5,13 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Utils/chat_message_bidi.dart';
+import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/Services/chat_voice_playback_service.dart';
 import 'package:point/View/Mobile/Shared/VideoCart.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 
 const Color _kChatAccentBlue = Color(0xFF465FFF);
-
-/// روابط داخل نص الرسالة (للرسائل النصية التقليدية).
-final urlRegex = RegExp(r'(https?:\/\/[^\s]+)', caseSensitive: false);
 
 String _urlPathLower(String url) {
   try {
@@ -734,7 +732,7 @@ Widget messageTextRich(String text, bool isMe) {
     builder: (context) {
       final resolvedDirection = chatMessageTextDirectionFromFirstWord(text) ??
           Directionality.of(context);
-      final matches = urlRegex.allMatches(text);
+      final matches = linkifiedUrlRegex.allMatches(text);
 
       final style = TextStyle(
         fontSize: 15,
@@ -818,7 +816,7 @@ List<InlineSpan> buildMessageSpans(String text, bool isMe) {
   int lastIndex = 0;
   final linkColor = isMe ? Colors.lightBlueAccent : Colors.blue;
 
-  for (final match in urlRegex.allMatches(text)) {
+  for (final match in linkifiedUrlRegex.allMatches(text)) {
     if (match.start > lastIndex) {
       spans.add(TextSpan(text: text.substring(lastIndex, match.start)));
     }

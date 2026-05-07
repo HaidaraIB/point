@@ -168,6 +168,8 @@ class AppTranslations extends Translations {
       'errors.missing_token': 'Missing authentication token',
       'errors.invalid_data': 'Invalid request data',
       'errors.server': 'Server error, try again later',
+      'errors.r2_not_configured':
+          'File storage is not configured. Set R2_SIGNER_URL for this build (Cloudflare presign worker URL).',
       'errors.email_required': 'Email is required',
       'internet.badge.online': 'Online',
       'internet.badge.offline': 'Offline',
@@ -1406,6 +1408,8 @@ class AppTranslations extends Translations {
       "errors.missing_token": "رمز التوثيق مفقود",
       "errors.invalid_data": "بيانات الطلب غير صالحة",
       "errors.server": "خطأ في الخادم، حاول لاحقاً",
+      "errors.r2_not_configured":
+          "تخزين الملفات غير مهيأ. عيّن R2_SIGNER_URL لهذا البناء (رابط Worker للتوقيع على الرفع).",
       "errors.email_required": "البريد الإلكتروني مطلوب",
       "internet.badge.online": "متصل",
       "internet.badge.offline": "غير متصل",

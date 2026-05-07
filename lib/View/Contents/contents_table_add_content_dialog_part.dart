@@ -1,69 +1,5 @@
 part of 'package:point/View/Contents/ContentsTable.dart';
 
-Widget _buildAttachmentPreviewTile(String url) {
-  final fileType = getFileType(url);
-  final bool isImage = fileType == 'image';
-  final bool isVideo = fileType == 'video';
-  return ClipRRect(
-    borderRadius: BorderRadius.circular(8),
-    child:
-        isImage
-            ? Image.network(
-              url,
-              width: 56,
-              height: 56,
-              fit: BoxFit.cover,
-              errorBuilder:
-                  (_, __, ___) => _attachmentPlaceholderThumbnail(
-                    Icons.broken_image_outlined,
-                  ),
-            )
-            : _attachmentPlaceholderThumbnail(
-              isVideo ? Icons.play_circle_fill_rounded : Icons.link_outlined,
-            ),
-  );
-}
-
-Widget _attachmentPlaceholderThumbnail(IconData icon) {
-  return Container(
-    width: 56,
-    height: 56,
-    decoration: BoxDecoration(
-      color: Colors.blueGrey.shade100,
-      border: Border.all(color: Colors.blueGrey.shade200),
-    ),
-    child: Icon(icon, size: 22, color: Colors.blueGrey.shade700),
-  );
-}
-
-Widget _buildFormAttachmentThumbnail(String url) {
-  final fileType = getFileType(url);
-  final isImage = fileType == 'image';
-  final isVideo = fileType == 'video';
-  return ClipRRect(
-    borderRadius: BorderRadius.circular(10),
-    child: Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
-        color: Colors.grey.shade100,
-      ),
-      child:
-          isImage
-              ? Image.network(
-                url,
-                fit: BoxFit.cover,
-                errorBuilder:
-                    (_, __, ___) => _attachmentPlaceholderThumbnail(
-                      Icons.broken_image_outlined,
-                    ),
-              )
-              : _attachmentPlaceholderThumbnail(
-                isVideo ? Icons.play_circle_fill_rounded : Icons.link_outlined,
-              ),
-    ),
-  );
-}
-
 Future<void> _openAttachmentUrl(String rawUrl) async {
   await openUrlPreferInAppMedia(rawUrl);
 }
@@ -111,6 +47,12 @@ void showAddContentDialog(
         .toList();
   }
 
+  void removeUrlFromAttachmentField(TextEditingController c, String url) {
+    final next =
+        splitAttachmentInput(c.text).where((e) => e != url).toList();
+    c.text = next.join('\n');
+  }
+
   void appendAttachmentLinks(
     TextEditingController controller,
     List<String> urls,
@@ -154,7 +96,11 @@ void showAddContentDialog(
     for (final file in files) {
       final bytes = file.bytes;
       if (bytes == null) continue;
-      final url = await hc.uploadFiles(filePathOrBytes: bytes, fileName: file.name);
+      final url = await hc.uploadFiles(
+        filePathOrBytes: bytes,
+        fileName: file.name,
+        addToUploadedFilesPathsList: false,
+      );
       if (url != null && url.trim().isNotEmpty) {
         added.add(url.trim());
       }
@@ -486,75 +432,63 @@ void showAddContentDialog(
 
                                       SizedBox(
                                         width: (Get.width * 0.7 / 2) - 30,
-                                        child: Obx(() {
-                                          final files =
-                                              controller.uploadedFilesPaths
-                                                  .toList();
-                                          if (files.isEmpty) {
-                                            return const SizedBox.shrink();
-                                          }
-                                          return GridView.builder(
-                                            shrinkWrap: true,
-                                            physics:
-                                                const NeverScrollableScrollPhysics(),
-                                            itemCount: files.length,
-                                            gridDelegate:
-                                                const SliverGridDelegateWithFixedCrossAxisCount(
-                                                  crossAxisCount: 2,
-                                                  crossAxisSpacing: 10,
-                                                  mainAxisSpacing: 10,
-                                                  childAspectRatio: 1,
-                                                ),
-                                            itemBuilder: (context, index) {
-                                              final filePath = files[index];
-                                              return InkWell(
-                                                onTap: () async {
-                                                  await _openAttachmentUrl(
-                                                    filePath,
-                                                  );
-                                                },
-                                                child: Stack(
-                                                  children: [
-                                                    Positioned.fill(
-                                                      child:
-                                                          _buildFormAttachmentThumbnail(
-                                                            filePath,
-                                                          ),
-                                                    ),
-                                                    Positioned(
-                                                      top: 6,
-                                                      right: 6,
-                                                      child: InkWell(
-                                                        onTap: () {
-                                                          controller
-                                                              .uploadedFilesPaths
-                                                              .remove(filePath);
-                                                        },
-                                                        child: Container(
-                                                          width: 24,
-                                                          height: 24,
-                                                          decoration: BoxDecoration(
-                                                            color:
-                                                                Colors.black54,
-                                                            borderRadius:
-                                                                BorderRadius.circular(
-                                                                  12,
-                                                                ),
-                                                          ),
-                                                          child: const Icon(
-                                                            Icons.close,
-                                                            color: Colors.white,
-                                                            size: 15,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              );
-                                            },
-                                          );
-                                        }),
+                                        child: ListenableBuilder(
+                                          listenable: Listenable.merge([
+                                            postAttachmentController,
+                                            storyAttachmentController,
+                                            reelAttachmentController,
+                                          ]),
+                                          builder: (context, _) {
+                                            return Obx(
+                                              () {
+                                                final fieldUrls = <String>{
+                                                  ...splitAttachmentInput(
+                                                    postAttachmentController
+                                                        .text,
+                                                  ),
+                                                  ...splitAttachmentInput(
+                                                    storyAttachmentController
+                                                        .text,
+                                                  ),
+                                                  ...splitAttachmentInput(
+                                                    reelAttachmentController
+                                                        .text,
+                                                  ),
+                                                };
+                                                final urls =
+                                                    controller
+                                                        .uploadedFilesPaths
+                                                        .map((e) => e.toString())
+                                                        .where(
+                                                          (u) =>
+                                                              !fieldUrls
+                                                                  .contains(
+                                                                    u,
+                                                                  ),
+                                                        )
+                                                        .toList();
+                                                return FormAttachmentThumbnailsGrid(
+                                                  urls: urls,
+                                                  onRemoveUrl: (u) {
+                                                    controller
+                                                        .uploadedFilesPaths
+                                                        .removeWhere(
+                                                          (e) =>
+                                                              e.toString() ==
+                                                              u,
+                                                        );
+                                                  },
+                                                  onOpenUrl:
+                                                      _openAttachmentUrl,
+                                                  spacing: 6,
+                                                  tileExtent: 72,
+                                                  closeButtonSize: 22,
+                                                  closeIconSize: 13,
+                                                );
+                                              },
+                                            );
+                                          },
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -562,40 +496,155 @@ void showAddContentDialog(
                               ],
                             ),
                             Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Expanded(
-                                  child: ContentAttachmentSourceInput(
-                                    labelText: 'content.post_attachment'.tr,
-                                    bodyHintText: 'dragfile'.tr,
-                                    onTap:
-                                        () => pickAttachmentFieldWithSource(
-                                          context,
-                                          postAttachmentController,
-                                        ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      ContentAttachmentSourceInput(
+                                        labelText:
+                                            'content.post_attachment'.tr,
+                                        bodyHintText: 'dragfile'.tr,
+                                        onTap:
+                                            () =>
+                                                pickAttachmentFieldWithSource(
+                                                  context,
+                                                  postAttachmentController,
+                                                ),
+                                      ),
+                                      ListenableBuilder(
+                                        listenable: postAttachmentController,
+                                        builder: (context, _) {
+                                          final urls = splitAttachmentInput(
+                                            postAttachmentController.text,
+                                          );
+                                          if (urls.isEmpty) {
+                                            return const SizedBox.shrink();
+                                          }
+                                          return Padding(
+                                            padding: const EdgeInsets.only(
+                                              top: 6,
+                                            ),
+                                            child:
+                                                FormAttachmentThumbnailsGrid(
+                                                  urls: urls,
+                                                  onRemoveUrl: (u) =>
+                                                      removeUrlFromAttachmentField(
+                                                        postAttachmentController,
+                                                        u,
+                                                      ),
+                                                  onOpenUrl: _openAttachmentUrl,
+                                                  spacing: 4,
+                                                  tileExtent: 64,
+                                                  closeButtonSize: 20,
+                                                  closeIconSize: 12,
+                                                ),
+                                          );
+                                        },
+                                      ),
+                                    ],
                                   ),
                                 ),
                                 const SizedBox(width: 8),
                                 Expanded(
-                                  child: ContentAttachmentSourceInput(
-                                    labelText: 'content.story_attachment'.tr,
-                                    bodyHintText: 'dragfile'.tr,
-                                    onTap:
-                                        () => pickAttachmentFieldWithSource(
-                                          context,
-                                          storyAttachmentController,
-                                        ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      ContentAttachmentSourceInput(
+                                        labelText:
+                                            'content.story_attachment'.tr,
+                                        bodyHintText: 'dragfile'.tr,
+                                        onTap:
+                                            () =>
+                                                pickAttachmentFieldWithSource(
+                                                  context,
+                                                  storyAttachmentController,
+                                                ),
+                                      ),
+                                      ListenableBuilder(
+                                        listenable: storyAttachmentController,
+                                        builder: (context, _) {
+                                          final urls = splitAttachmentInput(
+                                            storyAttachmentController.text,
+                                          );
+                                          if (urls.isEmpty) {
+                                            return const SizedBox.shrink();
+                                          }
+                                          return Padding(
+                                            padding: const EdgeInsets.only(
+                                              top: 6,
+                                            ),
+                                            child:
+                                                FormAttachmentThumbnailsGrid(
+                                                  urls: urls,
+                                                  onRemoveUrl: (u) =>
+                                                      removeUrlFromAttachmentField(
+                                                        storyAttachmentController,
+                                                        u,
+                                                      ),
+                                                  onOpenUrl: _openAttachmentUrl,
+                                                  spacing: 4,
+                                                  tileExtent: 64,
+                                                  closeButtonSize: 20,
+                                                  closeIconSize: 12,
+                                                ),
+                                          );
+                                        },
+                                      ),
+                                    ],
                                   ),
                                 ),
                                 const SizedBox(width: 8),
                                 Expanded(
-                                  child: ContentAttachmentSourceInput(
-                                    labelText: 'content.reel_attachment'.tr,
-                                    bodyHintText: 'dragfile'.tr,
-                                    onTap:
-                                        () => pickAttachmentFieldWithSource(
-                                          context,
-                                          reelAttachmentController,
-                                        ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      ContentAttachmentSourceInput(
+                                        labelText:
+                                            'content.reel_attachment'.tr,
+                                        bodyHintText: 'dragfile'.tr,
+                                        onTap:
+                                            () =>
+                                                pickAttachmentFieldWithSource(
+                                                  context,
+                                                  reelAttachmentController,
+                                                ),
+                                      ),
+                                      ListenableBuilder(
+                                        listenable: reelAttachmentController,
+                                        builder: (context, _) {
+                                          final urls = splitAttachmentInput(
+                                            reelAttachmentController.text,
+                                          );
+                                          if (urls.isEmpty) {
+                                            return const SizedBox.shrink();
+                                          }
+                                          return Padding(
+                                            padding: const EdgeInsets.only(
+                                              top: 6,
+                                            ),
+                                            child:
+                                                FormAttachmentThumbnailsGrid(
+                                                  urls: urls,
+                                                  onRemoveUrl: (u) =>
+                                                      removeUrlFromAttachmentField(
+                                                        reelAttachmentController,
+                                                        u,
+                                                      ),
+                                                  onOpenUrl: _openAttachmentUrl,
+                                                  spacing: 4,
+                                                  tileExtent: 64,
+                                                  closeButtonSize: 20,
+                                                  closeIconSize: 12,
+                                                ),
+                                          );
+                                        },
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],

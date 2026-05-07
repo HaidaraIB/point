@@ -9,6 +9,7 @@ final RegExp _urlRegex = RegExp(
   r'((?:https?:\/\/|www\.|(?:[a-z0-9-]+\.)+[a-z]{2,})(?:\/[^\s]*)?)',
   caseSensitive: false,
 );
+final RegExp linkifiedUrlRegex = _urlRegex;
 
 String _mediaPathLower(String rawUrl) {
   try {
@@ -107,6 +108,8 @@ class LinkifiedText extends StatefulWidget {
   final TextAlign textAlign;
   final int? maxLines;
   final TextOverflow? overflow;
+  final bool selectable;
+  final Future<void> Function(String url)? onOpenUrl;
 
   const LinkifiedText(
     this.text, {
@@ -116,6 +119,8 @@ class LinkifiedText extends StatefulWidget {
     this.textAlign = TextAlign.start,
     this.maxLines,
     this.overflow,
+    this.selectable = false,
+    this.onOpenUrl,
   });
 
   @override
@@ -137,6 +142,14 @@ class _LinkifiedTextState extends State<LinkifiedText> {
   Widget build(BuildContext context) {
     final matches = _urlRegex.allMatches(widget.text).toList();
     if (matches.isEmpty) {
+      if (widget.selectable) {
+        return SelectableText(
+          widget.text,
+          textAlign: widget.textAlign,
+          maxLines: widget.maxLines,
+          style: widget.style,
+        );
+      }
       return Text(
         widget.text,
         textAlign: widget.textAlign,
@@ -171,7 +184,8 @@ class _LinkifiedTextState extends State<LinkifiedText> {
       final recognizer =
           TapGestureRecognizer()
             ..onTap = () {
-              openUrlPreferInAppMedia(url);
+              final open = widget.onOpenUrl ?? openUrlPreferInAppMedia;
+              open(url);
             };
       _recognizers.add(recognizer);
 
@@ -185,8 +199,16 @@ class _LinkifiedTextState extends State<LinkifiedText> {
       spans.add(TextSpan(text: widget.text.substring(lastIndex)));
     }
 
+    final rich = TextSpan(style: effectiveStyle, children: spans);
+    if (widget.selectable) {
+      return SelectableText.rich(
+        rich,
+        textAlign: widget.textAlign,
+        maxLines: widget.maxLines,
+      );
+    }
     return Text.rich(
-      TextSpan(style: effectiveStyle, children: spans),
+      rich,
       textAlign: widget.textAlign,
       maxLines: widget.maxLines,
       overflow: widget.overflow,

@@ -5,6 +5,7 @@ import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/library_path_utils.dart';
 import 'package:point/View/Library/library_folder_browser.dart';
+import 'package:point/View/Shared/attachment_thumbnail_tile.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 
 enum ContentAttachmentSource { library, local }
@@ -321,14 +322,7 @@ class _LibraryAttachmentPickerDialogState
                                 SizedBox(
                                   width: 72,
                                   height: 72,
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child:
-                                        TaskDetailsDialogHelpers.attachmentThumbnail(
-                                          row.url,
-                                          onOpen: () {},
-                                        ),
-                                  ),
+                                  child: AttachmentThumbnailTile(url: row.url),
                                 ),
                                 const SizedBox(width: 10),
                                 Expanded(

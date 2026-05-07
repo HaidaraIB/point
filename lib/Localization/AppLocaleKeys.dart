@@ -121,6 +121,7 @@ class AppLocaleKeys {
   static const errorsMissingToken = 'errors.missing_token';
   static const errorsInvalidData = 'errors.invalid_data';
   static const errorsServer = 'errors.server';
+  static const errorsR2NotConfigured = 'errors.r2_not_configured';
   static const errorsEmailRequired = 'errors.email_required';
   static const internetOnlineBadge = 'internet.badge.online';
   static const internetOfflineBadge = 'internet.badge.offline';

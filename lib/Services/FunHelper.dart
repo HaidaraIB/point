@@ -495,84 +495,124 @@ class FunHelper {
     final dialogWidth = Get.width > 900 ? 420.0 : Get.width * 0.82;
     return showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-        contentPadding: const EdgeInsets.fromLTRB(28, 24, 28, 12),
-        actionsPadding: EdgeInsets.zero,
-        actionsAlignment: MainAxisAlignment.center,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        content: SizedBox(
-          width: dialogWidth,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.info_outline_rounded,
-                color: AppColors.primary,
-                size: 40,
-              ),
-              const SizedBox(height: 10),
-              Text(
-                resolvedTitle,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 28,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        var loading = false;
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return PopScope(
+              canPop: !loading,
+              child: AlertDialog(
+                backgroundColor: Colors.white,
+                insetPadding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                contentPadding:
+                    const EdgeInsets.fromLTRB(28, 24, 28, 12),
+                actionsPadding: EdgeInsets.zero,
+                actionsAlignment: MainAxisAlignment.center,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                resolvedMessage,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 16),
-              ),
-            ],
-          ),
-        ),
-
-        actions: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 6, 20, 20),
-            // لا نستخدم LayoutBuilder هنا: AlertDialog يمرّ بقياس intrinsic وLayoutBuilder لا يدعمه (تجمّد/خطأ).
-            child: Row(
-              children: [
-                Expanded(
-                  child: MainButton(
-                    icon: false,
-                    title: cancelText ?? 'cancel'.tr,
-                    fontColor: Colors.white,
-                    backgroundColor: cancelColor,
-                    margin: EdgeInsets.zero,
-                    width: double.infinity,
-                    borderSize: 12,
-                    height: 56,
-                    onPressed: () {
-                      Get.back();
-                    },
+                content: SizedBox(
+                  width: dialogWidth,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.info_outline_rounded,
+                        color: AppColors.primary,
+                        size: 40,
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        resolvedTitle,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 28,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        resolvedMessage,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                      if (loading) ...[
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: dialogWidth,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              minHeight: 4,
+                              backgroundColor: AppColors.primary.withValues(
+                                alpha: 0.12,
+                              ),
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: MainButton(
-                    icon: false,
-                    title: resolvedConfirm,
-                    fontColor: Colors.white,
-                    backgroundColor: confirmColor ?? AppColors.primary,
-                    margin: EdgeInsets.zero,
-                    width: double.infinity,
-                    borderSize: 12,
-                    height: 56,
-                    onPressed: () async {
-                      await Future.sync(onTap);
-                      Get.back();
-                    },
+                actions: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 6, 20, 20),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: MainButton(
+                            icon: false,
+                            title: cancelText ?? 'cancel'.tr,
+                            fontColor: Colors.white,
+                            backgroundColor: cancelColor,
+                            margin: EdgeInsets.zero,
+                            width: double.infinity,
+                            borderSize: 12,
+                            height: 56,
+                            enabled: !loading,
+                            onPressed: () {
+                              Get.back();
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: MainButton(
+                            icon: false,
+                            title: resolvedConfirm,
+                            fontColor: Colors.white,
+                            backgroundColor:
+                                confirmColor ?? AppColors.primary,
+                            margin: EdgeInsets.zero,
+                            width: double.infinity,
+                            borderSize: 12,
+                            height: 56,
+                            load: loading,
+                            onPressed: () async {
+                              if (loading) return;
+                              setState(() => loading = true);
+                              try {
+                                await Future.sync(onTap);
+                                if (dialogContext.mounted) Get.back();
+                              } catch (_) {
+                                if (dialogContext.mounted) {
+                                  setState(() => loading = false);
+                                }
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -610,89 +650,85 @@ class FunHelper {
     colorText = Colors.white,
     Duration autoHideAfter = const Duration(seconds: 4),
   }) {
-    final context = Get.context;
+    final context = Get.context ?? navigatorKey.currentContext;
     if (context == null) return;
-    final messenger = ScaffoldMessenger.of(context);
 
     final media = MediaQuery.of(context);
     final topInset = media.padding.top + 12;
     final bottomInset = media.padding.bottom + 12;
     final isBottom = snackPosition == SnackPosition.BOTTOM;
 
-    messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        elevation: 8,
-        backgroundColor: Colors.transparent,
-        padding: EdgeInsets.zero,
-        margin: EdgeInsets.fromLTRB(
-          12,
-          isBottom ? 0 : topInset,
-          12,
-          isBottom ? bottomInset : 0,
+    Get.closeAllSnackbars();
+    Get.rawSnackbar(
+      snackPosition: isBottom ? SnackPosition.BOTTOM : SnackPosition.TOP,
+      backgroundColor: Colors.transparent,
+      margin: EdgeInsets.fromLTRB(
+        12,
+        isBottom ? 0 : topInset,
+        12,
+        isBottom ? bottomInset : 0,
+      ),
+      borderRadius: 10,
+      duration: autoHideAfter,
+      messageText: DecoratedBox(
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x55000000),
+              blurRadius: 10,
+              offset: Offset(0, 3),
+            ),
+          ],
         ),
-        content: DecoratedBox(
-          decoration: BoxDecoration(
-            color: backgroundColor,
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x55000000),
-                blurRadius: 10,
-                offset: Offset(0, 3),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                backgroundColor == Colors.green
+                    ? Icons.check_circle_outline
+                    : Icons.error_outline,
+                color: colorText,
+                size: 20,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      (title ?? '').toString(),
+                      style: TextStyle(
+                        color: colorText,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                        height: 1.2,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      (subtitle ?? '').toString(),
+                      style: TextStyle(
+                        color: colorText.withValues(alpha: 0.95),
+                        fontWeight: FontWeight.w500,
+                        fontSize: 13,
+                        height: 1.25,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  backgroundColor == Colors.green
-                      ? Icons.check_circle_outline
-                      : Icons.error_outline,
-                  color: colorText,
-                  size: 20,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        (title ?? '').toString(),
-                        style: TextStyle(
-                          color: colorText,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
-                          height: 1.2,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        (subtitle ?? '').toString(),
-                        style: TextStyle(
-                          color: colorText.withValues(alpha: 0.95),
-                          fontWeight: FontWeight.w500,
-                          fontSize: 13,
-                          height: 1.25,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
         ),
-        duration: autoHideAfter,
       ),
     );
   }

@@ -48,6 +48,7 @@ app.*.map.json
 scripts/build-release-apk.local.ps1
 .env
 .env.local
+.env.r2
 firebase-adminsdk.json
 firebase-adminsdk.test.json
 # مفتاح الخدمة المحلي لسكربتات Node (انظر scripts/*.mjs)

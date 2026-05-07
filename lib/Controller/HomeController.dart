@@ -27,7 +27,7 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Services/fcm_token_cache.dart';
 import 'package:point/Services/NotificationService.dart';
 import 'package:point/Services/push_permissions_helper.dart';
-import 'package:point/Services/supabase_storage_binary_upload.dart';
+import 'package:point/Services/r2_storage_upload.dart';
 import 'package:point/Services/upload_limits.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Services/meta/meta_media_util.dart';
@@ -35,12 +35,10 @@ import 'package:point/Services/firestore/firestore_task_utils.dart'
     show taskTypeCodeForNormalizedDepartment;
 import 'package:point/Services/firestore/migrations/backfill_employee_departments.dart';
 import 'package:point/Utils/AppColors.dart';
-import 'package:point/Utils/final_deliverable_upload_names.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:mime/mime.dart' show lookupMimeType;
 // import 'package:http/http.dart' as http;
-import 'package:uuid/uuid.dart';
 
 import 'package:point/config/app_config.dart';
 
@@ -62,7 +60,6 @@ class HomeController extends GetxController {
   // Default true/true to match existing behavior (send push + email).
   RxBool sendPushNotifications = true.obs;
   RxBool sendEmailNotifications = true.obs;
-  final supabase = Supabase.instance.client;
   void changeType(String type) {
     selectedTypeNotifications.value = type;
   }
@@ -2179,10 +2176,6 @@ class HomeController extends GetxController {
     return [];
   }
 
-  String getExtension(String fileName) {
-    return fileName.split('.').last;
-  }
-
   RxDouble uploadProgress = 0.0.obs;
   RxBool isUploading = false.obs;
   Future<String?> uploadFiles({
@@ -2190,10 +2183,13 @@ class HomeController extends GetxController {
     String? fileName,
     bool useBlockingUploadDialog = true,
 
-    /// When set, Supabase public URL gets `?download=` so browsers save under this name.
+    /// When set, the R2 presign worker adds `Content-Disposition: attachment` with this name.
     String? friendlyDownloadName,
+
+    /// When false, the returned URL is not pushed to [uploadedFilesPaths] (e.g. content
+    /// post/story/reel fields that store URLs only in their own text controllers).
+    bool addToUploadedFilesPathsList = true,
   }) async {
-    final uuid = Uuid();
     var dialogShown = false;
     try {
       final bytes = filePathOrBytes as Uint8List;
@@ -2219,15 +2215,27 @@ class HomeController extends GetxController {
         dialogShown = true;
       }
 
-      final bucket = supabase.storage.from('point');
-      final uniqueName = "${uuid.v1()}.${getExtension(fileName ?? '')}";
+      final signer = AppConfig.r2SignerUrl.trim();
+      if (signer.isEmpty) {
+        FunHelper.showSnackbar(
+          AppLocaleKeys.errorTitle.tr,
+          AppLocaleKeys.errorsR2NotConfigured.tr,
+          backgroundColor: Colors.deepOrange,
+        );
+        isUploading.value = false;
+        if (dialogShown) {
+          Get.back();
+        }
+        return null;
+      }
 
-      await uploadStorageObjectBinary(
-        supabase: supabase,
-        bucketId: 'point',
-        objectPath: uniqueName,
+      final ct =
+          lookupMimeType(fileName ?? '') ?? 'application/octet-stream';
+      final url = await uploadObjectToR2(
         data: bytes,
-        mimeLookupPath: fileName,
+        fileName: fileName ?? 'file.bin',
+        contentType: ct,
+        friendlyDownloadName: friendlyDownloadName,
         onProgress: (sent, total) {
           if (total > 0) {
             uploadProgress.value = sent / total;
@@ -2237,16 +2245,9 @@ class HomeController extends GetxController {
 
       uploadProgress.value = 1.0;
 
-      var url = bucket.getPublicUrl(uniqueName);
-      if (friendlyDownloadName != null &&
-          friendlyDownloadName.trim().isNotEmpty) {
-        url = appendSupabaseStorageDownloadQuery(
-          url,
-          friendlyDownloadName.trim(),
-        );
+      if (addToUploadedFilesPathsList) {
+        uploadedFilesPaths.add(url);
       }
-
-      uploadedFilesPaths.add(url);
 
       isUploading.value = false;
       if (dialogShown) {
