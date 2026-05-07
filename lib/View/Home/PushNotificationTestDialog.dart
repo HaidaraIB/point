@@ -143,6 +143,15 @@ class _PushNotificationTestDialogBodyState
     final sample = _sampleCopyForType(_selected.notificationType);
     final title = sample.$1;
     final body = sample.$2;
+    final chatTestExtras = _selected.notificationType == 'chat_message'
+        ? <String, String>{
+            'chatId': 'push_test_chat_${DateTime.now().millisecondsSinceEpoch}',
+            'chatTitle': 'Push Test Chat',
+            'chatDisplayName': 'Push Test Chat',
+            'senderName': 'Push Tester',
+            'isGroup': '0',
+          }
+        : null;
 
     setState(() => _sending = true);
     try {
@@ -154,6 +163,7 @@ class _PushNotificationTestDialogBodyState
           title: title,
           body: body,
           notificationType: _selected.notificationType,
+          fcmDataExtras: chatTestExtras,
           sendPush: _sendPush,
           sendEmail: _sendEmail,
           useSupabaseTemplateWrapper: _useSupabaseTemplateWrapper,
@@ -167,6 +177,7 @@ class _PushNotificationTestDialogBodyState
           title: title,
           body: body,
           notificationType: _selected.notificationType,
+          fcmDataExtras: chatTestExtras,
           sendPush: _sendPush,
           sendEmail: _sendEmail,
           useSupabaseTemplateWrapper: _useSupabaseTemplateWrapper,

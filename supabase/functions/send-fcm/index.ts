@@ -473,8 +473,14 @@ function buildFcmV1NotificationMessage(args: {
   };
 
   const androidCollapseTag = androidChatCollapseTagFromData(args.dataPayload);
-  /** `chat_message` + `chatId`: no system banner — Flutter shows one aggregated local notification. */
-  const isChatLocalAggregation = androidCollapseTag !== undefined;
+  const iosChatThreadId =
+    ((args.dataPayload.chatId ?? "").trim() || undefined);
+  /**
+   * `chat_message` + `chatId`: Android stays data-only so Flutter can aggregate locally.
+   * iOS now uses APNs alert (not background-only) for reliable delivery while still
+   * grouping conversation banners using `thread-id` + collapse id.
+   */
+  const isChatLocalAggregationAndroid = androidCollapseTag !== undefined;
   const androidNotification: Record<string, unknown> = {
     title: args.title,
     body: args.body,
@@ -484,16 +490,22 @@ function buildFcmV1NotificationMessage(args: {
     androidNotification.tag = androidCollapseTag;
   }
 
-  const apnsSection: Record<string, unknown> = isChatLocalAggregation
+  const apnsSection: Record<string, unknown> = isChatLocalAggregationAndroid
     ? {
       headers: {
-        "apns-push-type": "background",
-        "apns-priority": "5",
+        "apns-push-type": "alert",
+        "apns-priority": "10",
         "apns-expiration": apnsExpirationHeaderValue(),
+        ...(iosChatThreadId ? { "apns-collapse-id": androidCollapseTag } : {}),
       },
       payload: {
         aps: {
-          "content-available": 1,
+          ...prevAps,
+          alert: {
+            title: args.title,
+            body: args.body,
+          },
+          ...(iosChatThreadId ? { "thread-id": iosChatThreadId } : {}),
         },
       },
     }
@@ -516,7 +528,7 @@ function buildFcmV1NotificationMessage(args: {
     android: {
       priority: "high",
       ttl: `${FCM_NOTIFICATION_TTL_SEC}s`,
-      ...(isChatLocalAggregation ? {} : { notification: androidNotification }),
+      ...(isChatLocalAggregationAndroid ? {} : { notification: androidNotification }),
     },
     apns: apnsSection,
     webpush: {
@@ -528,7 +540,7 @@ function buildFcmV1NotificationMessage(args: {
       },
     },
   };
-  if (!isChatLocalAggregation) {
+  if (!isChatLocalAggregationAndroid) {
     msg.notification = {
       title: args.title,
       body: args.body,
