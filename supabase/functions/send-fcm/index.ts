@@ -15,6 +15,8 @@ type PushDiagnosticPayload = {
   recipientType?: string;
   targetType: "token" | "topic";
   tokenMasked?: string;
+  tokenPrefix?: string;
+  tokenSuffix?: string;
   topic?: string;
   title?: string;
   bodyLen?: number;
@@ -25,6 +27,7 @@ type PushDiagnosticPayload = {
   fcmErrorCode?: string;
   fcmErrorStatus?: string;
   fcmErrorMessage?: string;
+  deliveryDiagnosis?: string;
   details?: unknown;
 };
 
@@ -84,6 +87,41 @@ function parseJsonResponse(raw: string): Record<string, unknown> {
   }
 }
 
+function extractApsPushType(msg: Record<string, unknown>): string | undefined {
+  const apns = msg.apns as { headers?: Record<string, unknown> } | undefined;
+  const pt = apns?.headers?.["apns-push-type"];
+  return typeof pt === "string" ? pt : undefined;
+}
+
+function classifyDeliveryDiagnosis(args: {
+  ok: boolean;
+  fcmErrorStatus?: string;
+  fcmErrorMessage?: string;
+  fcmErrorCode?: string;
+}): string {
+  if (args.ok) return "accepted_by_fcm_waiting_for_apns_or_device";
+  const status = (args.fcmErrorStatus ?? "").toUpperCase();
+  const code = (args.fcmErrorCode ?? "").toUpperCase();
+  const msg = (args.fcmErrorMessage ?? "").toLowerCase();
+  if (
+    status === "UNREGISTERED" ||
+    msg.includes("registration-token-not-registered") ||
+    msg.includes("unregistered")
+  ) {
+    return "token_unregistered_or_expired";
+  }
+  if (status === "INVALID_ARGUMENT" || code === "400" || msg.includes("invalid registration token")) {
+    return "token_mismatch_or_invalid_format";
+  }
+  if (status === "UNAVAILABLE" || status === "INTERNAL" || code === "500" || code === "503") {
+    return "fcm_or_apns_transient_failure_retry";
+  }
+  if (status === "THIRD_PARTY_AUTH_ERROR" || msg.includes("apns")) {
+    return "apns_auth_or_configuration_issue";
+  }
+  return "fcm_rejected_other";
+}
+
 async function handleFcmRecipientsBatch(args: {
   accessToken: string;
   sa: ServiceAccountJson;
@@ -139,6 +177,7 @@ async function handleFcmRecipientsBatch(args: {
   ): Promise<FcmBatchItemResult> => {
     const token = (item.token ?? "").trim();
     const tokenMasked = token ? maskFcmToken(token) : "***";
+    const tokenFp = tokenFingerprintParts(token);
     const subRequestId = (item.requestId?.trim() || `${parentRequestId}_${index}`).trim();
     const recipientId = item.recipientId;
     const recipientType = item.recipientType;
@@ -155,35 +194,9 @@ async function handleFcmRecipientsBatch(args: {
       };
     }
 
-    if (
-      notificationType?.trim() === "chat_message" &&
-      recipientId &&
-      typeof recipientId === "string"
-    ) {
-      const merged = { ...(parsed.data ?? {}), ...(item.data ?? {}) };
-      if (merged.chatId) {
-        const activeState = await getEmployeeActiveChatState(accessToken, sa.project_id, recipientId);
-        const incomingChat = String(merged.chatId).trim();
-        if (
-          shouldSkipChatPushForActiveSameChat({
-            activeChatId: activeState.chatId,
-            activeChatUpdatedAtMs: activeState.updatedAtMs,
-            incomingChatId: incomingChat,
-          })
-        ) {
-          return {
-            index,
-            tokenMasked,
-            ok: true,
-            skipped: true,
-            reason: "recipient_active_same_chat",
-            requestId: subRequestId,
-            recipientId,
-            recipientType,
-          };
-        }
-      }
-    }
+    // Do not suppress chat_message by recipient-level activeChatId.
+    // A user can have multiple tokens/devices, and one active session could
+    // incorrectly suppress delivery to another device (for example iOS).
 
     const dataPayload: Record<string, string> = {
       ...(parsed.data ?? {}),
@@ -207,6 +220,33 @@ async function handleFcmRecipientsBatch(args: {
       soundBase,
       webNotificationTag: `point-${subRequestId}`,
     });
+    await writePushDiagnostic({
+      accessToken,
+      projectId: sa.project_id,
+      payload: {
+        requestId: subRequestId,
+        stage: "function_attempt",
+        status: "ok",
+        senderUid: caller.uid,
+        senderEmail: caller.email,
+        recipientId,
+        recipientType,
+        targetType: "token",
+        tokenMasked,
+        tokenPrefix: tokenFp.prefix,
+        tokenSuffix: tokenFp.suffix,
+        title,
+        bodyLen: body.length,
+        notificationType,
+        functionVersion: FUNCTION_VERSION,
+        details: {
+          transport: "fcm_v1",
+          apnsPushType: extractApsPushType(fcmMessage),
+          hasTopLevelNotification: Object.prototype.hasOwnProperty.call(fcmMessage, "notification"),
+          hasData: Object.prototype.hasOwnProperty.call(fcmMessage, "data"),
+        },
+      },
+    });
 
     const res = await fetch(fcmUrl, {
       method: "POST",
@@ -224,6 +264,12 @@ async function handleFcmRecipientsBatch(args: {
 
     if (!res.ok) {
       const fcmError = (out as { error?: { code?: unknown; status?: unknown; message?: unknown } })?.error;
+      const deliveryDiagnosis = classifyDeliveryDiagnosis({
+        ok: false,
+        fcmErrorCode: fcmError?.code?.toString(),
+        fcmErrorStatus: fcmError?.status?.toString(),
+        fcmErrorMessage: fcmError?.message?.toString(),
+      });
       await writePushDiagnostic({
         accessToken,
         projectId: sa.project_id,
@@ -237,6 +283,8 @@ async function handleFcmRecipientsBatch(args: {
           recipientType,
           targetType: "token",
           tokenMasked,
+          tokenPrefix: tokenFp.prefix,
+          tokenSuffix: tokenFp.suffix,
           title,
           bodyLen: body.length,
           notificationType,
@@ -248,6 +296,7 @@ async function handleFcmRecipientsBatch(args: {
           fcmErrorCode: fcmError?.code?.toString(),
           fcmErrorStatus: fcmError?.status?.toString(),
           fcmErrorMessage: fcmError?.message?.toString(),
+          deliveryDiagnosis,
           details: out,
         },
       });
@@ -279,12 +328,15 @@ async function handleFcmRecipientsBatch(args: {
         recipientType,
         targetType: "token",
         tokenMasked,
+        tokenPrefix: tokenFp.prefix,
+        tokenSuffix: tokenFp.suffix,
         title,
         bodyLen: body.length,
         notificationType,
         functionVersion: FUNCTION_VERSION,
         fcmHttpStatus: res.status,
         fcmMessageId: typeof (out as { name?: string })?.name === "string" ? (out as { name: string }).name : undefined,
+        deliveryDiagnosis: classifyDeliveryDiagnosis({ ok: true }),
         details: out,
       },
     });
@@ -662,6 +714,7 @@ Deno.serve(async (req: Request) => {
     } = parsed;
 
     const requestIdSafe = (requestId ?? crypto.randomUUID()).trim();
+    const tokenFp = token ? tokenFingerprintParts(token) : {};
     await writePushDiagnostic({
       accessToken,
       projectId: sa.project_id,
@@ -675,6 +728,8 @@ Deno.serve(async (req: Request) => {
         recipientType,
         targetType: token ? "token" : "topic",
         tokenMasked: token ? maskFcmToken(token) : undefined,
+        tokenPrefix: token ? tokenFp.prefix : undefined,
+        tokenSuffix: token ? tokenFp.suffix : undefined,
         topic,
         title,
         bodyLen: body?.length ?? 0,
@@ -697,6 +752,8 @@ Deno.serve(async (req: Request) => {
           recipientType,
           targetType: token ? "token" : "topic",
           tokenMasked: token ? maskFcmToken(token) : undefined,
+          tokenPrefix: token ? tokenFp.prefix : undefined,
+          tokenSuffix: token ? tokenFp.suffix : undefined,
           topic,
           title,
           bodyLen: body?.length ?? 0,
@@ -776,32 +833,9 @@ Deno.serve(async (req: Request) => {
       return json({ errorCode: "ERR_INVALID_DATA", requestId: requestIdSafe }, 400);
     }
 
-    if (
-      notificationType?.trim() === "chat_message" &&
-      recipientId &&
-      typeof recipientId === "string" &&
-      data?.chatId
-    ) {
-      const activeState = await getEmployeeActiveChatState(accessToken, sa.project_id, recipientId);
-      const incomingChat = String(data.chatId).trim();
-      if (
-        shouldSkipChatPushForActiveSameChat({
-          activeChatId: activeState.chatId,
-          activeChatUpdatedAtMs: activeState.updatedAtMs,
-          incomingChatId: incomingChat,
-        })
-      ) {
-        return json(
-          {
-            ok: true,
-            skipped: true,
-            reason: "recipient_active_same_chat",
-            requestId: requestIdSafe,
-          },
-          200,
-        );
-      }
-    }
+    // Do not suppress chat_message by recipient-level activeChatId.
+    // A user can have multiple tokens/devices, and one active session could
+    // incorrectly suppress delivery to another device (for example iOS).
 
     const soundBase = soundBaseForNotificationType(notificationType);
     const dataPayload: Record<string, string> = {
@@ -827,6 +861,34 @@ Deno.serve(async (req: Request) => {
       soundBase,
       webNotificationTag: `point-${requestIdSafe}`,
     });
+    await writePushDiagnostic({
+      accessToken,
+      projectId: sa.project_id,
+      payload: {
+        requestId: requestIdSafe,
+        stage: "function_attempt",
+        status: "ok",
+        senderUid: caller.uid,
+        senderEmail: caller.email,
+        recipientId,
+        recipientType,
+        targetType: token ? "token" : "topic",
+        tokenMasked: token ? maskFcmToken(token) : undefined,
+        tokenPrefix: token ? tokenFp.prefix : undefined,
+        tokenSuffix: token ? tokenFp.suffix : undefined,
+        topic,
+        title,
+        bodyLen: body.length,
+        notificationType,
+        functionVersion: FUNCTION_VERSION,
+        details: {
+          transport: "fcm_v1",
+          apnsPushType: extractApsPushType(fcmMessage),
+          hasTopLevelNotification: Object.prototype.hasOwnProperty.call(fcmMessage, "notification"),
+          hasData: Object.prototype.hasOwnProperty.call(fcmMessage, "data"),
+        },
+      },
+    });
 
     const res = await fetch(fcmUrl, {
       method: "POST",
@@ -850,6 +912,12 @@ Deno.serve(async (req: Request) => {
     })();
     if (!res.ok) {
       const fcmError = (out as any)?.error;
+      const deliveryDiagnosis = classifyDeliveryDiagnosis({
+        ok: false,
+        fcmErrorCode: fcmError?.code?.toString(),
+        fcmErrorStatus: fcmError?.status?.toString(),
+        fcmErrorMessage: fcmError?.message?.toString(),
+      });
       await writePushDiagnostic({
         accessToken,
         projectId: sa.project_id,
@@ -863,6 +931,8 @@ Deno.serve(async (req: Request) => {
           recipientType,
           targetType: token ? "token" : "topic",
           tokenMasked: token ? maskFcmToken(token) : undefined,
+          tokenPrefix: token ? tokenFp.prefix : undefined,
+          tokenSuffix: token ? tokenFp.suffix : undefined,
           topic,
           title,
           bodyLen: body.length,
@@ -873,6 +943,7 @@ Deno.serve(async (req: Request) => {
           fcmErrorCode: fcmError?.code?.toString(),
           fcmErrorStatus: fcmError?.status?.toString(),
           fcmErrorMessage: fcmError?.message?.toString(),
+          deliveryDiagnosis,
           details: out,
         },
       });
@@ -891,6 +962,8 @@ Deno.serve(async (req: Request) => {
         recipientType,
         targetType: token ? "token" : "topic",
         tokenMasked: token ? maskFcmToken(token) : undefined,
+        tokenPrefix: token ? tokenFp.prefix : undefined,
+        tokenSuffix: token ? tokenFp.suffix : undefined,
         topic,
         title,
         bodyLen: body.length,
@@ -898,6 +971,7 @@ Deno.serve(async (req: Request) => {
         functionVersion: FUNCTION_VERSION,
         fcmHttpStatus: res.status,
         fcmMessageId: typeof (out as any)?.name === "string" ? (out as any).name : undefined,
+        deliveryDiagnosis: classifyDeliveryDiagnosis({ ok: true }),
         details: out,
       },
     });
@@ -960,6 +1034,21 @@ function maskFcmToken(t: string): string {
   return `${t.substring(0, 6)}...${t.substring(t.length - 4)}`;
 }
 
+function tokenFingerprintParts(token: string): { prefix?: string; suffix?: string } {
+  const t = token.trim();
+  if (!t) return {};
+  if (t.length <= 12) {
+    return {
+      prefix: t.slice(0, Math.min(4, t.length)),
+      suffix: t.slice(Math.max(0, t.length - 3)),
+    };
+  }
+  return {
+    prefix: t.slice(0, 8),
+    suffix: t.slice(-6),
+  };
+}
+
 async function writePushDiagnostic(args: {
   accessToken: string;
   projectId: string;
@@ -983,6 +1072,8 @@ async function writePushDiagnostic(args: {
     if (p.recipientId) fields.recipientId = { stringValue: p.recipientId };
     if (p.recipientType) fields.recipientType = { stringValue: p.recipientType };
     if (p.tokenMasked) fields.tokenMasked = { stringValue: p.tokenMasked };
+    if (p.tokenPrefix) fields.tokenPrefix = { stringValue: p.tokenPrefix };
+    if (p.tokenSuffix) fields.tokenSuffix = { stringValue: p.tokenSuffix };
     if (p.topic) fields.topic = { stringValue: p.topic };
     if (p.title) fields.title = { stringValue: p.title };
     if (p.notificationType) fields.notificationType = { stringValue: p.notificationType };
@@ -993,6 +1084,7 @@ async function writePushDiagnostic(args: {
     if (p.fcmErrorCode) fields.fcmErrorCode = { stringValue: p.fcmErrorCode };
     if (p.fcmErrorStatus) fields.fcmErrorStatus = { stringValue: p.fcmErrorStatus };
     if (p.fcmErrorMessage) fields.fcmErrorMessage = { stringValue: p.fcmErrorMessage };
+    if (p.deliveryDiagnosis) fields.deliveryDiagnosis = { stringValue: p.deliveryDiagnosis };
     if (p.details !== undefined) {
       fields.detailsJson = { stringValue: JSON.stringify(p.details).slice(0, 1400) };
     }
