@@ -9,6 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:get/get.dart';
 
 import 'package:point/Models/ClientModel.dart';
@@ -2162,6 +2163,31 @@ class HomeController extends GetxController {
       return result.files;
     }
     return [];
+  }
+
+  /// Camera photo for chat (Android/iOS only).
+  Future<({Uint8List bytes, String fileName})?> pickChatCameraImageBytes() async {
+    if (kIsWeb) return null;
+    if (defaultTargetPlatform != TargetPlatform.android &&
+        defaultTargetPlatform != TargetPlatform.iOS) {
+      return null;
+    }
+    try {
+      final xFile = await ImagePicker().pickImage(
+        source: ImageSource.camera,
+        imageQuality: 90,
+      );
+      if (xFile == null) return null;
+      final bytes = await xFile.readAsBytes();
+      if (bytes.isEmpty) return null;
+      return (
+        bytes: bytes,
+        fileName: 'camera_${DateTime.now().millisecondsSinceEpoch}.jpg',
+      );
+    } catch (e, st) {
+      appLog('pickChatCameraImageBytes failed: $e\n$st');
+      return null;
+    }
   }
 
   /// ملف واحد لأي نوع (مرفقات الدردشة).

@@ -1,9 +1,11 @@
 import 'dart:async' show unawaited;
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Services/FunHelper.dart';
+import 'package:point/Services/chat_attachment_cache.dart';
 import 'package:point/Utils/chat_attachment_save.dart';
 
 String _successMessage(ChatAttachmentSaveResult result) {
@@ -17,11 +19,27 @@ String _successMessage(ChatAttachmentSaveResult result) {
   };
 }
 
+Future<Uint8List?> _bytesForPreviewDownload(String url) async {
+  final trimmed = url.trim();
+  if (trimmed.isEmpty) return null;
+  final cached = await ChatAttachmentCache.bytesFromCacheOnly(trimmed);
+  if (cached != null && cached.isNotEmpty) return cached;
+  try {
+    return await ChatAttachmentCache.bytesForUrl(trimmed);
+  } catch (_) {
+    return ChatAttachmentCache.bytesFromCacheOnly(trimmed);
+  }
+}
+
 Future<void> downloadMediaFromPreview(
   String url, {
   String? fileName,
 }) async {
-  final result = await saveChatAttachment(url: url, fileName: fileName);
+  final name = resolveChatDownloadFileName(fileName, url);
+  final bytes = await _bytesForPreviewDownload(url);
+  final result = bytes == null || bytes.isEmpty
+      ? ChatAttachmentSaveResult.fail
+      : await saveChatAttachmentBytes(bytes: bytes, fileName: name);
   if (result.ok) {
     FunHelper.showSnackbar(
       AppLocaleKeys.successTitle.tr,

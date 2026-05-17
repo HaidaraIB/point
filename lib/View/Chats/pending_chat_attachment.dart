@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/View/Chats/chat_cached_attachment_image.dart';
 import 'package:point/View/Chats/chat_reply_draft_banner.dart';
 
 /// Staged attachment (uploaded URL) until the user taps Send — same pattern as paste.
@@ -107,13 +108,13 @@ class PendingAttachmentStrip extends StatelessWidget {
     if (pending.messageType == 'image') {
       return ClipRRect(
         borderRadius: BorderRadius.circular(6),
-        child: Image.network(
-          pending.attachmentUrl,
+        child: ChatCachedAttachmentImage(
+          url: pending.attachmentUrl,
           width: 34,
           height: 34,
           fit: BoxFit.cover,
           errorBuilder:
-              (_, __, ___) => const Icon(Icons.image_outlined, size: 22),
+              (_, __) => const Icon(Icons.image_outlined, size: 22),
         ),
       );
     }

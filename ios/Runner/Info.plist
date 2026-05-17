@@ -51,6 +51,8 @@
 	<string>نحتاج حفظ الصور والفيديوهات التي تنزّلها من الدردشة في مكتبة الصور.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>نحتاج الميكروفون لتسجيل رسائل صوتية في الدردشة.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>نحتاج الكاميرا لالتقاط صور وإرسالها في الدردشة.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

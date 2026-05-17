@@ -1,11 +1,19 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Services/StorageKeys.dart';
+
+/// Android/iOS camera capture for chat attachments (not web/desktop).
+bool chatMobileCameraSupported() {
+  return !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS);
+}
 
 /// Scrolls a [ScrollablePositionedList] so the item at [index] is visible.
 ///

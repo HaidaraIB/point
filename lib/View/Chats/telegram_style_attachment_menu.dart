@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Actions returned from [showTelegramStyleAttachmentMenu].
-enum ChatAttachmentMenuAction { photo, file, pasteImage, voice }
+enum ChatAttachmentMenuAction { camera, photo, file, pasteImage, voice }
 
 /// Dark vertical popup anchored to [anchorContext] (e.g. the + button), similar
 /// in spirit to Telegram’s attachment menu — not feature parity, only layout/feel.
@@ -12,6 +12,8 @@ Future<ChatAttachmentMenuAction?> showTelegramStyleAttachmentMenu({
   required String fileLabel,
   required String pasteImageLabel,
   required String voiceLabel,
+  String? cameraLabel,
+  bool showCamera = false,
 }) {
   final buttonObject = anchorContext.findRenderObject();
   if (buttonObject is! RenderBox) {
@@ -38,6 +40,64 @@ Future<ChatAttachmentMenuAction?> showTelegramStyleAttachmentMenu({
   const Color menuBg = Color(0xFF2C2F3E);
   const Color iconColor = Color(0xFFF0F0F5);
 
+  final items = <PopupMenuEntry<ChatAttachmentMenuAction>>[];
+  if (showCamera && cameraLabel != null && cameraLabel.isNotEmpty) {
+    items.add(
+      PopupMenuItem<ChatAttachmentMenuAction>(
+        value: ChatAttachmentMenuAction.camera,
+        height: 48,
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        child: _TelegramMenuRow(
+          icon: Icons.camera_alt_outlined,
+          label: cameraLabel,
+          iconColor: iconColor,
+        ),
+      ),
+    );
+  }
+  items.addAll([
+    PopupMenuItem<ChatAttachmentMenuAction>(
+      value: ChatAttachmentMenuAction.photo,
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: _TelegramMenuRow(
+        icon: Icons.perm_media_outlined,
+        label: photoLabel,
+        iconColor: iconColor,
+      ),
+    ),
+    PopupMenuItem<ChatAttachmentMenuAction>(
+      value: ChatAttachmentMenuAction.file,
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: _TelegramMenuRow(
+        icon: Icons.insert_drive_file_outlined,
+        label: fileLabel,
+        iconColor: iconColor,
+      ),
+    ),
+    PopupMenuItem<ChatAttachmentMenuAction>(
+      value: ChatAttachmentMenuAction.pasteImage,
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: _TelegramMenuRow(
+        icon: Icons.content_paste,
+        label: pasteImageLabel,
+        iconColor: iconColor,
+      ),
+    ),
+    PopupMenuItem<ChatAttachmentMenuAction>(
+      value: ChatAttachmentMenuAction.voice,
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      child: _TelegramMenuRow(
+        icon: Icons.mic_none_outlined,
+        label: voiceLabel,
+        iconColor: iconColor,
+      ),
+    ),
+  ]);
+
   return showMenu<ChatAttachmentMenuAction>(
     context: context,
     position: position,
@@ -45,48 +105,7 @@ Future<ChatAttachmentMenuAction?> showTelegramStyleAttachmentMenu({
     elevation: 16,
     shadowColor: Colors.black54,
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    items: <PopupMenuEntry<ChatAttachmentMenuAction>>[
-      PopupMenuItem<ChatAttachmentMenuAction>(
-        value: ChatAttachmentMenuAction.photo,
-        height: 48,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        child: _TelegramMenuRow(
-          icon: Icons.perm_media_outlined,
-          label: photoLabel,
-          iconColor: iconColor,
-        ),
-      ),
-      PopupMenuItem<ChatAttachmentMenuAction>(
-        value: ChatAttachmentMenuAction.file,
-        height: 48,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        child: _TelegramMenuRow(
-          icon: Icons.insert_drive_file_outlined,
-          label: fileLabel,
-          iconColor: iconColor,
-        ),
-      ),
-      PopupMenuItem<ChatAttachmentMenuAction>(
-        value: ChatAttachmentMenuAction.pasteImage,
-        height: 48,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        child: _TelegramMenuRow(
-          icon: Icons.content_paste,
-          label: pasteImageLabel,
-          iconColor: iconColor,
-        ),
-      ),
-      PopupMenuItem<ChatAttachmentMenuAction>(
-        value: ChatAttachmentMenuAction.voice,
-        height: 48,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        child: _TelegramMenuRow(
-          icon: Icons.mic_none_outlined,
-          label: voiceLabel,
-          iconColor: iconColor,
-        ),
-      ),
-    ],
+    items: items,
   );
 }
 

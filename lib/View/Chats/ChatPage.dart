@@ -33,6 +33,7 @@ import 'package:point/View/Chats/chat_list_tile_media_subtitle.dart';
 import 'package:point/View/Chats/chat_private_typing.dart';
 import 'package:point/View/Chats/chat_reply_draft_banner.dart';
 import 'package:point/View/Chats/chat_ui_helpers.dart';
+import 'package:point/Utils/chat_attachment_upload.dart';
 import 'package:point/View/Chats/chat_voice_record_button.dart';
 
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
@@ -1595,18 +1596,13 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
     final fileName =
         'pasted_${DateTime.now().millisecondsSinceEpoch}.${_extFromMime(mimeType)}';
-    final url = await controller.uploadFiles(
-      filePathOrBytes: bytes,
+    final pending = await stageChatMediaUpload(
+      bytes: bytes,
       fileName: fileName,
-      useBlockingUploadDialog: false,
+      home: controller,
     );
-    if (!mounted || url == null) return;
-    setState(
-      () => _pendingAttachment = PendingChatAttachment(
-        messageType: 'image',
-        attachmentUrl: url,
-      ),
-    );
+    if (!mounted || pending == null) return;
+    setState(() => _pendingAttachment = pending);
     controller.uploadedFilesPaths.clear();
   }
 
@@ -2828,6 +2824,43 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                         });
                                                       },
                                               ),
+                                              if (chatMobileCameraSupported())
+                                                IconButton(
+                                                  tooltip: AppLocaleKeys
+                                                      .chatAttachPhoto
+                                                      .tr,
+                                                  icon: const Icon(
+                                                    Icons.camera_alt_outlined,
+                                                  ),
+                                                  onPressed: busy
+                                                      ? null
+                                                      : () async {
+                                                          final shot =
+                                                              await controller
+                                                                  .pickChatCameraImageBytes();
+                                                          if (shot == null) {
+                                                            return;
+                                                          }
+                                                          final pending =
+                                                              await stageChatMediaUpload(
+                                                            bytes: shot.bytes,
+                                                            fileName:
+                                                                shot.fileName,
+                                                            home: controller,
+                                                          );
+                                                          if (pending == null) {
+                                                            return;
+                                                          }
+                                                          setState(
+                                                            () =>
+                                                                _pendingAttachment =
+                                                                    pending,
+                                                          );
+                                                          controller
+                                                              .uploadedFilesPaths
+                                                              .clear();
+                                                        },
+                                                ),
                                               IconButton(
                                                 tooltip: AppLocaleKeys
                                                     .chatAttachGallery
@@ -2846,36 +2879,19 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                           return;
                                                         }
                                                         final picked = v.first;
-                                                        final url = await controller
-                                                            .uploadFiles(
-                                                              filePathOrBytes:
-                                                                  picked.bytes!,
-                                                              fileName:
-                                                                  picked.name,
-                                                              useBlockingUploadDialog:
-                                                                  false,
-                                                            );
-                                                        if (url == null) {
+                                                        final pending =
+                                                            await stageChatMediaUpload(
+                                                          bytes: picked.bytes!,
+                                                          fileName: picked.name,
+                                                          home: controller,
+                                                        );
+                                                        if (pending == null) {
                                                           return;
                                                         }
-                                                        final isVid =
-                                                            chatAttachmentIsVideo(
-                                                              picked.name,
-                                                            );
                                                         setState(
-                                                          () => _pendingAttachment =
-                                                              PendingChatAttachment(
-                                                                messageType:
-                                                                    isVid
-                                                                    ? 'video'
-                                                                    : 'image',
-                                                                attachmentUrl:
-                                                                    url,
-                                                                fileName: isVid
-                                                                    ? picked
-                                                                          .name
-                                                                    : null,
-                                                              ),
+                                                          () =>
+                                                              _pendingAttachment =
+                                                                  pending,
                                                         );
                                                         controller
                                                             .uploadedFilesPaths
@@ -2899,30 +2915,19 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                                 null) {
                                                           return;
                                                         }
-                                                        final url = await controller
-                                                            .uploadFiles(
-                                                              filePathOrBytes: v
-                                                                  .first
-                                                                  .bytes!,
-                                                              fileName:
-                                                                  v.first.name,
-                                                              useBlockingUploadDialog:
-                                                                  false,
-                                                            );
-                                                        if (url == null) {
+                                                        final pending =
+                                                            await stageChatFileUpload(
+                                                          bytes: v.first.bytes!,
+                                                          fileName: v.first.name,
+                                                          home: controller,
+                                                        );
+                                                        if (pending == null) {
                                                           return;
                                                         }
                                                         setState(
-                                                          () => _pendingAttachment =
-                                                              PendingChatAttachment(
-                                                                messageType:
-                                                                    'file',
-                                                                attachmentUrl:
-                                                                    url,
-                                                                fileName: v
-                                                                    .first
-                                                                    .name,
-                                                              ),
+                                                          () =>
+                                                              _pendingAttachment =
+                                                                  pending,
                                                         );
                                                         controller
                                                             .uploadedFilesPaths

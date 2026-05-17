@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/View/Chats/chat_cached_attachment_image.dart';
 import 'package:point/View/Chats/chat_ui_helpers.dart';
+import 'package:point/Utils/chat_video_controller.dart';
 import 'package:video_player/video_player.dart';
 
 /// Caption line for the composer when a media thumbnail is shown (no 📷/🎬 emoji).
@@ -39,13 +41,13 @@ class ChatReplyMediaThumb extends StatelessWidget {
     if (iu != null && iu.isNotEmpty) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(6),
-        child: Image.network(
-          iu,
+        child: ChatCachedAttachmentImage(
+          url: iu,
           width: size,
           height: size,
           fit: BoxFit.cover,
           errorBuilder:
-              (_, __, ___) => _thumbPlaceholder(size, Icons.broken_image_outlined),
+              (_, __) => _thumbPlaceholder(size, Icons.broken_image_outlined),
         ),
       );
     }
@@ -103,7 +105,7 @@ class _ChatReplyVideoThumbState extends State<_ChatReplyVideoThumb> {
 
   Future<void> _initController(String url) async {
     try {
-      final c = VideoPlayerController.networkUrl(Uri.parse(url))
+      final c = await chatVideoControllerForUrl(url)
         ..setLooping(false)
         ..setVolume(0);
       _controller = c;

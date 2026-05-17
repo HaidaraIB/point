@@ -7,6 +7,8 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Utils/chat_message_bidi.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/Services/chat_voice_playback_service.dart';
+import 'package:point/View/Chats/chat_cached_attachment_image.dart';
+import 'package:point/Utils/chat_video_controller.dart';
 import 'package:point/View/Mobile/Shared/VideoCart.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
@@ -446,51 +448,37 @@ class _RetryableChatImage extends StatefulWidget {
 }
 
 class _RetryableChatImageState extends State<_RetryableChatImage> {
-  int _retrySeed = 0;
-
-  void _retry() {
-    final provider = NetworkImage(widget.url);
-    provider.evict();
-    setState(() => _retrySeed++);
-  }
-
   @override
   Widget build(BuildContext context) {
-    final image = Image.network(
-      widget.url,
-      key: ValueKey('${widget.url}#$_retrySeed'),
+    final image = ChatCachedAttachmentImage(
+      url: widget.url,
       width: widget.width,
       fit: widget.fit,
-      loadingBuilder: (c, w, p) {
-        if (p == null) return w;
-        return SizedBox(
-          height: widget.loadingHeight,
-          child: const Center(child: CircularProgressIndicator()),
-        );
-      },
-      errorBuilder: (_, __, ___) => InkWell(
-        onTap: _retry,
-        child: SizedBox(
-          height: widget.loadingHeight,
-          width: widget.width,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.refresh,
-                size: 24,
+      loadingBuilder: (c, w, p) => SizedBox(
+        height: widget.loadingHeight,
+        width: widget.width,
+        child: const Center(child: CircularProgressIndicator()),
+      ),
+      errorBuilder: (_, __) => SizedBox(
+        height: widget.loadingHeight,
+        width: widget.width,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.refresh,
+              size: 24,
+              color: widget.isMe ? Colors.white70 : Colors.black54,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Retry',
+              style: TextStyle(
+                fontSize: 11,
                 color: widget.isMe ? Colors.white70 : Colors.black54,
               ),
-              const SizedBox(height: 4),
-              Text(
-                'Retry',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: widget.isMe ? Colors.white70 : Colors.black54,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -515,31 +503,38 @@ class _ChatVideoBubble extends StatefulWidget {
 }
 
 class _ChatVideoBubbleState extends State<_ChatVideoBubble> {
-  late final VideoPlayerController _controller;
+  VideoPlayerController? _controller;
   bool _ready = false;
   bool _failed = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.url))
-      ..setLooping(false)
-      ..setVolume(0);
-    _controller
-        .initialize()
-        .then((_) {
-          if (!mounted) return;
-          _controller.pause();
-          setState(() => _ready = true);
-        })
-        .catchError((_) {
-          if (mounted) setState(() => _failed = true);
-        });
+    unawaited(_boot());
+  }
+
+  Future<void> _boot() async {
+    try {
+      final c = await chatVideoControllerForUrl(widget.url)
+        ..setLooping(false)
+        ..setVolume(0);
+      if (!mounted) {
+        await c.dispose();
+        return;
+      }
+      _controller = c;
+      await c.initialize();
+      if (!mounted) return;
+      await c.pause();
+      setState(() => _ready = true);
+    } catch (_) {
+      if (mounted) setState(() => _failed = true);
+    }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller?.dispose();
     super.dispose();
   }
 
@@ -581,15 +576,17 @@ class _ChatVideoBubbleState extends State<_ChatVideoBubble> {
           borderRadius: BorderRadius.circular(10),
           child: SizedBox(
             width: maxW,
-            child: _ready && _controller.value.aspectRatio > 0
+            child: _ready &&
+                    _controller != null &&
+                    _controller!.value.aspectRatio > 0
                 ? AspectRatio(
-                    aspectRatio: _controller.value.aspectRatio,
+                    aspectRatio: _controller!.value.aspectRatio,
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
                         ColoredBox(
                           color: Colors.black,
-                          child: VideoPlayer(_controller),
+                          child: VideoPlayer(_controller!),
                         ),
                         Material(
                           color: Colors.transparent,
@@ -859,24 +856,12 @@ List<InlineSpan> buildMessageSpans(String text, bool isMe) {
               borderRadius: BorderRadius.circular(8),
               child: InkWell(
                 onTap: () => openChatMediaFromUrl(url),
-                child: Image.network(
-                  url,
+                child: _RetryableChatImage(
+                  url: url,
                   width: 200,
                   fit: BoxFit.cover,
-                  loadingBuilder: (c, w, p) {
-                    if (p == null) return w;
-                    return const SizedBox(
-                      height: 150,
-                      child: Center(child: CircularProgressIndicator()),
-                    );
-                  },
-                  errorBuilder: (_, __, ___) => _RetryableChatImage(
-                    url: url,
-                    width: 200,
-                    fit: BoxFit.cover,
-                    isMe: isMe,
-                    loadingHeight: 150,
-                  ),
+                  isMe: isMe,
+                  loadingHeight: 150,
                 ),
               ),
             ),

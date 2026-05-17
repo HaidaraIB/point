@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/ContentModel.dart';
+import 'package:point/Utils/chat_video_controller.dart';
+import 'package:point/Utils/media_preview_cached_image.dart';
 import 'package:point/Utils/media_preview_download.dart';
 import 'package:point/View/Mobile/Shared/PdfViewr.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -246,49 +248,7 @@ class ImagePreviewPage extends StatelessWidget {
               boundaryMargin: const EdgeInsets.all(72),
               clipBehavior: Clip.none,
               child: Center(
-                child: Image.network(
-                  url,
-                  fit: BoxFit.contain,
-                  loadingBuilder: (context, child, progress) {
-                    if (progress == null) return child;
-                    return SizedBox(
-                      height: 220,
-                      child: Center(
-                        child: SizedBox(
-                          width: 42,
-                          height: 42,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            color: Colors.white.withValues(alpha: 0.9),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                  errorBuilder: (_, __, ___) => Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 32),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.broken_image_outlined,
-                          size: 58,
-                          color: Colors.white.withValues(alpha: 0.4),
-                        ),
-                        const SizedBox(height: 18),
-                        Text(
-                          AppLocaleKeys.chatPreviewLoadFailed.tr,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.78),
-                            fontSize: 15,
-                            height: 1.4,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                child: MediaPreviewCachedImage(url: url),
               ),
             ),
           ),
@@ -321,7 +281,7 @@ class VideoPlayerPage extends StatefulWidget {
 }
 
 class _VideoPlayerPageState extends State<VideoPlayerPage> {
-  late final VideoPlayerController _controller;
+  VideoPlayerController? _controller;
   bool _isReady = false;
   bool _failed = false;
   /// أثناء السحب على شريط التقدم؛ يمنع تعارض التحديث مع موضع المشغّل.
@@ -347,45 +307,60 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   @override
   void initState() {
     super.initState();
-    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.url));
-    _controller.addListener(_onVideoTick);
-    _controller.initialize().then((_) {
+    _boot();
+  }
+
+  Future<void> _boot() async {
+    try {
+      final c = await chatVideoControllerForUrl(widget.url);
+      if (!mounted) {
+        await c.dispose();
+        return;
+      }
+      c.addListener(_onVideoTick);
+      _controller = c;
+      await c.initialize();
       if (!mounted) return;
       setState(() => _isReady = true);
-      _controller.play();
-    }).catchError((_) {
+      await c.play();
+    } catch (_) {
       if (mounted) setState(() => _failed = true);
-    });
+    }
   }
 
   @override
   void dispose() {
-    _controller.removeListener(_onVideoTick);
-    _controller.dispose();
+    _controller?.removeListener(_onVideoTick);
+    _controller?.dispose();
     super.dispose();
   }
 
   Duration get _effectivePosition {
-    final total = _controller.value.duration;
+    final ctrl = _controller;
+    if (ctrl == null) return Duration.zero;
+    final total = ctrl.value.duration;
     if (_scrubFraction != null && total.inMilliseconds > 0) {
       return Duration(
         milliseconds:
             (_scrubFraction!.clamp(0.0, 1.0) * total.inMilliseconds).round(),
       );
     }
-    return _controller.value.position;
+    return ctrl.value.position;
   }
 
   double get _sliderValue {
-    final total = _controller.value.duration;
+    final ctrl = _controller;
+    if (ctrl == null) return 0;
+    final total = ctrl.value.duration;
     if (total.inMilliseconds <= 0) return 0;
     if (_scrubFraction != null) return _scrubFraction!.clamp(0.0, 1.0);
-    final p = _controller.value.position.inMilliseconds / total.inMilliseconds;
+    final p = ctrl.value.position.inMilliseconds / total.inMilliseconds;
     return p.clamp(0.0, 1.0);
   }
 
   Widget _buildSeekRow(BuildContext context) {
-    final total = _controller.value.duration;
+    final ctrl = _controller!;
+    final total = ctrl.value.duration;
     final timeStyle = TextStyle(
       color: Colors.white.withValues(alpha: 0.92),
       fontSize: 12,
@@ -412,20 +387,20 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       child: Slider(
         value: _sliderValue,
         onChangeStart: (_) {
-          final t = _controller.value.duration;
+          final t = ctrl.value.duration;
           double frac = 0;
           if (t.inMilliseconds > 0) {
             frac =
-                (_controller.value.position.inMilliseconds / t.inMilliseconds)
+                (ctrl.value.position.inMilliseconds / t.inMilliseconds)
                     .clamp(0.0, 1.0);
           }
           setState(() => _scrubFraction = frac);
         },
         onChanged: (v) => setState(() => _scrubFraction = v),
         onChangeEnd: (v) {
-          final t = _controller.value.duration;
+          final t = ctrl.value.duration;
           if (t.inMilliseconds > 0) {
-            _controller.seekTo(
+            ctrl.seekTo(
               Duration(milliseconds: (v * t.inMilliseconds).round()),
             );
           }
@@ -544,13 +519,13 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                   ),
                 )
                 : AspectRatio(
-                  aspectRatio: _controller.value.aspectRatio,
+                  aspectRatio: _controller!.value.aspectRatio,
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: Stack(
                       alignment: Alignment.bottomCenter,
                       children: [
-                        Positioned.fill(child: VideoPlayer(_controller)),
+                        Positioned.fill(child: VideoPlayer(_controller!)),
                         Positioned(
                           left: 0,
                           right: 0,
@@ -579,15 +554,16 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                                 IconButton(
                                   iconSize: 52,
                                   onPressed: () async {
-                                    if (_controller.value.isPlaying) {
-                                      await _controller.pause();
+                                    final c = _controller!;
+                                    if (c.value.isPlaying) {
+                                      await c.pause();
                                     } else {
-                                      await _controller.play();
+                                      await c.play();
                                     }
                                     if (mounted) setState(() {});
                                   },
                                   icon: Icon(
-                                    _controller.value.isPlaying
+                                    _controller!.value.isPlaying
                                         ? Icons.pause_circle_filled_rounded
                                         : Icons.play_circle_fill_rounded,
                                     color: Colors.white,

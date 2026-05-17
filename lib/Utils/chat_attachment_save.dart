@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:http/http.dart' as http;
+import 'package:point/Services/chat_attachment_cache.dart';
 import 'package:point/Utils/chat_attachment_save_types.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 
@@ -37,9 +37,20 @@ String resolveChatDownloadFileName(String? preferred, String url) {
 Future<Uint8List?> fetchChatAttachmentBytes(String url) async {
   final trimmed = url.trim();
   if (trimmed.isEmpty) return null;
-  final res = await http.get(Uri.parse(trimmed));
-  if (res.statusCode != 200) return null;
-  return res.bodyBytes;
+  try {
+    return await ChatAttachmentCache.bytesForUrl(trimmed);
+  } catch (_) {
+    return null;
+  }
+}
+
+/// Writes already-loaded bytes (e.g. from [ChatAttachmentCache]) to gallery/downloads.
+Future<ChatAttachmentSaveResult> saveChatAttachmentBytes({
+  required Uint8List bytes,
+  required String fileName,
+}) async {
+  final name = sanitizeChatDownloadFileName(fileName);
+  return impl.writeChatAttachmentBytes(bytes: bytes, fileName: name);
 }
 
 /// Downloads a chat attachment in-app (no external browser).
@@ -50,5 +61,5 @@ Future<ChatAttachmentSaveResult> saveChatAttachment({
   final name = resolveChatDownloadFileName(fileName, url);
   final bytes = await fetchChatAttachmentBytes(url);
   if (bytes == null) return ChatAttachmentSaveResult.fail;
-  return impl.writeChatAttachmentBytes(bytes: bytes, fileName: name);
+  return saveChatAttachmentBytes(bytes: bytes, fileName: name);
 }

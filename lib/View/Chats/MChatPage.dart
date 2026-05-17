@@ -42,6 +42,7 @@ import 'package:point/View/Chats/chat_list_folder_utils.dart';
 import 'package:point/View/Chats/chat_private_typing.dart';
 import 'package:point/View/Chats/chat_voice_record_button.dart';
 import 'package:point/View/Chats/telegram_style_attachment_menu.dart';
+import 'package:point/Utils/chat_attachment_upload.dart';
 
 // **********************************************
 // ********* الشاشة الجديدة 1: قائمة المحادثات *********
@@ -1771,46 +1772,47 @@ class _MessageScreenState extends State<MessageScreen>
       fileLabel: AppLocaleKeys.chatAttachFile.tr,
       pasteImageLabel: AppLocaleKeys.chatPasteImage.tr,
       voiceLabel: AppLocaleKeys.chatAttachVoice.tr,
+      cameraLabel: AppLocaleKeys.chatAttachPhoto.tr,
+      showCamera: chatMobileCameraSupported(),
     );
     if (!mounted || action == null) return;
 
     switch (action) {
+      case ChatAttachmentMenuAction.camera:
+        final shot = await homeController.pickChatCameraImageBytes();
+        if (!mounted || shot == null) return;
+        final pending = await stageChatMediaUpload(
+          bytes: shot.bytes,
+          fileName: shot.fileName,
+          home: homeController,
+        );
+        if (!mounted || pending == null) return;
+        setState(() => _pendingAttachment = pending);
+        homeController.uploadedFilesPaths.clear();
+        return;
       case ChatAttachmentMenuAction.photo:
         final v = await homeController.pickOneChatGalleryMedia();
         if (!mounted || v.isEmpty || v.first.bytes == null) return;
         final picked = v.first;
-        final url = await homeController.uploadFiles(
-          filePathOrBytes: picked.bytes!,
+        final pending = await stageChatMediaUpload(
+          bytes: picked.bytes!,
           fileName: picked.name,
-          useBlockingUploadDialog: false,
+          home: homeController,
         );
-        if (url == null || !mounted) return;
-        final isVid = chatAttachmentIsVideo(picked.name);
-        setState(
-          () => _pendingAttachment = PendingChatAttachment(
-            messageType: isVid ? 'video' : 'image',
-            attachmentUrl: url,
-            fileName: isVid ? picked.name : null,
-          ),
-        );
+        if (!mounted || pending == null) return;
+        setState(() => _pendingAttachment = pending);
         homeController.uploadedFilesPaths.clear();
         return;
       case ChatAttachmentMenuAction.file:
         final v = await homeController.pickOneChatFile();
         if (!mounted || v.isEmpty || v.first.bytes == null) return;
-        final url = await homeController.uploadFiles(
-          filePathOrBytes: v.first.bytes!,
+        final pending = await stageChatFileUpload(
+          bytes: v.first.bytes!,
           fileName: v.first.name,
-          useBlockingUploadDialog: false,
+          home: homeController,
         );
-        if (url == null || !mounted) return;
-        setState(
-          () => _pendingAttachment = PendingChatAttachment(
-            messageType: 'file',
-            attachmentUrl: url,
-            fileName: v.first.name,
-          ),
-        );
+        if (!mounted || pending == null) return;
+        setState(() => _pendingAttachment = pending);
         homeController.uploadedFilesPaths.clear();
         return;
       case ChatAttachmentMenuAction.voice:
@@ -1978,18 +1980,13 @@ class _MessageScreenState extends State<MessageScreen>
 
     final fileName =
         'pasted_${DateTime.now().millisecondsSinceEpoch}.${_extFromMime(mimeType)}';
-    final url = await controller.uploadFiles(
-      filePathOrBytes: bytes,
+    final pending = await stageChatMediaUpload(
+      bytes: bytes,
       fileName: fileName,
-      useBlockingUploadDialog: false,
+      home: controller,
     );
-    if (!mounted || url == null) return;
-    setState(
-      () => _pendingAttachment = PendingChatAttachment(
-        messageType: 'image',
-        attachmentUrl: url,
-      ),
-    );
+    if (!mounted || pending == null) return;
+    setState(() => _pendingAttachment = pending);
     controller.uploadedFilesPaths.clear();
   }
 
