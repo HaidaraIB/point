@@ -11,10 +11,15 @@ import 'media_url_opener.dart';
 /// For **legacy Supabase** URLs, appends the `download` query via
 /// [appendSupabaseStorageDownloadQuery]. R2 public URLs already carry the
 /// filename in `Content-Disposition` when applicable; the extra query is harmless.
-Future<bool> launchAttachmentDownload(String rawUrl) async {
+Future<bool> launchAttachmentDownload(
+  String rawUrl, {
+  String? friendlyFileName,
+}) async {
   final trimmed = normalizeUrlForLaunch(rawUrl.trim());
   if (trimmed.isEmpty) return false;
-  final name = TaskDetailsDialogHelpers.attachmentFileNameFromUrl(trimmed);
+  final derived = TaskDetailsDialogHelpers.attachmentFileNameFromUrl(trimmed);
+  final preferred = friendlyFileName?.trim() ?? '';
+  final name = preferred.isNotEmpty ? preferred : derived;
   final withDl =
       name.isNotEmpty
           ? appendSupabaseStorageDownloadQuery(trimmed, name)

@@ -112,26 +112,23 @@ Future<void> _pickPublishMediaWithSource({
   controller.update();
 }
 
-Future<void> showAddPublishDialog({
-  MetaPostModel? existing,
-  MetaPostModel? initialDraft,
-  String? initialScheduleMode,
-  bool forceSingleMediaSelection = false,
+void _showPublishMetaLoadingDialog() {
+  if (Get.isDialogOpen == true) return;
+  Get.dialog(
+    const Center(child: CircularProgressIndicator()),
+    barrierDismissible: false,
+  );
+}
+
+void _dismissPublishMetaLoadingDialog() {
+  if (Get.isDialogOpen == true) Get.back();
+}
+
+/// Loads Meta token settings and Facebook/Instagram business pages.
+/// Returns null when the publish form should not open.
+Future<List<MetaBusinessAsset>?> loadPublishMetaBusinessAssets({
+  bool retryAfterSettingsDialog = false,
 }) async {
-  // Open full-screen add page on native OR compact web widths.
-  // This keeps behavior aligned with the table responsive breakpoint.
-  final bool useMobilePage = !kIsWeb || Get.width <= 850;
-  if (useMobilePage) {
-    await Get.to(
-      () => PublishAddMobilePage(
-        initialPost: existing,
-        initialDraft: initialDraft,
-        initialScheduleMode: initialScheduleMode,
-        forceSingleMediaSelection: forceSingleMediaSelection,
-      ),
-    );
-    return;
-  }
   final hc = Get.find<HomeController>();
   if (!ContentPermissions.canAccessPublishSection(hc.currentEmployee.value)) {
     FunHelper.showSnackbarDeduped(
@@ -142,18 +139,13 @@ Future<void> showAddPublishDialog({
       backgroundColor: Colors.red,
       colorText: Colors.white,
     );
-    return;
+    return null;
   }
 
   MetaAppSettings? settings;
-  Get.dialog(
-    const Center(child: CircularProgressIndicator()),
-    barrierDismissible: false,
-  );
   try {
     settings = await MetaAppSettings.load();
   } catch (e) {
-    if (Get.isDialogOpen == true) Get.back();
     FunHelper.showSnackbarDeduped(
       'error'.tr,
       '${'publish.settings_load_failed'.tr}\n${e.toString()}',
@@ -162,10 +154,14 @@ Future<void> showAddPublishDialog({
       backgroundColor: Colors.red,
       colorText: Colors.white,
     );
-    return;
+    return null;
   }
+
   if (settings == null) {
-    if (Get.isDialogOpen == true) Get.back();
+    if (retryAfterSettingsDialog) {
+      await showPublishMetaSettingsDialog();
+      return loadPublishMetaBusinessAssets(retryAfterSettingsDialog: false);
+    }
     await Get.dialog<void>(
       AlertDialog(
         title: Text('error'.tr),
@@ -183,14 +179,24 @@ Future<void> showAddPublishDialog({
       ),
       barrierDismissible: true,
     );
-    return;
+    return null;
   }
 
-  List<MetaBusinessAsset> assets;
   try {
-    assets = await MetaGraphClient.listBusinessAssets(settings);
+    final assets = await MetaGraphClient.listBusinessAssets(settings);
+    if (assets.isEmpty) {
+      FunHelper.showSnackbarDeduped(
+        'error'.tr,
+        'publish.no_pages'.tr,
+        dedupeKey: 'publish_no_pages',
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return null;
+    }
+    return assets;
   } catch (e) {
-    if (Get.isDialogOpen == true) Get.back();
     FunHelper.showSnackbarDeduped(
       'error'.tr,
       formatMetaPublishFailure(e, Get.locale?.languageCode ?? 'ar'),
@@ -199,25 +205,50 @@ Future<void> showAddPublishDialog({
       backgroundColor: Colors.red,
       colorText: Colors.white,
     );
-    return;
+    return null;
   }
-  if (assets.isEmpty) {
-    if (Get.isDialogOpen == true) Get.back();
-    FunHelper.showSnackbarDeduped(
-      'error'.tr,
-      'publish.no_pages'.tr,
-      dedupeKey: 'publish_no_pages',
-      snackPosition: SnackPosition.TOP,
-      backgroundColor: Colors.red,
-      colorText: Colors.white,
+}
+
+Future<void> showAddPublishDialog({
+  MetaPostModel? existing,
+  MetaPostModel? initialDraft,
+  String? initialScheduleMode,
+  bool forceSingleMediaSelection = false,
+}) async {
+  // Open full-screen add page on native OR compact web widths.
+  // This keeps behavior aligned with the table responsive breakpoint.
+  final bool useMobilePage = !kIsWeb || Get.width <= 850;
+
+  _showPublishMetaLoadingDialog();
+  List<MetaBusinessAsset>? assets;
+  try {
+    assets = await loadPublishMetaBusinessAssets(
+      retryAfterSettingsDialog: useMobilePage,
+    );
+  } finally {
+    _dismissPublishMetaLoadingDialog();
+  }
+  if (assets == null) return;
+  final businessAssets = assets;
+
+  if (useMobilePage) {
+    await Get.to(
+      () => PublishAddMobilePage(
+        assets: businessAssets,
+        initialPost: existing,
+        initialDraft: initialDraft,
+        initialScheduleMode: initialScheduleMode,
+        forceSingleMediaSelection: forceSingleMediaSelection,
+      ),
     );
     return;
   }
-  if (Get.isDialogOpen == true) Get.back();
+
+  final hc = Get.find<HomeController>();
 
   final titleController = TextEditingController();
   final captionController = TextEditingController();
-  final selectedAsset = Rxn<MetaBusinessAsset>(assets.first);
+  final selectedAsset = Rxn<MetaBusinessAsset>(businessAssets.first);
   final postType = 'feed'.obs;
   final scheduleMode = 'now'.obs; // now | schedule
   final scheduledAt = Rxn<DateTime>();
@@ -267,7 +298,7 @@ Future<void> showAddPublishDialog({
     if (initialPlatforms.isNotEmpty) {
       platforms.assignAll(initialPlatforms);
     }
-    for (final a in assets) {
+    for (final a in businessAssets) {
       if (a.pageId == seed.pageId) {
         selectedAsset.value = a;
         break;
@@ -313,7 +344,7 @@ Future<void> showAddPublishDialog({
                       const SizedBox(height: 12),
                       Obx(
                         () => DynamicDropdown<MetaBusinessAsset>(
-                          items: assets
+                          items: businessAssets
                               .map(
                                 (a) => DropdownMenuItem(
                                   value: a,
@@ -611,7 +642,7 @@ Future<void> showAddPublishDialog({
                             final linkedPageId =
                                 (selectedClient?.metaPageId ?? '').trim();
                             if (linkedPageId.isEmpty) return;
-                            final linkedAsset = assets.firstWhereOrNull(
+                            final linkedAsset = businessAssets.firstWhereOrNull(
                               (a) => a.pageId == linkedPageId,
                             );
                             if (linkedAsset != null) {

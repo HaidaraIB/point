@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/ContentModel.dart';
+import 'package:point/Utils/media_preview_download.dart';
 import 'package:point/View/Mobile/Shared/PdfViewr.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
@@ -230,6 +231,10 @@ class ImagePreviewPage extends StatelessWidget {
           ),
         ),
         centerTitle: true,
+        actions: [
+          MediaPreviewDownloadButton(url: url),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Stack(
         fit: StackFit.expand,
@@ -498,6 +503,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           ),
         ),
         centerTitle: true,
+        actions: [
+          MediaPreviewDownloadButton(url: widget.url),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Center(
         child:

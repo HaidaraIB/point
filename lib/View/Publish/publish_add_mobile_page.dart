@@ -6,12 +6,9 @@ import 'package:point/Models/MetaPostModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Services/meta/meta_graph_client.dart';
-import 'package:point/Services/meta/meta_errors.dart';
 import 'package:point/Services/meta/meta_media_util.dart';
-import 'package:point/Utils/ContentPermissions.dart';
 import 'package:point/View/Contents/Shared/content_attachment_source_input.dart';
 import 'package:point/View/Contents/Shared/content_library_attachment_picker.dart';
-import 'package:point/View/Publish/publish_meta_settings_dialog.dart';
 import 'package:point/View/Shared/app_date_time_picker.dart';
 import 'package:point/View/Shared/CustomDropDown.dart';
 import 'package:point/View/Shared/InputText.dart';
@@ -21,12 +18,14 @@ import 'package:point/View/Shared/t.dart';
 class PublishAddMobilePage extends StatefulWidget {
   const PublishAddMobilePage({
     super.key,
+    required this.assets,
     this.initialPost,
     this.initialDraft,
     this.initialScheduleMode,
     this.forceSingleMediaSelection = false,
   });
 
+  final List<MetaBusinessAsset> assets;
   final MetaPostModel? initialPost;
   final MetaPostModel? initialDraft;
   final String? initialScheduleMode;
@@ -53,7 +52,6 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
   final Rxn<String> _mediaType = Rxn<String>();
   final RxString _clientId = '__none__'.obs;
 
-  final RxBool _initialLoading = true.obs;
   final RxList<MetaBusinessAsset> _assets = <MetaBusinessAsset>[].obs;
 
   static const String _noneClient = '__none__';
@@ -61,7 +59,7 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
   @override
   void initState() {
     super.initState();
-    _bootstrap();
+    _seedForm(widget.assets);
   }
 
   @override
@@ -71,119 +69,48 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
     super.dispose();
   }
 
-  Future<void> _bootstrap() async {
-    if (!ContentPermissions.canAccessPublishSection(
-      _controller.currentEmployee.value,
-    )) {
-      FunHelper.showSnackbarDeduped(
-        'error'.tr,
-        'errors.forbidden'.tr,
-        dedupeKey: 'publish_access_forbidden',
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-      if (mounted) Get.back();
-      return;
-    }
-
+  void _seedForm(List<MetaBusinessAsset> assets) {
     _controller.uploadedFilesPaths.clear();
-    _initialLoading.value = true;
-    try {
-      final settings = await MetaAppSettings.load();
-      if (!mounted) return;
-      if (settings == null) {
-        await showPublishMetaSettingsDialog();
-        if (!mounted) return;
+    _assets.assignAll(assets);
+    _selectedAsset.value = assets.first;
+    final seed = widget.initialPost ?? widget.initialDraft;
+    if (seed == null) return;
+
+    _titleController.text = seed.title;
+    _captionController.text = seed.caption ?? '';
+    _postType.value =
+        seed.postType.trim().isEmpty ? 'feed' : seed.postType;
+    final mode =
+        widget.initialScheduleMode ??
+        (seed.status == 'scheduled' ? 'schedule' : 'now');
+    _scheduleMode.value = mode == 'schedule' ? 'schedule' : 'now';
+    _scheduledAt.value = seed.scheduledAt;
+    final existingMedia = seed.mediaUrl?.trim();
+    if (existingMedia != null && existingMedia.isNotEmpty) {
+      _controller.uploadedFilesPaths.add(existingMedia);
+      _mediaUrl.value = existingMedia;
+      _mediaType.value =
+          seed.mediaType ?? publishMediaTypeFromUrl(existingMedia);
+    } else {
+      _mediaType.value = seed.mediaType;
+    }
+    final existingClient = seed.clientId?.trim();
+    _clientId.value = (existingClient != null && existingClient.isNotEmpty)
+        ? existingClient
+        : _noneClient;
+    final pset = seed.platforms.map((e) => e.toString().toLowerCase()).toSet();
+    final initialPlatforms = <String>[
+      if (pset.contains('facebook')) StorageKeys.platformList[0],
+      if (pset.contains('instagram')) StorageKeys.platformList[1],
+    ];
+    if (initialPlatforms.isNotEmpty) {
+      _platforms.assignAll(initialPlatforms);
+    }
+    for (final a in assets) {
+      if (a.pageId == seed.pageId) {
+        _selectedAsset.value = a;
+        break;
       }
-      final reloadedSettings = await MetaAppSettings.load();
-      if (!mounted) return;
-      if (reloadedSettings == null) {
-        FunHelper.showSnackbarDeduped(
-          'error'.tr,
-          'meta_err_settings_missing'.tr,
-          dedupeKey: 'publish_settings_missing',
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
-        Get.back();
-        return;
-      }
-      final assets = await MetaGraphClient.listBusinessAssets(reloadedSettings);
-      if (!mounted) return;
-      _assets.assignAll(assets);
-      if (assets.isNotEmpty) {
-        _selectedAsset.value = assets.first;
-        final seed = widget.initialPost ?? widget.initialDraft;
-        if (seed != null) {
-          _titleController.text = seed.title;
-          _captionController.text = seed.caption ?? '';
-          _postType.value = seed.postType.trim().isEmpty
-              ? 'feed'
-              : seed.postType;
-          final mode =
-              widget.initialScheduleMode ??
-              (seed.status == 'scheduled' ? 'schedule' : 'now');
-          _scheduleMode.value = mode == 'schedule' ? 'schedule' : 'now';
-          _scheduledAt.value = seed.scheduledAt;
-          final existingMedia = seed.mediaUrl?.trim();
-          if (existingMedia != null && existingMedia.isNotEmpty) {
-            _controller.uploadedFilesPaths.add(existingMedia);
-            _mediaUrl.value = existingMedia;
-            _mediaType.value =
-                seed.mediaType ?? publishMediaTypeFromUrl(existingMedia);
-          } else {
-            _mediaType.value = seed.mediaType;
-          }
-          final existingClient = seed.clientId?.trim();
-          _clientId.value =
-              (existingClient != null && existingClient.isNotEmpty)
-              ? existingClient
-              : _noneClient;
-          final pset = seed.platforms
-              .map((e) => e.toString().toLowerCase())
-              .toSet();
-          final initialPlatforms = <String>[
-            if (pset.contains('facebook')) StorageKeys.platformList[0],
-            if (pset.contains('instagram')) StorageKeys.platformList[1],
-          ];
-          if (initialPlatforms.isNotEmpty) {
-            _platforms.assignAll(initialPlatforms);
-          }
-          for (final a in assets) {
-            if (a.pageId == seed.pageId) {
-              _selectedAsset.value = a;
-              break;
-            }
-          }
-        }
-      } else {
-        FunHelper.showSnackbarDeduped(
-          'error'.tr,
-          'publish.no_pages'.tr,
-          dedupeKey: 'publish_no_pages',
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
-        Get.back();
-        return;
-      }
-    } catch (e) {
-      if (!mounted) return;
-      FunHelper.showSnackbarDeduped(
-        'error'.tr,
-        formatMetaPublishFailure(e, Get.locale?.languageCode ?? 'ar'),
-        dedupeKey: 'publish_bootstrap_error',
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
-      Get.back();
-      return;
-    } finally {
-      _initialLoading.value = false;
     }
   }
 
@@ -397,21 +324,31 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
               : '${'edit'.tr} - ${'publish.add_title'.tr}',
         ),
         actions: [
-          TextButton(
-            onPressed: _controller.isLoading.value ? null : _save,
-            child: Text('common.save'.tr),
+          Obx(
+            () => _controller.isLoading.value
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                : TextButton(
+                    onPressed: _save,
+                    child: Text('common.save'.tr),
+                  ),
           ),
         ],
       ),
       body: Obx(() {
-        if (_initialLoading.value) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(14),
-            child: ListView(
-              children: [
+        return Stack(
+          children: [
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: ListView(
+                  children: [
                 InputText(
                   labelText: 'title'.tr,
                   hintText: 'entertitle'.tr,
@@ -703,9 +640,18 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
                   onPressed: _save,
                 ),
                 const SizedBox(height: 12),
-              ],
+                  ],
+                ),
+              ),
             ),
-          ),
+            if (_controller.isLoading.value)
+              Positioned.fill(
+                child: ColoredBox(
+                  color: Colors.black26,
+                  child: const Center(child: CircularProgressIndicator()),
+                ),
+              ),
+          ],
         );
       }),
     );

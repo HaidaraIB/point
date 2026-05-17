@@ -80,6 +80,7 @@ class AppLocaleKeys {
   static const chatAttachVoice = 'chat.attach_voice';
   static const chatVoiceDiscard = 'chat.voice_discard';
   static const chatVoiceSaveFailed = 'chat.voice_save_failed';
+  static const chatVoicePlaybackSpeed = 'chat.voice_playback_speed';
   static const chatPickEmployee = 'chat.pick_employee';
   static const chatUnknownUser = 'chat.unknown_user';
   static const chatFileTapToOpen = 'chat.file_tap_to_open';
@@ -95,6 +96,11 @@ class AppLocaleKeys {
   static const chatActionReply = 'chat.action_reply';
   static const chatActionPin = 'chat.action_pin';
   static const chatActionUnpin = 'chat.action_unpin';
+  static const chatActionDownload = 'chat.action_download';
+  static const chatDownloadDone = 'chat.download_done';
+  static const chatDownloadDoneGallery = 'chat.download_done_gallery';
+  static const chatDownloadDoneDownloads = 'chat.download_done_downloads';
+  static const chatDownloadDoneSaved = 'chat.download_done_saved';
   static const chatPinnedMessageLabel = 'chat.pinned_message_label';
   static const chatEditedLabel = 'chat.edited_label';
   static const chatEditHistoryTitle = 'chat.edit_history_title';

@@ -7,9 +7,12 @@ import 'package:point/Services/chat_voice_cache.dart';
 /// Single player for chat voice note bubbles. Survives when the message row
 /// is disposed after scrolling off-screen ([ListView] / [ScrollablePositionedList]).
 class ChatVoicePlaybackService extends GetxController {
+  static const List<double> playbackSpeeds = [0.5, 1.0, 1.5, 2.0];
+
   final AudioPlayer _player = AudioPlayer();
 
   final RxnString activeUrl = RxnString();
+  final RxDouble playbackSpeed = 1.0.obs;
   final Rx<Duration> position = Duration.zero.obs;
   final Rx<Duration> duration = Duration.zero.obs;
   final RxBool playing = false.obs;
@@ -90,6 +93,27 @@ class ChatVoicePlaybackService extends GetxController {
     await _ensurePlaying(url, durationHintSec);
   }
 
+  String playbackSpeedLabel([double? speed]) {
+    final v = speed ?? playbackSpeed.value;
+    if (v == v.roundToDouble()) return '${v.toInt()}×';
+    return '${v}×';
+  }
+
+  Future<void> cyclePlaybackSpeed() async {
+    final speeds = playbackSpeeds;
+    final i = speeds.indexOf(playbackSpeed.value);
+    playbackSpeed.value = speeds[(i < 0 ? 0 : (i + 1) % speeds.length)];
+    await _applyPlaybackSpeed();
+  }
+
+  Future<void> _applyPlaybackSpeed() async {
+    try {
+      await _player.setPlaybackRate(playbackSpeed.value);
+    } catch (e) {
+      playbackError.value = e;
+    }
+  }
+
   Future<void> _ensurePlaying(String url, int? hintSec) async {
     loadCount.value++;
     try {
@@ -97,8 +121,10 @@ class ChatVoicePlaybackService extends GetxController {
         final source = await ChatVoiceCache.sourceForUrl(url);
         await _player.play(source);
         _loadedUrl = url;
+        await _applyPlaybackSpeed();
       } else {
         await _player.resume();
+        await _applyPlaybackSpeed();
       }
     } catch (e) {
       playbackError.value = e;

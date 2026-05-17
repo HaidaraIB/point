@@ -562,35 +562,88 @@ class PublishTable extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context, HomeController controller) {
-    return Row(
-      children: [
-        Text(
-          'publish.manage_title'.tr,
-          style: TextStyle(
-            color: AppColors.fontColorGrey,
-            fontSize: 17,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const Spacer(),
-        TextButton.icon(
-          onPressed: () => showPublishMetaSettingsDialog(),
-          icon: const Icon(Icons.settings_outlined, size: 20),
-          label: Text('publish.meta_settings'.tr),
-        ),
-        if (ContentPermissions.canAccessPublishSection(controller.currentEmployee.value)) ...[
-          const SizedBox(width: 8),
-          MainButton(
-            width: 160,
-            height: 42,
-            borderSize: 20,
-            fontColor: Colors.white,
-            backgroundColor: AppColors.primary,
-            title: 'publish.add'.tr,
-            onPressed: () => showAddPublishDialog(),
-          ),
-        ],
-      ],
+    final canAdd = ContentPermissions.canAccessPublishSection(
+      controller.currentEmployee.value,
+    );
+
+    Widget settingsControl({required bool compact}) {
+      if (compact) {
+        return IconButton(
+          tooltip: 'publish.meta_settings'.tr,
+          onPressed: showPublishMetaSettingsDialog,
+          icon: const Icon(Icons.settings_outlined, size: 22),
+          color: AppColors.primary,
+        );
+      }
+      return TextButton.icon(
+        onPressed: showPublishMetaSettingsDialog,
+        icon: const Icon(Icons.settings_outlined, size: 20),
+        label: Text('publish.meta_settings'.tr),
+      );
+    }
+
+    Widget? addButton({required bool compact}) {
+      if (!canAdd) return null;
+      return MainButton(
+        width: compact ? 132 : 160,
+        height: 42,
+        borderSize: 20,
+        margin: EdgeInsets.zero,
+        fontColor: Colors.white,
+        backgroundColor: AppColors.primary,
+        title: 'publish.add'.tr,
+        onPressed: showAddPublishDialog,
+      );
+    }
+
+    final title = Text(
+      'publish.manage_title'.tr,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        color: AppColors.fontColorGrey,
+        fontSize: 17,
+        fontWeight: FontWeight.bold,
+      ),
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final stacked = constraints.maxWidth < 440;
+        final compactActions = constraints.maxWidth < 560;
+        final add = addButton(compact: compactActions);
+
+        if (stacked) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              title,
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  settingsControl(compact: compactActions),
+                  if (add != null) ...[
+                    const SizedBox(width: 8),
+                    add,
+                  ],
+                ],
+              ),
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            Expanded(child: title),
+            settingsControl(compact: compactActions),
+            if (add != null) ...[
+              const SizedBox(width: 8),
+              add,
+            ],
+          ],
+        );
+      },
     );
   }
 

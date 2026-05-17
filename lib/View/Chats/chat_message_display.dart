@@ -237,6 +237,7 @@ class _VoiceMessageRowState extends State<VoiceMessageRow> {
           : _voiceHintDuration(widget.durationSec);
       final busy = isActive && svc.loadCount.value > 0;
       final err = isActive ? svc.playbackError.value : null;
+      final speedLabel = svc.playbackSpeedLabel();
 
       final ms = effectiveDur.inMilliseconds;
       final canScrub = ms > 0;
@@ -337,7 +338,6 @@ class _VoiceMessageRowState extends State<VoiceMessageRow> {
               Padding(
                 padding: const EdgeInsetsDirectional.only(start: 44, end: 6),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       _fmtVoiceDuration(
@@ -349,6 +349,32 @@ class _VoiceMessageRowState extends State<VoiceMessageRow> {
                       ),
                       style: TextStyle(fontSize: 11.5, color: secondary),
                     ),
+                    const Spacer(),
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () => unawaited(svc.cyclePlaybackSpeed()),
+                        borderRadius: BorderRadius.circular(6),
+                        child: Tooltip(
+                          message: AppLocaleKeys.chatVoicePlaybackSpeed.tr,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            child: Text(
+                              speedLabel,
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w600,
+                                color: primary,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     Text(
                       _fmtVoiceDuration(effectiveDur),
                       style: TextStyle(fontSize: 11.5, color: secondary),

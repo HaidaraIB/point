@@ -11,6 +11,8 @@ import 'package:intl/intl.dart' hide TextDirection;
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/chat_message_actions.dart';
+import 'package:point/Utils/chat_attachment_download.dart';
+import 'package:point/Utils/chat_attachment_save.dart';
 import 'package:point/View/Chats/chat_message_display.dart';
 import 'package:point/View/Chats/chat_reply_draft_banner.dart';
 import 'package:point/View/Chats/chat_ui_helpers.dart';
@@ -179,6 +181,9 @@ class _ChatMessageTileState extends State<ChatMessageTile>
     return relativeCap.clamp(220.0, absoluteCap).clamp(220.0, safeCap);
   }
 
+  ChatDownloadableAttachment? get _downloadable =>
+      chatDownloadableAttachmentFromMessage(widget.message);
+
   bool get _canEditText {
     if (_deleted) return false;
     final t = (widget.message['messageType'] as String?)?.trim();
@@ -332,10 +337,44 @@ class _ChatMessageTileState extends State<ChatMessageTile>
     return AppLocaleKeys.chatSenderFallback.tr;
   }
 
+  Future<void> _downloadAttachment() async {
+    final att = _downloadable;
+    if (att == null) return;
+    final result = await saveChatAttachment(
+      url: att.url,
+      fileName: att.fileName,
+    );
+    if (!mounted) return;
+    if (result.ok) {
+      final message = switch (result.location) {
+        ChatAttachmentSaveLocation.gallery =>
+          AppLocaleKeys.chatDownloadDoneGallery.tr,
+        ChatAttachmentSaveLocation.downloads =>
+          AppLocaleKeys.chatDownloadDoneDownloads.tr,
+        ChatAttachmentSaveLocation.userSelected =>
+          AppLocaleKeys.chatDownloadDoneSaved.tr,
+        null => AppLocaleKeys.chatDownloadDone.tr,
+      };
+      _showChatFeedback(
+        AppLocaleKeys.successTitle.tr,
+        message,
+        dedupeKey: 'chat_dl_ok_${widget.messageId}',
+      );
+      return;
+    }
+    _showChatFeedback(
+      AppLocaleKeys.errorTitle.tr,
+      AppLocaleKeys.errorGeneric.tr,
+      isError: true,
+      dedupeKey: 'chat_dl_err_${widget.messageId}',
+    );
+  }
+
   int _menuItemCount() {
     var n = 1; // reply
     final copyText = _copyablePlainText();
     if (!_deleted && copyText.isNotEmpty) n++;
+    if (!_deleted && _downloadable != null) n++;
     if (!_deleted) n++;
     if (_canEditText) n++;
     if (widget.message['edited'] == true) n++;
@@ -672,6 +711,16 @@ class _ChatMessageTileState extends State<ChatMessageTile>
           child: _ChatMenuRow(
             icon: Icons.copy_outlined,
             label: AppLocaleKeys.chatActionCopy.tr,
+          ),
+        ),
+      if (!_deleted && _downloadable != null)
+        PopupMenuItem<void>(
+          height: 42,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          onTap: () => runAfterClose(() => unawaited(_downloadAttachment())),
+          child: _ChatMenuRow(
+            icon: Icons.download_outlined,
+            label: AppLocaleKeys.chatActionDownload.tr,
           ),
         ),
       if (_canEditText)

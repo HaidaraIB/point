@@ -1916,7 +1916,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                             setState(() => _chatListFolder = f);
                           },
                         ),
-                        if (_isLoadingGroup)
+                        if (_isLoadingGroup || _loadingChats)
                           Padding(
                             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                             child: ClipRRect(
@@ -1932,11 +1932,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                         // chats list
                         Expanded(
                           child: _loadingChats
-                              ? const Center(
-                                  child: CircularProgressIndicator(
-                                    color: kChatUiAccent,
-                                  ),
-                                )
+                              ? const SizedBox.shrink()
                               : _chats.isEmpty
                               ? Center(
                                   child: Text(AppLocaleKeys.chatNoChats.tr),

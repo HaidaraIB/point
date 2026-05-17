@@ -1098,7 +1098,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                           },
                         ),
                       ),
-                      if (_isLoadingGroup)
+                      if (_isLoadingGroup || _loadingChats)
                         SliverToBoxAdapter(
                           child: Padding(
                             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -1115,14 +1115,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                       if (_loadingChats)
                         SliverFillRemaining(
                           hasScrollBody: false,
-                          child: SizedBox(
-                            height: Get.height * 0.5,
-                            child: const Center(
-                              child: CircularProgressIndicator(
-                                color: kChatUiAccent,
-                              ),
-                            ),
-                          ),
+                          child: SizedBox(height: Get.height * 0.5),
                         )
                       else if (_chats.isEmpty)
                         SliverFillRemaining(
