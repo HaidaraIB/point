@@ -22,7 +22,7 @@ Point is a cross-platform Flutter application for **digital marketing agencies**
     *   **Supabase**: `supabase_flutter` — client init in `main.dart`; functions invocation from services (e.g. mail, server-adjacent logic).
 *   **Charts & documents**: `syncfusion_flutter_charts`, `syncfusion_flutter_pdfviewer`.
 *   **UI**: `google_fonts`, `flutter_svg`, `lucide_icons`, `font_awesome_flutter`, `emoji_picker_flutter`, etc.
-*   **CI**: `codemagic.yaml` and `codemagic-ios-config.example.env` for iOS/build secrets patterns.
+*   **CI**: `codemagic.yaml` and `codemagic-ios-config.example.env` for iOS; GitHub Actions [Android → Google Drive](docs/GITHUB_ACTIONS_ANDROID_SETUP.md) on push to `master`.
 
 ## Project Structure
 
