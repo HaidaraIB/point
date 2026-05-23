@@ -201,6 +201,9 @@ class AppTranslations extends Translations {
       'common.uploading': 'Uploading...',
       'common.upload_max_size_exceeded':
           'This file is too large. The maximum upload size is @maxMb MB.',
+      'common.upload_failed': 'Upload failed',
+      'common.upload_failed_hint': 'Please try again.',
+      'common.upload_finalizing': 'Finalizing upload...',
       'common.save': 'Save',
       'notes': 'Notes',
       'delete': 'Delete',
@@ -1447,6 +1450,9 @@ class AppTranslations extends Translations {
       "common.uploading": "جاري الرفع...",
       "common.upload_max_size_exceeded":
           "حجم الملف كبير جداً. الحد الأقصى للرفع هو @maxMb ميغابايت.",
+      "common.upload_failed": "فشل الرفع",
+      "common.upload_failed_hint": "يرجى المحاولة مرة أخرى.",
+      "common.upload_finalizing": "جاري إنهاء الرفع...",
       "common.save": "حفظ",
       "home.test_email.title": "إرسال بريد تجريبي",
       "home.test_email.subtitle": "أدخل البريد والعنوان والنص",

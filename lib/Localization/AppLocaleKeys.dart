@@ -19,6 +19,9 @@ class AppLocaleKeys {
   static const commonMinutesAgo = 'common.minutes_ago';
   static const commonHoursAgo = 'common.hours_ago';
   static const commonUploadMaxSizeExceeded = 'common.upload_max_size_exceeded';
+  static const commonUploadFailed = 'common.upload_failed';
+  static const commonUploadFailedHint = 'common.upload_failed_hint';
+  static const commonUploadFinalizing = 'common.upload_finalizing';
 
   static const homeSendNotification = 'home.send_notification';
   static const homeScheduleToday = 'home.schedule_today';

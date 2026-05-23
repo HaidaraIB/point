@@ -5,6 +5,7 @@ import 'dart:typed_data';
 
 import 'package:mime/mime.dart' show lookupMimeType;
 import 'package:point/Services/r2_sign_request.dart';
+import 'package:point/Services/upload_cancel_token.dart';
 import 'package:web/web.dart';
 
 String _extFromFileName(String fileName) {
@@ -21,6 +22,7 @@ Future<String> uploadObjectToR2({
   String? contentType,
   String? friendlyDownloadName,
   void Function(int sent, int total)? onProgress,
+  UploadCancelToken? cancelToken,
 }) async {
   final ext = _extFromFileName(fileName);
   final ct =
@@ -28,11 +30,15 @@ Future<String> uploadObjectToR2({
           ? contentType.trim()
           : (lookupMimeType(fileName) ?? 'application/octet-stream');
 
+  cancelToken?.throwIfCancelled();
+
   final sign = await requestR2SignUpload(
     contentType: ct,
     ext: ext,
     friendlyDownloadName: friendlyDownloadName,
   );
+
+  cancelToken?.throwIfCancelled();
 
   final xhr = XMLHttpRequest();
   xhr.open('PUT', sign.uploadUrl, true);
@@ -64,11 +70,27 @@ Future<String> uploadObjectToR2({
   }
 
   final completer = Completer<String>();
+  var abortedByUser = false;
+  if (cancelToken != null) {
+    cancelToken.onCancel = () {
+      if (abortedByUser) return;
+      abortedByUser = true;
+      cleanup();
+      xhr.abort();
+      if (!completer.isCompleted) {
+        completer.completeError(const UploadCancelledException());
+      }
+    };
+  }
 
   unawaited(
     xhr.onLoad.first.then((_) {
       cleanup();
       if (completer.isCompleted) return;
+      if (abortedByUser || cancelToken?.isCancelled == true) {
+        completer.completeError(const UploadCancelledException());
+        return;
+      }
       final status = xhr.status;
       if (status >= 200 && status < 300) {
         completer.complete(sign.publicUrl);
@@ -84,19 +106,22 @@ Future<String> uploadObjectToR2({
   unawaited(
     xhr.onError.first.then((_) {
       cleanup();
-      if (!completer.isCompleted) {
-        // status 0 = browser blocked cross-origin response (often R2 CORS) or real network failure.
-        final st = xhr.status;
-        final reason = xhr.statusText;
-        completer.completeError(
-          StateError(
-            'R2 web upload failed (XHR error). status=$st reason=$reason. '
-            'Target host: $uploadHost. '
-            'If status is 0, configure R2 bucket CORS for this app\'s Origin '
-            '(PUT + GET + HEAD, AllowedHeaders *, include your exact web origin — not only localhost).',
-          ),
-        );
+      if (completer.isCompleted) return;
+      if (abortedByUser || cancelToken?.isCancelled == true) {
+        completer.completeError(const UploadCancelledException());
+        return;
       }
+      // status 0 = browser blocked cross-origin response (often R2 CORS) or real network failure.
+      final st = xhr.status;
+      final reason = xhr.statusText;
+      completer.completeError(
+        StateError(
+          'R2 web upload failed (XHR error). status=$st reason=$reason. '
+          'Target host: $uploadHost. '
+          'If status is 0, configure R2 bucket CORS for this app\'s Origin '
+          '(PUT + GET + HEAD, AllowedHeaders *, include your exact web origin — not only localhost).',
+        ),
+      );
     }),
   );
 

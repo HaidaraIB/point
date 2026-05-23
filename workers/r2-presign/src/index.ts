@@ -47,6 +47,45 @@ function sanitizeFilename(name: string): string {
   return t.replace(/[\r\n"<>]+/g, "_");
 }
 
+/** ASCII-only fallback for legacy `filename=` in Content-Disposition. */
+function asciiFallbackFilename(name: string): string {
+  const sanitized = sanitizeFilename(name);
+  let ascii = sanitized.replace(/[^\x20-\x7E]+/g, "_").replace(/_+/g, "_");
+  ascii = ascii.replace(/^\.+/, "").replace(/^_|_$/g, "");
+  if (ascii.length > 0) return ascii.slice(0, 200);
+  const dot = sanitized.lastIndexOf(".");
+  if (dot > 0 && dot < sanitized.length - 1) {
+    const ext = sanitized
+      .slice(dot)
+      .replace(/[^\x2E0-9A-Za-z_-]+/g, "")
+      .slice(0, 16);
+    return ext ? `download${ext}` : "download";
+  }
+  return "download";
+}
+
+/** RFC 5987 `filename*` value (UTF-8, percent-encoded, ASCII-safe for XHR headers). */
+function rfc5987EncodeFilename(name: string): string {
+  return encodeURIComponent(name).replace(
+    /[!'()*]/g,
+    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
+  );
+}
+
+/**
+ * Content-Disposition safe for browser XHR (ISO-8859-1 header values) while
+ * preserving Unicode download names via `filename*=UTF-8''…`.
+ */
+function buildContentDisposition(friendly: string): string {
+  const sanitized = sanitizeFilename(friendly);
+  const ascii = asciiFallbackFilename(sanitized);
+  if (/^[\x20-\x7E]*$/.test(sanitized)) {
+    return `attachment; filename="${ascii}"`;
+  }
+  const encoded = rfc5987EncodeFilename(sanitized);
+  return `attachment; filename="${ascii}"; filename*=UTF-8''${encoded}`;
+}
+
 /** Normalize to ".ext" (max 16 chars total). */
 function normalizeExt(raw: unknown): string {
   let e = typeof raw === "string" ? raw.trim() : ".bin";
@@ -176,7 +215,7 @@ export default {
       ContentType: contentType,
       ...(friendly.length > 0
         ? {
-            ContentDisposition: `attachment; filename="${sanitizeFilename(friendly)}"`,
+            ContentDisposition: buildContentDisposition(friendly),
           }
         : {}),
     });
@@ -188,8 +227,7 @@ export default {
       "Content-Type": contentType,
     };
     if (friendly.length > 0) {
-      signedHeaders["Content-Disposition"] =
-        `attachment; filename="${sanitizeFilename(friendly)}"`;
+      signedHeaders["Content-Disposition"] = buildContentDisposition(friendly);
     }
 
     const publicUrl = `${publicBase}/${key}`;

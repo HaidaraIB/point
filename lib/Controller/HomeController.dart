@@ -29,6 +29,7 @@ import 'package:point/Services/fcm_token_cache.dart';
 import 'package:point/Services/NotificationService.dart';
 import 'package:point/Services/push_permissions_helper.dart';
 import 'package:point/Services/r2_storage_upload.dart';
+import 'package:point/Services/upload_cancel_token.dart';
 import 'package:point/Services/upload_limits.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Services/meta/meta_media_util.dart';
@@ -46,6 +47,8 @@ import 'package:point/config/app_config.dart';
 import 'package:point/Controller/home_task_filters.dart';
 
 part 'home_controller_rebind.dart';
+
+enum UploadUiPhase { idle, uploading, finalizing, failed, cancelled }
 
 class HomeController extends GetxController {
   final FirestoreServices _service = FirestoreServices();
@@ -2204,6 +2207,41 @@ class HomeController extends GetxController {
 
   RxDouble uploadProgress = 0.0.obs;
   RxBool isUploading = false.obs;
+  Rx<UploadUiPhase> uploadPhase = UploadUiPhase.idle.obs;
+  RxString uploadErrorMessage = ''.obs;
+  UploadCancelToken? _activeUploadCancelToken;
+
+  void cancelActiveUpload() {
+    final token = _activeUploadCancelToken;
+    if (token == null || token.isCancelled) return;
+    token.cancel();
+    _finishCancelledUploadUi();
+  }
+
+  void _finishCancelledUploadUi() {
+    isUploading.value = false;
+    uploadProgress.value = 0.0;
+    uploadPhase.value = UploadUiPhase.idle;
+    uploadErrorMessage.value = '';
+    if (Get.isDialogOpen ?? false) {
+      Get.back();
+    }
+  }
+
+  void dismissUploadDialog() {
+    uploadPhase.value = UploadUiPhase.idle;
+    uploadProgress.value = 0.0;
+    uploadErrorMessage.value = '';
+    if (Get.isDialogOpen ?? false) {
+      Get.back();
+    }
+  }
+
+  String _friendlyUploadErrorMessage(Object error) {
+    appLog('Upload error detail: $error');
+    return AppLocaleKeys.commonUploadFailed.tr;
+  }
+
   Future<String?> uploadFiles({
     required dynamic filePathOrBytes,
     String? fileName,
@@ -2235,6 +2273,10 @@ class HomeController extends GetxController {
 
       isUploading.value = true;
       uploadProgress.value = 0.0;
+      uploadPhase.value = UploadUiPhase.uploading;
+      uploadErrorMessage.value = '';
+      _activeUploadCancelToken = UploadCancelToken();
+      final cancelToken = _activeUploadCancelToken!;
 
       if (useBlockingUploadDialog) {
         showUploadDialog();
@@ -2249,6 +2291,8 @@ class HomeController extends GetxController {
           backgroundColor: Colors.deepOrange,
         );
         isUploading.value = false;
+        uploadPhase.value = UploadUiPhase.idle;
+        _activeUploadCancelToken = null;
         if (dialogShown) {
           Get.back();
         }
@@ -2262,9 +2306,13 @@ class HomeController extends GetxController {
         fileName: fileName ?? 'file.bin',
         contentType: ct,
         friendlyDownloadName: friendlyDownloadName,
+        cancelToken: cancelToken,
         onProgress: (sent, total) {
           if (total > 0) {
             uploadProgress.value = sent / total;
+            if (sent >= total) {
+              uploadPhase.value = UploadUiPhase.finalizing;
+            }
           }
         },
       );
@@ -2276,18 +2324,33 @@ class HomeController extends GetxController {
       }
 
       isUploading.value = false;
+      uploadPhase.value = UploadUiPhase.idle;
       if (dialogShown) {
         Get.back();
       }
 
       return url;
+    } on UploadCancelledException {
+      _finishCancelledUploadUi();
+      return null;
     } catch (e) {
       isUploading.value = false;
-      if (dialogShown) {
-        Get.back();
-      }
       appLog("Error uploading file: $e");
+      if (dialogShown) {
+        uploadPhase.value = UploadUiPhase.failed;
+        uploadErrorMessage.value = _friendlyUploadErrorMessage(e);
+      } else {
+        uploadPhase.value = UploadUiPhase.idle;
+        uploadProgress.value = 0.0;
+        FunHelper.showSnackbar(
+          AppLocaleKeys.errorTitle.tr,
+          '${AppLocaleKeys.commonUploadFailed.tr} ${AppLocaleKeys.commonUploadFailedHint.tr}',
+          backgroundColor: Colors.deepOrange,
+        );
+      }
       return null;
+    } finally {
+      _activeUploadCancelToken = null;
     }
   }
 
@@ -2692,7 +2755,60 @@ class HomeController extends GetxController {
             child: Padding(
               padding: const EdgeInsets.all(24),
               child: Obx(() {
+                final phase = uploadPhase.value;
+                if (phase == UploadUiPhase.failed) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Icon(
+                        Icons.error_outline_rounded,
+                        size: 44,
+                        color: Colors.red.shade400,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        uploadErrorMessage.value,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primaryfontColor,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        AppLocaleKeys.commonUploadFailedHint.tr,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppColors.fontColorGrey,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      FilledButton(
+                        onPressed: dismissUploadDialog,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: Text(AppLocaleKeys.appClose.tr),
+                      ),
+                    ],
+                  );
+                }
+
                 final p = uploadProgress.value.clamp(0.0, 1.0);
+                final statusText =
+                    phase == UploadUiPhase.finalizing
+                        ? AppLocaleKeys.commonUploadFinalizing.tr
+                        : 'common.uploading'.tr;
+
                 return Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2724,12 +2840,17 @@ class HomeController extends GetxController {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'common.uploading'.tr,
+                      statusText,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 14,
                         color: AppColors.fontColorGrey,
                       ),
+                    ),
+                    const SizedBox(height: 20),
+                    TextButton(
+                      onPressed: cancelActiveUpload,
+                      child: Text(AppLocaleKeys.commonCancel.tr),
                     ),
                   ],
                 );

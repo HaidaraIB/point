@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'package:point/Services/upload_cancel_token.dart';
+
 import 'r2_storage_upload_io.dart'
     if (dart.library.html) 'r2_storage_upload_web.dart' as impl;
 
@@ -10,6 +12,7 @@ Future<String> uploadObjectToR2({
   String? contentType,
   String? friendlyDownloadName,
   void Function(int sent, int total)? onProgress,
+  UploadCancelToken? cancelToken,
 }) {
   return impl.uploadObjectToR2(
     data: data,
@@ -17,5 +20,6 @@ Future<String> uploadObjectToR2({
     contentType: contentType,
     friendlyDownloadName: friendlyDownloadName,
     onProgress: onProgress,
+    cancelToken: cancelToken,
   );
 }
