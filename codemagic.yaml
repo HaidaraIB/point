@@ -114,6 +114,9 @@ workflows:
       - name: Flutter build ipa
         script: |
           cd "$CM_BUILD_DIR"
+          # cloud_firestore 6.3.x + firebase-ios-sdk 12.14.0 via SPM fails in FLTPipelineParser; 6.5.0 pins SDK 12.13.0.
+          rm -rf build/ios/SourcePackages
+          rm -rf ~/Library/Caches/org.swift.swiftpm
           set +e
           flutter build ipa \
             --release \

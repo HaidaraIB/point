@@ -40,7 +40,7 @@ dependencies:
   flutter_svg: ^2.2.1
   firebase_auth: ^6.4.0
   firebase_core: ^4.7.0
-  cloud_firestore: ^6.3.0
+  cloud_firestore: ^6.5.0
   intl: ^0.20.2
   syncfusion_flutter_charts: ^33.1.49
   uuid: ^4.5.1
