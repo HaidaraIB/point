@@ -256,7 +256,7 @@ class LibraryFolderBrowser extends StatelessWidget {
           _FolderTileData(
             label: 'library.completed_tasks_folder'.tr,
             icon: Icons.folder_shared_outlined,
-            color: const Color(0xFF5C5589),
+            color: AppColors.primary,
             onTap: () => onNavChanged(nav.goCompleted()),
           ),
         ], emptyHint: 'library.empty_drive'.tr);

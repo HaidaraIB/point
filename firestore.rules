@@ -49,6 +49,10 @@ service cloud.firestore {
       return authRoleData().clientId;
     }
 
+    function appVersionGateValidMinBuild(value) {
+      return value is number && value >= 0;
+    }
+
     function sliceDepartments(m) {
       let dd = m.get('departments', []);
       return dd is list ? dd : [];
@@ -858,10 +862,17 @@ service cloud.firestore {
     }
 
     // إصدارات التطبيق: قراءة عامة لبوابة التحديث الإجباري على الموبايل (قبل تسجيل الدخول).
-    // أنشئ المستند `appVersionGate/mobile` من وحدة التحكم أو Admin SDK فقط.
+    // الكتابة من تطبيق الإدارة (admin فقط) عبر صفحة إعدادات التطبيق.
     match /appVersionGate/{docId} {
       allow read: if true;
-      allow create, update, delete: if false;
+      allow create, update: if isSignedIn() && isAdmin() && docId == 'mobile'
+        && appVersionGateValidMinBuild(request.resource.data.androidMinBuild)
+        && appVersionGateValidMinBuild(request.resource.data.iosMinBuild)
+        && (!('androidStoreUrl' in request.resource.data)
+          || request.resource.data.androidStoreUrl is string)
+        && (!('iosStoreUrl' in request.resource.data)
+          || request.resource.data.iosStoreUrl is string);
+      allow delete: if false;
     }
 
     // إعدادات Meta المشتركة: `app_settings/meta` (accessToken + graphVersion من التطبيق).

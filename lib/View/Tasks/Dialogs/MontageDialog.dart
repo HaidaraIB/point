@@ -96,7 +96,7 @@ void montageDialog(BuildContext context, {TaskModel? model}) {
                       Container(
                         margin: EdgeInsets.all(15),
                         decoration: BoxDecoration(
-                          color: Color(0xFF5C5589),
+                          color: AppColors.primary,
                           borderRadius: BorderRadius.vertical(
                             top: Radius.circular(12),
                           ),
@@ -686,7 +686,7 @@ void montageDialog(BuildContext context, {TaskModel? model}) {
                                 width: Get.width * 0.4 - 260,
                                 child: ElevatedButton(
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Color(0xFF5C5589),
+                                    backgroundColor: AppColors.primary,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(24),
                                     ),

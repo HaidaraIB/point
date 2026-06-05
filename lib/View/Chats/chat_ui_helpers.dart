@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:point/Utils/AppColors.dart';
 import 'package:get/get.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:point/Controller/HomeController.dart';
@@ -227,7 +228,7 @@ class ChatUploadProgressBanner extends StatelessWidget {
                 value: p,
                 minHeight: 4,
                 backgroundColor: Colors.grey.shade200,
-                color: const Color(0xFF465FFF),
+                color: AppColors.primary,
               ),
             ),
           ],

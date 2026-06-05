@@ -2,6 +2,7 @@ import 'package:point/Utils/app_log.dart';
 import 'dart:math' show min;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:point/Utils/AppColors.dart';
 import 'package:get/get_navigation/src/extension_navigation.dart';
 import 'package:get/get_navigation/src/snackbar/snackbar.dart';
 import 'package:get/get_state_manager/get_state_manager.dart';
@@ -274,21 +275,7 @@ class _EmployeeLoginDesktopLayoutState
                     load: Get.find<HomeController>().isLoading.value,
                     margin: EdgeInsets.all(0),
                     onPressed: _submitEmployeeLogin,
-                    linearGradient: LinearGradient(
-                      colors: [
-                        Color(0xff19133F),
-                        Color(0xff19133F),
-                        Color(0xff19133F),
-                        Color(0xff19133F),
-                        Color(0xff19133F),
-                        Color.fromARGB(255, 47, 19, 63),
-                        Color.fromARGB(255, 47, 19, 63),
-                        Color.fromARGB(255, 47, 19, 63),
-                        Color.fromARGB(255, 47, 19, 63),
-                      ],
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomRight,
-                    ),
+                    linearGradient: AppColors.authLoginButtonGradient,
                     title: 'login'.tr,
                   ),
                 ),

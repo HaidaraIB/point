@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:point/Utils/AppColors.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/EmployeeModel.dart';
@@ -361,7 +362,7 @@ class EmployeeTaskCard extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
-                                  color: Color(0xFF5C5589),
+                                  color: AppColors.primary,
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -470,7 +471,7 @@ class EmployeeTaskCard extends StatelessWidget {
                                     color:
                                         expired
                                             ? Colors.red.shade700
-                                            : const Color(0xFF5C5589),
+                                            : AppColors.primary,
                                   ),
                                 ),
                               ],
@@ -574,9 +575,7 @@ class EmployeeTaskCard extends StatelessWidget {
                                     ),
                                     ElevatedButton(
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(
-                                          0xFF5C5589,
-                                        ),
+                                        backgroundColor: AppColors.primary,
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(
                                             24,
@@ -771,7 +770,7 @@ Widget _buildTaskDepartmentBadge(TaskModel task) {
       color: const Color(0xFFF4F0FF),
       borderRadius: BorderRadius.circular(8),
       border: Border.all(
-        color: const Color(0xFF5C5589).withValues(alpha: 0.35),
+        color: AppColors.primary.withValues(alpha: 0.35),
       ),
     ),
     child: Text(
@@ -781,7 +780,7 @@ Widget _buildTaskDepartmentBadge(TaskModel task) {
       style: const TextStyle(
         fontSize: 11,
         fontWeight: FontWeight.w700,
-        color: Color(0xFF5C5589),
+        color: AppColors.primary,
       ),
     ),
   );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:point/Utils/AppColors.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Localization/LanguageController.dart';
@@ -22,7 +23,7 @@ Widget buildRightsSection() {
           Obx(() {
             final lc = Get.find<LanguageController>();
             final code = lc.currentLocale.value.languageCode;
-            const activeColor = Color(0xff19133F);
+            const activeColor = AppColors.primaryDark;
             return Wrap(
               alignment: WrapAlignment.center,
               crossAxisAlignment: WrapCrossAlignment.center,

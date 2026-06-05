@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:point/Utils/AppColors.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/TaskModel.dart';
@@ -515,7 +516,7 @@ class TaskCard extends StatelessWidget {
                     final req = live.deadlineExtensionRequestedTo;
                     final theme = Theme.of(context);
                     final cs = theme.colorScheme;
-                    const stripPurple = Color(0xFF5C5589);
+                    const stripPurple = AppColors.primary;
                     const stripBg = Color(0xFFF7F6FF);
                     const stripBorder = Color(0xFFE4DEF7);
                     return Column(
@@ -791,7 +792,7 @@ class TaskCard extends StatelessWidget {
                                     fontSize: 13,
                                     color: expired
                                         ? Colors.red.shade700
-                                        : const Color(0xFF5C5589),
+                                        : AppColors.primary,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),

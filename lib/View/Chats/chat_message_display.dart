@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:point/Utils/AppColors.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Utils/chat_message_bidi.dart';
@@ -13,7 +14,7 @@ import 'package:point/View/Mobile/Shared/VideoCart.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 
-const Color _kChatAccentBlue = Color(0xFF465FFF);
+const Color _kChatAccentBlue = AppColors.primary;
 
 String _urlPathLower(String url) {
   try {

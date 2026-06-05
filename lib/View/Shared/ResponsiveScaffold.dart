@@ -1210,7 +1210,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                                                   _scrollToRepliedMessage,
                                               bubbleDecoration: BoxDecoration(
                                                 color: isMe
-                                                    ? const Color(0xFF465FFF)
+                                                    ? AppColors.primary
                                                     : Colors.white,
                                                 borderRadius: BorderRadius.only(
                                                   topLeft:
@@ -1325,7 +1325,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                         ),
                         border: Border.all(
                           color: _messageFocusNode.hasFocus
-                              ? const Color(0xFF465FFF).withValues(alpha: 0.35)
+                              ? AppColors.primary.withValues(alpha: 0.35)
                               : Colors.grey.shade200,
                         ),
                         boxShadow: [
@@ -1369,15 +1369,15 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                                 data: Theme.of(context).copyWith(
                                   textSelectionTheme:
                                       const TextSelectionThemeData(
-                                        cursorColor: Color(0xFF465FFF),
-                                        selectionHandleColor: Color(0xFF465FFF),
-                                        selectionColor: Color(0x33465FFF),
+                                        cursorColor: AppColors.primary,
+                                        selectionHandleColor: AppColors.primary,
+                                        selectionColor: Color(0x33514091),
                                       ),
                                 ),
                                 child: Focus(
                                   onKeyEvent: _onComposerKeyEvent,
                                   child: TextField(
-                                    cursorColor: const Color(0xFF465FFF),
+                                    cursorColor: AppColors.primary,
                                     controller: _messageController,
                                     focusNode: _messageFocusNode,
                                     minLines: 1,
@@ -1423,7 +1423,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                               ),
                               icon: const Icon(
                                 Icons.send_rounded,
-                                color: Color(0xFF465FFF),
+                                color: AppColors.primary,
                                 size: 24,
                               ),
                               onPressed: busy ? null : _sendMessage,

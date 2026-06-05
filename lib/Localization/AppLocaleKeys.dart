@@ -10,6 +10,23 @@ class AppLocaleKeys {
   static const forceUpdateMissingStoreUrl = 'force_update.missing_store_url';
   static const forceUpdateOpenStore = 'force_update.open_store';
   static const forceUpdateCheckAgain = 'force_update.check_again';
+  static const adminSettingsTitle = 'admin_settings.title';
+  static const adminSettingsSectionAppVersion = 'admin_settings.section_app_version';
+  static const adminSettingsMobileGateHelp = 'admin_settings.mobile_gate_help';
+  static const adminSettingsCurrentRelease = 'admin_settings.current_release';
+  static const adminSettingsAndroidMinBuild = 'admin_settings.android_min_build';
+  static const adminSettingsIosMinBuild = 'admin_settings.ios_min_build';
+  static const adminSettingsAndroidStoreUrl = 'admin_settings.android_store_url';
+  static const adminSettingsIosStoreUrl = 'admin_settings.ios_store_url';
+  static const adminSettingsInvalidBuild = 'admin_settings.invalid_build';
+  static const adminSettingsMinAboveCurrentWarning =
+      'admin_settings.min_above_current_warning';
+  static const adminSettingsLoadFailed = 'admin_settings.load_failed';
+  static const adminSettingsAppVersionSaveSuccess =
+      'admin_settings.app_version_save_success';
+  static const adminSettingsSaveFailed = 'admin_settings.save_failed';
+  static const adminSettingsSavePermissionDenied =
+      'admin_settings.save_permission_denied';
   static const appClose = 'app.close';
 
   static const commonConfirm = 'common.confirm';

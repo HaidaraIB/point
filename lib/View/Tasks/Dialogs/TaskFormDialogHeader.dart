@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:point/Utils/AppColors.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 
@@ -12,7 +13,7 @@ class TaskFormDialogHeader extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: const Color(0xFF5C5589),
+        color: AppColors.primary,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
       ),
       padding: const EdgeInsets.all(16),

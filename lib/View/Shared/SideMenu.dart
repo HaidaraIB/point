@@ -84,7 +84,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
       width: isCollapsed ? 70 : 270,
       // margin: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Color(0xff6736AE),
+        color: AppColors.primary,
         boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5)],
         // borderRadius: BorderRadius.circular(8),
       ),
@@ -497,6 +497,22 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                   });
                                 },
                                 // onTap: () => Get.toNamed('/users'),
+                              ),
+                              _buildTile(
+                                selectedTab: 11,
+                                icon: 'assets/images/nav_history.png',
+                                text: "admin_settings.title".tr,
+                                iconData: Icons.settings_outlined,
+                                onTap: () {
+                                  setState(() {
+                                    _selectedTab = 11;
+                                  });
+                                  WidgetsBinding.instance.addPostFrameCallback((
+                                    _,
+                                  ) {
+                                    Get.toNamed('/adminSettings');
+                                  });
+                                },
                               ),
                               _buildTile(
                                 selectedTab: 7,

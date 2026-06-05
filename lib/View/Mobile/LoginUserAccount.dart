@@ -4,6 +4,7 @@ import 'dart:math' show min;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:point/Utils/AppColors.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/ClientController.dart';
 import 'package:point/Services/FunHelper.dart';
@@ -402,21 +403,7 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
               height: 40,
               borderSize: 10,
               margin: EdgeInsets.all(0),
-              linearGradient: LinearGradient(
-                colors: [
-                  Color(0xff19133F),
-                  Color(0xff19133F),
-                  Color(0xff19133F),
-                  Color(0xff19133F),
-                  Color(0xff19133F),
-                  Color.fromARGB(255, 47, 19, 63),
-                  Color.fromARGB(255, 47, 19, 63),
-                  Color.fromARGB(255, 47, 19, 63),
-                  Color.fromARGB(255, 47, 19, 63),
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomRight,
-              ),
+              linearGradient: AppColors.authLoginButtonGradient,
               title: 'login'.tr,
               onPressed: () => _submitClientLogin(controller),
             ),

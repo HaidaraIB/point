@@ -32,6 +32,7 @@ import 'package:point/View/Mobile/MobileClientSplashDecider.dart';
 import 'package:point/View/Mobile/LoginUserAccount.dart';
 import 'package:point/View/Mobile/MobileSplashDecider.dart';
 import 'package:point/View/Mobile/force_update_page.dart';
+import 'package:point/View/AdminSettings/AdminSettingsPage.dart';
 import 'package:point/View/Statistics/Statistics.dart';
 import 'package:point/View/Tasks/Tasks.dart';
 
@@ -203,6 +204,11 @@ class AppRouting {
             return Statistics();
           },
           // middlewares: [AuthMiddleware()],
+        ),
+        GetPage(
+          name: '/adminSettings',
+          page: () => const AdminSettingsPage(),
+          middlewares: [AuthMiddleware()],
         ),
         GetPage(
           name: '/History',

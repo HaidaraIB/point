@@ -505,7 +505,7 @@ class _PushNotificationTestDialogBodyState
           flex: 2,
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF5C5589),
+              backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               disabledForegroundColor: Colors.white70,
             ),

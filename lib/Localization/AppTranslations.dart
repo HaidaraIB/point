@@ -56,6 +56,24 @@ class AppTranslations extends Translations {
           'Update is required but the store link is not configured. Contact support or try again later.',
       'force_update.open_store': 'Open store',
       'force_update.check_again': 'Check again',
+      'admin_settings.title': 'Settings',
+      'admin_settings.section_app_version': 'App version',
+      'admin_settings.mobile_gate_help':
+          'Users with a build number below the minimum will be blocked on app launch and prompted to update.',
+      'admin_settings.current_release':
+          'Current release: @version (build @build)',
+      'admin_settings.android_min_build': 'Android minimum build',
+      'admin_settings.ios_min_build': 'iOS minimum build',
+      'admin_settings.android_store_url': 'Android store URL (optional)',
+      'admin_settings.ios_store_url': 'iOS store URL (optional)',
+      'admin_settings.invalid_build': 'Enter a valid build number (0 or higher)',
+      'admin_settings.min_above_current_warning':
+          'Minimum build is above the current release (build @build). Users on older builds will be forced to update.',
+      'admin_settings.load_failed': 'Could not load app settings',
+      'admin_settings.app_version_save_success': 'App version settings saved',
+      'admin_settings.save_failed': 'Could not save app settings',
+      'admin_settings.save_permission_denied':
+          'Permission denied. Log in as admin and deploy the latest Firestore rules.',
       'app.close': 'Close',
       'app.dashboard_title': 'Dashboard',
       'editclient': 'Edit client',
@@ -1305,6 +1323,24 @@ class AppTranslations extends Translations {
           'يلزم التحديث لكن رابط المتجر غير مُعد. تواصل مع الدعم أو أعد المحاولة لاحقاً.',
       'force_update.open_store': 'فتح المتجر',
       'force_update.check_again': 'تحقق مرة أخرى',
+      'admin_settings.title': 'الإعدادات',
+      'admin_settings.section_app_version': 'إصدار التطبيق',
+      'admin_settings.mobile_gate_help':
+          'المستخدمون الذين يملكون رقم بناء أقل من الحد الأدنى سيُمنعون عند فتح التطبيق ويُطلب منهم التحديث.',
+      'admin_settings.current_release':
+          'الإصدار الحالي: @version (بناء @build)',
+      'admin_settings.android_min_build': 'الحد الأدنى لبناء أندرويد',
+      'admin_settings.ios_min_build': 'الحد الأدنى لبناء iOS',
+      'admin_settings.android_store_url': 'رابط متجر أندرويد (اختياري)',
+      'admin_settings.ios_store_url': 'رابط متجر iOS (اختياري)',
+      'admin_settings.invalid_build': 'أدخل رقم بناء صالحاً (0 أو أكثر)',
+      'admin_settings.min_above_current_warning':
+          'الحد الأدنى للبناء أعلى من الإصدار الحالي (بناء @build). سيُجبر المستخدمون على الإصدارات الأقدم على التحديث.',
+      'admin_settings.load_failed': 'تعذر تحميل إعدادات التطبيق',
+      'admin_settings.app_version_save_success': 'تم حفظ إعدادات إصدار التطبيق',
+      'admin_settings.save_failed': 'تعذر حفظ إعدادات التطبيق',
+      'admin_settings.save_permission_denied':
+          'تم رفض الصلاحية. سجّل الدخول كمسؤول وانشر قواعد Firestore المحدّثة.',
       "app.close": "إغلاق",
       "app.dashboard_title": "لوحة التحكم",
       "editclient": "تعديل العميل",

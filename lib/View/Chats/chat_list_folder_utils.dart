@@ -1,11 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:point/Utils/AppColors.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 
 /// Chat list chips, add button, and loading indicators (matches composer accent).
-const Color kChatUiAccent = Color(0xFF465FFF);
+const Color kChatUiAccent = AppColors.primary;
 
 /// Sidebar / mobile chat list folder (Telegram-style).
 enum ChatListFolder { all, privateChats, groups }

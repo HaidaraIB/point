@@ -582,7 +582,7 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
-                                color: Color(0xFF5C5589),
+                                color: AppColors.primary,
                               ),
                             ),
                             const SizedBox(height: 5),

@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/StorageKeys.dart';
@@ -23,6 +24,8 @@ class LanguageController extends GetxController {
   /// FCM prefs hold a role + user id. Safe no-op when logged out or offline.
   static Future<void> syncPersistedLocaleToFirestore() async {
     try {
+      if (FirebaseAuth.instance.currentUser == null) return;
+
       final prefs = await SharedPreferences.getInstance();
       final role = prefs.getString(StorageKeys.prefsFcmTokenRole);
       final userId = prefs.getString(StorageKeys.prefsFcmTokenUserId)?.trim();

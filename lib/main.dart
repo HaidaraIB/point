@@ -204,6 +204,11 @@ class _AppState extends State<App> with WidgetsBindingObserver {
           );
         },
         theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: AppColors.primary,
+            primary: AppColors.primary,
+            surface: Colors.white,
+          ),
           scaffoldBackgroundColor: Colors.white,
           progressIndicatorTheme: ProgressIndicatorThemeData(color: Colors.white),
           textTheme: almaraiTextTheme.copyWith(

@@ -1,9 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:point/Utils/AppColors.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-
-const Color _kAppPickerPrimary = Color(0xFF5C5589);
 
 DateTime _clampDateTimeToRange(DateTime d, DateTime first, DateTime last) {
   if (d.isBefore(first)) return first;
@@ -146,7 +145,7 @@ class _AppPickerDialogActionsRow extends StatelessWidget {
         Expanded(
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: _kAppPickerPrimary,
+              backgroundColor: AppColors.primary,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(24),
               ),

@@ -184,24 +184,7 @@ Widget _buildDesktopLayout() {
                     borderSize: 10,
                     margin: EdgeInsets.all(0),
                     // lineargrad: ,
-                    linearGradient: LinearGradient(
-                      colors: [
-                        Color(0xff19133F),
-                        Color(0xff19133F),
-                        Color(0xff19133F),
-                        Color(0xff19133F),
-                        Color(0xff19133F),
-                        Color.fromARGB(255, 47, 19, 63),
-                        Color.fromARGB(255, 47, 19, 63),
-                        Color.fromARGB(255, 47, 19, 63),
-                        Color.fromARGB(255, 47, 19, 63),
-
-                        // Color(0xff5B0E4E),
-                      ],
-
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomRight,
-                    ),
+                    linearGradient: AppColors.authLoginButtonGradient,
                     title: 'confirm'.tr,
                   ),
                   buildRightsSection(),

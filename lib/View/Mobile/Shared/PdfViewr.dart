@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:point/Utils/AppColors.dart';
 import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:get/get.dart';
 
@@ -16,7 +17,7 @@ class PdfViewerPage extends StatelessWidget {
           'عرض الملف PDF',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: const Color(0xFF5C5589), // نفس لونك الأساسي
+        backgroundColor: AppColors.primary, // نفس لونك الأساسي
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),

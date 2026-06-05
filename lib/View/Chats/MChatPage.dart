@@ -7,6 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
+import 'package:point/Utils/AppColors.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -1076,7 +1077,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                       width: 45,
                                       height: 45,
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFF465FFF),
+                                        color: AppColors.primary,
                                         borderRadius: BorderRadius.circular(15),
                                       ),
                                       child: const Icon(
@@ -2415,7 +2416,7 @@ class _MessageScreenState extends State<MessageScreen>
                                                   _scrollToRepliedMessage,
                                               bubbleDecoration: BoxDecoration(
                                                 color: isMe
-                                                    ? const Color(0xFF465FFF)
+                                                    ? AppColors.primary
                                                     : Colors.white,
                                                 borderRadius: BorderRadius.only(
                                                   topLeft:
@@ -2540,7 +2541,7 @@ class _MessageScreenState extends State<MessageScreen>
                       ),
                       border: Border.all(
                         color: _messageFocusNode.hasFocus
-                            ? const Color(0xFF465FFF).withValues(alpha: 0.35)
+                            ? AppColors.primary.withValues(alpha: 0.35)
                             : Colors.grey.shade200,
                       ),
                       boxShadow: [
@@ -2606,15 +2607,15 @@ class _MessageScreenState extends State<MessageScreen>
                               data: Theme.of(context).copyWith(
                                 textSelectionTheme:
                                     const TextSelectionThemeData(
-                                      cursorColor: Color(0xFF465FFF),
-                                      selectionHandleColor: Color(0xFF465FFF),
-                                      selectionColor: Color(0x33465FFF),
+                                      cursorColor: AppColors.primary,
+                                      selectionHandleColor: AppColors.primary,
+                                      selectionColor: Color(0x33514091),
                                     ),
                               ),
                               child: Focus(
                                 onKeyEvent: _onComposerKeyEvent,
                                 child: TextField(
-                                  cursorColor: const Color(0xFF465FFF),
+                                  cursorColor: AppColors.primary,
                                   controller: _messageController,
                                   focusNode: _messageFocusNode,
                                   contentInsertionConfiguration:
@@ -2695,7 +2696,7 @@ class _MessageScreenState extends State<MessageScreen>
                             ),
                             icon: const Icon(
                               Icons.send_rounded,
-                              color: Color(0xFF465FFF),
+                              color: AppColors.primary,
                               size: 28,
                             ),
                             onPressed: busy ? null : _sendMessage,
@@ -2745,7 +2746,7 @@ class _PinnedMessageBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final sender = (message['senderName'] as String?)?.trim() ?? '';
     final preview = chatReplyPreviewFromMessage(message);
-    final titleColor = const Color(0xFF465FFF);
+    final titleColor = AppColors.primary;
     return Material(
       color: Colors.transparent,
       child: InkWell(

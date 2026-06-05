@@ -1,6 +1,7 @@
 import 'dart:math' show min;
 
 import 'package:flutter/material.dart';
+import 'package:point/Utils/AppColors.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/ClientController.dart';
@@ -128,21 +129,7 @@ class _ForgetPasswordState extends State<ForgetPassword> {
                 height: 40,
                 borderSize: 10,
                 margin: EdgeInsets.all(0),
-                linearGradient: LinearGradient(
-                  colors: [
-                    Color(0xff19133F),
-                    Color(0xff19133F),
-                    Color(0xff19133F),
-                    Color(0xff19133F),
-                    Color(0xff19133F),
-                    Color.fromARGB(255, 47, 19, 63),
-                    Color.fromARGB(255, 47, 19, 63),
-                    Color.fromARGB(255, 47, 19, 63),
-                    Color.fromARGB(255, 47, 19, 63),
-                  ],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomRight,
-                ),
+                linearGradient: AppColors.authLoginButtonGradient,
                 title: 'confirm'.tr,
                 load: _isLoading,
                 onPressed: _submit,

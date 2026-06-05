@@ -4,21 +4,15 @@ class AppColors {
   /// تدرج أزرار تسجيل الدخول (عميل / موظف) — نفس `MainButton` في شاشات المصادقة
   static LinearGradient get authLoginButtonGradient => const LinearGradient(
         colors: [
-          Color(0xff19133F),
-          Color(0xff19133F),
-          Color(0xff19133F),
-          Color(0xff19133F),
-          Color(0xff19133F),
-          Color(0xff2F133F),
-          Color(0xff2F133F),
-          Color(0xff2F133F),
-          Color(0xff2F133F),
+          Color(0xff1f1957),
+          Color(0xff514091),
         ],
         begin: Alignment.topCenter,
         end: Alignment.bottomRight,
       );
 
-  static const Color primary = Color(0xff6736AE);
+  static const Color primary = Color(0xff514091);
+  static const Color primaryDark = Color(0xff1f1957);
   // static const Color primaryFontColor = Color(0xff34AD93);
   static const Color primaryfontColor = Color(0xff344054);
   static const Color fontColorGrey = Color(0xff656565);

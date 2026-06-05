@@ -1,7 +1,7 @@
 // قالب HTML للإيميلات يطابق ألوان التطبيق (Point Agency)
-// ألوان من lib/Utils/AppColors.dart: primary #6736AE, primaryfontColor #344054, greyBackground #F2F3F5
+// ألوان من lib/Utils/AppColors.dart: primary #514091, primaryDark #1f1957, primaryfontColor #344054, greyBackground #F2F3F5
 
-const BRAND_COLOR = "#6736AE";
+const BRAND_COLOR = "#514091";
 const TEXT_COLOR = "#344054";
 const BG_LIGHT = "#F2F3F5";
 const GREY = "#778087";
@@ -83,7 +83,7 @@ function renderEmailShell(args: {
           <!-- Header -->
           <tr>
             <td align="center" dir="${dir}"
-                style="background:linear-gradient(135deg,#6736AE 0%,#552A8E 100%);
+                style="background:linear-gradient(135deg,#1f1957 0%,#514091 100%);
                        padding:28px 24px;color:#FFFFFF;">
 
               <div style="direction:${dir}; text-align:center;">

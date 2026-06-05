@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:point/Utils/AppColors.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
@@ -276,7 +277,7 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
                 borderRadius: BorderRadius.circular(12),
               ),
               itemBuilder: (context) {
-                const primaryPurple = Color(0xFF5C5589);
+                const primaryPurple = AppColors.primary;
                 final items = <PopupMenuEntry<int>>[];
                 if (canEdit) {
                   items.add(
@@ -522,7 +523,7 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
                 CircleAvatar(
                   radius: 14,
                   backgroundColor: const Color(0xFFEDE2FF),
-                  child: Icon(icon, size: 16, color: const Color(0xFF7E57C2)),
+                  child: Icon(icon, size: 16, color: AppColors.primary),
                 ),
               ],
             ),
@@ -600,7 +601,7 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
               CircleAvatar(
                 radius: 14,
                 backgroundColor: const Color(0xFFEDE2FF),
-                child: Icon(icon, size: 16, color: const Color(0xFF7E57C2)),
+                child: Icon(icon, size: 16, color: AppColors.primary),
               ),
             ],
           ),
@@ -744,7 +745,7 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
                 child: Icon(
                   Icons.attach_file_outlined,
                   size: 16,
-                  color: Color(0xFF7E57C2),
+                  color: AppColors.primary,
                 ),
               ),
             ],

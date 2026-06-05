@@ -671,7 +671,7 @@ void designDialog(BuildContext context, {TaskModel? model}) {
                                 width: (dialogW - 212).clamp(80.0, double.infinity),
                                 child: ElevatedButton(
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Color(0xFF5C5589),
+                                    backgroundColor: AppColors.primary,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(24),
                                     ),

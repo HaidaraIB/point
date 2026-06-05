@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:point/Utils/AppColors.dart';
 import 'package:get/get.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:point/Controller/HomeController.dart';
@@ -262,7 +263,7 @@ class _ChatVoiceRecordButtonState extends State<ChatVoiceRecordButton> {
           ),
           IconButton(
             tooltip: 'chat.send_action'.tr,
-            icon: const Icon(Icons.send_rounded, color: Color(0xFF465FFF)),
+            icon: const Icon(Icons.send_rounded, color: AppColors.primary),
             onPressed: _finishAndUpload,
           ),
         ],

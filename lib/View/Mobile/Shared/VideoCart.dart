@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:point/Utils/AppColors.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/ContentModel.dart';
@@ -597,7 +598,7 @@ class UnknownFilePage extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF5C5589),
+        backgroundColor: AppColors.primary,
         title: const Text(
           'عرض الملف',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
@@ -629,7 +630,7 @@ class UnknownFilePage extends StatelessWidget {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF5C5589),
+                backgroundColor: AppColors.primary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24),
                 ),

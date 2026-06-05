@@ -331,7 +331,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        backgroundColor: Color(0xFF5C5589),
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
         title: Text(
@@ -810,7 +810,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                       height: 52,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF5C5589),
+                          backgroundColor: AppColors.primary,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),

@@ -513,7 +513,7 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
               width: Get.width * 0.4 - 260,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF5C5589),
+                  backgroundColor: AppColors.primary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(24),
                   ),

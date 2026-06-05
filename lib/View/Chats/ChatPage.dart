@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
+import 'package:point/Utils/AppColors.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
@@ -68,7 +69,7 @@ class _PinnedMessageBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final sender = (message['senderName'] as String?)?.trim() ?? '';
     final preview = chatReplyPreviewFromMessage(message);
-    final titleColor = const Color(0xFF465FFF);
+    final titleColor = AppColors.primary;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1892,7 +1893,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                       width: 45,
                                       height: 45,
                                       decoration: BoxDecoration(
-                                        color: Color(0xFF465FFF),
+                                        color: AppColors.primary,
                                         borderRadius: BorderRadius.circular(15),
                                       ),
                                       child: Icon(
@@ -2672,9 +2673,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                                     _scrollToRepliedMessage,
                                                                 bubbleDecoration: BoxDecoration(
                                                                   color: isMe
-                                                                      ? const Color(
-                                                                          0xff465FFF,
-                                                                        )
+                                                                      ? AppColors.primary
                                                                       : Colors
                                                                             .grey
                                                                             .shade100,
@@ -2966,23 +2965,17 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                   data: Theme.of(context).copyWith(
                                                     textSelectionTheme:
                                                         const TextSelectionThemeData(
-                                                          cursorColor: Color(
-                                                            0xFF465FFF,
-                                                          ),
+                                                          cursorColor: AppColors.primary,
                                                           selectionHandleColor:
-                                                              Color(0xFF465FFF),
-                                                          selectionColor: Color(
-                                                            0x33465FFF,
-                                                          ),
+                                                              AppColors.primary,
+                                                          selectionColor: Color(0x33514091),
                                                         ),
                                                   ),
                                                   child: Focus(
                                                     onKeyEvent:
                                                         _onComposerKeyEvent,
                                                     child: TextField(
-                                                      cursorColor: const Color(
-                                                        0xFF465FFF,
-                                                      ),
+                                                      cursorColor: AppColors.primary,
                                                       controller:
                                                           _messageController,
                                                       focusNode:
@@ -3095,7 +3088,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                     width: 45,
                                                     height: 45,
                                                     decoration: BoxDecoration(
-                                                      color: Color(0xff465FFF),
+                                                      color: AppColors.primary,
                                                       borderRadius:
                                                           BorderRadius.circular(
                                                             15,

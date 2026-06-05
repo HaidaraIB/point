@@ -409,7 +409,7 @@ class EmailNotificationService {
         <td align="center">
           <table role="presentation" width="640" cellspacing="0" cellpadding="0" style="max-width:640px;background:#ffffff;border:1px solid #E6E8EC;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(16,24,40,0.06);">
             <tr>
-              <td style="background:linear-gradient(135deg,#6736AE 0%,#552A8E 100%);color:#ffffff;padding:20px 22px;text-align:$align;">
+              <td style="background:linear-gradient(135deg,#1f1957 0%,#514091 100%);color:#ffffff;padding:20px 22px;text-align:$align;">
                 <p style="margin:0;font-size:20px;font-weight:700;">Point Agency</p>
                 <p style="margin:6px 0 0;font-size:13px;opacity:0.92;">${isArabic ? 'إشعار من التطبيق' : 'App notification'}</p>
               </td>

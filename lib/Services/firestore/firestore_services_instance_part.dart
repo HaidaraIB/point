@@ -651,6 +651,10 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
     } catch (e) {
       appLog("⚠️ signOut: FCM cleanup failed (ignored): $e");
     }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(StorageKeys.prefsFcmTokenLastSynced);
+    await prefs.remove(StorageKeys.prefsFcmTokenRole);
+    await prefs.remove(StorageKeys.prefsFcmTokenUserId);
     await FirebaseAuth.instance.signOut();
   }
 
