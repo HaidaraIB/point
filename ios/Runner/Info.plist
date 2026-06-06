@@ -53,6 +53,8 @@
 	<string>نحتاج الميكروفون لتسجيل رسائل صوتية في الدردشة.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>نحتاج الكاميرا لالتقاط صور وإرسالها في الدردشة.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>لا يستخدم Point موقع جهازك، لكن إحدى المكتبات المدمجة في التطبيق قد تطلب هذا الإذن وفق متطلبات Apple.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

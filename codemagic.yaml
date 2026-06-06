@@ -20,7 +20,7 @@ workflows:
         distribution_type: app_store
         bundle_identifier: com.point.agency
       groups:
-        - ios_config # BASE_URL, API_KEY, GOOGLE_SERVICE_INFO_PLIST, SUPABASE_*, FIREBASE_IOS_*, etc.
+        - ios_config # GOOGLE_SERVICE_INFO_PLIST, SUPABASE_*, R2_SIGNER_URL, etc.
       vars:
         APP_ID: "com.point.agency"
         APP_STORE_ID: "6758578493" # تأكد أن التطبيق في App Store Connect يستخدم Bundle ID: com.point.agency
@@ -124,6 +124,8 @@ workflows:
             --dart-define=SUPABASE_URL="$SUPABASE_URL" \
             --dart-define=SUPABASE_ANON_KEY="$SUPABASE_ANON_KEY" \
             --dart-define=SUPABASE_STORAGE_BASE_URL="$SUPABASE_STORAGE_BASE_URL" \
+            --dart-define=R2_SIGNER_URL="$R2_SIGNER_URL" \
+            --dart-define=R2_PUBLIC_BASE_URL="$R2_PUBLIC_BASE_URL" \
             --export-options-plist /tmp/ExportOptions.plist \
             --build-name="${FLUTTER_BUILD_NAME}" \
             --build-number="${FLUTTER_BUILD_NUMBER}"
