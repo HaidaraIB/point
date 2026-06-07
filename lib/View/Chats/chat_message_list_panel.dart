@@ -33,56 +33,38 @@ class ChatMessageListPanelController {
 
   AutoScrollController? _scrollController;
 
+  Object? _scrollOwner;
+
   ChatScrollSnapshot? Function()? _scrollSnapshotProvider;
 
   List<QueryDocumentSnapshot<Map<String, dynamic>>> orderedDocs = const [];
 
-
-
   /// Latest tile builder from the parent; read by the scroll list without
-
   /// forcing a list rebuild when the parent setStates (composer, reply, etc.).
-
   ChatMessageTileBuilder? tileBuilder;
-
-
 
   AutoScrollController? get scrollController => _scrollController;
 
-
-
   ChatScrollSnapshot? get currentScrollSnapshot =>
-
       _scrollSnapshotProvider?.call();
 
-
-
   void _attach({
-
+    required Object owner,
     required AutoScrollController scrollController,
-
     required ChatScrollSnapshot? Function() scrollSnapshotProvider,
-
   }) {
-
+    _scrollOwner = owner;
     _scrollController = scrollController;
-
     _scrollSnapshotProvider = scrollSnapshotProvider;
-
   }
 
-
-
-  void _detach() {
-
+  void _detach({required Object owner}) {
+    if (!identical(_scrollOwner, owner)) return;
+    _scrollOwner = null;
     _scrollController = null;
-
     _scrollSnapshotProvider = null;
-
     orderedDocs = const [];
-
     tileBuilder = null;
-
   }
 
 
@@ -534,33 +516,32 @@ class _ChatMessageListPanelState extends State<ChatMessageListPanel> {
 
 
   @override
-
   void initState() {
-
     super.initState();
-
-    widget.panelController._attach(
-
-      scrollController: _scrollController,
-
-      scrollSnapshotProvider: _currentScrollSnapshot,
-
-    );
-
+    _attachPanelController();
     _scrollController.addListener(_onScrollOffset);
-
     _bindStream(widget.stream);
-
   }
 
+  void _attachPanelController() {
+    widget.panelController._attach(
+      owner: this,
+      scrollController: _scrollController,
+      scrollSnapshotProvider: _currentScrollSnapshot,
+    );
+  }
 
+  void _scrollToLatest() {
+    scheduleScrollChatToLatest(
+      controller: _scrollController,
+      mounted: () => mounted,
+    );
+  }
 
   @override
-
   void didUpdateWidget(ChatMessageListPanel oldWidget) {
-
     super.didUpdateWidget(oldWidget);
-
+    _attachPanelController();
     widget.panelController.tileBuilder = widget.itemBuilder;
 
     if (oldWidget.stream != widget.stream) {
@@ -579,6 +560,7 @@ class _ChatMessageListPanelState extends State<ChatMessageListPanel> {
     _initialScrollComplete = false;
     _isRestoringScroll = false;
     _listEpochApplied = -1;
+    ChatScrollInteraction.reset();
     ChatMarkReadScheduler.cancelForChat(widget.chatId);
   }
 
@@ -915,9 +897,9 @@ class _ChatMessageListPanelState extends State<ChatMessageListPanel> {
 
     _fabUnread.dispose();
 
-    _scrollController.dispose();
+    widget.panelController._detach(owner: this);
 
-    widget.panelController._detach();
+    _scrollController.dispose();
 
     super.dispose();
 
@@ -1007,7 +989,7 @@ class _ChatMessageListPanelState extends State<ChatMessageListPanel> {
 
                       badgeCount: _fabUnread.value,
 
-                      onPressed: widget.panelController.scrollToLatest,
+                      onPressed: _scrollToLatest,
 
                     );
 

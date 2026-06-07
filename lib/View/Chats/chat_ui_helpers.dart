@@ -64,6 +64,13 @@ class ChatScrollInteraction {
       _dragDepth = 0;
     });
   }
+
+  /// Clears stale scroll activity after chat switch or list reset.
+  static void reset() {
+    _activityTimer?.cancel();
+    _activityTimer = null;
+    _dragDepth = 0;
+  }
 }
 
 /// Android/iOS camera capture for chat attachments (not web/desktop).
@@ -84,9 +91,15 @@ void scheduleScrollChatToMessageIndex({
 }) {
   if (index < 0) return;
   var attempts = 0;
+  var blockedByScrollRetries = 0;
   void tryScroll() {
     if (!mounted()) return;
-    if (ChatScrollInteraction.userIsScrolling) return;
+    if (ChatScrollInteraction.userIsScrolling) {
+      blockedByScrollRetries++;
+      if (blockedByScrollRetries > 8) return;
+      Future<void>.delayed(const Duration(milliseconds: 150), tryScroll);
+      return;
+    }
     if (!controller.hasClients) {
       attempts++;
       if (attempts > 24) return;
@@ -110,21 +123,46 @@ void scheduleScrollChatToMessageIndex({
   WidgetsBinding.instance.addPostFrameCallback((_) => tryScroll());
 }
 
-/// Scrolls a **reverse** chat list to the newest message (index `0`).
+/// Scrolls a **reverse** chat list to the newest message (scroll offset `0`).
 void scheduleScrollChatToLatest({
-  required AutoScrollController controller,
+  required ScrollController controller,
   required bool Function() mounted,
   Duration duration = const Duration(milliseconds: 320),
   Curve curve = Curves.easeOutCubic,
 }) {
-  scheduleScrollChatToMessageIndex(
-    controller: controller,
-    index: 0,
-    mounted: mounted,
-    duration: duration,
-    curve: curve,
-    alignment: 0,
-  );
+  var attempts = 0;
+  var blockedByScrollRetries = 0;
+  void tryScroll() {
+    if (!mounted()) return;
+    if (ChatScrollInteraction.userIsScrolling) {
+      blockedByScrollRetries++;
+      if (blockedByScrollRetries > 8) return;
+      Future<void>.delayed(const Duration(milliseconds: 150), tryScroll);
+      return;
+    }
+    if (!controller.hasClients) {
+      attempts++;
+      if (attempts > 24) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) => tryScroll());
+      return;
+    }
+    final target = controller.position.minScrollExtent;
+    if (duration <= Duration.zero) {
+      controller.jumpTo(target);
+      return;
+    }
+    unawaited(
+      controller.animateTo(target, duration: duration, curve: curve).catchError((
+        _,
+      ) {
+        if (mounted() && controller.hasClients) {
+          controller.jumpTo(target);
+        }
+      }),
+    );
+  }
+
+  WidgetsBinding.instance.addPostFrameCallback((_) => tryScroll());
 }
 
 /// Reply target while composing (references an existing message).
