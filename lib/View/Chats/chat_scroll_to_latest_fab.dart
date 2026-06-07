@@ -1,6 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 
 /// Whether [msg] counts as "read" for opening the chat at the last-read position.
 ///
@@ -15,9 +14,6 @@ bool chatMessageIsReadForScrollAnchor(
 
 /// Newest-first list (`reverse: true`): index `0` is latest. Returns the index
 /// of the **chronologically newest** message that counts as read for the user.
-///
-/// If every message is unread incoming (from others), returns `0` (same as
-/// showing the latest end of the thread).
 int chatReverseListAnchorIndexLastRead({
   required List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
   required String currentUserId,
@@ -31,45 +27,46 @@ int chatReverseListAnchorIndexLastRead({
   return 0;
 }
 
-/// Telegram-style: index `0` is newest when [ScrollablePositionedList.reverse] is true.
-bool chatReverseListShowsLatest({
-  required ItemPositionsListener positionsListener,
-  required int itemCount,
-}) {
-  if (itemCount <= 0) return true;
-  final positions = positionsListener.itemPositions.value;
-  for (final p in positions) {
-    if (p.index == 0) return true;
-  }
-  return positions.isEmpty;
+/// Pixels from the newest end before we consider the user "at latest".
+const double kChatAtLatestScrollThreshold = 24;
+
+/// Average row height hint for index estimation (variable-height rows).
+const double kChatEstimatedRowHeight = 72;
+
+/// Reverse [ListView]: index `0` is newest at the bottom; offset `0` is latest.
+bool chatReverseListShowsLatestFromScroll(ScrollController controller) {
+  if (!controller.hasClients) return false;
+  return controller.offset <= kChatAtLatestScrollThreshold;
 }
 
-/// How many list items are newer than the top of the viewport (off-screen toward bottom).
-int chatReverseListNewerBelowCount({
-  required ItemPositionsListener positionsListener,
-  required int itemCount,
-}) {
+/// Smallest visible index (newest edge) estimated from scroll offset.
+int chatReverseListEstimatedMinVisibleIndex(
+  ScrollController controller,
+  int itemCount,
+) {
+  if (itemCount <= 0 || !controller.hasClients) return 0;
+  if (controller.offset <= kChatAtLatestScrollThreshold) return 0;
+  final idx = (controller.offset / kChatEstimatedRowHeight).floor();
+  return idx.clamp(0, itemCount - 1);
+}
+
+/// Items newer than the viewport top (off-screen toward the bottom).
+int chatReverseListNewerBelowCountFromScroll(
+  ScrollController controller,
+  int itemCount,
+) {
   if (itemCount <= 0) return 0;
-  final positions = positionsListener.itemPositions.value;
-  if (positions.isEmpty) return 0;
-  var minIdx = positions.first.index;
-  for (final p in positions) {
-    if (p.index < minIdx) minIdx = p.index;
-  }
-  return minIdx;
+  return chatReverseListEstimatedMinVisibleIndex(controller, itemCount);
 }
 
-/// Unread incoming messages in that "below" range (same ordering as list).
-int chatReverseListUnreadIncomingBelowCount({
-  required ItemPositionsListener positionsListener,
+/// Unread incoming messages in the "below" range (same ordering as list).
+int chatReverseListUnreadIncomingBelowCountFromScroll({
+  required ScrollController controller,
   required int itemCount,
   required List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
   required String currentUserId,
 }) {
-  final below = chatReverseListNewerBelowCount(
-    positionsListener: positionsListener,
-    itemCount: itemCount,
-  );
+  final below = chatReverseListNewerBelowCountFromScroll(controller, itemCount);
   if (below <= 0) return 0;
   var n = 0;
   for (var i = 0; i < below && i < docs.length; i++) {
@@ -84,7 +81,6 @@ int chatReverseListUnreadIncomingBelowCount({
 /// Floating scroll-to-latest control (Telegram-like) + optional count badge.
 class ChatScrollToLatestFab extends StatelessWidget {
   final bool visible;
-  /// Unread incoming messages below the viewport (hidden when 0).
   final int badgeCount;
   final VoidCallback onPressed;
 
@@ -101,10 +97,8 @@ class ChatScrollToLatestFab extends StatelessWidget {
 
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final bg =
-        isDark ? const Color(0xFF2B2F38) : const Color(0xFFE8EAED);
-    final iconColor =
-        isDark ? Colors.white : const Color(0xFF3C4043);
+    final bg = isDark ? const Color(0xFF2B2F38) : const Color(0xFFE8EAED);
+    final iconColor = isDark ? Colors.white : const Color(0xFF3C4043);
 
     return Material(
       color: Colors.transparent,
@@ -144,7 +138,8 @@ class ChatScrollToLatestFab extends StatelessWidget {
                   right: -2,
                   child: Container(
                     constraints: const BoxConstraints(minWidth: 20),
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: const Color(0xFF3390EC),
                       borderRadius: BorderRadius.circular(10),

@@ -1,14 +1,14 @@
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:point/View/Chats/chat_scroll_to_latest_fab.dart';
-import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Serializable scroll anchor for a reverse [ScrollablePositionedList] (newest at index 0).
+/// Serializable scroll anchor for a reverse chat list (newest at index 0).
 class ChatScrollSnapshot {
   final int index;
-  /// Leading-edge alignment in viewport (see [ItemScrollController.jumpTo]).
+  /// Leading-edge alignment in viewport (0 = top, 1 = bottom).
   final double alignment;
 
   const ChatScrollSnapshot({required this.index, required this.alignment});
@@ -30,24 +30,14 @@ class ChatScrollSnapshot {
   }
 }
 
-/// Picks the visible row with the smallest index (newest side in a reverse chat list).
-ChatScrollSnapshot? chatScrollSnapshotFromItemPositions(
-  Iterable<ItemPosition> positions,
+/// Builds a snapshot from [ScrollController] offset (reverse list, index 0 = newest).
+ChatScrollSnapshot? chatScrollSnapshotFromScrollController(
+  ScrollController controller,
+  int itemCount,
 ) {
-  if (positions.isEmpty) return null;
-  ItemPosition? chosen;
-  var minIdx = 1 << 30;
-  for (final p in positions) {
-    if (p.index < minIdx) {
-      minIdx = p.index;
-      chosen = p;
-    }
-  }
-  if (chosen == null) return null;
-  return ChatScrollSnapshot(
-    index: chosen.index,
-    alignment: chosen.itemLeadingEdge,
-  );
+  if (itemCount <= 0 || !controller.hasClients) return null;
+  final index = chatReverseListEstimatedMinVisibleIndex(controller, itemCount);
+  return ChatScrollSnapshot(index: index, alignment: 1.0);
 }
 
 class ChatScrollPersistence {
@@ -62,17 +52,10 @@ class ChatScrollPersistence {
     required ChatScrollSnapshot snapshot,
   }) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_storageKey(userId, chatId), jsonEncode(snapshot.toJson()));
-  }
-
-  static Future<void> save({
-    required String userId,
-    required String chatId,
-    required Iterable<ItemPosition> positions,
-  }) async {
-    final snap = chatScrollSnapshotFromItemPositions(positions);
-    if (snap == null) return;
-    await saveSnapshot(userId: userId, chatId: chatId, snapshot: snap);
+    await prefs.setString(
+      _storageKey(userId, chatId),
+      jsonEncode(snapshot.toJson()),
+    );
   }
 
   static Future<ChatScrollSnapshot?> load(String userId, String chatId) async {

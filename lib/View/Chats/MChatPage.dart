@@ -11,9 +11,6 @@ import 'package:point/Utils/AppColors.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:scrollable_positioned_list/scrollable_positioned_list.dart'
-    show ItemScrollController, ItemPositionsListener, ScrollablePositionedList;
-// يجب أن يكون هذا الملف متاحًا لديك، وإلا سيعطي خطأ
 import 'package:point/Controller/HomeController.dart';
 // يجب أن يكون هذا الملف متاحًا لديك، وإلا سيعطي خطأ
 import 'package:point/Services/AudioService.dart';
@@ -34,11 +31,12 @@ import 'package:point/Routing/app_route_observer.dart';
 import 'package:point/Services/FcmServices.dart' as fcm_notifications;
 import 'package:point/View/Chats/chat_message_display.dart';
 import 'package:point/View/Chats/chat_message_tile.dart';
+import 'package:point/View/Chats/chat_message_list_panel.dart';
 import 'package:point/View/Chats/pending_chat_attachment.dart';
-import 'package:point/View/Chats/chat_scroll_to_latest_fab.dart';
 import 'package:point/View/Chats/chat_ui_helpers.dart';
 import 'package:point/View/Chats/chat_list_tile_media_subtitle.dart';
 import 'package:point/View/Chats/chat_reply_draft_banner.dart';
+import 'package:point/View/Chats/chat_list_row_trailing.dart';
 import 'package:point/View/Chats/chat_list_folder_utils.dart';
 import 'package:point/View/Chats/chat_private_typing.dart';
 import 'package:point/View/Chats/chat_voice_record_button.dart';
@@ -1238,6 +1236,12 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                     );
                                   },
                                   child: ListTile(
+                                    dense: true,
+                                    visualDensity: VisualDensity.compact,
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 4,
+                                    ),
                                     onTap: () => _openExistingChat(ch),
                                     leading: chatListLeadingWithPinBadge(
                                       pinned: isPinned,
@@ -1282,65 +1286,12 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                             : '',
                                       ),
                                     ),
-                                    trailing: (titleSubline != null ||
-                                            unreadCount > 0)
-                                        ? Column(
-                                            mainAxisSize: MainAxisSize.min,
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.end,
-                                            children: [
-                                              if (titleSubline != null)
-                                                ConstrainedBox(
-                                                  constraints:
-                                                      const BoxConstraints(
-                                                        maxWidth: 110,
-                                                      ),
-                                                  child: Text(
-                                                    titleSubline,
-                                                    textAlign: TextAlign.end,
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: TextStyle(
-                                                      fontSize: 11,
-                                                      color: !isGroup &&
-                                                              showPrivateOnlineDot
-                                                          ? const Color(
-                                                              0xFF16A34A,
-                                                            )
-                                                          : Colors
-                                                                .grey
-                                                                .shade600,
-                                                      fontWeight:
-                                                          FontWeight.w500,
-                                                    ),
-                                                  ),
-                                                ),
-                                              if (titleSubline != null &&
-                                                  unreadCount > 0)
-                                                const SizedBox(height: 4),
-                                              if (unreadCount > 0)
-                                                Container(
-                                                  padding:
-                                                      const EdgeInsets.all(6),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.red,
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          12,
-                                                        ),
-                                                  ),
-                                                  child: Text(
-                                                    unreadCount.toString(),
-                                                    style: const TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 12,
-                                                    ),
-                                                  ),
-                                                ),
-                                            ],
-                                          )
-                                        : null,
+                                    trailing: ChatListRowTrailing(
+                                      titleSubline: titleSubline,
+                                      highlightSubline:
+                                          !isGroup && showPrivateOnlineDot,
+                                      unreadCount: unreadCount,
+                                    ),
                                   ),
                                 );
                               },
@@ -1391,14 +1342,14 @@ class _MessageScreenState extends State<MessageScreen>
   bool _isEmojiVisible = false;
   PendingChatAttachment? _pendingAttachment;
   ChatReplyDraft? _replyDraft;
-  final ItemScrollController _chatMessageItemScrollController =
-      ItemScrollController();
-  final ItemPositionsListener _chatItemPositionsListener =
-      ItemPositionsListener.create();
+  final ChatMessageListPanelController _chatListPanelController =
+      ChatMessageListPanelController();
   List<QueryDocumentSnapshot<Map<String, dynamic>>> _orderedChatMessageDocs =
       [];
+  int _chatMessageListEpoch = 0;
+  ChatScrollSnapshot? _persistedScrollForOpen;
+  bool _scrollPrefsReady = false;
   String? _currentUserRole;
-  Worker? _presenceWorker;
 
   DateTime? _presenceOf(String? employeeId) {
     final id = employeeId?.trim() ?? '';
@@ -1409,28 +1360,6 @@ class _MessageScreenState extends State<MessageScreen>
   bool _isOnlinePresence(DateTime? at) {
     if (at == null) return false;
     return DateTime.now().difference(at.toLocal()) <= const Duration(minutes: 2);
-  }
-
-  String _privatePresenceLabel(String? otherEmployeeId) {
-    final at = _presenceOf(otherEmployeeId);
-    if (_isOnlinePresence(at)) {
-      final raw = 'employees.online_now'.tr;
-      final lang = Get.locale?.languageCode.toLowerCase() ?? '';
-      return lang == 'en' ? raw.toLowerCase() : raw;
-    }
-    if (at == null) return 'employees.last_seen_unknown'.tr;
-    final when = FunHelper.formatTimeAgo(at.toLocal());
-    return 'employees.last_seen_at'.trParams({'time': when});
-  }
-
-  int _connectedUsersCountForGroup(Map<String, dynamic> chat) {
-    final participants = List<String>.from(chat['participants'] ?? const []);
-    var count = 0;
-    for (final id in participants) {
-      if (id == widget.currentUserId) continue;
-      if (_isOnlinePresence(_presenceOf(id))) count++;
-    }
-    return count;
   }
 
   Widget _avatarWithOnlineDot({
@@ -1472,13 +1401,7 @@ class _MessageScreenState extends State<MessageScreen>
   }
 
   void _scrollToRepliedMessage(String messageId) {
-    final idx = _orderedChatMessageDocs.indexWhere((d) => d.id == messageId);
-    if (idx < 0) return;
-    scheduleScrollChatToMessageIndex(
-      controller: _chatMessageItemScrollController,
-      index: idx,
-      mounted: () => mounted,
-    );
+    _chatListPanelController.scrollToMessageId(messageId);
   }
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -1486,8 +1409,7 @@ class _MessageScreenState extends State<MessageScreen>
   Stream<QuerySnapshot<Map<String, dynamic>>>? _messagesStream;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
   _messageSoundSubscription;
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
-  _markReadSubscription;
+
   late String _chatId;
   late String _displayName;
   late final Future<ChatScrollSnapshot?> _openScrollPrefsFuture;
@@ -1495,10 +1417,6 @@ class _MessageScreenState extends State<MessageScreen>
 
   static const _kScrollDiskDebounceMs = 350;
   Timer? _scrollDiskFlushTimer;
-
-  /// Avoid rebuilding on every [ItemPositionsListener] tick (same pattern as [ChatPage] / [ChatPopup]).
-  bool? _scrollFabVisibleLast;
-  int _scrollUnreadBelowLast = -1;
 
   bool get _enableContentInsertion =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
@@ -1576,6 +1494,16 @@ class _MessageScreenState extends State<MessageScreen>
       widget.currentUserId,
       _chatId,
     );
+    unawaited(
+      _openScrollPrefsFuture.then((snap) {
+        if (!mounted) return;
+        setState(() {
+          _persistedScrollForOpen = snap;
+          _scrollPrefsReady = true;
+          _chatMessageListEpoch++;
+        });
+      }),
+    );
     _displayName =
         widget.chat['displayName'] ?? AppLocaleKeys.chatConversationFallback.tr;
     _currentUserRole = Get.find<HomeController>().currentEmployee.value?.role;
@@ -1593,26 +1521,6 @@ class _MessageScreenState extends State<MessageScreen>
       currentUserId: widget.currentUserId,
     );
 
-    _markReadSubscription = _messagesStream!.listen((_) {
-      unawaited(
-        FirestoreServices.markIncomingMessagesReadInChat(
-          _chatId,
-          widget.currentUserId,
-        ),
-      );
-    });
-
-    unawaited(
-      FirestoreServices.markIncomingMessagesReadInChat(
-        _chatId,
-        widget.currentUserId,
-      ),
-    );
-
-    _chatItemPositionsListener.itemPositions.addListener(
-      _onChatScrollPositions,
-    );
-    _messageFocusNode.addListener(_onMessageFocusChanged);
     _messageController.addListener(_onComposerTextChanged);
     WidgetsBinding.instance.addObserver(this);
     _imagePasteListener = ChatImagePasteListener(
@@ -1625,17 +1533,9 @@ class _MessageScreenState extends State<MessageScreen>
               WidgetsBinding.instance.lifecycleState ==
                   AppLifecycleState.resumed),
     );
-    if (Get.isRegistered<HomeController>()) {
-      final hc = Get.find<HomeController>();
-      _presenceWorker = ever<Map<String, DateTime>>(hc.employeePresenceById, (_) {
-        if (!mounted) return;
-        setState(() {});
-      });
-    }
   }
 
   void _onComposerTextChanged() {
-    if (mounted) setState(() {});
     _typingWriter.onComposerTextChanged(_messageController.text);
   }
 
@@ -1656,9 +1556,7 @@ class _MessageScreenState extends State<MessageScreen>
   }
 
   Future<void> _persistScrollSnapshotNow() async {
-    final live = chatScrollSnapshotFromItemPositions(
-      _chatItemPositionsListener.itemPositions.value,
-    );
+    final live = _chatListPanelController.currentScrollSnapshot;
     final snap = live ?? _lastScrollSnapshotForPersist;
     if (snap == null) return;
     await ChatScrollPersistence.saveSnapshot(
@@ -1680,42 +1578,18 @@ class _MessageScreenState extends State<MessageScreen>
     }
   }
 
-  void _onChatScrollPositions() {
-    final snap = chatScrollSnapshotFromItemPositions(
-      _chatItemPositionsListener.itemPositions.value,
-    );
-    if (snap != null) {
-      final len = _orderedChatMessageDocs.length;
-      if (len == 0 || snap.index < len) {
-        _lastScrollSnapshotForPersist = snap;
-        _scheduleDebouncedDiskPersist();
-      }
-    }
-    final uid = widget.currentUserId;
-    final docs = _orderedChatMessageDocs;
-    final n = docs.length;
-    if (uid.isNotEmpty && n > 0) {
-      final showFab = !chatReverseListShowsLatest(
-        positionsListener: _chatItemPositionsListener,
-        itemCount: n,
-      );
-      final unreadBelow = chatReverseListUnreadIncomingBelowCount(
-        positionsListener: _chatItemPositionsListener,
-        itemCount: n,
-        docs: docs,
-        currentUserId: uid,
-      );
-      if (_scrollFabVisibleLast != showFab ||
-          _scrollUnreadBelowLast != unreadBelow) {
-        _scrollFabVisibleLast = showFab;
-        _scrollUnreadBelowLast = unreadBelow;
-        if (mounted) setState(() {});
-      }
+  void _onChatListScrollSnapshot(ChatScrollSnapshot snap) {
+    final len = _orderedChatMessageDocs.length;
+    if (len == 0 || snap.index < len) {
+      _lastScrollSnapshotForPersist = snap;
+      _scheduleDebouncedDiskPersist();
     }
   }
 
-  void _onMessageFocusChanged() {
-    if (mounted) setState(() {});
+  void _onChatListDocsChanged(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) {
+    _orderedChatMessageDocs = docs;
   }
 
   KeyEventResult _onComposerKeyEvent(FocusNode node, KeyEvent event) {
@@ -1883,19 +1757,12 @@ class _MessageScreenState extends State<MessageScreen>
       _routeObserved = null;
     }
     _flushScrollDiskTimer();
-    _chatItemPositionsListener.itemPositions.removeListener(
-      _onChatScrollPositions,
-    );
     WidgetsBinding.instance.removeObserver(this);
     unawaited(_persistScrollSnapshotNow());
     _imagePasteListener?.dispose();
-    _presenceWorker?.dispose();
-    _presenceWorker = null;
     _messageSoundSubscription?.cancel();
-    _markReadSubscription?.cancel();
     unawaited(_typingWriter.dispose());
     _clearVisibleChatFocusFromServices();
-    _messageFocusNode.removeListener(_onMessageFocusChanged);
     // Do not call unfocus() here: during Android route pop it can deadlock the
     // platform text input channel; dispose() releases focus.
     _messageFocusNode.dispose();
@@ -2185,14 +2052,8 @@ class _MessageScreenState extends State<MessageScreen>
   Widget build(BuildContext context) {
     final isGroup = widget.chat['isGroup'] ?? false;
     final otherAvatarUrl = widget.otherAvatarUrl?.trim() ?? '';
-    final privatePresenceLabel = !isGroup
-        ? _privatePresenceLabel(widget.otherUserId)
-        : null;
     final privateOnlineDot = !isGroup &&
         _isOnlinePresence(_presenceOf(widget.otherUserId));
-    final groupConnected = isGroup
-        ? _connectedUsersCountForGroup(widget.chat)
-        : 0;
     return _wrapAndroidMessageHardwareBack(
       context,
       Scaffold(
@@ -2250,22 +2111,15 @@ class _MessageScreenState extends State<MessageScreen>
                         color: Colors.black,
                       ),
                     ),
-                    Text(
-                      isGroup
-                          ? AppLocaleKeys.chatConnectedCount.trParams({
-                              'count': '$groupConnected',
-                            })
-                          : (privatePresenceLabel ??
-                                'employees.last_seen_unknown'.tr),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: !isGroup && privateOnlineDot
-                            ? const Color(0xFF16A34A)
-                            : Colors.grey.shade700,
-                        fontWeight: FontWeight.w500,
-                      ),
+                    ChatPresenceSubline(
+                      isGroup: isGroup,
+                      otherUserId: widget.otherUserId,
+                      groupParticipantIds: isGroup
+                          ? List<String>.from(
+                              widget.chat['participants'] ?? const [],
+                            )
+                          : const [],
+                      selfUserId: widget.currentUserId,
                     ),
                   ],
                 ),
@@ -2281,193 +2135,99 @@ class _MessageScreenState extends State<MessageScreen>
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                  child: FutureBuilder<ChatScrollSnapshot?>(
-                    future: _openScrollPrefsFuture,
-                    builder: (context, fSnap) {
-                      final prefsDone =
-                          fSnap.connectionState == ConnectionState.done;
-                      final persisted = fSnap.data;
-                      return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-                        stream: _messagesStream,
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState ==
-                              ConnectionState.waiting) {
-                            return const Center(
-                              child: CircularProgressIndicator(),
-                            );
-                          }
-                          if (!snapshot.hasData ||
-                              snapshot.data!.docs.isEmpty) {
-                            return Center(child: Text('chat.start_first'.tr));
-                          }
+                  child: !_scrollPrefsReady || _messagesStream == null
+                      ? const Center(child: CircularProgressIndicator())
+                      : ChatMessagesViewport(
+                          chatId: _chatId,
+                          child: ChatMessageListHost(
+                          stream: _messagesStream!,
+                          chatId: _chatId,
+                          currentUserId: widget.currentUserId,
+                          listEpoch: _chatMessageListEpoch,
+                          panelController: _chatListPanelController,
+                          persistedScroll: _lastScrollSnapshotForPersist ??
+                              _persistedScrollForOpen,
+                          usePersistedScroll:
+                              _lastScrollSnapshotForPersist != null ||
+                              _persistedScrollForOpen != null,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          loadingWidget: const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                          emptyWidget: Center(
+                            child: Text('chat.start_first'.tr),
+                          ),
+                          onDocsChanged: _onChatListDocsChanged,
+                          onScrollSnapshotChanged: _onChatListScrollSnapshot,
+                          pinnedBannerBuilder: (context, pinnedDoc) => Padding(
+                            padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
+                            child: _PinnedMessageBanner(
+                              message: pinnedDoc.data(),
+                              isGroup: isGroup,
+                              onTap: () =>
+                                  _scrollToRepliedMessage(pinnedDoc.id),
+                            ),
+                          ),
+                          itemBuilder: (context, doc, index) {
+                            final msg = doc.data();
+                            final mid = doc.id;
+                            final isMe =
+                                msg['senderId'] == widget.currentUserId;
+                            final senderName =
+                                msg['senderName'] ?? 'chat.unknown_user'.tr;
+                            final timestamp = msg['timestamp'] as Timestamp?;
+                            final isRead = msg['isRead'] ?? false;
 
-                          final messages = snapshot.data!.docs;
-                          _orderedChatMessageDocs = messages;
-                          QueryDocumentSnapshot<Map<String, dynamic>>?
-                          pinnedDoc;
-                          for (final doc in messages) {
-                            if (doc.data()['isPinned'] == true) {
-                              pinnedDoc = doc;
-                              break;
-                            }
-                          }
-
-                          final showScrollFab = !chatReverseListShowsLatest(
-                            positionsListener: _chatItemPositionsListener,
-                            itemCount: messages.length,
-                          );
-                          final unreadBelow =
-                              chatReverseListUnreadIncomingBelowCount(
-                                positionsListener: _chatItemPositionsListener,
-                                itemCount: messages.length,
-                                docs: messages,
-                                currentUserId: widget.currentUserId,
-                              );
-                          final persistedForResolve =
-                              _lastScrollSnapshotForPersist ??
-                              (prefsDone ? persisted : null);
-                          final openScroll = resolveChatOpenScroll(
-                            itemCount: messages.length,
-                            currentUserId: widget.currentUserId,
-                            docs: messages,
-                            persisted: persistedForResolve,
-                            usePersisted: persistedForResolve != null,
-                          );
-
-                          return Column(
-                            children: [
-                              if (pinnedDoc != null)
-                                Padding(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    10,
-                                    8,
-                                    10,
-                                    4,
-                                  ),
-                                  child: _PinnedMessageBanner(
-                                    message: pinnedDoc.data(),
-                                    isGroup: isGroup,
-                                    onTap: () =>
-                                        _scrollToRepliedMessage(pinnedDoc!.id),
-                                  ),
-                                ),
-                              Expanded(
-                                child: Stack(
-                                  clipBehavior: Clip.none,
-                                  alignment: Alignment.bottomRight,
-                                  children: [
-                                    Positioned.fill(
-                                      child: ScrollablePositionedList.builder(
-                                        key: ValueKey(
-                                          '${_chatId}_${prefsDone ? 'p' : 'n'}',
-                                        ),
-                                        itemScrollController:
-                                            _chatMessageItemScrollController,
-                                        itemPositionsListener:
-                                            _chatItemPositionsListener,
-                                        initialScrollIndex: openScroll.index,
-                                        initialAlignment: openScroll.alignment,
-                                        reverse:
-                                            true, // لعرض الرسائل الأحدث في الأسفل
-                                        itemCount: messages.length,
-                                        itemBuilder: (context, index) {
-                                          final msg = messages[index].data();
-                                          final mid = messages[index].id;
-                                          final isMe =
-                                              msg['senderId'] ==
-                                              widget.currentUserId;
-                                          final senderName =
-                                              msg['senderName'] ??
-                                              'chat.unknown_user'.tr;
-                                          final timestamp =
-                                              msg['timestamp'] as Timestamp?;
-                                          final isRead = msg['isRead'] ?? false;
-
-                                          return Padding(
-                                            key: ValueKey(mid),
-                                            padding: const EdgeInsets.symmetric(
-                                              vertical: 4,
-                                              horizontal: 8,
-                                            ),
-                                            child: ChatMessageTile(
-                                              chatId: _chatId,
-                                              messageId: mid,
-                                              message:
-                                                  Map<String, dynamic>.from(
-                                                    msg,
-                                                  ),
-                                              isMe: isMe,
-                                              isGroup: isGroup,
-                                              senderName: senderName,
-                                              showGroupSenderName:
-                                                  isGroup && !isMe,
-                                              timestamp: timestamp,
-                                              formatTime: _formatTimestamp,
-                                              isAdmin:
-                                                  _currentUserRole == 'admin',
-                                              currentUserId:
-                                                  widget.currentUserId,
-                                              currentUserDisplayName:
-                                                  widget.currentUserName,
-                                              onReply: (draft) => setState(
-                                                () => _replyDraft = draft,
-                                              ),
-                                              onReplyPreviewTap:
-                                                  _scrollToRepliedMessage,
-                                              bubbleDecoration: BoxDecoration(
-                                                color: isMe
-                                                    ? AppColors.primary
-                                                    : Colors.white,
-                                                borderRadius: BorderRadius.only(
-                                                  topLeft:
-                                                      const Radius.circular(18),
-                                                  topRight:
-                                                      const Radius.circular(18),
-                                                  bottomLeft: Radius.circular(
-                                                    isMe ? 18 : 5,
-                                                  ),
-                                                  bottomRight: Radius.circular(
-                                                    isMe ? 5 : 18,
-                                                  ),
-                                                ),
-                                              ),
-                                              maxWidthFactor: 0.76,
-                                              alignment: isMe
-                                                  ? Alignment.centerRight
-                                                  : Alignment.centerLeft,
-                                              columnCrossAxis: isMe
-                                                  ? CrossAxisAlignment.end
-                                                  : CrossAxisAlignment.start,
-                                              showReadReceipts: true,
-                                              messageIsRead: isRead,
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                    Positioned(
-                                      right: 6,
-                                      bottom: 10,
-                                      child: ChatScrollToLatestFab(
-                                        visible: showScrollFab,
-                                        badgeCount: unreadBelow,
-                                        onPressed: () =>
-                                            scheduleScrollChatToLatest(
-                                              controller:
-                                                  _chatMessageItemScrollController,
-                                              mounted: () => mounted,
-                                            ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                            return Padding(
+                              key: ValueKey(mid),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 4,
+                                horizontal: 8,
                               ),
-                            ],
-                          );
-                        },
-                      );
-                    },
-                  ),
+                              child: ChatMessageTile(
+                                chatId: _chatId,
+                                messageId: mid,
+                                message: Map<String, dynamic>.from(msg),
+                                isMe: isMe,
+                                isGroup: isGroup,
+                                senderName: senderName,
+                                showGroupSenderName: isGroup && !isMe,
+                                timestamp: timestamp,
+                                formatTime: _formatTimestamp,
+                                isAdmin: _currentUserRole == 'admin',
+                                currentUserId: widget.currentUserId,
+                                currentUserDisplayName: widget.currentUserName,
+                                onReply: (draft) =>
+                                    setState(() => _replyDraft = draft),
+                                onReplyPreviewTap: _scrollToRepliedMessage,
+                                bubbleDecoration: BoxDecoration(
+                                  color: isMe
+                                      ? AppColors.primary
+                                      : Colors.white,
+                                  borderRadius: BorderRadius.only(
+                                    topLeft: const Radius.circular(18),
+                                    topRight: const Radius.circular(18),
+                                    bottomLeft: Radius.circular(isMe ? 18 : 5),
+                                    bottomRight: Radius.circular(isMe ? 5 : 18),
+                                  ),
+                                ),
+                                maxWidthFactor: 0.76,
+                                alignment: isMe
+                                    ? Alignment.centerRight
+                                    : Alignment.centerLeft,
+                                columnCrossAxis: isMe
+                                    ? CrossAxisAlignment.end
+                                    : CrossAxisAlignment.start,
+                                showReadReceipts: true,
+                                messageIsRead: isRead,
+                              ),
+                            );
+                          },
+                        ),
+                        ),
                 ),
               ),
 
@@ -2614,7 +2374,9 @@ class _MessageScreenState extends State<MessageScreen>
                               ),
                               child: Focus(
                                 onKeyEvent: _onComposerKeyEvent,
-                                child: TextField(
+                                child: ListenableBuilder(
+                                  listenable: _messageFocusNode,
+                                  builder: (context, _) => TextField(
                                   cursorColor: AppColors.primary,
                                   controller: _messageController,
                                   focusNode: _messageFocusNode,
@@ -2684,6 +2446,7 @@ class _MessageScreenState extends State<MessageScreen>
                                       setState(() => _isEmojiVisible = false);
                                     }
                                   },
+                                ),
                                 ),
                               ),
                             ),

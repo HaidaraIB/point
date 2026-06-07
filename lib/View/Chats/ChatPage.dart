@@ -10,7 +10,6 @@ import 'package:point/Utils/AppColors.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Services/AudioService.dart';
@@ -23,13 +22,15 @@ import 'package:point/Services/firestore/firestore_chat_api.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Services/chat_clipboard_image_reader.dart';
 import 'package:point/Services/chat_list_pins_persistence.dart';
+import 'package:point/Services/chat_mark_read_scheduler.dart';
 import 'package:point/Services/chat_scroll_persistence.dart';
 import 'package:point/Services/chat_image_paste_listener.dart';
+import 'package:point/View/Chats/chat_list_row_trailing.dart';
 import 'package:point/View/Chats/chat_list_folder_utils.dart';
 import 'package:point/View/Chats/chat_message_display.dart';
 import 'package:point/View/Chats/chat_message_tile.dart';
+import 'package:point/View/Chats/chat_message_list_panel.dart';
 import 'package:point/View/Chats/pending_chat_attachment.dart';
-import 'package:point/View/Chats/chat_scroll_to_latest_fab.dart';
 import 'package:point/View/Chats/chat_list_tile_media_subtitle.dart';
 import 'package:point/View/Chats/chat_private_typing.dart';
 import 'package:point/View/Chats/chat_reply_draft_banner.dart';
@@ -169,10 +170,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   Map<String, dynamic>? _selectedChat; // selected chat doc (id + data)
   ChatReplyDraft? _replyDraft;
 
-  final ItemScrollController _chatMessageItemScrollController =
-      ItemScrollController();
-  final ItemPositionsListener _chatItemPositionsListener =
-      ItemPositionsListener.create();
+  final ChatMessageListPanelController _chatListPanelController =
+      ChatMessageListPanelController();
   List<QueryDocumentSnapshot<Map<String, dynamic>>> _orderedChatMessageDocs =
       [];
 
@@ -194,8 +193,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _chatsSubscription;
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
   _messageSoundSubscription;
-  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
-  _markReadSubscription;
 
   /// يمنع تطبيق دمج معاينات قديم بعد snapshot أحدث.
   int _chatsEnrichGen = 0;
@@ -203,15 +200,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   /// يمنع إلغاء اشتراك الصوت عند كل تحديث لقائمة المحادثات (كان يُرمى أول snapshot فيه الرسائل الجديدة).
   String? _messageSoundBoundChatId;
 
-  /// Avoid rebuilding the whole chat on every [ItemPositionsListener] tick (hurts scroll + FAB is enough).
-  bool? _scrollFabVisibleLast;
-  int _scrollUnreadBelowLast = -1;
-
   bool _loadingEmployees = true;
   bool _loadingChats = true;
   bool _isLoadingGroup = false; // **إضافة حالة تحميل للمجموعة**
-
-  Worker? _presenceWorker;
 
   DateTime? _presenceOf(String? employeeId) {
     final id = employeeId?.trim() ?? '';
@@ -296,17 +287,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               WidgetsBinding.instance.lifecycleState ==
                   AppLifecycleState.resumed),
     );
-    _chatItemPositionsListener.itemPositions.addListener(
-      _onChatScrollPositions,
-    );
     WidgetsBinding.instance.addObserver(this);
-    if (Get.isRegistered<HomeController>()) {
-      final hc = Get.find<HomeController>();
-      _presenceWorker = ever<Map<String, DateTime>>(hc.employeePresenceById, (_) {
-        if (!mounted) return;
-        setState(() {});
-      });
-    }
     _initUserThenLoad();
   }
 
@@ -338,43 +319,24 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
   }
 
-  void _onChatScrollPositions() {
+  void _onChatListScrollSnapshot(ChatScrollSnapshot snap) {
     final cid = _messagesStreamChatId;
-    final snap = chatScrollSnapshotFromItemPositions(
-      _chatItemPositionsListener.itemPositions.value,
-    );
-    if (cid != null && snap != null) {
+    if (cid != null) {
       final len = _orderedChatMessageDocs.length;
       if (len == 0 || snap.index < len) {
         _scrollSnapshotCache[cid] = snap;
         _scheduleDebouncedDiskPersist();
       }
     }
-    final uid = _currentUserId;
-    final docs = _orderedChatMessageDocs;
-    final n = docs.length;
-    if (uid != null && n > 0) {
-      final showFab = !chatReverseListShowsLatest(
-        positionsListener: _chatItemPositionsListener,
-        itemCount: n,
-      );
-      final unreadBelow = chatReverseListUnreadIncomingBelowCount(
-        positionsListener: _chatItemPositionsListener,
-        itemCount: n,
-        docs: docs,
-        currentUserId: uid,
-      );
-      if (_scrollFabVisibleLast != showFab ||
-          _scrollUnreadBelowLast != unreadBelow) {
-        _scrollFabVisibleLast = showFab;
-        _scrollUnreadBelowLast = unreadBelow;
-        if (mounted) setState(() {});
-      }
-    }
+  }
+
+  void _onChatListDocsChanged(
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
+  ) {
+    _orderedChatMessageDocs = docs;
   }
 
   void _onComposerTextChanged() {
-    if (mounted) setState(() {});
     _typingWriter.onComposerTextChanged(_messageController.text);
   }
 
@@ -420,13 +382,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   void _scrollToRepliedMessage(String messageId) {
-    final idx = _orderedChatMessageDocs.indexWhere((d) => d.id == messageId);
-    if (idx < 0) return;
-    scheduleScrollChatToMessageIndex(
-      controller: _chatMessageItemScrollController,
-      index: idx,
-      mounted: () => mounted,
-    );
+    _chatListPanelController.scrollToMessageId(messageId);
   }
 
   /// Persists scroll for [chatId] using live positions only when that chat is the active stream.
@@ -435,9 +391,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     String chatId,
   ) async {
     final live = _messagesStreamChatId == chatId
-        ? chatScrollSnapshotFromItemPositions(
-            _chatItemPositionsListener.itemPositions.value,
-          )
+        ? _chatListPanelController.currentScrollSnapshot
         : null;
     final snap = live ?? _scrollSnapshotCache[chatId];
     if (snap == null) return;
@@ -778,8 +732,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       _messageSoundSubscription = null;
       final prevBound = _messageSoundBoundChatId;
       _messageSoundBoundChatId = null;
-      _markReadSubscription?.cancel();
-      _markReadSubscription = null;
       if (prevBound != null) {
         ChatAudioFocus.unregisterMainLayoutChatOpen(prevBound);
       }
@@ -806,8 +758,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     }
     _messageSoundSubscription?.cancel();
     _messageSoundSubscription = null;
-    _markReadSubscription?.cancel();
-    _markReadSubscription = null;
     _messageSoundBoundChatId = chatId;
     ChatAudioFocus.registerMainLayoutChatOpen(chatId);
     _messageSoundSubscription = attachIncomingMessageSoundSubscription(
@@ -816,9 +766,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       currentUserId: uid,
     );
     unawaited(FirestoreServices.syncEmployeeActiveChatId(uid, chatId));
-    _markReadSubscription = stream.listen((_) {
-      unawaited(FirestoreServices.markIncomingMessagesReadInChat(chatId, uid));
-    });
   }
 
   /// يضبط [stream] الرسائل ليتوافق مع [_selectedChat] (مثلاً عند استعادة آخر محادثة من [HomeController]).
@@ -839,10 +786,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       return;
     }
     if (_messagesStreamChatId != null && _messagesStreamChatId != id) {
+      ChatMarkReadScheduler.cancelForChat(_messagesStreamChatId!);
       _flushScrollDiskTimer();
       _orderedChatMessageDocs = [];
-      _scrollFabVisibleLast = null;
-      _scrollUnreadBelowLast = -1;
     }
     _messagesStreamChatId = id;
     _messagesStream = _firestore
@@ -1034,16 +980,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     _flushScrollDiskTimer();
     WidgetsBinding.instance.removeObserver(this);
     unawaited(_persistCurrentChatScrollIfAny());
-    _chatItemPositionsListener.itemPositions.removeListener(
-      _onChatScrollPositions,
-    );
     _imagePasteListener?.dispose();
     final sub = _chatsSubscription;
     _chatsSubscription =
         null; // أي callback قادم من الـ stream سيرى null ولن يستدعي setState
     sub?.cancel();
     _messageSoundSubscription?.cancel();
-    _markReadSubscription?.cancel();
     final bound = _messageSoundBoundChatId;
     _messageSoundBoundChatId = null;
     if (bound != null) {
@@ -1056,8 +998,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       );
     }
     unawaited(_typingWriter.dispose());
-    _presenceWorker?.dispose();
-    _presenceWorker = null;
     _messageController.removeListener(_onComposerTextChanged);
     _messageController.dispose();
     // Do not call unfocus() here: during Android route pop it can deadlock the
@@ -1264,8 +1204,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       }
       _persistedOpenScroll = openSnap;
       _persistedOpenScrollForChatId = newChatId;
-      _scrollFabVisibleLast = null;
-      _scrollUnreadBelowLast = -1;
     });
     _syncMessageSoundListener();
   }
@@ -1329,8 +1267,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       }
       _persistedOpenScroll = openSnap;
       _persistedOpenScrollForChatId = chatId;
-      _scrollFabVisibleLast = null;
-      _scrollUnreadBelowLast = -1;
     });
     _syncMessageSoundListener();
   }
@@ -1550,14 +1486,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         }
       }
     }
-  }
-
-  Future<void> _markMessagesAsRead(String chatId) async {
-    if (_currentUserId == null) return;
-    await FirestoreServices.markIncomingMessagesReadInChat(
-      chatId,
-      _currentUserId!,
-    );
   }
 
   // ---------------- Helpers ----------------
@@ -2036,6 +1964,13 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                             );
                                           },
                                           child: ListTile(
+                                            dense: true,
+                                            visualDensity: VisualDensity.compact,
+                                            contentPadding:
+                                                const EdgeInsets.symmetric(
+                                              horizontal: 16,
+                                              vertical: 4,
+                                            ),
                                             tileColor:
                                                 _selectedChat != null &&
                                                     _selectedChat!['id'] ==
@@ -2085,9 +2020,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                     )
                                                   : null;
 
-                                              await _markMessagesAsRead(
-                                                nextChatId,
-                                              );
                                               if (!isGroup) {
                                                 final participants =
                                                     List<String>.from(
@@ -2109,8 +2041,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                 _persistedOpenScroll = openSnap;
                                                 _persistedOpenScrollForChatId =
                                                     nextChatId;
-                                                _scrollFabVisibleLast = null;
-                                                _scrollUnreadBelowLast = -1;
                                               });
                                               _syncMessageSoundListener();
                                             },
@@ -2166,79 +2096,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                     : '',
                                               ),
                                             ),
-                                            trailing: (titleSubline !=
-                                                    null ||
-                                                unreadCount > 0)
-                                                ? Column(
-                                                    mainAxisSize:
-                                                        MainAxisSize.min,
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment.end,
-                                                    children: [
-                                                      if (titleSubline != null)
-                                                        ConstrainedBox(
-                                                          constraints:
-                                                              const BoxConstraints(
-                                                            maxWidth: 110,
-                                                          ),
-                                                          child: Text(
-                                                            titleSubline,
-                                                            textAlign:
-                                                                TextAlign.end,
-                                                            maxLines: 1,
-                                                            overflow:
-                                                                TextOverflow
-                                                                    .ellipsis,
-                                                            style: TextStyle(
-                                                              fontSize: 11,
-                                                              color:
-                                                                  !isGroup &&
-                                                                      showPrivateOnlineDot
-                                                                  ? const Color(
-                                                                      0xFF16A34A,
-                                                                    )
-                                                                  : Colors.grey
-                                                                      .shade600,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w500,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      if (titleSubline !=
-                                                              null &&
-                                                          unreadCount > 0)
-                                                        const SizedBox(
-                                                          height: 4,
-                                                        ),
-                                                      if (unreadCount > 0)
-                                                        Container(
-                                                          padding:
-                                                              const EdgeInsets
-                                                                  .all(6),
-                                                          decoration:
-                                                              BoxDecoration(
-                                                            color: Colors.red,
-                                                            borderRadius:
-                                                                BorderRadius
-                                                                    .circular(
-                                                              12,
-                                                            ),
-                                                          ),
-                                                          child: Text(
-                                                            unreadCount
-                                                                .toString(),
-                                                            style:
-                                                                const TextStyle(
-                                                              color:
-                                                                  Colors.white,
-                                                              fontSize: 12,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                    ],
-                                                  )
-                                                : null,
+                                            trailing: ChatListRowTrailing(
+                                              titleSubline: titleSubline,
+                                              highlightSubline: !isGroup &&
+                                                  showPrivateOnlineDot,
+                                              unreadCount: unreadCount,
+                                            ),
                                           ),
                                         );
                                       },
@@ -2311,23 +2174,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                               }
                                             }
                                           }
-                                          final privatePresenceLabel =
-                                              !isGroup
-                                                  ? _privatePresenceLabel(
-                                                      otherParticipantId,
-                                                    )
-                                                  : null;
                                           final privateOnlineDot =
                                               !isGroup &&
                                               _isOnlinePresence(
                                                 _presenceOf(otherParticipantId),
                                               );
-                                          final groupConnected =
-                                              isGroup
-                                                  ? _connectedUsersCountForGroup(
-                                                      _selectedChat!,
-                                                    )
-                                                  : 0;
 
                                           Widget avatar;
                                           if (!isGroup &&
@@ -2413,35 +2264,19 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                             FontWeight.bold,
                                                       ),
                                                     ),
-                                                    Text(
-                                                      isGroup
-                                                          ? AppLocaleKeys
-                                                                  .chatConnectedCount
-                                                                  .trParams({
-                                                                'count':
-                                                                    '$groupConnected',
-                                                              })
-                                                          : (privatePresenceLabel ??
-                                                                'employees.last_seen_unknown'
-                                                                    .tr),
-                                                      maxLines: 1,
-                                                      overflow:
-                                                          TextOverflow
-                                                              .ellipsis,
-                                                      style: TextStyle(
-                                                        fontSize: 11,
-                                                        color:
-                                                            !isGroup &&
-                                                                privateOnlineDot
-                                                            ? const Color(
-                                                                0xFF16A34A,
-                                                              )
-                                                            : Colors
-                                                                .grey
-                                                                .shade700,
-                                                        fontWeight:
-                                                            FontWeight.w500,
-                                                      ),
+                                                    ChatPresenceSubline(
+                                                      isGroup: isGroup,
+                                                      otherUserId:
+                                                          otherParticipantId,
+                                                      groupParticipantIds: isGroup
+                                                          ? List<String>.from(
+                                                              _selectedChat![
+                                                                      'participants'] ??
+                                                                  const [],
+                                                            )
+                                                          : const [],
+                                                      selfUserId:
+                                                          _currentUserId ?? '',
                                                     ),
                                                   ],
                                                 ),
@@ -2476,62 +2311,15 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                     horizontal: 5,
                                   ),
                                   clipBehavior: Clip.antiAlias,
-                                  child: _messagesStream == null
+                                  child: _messagesStream == null ||
+                                          _currentUserId == null
                                       ? Center(
                                           child: Text(
                                             AppLocaleKeys.chatNoMessages.tr,
                                           ),
                                         )
-                                      : StreamBuilder<
-                                          QuerySnapshot<Map<String, dynamic>>
-                                        >(
-                                          stream: _messagesStream,
-                                          builder: (context, snapshot) {
-                                            if (snapshot.connectionState ==
-                                                ConnectionState.waiting) {
-                                              return Center(
-                                                child:
-                                                    CircularProgressIndicator(),
-                                              );
-                                            }
-                                            final docs =
-                                                snapshot.data?.docs ?? [];
-                                            if (docs.isEmpty) {
-                                              return Center(
-                                                child: Text(
-                                                  AppLocaleKeys
-                                                      .chatNoMessages
-                                                      .tr,
-                                                ),
-                                              );
-                                            }
-                                            _orderedChatMessageDocs = docs;
-                                            QueryDocumentSnapshot<
-                                              Map<String, dynamic>
-                                            >?
-                                            pinnedDoc;
-                                            for (final doc in docs) {
-                                              if (doc.data()['isPinned'] ==
-                                                  true) {
-                                                pinnedDoc = doc;
-                                                break;
-                                              }
-                                            }
-                                            final showScrollFab =
-                                                !chatReverseListShowsLatest(
-                                                  positionsListener:
-                                                      _chatItemPositionsListener,
-                                                  itemCount: docs.length,
-                                                );
-                                            final unreadBelow =
-                                                chatReverseListUnreadIncomingBelowCount(
-                                                  positionsListener:
-                                                      _chatItemPositionsListener,
-                                                  itemCount: docs.length,
-                                                  docs: docs,
-                                                  currentUserId:
-                                                      _currentUserId!,
-                                                );
+                                      : Builder(
+                                          builder: (context) {
                                             final selChatId =
                                                 _selectedChat!['id'] as String;
                                             final mem =
@@ -2543,206 +2331,151 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                 : null;
                                             final persistedForResolve =
                                                 mem ?? disk;
-                                            final openScroll =
-                                                resolveChatOpenScroll(
-                                                  itemCount: docs.length,
-                                                  currentUserId:
-                                                      _currentUserId!,
-                                                  docs: docs,
-                                                  persisted:
-                                                      persistedForResolve,
-                                                  usePersisted:
-                                                      persistedForResolve !=
-                                                      null,
-                                                );
-                                            return Column(
-                                              children: [
-                                                if (pinnedDoc != null)
-                                                  Padding(
-                                                    padding:
-                                                        const EdgeInsets.fromLTRB(
-                                                          12,
-                                                          8,
-                                                          12,
-                                                          4,
-                                                        ),
-                                                    child: _PinnedMessageBanner(
-                                                      message: pinnedDoc.data(),
-                                                      isGroup:
-                                                          _selectedChat!['isGroup'] ==
-                                                          true,
-                                                      onTap: () =>
-                                                          _scrollToRepliedMessage(
-                                                            pinnedDoc!.id,
-                                                          ),
-                                                    ),
-                                                  ),
-                                                Expanded(
-                                                  child: Stack(
-                                                    clipBehavior: Clip.none,
-                                                    alignment:
-                                                        Alignment.bottomRight,
-                                                    children: [
-                                                      Positioned.fill(
-                                                        child: ScrollablePositionedList.builder(
-                                                          key: ValueKey(
-                                                            '${selChatId}_$_chatMessageListEpoch',
-                                                          ),
-                                                          itemScrollController:
-                                                              _chatMessageItemScrollController,
-                                                          itemPositionsListener:
-                                                              _chatItemPositionsListener,
-                                                          initialScrollIndex:
-                                                              openScroll.index,
-                                                          initialAlignment:
-                                                              openScroll
-                                                                  .alignment,
-                                                          padding:
-                                                              const EdgeInsets.all(
-                                                                16,
-                                                              ),
-                                                          itemCount:
-                                                              docs.length,
-                                                          reverse: true,
-                                                          itemBuilder: (context, i) {
-                                                            final d = docs[i]
-                                                                .data();
-                                                            final mid =
-                                                                docs[i].id;
-                                                            final isMe =
-                                                                d['senderId'] ==
-                                                                _currentUserId;
-                                                            final ts =
-                                                                d['timestamp']
-                                                                    as Timestamp?;
-                                                            final senderName =
-                                                                d['senderName'] ??
-                                                                AppLocaleKeys
-                                                                    .chatSenderFallback
-                                                                    .tr;
-                                                            final isRead =
-                                                                d['isRead'] ==
-                                                                true;
-
-                                                            return Padding(
-                                                              key: ValueKey(
-                                                                mid,
-                                                              ),
-                                                              padding:
-                                                                  const EdgeInsets.symmetric(
-                                                                    vertical: 4,
-                                                                  ),
-                                                              child: ChatMessageTile(
-                                                                chatId:
-                                                                    _selectedChat!['id']
-                                                                        as String,
-                                                                messageId: mid,
-                                                                message:
-                                                                    Map<
-                                                                      String,
-                                                                      dynamic
-                                                                    >.from(d),
-                                                                isMe: isMe,
-                                                                isGroup:
-                                                                    _selectedChat!['isGroup'] ==
-                                                                    true,
-                                                                senderName:
-                                                                    senderName,
-                                                                showGroupSenderName:
-                                                                    !isMe &&
-                                                                    (_selectedChat?['isGroup'] ??
-                                                                        false),
-                                                                timestamp: ts,
-                                                                formatTime:
-                                                                    _formatTimestamp,
-                                                                isAdmin:
-                                                                    _currentUserRole ==
-                                                                    'admin',
-                                                                currentUserId:
-                                                                    _currentUserId!,
-                                                                currentUserDisplayName:
-                                                                    _currentUserName,
-                                                                onReply:
-                                                                    (
-                                                                      draft,
-                                                                    ) => setState(
-                                                                      () => _replyDraft =
-                                                                          draft,
-                                                                    ),
-                                                                onReplyPreviewTap:
-                                                                    _scrollToRepliedMessage,
-                                                                bubbleDecoration: BoxDecoration(
-                                                                  color: isMe
-                                                                      ? AppColors.primary
-                                                                      : Colors
-                                                                            .grey
-                                                                            .shade100,
-                                                                  borderRadius: BorderRadius.only(
-                                                                    topLeft:
-                                                                        const Radius.circular(
-                                                                          17,
-                                                                        ),
-                                                                    topRight:
-                                                                        const Radius.circular(
-                                                                          17,
-                                                                        ),
-                                                                    bottomLeft:
-                                                                        Radius.circular(
-                                                                          isMe
-                                                                              ? 17
-                                                                              : 5,
-                                                                        ),
-                                                                    bottomRight:
-                                                                        Radius.circular(
-                                                                          isMe
-                                                                              ? 5
-                                                                              : 17,
-                                                                        ),
-                                                                  ),
-                                                                ),
-                                                                maxWidthFactor:
-                                                                    0.6,
-                                                                alignment: isMe
-                                                                    ? Alignment
-                                                                          .centerRight
-                                                                    : Alignment
-                                                                          .centerLeft,
-                                                                columnCrossAxis:
-                                                                    isMe
-                                                                    ? CrossAxisAlignment
-                                                                          .end
-                                                                    : CrossAxisAlignment
-                                                                          .start,
-                                                                showReadReceipts:
-                                                                    true,
-                                                                messageIsRead:
-                                                                    isRead,
-                                                              ),
-                                                            );
-                                                          },
-                                                        ),
-                                                      ),
-                                                      Positioned(
-                                                        right: 6,
-                                                        bottom: 10,
-                                                        child: ChatScrollToLatestFab(
-                                                          visible:
-                                                              showScrollFab,
-                                                          badgeCount:
-                                                              unreadBelow,
-                                                          onPressed: () =>
-                                                              scheduleScrollChatToLatest(
-                                                                controller:
-                                                                    _chatMessageItemScrollController,
-                                                                mounted: () =>
-                                                                    mounted,
-                                                              ),
-                                                        ),
-                                                      ),
-                                                    ],
+                                            return ChatMessagesViewport(
+                                              chatId: selChatId,
+                                              child: ChatMessageListHost(
+                                              stream: _messagesStream!,
+                                              chatId: selChatId,
+                                              currentUserId: _currentUserId!,
+                                              listEpoch: _chatMessageListEpoch,
+                                              panelController:
+                                                  _chatListPanelController,
+                                              persistedScroll:
+                                                  persistedForResolve,
+                                              usePersistedScroll:
+                                                  persistedForResolve != null,
+                                              loadingWidget: const Center(
+                                                child:
+                                                    CircularProgressIndicator(),
+                                              ),
+                                              emptyWidget: Center(
+                                                child: Text(
+                                                  AppLocaleKeys
+                                                      .chatNoMessages
+                                                      .tr,
+                                                ),
+                                              ),
+                                              onDocsChanged:
+                                                  _onChatListDocsChanged,
+                                              onScrollSnapshotChanged:
+                                                  _onChatListScrollSnapshot,
+                                              pinnedBannerBuilder:
+                                                  (context, pinnedDoc) =>
+                                                      Padding(
+                                                padding:
+                                                    const EdgeInsets.fromLTRB(
+                                                  12,
+                                                  8,
+                                                  12,
+                                                  4,
+                                                ),
+                                                child: _PinnedMessageBanner(
+                                                  message: pinnedDoc.data(),
+                                                  isGroup:
+                                                      _selectedChat!['isGroup'] ==
+                                                      true,
+                                                  onTap: () =>
+                                                      _scrollToRepliedMessage(
+                                                    pinnedDoc.id,
                                                   ),
                                                 ),
-                                              ],
+                                              ),
+                                              itemBuilder: (context, doc, i) {
+                                                final d = doc.data();
+                                                final mid = doc.id;
+                                                final isMe =
+                                                    d['senderId'] ==
+                                                    _currentUserId;
+                                                final ts =
+                                                    d['timestamp']
+                                                        as Timestamp?;
+                                                final senderName =
+                                                    d['senderName'] ??
+                                                    AppLocaleKeys
+                                                        .chatSenderFallback
+                                                        .tr;
+                                                final isRead =
+                                                    d['isRead'] == true;
+
+                                                return Padding(
+                                                  key: ValueKey(mid),
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                    vertical: 4,
+                                                  ),
+                                                  child: ChatMessageTile(
+                                                    chatId: selChatId,
+                                                    messageId: mid,
+                                                    message:
+                                                        Map<
+                                                          String,
+                                                          dynamic
+                                                        >.from(d),
+                                                    isMe: isMe,
+                                                    isGroup:
+                                                        _selectedChat!['isGroup'] ==
+                                                        true,
+                                                    senderName: senderName,
+                                                    showGroupSenderName: !isMe &&
+                                                        (_selectedChat?['isGroup'] ??
+                                                            false),
+                                                    timestamp: ts,
+                                                    formatTime:
+                                                        _formatTimestamp,
+                                                    isAdmin:
+                                                        _currentUserRole ==
+                                                        'admin',
+                                                    currentUserId:
+                                                        _currentUserId!,
+                                                    currentUserDisplayName:
+                                                        _currentUserName,
+                                                    onReply: (draft) =>
+                                                        setState(
+                                                      () => _replyDraft = draft,
+                                                    ),
+                                                    onReplyPreviewTap:
+                                                        _scrollToRepliedMessage,
+                                                    bubbleDecoration:
+                                                        BoxDecoration(
+                                                      color: isMe
+                                                          ? AppColors.primary
+                                                          : Colors
+                                                              .grey
+                                                              .shade100,
+                                                      borderRadius:
+                                                          BorderRadius.only(
+                                                        topLeft:
+                                                            const Radius.circular(
+                                                          17,
+                                                        ),
+                                                        topRight:
+                                                            const Radius.circular(
+                                                          17,
+                                                        ),
+                                                        bottomLeft:
+                                                            Radius.circular(
+                                                          isMe ? 17 : 5,
+                                                        ),
+                                                        bottomRight:
+                                                            Radius.circular(
+                                                          isMe ? 5 : 17,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    maxWidthFactor: 0.6,
+                                                    alignment: isMe
+                                                        ? Alignment.centerRight
+                                                        : Alignment.centerLeft,
+                                                    columnCrossAxis: isMe
+                                                        ? CrossAxisAlignment.end
+                                                        : CrossAxisAlignment
+                                                            .start,
+                                                    showReadReceipts: true,
+                                                    messageIsRead: isRead,
+                                                  ),
+                                                );
+                                              },
+                                            ),
                                             );
                                           },
                                         ),

@@ -67,7 +67,6 @@ dependencies:
   flutter_slidable: ^4.0.3
   permission_handler: ^12.0.1
   pasteboard: ^0.5.0
-  scrollable_positioned_list: ^0.3.8
   package_info_plus: ^9.0.1
   hive: ^2.2.3
   connectivity_plus: ^7.0.0
@@ -76,6 +75,7 @@ dependencies:
   flutter_cache_manager: ^3.4.1
   flutter_image_compress: ^2.4.0
   image_picker: ^1.1.2
+  scroll_to_index: ^3.0.1
 
 dev_dependencies:
   flutter_test:

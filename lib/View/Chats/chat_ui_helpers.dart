@@ -4,10 +4,67 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:get/get.dart';
-import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:scroll_to_index/scroll_to_index.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
+
+/// scroll_to_index asserts `duration > Duration.zero`; use 1ms for instant jumps.
+const Duration kChatInstantScrollDuration = Duration(milliseconds: 1);
+
+/// Call at the top of an [Obx] builder so GetX tracks presence map updates.
+RxMap<String, DateTime>? chatPresenceMapForObx() {
+  if (!Get.isRegistered<HomeController>()) return null;
+  final map = Get.find<HomeController>().employeePresenceById;
+  map.length;
+  return map;
+}
+
+Future<void> chatScrollToIndexInstant(
+  AutoScrollController controller,
+  int index, {
+  AutoScrollPosition? preferPosition,
+}) {
+  return controller.scrollToIndex(
+    index,
+    preferPosition: preferPosition,
+    duration: kChatInstantScrollDuration,
+  );
+}
+
+/// Tracks whether the user is actively scrolling the chat message list.
+class ChatScrollInteraction {
+  ChatScrollInteraction._();
+
+  static int _dragDepth = 0;
+  static Timer? _activityTimer;
+
+  static bool get userIsScrolling => _dragDepth > 0;
+
+  static void onScrollStart() {
+    _dragDepth++;
+    _armActivityEndTimer();
+  }
+
+  static void onScrollEnd() {
+    if (_dragDepth > 0) _dragDepth--;
+    _armActivityEndTimer();
+  }
+
+  /// Wheel / trackpad updates between start and end.
+  static void onScrollActivity() {
+    if (_dragDepth == 0) _dragDepth = 1;
+    _armActivityEndTimer();
+  }
+
+  static void _armActivityEndTimer() {
+    _activityTimer?.cancel();
+    _activityTimer = Timer(const Duration(milliseconds: 150), () {
+      _dragDepth = 0;
+    });
+  }
+}
 
 /// Android/iOS camera capture for chat attachments (not web/desktop).
 bool chatMobileCameraSupported() {
@@ -16,13 +73,9 @@ bool chatMobileCameraSupported() {
           defaultTargetPlatform == TargetPlatform.iOS);
 }
 
-/// Scrolls a [ScrollablePositionedList] so the item at [index] is visible.
-///
-/// [ListView.builder] only mounts visible rows, so [Scrollable.ensureVisible]
-/// on a [GlobalKey] does nothing when the target is off-screen. This helper
-/// waits until [controller] is attached, then animates to [index].
+/// Scrolls a reverse chat [ListView] so the item at [index] is visible.
 void scheduleScrollChatToMessageIndex({
-  required ItemScrollController controller,
+  required AutoScrollController controller,
   required int index,
   required bool Function() mounted,
   Duration duration = const Duration(milliseconds: 380),
@@ -33,20 +86,25 @@ void scheduleScrollChatToMessageIndex({
   var attempts = 0;
   void tryScroll() {
     if (!mounted()) return;
-    if (controller.isAttached) {
-      unawaited(
-        controller.scrollTo(
-          index: index,
-          duration: duration,
-          curve: curve,
-          alignment: alignment,
-        ),
-      );
+    if (ChatScrollInteraction.userIsScrolling) return;
+    if (!controller.hasClients) {
+      attempts++;
+      if (attempts > 24) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) => tryScroll());
       return;
     }
-    attempts++;
-    if (attempts > 24) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) => tryScroll());
+    final prefer = alignment >= 0.65
+        ? AutoScrollPosition.end
+        : (alignment <= 0.35
+              ? AutoScrollPosition.begin
+              : AutoScrollPosition.middle);
+    unawaited(
+      controller.scrollToIndex(
+        index,
+        preferPosition: prefer,
+        duration: duration,
+      ),
+    );
   }
 
   WidgetsBinding.instance.addPostFrameCallback((_) => tryScroll());
@@ -54,31 +112,19 @@ void scheduleScrollChatToMessageIndex({
 
 /// Scrolls a **reverse** chat list to the newest message (index `0`).
 void scheduleScrollChatToLatest({
-  required ItemScrollController controller,
+  required AutoScrollController controller,
   required bool Function() mounted,
   Duration duration = const Duration(milliseconds: 320),
   Curve curve = Curves.easeOutCubic,
 }) {
-  var attempts = 0;
-  void tryScroll() {
-    if (!mounted()) return;
-    if (controller.isAttached) {
-      unawaited(
-        controller.scrollTo(
-          index: 0,
-          duration: duration,
-          curve: curve,
-          alignment: 0,
-        ),
-      );
-      return;
-    }
-    attempts++;
-    if (attempts > 24) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) => tryScroll());
-  }
-
-  WidgetsBinding.instance.addPostFrameCallback((_) => tryScroll());
+  scheduleScrollChatToMessageIndex(
+    controller: controller,
+    index: 0,
+    mounted: mounted,
+    duration: duration,
+    curve: curve,
+    alignment: 0,
+  );
 }
 
 /// Reply target while composing (references an existing message).
@@ -235,6 +281,106 @@ class ChatUploadProgressBanner extends StatelessWidget {
         ),
       );
     });
+  }
+}
+
+bool chatIsOnlineFromLastSeen(DateTime? at) {
+  if (at == null) return false;
+  return DateTime.now().difference(at.toLocal()) <= const Duration(minutes: 2);
+}
+
+String chatPrivatePresenceLabelFromLastSeen(DateTime? at) {
+  if (chatIsOnlineFromLastSeen(at)) {
+    final raw = AppLocaleKeys.employeesOnlineNow.tr;
+    final lang = Get.locale?.languageCode.toLowerCase() ?? '';
+    return lang == 'en' ? raw.toLowerCase() : raw;
+  }
+  if (at == null) return AppLocaleKeys.employeesLastSeenUnknown.tr;
+  return AppLocaleKeys.employeesLastSeenAt.trParams({
+    'time': FunHelper.formatTimeAgo(at.toLocal()),
+  });
+}
+
+int chatGroupConnectedCountFromPresence(
+  RxMap<String, DateTime> presence,
+  List<String> participantIds,
+  String selfUserId,
+) {
+  var count = 0;
+  for (final id in participantIds) {
+    if (id == selfUserId) continue;
+    if (chatIsOnlineFromLastSeen(presence[id])) count++;
+  }
+  return count;
+}
+
+/// Presence / connected-count subline for chat headers and list trailing text.
+class ChatPresenceSubline extends StatelessWidget {
+  final bool isGroup;
+  final String? otherUserId;
+  final List<String> groupParticipantIds;
+  final String selfUserId;
+  final bool allowEmpty;
+
+  const ChatPresenceSubline({
+    super.key,
+    required this.isGroup,
+    this.otherUserId,
+    this.groupParticipantIds = const [],
+    required this.selfUserId,
+    this.allowEmpty = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (!Get.isRegistered<HomeController>()) {
+      return _buildText(
+        isGroup
+            ? AppLocaleKeys.chatConnectedCount.trParams({'count': '0'})
+            : AppLocaleKeys.employeesLastSeenUnknown.tr,
+        isOnline: false,
+      );
+    }
+
+    return Obx(() {
+      final presence = chatPresenceMapForObx()!;
+
+      if (isGroup) {
+        final count = chatGroupConnectedCountFromPresence(
+          presence,
+          groupParticipantIds,
+          selfUserId,
+        );
+        return _buildText(
+          AppLocaleKeys.chatConnectedCount.trParams({'count': '$count'}),
+          isOnline: false,
+        );
+      }
+
+      final id = otherUserId?.trim() ?? '';
+      final at = id.isEmpty ? null : presence[id];
+      final online = chatIsOnlineFromLastSeen(at);
+      final label = chatPrivatePresenceLabelFromLastSeen(at);
+      if (allowEmpty && label.isEmpty) {
+        return const SizedBox.shrink();
+      }
+      return _buildText(label, isOnline: online);
+    });
+  }
+
+  Widget _buildText(String label, {required bool isOnline}) {
+    return Text(
+      label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        fontSize: 11,
+        color: !isGroup && isOnline
+            ? const Color(0xFF16A34A)
+            : Colors.grey.shade700,
+        fontWeight: FontWeight.w500,
+      ),
+    );
   }
 }
 

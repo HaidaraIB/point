@@ -1,4 +1,4 @@
-import 'dart:async' show unawaited;
+import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -938,8 +938,10 @@ class _ChatMessageTileState extends State<ChatMessageTile>
                           ),
                           const SizedBox(width: 4),
                         ],
-                        Text(
-                          widget.formatTime(widget.timestamp),
+                        _ChatRelativeTimestamp(
+                          timestamp: widget.timestamp,
+                          formatTime: widget.formatTime,
+                          pendingOwnMessage: widget.isMe,
                           style: TextStyle(
                             fontSize: 11,
                             color: footerTextColor,
@@ -1014,11 +1016,83 @@ class _ChatMessageTileState extends State<ChatMessageTile>
     return Slidable(
       key: ValueKey<String>('msg_${widget.messageId}'),
       controller: _slidableController,
-      closeOnScroll: true,
+      closeOnScroll: false,
+      direction: Axis.horizontal,
+      groupTag: ObjectKey('chat_slidable_${widget.chatId}'),
       startActionPane: rightAligned ? replyPane : null,
       endActionPane: rightAligned ? null : replyPane,
       child: slidableChild,
     );
+  }
+}
+
+/// Relative message time that refreshes for recent messages ("now" → "1m ago").
+class _ChatRelativeTimestamp extends StatefulWidget {
+  final Timestamp? timestamp;
+  final String Function(Timestamp?) formatTime;
+  final bool pendingOwnMessage;
+  final TextStyle style;
+
+  const _ChatRelativeTimestamp({
+    required this.timestamp,
+    required this.formatTime,
+    required this.pendingOwnMessage,
+    required this.style,
+  });
+
+  @override
+  State<_ChatRelativeTimestamp> createState() => _ChatRelativeTimestampState();
+}
+
+class _ChatRelativeTimestampState extends State<_ChatRelativeTimestamp> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _armTimer();
+  }
+
+  @override
+  void didUpdateWidget(_ChatRelativeTimestamp oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.timestamp != widget.timestamp) {
+      _armTimer();
+    }
+  }
+
+  void _armTimer() {
+    _timer?.cancel();
+    _timer = null;
+    final ts = widget.timestamp;
+    if (ts == null) return;
+    final age = DateTime.now().difference(ts.toDate());
+    if (age.inHours >= 1) return;
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (!mounted) return;
+      final ageNow = DateTime.now().difference(ts.toDate());
+      if (ageNow.inHours >= 1) {
+        _timer?.cancel();
+        _timer = null;
+      }
+      setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    var label = widget.formatTime(widget.timestamp);
+    if (label.isEmpty && widget.pendingOwnMessage) {
+      label = AppLocaleKeys.commonNow.tr;
+    }
+    if (label.isEmpty) return const SizedBox.shrink();
+    return Text(label, style: widget.style);
   }
 }
 
