@@ -421,7 +421,6 @@ class _ChatImageBubble extends StatelessWidget {
         width: 200,
         fit: BoxFit.cover,
         isMe: isMe,
-        onImageTap: () => openChatMediaFromUrl(url),
       ),
     );
   }
@@ -433,7 +432,6 @@ class _RetryableChatImage extends StatefulWidget {
   final BoxFit fit;
   final bool isMe;
   final double loadingHeight;
-  final VoidCallback? onImageTap;
 
   const _RetryableChatImage({
     required this.url,
@@ -441,7 +439,6 @@ class _RetryableChatImage extends StatefulWidget {
     required this.fit,
     required this.isMe,
     this.loadingHeight = 120,
-    this.onImageTap,
   });
 
   @override
@@ -449,42 +446,63 @@ class _RetryableChatImage extends StatefulWidget {
 }
 
 class _RetryableChatImageState extends State<_RetryableChatImage> {
+  bool _loadRequested = false;
+  bool _loaded = false;
+
+  void _onTap() {
+    if (!_loaded) {
+      if (!_loadRequested) {
+        setState(() => _loadRequested = true);
+      }
+      return;
+    }
+    unawaited(openChatMediaFromUrl(widget.url));
+  }
+
   @override
   Widget build(BuildContext context) {
-    final image = ChatCachedAttachmentImage(
-      url: widget.url,
-      width: widget.width,
-      fit: widget.fit,
-      loadingBuilder: (c, w, p) => SizedBox(
-        height: widget.loadingHeight,
+    return InkWell(
+      onTap: _onTap,
+      child: ChatCachedAttachmentImage(
+        url: widget.url,
         width: widget.width,
-        child: const Center(child: CircularProgressIndicator()),
-      ),
-      errorBuilder: (_, __) => SizedBox(
-        height: widget.loadingHeight,
-        width: widget.width,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.refresh,
-              size: 24,
-              color: widget.isMe ? Colors.white70 : Colors.black54,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Retry',
-              style: TextStyle(
-                fontSize: 11,
+        fit: widget.fit,
+        loadPolicy: ChatAttachmentLoadPolicy.onDemand,
+        loadRequested: _loadRequested,
+        isMe: widget.isMe,
+        onLoadComplete: () {
+          if (!mounted) return;
+          setState(() => _loaded = true);
+        },
+        loadingBuilder: (c, w, p) => SizedBox(
+          height: widget.loadingHeight,
+          width: widget.width,
+          child: const Center(child: CircularProgressIndicator()),
+        ),
+        errorBuilder: (_, __) => SizedBox(
+          height: widget.loadingHeight,
+          width: widget.width,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.refresh,
+                size: 24,
                 color: widget.isMe ? Colors.white70 : Colors.black54,
               ),
-            ),
-          ],
+              const SizedBox(height: 4),
+              Text(
+                'Retry',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: widget.isMe ? Colors.white70 : Colors.black54,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
-    if (widget.onImageTap == null) return image;
-    return InkWell(onTap: widget.onImageTap, child: image);
   }
 }
 
@@ -507,14 +525,12 @@ class _ChatVideoBubbleState extends State<_ChatVideoBubble> {
   VideoPlayerController? _controller;
   bool _ready = false;
   bool _failed = false;
-
-  @override
-  void initState() {
-    super.initState();
-    unawaited(_boot());
-  }
+  bool _loadRequested = false;
+  bool _booting = false;
 
   Future<void> _boot() async {
+    if (_booting) return;
+    _booting = true;
     try {
       final c = await chatVideoControllerForUrl(widget.url)
         ..setLooping(false)
@@ -530,7 +546,15 @@ class _ChatVideoBubbleState extends State<_ChatVideoBubble> {
       setState(() => _ready = true);
     } catch (_) {
       if (mounted) setState(() => _failed = true);
+    } finally {
+      _booting = false;
     }
+  }
+
+  void _onPlaceholderTap() {
+    if (_loadRequested || _ready || _failed) return;
+    setState(() => _loadRequested = true);
+    unawaited(_boot());
   }
 
   @override
@@ -550,7 +574,7 @@ class _ChatVideoBubbleState extends State<_ChatVideoBubble> {
     }
 
     const maxW = 232.0;
-    final placeholder = Container(
+    final loadingPlaceholder = Container(
       width: maxW,
       height: maxW * 9 / 16,
       alignment: Alignment.center,
@@ -565,6 +589,34 @@ class _ChatVideoBubbleState extends State<_ChatVideoBubble> {
           color: widget.isMe
               ? Colors.white70
               : Theme.of(context).colorScheme.primary,
+        ),
+      ),
+    );
+    final idlePlaceholder = Material(
+      color: widget.isMe
+          ? Colors.black.withValues(alpha: 0.22)
+          : Colors.black.withValues(alpha: 0.07),
+      child: InkWell(
+        onTap: _onPlaceholderTap,
+        child: SizedBox(
+          width: maxW,
+          height: maxW * 9 / 16,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.videocam_outlined,
+                size: 36,
+                color: widget.isMe ? Colors.white70 : Colors.black45,
+              ),
+              const SizedBox(height: 8),
+              Icon(
+                Icons.touch_app_outlined,
+                size: 20,
+                color: widget.isMe ? Colors.white54 : Colors.black38,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -623,7 +675,7 @@ class _ChatVideoBubbleState extends State<_ChatVideoBubble> {
                       ],
                     ),
                   )
-                : placeholder,
+                : (_loadRequested ? loadingPlaceholder : idlePlaceholder),
           ),
         ),
         if ((widget.fileName ?? '').trim().isNotEmpty)
@@ -855,15 +907,12 @@ List<InlineSpan> buildMessageSpans(String text, bool isMe) {
             padding: const EdgeInsets.symmetric(vertical: 6),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: InkWell(
-                onTap: () => openChatMediaFromUrl(url),
-                child: _RetryableChatImage(
-                  url: url,
-                  width: 200,
-                  fit: BoxFit.cover,
-                  isMe: isMe,
-                  loadingHeight: 150,
-                ),
+              child: _RetryableChatImage(
+                url: url,
+                width: 200,
+                fit: BoxFit.cover,
+                isMe: isMe,
+                loadingHeight: 150,
               ),
             ),
           ),

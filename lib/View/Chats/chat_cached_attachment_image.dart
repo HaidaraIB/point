@@ -3,14 +3,27 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:point/Services/chat_attachment_cache.dart';
 
+enum ChatAttachmentLoadPolicy {
+  /// Cache then network as soon as the widget mounts.
+  eager,
+
+  /// Disk cache only until [loadRequested] is true; then network fetch.
+  onDemand,
+}
+
 /// Chat attachment thumbnail / bubble image loaded from [ChatAttachmentCache].
 class ChatCachedAttachmentImage extends StatefulWidget {
   final String url;
   final double? width;
   final double? height;
   final BoxFit fit;
+  final ChatAttachmentLoadPolicy loadPolicy;
+  final bool loadRequested;
+  final bool? isMe;
+  final VoidCallback? onLoadComplete;
   final Widget Function(BuildContext, Object?)? errorBuilder;
   final Widget Function(BuildContext, Widget, ImageChunkEvent?)? loadingBuilder;
+  final Widget Function(BuildContext)? placeholderBuilder;
 
   const ChatCachedAttachmentImage({
     super.key,
@@ -18,8 +31,13 @@ class ChatCachedAttachmentImage extends StatefulWidget {
     this.width,
     this.height,
     this.fit = BoxFit.cover,
+    this.loadPolicy = ChatAttachmentLoadPolicy.eager,
+    this.loadRequested = false,
+    this.isMe,
+    this.onLoadComplete,
     this.errorBuilder,
     this.loadingBuilder,
+    this.placeholderBuilder,
   });
 
   @override
@@ -29,30 +47,43 @@ class ChatCachedAttachmentImage extends StatefulWidget {
 
 class _ChatCachedAttachmentImageState extends State<ChatCachedAttachmentImage> {
   int _retrySeed = 0;
-  Future<Uint8List>? _bytesFuture;
+  Future<Uint8List?>? _bytesFuture;
+  bool _reportedLoaded = false;
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _startLoad();
   }
 
   @override
   void didUpdateWidget(ChatCachedAttachmentImage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.url != widget.url) {
-      _load();
+      _reportedLoaded = false;
+      _startLoad();
+      return;
+    }
+    if (widget.loadPolicy == ChatAttachmentLoadPolicy.onDemand &&
+        !oldWidget.loadRequested &&
+        widget.loadRequested) {
+      _startLoad();
     }
   }
 
-  Future<Uint8List> _loadBytes() async {
+  void _startLoad() {
+    if (widget.loadPolicy == ChatAttachmentLoadPolicy.onDemand &&
+        !widget.loadRequested) {
+      _bytesFuture = ChatAttachmentCache.bytesFromCacheOnly(widget.url);
+      return;
+    }
+    _bytesFuture = _loadBytes();
+  }
+
+  Future<Uint8List?> _loadBytes() async {
     final cached = await ChatAttachmentCache.bytesFromCacheOnly(widget.url);
     if (cached != null && cached.isNotEmpty) return cached;
     return ChatAttachmentCache.bytesForUrl(widget.url);
-  }
-
-  void _load() {
-    _bytesFuture = _loadBytes();
   }
 
   Future<void> _retry() async {
@@ -60,14 +91,52 @@ class _ChatCachedAttachmentImageState extends State<ChatCachedAttachmentImage> {
     if (!mounted) return;
     setState(() {
       _retrySeed++;
-      _load();
+      _reportedLoaded = false;
+      _startLoad();
     });
+  }
+
+  void _maybeReportLoaded(Uint8List data) {
+    if (_reportedLoaded || data.isEmpty) return;
+    _reportedLoaded = true;
+    final callback = widget.onLoadComplete;
+    if (callback == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) callback();
+    });
+  }
+
+  Widget _defaultPlaceholder(BuildContext context) {
+    final isMe = widget.isMe;
+    final iconColor = isMe == null
+        ? Colors.black45
+        : (isMe ? Colors.white70 : Colors.black45);
+    final bg = isMe == null
+        ? Colors.black12
+        : (isMe
+            ? Colors.black.withValues(alpha: 0.22)
+            : Colors.black.withValues(alpha: 0.07));
+    return SizedBox(
+      width: widget.width,
+      height: widget.height ?? 120,
+      child: ColoredBox(
+        color: bg,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.image_outlined, size: 32, color: iconColor),
+            const SizedBox(height: 6),
+            Icon(Icons.touch_app_outlined, size: 18, color: iconColor),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<Uint8List>(
-      key: ValueKey('${widget.url}#$_retrySeed'),
+    return FutureBuilder<Uint8List?>(
+      key: ValueKey('${widget.url}#$_retrySeed#${widget.loadRequested}'),
       future: _bytesFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
@@ -90,7 +159,17 @@ class _ChatCachedAttachmentImageState extends State<ChatCachedAttachmentImage> {
             ),
           );
         }
-        if (snapshot.hasError || !snapshot.hasData) {
+        if (snapshot.hasError ||
+            !snapshot.hasData ||
+            snapshot.data == null ||
+            snapshot.data!.isEmpty) {
+          if (widget.loadPolicy == ChatAttachmentLoadPolicy.onDemand &&
+              !widget.loadRequested) {
+            if (widget.placeholderBuilder != null) {
+              return widget.placeholderBuilder!(context);
+            }
+            return _defaultPlaceholder(context);
+          }
           if (widget.errorBuilder != null) {
             return widget.errorBuilder!(context, snapshot.error);
           }
@@ -103,6 +182,7 @@ class _ChatCachedAttachmentImageState extends State<ChatCachedAttachmentImage> {
             ),
           );
         }
+        _maybeReportLoaded(snapshot.data!);
         return Image.memory(
           snapshot.data!,
           width: widget.width,

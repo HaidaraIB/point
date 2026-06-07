@@ -49,6 +49,13 @@ class ChatAttachmentCache {
     return cached.file.readAsBytes();
   }
 
+  /// Cached file on disk only (no network). Returns null if not cached.
+  static Future<FileInfo?> fileFromCacheOnly(String url) async {
+    final trimmed = url.trim();
+    if (trimmed.isEmpty) return null;
+    return _manager.getFileFromCache(trimmed);
+  }
+
   /// Cached file on disk (all platforms supported by cache_manager).
   static Future<dynamic> fileForUrl(String url) {
     final trimmed = url.trim();

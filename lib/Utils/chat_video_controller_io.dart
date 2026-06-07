@@ -9,6 +9,10 @@ Future<VideoPlayerController> createChatVideoController(
 ) async {
   if (!isWeb) {
     try {
+      final cached = await ChatAttachmentCache.fileFromCacheOnly(url);
+      if (cached != null) {
+        return VideoPlayerController.file(cached.file);
+      }
       final file = await ChatAttachmentCache.fileForUrl(url);
       if (file is File) {
         return VideoPlayerController.file(file);
