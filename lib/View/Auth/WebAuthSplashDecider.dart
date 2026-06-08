@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Services/AutoLoginService.dart';
-import 'package:point/Utils/AppImages.dart';
+import 'package:point/View/Shared/animated_splash_screen.dart';
 
 /// Web cold start: show loading instead of the login form while we restore
 /// Firebase Auth + session (avoids users submitting login while already signed in).
@@ -51,26 +51,6 @@ class _WebAuthSplashDeciderState extends State<WebAuthSplashDecider> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Image.asset(
-                AppImages.images.logocolored,
-                width: Get.width * 0.55,
-                height: 80,
-                fit: BoxFit.contain,
-              ),
-              const SizedBox(height: 24),
-              const CircularProgressIndicator(),
-            ],
-          ),
-        ),
-      ),
-    );
+    return const AnimatedSplashScreen();
   }
 }

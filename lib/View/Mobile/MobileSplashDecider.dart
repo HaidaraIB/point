@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Services/AutoLoginService.dart';
 import 'package:point/Services/mobile_version_gate.dart';
-import 'package:point/Utils/AppImages.dart';
+import 'package:point/View/Shared/animated_splash_screen.dart';
 
 class MobileSplashDecider extends StatefulWidget {
   const MobileSplashDecider({super.key});
@@ -64,29 +64,7 @@ class _MobileSplashDeciderState extends State<MobileSplashDecider> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.asset(
-                  AppImages.images.logocolored,
-                  width: Get.width * 0.55,
-                  height: 80,
-                  fit: BoxFit.contain,
-                ),
-                const SizedBox(height: 24),
-                const CircularProgressIndicator(),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+    return const AnimatedSplashScreen(useSafeArea: true);
   }
 }
 

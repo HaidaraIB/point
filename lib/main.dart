@@ -5,6 +5,7 @@ import 'package:firebase_core/firebase_core.dart'
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:point/Services/AudioService.dart';
 import 'package:point/Services/chat_voice_playback_service.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -35,7 +36,10 @@ import 'package:point/View/Shared/internet_offline_guard.dart';
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main(List<String> args) async {
-  WidgetsFlutterBinding.ensureInitialized();
+  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  if (!kIsWeb) {
+    FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+  }
 
   // على الويب: تجنّب dumpErrorToConsole الافتراضي عندما تتضمّن سلسلة التشخيص
   // كائنات JS interop؛ وإلا يحدث TypeError (LegacyJavaScriptObject ليس DiagnosticsNode).

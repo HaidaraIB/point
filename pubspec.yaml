@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.9.2+25
+version: 1.9.3+26
 
 environment:
   sdk: ^3.9.0
@@ -76,6 +76,7 @@ dependencies:
   flutter_image_compress: ^2.4.0
   image_picker: ^1.1.2
   scroll_to_index: ^3.0.1
+  flutter_native_splash: ^2.4.6
 
 dev_dependencies:
   flutter_test:
@@ -120,3 +121,7 @@ flutter:
   # https://flutter.dev/to/asset-from-package
 
   # Custom fonts: Almarai is loaded via package:google_fonts (see lib/main.dart).
+
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: assets/images/brand_logo_colored.png

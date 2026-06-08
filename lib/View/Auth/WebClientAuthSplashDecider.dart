@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Services/AutoLoginService.dart';
-import 'package:point/Utils/AppImages.dart';
+import 'package:point/View/Shared/animated_splash_screen.dart';
 
 /// Web cold start for client auth: restore session, then client session setup or login.
 class WebClientAuthSplashDecider extends StatefulWidget {
@@ -58,26 +58,6 @@ class _WebClientAuthSplashDeciderState extends State<WebClientAuthSplashDecider>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Image.asset(
-                AppImages.images.logocolored,
-                width: Get.width * 0.55,
-                height: 80,
-                fit: BoxFit.contain,
-              ),
-              const SizedBox(height: 24),
-              const CircularProgressIndicator(),
-            ],
-          ),
-        ),
-      ),
-    );
+    return const AnimatedSplashScreen();
   }
 }
