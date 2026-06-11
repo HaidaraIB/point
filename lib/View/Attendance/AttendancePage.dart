@@ -39,11 +39,18 @@ class _AttendancePageState extends State<AttendancePage> {
   static const double _filterHeight = 42;
   static const double _filterRadius = 5;
 
-  static const TextStyle _filterHintStyle = TextStyle(
-    fontSize: 13,
-    fontWeight: FontWeight.w500,
-    color: AppColors.primaryfontColor,
-  );
+  TextStyle _filterTextStyle(BuildContext context) {
+    return Theme.of(context).textTheme.bodyMedium?.copyWith(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          color: AppColors.primaryfontColor,
+        ) ??
+        const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          color: AppColors.primaryfontColor,
+        );
+  }
 
   BoxDecoration get _filterDecoration => BoxDecoration(
         color: Colors.white,
@@ -143,7 +150,8 @@ class _AttendancePageState extends State<AttendancePage> {
     );
   }
 
-  Widget _buildActionFilter() {
+  Widget _buildActionFilter(BuildContext context) {
+    final textStyle = _filterTextStyle(context);
     return SizedBox(
       height: _filterHeight,
       child: DecoratedBox(
@@ -156,23 +164,23 @@ class _AttendancePageState extends State<AttendancePage> {
               AppLocaleKeys.attendanceFilterAction.tr,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: _filterHintStyle,
+              style: textStyle,
             ),
             value: _actionFilter.isEmpty ? null : _actionFilter,
             icon: Icon(
               Icons.keyboard_arrow_down_rounded,
               color: Colors.grey.shade600,
             ),
-            style: _filterHintStyle,
+            style: textStyle,
             items: [
-              DropdownMenuItem(value: '', child: Text('all'.tr)),
+              DropdownMenuItem(value: '', child: Text('all'.tr, style: textStyle)),
               DropdownMenuItem(
                 value: AttendanceRecordModel.actionPresent,
-                child: Text(AppLocaleKeys.attendancePresent.tr),
+                child: Text(AppLocaleKeys.attendancePresent.tr, style: textStyle),
               ),
               DropdownMenuItem(
                 value: AttendanceRecordModel.actionLeft,
-                child: Text(AppLocaleKeys.attendanceLeft.tr),
+                child: Text(AppLocaleKeys.attendanceLeft.tr, style: textStyle),
               ),
             ],
             onChanged: (value) {
@@ -195,7 +203,7 @@ class _AttendancePageState extends State<AttendancePage> {
           const SizedBox(height: 12),
           _buildEmployeeFilter(),
           const SizedBox(height: 12),
-          _buildActionFilter(),
+          _buildActionFilter(context),
         ],
       );
     }
@@ -207,7 +215,7 @@ class _AttendancePageState extends State<AttendancePage> {
         const SizedBox(width: 10),
         Expanded(flex: 6, child: _buildEmployeeFilter()),
         const SizedBox(width: 10),
-        Expanded(flex: 4, child: _buildActionFilter()),
+        Expanded(flex: 4, child: _buildActionFilter(context)),
       ],
     );
   }
