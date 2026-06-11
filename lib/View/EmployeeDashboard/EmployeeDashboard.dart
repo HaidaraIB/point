@@ -10,6 +10,7 @@ import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/AppConstants.dart';
+import 'package:point/View/EmployeeDashboard/attendance_check_in_card.dart';
 import 'package:point/View/EmployeeDashboard/employee_mobile_app_bar.dart';
 import 'package:point/View/EmployeeDashboard/Shared/EmployeeTaskCard.dart';
 import 'package:point/View/Shared/CustomHeader.dart';
@@ -162,6 +163,7 @@ class _EmployeeDashboardBody extends StatelessWidget {
                         ),
                       ),
                       SizedBox(height: 20),
+                      const AttendanceCheckInCard(),
                       _employeeDashboardDepartmentChips(controller),
 
                       Row(
@@ -431,6 +433,7 @@ class _EmployeeDashboardBody extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const SizedBox(height: 8),
+                          const AttendanceCheckInCard(),
                           _employeeDashboardDepartmentChips(controller),
 
                           Row(

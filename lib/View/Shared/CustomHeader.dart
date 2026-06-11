@@ -427,13 +427,13 @@ class HeaderWidget extends StatelessWidget {
 
     final Widget logoOrSearch = (employee == true || client == true)
         ? Padding(
-            padding: EdgeInsets.only(left: isMobile ? 8 : 0, right: isMobile ? 8 : 0),
+            padding: EdgeInsets.only(left: isMobile ? 4 : 2, right: isMobile ? 8 : 0),
             child: FittedBox(
               fit: BoxFit.contain,
               alignment: Alignment.centerLeft,
               child: Image.asset(
                 AppImages.images.logocolored,
-                height: isMobile ? 40 : 50,
+                height: isMobile ? 28 : 30,
                 fit: BoxFit.contain,
               ),
             ),
@@ -477,8 +477,8 @@ class HeaderWidget extends StatelessWidget {
           const InternetStatusBadge(),
           const SizedBox(width: 10),
         ],
-        _buildAvatar(avatarUrl, radius: isMobile ? 18 : 20),
-        SizedBox(width: isMobile ? 6 : 15),
+        _buildAvatar(avatarUrl, radius: isMobile ? 15 : 16),
+        SizedBox(width: isMobile ? 6 : 10),
         Flexible(
           fit: FlexFit.loose,
           child: Column(

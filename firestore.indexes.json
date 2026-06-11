@@ -89,6 +89,22 @@
         { "fieldPath": "assignedTo", "order": "ASCENDING" },
         { "fieldPath": "toDate", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "meta_posts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "scheduledAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "attendance_records",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "employeeId", "order": "ASCENDING" },
+        { "fieldPath": "recordedAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

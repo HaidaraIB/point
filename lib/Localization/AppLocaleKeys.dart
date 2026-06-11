@@ -27,6 +27,58 @@ class AppLocaleKeys {
   static const adminSettingsSaveFailed = 'admin_settings.save_failed';
   static const adminSettingsSavePermissionDenied =
       'admin_settings.save_permission_denied';
+  static const adminSettingsSectionCompanyLocation =
+      'admin_settings.section_company_location';
+  static const adminSettingsCompanyLocationHelp =
+      'admin_settings.company_location_help';
+  static const adminSettingsOfficeLabel = 'admin_settings.office_label';
+  static const adminSettingsOfficeLatitude = 'admin_settings.office_latitude';
+  static const adminSettingsOfficeLongitude = 'admin_settings.office_longitude';
+  static const adminSettingsOfficeRadius = 'admin_settings.office_radius';
+  static const adminSettingsUseCurrentLocation =
+      'admin_settings.use_current_location';
+  static const adminSettingsInvalidCoordinate =
+      'admin_settings.invalid_coordinate';
+  static const adminSettingsInvalidRadius = 'admin_settings.invalid_radius';
+  static const adminSettingsCompanyLocationSaveSuccess =
+      'admin_settings.company_location_save_success';
+  static const adminSettingsLocationFetchFailed =
+      'admin_settings.location_fetch_failed';
+
+  static const attendanceTitle = 'attendance.title';
+  static const attendanceHelp = 'attendance.help';
+  static const attendancePhoto = 'attendance.photo';
+  static const attendanceViewPhoto = 'attendance.view_photo';
+  static const attendancePhotoCaptureFailed = 'attendance.photo_capture_failed';
+  static const attendancePhotoUploadFailed = 'attendance.photo_upload_failed';
+  static const attendancePresent = 'attendance.present';
+  static const attendanceLeft = 'attendance.left';
+  static const attendanceNotCheckedIn = 'attendance.not_checked_in';
+  static const attendanceCheckedInAt = 'attendance.checked_in_at';
+  static const attendanceLeftAt = 'attendance.left_at';
+  static const attendanceOutsideLocation = 'attendance.outside_location';
+  static const attendanceOfficeNotConfigured =
+      'attendance.office_not_configured';
+  static const attendanceMobileOnly = 'attendance.mobile_only';
+  static const attendanceLocationPermissionDenied =
+      'attendance.location_permission_denied';
+  static const attendanceLocationServiceDisabled =
+      'attendance.location_service_disabled';
+  static const attendanceLocationUnavailable = 'attendance.location_unavailable';
+  static const attendanceAlreadyPresent = 'attendance.already_present';
+  static const attendanceMustPresentFirst = 'attendance.must_present_first';
+  static const attendanceRecordSuccess = 'attendance.record_success';
+  static const attendanceRecordFailed = 'attendance.record_failed';
+  static const attendanceEmployee = 'attendance.employee';
+  static const attendanceAction = 'attendance.action';
+  static const attendanceTime = 'attendance.time';
+  static const attendanceDistance = 'attendance.distance';
+  static const attendanceNoRecords = 'attendance.no_records';
+  static const attendanceFilterEmployee = 'attendance.filter_employee';
+  static const attendanceFilterAction = 'attendance.filter_action';
+  static const attendanceSelectDate = 'attendance.select_date';
+  static const attendanceMeters = 'attendance.meters';
+
   static const appClose = 'app.close';
 
   static const commonConfirm = 'common.confirm';

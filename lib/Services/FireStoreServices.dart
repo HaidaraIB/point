@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:point/config/app_config.dart';
+import 'package:point/Models/AttendanceRecordModel.dart';
 import 'package:point/Models/ChatMetaData.dart';
 import 'package:point/Models/ClientModel.dart';
 import 'package:point/Models/ContentModel.dart';
@@ -16,6 +17,7 @@ import 'package:point/Models/EmployeeModel.dart';
 import 'package:point/Models/NotificationModel.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/StorageKeys.dart';
+import 'package:point/Services/firestore/firestore_attendance_api.dart';
 import 'package:point/Services/firestore/firestore_auth_api.dart';
 import 'package:point/Services/firestore/firestore_chat_api.dart';
 import 'package:point/Services/firestore/firestore_diagnostics_api.dart';
@@ -80,6 +82,41 @@ class FirestoreServices extends FirestoreServicesBase
     required String code,
   }) =>
       FirestoreFcmApi.setClientLanguage(clientId: clientId, code: code);
+
+  static Stream<List<AttendanceRecordModel>> streamTodayAttendanceForEmployee(
+    String employeeId,
+  ) =>
+      FirestoreAttendanceApi.streamTodayRecordsForEmployee(employeeId);
+
+  static Stream<List<AttendanceRecordModel>> streamAttendanceForDate(
+    DateTime date,
+  ) =>
+      FirestoreAttendanceApi.streamRecordsForDate(date);
+
+  static Future<void> recordAttendance({
+    required String employeeId,
+    required String employeeName,
+    required String action,
+    required double latitude,
+    required double longitude,
+    required double distanceMeters,
+    required double officeLatitude,
+    required double officeLongitude,
+    required double officeRadiusMeters,
+    required String photoUrl,
+  }) =>
+      FirestoreAttendanceApi.recordAttendance(
+        employeeId: employeeId,
+        employeeName: employeeName,
+        action: action,
+        latitude: latitude,
+        longitude: longitude,
+        distanceMeters: distanceMeters,
+        officeLatitude: officeLatitude,
+        officeLongitude: officeLongitude,
+        officeRadiusMeters: officeRadiusMeters,
+        photoUrl: photoUrl,
+      );
 
   static Future<void> logClientDiagnosticError({
     required String source,

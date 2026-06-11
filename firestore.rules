@@ -53,6 +53,53 @@ service cloud.firestore {
       return value is number && value >= 0;
     }
 
+    function attendanceValidCoordinate(value) {
+      return value is number && value >= -180 && value <= 180;
+    }
+
+    function attendanceValidRadius(value) {
+      return value is number && value > 0 && value <= 5000;
+    }
+
+    function validAttendanceSettings(data) {
+      return data.keys().hasAll(['latitude', 'longitude', 'radiusMeters'])
+        && attendanceValidCoordinate(data.latitude)
+        && attendanceValidCoordinate(data.longitude)
+        && attendanceValidRadius(data.radiusMeters)
+        && (!('label' in data) || data.label is string)
+        && (!('updatedAt' in data) || data.updatedAt is timestamp);
+    }
+
+    function validAttendanceRecord(data) {
+      return data.keys().hasAll([
+          'employeeId',
+          'employeeName',
+          'action',
+          'latitude',
+          'longitude',
+          'distanceMeters',
+          'officeLatitude',
+          'officeLongitude',
+          'officeRadiusMeters',
+          'photoUrl',
+          'recordedAt',
+        ])
+        && data.employeeId is string
+        && data.employeeName is string
+        && (data.action == 'present' || data.action == 'left')
+        && data.photoUrl is string
+        && data.photoUrl.size() > 0
+        && attendanceValidCoordinate(data.latitude)
+        && attendanceValidCoordinate(data.longitude)
+        && data.distanceMeters is number
+        && data.distanceMeters >= 0
+        && attendanceValidCoordinate(data.officeLatitude)
+        && attendanceValidCoordinate(data.officeLongitude)
+        && attendanceValidRadius(data.officeRadiusMeters)
+        && data.distanceMeters <= data.officeRadiusMeters
+        && data.recordedAt is timestamp;
+    }
+
     function sliceDepartments(m) {
       let dd = m.get('departments', []);
       return dd is list ? dd : [];
@@ -876,16 +923,22 @@ service cloud.firestore {
     }
 
     // إعدادات Meta المشتركة: `app_settings/meta` (accessToken + graphVersion من التطبيق).
-    // الوصول حالياً مقصور على الإدارة (admin/supervisor) فقط.
+    // `app_settings/attendance` — موقع مقر الشركة لتسجيل الحضور.
     match /app_settings/{docId} {
       allow read: if isSignedIn() && hasAuthRole() && docId == 'meta'
         && metaPublishCanReadAppSettingsOrMetaPosts();
+
+      allow read: if isSignedIn() && hasAuthRole() && !isClientRole()
+        && docId == 'attendance';
 
       allow create, update: if isSignedIn() && hasAuthRole() && docId == 'meta'
         && metaPublishCanWriteAppSettingsMeta()
         && request.resource.data.keys().hasAll(['accessToken', 'graphVersion'])
         && request.resource.data.accessToken is string
         && request.resource.data.graphVersion is string;
+
+      allow create, update: if isSignedIn() && isAdmin() && docId == 'attendance'
+        && validAttendanceSettings(request.resource.data);
 
       allow delete: if false;
     }
@@ -917,6 +970,19 @@ service cloud.firestore {
         && request.resource.data.employeeId == employeeId;
 
       allow delete: if false;
+    }
+
+    // GPS attendance check-in/out records.
+    match /attendance_records/{recordId} {
+      allow read: if isSignedIn() && hasAuthRole()
+        && (isAdmin() || (isEmployeeRole() && resource.data.employeeId == myEmployeeId()));
+
+      allow create: if isSignedIn() && hasAuthRole()
+        && isEmployeeRole()
+        && request.resource.data.employeeId == myEmployeeId()
+        && validAttendanceRecord(request.resource.data);
+
+      allow update, delete: if false;
     }
 
     match /{document=**} {

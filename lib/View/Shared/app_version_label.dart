@@ -62,10 +62,16 @@ class AppVersionLabel extends StatelessWidget {
                 ? Center(
                   child: Tooltip(
                     message: line,
-                    child: Icon(
-                      Icons.info_outline,
-                      color: iconTint,
-                      size: 20,
+                    child: SizedBox(
+                      width: 36,
+                      height: 36,
+                      child: Center(
+                        child: Icon(
+                          Icons.info_outline,
+                          color: iconTint,
+                          size: 18,
+                        ),
+                      ),
                     ),
                   ),
                 )
