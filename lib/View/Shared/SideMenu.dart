@@ -70,10 +70,10 @@ class _CustomSidebarState extends State<CustomSidebar> {
   @override
   void didUpdateWidget(covariant CustomSidebar oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.selectedTab != widget.selectedTab)
-      _selectedTab = widget.selectedTab;
-    if (oldWidget.subSelected != widget.subSelected)
+    _selectedTab = widget.selectedTab;
+    if (oldWidget.subSelected != widget.subSelected) {
       _selectedSubTab = widget.subSelected;
+    }
   }
 
   IconData _selectedNavArrowIcon(BuildContext context) {
@@ -551,13 +551,23 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                 text: AppLocaleKeys.attendanceTitle.tr,
                                 iconData: Icons.fingerprint_outlined,
                                 onTap: () {
-                                  setState(() {
-                                    _selectedTab = 12;
-                                  });
                                   WidgetsBinding.instance.addPostFrameCallback((
                                     _,
                                   ) {
                                     Get.toNamed('/attendance');
+                                  });
+                                },
+                              ),
+                              _buildTile(
+                                selectedTab: 13,
+                                icon: 'assets/images/nav_statistics.png',
+                                text: AppLocaleKeys.attendanceReportsTitle.tr,
+                                iconData: Icons.assessment_outlined,
+                                onTap: () {
+                                  WidgetsBinding.instance.addPostFrameCallback((
+                                    _,
+                                  ) {
+                                    Get.toNamed('/attendanceReports');
                                   });
                                 },
                               ),

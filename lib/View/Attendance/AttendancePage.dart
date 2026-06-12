@@ -6,8 +6,12 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Models/AttendanceDayOutcomeModel.dart';
 import 'package:point/Models/AttendanceRecordModel.dart';
+import 'package:point/Services/attendance_day_state.dart';
+import 'package:point/Services/attendance_policy_settings.dart';
 import 'package:point/Services/FireStoreServices.dart';
+import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Chats/chat_cached_attachment_image.dart';
 import 'package:point/View/Chats/chat_message_display.dart';
@@ -16,6 +20,7 @@ import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 import 'package:point/View/Shared/TableCellCenter.dart';
 import 'package:point/View/Shared/responsive.dart';
+import 'package:point/View/Shared/table_area_loading.dart';
 
 class AttendancePage extends StatefulWidget {
   const AttendancePage({super.key});
@@ -29,6 +34,12 @@ class _AttendancePageState extends State<AttendancePage> {
   final _filterController = TextEditingController();
   final _dateController = TextEditingController();
   String _actionFilter = '';
+  String _approvalFilter = '';
+  String _dailyResultFilter = '';
+  String? _reviewingRecordId;
+  AttendancePolicySettings _policy = AttendancePolicySettings.defaults;
+  List<AttendanceDayOutcomeModel> _dayOutcomes = const [];
+  bool _loadingDayContext = true;
 
   static const TextStyle _columnHeaderStyle = TextStyle(
     fontWeight: FontWeight.bold,
@@ -62,6 +73,26 @@ class _AttendancePageState extends State<AttendancePage> {
   void initState() {
     super.initState();
     _syncDateLabel();
+    unawaited(_loadDayContext());
+  }
+
+  Future<void> _loadDayContext() async {
+    setState(() => _loadingDayContext = true);
+    try {
+      final results = await Future.wait([
+        AttendancePolicySettings.load(),
+        FirestoreServices.fetchAttendanceOutcomesForDate(_selectedDate),
+      ]);
+      if (!mounted) return;
+      setState(() {
+        _policy = results[0] as AttendancePolicySettings;
+        _dayOutcomes = results[1] as List<AttendanceDayOutcomeModel>;
+      });
+    } catch (_) {
+      // Keep previous values.
+    } finally {
+      if (mounted) setState(() => _loadingDayContext = false);
+    }
   }
 
   @override
@@ -87,6 +118,7 @@ class _AttendancePageState extends State<AttendancePage> {
         _selectedDate = picked;
         _syncDateLabel();
       });
+      unawaited(_loadDayContext());
     }
   }
 
@@ -102,6 +134,7 @@ class _AttendancePageState extends State<AttendancePage> {
 
   List<AttendanceRecordModel> _filterRecords(
     List<AttendanceRecordModel> records,
+    Map<String, AttendanceDayState> dailyStates,
   ) {
     var result = records;
     final query = _filterController.text.trim().toLowerCase();
@@ -113,7 +146,210 @@ class _AttendancePageState extends State<AttendancePage> {
     if (_actionFilter.isNotEmpty) {
       result = result.where((r) => r.action == _actionFilter).toList();
     }
+    if (_approvalFilter.isNotEmpty) {
+      result =
+          result.where((r) => r.approvalStatus == _approvalFilter).toList();
+    }
+    if (_dailyResultFilter.isNotEmpty) {
+      result = result.where((r) {
+        final outcome = dailyStates[r.employeeId]?.outcome;
+        return _matchesDailyResultFilter(outcome);
+      }).toList();
+    }
     return result;
+  }
+
+  String _outcomeFilterKey(AttendanceDailyOutcome outcome) {
+    switch (outcome) {
+      case AttendanceDailyOutcome.showedUp:
+        return 'showed_up';
+      case AttendanceDailyOutcome.absent:
+        return 'absent';
+      case AttendanceDailyOutcome.noCheckIn:
+        return 'no_check_in';
+      case AttendanceDailyOutcome.noCheckout:
+        return 'no_checkout';
+      case AttendanceDailyOutcome.pending:
+        return 'pending';
+      case AttendanceDailyOutcome.none:
+        return 'none';
+    }
+  }
+
+  bool _matchesDailyResultFilter(AttendanceDailyOutcome? outcome) {
+    if (_dailyResultFilter.isEmpty) return true;
+    final key = outcome == null ? 'none' : _outcomeFilterKey(outcome);
+    if (_dailyResultFilter == 'absent') {
+      return key == 'absent' || key == 'no_check_in' || key == 'no_checkout';
+    }
+    return key == _dailyResultFilter;
+  }
+
+  String _dailyResultTableLabel(AttendanceDailyOutcome outcome) {
+    switch (outcome) {
+      case AttendanceDailyOutcome.showedUp:
+        return AppLocaleKeys.attendanceShowedUp.tr;
+      case AttendanceDailyOutcome.absent:
+        return AppLocaleKeys.attendanceDayAbsent.tr;
+      case AttendanceDailyOutcome.noCheckIn:
+        return AppLocaleKeys.attendanceDailyResultNoCheckInShort.tr;
+      case AttendanceDailyOutcome.noCheckout:
+        return AppLocaleKeys.attendanceDailyResultNoCheckoutShort.tr;
+      case AttendanceDailyOutcome.pending:
+        return AppLocaleKeys.attendancePending.tr;
+      case AttendanceDailyOutcome.none:
+        return '-';
+    }
+  }
+
+  String _dailyResultLabel(AttendanceDailyOutcome outcome) {
+    switch (outcome) {
+      case AttendanceDailyOutcome.showedUp:
+        return AppLocaleKeys.attendanceShowedUp.tr;
+      case AttendanceDailyOutcome.absent:
+        return AppLocaleKeys.attendanceDayAbsent.tr;
+      case AttendanceDailyOutcome.noCheckIn:
+        return AppLocaleKeys.attendanceAutoAbsentNoCheckIn.tr;
+      case AttendanceDailyOutcome.noCheckout:
+        return AppLocaleKeys.attendanceAutoAbsentNoCheckout.tr;
+      case AttendanceDailyOutcome.pending:
+        return AppLocaleKeys.attendancePending.tr;
+      case AttendanceDailyOutcome.none:
+        return '-';
+    }
+  }
+
+  Map<String, AttendanceDayState> _dailyStatesForRecords(
+    List<AttendanceRecordModel> allRecords,
+  ) {
+    final byEmployee = <String, List<AttendanceRecordModel>>{};
+    for (final r in allRecords) {
+      byEmployee.putIfAbsent(r.employeeId, () => []).add(r);
+    }
+
+    final outcomesByEmployee = {
+      for (final o in _dayOutcomes) o.employeeId: o,
+    };
+    final employees = Get.find<HomeController>().employees;
+    final workHoursById = {
+      for (final e in employees)
+        if (e.id != null) e.id!: e,
+    };
+
+    final endOfSelectedDay = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      23,
+      59,
+    );
+
+    final result = <String, AttendanceDayState>{};
+    for (final entry in byEmployee.entries) {
+      final emp = workHoursById[entry.key];
+      result[entry.key] = AttendanceDayState.compute(
+        records: entry.value,
+        systemOutcome: outcomesByEmployee[entry.key],
+        workHoursFrom: emp?.workHoursFrom,
+        workHoursTo: emp?.workHoursTo,
+        policy: _policy,
+        now: endOfSelectedDay,
+      );
+    }
+    return result;
+  }
+
+  Widget _buildDailyResultChip(AttendanceDailyOutcome outcome) {
+    Color fg;
+    Color bg;
+    if (outcome == AttendanceDailyOutcome.showedUp) {
+      fg = const Color(0xFF0F9D58);
+      bg = const Color(0xFFEAF8F1);
+    } else if (outcome == AttendanceDailyOutcome.pending ||
+        outcome == AttendanceDailyOutcome.none) {
+      fg = Colors.orange.shade800;
+      bg = Colors.orange.shade50;
+    } else {
+      fg = Colors.red.shade700;
+      bg = Colors.red.shade50;
+    }
+
+    return Tooltip(
+      message: _dailyResultLabel(outcome),
+      child: Container(
+        height: 36,
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Center(
+          child: Text(
+            _dailyResultTableLabel(outcome),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: fg,
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _approvalLabel(String status) {
+    switch (status) {
+      case AttendanceRecordModel.statusApproved:
+        return AppLocaleKeys.attendanceApproved.tr;
+      case AttendanceRecordModel.statusAbsent:
+        return AppLocaleKeys.attendanceAbsent.tr;
+      case AttendanceRecordModel.statusAutoRejectedLate:
+        return AppLocaleKeys.attendanceAutoRejectedLate.tr;
+      case AttendanceRecordModel.statusPending:
+      default:
+        return AppLocaleKeys.attendancePending.tr;
+    }
+  }
+
+  Future<void> _reviewRecord(
+    AttendanceRecordModel record, {
+    required bool approved,
+  }) async {
+    if (record.id == null || _reviewingRecordId != null) return;
+    final admin = Get.find<HomeController>().effectiveEmployee;
+    if (admin?.id == null) return;
+
+    setState(() => _reviewingRecordId = record.id);
+    try {
+      await FirestoreServices.reviewAttendanceRecord(
+        recordId: record.id!,
+        approved: approved,
+        reviewerEmployeeId: admin!.id!,
+        reviewerName: admin.name ?? '',
+      );
+      FunHelper.showSnackbar(
+        'common.confirm'.tr,
+        approved
+            ? AppLocaleKeys.attendanceApproveSuccess.tr
+            : AppLocaleKeys.attendanceAbsentSuccess.tr,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+    } catch (_) {
+      FunHelper.showSnackbar(
+        'error'.tr,
+        AppLocaleKeys.attendanceReviewFailed.tr,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    } finally {
+      if (mounted) setState(() => _reviewingRecordId = null);
+    }
   }
 
   Widget _buildDateFilter() {
@@ -192,6 +428,123 @@ class _AttendancePageState extends State<AttendancePage> {
     );
   }
 
+  Widget _buildApprovalFilter(BuildContext context) {
+    final textStyle = _filterTextStyle(context);
+    return SizedBox(
+      height: _filterHeight,
+      child: DecoratedBox(
+        decoration: _filterDecoration,
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String>(
+            isExpanded: true,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            hint: Text(
+              AppLocaleKeys.attendanceFilterApproval.tr,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: textStyle,
+            ),
+            value: _approvalFilter.isEmpty ? null : _approvalFilter,
+            icon: Icon(
+              Icons.keyboard_arrow_down_rounded,
+              color: Colors.grey.shade600,
+            ),
+            style: textStyle,
+            items: [
+              DropdownMenuItem(value: '', child: Text('all'.tr, style: textStyle)),
+              DropdownMenuItem(
+                value: AttendanceRecordModel.statusPending,
+                child: Text(AppLocaleKeys.attendancePending.tr, style: textStyle),
+              ),
+              DropdownMenuItem(
+                value: AttendanceRecordModel.statusApproved,
+                child: Text(AppLocaleKeys.attendanceApproved.tr, style: textStyle),
+              ),
+              DropdownMenuItem(
+                value: AttendanceRecordModel.statusAbsent,
+                child: Text(AppLocaleKeys.attendanceAbsent.tr, style: textStyle),
+              ),
+              DropdownMenuItem(
+                value: AttendanceRecordModel.statusAutoRejectedLate,
+                child: Text(
+                  AppLocaleKeys.attendanceAutoRejectedLate.tr,
+                  style: textStyle,
+                ),
+              ),
+            ],
+            onChanged: (value) {
+              setState(() => _approvalFilter = value ?? '');
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDailyResultFilter(BuildContext context) {
+    final textStyle = _filterTextStyle(context);
+    return SizedBox(
+      height: _filterHeight,
+      child: DecoratedBox(
+        decoration: _filterDecoration,
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String>(
+            isExpanded: true,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            hint: Text(
+              AppLocaleKeys.attendanceFilterDailyResult.tr,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: textStyle,
+            ),
+            value: _dailyResultFilter.isEmpty ? null : _dailyResultFilter,
+            icon: Icon(
+              Icons.keyboard_arrow_down_rounded,
+              color: Colors.grey.shade600,
+            ),
+            style: textStyle,
+            items: [
+              DropdownMenuItem(value: '', child: Text('all'.tr, style: textStyle)),
+              DropdownMenuItem(
+                value: 'showed_up',
+                child: Text(AppLocaleKeys.attendanceShowedUp.tr, style: textStyle),
+              ),
+              DropdownMenuItem(
+                value: 'absent',
+                child: Text(AppLocaleKeys.attendanceDayAbsent.tr, style: textStyle),
+              ),
+              DropdownMenuItem(
+                value: 'no_check_in',
+                child: Text(
+                  AppLocaleKeys.attendanceDailyResultNoCheckInShort.tr,
+                  style: textStyle,
+                ),
+              ),
+              DropdownMenuItem(
+                value: 'no_checkout',
+                child: Text(
+                  AppLocaleKeys.attendanceDailyResultNoCheckoutShort.tr,
+                  style: textStyle,
+                ),
+              ),
+              DropdownMenuItem(
+                value: 'pending',
+                child: Text(AppLocaleKeys.attendancePending.tr, style: textStyle),
+              ),
+              DropdownMenuItem(
+                value: 'none',
+                child: Text('-', style: textStyle),
+              ),
+            ],
+            onChanged: (value) {
+              setState(() => _dailyResultFilter = value ?? '');
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildFilters(BuildContext context) {
     final isMobile = Responsive.isMobile(context);
 
@@ -204,18 +557,96 @@ class _AttendancePageState extends State<AttendancePage> {
           _buildEmployeeFilter(),
           const SizedBox(height: 12),
           _buildActionFilter(context),
+          const SizedBox(height: 12),
+          _buildApprovalFilter(context),
+          const SizedBox(height: 12),
+          _buildDailyResultFilter(context),
         ],
       );
     }
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
+    return Column(
       children: [
-        Expanded(flex: 4, child: _buildDateFilter()),
-        const SizedBox(width: 10),
-        Expanded(flex: 6, child: _buildEmployeeFilter()),
-        const SizedBox(width: 10),
-        Expanded(flex: 4, child: _buildActionFilter(context)),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(flex: 4, child: _buildDateFilter()),
+            const SizedBox(width: 10),
+            Expanded(flex: 5, child: _buildEmployeeFilter()),
+            const SizedBox(width: 10),
+            Expanded(flex: 3, child: _buildActionFilter(context)),
+            const SizedBox(width: 10),
+            Expanded(flex: 3, child: _buildApprovalFilter(context)),
+            const SizedBox(width: 10),
+            Expanded(flex: 4, child: _buildDailyResultFilter(context)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildApprovalChip(AttendanceRecordModel record) {
+    Color fg;
+    Color bg;
+    if (record.isApproved) {
+      fg = const Color(0xFF0F9D58);
+      bg = const Color(0xFFEAF8F1);
+    } else if (record.isAutoRejectedLate) {
+      fg = Colors.red.shade900;
+      bg = Colors.red.shade100;
+    } else if (record.isAbsent) {
+      fg = Colors.red.shade700;
+      bg = Colors.red.shade50;
+    } else {
+      fg = Colors.orange.shade800;
+      bg = Colors.orange.shade50;
+    }
+    return Container(
+      alignment: Alignment.center,
+      height: 36,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        _approvalLabel(record.approvalStatus),
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: fg,
+          fontWeight: FontWeight.bold,
+          fontSize: 13,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildReviewActions(AttendanceRecordModel record) {
+    if (!record.isPending || record.id == null) {
+      return const Text('-');
+    }
+    final loading = _reviewingRecordId == record.id;
+    if (loading) {
+      return const SizedBox(
+        width: 24,
+        height: 24,
+        child: CircularProgressIndicator(strokeWidth: 2),
+      );
+    }
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          tooltip: AppLocaleKeys.attendanceApprove.tr,
+          icon: Icon(Icons.check_circle_outline, color: AppColors.success),
+          onPressed: () => unawaited(_reviewRecord(record, approved: true)),
+        ),
+        IconButton(
+          tooltip: AppLocaleKeys.attendanceMarkAbsent.tr,
+          icon: Icon(Icons.cancel_outlined, color: Colors.red.shade700),
+          onPressed: () => unawaited(_reviewRecord(record, approved: false)),
+        ),
       ],
     );
   }
@@ -245,10 +676,13 @@ class _AttendancePageState extends State<AttendancePage> {
     );
   }
 
-  Widget _buildDataTable(List<AttendanceRecordModel> records) {
+  Widget _buildDataTable(
+    List<AttendanceRecordModel> records,
+    Map<String, AttendanceDayState> dailyStates,
+  ) {
     return HorizontalScrollbarTable(
       child: SizedBox(
-        width: (Get.width - 270).clamp(1100.0, double.infinity),
+        width: (Get.width - 270).clamp(1300.0, double.infinity),
         child: DataTable(
           dataRowMinHeight: 60,
           dataRowMaxHeight: 60,
@@ -288,6 +722,30 @@ class _AttendancePageState extends State<AttendancePage> {
               ),
             ),
             DataColumn(
+              columnWidth: const FixedColumnWidth(130),
+              headingRowAlignment: MainAxisAlignment.center,
+              label: Text(
+                AppLocaleKeys.attendanceApprovalStatus.tr,
+                style: _columnHeaderStyle,
+              ),
+            ),
+            DataColumn(
+              columnWidth: const FixedColumnWidth(120),
+              headingRowAlignment: MainAxisAlignment.center,
+              label: Text(
+                AppLocaleKeys.attendanceReviewActions.tr,
+                style: _columnHeaderStyle,
+              ),
+            ),
+            DataColumn(
+              columnWidth: const FixedColumnWidth(150),
+              headingRowAlignment: MainAxisAlignment.center,
+              label: Text(
+                AppLocaleKeys.attendanceDailyResult.tr,
+                style: _columnHeaderStyle,
+              ),
+            ),
+            DataColumn(
               columnWidth: const FixedColumnWidth(80),
               headingRowAlignment: MainAxisAlignment.center,
               label: Text(
@@ -300,6 +758,7 @@ class _AttendancePageState extends State<AttendancePage> {
             final time = record.recordedAt != null
                 ? DateFormat.jm().format(record.recordedAt!.toLocal())
                 : '-';
+            final dayState = dailyStates[record.employeeId];
             return DataRow(
               cells: [
                 DataCell(
@@ -329,6 +788,19 @@ class _AttendancePageState extends State<AttendancePage> {
                   ),
                 ),
                 DataCell(
+                  TableCellCenter(child: _buildApprovalChip(record)),
+                ),
+                DataCell(
+                  TableCellCenter(child: _buildReviewActions(record)),
+                ),
+                DataCell(
+                  TableCellCenter(
+                    child: dayState == null
+                        ? const Text('-')
+                        : _buildDailyResultChip(dayState.outcome),
+                  ),
+                ),
+                DataCell(
                   TableCellCenter(
                     child: _AttendancePhotoThumbnail(photoUrl: record.photoUrl),
                   ),
@@ -341,11 +813,9 @@ class _AttendancePageState extends State<AttendancePage> {
     );
   }
 
-  Widget _buildPageContent(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildTitleRow() {
+    return Row(
       children: [
-        const SizedBox(height: 50),
         Text(
           AppLocaleKeys.attendanceTitle.tr,
           style: TextStyle(
@@ -354,17 +824,32 @@ class _AttendancePageState extends State<AttendancePage> {
             fontWeight: FontWeight.bold,
           ),
         ),
+        const Spacer(),
+        TextButton.icon(
+          onPressed: () => Get.toNamed('/attendanceReports'),
+          icon: const Icon(Icons.assessment_outlined, size: 18),
+          label: Text(AppLocaleKeys.attendanceReportsTitle.tr),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPageContent(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 50),
+        _buildTitleRow(),
         const SizedBox(height: 10),
         _buildFilters(context),
         const SizedBox(height: 10),
         StreamBuilder<List<AttendanceRecordModel>>(
           stream: FirestoreServices.streamAttendanceForDate(_selectedDate),
           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Padding(
-                padding: EdgeInsets.symmetric(vertical: 48),
-                child: Center(child: CircularProgressIndicator()),
-              );
+            final waitingForRecords =
+                snapshot.connectionState == ConnectionState.waiting;
+            if (waitingForRecords || _loadingDayContext) {
+              return const TableAreaLoading();
             }
             if (snapshot.hasError) {
               return Padding(
@@ -373,7 +858,9 @@ class _AttendancePageState extends State<AttendancePage> {
               );
             }
 
-            final filtered = _filterRecords(snapshot.data ?? const []);
+            final allRecords = snapshot.data ?? const [];
+            final dailyStates = _dailyStatesForRecords(allRecords);
+            final filtered = _filterRecords(allRecords, dailyStates);
             if (filtered.isEmpty) {
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 48),
@@ -386,7 +873,7 @@ class _AttendancePageState extends State<AttendancePage> {
               );
             }
 
-            return _buildDataTable(filtered);
+            return _buildDataTable(filtered, dailyStates);
           },
         ),
       ],

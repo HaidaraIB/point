@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/View/AdminSettings/sections/app_version_settings_section.dart';
-import 'package:point/View/AdminSettings/sections/company_location_settings_section.dart';
+import 'package:point/View/AdminSettings/sections/attendance_policy_settings_section.dart';
 import 'package:point/View/AdminSettings/settings_section_nav.dart';
 import 'package:point/View/AdminSettings/settings_sections.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
@@ -21,8 +21,8 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
     switch (_selected) {
       case SettingsSection.appVersion:
         return const AppVersionSettingsSection();
-      case SettingsSection.companyLocation:
-        return const CompanyLocationSettingsSection();
+      case SettingsSection.attendancePolicy:
+        return const AttendancePolicySettingsSection();
     }
   }
 

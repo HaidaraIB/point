@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Models/EmployeeAttendanceLocation.dart';
 import 'package:point/Models/EmployeeModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
@@ -18,6 +20,7 @@ import 'package:point/View/Shared/HorizontalScroll.dart';
 import 'package:point/View/Shared/TableCellCenter.dart';
 import 'package:point/View/Employees/Mobile/EmployeeFormMobilePage.dart';
 import 'package:point/View/Employees/Mobile/EmployeesMobileScreen.dart';
+import 'package:point/View/Shared/employee_attendance_config_fields.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/table_actions_menu_row.dart';
 import 'package:uuid/uuid.dart';
@@ -62,6 +65,37 @@ Widget _employeePresenceChip(DateTime? at) {
         fontWeight: FontWeight.w700,
         fontSize: 12,
       ),
+    ),
+  );
+}
+
+String _employeeWorkHoursLabel(EmployeeModel emp) {
+  if (emp.role != 'employee') return '-';
+  if (!emp.hasWorkHours) return '-';
+  return '${emp.workHoursFrom} – ${emp.workHoursTo}';
+}
+
+String _employeeBranchLocationLabel(EmployeeModel emp) {
+  if (emp.role != 'employee') return '-';
+  final EmployeeAttendanceLocation? loc = emp.attendanceLocation;
+  if (loc == null || !loc.isConfigured) return '-';
+  final label = loc.label?.trim();
+  if (label != null && label.isNotEmpty) {
+    return '$label (${loc.radiusMeters.round()} m)';
+  }
+  return '${loc.latitude.toStringAsFixed(5)}, ${loc.longitude.toStringAsFixed(5)} (${loc.radiusMeters.round()} m)';
+}
+
+Widget _employeeTableMetaText(String text) {
+  return Text(
+    text,
+    textAlign: TextAlign.center,
+    maxLines: 2,
+    overflow: TextOverflow.ellipsis,
+    style: TextStyle(
+      fontWeight: FontWeight.w600,
+      fontSize: 12,
+      color: AppColors.fontColorGrey,
     ),
   );
 }
@@ -180,7 +214,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                         HorizontalScrollbarTable(
                           child: SizedBox(
                             width: (Get.width - 270).clamp(
-                              1100.0,
+                              1400.0,
                               double.infinity,
                             ),
                             child: Obx(
@@ -223,6 +257,28 @@ class _EmployeeTableState extends State<EmployeeTable> {
 
                                     label: Text(
                                       'role'.tr,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.fontColorGrey,
+                                      ),
+                                    ),
+                                  ),
+                                  DataColumn(
+                                    headingRowAlignment:
+                                        MainAxisAlignment.center,
+                                    label: Text(
+                                      AppLocaleKeys.attendanceWorkHoursTitle.tr,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.fontColorGrey,
+                                      ),
+                                    ),
+                                  ),
+                                  DataColumn(
+                                    headingRowAlignment:
+                                        MainAxisAlignment.center,
+                                    label: Text(
+                                      AppLocaleKeys.attendanceEmployeeLocationTitle.tr,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         color: AppColors.fontColorGrey,
@@ -301,6 +357,21 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                                 fontSize: 13,
                                               ),
                                             ),
+                                          ),
+                                        ),
+                                      ),
+
+                                      DataCell(
+                                        TableCellCenter(
+                                          child: _employeeTableMetaText(
+                                            _employeeWorkHoursLabel(emp),
+                                          ),
+                                        ),
+                                      ),
+                                      DataCell(
+                                        TableCellCenter(
+                                          child: _employeeTableMetaText(
+                                            _employeeBranchLocationLabel(emp),
                                           ),
                                         ),
                                       ),
@@ -447,6 +518,23 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
             ? List<String>.from(model.departments)
             : <String>[StorageKeys.departmentPromotion]);
   List<String> roles = ["supervisor", "admin", "employee"];
+  final branchLabelController = TextEditingController();
+  final branchLatController = TextEditingController();
+  final branchLngController = TextEditingController();
+  final branchRadiusController = TextEditingController(
+    text: EmployeeAttendanceLocation.defaultRadiusMeters.toString(),
+  );
+  TimeOfDay? workFrom;
+  TimeOfDay? workTo;
+  EmployeeAttendanceFormData.populateFromEmployee(
+    employee: model,
+    labelController: branchLabelController,
+    latController: branchLatController,
+    lngController: branchLngController,
+    radiusController: branchRadiusController,
+  );
+  workFrom = EmployeeAttendanceFormData.parseTime(model?.workHoursFrom);
+  workTo = EmployeeAttendanceFormData.parseTime(model?.workHoursTo);
   Get.find<HomeController>().uploadedFilesPaths.assignAll(
     model != null && model.image != null ? [model.image!] : [],
   );
@@ -684,6 +772,25 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                         ? ' '
                                         : null,
                                   ),
+                                if (selectedRole == 'employee') ...[
+                                  const SizedBox(height: 16),
+                                  EmployeeAttendanceConfigFields(
+                                    labelController: branchLabelController,
+                                    latController: branchLatController,
+                                    lngController: branchLngController,
+                                    radiusController: branchRadiusController,
+                                    workFrom: workFrom,
+                                    workTo: workTo,
+                                    onWorkFromChanged: (v) {
+                                      workFrom = v;
+                                      newstate(() {});
+                                    },
+                                    onWorkToChanged: (v) {
+                                      workTo = v;
+                                      newstate(() {});
+                                    },
+                                  ),
+                                ],
                               ],
                             ),
                           ),
@@ -732,6 +839,52 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                                   selectedDepartments,
                                                 )
                                               : <String>[];
+                                          final workHoursError =
+                                              selectedRole == 'employee'
+                                              ? EmployeeAttendanceFormData
+                                                  .validateWorkHours(
+                                                    workFrom,
+                                                    workTo,
+                                                  )
+                                              : null;
+                                          if (workHoursError != null) {
+                                            FunHelper.showSnackbarDeduped(
+                                              'error'.tr,
+                                              workHoursError,
+                                              dedupeKey:
+                                                  'employee_work_hours_invalid',
+                                              snackPosition: SnackPosition.TOP,
+                                              backgroundColor: Colors.red,
+                                              colorText: Colors.white,
+                                            );
+                                            return;
+                                          }
+                                          final branchLocation =
+                                              selectedRole == 'employee'
+                                              ? EmployeeAttendanceFormData
+                                                  .locationFromControllers(
+                                                    labelController:
+                                                        branchLabelController,
+                                                    latController:
+                                                        branchLatController,
+                                                    lngController:
+                                                        branchLngController,
+                                                    radiusController:
+                                                        branchRadiusController,
+                                                  )
+                                              : null;
+                                          final workHoursFrom =
+                                              selectedRole == 'employee' &&
+                                                  workFrom != null
+                                              ? EmployeeAttendanceFormData
+                                                  .formatTimeOfDay(workFrom!)
+                                              : null;
+                                          final workHoursTo =
+                                              selectedRole == 'employee' &&
+                                                  workTo != null
+                                              ? EmployeeAttendanceFormData
+                                                  .formatTimeOfDay(workTo!)
+                                              : null;
                                           if (model == null) {
                                             controller
                                                 .addEmployee(
@@ -759,6 +912,11 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                                               .uploadedFilesPaths
                                                               .last
                                                         : null,
+                                                    attendanceLocation:
+                                                        branchLocation,
+                                                    workHoursFrom:
+                                                        workHoursFrom,
+                                                    workHoursTo: workHoursTo,
                                                   ),
                                                 )
                                                 .then((v) {
@@ -788,6 +946,17 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                                               .uploadedFilesPaths
                                                               .last
                                                         : model.image,
+                                                    attendanceLocation:
+                                                        branchLocation,
+                                                    workHoursFrom:
+                                                        workHoursFrom,
+                                                    workHoursTo: workHoursTo,
+                                                    clearAttendanceLocation:
+                                                        selectedRole !=
+                                                            'employee',
+                                                    clearWorkHours:
+                                                        selectedRole !=
+                                                            'employee',
                                                   ),
                                                   newPassword:
                                                       !canEditCredentials ||

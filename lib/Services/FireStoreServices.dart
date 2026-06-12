@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:point/config/app_config.dart';
+import 'package:point/Models/AttendanceDayOutcomeModel.dart';
 import 'package:point/Models/AttendanceRecordModel.dart';
 import 'package:point/Models/ChatMetaData.dart';
 import 'package:point/Models/ClientModel.dart';
@@ -88,6 +89,11 @@ class FirestoreServices extends FirestoreServicesBase
   ) =>
       FirestoreAttendanceApi.streamTodayRecordsForEmployee(employeeId);
 
+  static Stream<AttendanceDayOutcomeModel?> streamTodayAttendanceOutcomeForEmployee(
+    String employeeId,
+  ) =>
+      FirestoreAttendanceApi.streamTodayOutcomeForEmployee(employeeId);
+
   static Stream<List<AttendanceRecordModel>> streamAttendanceForDate(
     DateTime date,
   ) =>
@@ -117,6 +123,48 @@ class FirestoreServices extends FirestoreServicesBase
         officeRadiusMeters: officeRadiusMeters,
         photoUrl: photoUrl,
       );
+
+  static Future<void> reviewAttendanceRecord({
+    required String recordId,
+    required bool approved,
+    required String reviewerEmployeeId,
+    required String reviewerName,
+  }) =>
+      FirestoreAttendanceApi.reviewAttendanceRecord(
+        recordId: recordId,
+        approved: approved,
+        reviewerEmployeeId: reviewerEmployeeId,
+        reviewerName: reviewerName,
+      );
+
+  static Stream<List<AttendanceRecordModel>> streamPendingAttendance() =>
+      FirestoreAttendanceApi.streamPendingRecords();
+
+  static Stream<int> streamPendingAttendanceCount() =>
+      FirestoreAttendanceApi.streamPendingCount();
+
+  static Future<List<AttendanceRecordModel>> fetchAttendanceForRange({
+    required DateTime startInclusive,
+    required DateTime endExclusive,
+  }) =>
+      FirestoreAttendanceApi.fetchRecordsForRange(
+        startInclusive: startInclusive,
+        endExclusive: endExclusive,
+      );
+
+  static Future<List<AttendanceDayOutcomeModel>> fetchAttendanceOutcomesForRange({
+    required DateTime startInclusive,
+    required DateTime endExclusive,
+  }) =>
+      FirestoreAttendanceApi.fetchOutcomesForRange(
+        startInclusive: startInclusive,
+        endExclusive: endExclusive,
+      );
+
+  static Future<List<AttendanceDayOutcomeModel>> fetchAttendanceOutcomesForDate(
+    DateTime date,
+  ) =>
+      FirestoreAttendanceApi.fetchOutcomesForDate(date);
 
   static Future<void> logClientDiagnosticError({
     required String source,

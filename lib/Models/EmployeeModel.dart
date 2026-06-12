@@ -1,3 +1,4 @@
+import 'package:point/Models/EmployeeAttendanceLocation.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -19,6 +20,11 @@ class EmployeeModel {
   final String? image;
   /// Presence heartbeat timestamp (used by employees table status).
   final DateTime? activeChatUpdatedAt;
+  /// Branch/office geofence for attendance (employees only).
+  final EmployeeAttendanceLocation? attendanceLocation;
+  /// Work hours as "HH:mm" for check-in/out reminders.
+  final String? workHoursFrom;
+  final String? workHoursTo;
 
   EmployeeModel({
     this.id,
@@ -36,11 +42,21 @@ class EmployeeModel {
     this.authStatus,
     this.image,
     this.activeChatUpdatedAt,
+    this.attendanceLocation,
+    this.workHoursFrom,
+    this.workHoursTo,
   });
 
   /// First department slug, if any (e.g. notifications / legacy single-field UX).
   String? get primaryDepartment =>
       departments.isEmpty ? null : departments.first;
+
+  bool get hasAttendanceLocationConfigured =>
+      attendanceLocation?.isConfigured ?? false;
+
+  bool get hasWorkHours =>
+      (workHoursFrom?.trim().isNotEmpty ?? false) &&
+      (workHoursTo?.trim().isNotEmpty ?? false);
 
   bool hasDepartment(String semanticDepartment) => departments.any(
         (d) => StorageKeys.matchesDepartment(d, semanticDepartment),
@@ -62,6 +78,11 @@ class EmployeeModel {
     String? authStatus,
     String? image,
     DateTime? activeChatUpdatedAt,
+    EmployeeAttendanceLocation? attendanceLocation,
+    String? workHoursFrom,
+    String? workHoursTo,
+    bool clearAttendanceLocation = false,
+    bool clearWorkHours = false,
   }) {
     return EmployeeModel(
       id: id ?? this.id,
@@ -79,6 +100,11 @@ class EmployeeModel {
       authStatus: authStatus ?? this.authStatus,
       image: image ?? this.image,
       activeChatUpdatedAt: activeChatUpdatedAt ?? this.activeChatUpdatedAt,
+      attendanceLocation: clearAttendanceLocation
+          ? null
+          : (attendanceLocation ?? this.attendanceLocation),
+      workHoursFrom: clearWorkHours ? null : (workHoursFrom ?? this.workHoursFrom),
+      workHoursTo: clearWorkHours ? null : (workHoursTo ?? this.workHoursTo),
     );
   }
 
@@ -110,29 +136,57 @@ class EmployeeModel {
         rawDepts.map((e) => e?.toString()),
       );
     } else {
-      // Pre-migration docs: single `department` string until backfill runs.
       parsed = StorageKeys.normalizeDepartments(
         [json['department']?.toString()],
       );
     }
+
+    EmployeeAttendanceLocation? location;
+    final rawLoc = json['attendanceLocation'];
+    if (rawLoc is Map) {
+      try {
+        location = EmployeeAttendanceLocation.fromJson(
+          Map<String, dynamic>.from(rawLoc),
+        );
+        if (!location.isConfigured) location = null;
+      } catch (_) {
+        location = null;
+      }
+    }
+
     return EmployeeModel(
-      id: json['id'],
-      name: json['name'],
-      email: json['email'],
-      phone: json['phone'],
-      role: json['role'],
+      id: json['id']?.toString(),
+      name: json['name']?.toString(),
+      email: json['email']?.toString(),
+      phone: json['phone']?.toString(),
+      role: json['role']?.toString() ?? '',
       departments: parsed,
-      fcmToken: json['fcmToken'],
-      onesignal: json['onesignal'],
-      hireDate:
-          json['hireDate'] != null ? DateTime.parse(json['hireDate']) : null,
-      status: json['status'],
-      createdAt: DateTime.parse(json['createdAt']),
-      authUid: json['authUid'],
-      authStatus: json['authStatus'],
-      image: json['image'],
+      fcmToken: json['fcmToken']?.toString(),
+      onesignal: json['onesignal']?.toString(),
+      hireDate: _parseDateTimeLike(json['hireDate']),
+      status: json['status']?.toString() ?? '',
+      createdAt: _parseDateTimeLike(json['createdAt']) ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+      authUid: json['authUid']?.toString(),
+      authStatus: json['authStatus']?.toString(),
+      image: json['image']?.toString(),
       activeChatUpdatedAt: _parseDateTimeLike(json['activeChatUpdatedAt']),
+      attendanceLocation: location,
+      workHoursFrom: json['workHoursFrom']?.toString(),
+      workHoursTo: json['workHoursTo']?.toString(),
     );
+  }
+
+  /// Parse Firestore document data (handles Timestamp fields and nested maps).
+  factory EmployeeModel.fromFirestoreMap(
+    Object? data, {
+    String? id,
+  }) {
+    if (data is! Map) {
+      return EmployeeModel.fromJson(const {}).copyWith(id: id);
+    }
+    final map = Map<String, dynamic>.from(data);
+    return EmployeeModel.fromJson(map).copyWith(id: id ?? map['id']?.toString());
   }
 
   Map<String, dynamic> toJson() {
@@ -144,8 +198,6 @@ class EmployeeModel {
       "phone": phone,
       "role": role,
       "departments": normalizedDepartments,
-      // Temporary compatibility for old app versions that still read/write
-      // single-field department.
       "department": normalizedDepartments.isEmpty ? '' : normalizedDepartments.first,
       "fcmToken": fcmToken,
       'onesignal': onesignal,
@@ -157,6 +209,12 @@ class EmployeeModel {
       "image": image,
       if (activeChatUpdatedAt != null)
         "activeChatUpdatedAt": activeChatUpdatedAt!.toIso8601String(),
+      if (attendanceLocation != null && attendanceLocation!.isConfigured)
+        "attendanceLocation": attendanceLocation!.toJson(),
+      if (workHoursFrom != null && workHoursFrom!.trim().isNotEmpty)
+        "workHoursFrom": workHoursFrom!.trim(),
+      if (workHoursTo != null && workHoursTo!.trim().isNotEmpty)
+        "workHoursTo": workHoursTo!.trim(),
     };
   }
 }

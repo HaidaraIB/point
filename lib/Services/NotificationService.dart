@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/StorageKeys.dart';
 
@@ -194,6 +195,32 @@ class NotificationService {
       actionText: 'notify.emp.deadline_extension.action'.tr,
       referenceId: taskTitle,
       emailDetails: _emailLabels({'notify.email.task': taskTitle}),
+    );
+  }
+
+  static Future<void> notifyEmployeeCheckInReminder({
+    required String employeeId,
+  }) async {
+    await FirestoreServices.sendFcm(
+      userId: employeeId,
+      title: AppLocaleKeys.notifyEmpAttendanceCheckInTitle.tr,
+      body: AppLocaleKeys.notifyEmpAttendanceCheckInBody.tr,
+      notificationType: 'employee_attendance_check_in',
+      actionText: AppLocaleKeys.attendancePresent.tr,
+      referenceId: 'attendance',
+    );
+  }
+
+  static Future<void> notifyEmployeeCheckOutReminder({
+    required String employeeId,
+  }) async {
+    await FirestoreServices.sendFcm(
+      userId: employeeId,
+      title: AppLocaleKeys.notifyEmpAttendanceCheckOutTitle.tr,
+      body: AppLocaleKeys.notifyEmpAttendanceCheckOutBody.tr,
+      notificationType: 'employee_attendance_check_out',
+      actionText: AppLocaleKeys.attendanceLeft.tr,
+      referenceId: 'attendance',
     );
   }
 

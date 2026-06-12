@@ -70,6 +70,42 @@ service cloud.firestore {
         && (!('updatedAt' in data) || data.updatedAt is timestamp);
     }
 
+    function attendanceValidGraceMinutes(value) {
+      return value is int && value >= 5 && value <= 480;
+    }
+
+    function validAttendancePolicySettings(data) {
+      return data.keys().hasAll(['checkInGraceMinutes', 'checkOutGraceMinutes'])
+        && attendanceValidGraceMinutes(data.checkInGraceMinutes)
+        && attendanceValidGraceMinutes(data.checkOutGraceMinutes)
+        && (!('updatedAt' in data) || data.updatedAt is timestamp);
+    }
+
+    function validAttendanceLocationMap(loc) {
+      return loc is map
+        && loc.keys().hasAll(['latitude', 'longitude', 'radiusMeters'])
+        && attendanceValidCoordinate(loc.latitude)
+        && attendanceValidCoordinate(loc.longitude)
+        && attendanceValidRadius(loc.radiusMeters)
+        && (!('label' in loc) || loc.label is string);
+    }
+
+    function validWorkHoursTime(value) {
+      return value is string
+        && value.size() == 5
+        && value[2] == ':'
+        && value[0] >= '0' && value[0] <= '9'
+        && value[1] >= '0' && value[1] <= '9'
+        && value[3] >= '0' && value[3] <= '5'
+        && value[4] >= '0' && value[4] <= '9';
+    }
+
+    function validEmployeeAttendanceFields(data) {
+      return (!('attendanceLocation' in data) || validAttendanceLocationMap(data.attendanceLocation))
+        && (!('workHoursFrom' in data) || validWorkHoursTime(data.workHoursFrom))
+        && (!('workHoursTo' in data) || validWorkHoursTime(data.workHoursTo));
+    }
+
     function validAttendanceRecord(data) {
       return data.keys().hasAll([
           'employeeId',
@@ -83,6 +119,7 @@ service cloud.firestore {
           'officeRadiusMeters',
           'photoUrl',
           'recordedAt',
+          'approvalStatus',
         ])
         && data.employeeId is string
         && data.employeeName is string
@@ -97,7 +134,25 @@ service cloud.firestore {
         && attendanceValidCoordinate(data.officeLongitude)
         && attendanceValidRadius(data.officeRadiusMeters)
         && data.distanceMeters <= data.officeRadiusMeters
-        && data.recordedAt is timestamp;
+        && data.recordedAt is timestamp
+        && data.approvalStatus == 'pending';
+    }
+
+    function attendanceRecordApprovalUpdate() {
+      let diff = request.resource.data.diff(resource.data);
+      return isSignedIn() && hasAuthRole() && isAdmin()
+        && resource.data.approvalStatus == 'pending'
+        && (request.resource.data.approvalStatus == 'approved'
+          || request.resource.data.approvalStatus == 'absent')
+        && diff.affectedKeys().hasOnly([
+          'approvalStatus',
+          'reviewedAt',
+          'reviewedByEmployeeId',
+          'reviewedByName',
+        ])
+        && request.resource.data.reviewedAt is timestamp
+        && request.resource.data.reviewedByEmployeeId is string
+        && request.resource.data.reviewedByName is string;
     }
 
     function sliceDepartments(m) {
@@ -618,6 +673,7 @@ service cloud.firestore {
       allow read: if canReadEmployeesDoc();
 
       allow create: if isSignedIn() && hasAuthRole() && isManager()
+        && validEmployeeAttendanceFields(request.resource.data)
         || testAdminDevEmployeeBootstrapCreate(employeeId);
 
       // لا يحذف المسؤول مستند موظفه الخاص (يُمنع قفل الحساب بالخطأ).
@@ -626,6 +682,7 @@ service cloud.firestore {
 
       // موظف عادي: توكن/دردشة، أو تعديل name/image على مستنده فقط (لا role/departments/email).
       allow update: if isSignedIn() && hasAuthRole() && isManager()
+        && validEmployeeAttendanceFields(request.resource.data)
         || employeeAuthBootstrapUpdate()
         || (isSignedIn() && hasAuthRole() && isEmployeeRole()
           && employeeId == myEmployeeId()
@@ -929,7 +986,7 @@ service cloud.firestore {
         && metaPublishCanReadAppSettingsOrMetaPosts();
 
       allow read: if isSignedIn() && hasAuthRole() && !isClientRole()
-        && docId == 'attendance';
+        && (docId == 'attendance' || docId == 'attendance_policy');
 
       allow create, update: if isSignedIn() && hasAuthRole() && docId == 'meta'
         && metaPublishCanWriteAppSettingsMeta()
@@ -939,6 +996,9 @@ service cloud.firestore {
 
       allow create, update: if isSignedIn() && isAdmin() && docId == 'attendance'
         && validAttendanceSettings(request.resource.data);
+
+      allow create, update: if isSignedIn() && isAdmin() && docId == 'attendance_policy'
+        && validAttendancePolicySettings(request.resource.data);
 
       allow delete: if false;
     }
@@ -972,6 +1032,18 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // System-written daily attendance outcomes (auto-absent from cron).
+    match /attendance_day_outcomes/{outcomeId} {
+      allow read: if isSignedIn() && hasAuthRole()
+        && (
+          isAdmin()
+          || resource == null
+          || resource.data.employeeId == myEmployeeId()
+        );
+
+      allow create, update, delete: if false;
+    }
+
     // GPS attendance check-in/out records.
     match /attendance_records/{recordId} {
       allow read: if isSignedIn() && hasAuthRole()
@@ -982,7 +1054,9 @@ service cloud.firestore {
         && request.resource.data.employeeId == myEmployeeId()
         && validAttendanceRecord(request.resource.data);
 
-      allow update, delete: if false;
+      allow update: if attendanceRecordApprovalUpdate();
+
+      allow delete: if false;
     }
 
     match /{document=**} {

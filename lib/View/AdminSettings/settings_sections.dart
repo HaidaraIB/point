@@ -5,7 +5,7 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 /// Admin settings sections. Add new values here as the hub grows.
 enum SettingsSection {
   appVersion,
-  companyLocation,
+  attendancePolicy,
 }
 
 extension SettingsSectionX on SettingsSection {
@@ -13,8 +13,8 @@ extension SettingsSectionX on SettingsSection {
     switch (this) {
       case SettingsSection.appVersion:
         return AppLocaleKeys.adminSettingsSectionAppVersion;
-      case SettingsSection.companyLocation:
-        return AppLocaleKeys.adminSettingsSectionCompanyLocation;
+      case SettingsSection.attendancePolicy:
+        return AppLocaleKeys.adminSettingsSectionAttendancePolicy;
     }
   }
 
@@ -24,8 +24,8 @@ extension SettingsSectionX on SettingsSection {
     switch (this) {
       case SettingsSection.appVersion:
         return Icons.system_update_alt_outlined;
-      case SettingsSection.companyLocation:
-        return Icons.location_on_outlined;
+      case SettingsSection.attendancePolicy:
+        return Icons.schedule_outlined;
     }
   }
 }

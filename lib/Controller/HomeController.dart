@@ -2449,8 +2449,10 @@ class HomeController extends GetxController {
         .listen(
           (snapshot) async {
             if (snapshot.exists && snapshot.data() != null) {
-              final base = EmployeeModel.fromJson(snapshot.data()!);
-              final employee = base.copyWith(id: empid);
+              final employee = EmployeeModel.fromFirestoreMap(
+                snapshot.data(),
+                id: empid,
+              );
               final previous = currentEmployee.value;
               final profileChanged = !_sameEmployeeProfileCore(
                 previous,

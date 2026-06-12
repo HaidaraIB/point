@@ -34,6 +34,7 @@ import 'package:point/View/Mobile/MobileSplashDecider.dart';
 import 'package:point/View/Mobile/force_update_page.dart';
 import 'package:point/View/AdminSettings/AdminSettingsPage.dart';
 import 'package:point/View/Attendance/AttendancePage.dart';
+import 'package:point/View/Attendance/AttendanceReportsPage.dart';
 import 'package:point/View/Statistics/Statistics.dart';
 import 'package:point/View/Tasks/Tasks.dart';
 
@@ -209,6 +210,11 @@ class AppRouting {
         GetPage(
           name: '/attendance',
           page: () => const AttendancePage(),
+          middlewares: [AuthMiddleware()],
+        ),
+        GetPage(
+          name: '/attendanceReports',
+          page: () => const AttendanceReportsPage(),
           middlewares: [AuthMiddleware()],
         ),
         GetPage(

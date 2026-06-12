@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Models/EmployeeAttendanceLocation.dart';
 import 'package:point/Models/EmployeeModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
@@ -10,6 +11,7 @@ import 'package:point/View/Shared/CustomDropDown.dart';
 import 'package:point/View/Shared/MultiSelectDropDown.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/ReadOnlyAccountEmailField.dart';
+import 'package:point/View/Shared/employee_attendance_config_fields.dart';
 import 'package:point/Utils/PasswordValidator.dart';
 import 'package:uuid/uuid.dart';
 
@@ -29,10 +31,16 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
   late final TextEditingController nameController;
   late final TextEditingController emailController;
   late final TextEditingController passwordController;
+  late final TextEditingController branchLabelController;
+  late final TextEditingController branchLatController;
+  late final TextEditingController branchLngController;
+  late final TextEditingController branchRadiusController;
 
   bool obscurePassword = true;
   String selectedRole = "employee";
   List<String> selectedDepartments = [StorageKeys.departmentPromotion];
+  TimeOfDay? workFrom;
+  TimeOfDay? workTo;
   static const List<String> _roles = ["supervisor", "admin", "employee"];
 
   bool get _canEditCredentials {
@@ -54,6 +62,21 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
     nameController = TextEditingController(text: m?.name);
     emailController = TextEditingController(text: m?.email);
     passwordController = TextEditingController();
+    branchLabelController = TextEditingController();
+    branchLatController = TextEditingController();
+    branchLngController = TextEditingController();
+    branchRadiusController = TextEditingController(
+      text: EmployeeAttendanceLocation.defaultRadiusMeters.toString(),
+    );
+    EmployeeAttendanceFormData.populateFromEmployee(
+      employee: m,
+      labelController: branchLabelController,
+      latController: branchLatController,
+      lngController: branchLngController,
+      radiusController: branchRadiusController,
+    );
+    workFrom = EmployeeAttendanceFormData.parseTime(m?.workHoursFrom);
+    workTo = EmployeeAttendanceFormData.parseTime(m?.workHoursTo);
     selectedRole = m?.role ?? "employee";
     selectedDepartments = m == null
         ? <String>[StorageKeys.departmentPromotion]
@@ -71,6 +94,10 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
     nameController.dispose();
     emailController.dispose();
     passwordController.dispose();
+    branchLabelController.dispose();
+    branchLatController.dispose();
+    branchLngController.dispose();
+    branchRadiusController.dispose();
     super.dispose();
   }
 
@@ -92,6 +119,34 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
     final departmentsToSave = selectedRole == 'employee'
         ? StorageKeys.normalizeDepartments(selectedDepartments)
         : <String>[];
+    final workHoursError = selectedRole == 'employee'
+        ? EmployeeAttendanceFormData.validateWorkHours(workFrom, workTo)
+        : null;
+    if (workHoursError != null) {
+      FunHelper.showSnackbarDeduped(
+        'error'.tr,
+        workHoursError,
+        dedupeKey: 'employee_work_hours_invalid',
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return;
+    }
+    final branchLocation = selectedRole == 'employee'
+        ? EmployeeAttendanceFormData.locationFromControllers(
+            labelController: branchLabelController,
+            latController: branchLatController,
+            lngController: branchLngController,
+            radiusController: branchRadiusController,
+          )
+        : null;
+    final workHoursFrom = selectedRole == 'employee' && workFrom != null
+        ? EmployeeAttendanceFormData.formatTimeOfDay(workFrom!)
+        : null;
+    final workHoursTo = selectedRole == 'employee' && workTo != null
+        ? EmployeeAttendanceFormData.formatTimeOfDay(workTo!)
+        : null;
 
     if (model == null) {
       final success = await controller.addEmployee(
@@ -109,6 +164,9 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
           image: controller.uploadedFilesPaths.isNotEmpty
               ? controller.uploadedFilesPaths.last
               : null,
+          attendanceLocation: branchLocation,
+          workHoursFrom: workHoursFrom,
+          workHoursTo: workHoursTo,
         ),
       );
       if (!mounted) return;
@@ -128,6 +186,11 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
           image: controller.uploadedFilesPaths.isNotEmpty
               ? controller.uploadedFilesPaths.last
               : model.image,
+          attendanceLocation: branchLocation,
+          workHoursFrom: workHoursFrom,
+          workHoursTo: workHoursTo,
+          clearAttendanceLocation: selectedRole != 'employee',
+          clearWorkHours: selectedRole != 'employee',
         ),
         newPassword:
             !_canEditCredentials || passwordController.text.trim().isEmpty
@@ -327,6 +390,17 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                       },
                       validator: (list) =>
                           (list == null || list.isEmpty) ? ' ' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    EmployeeAttendanceConfigFields(
+                      labelController: branchLabelController,
+                      latController: branchLatController,
+                      lngController: branchLngController,
+                      radiusController: branchRadiusController,
+                      workFrom: workFrom,
+                      workTo: workTo,
+                      onWorkFromChanged: (v) => setState(() => workFrom = v),
+                      onWorkToChanged: (v) => setState(() => workTo = v),
                     ),
                   ],
                   const SizedBox(height: 32),

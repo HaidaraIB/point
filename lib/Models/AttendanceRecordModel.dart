@@ -13,6 +13,12 @@ class AttendanceRecordModel {
   final double officeLongitude;
   final double officeRadiusMeters;
   final String? photoUrl;
+  final String approvalStatus;
+  final String? rejectionReason;
+  final String? markedBy;
+  final DateTime? reviewedAt;
+  final String? reviewedByEmployeeId;
+  final String? reviewedByName;
 
   const AttendanceRecordModel({
     this.id,
@@ -27,13 +33,34 @@ class AttendanceRecordModel {
     required this.officeLongitude,
     required this.officeRadiusMeters,
     this.photoUrl,
+    this.approvalStatus = statusPending,
+    this.rejectionReason,
+    this.markedBy,
+    this.reviewedAt,
+    this.reviewedByEmployeeId,
+    this.reviewedByName,
   });
 
   static const String actionPresent = 'present';
   static const String actionLeft = 'left';
 
+  static const String statusPending = 'pending';
+  static const String statusApproved = 'approved';
+  static const String statusAbsent = 'absent';
+  static const String statusAutoRejectedLate = 'auto_rejected_late';
+
+  static const String reasonMissedCheckInWindow = 'missed_check_in_window';
+  static const String reasonMissedCheckOutWindow = 'missed_check_out_window';
+  static const String markedBySystem = 'system';
+
   bool get isPresent => action == actionPresent;
   bool get isLeft => action == actionLeft;
+  bool get isPending => approvalStatus == statusPending;
+  bool get isApproved => approvalStatus == statusApproved;
+  bool get isAbsent => approvalStatus == statusAbsent;
+  bool get isAutoRejectedLate => approvalStatus == statusAutoRejectedLate;
+  bool get isActionFinalized =>
+      isApproved || isAbsent || isAutoRejectedLate;
 
   factory AttendanceRecordModel.fromJson(Map<String, dynamic> json, {String? id}) {
     return AttendanceRecordModel(
@@ -49,6 +76,12 @@ class AttendanceRecordModel {
       officeLongitude: _asDouble(json['officeLongitude']) ?? 0,
       officeRadiusMeters: _asDouble(json['officeRadiusMeters']) ?? 0,
       photoUrl: json['photoUrl']?.toString(),
+      approvalStatus: json['approvalStatus']?.toString() ?? statusPending,
+      rejectionReason: json['rejectionReason']?.toString(),
+      markedBy: json['markedBy']?.toString(),
+      reviewedAt: _parseDateTime(json['reviewedAt']),
+      reviewedByEmployeeId: json['reviewedByEmployeeId']?.toString(),
+      reviewedByName: json['reviewedByName']?.toString(),
     );
   }
 
@@ -63,7 +96,16 @@ class AttendanceRecordModel {
       'officeLatitude': officeLatitude,
       'officeLongitude': officeLongitude,
       'officeRadiusMeters': officeRadiusMeters,
+      'approvalStatus': approvalStatus,
       if (photoUrl != null && photoUrl!.isNotEmpty) 'photoUrl': photoUrl,
+      if (rejectionReason != null && rejectionReason!.isNotEmpty)
+        'rejectionReason': rejectionReason,
+      if (markedBy != null && markedBy!.isNotEmpty) 'markedBy': markedBy,
+      if (reviewedAt != null) 'reviewedAt': reviewedAt,
+      if (reviewedByEmployeeId != null && reviewedByEmployeeId!.isNotEmpty)
+        'reviewedByEmployeeId': reviewedByEmployeeId,
+      if (reviewedByName != null && reviewedByName!.isNotEmpty)
+        'reviewedByName': reviewedByName,
     };
   }
 

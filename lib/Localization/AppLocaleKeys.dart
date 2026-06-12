@@ -44,6 +44,24 @@ class AppLocaleKeys {
       'admin_settings.company_location_save_success';
   static const adminSettingsLocationFetchFailed =
       'admin_settings.location_fetch_failed';
+  static const adminSettingsSectionAttendancePolicy =
+      'admin_settings.section_attendance_policy';
+  static const adminSettingsAttendancePolicyHelp =
+      'admin_settings.attendance_policy_help';
+  static const adminSettingsCheckInGraceMinutes =
+      'admin_settings.check_in_grace_minutes';
+  static const adminSettingsCheckInGraceHelp =
+      'admin_settings.check_in_grace_help';
+  static const adminSettingsCheckOutGraceMinutes =
+      'admin_settings.check_out_grace_minutes';
+  static const adminSettingsCheckOutGraceHelp =
+      'admin_settings.check_out_grace_help';
+  static const adminSettingsAttendanceGraceInvalid =
+      'admin_settings.attendance_grace_invalid';
+  static const adminSettingsAttendanceGraceRange =
+      'admin_settings.attendance_grace_range';
+  static const adminSettingsAttendancePolicySaveSuccess =
+      'admin_settings.attendance_policy_save_success';
 
   static const attendanceTitle = 'attendance.title';
   static const attendanceHelp = 'attendance.help';
@@ -78,6 +96,73 @@ class AppLocaleKeys {
   static const attendanceFilterAction = 'attendance.filter_action';
   static const attendanceSelectDate = 'attendance.select_date';
   static const attendanceMeters = 'attendance.meters';
+  static const attendancePendingApproval = 'attendance.pending_approval';
+  static const attendanceRecordPending = 'attendance.record_pending';
+  static const attendancePending = 'attendance.pending';
+  static const attendanceApproved = 'attendance.approved';
+  static const attendanceAbsent = 'attendance.absent';
+  static const attendanceFilterApproval = 'attendance.filter_approval';
+  static const attendanceApprovalStatus = 'attendance.approval_status';
+  static const attendanceReviewActions = 'attendance.review_actions';
+  static const attendanceApprove = 'attendance.approve';
+  static const attendanceMarkAbsent = 'attendance.mark_absent';
+  static const attendanceApproveSuccess = 'attendance.approve_success';
+  static const attendanceAbsentSuccess = 'attendance.absent_success';
+  static const attendanceReviewFailed = 'attendance.review_failed';
+  static const attendanceEmployeeLocationTitle = 'attendance.employee_location_title';
+  static const attendanceEmployeeLocationHelp = 'attendance.employee_location_help';
+  static const attendanceWorkHoursTitle = 'attendance.work_hours_title';
+  static const attendanceWorkHoursHelp = 'attendance.work_hours_help';
+  static const attendanceWorkHoursFrom = 'attendance.work_hours_from';
+  static const attendanceWorkHoursTo = 'attendance.work_hours_to';
+  static const attendanceWorkHoursBothRequired = 'attendance.work_hours_both_required';
+  static const attendanceWorkHoursInvalidRange = 'attendance.work_hours_invalid_range';
+  static const attendanceSelectTime = 'attendance.select_time';
+  static const attendanceReportsTitle = 'attendance.reports_title';
+  static const attendanceReportsPeriodMonth = 'attendance.reports_period_month';
+  static const attendanceReportsPeriodYear = 'attendance.reports_period_year';
+  static const attendanceReportsPresentDays = 'attendance.reports_present_days';
+  static const attendanceReportsCheckouts = 'attendance.reports_checkouts';
+  static const attendanceReportsExportCsv = 'attendance.reports_export_csv';
+  static const attendanceReportsExportPdf = 'attendance.reports_export_pdf';
+  static const attendanceReportsLoadFailed = 'attendance.reports_load_failed';
+  static const attendanceReportsSelectYear = 'attendance.reports_select_year';
+  static const attendanceShowedUp = 'attendance.showed_up';
+  static const attendanceDayAbsent = 'attendance.day_absent';
+  static const attendanceWaitingLeft = 'attendance.waiting_left';
+  static const attendanceAutoAbsentNoCheckIn = 'attendance.auto_absent_no_check_in';
+  static const attendanceAutoAbsentNoCheckout = 'attendance.auto_absent_no_checkout';
+  static const attendanceAlreadyPressedPresent = 'attendance.already_pressed_present';
+  static const attendanceAlreadyPressedLeft = 'attendance.already_pressed_left';
+  static const attendanceAutoRejectedLate = 'attendance.auto_rejected_late';
+  static const attendanceOutsidePresentWindow = 'attendance.outside_present_window';
+  static const attendanceOutsideLeftWindow = 'attendance.outside_left_window';
+  static const attendanceWorkHoursNotConfigured =
+      'attendance.work_hours_not_configured';
+  static const attendancePresentWindowHint = 'attendance.present_window_hint';
+  static const attendanceLeftWindowHint = 'attendance.left_window_hint';
+  static const attendancePresentBeforeWindow = 'attendance.present_before_window';
+  static const attendancePresentAfterWindow = 'attendance.present_after_window';
+  static const attendanceLeftBeforeWindow = 'attendance.left_before_window';
+  static const attendanceLeftAfterWindow = 'attendance.left_after_window';
+  static const attendanceActionAvailable = 'attendance.action_available';
+  static const attendanceActionSubmitted = 'attendance.action_submitted';
+  static const attendanceActionWindowClosed = 'attendance.action_window_closed';
+  static const attendanceCardToday = 'attendance.card_today';
+  static const attendanceDayComplete = 'attendance.day_complete';
+  static const attendanceDailyResult = 'attendance.daily_result';
+  static const attendanceFilterDailyResult = 'attendance.filter_daily_result';
+  static const attendanceDailyResultNoCheckInShort =
+      'attendance.daily_result_no_check_in_short';
+  static const attendanceDailyResultNoCheckoutShort =
+      'attendance.daily_result_no_checkout_short';
+  static const attendanceReportsFilterSummary =
+      'attendance.reports_filter_summary';
+
+  static const notifyEmpAttendanceCheckInTitle = 'notify.emp.attendance_check_in.title';
+  static const notifyEmpAttendanceCheckInBody = 'notify.emp.attendance_check_in.body';
+  static const notifyEmpAttendanceCheckOutTitle = 'notify.emp.attendance_check_out.title';
+  static const notifyEmpAttendanceCheckOutBody = 'notify.emp.attendance_check_out.body';
 
   static const appClose = 'app.close';
 

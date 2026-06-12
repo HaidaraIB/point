@@ -37,8 +37,9 @@ Widget _employeeDashboardDepartmentChips(HomeController controller) {
       return const SizedBox.shrink();
     }
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Wrap(
+        alignment: WrapAlignment.center,
         spacing: 8,
         runSpacing: 8,
         children: [
@@ -66,6 +67,38 @@ Widget _employeeDashboardDepartmentChips(HomeController controller) {
       ),
     );
   });
+}
+
+Widget _employeeDashboardAttendanceSection(
+  BuildContext context,
+  HomeController controller,
+) {
+  final isMobile = Responsive.isMobile(context);
+  final section = Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      const AttendanceCheckInCard(),
+      const SizedBox(height: 24),
+      _employeeDashboardDepartmentChips(controller),
+    ],
+  );
+
+  if (isMobile) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: section,
+    );
+  }
+
+  return Padding(
+    padding: const EdgeInsets.only(top: 8, bottom: 28),
+    child: Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 640),
+        child: section,
+      ),
+    ),
+  );
 }
 
 /// Per-status counts for assigned tasks, ordered like the status filter dropdown.
@@ -127,13 +160,16 @@ class _EmployeeDashboardBody extends StatelessWidget {
           backgroundColor: Colors.grey.shade100,
           appBar:
               isMobile ? EmployeeMobileAppBar(controller: controller) : null,
-          body: Responsive(mobile: _buildMobile(), desktop: _buildDesktop()),
+          body: Responsive(
+            mobile: _buildMobile(context),
+            desktop: _buildDesktop(context),
+          ),
         );
       },
     );
   }
 
-  Widget _buildDesktop() {
+  Widget _buildDesktop(BuildContext context) {
     return GetBuilder<HomeController>(
       builder: (controller) {
         return Obx(
@@ -163,8 +199,7 @@ class _EmployeeDashboardBody extends StatelessWidget {
                         ),
                       ),
                       SizedBox(height: 20),
-                      const AttendanceCheckInCard(),
-                      _employeeDashboardDepartmentChips(controller),
+                      _employeeDashboardAttendanceSection(context, controller),
 
                       Row(
                         children: [
@@ -412,7 +447,7 @@ class _EmployeeDashboardBody extends StatelessWidget {
     );
   }
 
-  Widget _buildMobile() {
+  Widget _buildMobile(BuildContext context) {
     return GetBuilder<HomeController>(
       builder: (controller) {
         return Obx(
@@ -433,8 +468,7 @@ class _EmployeeDashboardBody extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const SizedBox(height: 8),
-                          const AttendanceCheckInCard(),
-                          _employeeDashboardDepartmentChips(controller),
+                          _employeeDashboardAttendanceSection(context, controller),
 
                           Row(
                             children: [

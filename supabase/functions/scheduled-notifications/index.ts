@@ -3,7 +3,7 @@
  * `POST` + JSON `{ "mode": "unread_chats", "firebaseProjectId": "<optional>" }`
  * مع الرؤوس: `Authorization: Bearer <SUPABASE_ANON_KEY>`, `apikey`, `x-cron-secret: <CRON_SECRET>`.
  *
- * أوضاع `mode`: `tasks` | `content24h` | `publish` | `unread_chats` | `all`.
+ * أوضاع `mode`: `tasks` | `content24h` | `publish` | `unread_chats` | `attendance` | `all`.
  * **تجنّب `all` في الإنتاج** عند كثرة المستخدمين — حدود زمن Edge قد تقطع التنفيذ؛
  * جدولة كرون منفصلة لكل `mode` + `unread_chats` منفصل دائماً عند كثرة المحادثات.
  */
@@ -107,6 +107,13 @@ Deno.serve(async (req: Request) => {
         }),
       );
       return json({ ok: true, mode: "unread_chats", durationMs, fcm }, 200);
+    }
+
+    if (mode === "attendance") {
+      await handleAttendanceReminders({ accessToken, firestoreBase, fcmUrl, now, projectId: sa.project_id });
+      const fcm = snapshotCronFcmAgg();
+      const durationMs = Date.now() - started;
+      return json({ ok: true, mode: "attendance", durationMs, fcm }, 200);
     }
 
     if (mode === "tasks" || mode === "all") {
@@ -1955,6 +1962,359 @@ async function handlePublishReminders({
       recipientKind: "employee",
       projectId,
     });
+  }
+}
+
+function parseHHmm(value: string | null): { hour: number; minute: number } | null {
+  if (!value || value.length !== 5 || value[2] !== ":") return null;
+  const hour = Number(value.slice(0, 2));
+  const minute = Number(value.slice(3, 5));
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null;
+  if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+  return { hour, minute };
+}
+
+function localDateKey(now: Date, offsetHours = 3): string {
+  const shifted = new Date(now.getTime() + offsetHours * 60 * 60 * 1000);
+  const y = shifted.getUTCFullYear();
+  const m = String(shifted.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(shifted.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function localHourMinute(now: Date, offsetHours = 3): { hour: number; minute: number } {
+  const shifted = new Date(now.getTime() + offsetHours * 60 * 60 * 1000);
+  return { hour: shifted.getUTCHours(), minute: shifted.getUTCMinutes() };
+}
+
+function hhmmToMinutes(value: { hour: number; minute: number }): number {
+  return value.hour * 60 + value.minute;
+}
+
+async function loadAttendancePolicy(
+  accessToken: string,
+  projectId: string,
+): Promise<{ checkInGraceMinutes: number; checkOutGraceMinutes: number }> {
+  const url =
+    `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/app_settings/attendance_policy`;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!res.ok) {
+    return { checkInGraceMinutes: 60, checkOutGraceMinutes: 60 };
+  }
+  const data = await res.json();
+  const fields = (data.fields ?? {}) as Record<string, unknown>;
+  const checkIn = getDoubleField(fields, "checkInGraceMinutes") ?? 60;
+  const checkOut = getDoubleField(fields, "checkOutGraceMinutes") ?? 60;
+  const clamp = (n: number) => Math.min(480, Math.max(5, Math.round(n)));
+  return {
+    checkInGraceMinutes: clamp(checkIn),
+    checkOutGraceMinutes: clamp(checkOut),
+  };
+}
+
+async function dayOutcomeDocExists(
+  accessToken: string,
+  projectId: string,
+  docId: string,
+): Promise<boolean> {
+  const url =
+    `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/attendance_day_outcomes/${encodeURIComponent(docId)}`;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  return res.ok;
+}
+
+async function writeAutoRejectedAttendanceRecord({
+  accessToken,
+  projectId,
+  employeeId,
+  employeeName,
+  action,
+  rejectionReason,
+  recordedAtIso,
+}: {
+  accessToken: string;
+  projectId: string;
+  employeeId: string;
+  employeeName: string;
+  action: "present" | "left";
+  rejectionReason: "missed_check_in_window" | "missed_check_out_window";
+  recordedAtIso: string;
+}): Promise<void> {
+  const url =
+    `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/attendance_records`;
+  await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      fields: {
+        employeeId: { stringValue: employeeId },
+        employeeName: { stringValue: employeeName },
+        action: { stringValue: action },
+        approvalStatus: { stringValue: "auto_rejected_late" },
+        rejectionReason: { stringValue: rejectionReason },
+        markedBy: { stringValue: "system" },
+        recordedAt: { timestampValue: recordedAtIso },
+        latitude: { doubleValue: 0 },
+        longitude: { doubleValue: 0 },
+        distanceMeters: { doubleValue: 0 },
+        officeLatitude: { doubleValue: 0 },
+        officeLongitude: { doubleValue: 0 },
+        officeRadiusMeters: { doubleValue: 0 },
+        photoUrl: { stringValue: "" },
+      },
+    }),
+  });
+}
+
+function windowEndIso(dayKey: string, endMinutes: number): string {
+  const hour = Math.floor(endMinutes / 60);
+  const minute = endMinutes % 60;
+  const hh = String(hour).padStart(2, "0");
+  const mm = String(minute).padStart(2, "0");
+  return new Date(`${dayKey}T${hh}:${mm}:00.000`).toISOString();
+}
+
+async function writeDayOutcomeAbsent({
+  accessToken,
+  projectId,
+  docId,
+  employeeId,
+  dateKey,
+  reason,
+}: {
+  accessToken: string;
+  projectId: string;
+  docId: string;
+  employeeId: string;
+  dateKey: string;
+  reason: "no_check_in" | "no_checkout";
+}): Promise<void> {
+  const url =
+    `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/attendance_day_outcomes?documentId=${encodeURIComponent(docId)}`;
+  await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      fields: {
+        employeeId: { stringValue: employeeId },
+        dateKey: { stringValue: dateKey },
+        outcome: { stringValue: "absent" },
+        reason: { stringValue: reason },
+        markedBy: { stringValue: "system" },
+        autoMarkedAt: { timestampValue: new Date().toISOString() },
+      },
+    }),
+  });
+}
+
+async function reminderDocExists(accessToken: string, projectId: string, docId: string): Promise<boolean> {
+  const url =
+    `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/attendance_reminder_sent/${encodeURIComponent(docId)}`;
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+  return res.ok;
+}
+
+async function markReminderSent(accessToken: string, projectId: string, docId: string): Promise<void> {
+  const url =
+    `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/attendance_reminder_sent?documentId=${encodeURIComponent(docId)}`;
+  await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      fields: {
+        sentAt: { timestampValue: new Date().toISOString() },
+      },
+    }),
+  });
+}
+
+async function handleAttendanceReminders({
+  accessToken,
+  firestoreBase,
+  fcmUrl,
+  now,
+  projectId,
+}: {
+  accessToken: string;
+  firestoreBase: string;
+  fcmUrl: string;
+  now: Date;
+  projectId: string;
+}) {
+  const employees = await listDocuments(accessToken, "employees", firestoreBase);
+  const policy = await loadAttendancePolicy(accessToken, projectId);
+  const dayKey = localDateKey(now);
+  const { hour: curHour, minute: curMinute } = localHourMinute(now);
+  const nowMinutes = curHour * 60 + curMinute;
+  const dayStartIso = new Date(`${dayKey}T00:00:00.000Z`).toISOString();
+  const dayEndIso = new Date(`${dayKey}T23:59:59.999Z`).toISOString();
+
+  for (const e of employees) {
+    const id = e.name.split("/").pop() ?? "";
+    const role = getStringField(e.fields, "role");
+    if (role !== "employee") continue;
+
+    const workFrom = getStringField(e.fields, "workHoursFrom");
+    const workTo = getStringField(e.fields, "workHoursTo");
+    const from = parseHHmm(workFrom);
+    const to = parseHHmm(workTo);
+    if (!from || !to) continue;
+
+    const loc = (e.fields.attendanceLocation as any)?.mapValue?.fields;
+    if (!loc) continue;
+    const lat = getDoubleField(loc, "latitude");
+    const lng = getDoubleField(loc, "longitude");
+    if (lat == null || lng == null || (lat === 0 && lng === 0)) continue;
+
+    const fcmTokens = extractFcmTokensFromFirestoreFields(e.fields);
+    const email = getStringField(e.fields, "email");
+
+    const todayRecords = await runQuery({
+      accessToken,
+      projectId,
+      structuredQuery: {
+        from: [{ collectionId: "attendance_records" }],
+        where: {
+          compositeFilter: {
+            op: "AND",
+            filters: [
+              { fieldFilter: { field: { fieldPath: "employeeId" }, op: "EQUAL", value: { stringValue: id } } },
+              { fieldFilter: { field: { fieldPath: "recordedAt" }, op: "GREATER_THAN_OR_EQUAL", value: { timestampValue: dayStartIso } } },
+              { fieldFilter: { field: { fieldPath: "recordedAt" }, op: "LESS_THAN_OR_EQUAL", value: { timestampValue: dayEndIso } } },
+            ],
+          },
+        },
+        limit: 50,
+      },
+    });
+
+    const employeeName = getStringField(e.fields, "name") ?? id;
+    const hasPresentRecord = todayRecords.some((r) =>
+      getStringField(r.fields, "action") === "present"
+    );
+    const hasLeftRecord = todayRecords.some((r) => getStringField(r.fields, "action") === "left");
+    const hasValidPresent = todayRecords.some((r) =>
+      getStringField(r.fields, "action") === "present" &&
+      getStringField(r.fields, "approvalStatus") !== "absent"
+    );
+
+    const presentWindowEnd = hhmmToMinutes(from) + policy.checkInGraceMinutes;
+    const leftWindowEnd = hhmmToMinutes(to) + policy.checkOutGraceMinutes;
+
+    if (nowMinutes > presentWindowEnd && !hasPresentRecord) {
+      const dedupeId = `${id}_${dayKey}_auto_no_check_in`;
+      if (!(await reminderDocExists(accessToken, projectId, dedupeId))) {
+        await writeAutoRejectedAttendanceRecord({
+          accessToken,
+          projectId,
+          employeeId: id,
+          employeeName,
+          action: "present",
+          rejectionReason: "missed_check_in_window",
+          recordedAtIso: windowEndIso(dayKey, presentWindowEnd),
+        });
+        await sendFcm({
+          accessToken,
+          fcmUrl,
+          tokens: fcmTokens,
+          title: "Marked absent",
+          body: "Check-in was not recorded within the allowed time.",
+          notificationType: "employee_attendance_auto_absent",
+          recipientId: id,
+          recipientKind: "employee",
+          projectId,
+        });
+        await markReminderSent(accessToken, projectId, dedupeId);
+      }
+    }
+
+    if (nowMinutes > leftWindowEnd && !hasLeftRecord) {
+      const dedupeId = `${id}_${dayKey}_auto_no_checkout`;
+      if (!(await reminderDocExists(accessToken, projectId, dedupeId))) {
+        await writeAutoRejectedAttendanceRecord({
+          accessToken,
+          projectId,
+          employeeId: id,
+          employeeName,
+          action: "left",
+          rejectionReason: "missed_check_out_window",
+          recordedAtIso: windowEndIso(dayKey, leftWindowEnd),
+        });
+        await sendFcm({
+          accessToken,
+          fcmUrl,
+          tokens: fcmTokens,
+          title: "Marked absent",
+          body: "Check-out was not recorded within the allowed time.",
+          notificationType: "employee_attendance_auto_absent",
+          recipientId: id,
+          recipientKind: "employee",
+          projectId,
+        });
+        await markReminderSent(accessToken, projectId, dedupeId);
+      }
+    }
+
+    const inCheckInWindow = nowMinutes >= hhmmToMinutes(from) &&
+      nowMinutes <= presentWindowEnd;
+    if (inCheckInWindow && !hasValidPresent) {
+      const dedupeId = `${id}_${dayKey}_check_in`;
+      if (!(await reminderDocExists(accessToken, projectId, dedupeId))) {
+        await sendEmailIfPolicyAllows(
+          "employee_attendance_check_in",
+          email,
+          "Time to check in",
+          "Please check in for work now.",
+        );
+        await sendFcm({
+          accessToken,
+          fcmUrl,
+          tokens: fcmTokens,
+          title: "Time to check in",
+          body: "Please check in for work now.",
+          notificationType: "employee_attendance_check_in",
+          recipientId: id,
+          recipientKind: "employee",
+          projectId,
+        });
+        await markReminderSent(accessToken, projectId, dedupeId);
+      }
+    }
+
+    const inCheckOutWindow = nowMinutes >= hhmmToMinutes(to) &&
+      nowMinutes <= leftWindowEnd;
+    if (inCheckOutWindow && !hasLeftRecord) {
+      const dedupeId = `${id}_${dayKey}_check_out`;
+      if (!(await reminderDocExists(accessToken, projectId, dedupeId))) {
+        await sendEmailIfPolicyAllows(
+          "employee_attendance_check_out",
+          email,
+          "Time to check out",
+          "Please record your departure.",
+        );
+        await sendFcm({
+          accessToken,
+          fcmUrl,
+          tokens: fcmTokens,
+          title: "Time to check out",
+          body: "Please record your departure.",
+          notificationType: "employee_attendance_check_out",
+          recipientId: id,
+          recipientKind: "employee",
+          projectId,
+        });
+        await markReminderSent(accessToken, projectId, dedupeId);
+      }
+    }
   }
 }
 

@@ -265,9 +265,15 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
       if (normalizedEmployee.id == null) {
         throw Exception("معرف الموظف (id) مفقود!");
       }
+      final json = normalizedEmployee.toJson();
+      if (normalizedEmployee.role != 'employee') {
+        json['attendanceLocation'] = FieldValue.delete();
+        json['workHoursFrom'] = FieldValue.delete();
+        json['workHoursTo'] = FieldValue.delete();
+      }
       await _employeeCollection
           .doc(normalizedEmployee.id)
-          .update(normalizedEmployee.toJson());
+          .update(json);
       appLog("✅ تم تحديث الموظف: ${normalizedEmployee.id}");
       return true;
     } catch (e, s) {
@@ -299,7 +305,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
         return null;
       }
       appLog("✅ تم جلب بيانات الموظف: $id");
-      return EmployeeModel.fromJson(doc.data() as Map<String, dynamic>);
+      return EmployeeModel.fromFirestoreMap(doc.data(), id: doc.id);
     } catch (e, s) {
       appLog("❌ خطأ أثناء جلب الموظف: $e");
       appLog("StackTrace: $s");
@@ -323,8 +329,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
       }
 
       final doc = query.docs.first;
-      final data = doc.data() as Map<String, dynamic>;
-      var employee = EmployeeModel.fromJson(data).copyWith(id: doc.id);
+      var employee = EmployeeModel.fromFirestoreMap(doc.data(), id: doc.id);
 
       // 2) Auth-first: sign in, and only allow first-time account activation when pending.
       final auth = FirebaseAuth.instance;
@@ -439,11 +444,21 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
     try {
       return safeFirestoreListStream(
         _employeeCollection.snapshots().map((snapshot) {
-          return snapshot.docs.map((doc) {
-            final raw = doc.data();
-            final map = Map<String, dynamic>.from(raw as Map);
-            return EmployeeModel.fromJson(map);
-          }).toList();
+          final employees = <EmployeeModel>[];
+          for (final doc in snapshot.docs) {
+            try {
+              employees.add(
+                EmployeeModel.fromFirestoreMap(
+                  doc.data(),
+                  id: doc.id,
+                ),
+              );
+            } catch (e, s) {
+              appLog('⚠️ Failed to parse employee ${doc.id}: $e');
+              appLog('StackTrace: $s');
+            }
+          }
+          return employees;
         }),
         'employees',
       );
@@ -773,8 +788,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
     }
     if (byUidDoc != null) {
       final doc = byUidDoc;
-      final emp = EmployeeModel.fromJson(doc.data() as Map<String, dynamic>)
-          .copyWith(id: doc.id);
+      final emp = EmployeeModel.fromFirestoreMap(doc.data(), id: doc.id);
       try {
         await FirestoreAuthApi.syncAuthRoleForEmployee(emp);
       } catch (e) {
@@ -799,9 +813,10 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
     } catch (e) {
       appLog('getCurrentEmployeeByAuth update auth fields failed (ignored): $e');
     }
-    final restored = EmployeeModel.fromJson(
-      doc.data() as Map<String, dynamic>,
-    ).copyWith(id: doc.id, authUid: uid, authStatus: 'active');
+    final restored = EmployeeModel.fromFirestoreMap(
+      doc.data(),
+      id: doc.id,
+    ).copyWith(authUid: uid, authStatus: 'active');
     try {
       await FirestoreAuthApi.syncAuthRoleForEmployee(restored);
     } catch (e) {
