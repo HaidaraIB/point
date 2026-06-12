@@ -35,24 +35,38 @@ scp point-storage-migration.zip firebase-sa.json .env user@YOUR_VPS:/opt/point-m
 ssh user@YOUR_VPS
 cd /opt/point-migration
 unzip point-storage-migration.zip
-chmod +x run.sh
 npm install
+chmod +x run.sh   # optional; see commands below
 ```
 
 ## 3. Run on VPS (use `screen` or `tmux`)
+
+**Prefer `npm run migrate` or `node migrate.mjs`** — avoids `run.sh` / Windows CRLF shebang issues (`bash\r`).
+
+```bash
+npm run migrate -- --project point-agency-production --page-size 50 --delay-ms 200
+# same as:
+node migrate.mjs --project point-agency-production --page-size 50 --delay-ms 200
+```
+
+`./run.sh` is optional (auto-runs `npm install` if needed). If you see `bash\r: No such file or directory`:
+
+```bash
+sed -i 's/\r$//' run.sh && chmod +x run.sh
+```
 
 **Full migration** — use the [one-day migration](#one-day-migration-minimal-firestore-quota) steps (scan, then copy, then `--rewrite-from-hits`). Do not use `--copy --rewrite` in one command.
 
 **Scan only** (low Firestore reads — use throttling if quota errors):
 
 ```bash
-./run.sh --project point-agency-production --page-size 25 --delay-ms 500
+npm run migrate -- --project point-agency-production --page-size 25 --delay-ms 500
 ```
 
 **Purge** Supabase + clear Firestore URLs (no R2 copy):
 
 ```bash
-./run.sh --project point-agency-production --purge --confirm-purge --skip-scan
+npm run migrate -- --project point-agency-production --purge --confirm-purge --skip-scan
 ```
 
 ## 4. Download results (optional)
@@ -76,13 +90,13 @@ cd /opt/point-migration
 screen -S migrate
 
 # 0) After quota reset (~midnight Pacific) OR on Blaze — scan ONCE (~85K reads on Blaze)
-./run.sh --project point-agency-production --page-size 50 --delay-ms 200
+npm run migrate -- --project point-agency-production --page-size 50 --delay-ms 200
 
 # 1) Copy Supabase → R2 — ZERO Firestore reads
-./run.sh --project point-agency-production --skip-scan --copy --concurrency 8
+npm run migrate -- --project point-agency-production --skip-scan --copy --concurrency 8
 
 # 2) Rewrite only docs in scan-report — ~hundreds of reads, NOT a full rescan
-./run.sh --project point-agency-production --rewrite-from-hits
+npm run migrate -- --project point-agency-production --rewrite-from-hits
 ```
 
 If copy stops midway, rerun step 1 only (`--skip-scan --copy`); `url-map.json` resumes.
