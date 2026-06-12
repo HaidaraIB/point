@@ -1,0 +1,19 @@
+{
+  "name": "point-storage-migration",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Migrate Point app Supabase Storage URLs to Cloudflare R2 (run on VPS)",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "migrate": "node migrate.mjs",
+    "scan": "node migrate.mjs --project point-agency-production",
+    "copy-rewrite": "node migrate.mjs --project point-agency-production --skip-scan --copy --rewrite"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.758.0",
+    "firebase-admin": "^13.7.0"
+  }
+}
