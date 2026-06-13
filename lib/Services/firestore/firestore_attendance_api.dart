@@ -236,6 +236,7 @@ class FirestoreAttendanceApi {
     final employeeData = employeeSnap.data();
     final workHoursFrom = employeeData?['workHoursFrom']?.toString();
     final workHoursTo = employeeData?['workHoursTo']?.toString();
+    final isRemoteEmployee = employeeData?['attendanceRemote'] == true;
 
     if (!AttendanceDayState.hasWorkHoursConfigured(workHoursFrom, workHoursTo)) {
       throw AttendanceRecordRejectedException(
@@ -306,19 +307,49 @@ class FirestoreAttendanceApi {
       throw AttendanceRecordRejectedException('attendance.day_complete');
     }
 
+    var latitudeOut = latitude;
+    var longitudeOut = longitude;
+    var distanceOut = distanceMeters;
+    var officeLatitudeOut = officeLatitude;
+    var officeLongitudeOut = officeLongitude;
+    var officeRadiusOut = officeRadiusMeters;
+    var locationBypassed = false;
+
+    if (isRemoteEmployee) {
+      final bypassSent = latitude != 0 ||
+          longitude != 0 ||
+          distanceMeters != 0 ||
+          officeLatitude != 0 ||
+          officeLongitude != 0 ||
+          officeRadiusMeters != 0;
+      if (bypassSent) {
+        throw AttendanceRecordRejectedException(
+          'attendance.record_failed',
+        );
+      }
+      latitudeOut = 0;
+      longitudeOut = 0;
+      distanceOut = 0;
+      officeLatitudeOut = 0;
+      officeLongitudeOut = 0;
+      officeRadiusOut = 0;
+      locationBypassed = true;
+    }
+
     final data = <String, dynamic>{
       'employeeId': id,
       'employeeName': employeeName.trim(),
       'action': action,
-      'latitude': latitude,
-      'longitude': longitude,
-      'distanceMeters': distanceMeters,
-      'officeLatitude': officeLatitude,
-      'officeLongitude': officeLongitude,
-      'officeRadiusMeters': officeRadiusMeters,
+      'latitude': latitudeOut,
+      'longitude': longitudeOut,
+      'distanceMeters': distanceOut,
+      'officeLatitude': officeLatitudeOut,
+      'officeLongitude': officeLongitudeOut,
+      'officeRadiusMeters': officeRadiusOut,
       'photoUrl': photoUrl.trim(),
       'approvalStatus': AttendanceRecordModel.statusPending,
       'recordedAt': FieldValue.serverTimestamp(),
+      if (locationBypassed) 'locationBypassed': true,
     };
 
     try {

@@ -149,6 +149,10 @@ class AppLocaleKeys {
   static const attendanceActionSubmitted = 'attendance.action_submitted';
   static const attendanceActionWindowClosed = 'attendance.action_window_closed';
   static const attendanceCardToday = 'attendance.card_today';
+  static const attendanceRemoteEmployee = 'attendance.remote_employee';
+  static const attendanceRemoteEmployeeHelp = 'attendance.remote_employee_help';
+  static const attendanceRemoteBanner = 'attendance.remote_banner';
+  static const attendanceRemoteTableLabel = 'attendance.remote_table_label';
   static const attendanceDayComplete = 'attendance.day_complete';
   static const attendanceDailyResult = 'attendance.daily_result';
   static const attendanceFilterDailyResult = 'attendance.filter_daily_result';

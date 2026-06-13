@@ -25,6 +25,8 @@ class EmployeeModel {
   /// Work hours as "HH:mm" for check-in/out reminders.
   final String? workHoursFrom;
   final String? workHoursTo;
+  /// When true, employee skips GPS/geofence during attendance (photo + windows only).
+  final bool attendanceRemote;
 
   EmployeeModel({
     this.id,
@@ -45,11 +47,14 @@ class EmployeeModel {
     this.attendanceLocation,
     this.workHoursFrom,
     this.workHoursTo,
+    this.attendanceRemote = false,
   });
 
   /// First department slug, if any (e.g. notifications / legacy single-field UX).
   String? get primaryDepartment =>
       departments.isEmpty ? null : departments.first;
+
+  bool get isRemoteAttendance => attendanceRemote;
 
   bool get hasAttendanceLocationConfigured =>
       attendanceLocation?.isConfigured ?? false;
@@ -81,6 +86,7 @@ class EmployeeModel {
     EmployeeAttendanceLocation? attendanceLocation,
     String? workHoursFrom,
     String? workHoursTo,
+    bool? attendanceRemote,
     bool clearAttendanceLocation = false,
     bool clearWorkHours = false,
   }) {
@@ -105,6 +111,7 @@ class EmployeeModel {
           : (attendanceLocation ?? this.attendanceLocation),
       workHoursFrom: clearWorkHours ? null : (workHoursFrom ?? this.workHoursFrom),
       workHoursTo: clearWorkHours ? null : (workHoursTo ?? this.workHoursTo),
+      attendanceRemote: attendanceRemote ?? this.attendanceRemote,
     );
   }
 
@@ -174,6 +181,7 @@ class EmployeeModel {
       attendanceLocation: location,
       workHoursFrom: json['workHoursFrom']?.toString(),
       workHoursTo: json['workHoursTo']?.toString(),
+      attendanceRemote: json['attendanceRemote'] == true,
     );
   }
 
@@ -215,6 +223,7 @@ class EmployeeModel {
         "workHoursFrom": workHoursFrom!.trim(),
       if (workHoursTo != null && workHoursTo!.trim().isNotEmpty)
         "workHoursTo": workHoursTo!.trim(),
+      "attendanceRemote": attendanceRemote,
     };
   }
 }

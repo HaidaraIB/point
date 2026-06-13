@@ -77,6 +77,9 @@ String _employeeWorkHoursLabel(EmployeeModel emp) {
 
 String _employeeBranchLocationLabel(EmployeeModel emp) {
   if (emp.role != 'employee') return '-';
+  if (emp.isRemoteAttendance) {
+    return AppLocaleKeys.attendanceRemoteTableLabel.tr;
+  }
   final EmployeeAttendanceLocation? loc = emp.attendanceLocation;
   if (loc == null || !loc.isConfigured) return '-';
   final label = loc.label?.trim();
@@ -526,6 +529,7 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
   );
   TimeOfDay? workFrom;
   TimeOfDay? workTo;
+  bool attendanceRemote = model?.attendanceRemote ?? false;
   EmployeeAttendanceFormData.populateFromEmployee(
     employee: model,
     labelController: branchLabelController,
@@ -781,6 +785,11 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                     radiusController: branchRadiusController,
                                     workFrom: workFrom,
                                     workTo: workTo,
+                                    attendanceRemote: attendanceRemote,
+                                    onAttendanceRemoteChanged: (v) {
+                                      attendanceRemote = v;
+                                      newstate(() {});
+                                    },
                                     onWorkFromChanged: (v) {
                                       workFrom = v;
                                       newstate(() {});
@@ -860,7 +869,8 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                             return;
                                           }
                                           final branchLocation =
-                                              selectedRole == 'employee'
+                                              selectedRole == 'employee' &&
+                                                  !attendanceRemote
                                               ? EmployeeAttendanceFormData
                                                   .locationFromControllers(
                                                     labelController:
@@ -917,6 +927,10 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                                     workHoursFrom:
                                                         workHoursFrom,
                                                     workHoursTo: workHoursTo,
+                                                    attendanceRemote:
+                                                        selectedRole ==
+                                                            'employee' &&
+                                                        attendanceRemote,
                                                   ),
                                                 )
                                                 .then((v) {
@@ -951,9 +965,14 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                                     workHoursFrom:
                                                         workHoursFrom,
                                                     workHoursTo: workHoursTo,
+                                                    attendanceRemote:
+                                                        selectedRole ==
+                                                            'employee' &&
+                                                        attendanceRemote,
                                                     clearAttendanceLocation:
                                                         selectedRole !=
-                                                            'employee',
+                                                            'employee' ||
+                                                        attendanceRemote,
                                                     clearWorkHours:
                                                         selectedRole !=
                                                             'employee',

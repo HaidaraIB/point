@@ -195,7 +195,9 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
         authUid: existing.authUid ?? normalizedUpdated.authUid,
         authStatus: existing.authStatus ?? normalizedUpdated.authStatus,
       );
-      await _employeeCollection.doc(merged.id).update(merged.toJson());
+      await _employeeCollection.doc(merged.id).update(
+        _employeeFirestoreUpdateJson(merged),
+      );
 
       if (newPassword != null &&
           newPassword.trim().isNotEmpty &&
@@ -258,6 +260,20 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
     }
   }
 
+  Map<String, dynamic> _employeeFirestoreUpdateJson(EmployeeModel employee) {
+    final json = employee.toJson();
+    if (employee.role != 'employee') {
+      json['attendanceLocation'] = FieldValue.delete();
+      json['workHoursFrom'] = FieldValue.delete();
+      json['workHoursTo'] = FieldValue.delete();
+      json['attendanceRemote'] = FieldValue.delete();
+    } else if (employee.attendanceLocation == null ||
+        !employee.attendanceLocation!.isConfigured) {
+      json['attendanceLocation'] = FieldValue.delete();
+    }
+    return json;
+  }
+
   // 🟡 تحديث موظف
   Future<bool> updateEmployee(EmployeeModel employee) async {
     try {
@@ -265,12 +281,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
       if (normalizedEmployee.id == null) {
         throw Exception("معرف الموظف (id) مفقود!");
       }
-      final json = normalizedEmployee.toJson();
-      if (normalizedEmployee.role != 'employee') {
-        json['attendanceLocation'] = FieldValue.delete();
-        json['workHoursFrom'] = FieldValue.delete();
-        json['workHoursTo'] = FieldValue.delete();
-      }
+      final json = _employeeFirestoreUpdateJson(normalizedEmployee);
       await _employeeCollection
           .doc(normalizedEmployee.id)
           .update(json);

@@ -2169,11 +2169,14 @@ async function handleAttendanceReminders({
     const to = parseHHmm(workTo);
     if (!from || !to) continue;
 
+    const isRemote = getBooleanField(e.fields, "attendanceRemote");
     const loc = (e.fields.attendanceLocation as any)?.mapValue?.fields;
-    if (!loc) continue;
-    const lat = getDoubleField(loc, "latitude");
-    const lng = getDoubleField(loc, "longitude");
-    if (lat == null || lng == null || (lat === 0 && lng === 0)) continue;
+    if (!isRemote) {
+      if (!loc) continue;
+      const lat = getDoubleField(loc, "latitude");
+      const lng = getDoubleField(loc, "longitude");
+      if (lat == null || lng == null || (lat === 0 && lng === 0)) continue;
+    }
 
     const fcmTokens = extractFcmTokensFromFirestoreFields(e.fields);
     const email = getStringField(e.fields, "email");

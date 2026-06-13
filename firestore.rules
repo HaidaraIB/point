@@ -103,7 +103,19 @@ service cloud.firestore {
     function validEmployeeAttendanceFields(data) {
       return (!('attendanceLocation' in data) || validAttendanceLocationMap(data.attendanceLocation))
         && (!('workHoursFrom' in data) || validWorkHoursTime(data.workHoursFrom))
-        && (!('workHoursTo' in data) || validWorkHoursTime(data.workHoursTo));
+        && (!('workHoursTo' in data) || validWorkHoursTime(data.workHoursTo))
+        && (!('attendanceRemote' in data) || data.attendanceRemote is bool);
+    }
+
+    function remoteAttendanceBypassRecord(data) {
+      return data.locationBypassed == true
+        && data.latitude == 0
+        && data.longitude == 0
+        && data.distanceMeters == 0
+        && data.officeLatitude == 0
+        && data.officeLongitude == 0
+        && data.officeRadiusMeters == 0
+        && get(/databases/$(database)/documents/employees/$(data.employeeId)).data.attendanceRemote == true;
     }
 
     function validAttendanceRecord(data) {
@@ -126,16 +138,21 @@ service cloud.firestore {
         && (data.action == 'present' || data.action == 'left')
         && data.photoUrl is string
         && data.photoUrl.size() > 0
-        && attendanceValidCoordinate(data.latitude)
-        && attendanceValidCoordinate(data.longitude)
-        && data.distanceMeters is number
-        && data.distanceMeters >= 0
-        && attendanceValidCoordinate(data.officeLatitude)
-        && attendanceValidCoordinate(data.officeLongitude)
-        && attendanceValidRadius(data.officeRadiusMeters)
-        && data.distanceMeters <= data.officeRadiusMeters
         && data.recordedAt is timestamp
-        && data.approvalStatus == 'pending';
+        && data.approvalStatus == 'pending'
+        && (
+          (
+            attendanceValidCoordinate(data.latitude)
+            && attendanceValidCoordinate(data.longitude)
+            && data.distanceMeters is number
+            && data.distanceMeters >= 0
+            && attendanceValidCoordinate(data.officeLatitude)
+            && attendanceValidCoordinate(data.officeLongitude)
+            && attendanceValidRadius(data.officeRadiusMeters)
+            && data.distanceMeters <= data.officeRadiusMeters
+          )
+          || remoteAttendanceBypassRecord(data)
+        );
     }
 
     function attendanceRecordApprovalUpdate() {

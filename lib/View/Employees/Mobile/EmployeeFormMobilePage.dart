@@ -41,6 +41,7 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
   List<String> selectedDepartments = [StorageKeys.departmentPromotion];
   TimeOfDay? workFrom;
   TimeOfDay? workTo;
+  bool attendanceRemote = false;
   static const List<String> _roles = ["supervisor", "admin", "employee"];
 
   bool get _canEditCredentials {
@@ -77,6 +78,7 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
     );
     workFrom = EmployeeAttendanceFormData.parseTime(m?.workHoursFrom);
     workTo = EmployeeAttendanceFormData.parseTime(m?.workHoursTo);
+    attendanceRemote = m?.attendanceRemote ?? false;
     selectedRole = m?.role ?? "employee";
     selectedDepartments = m == null
         ? <String>[StorageKeys.departmentPromotion]
@@ -133,7 +135,7 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
       );
       return;
     }
-    final branchLocation = selectedRole == 'employee'
+    final branchLocation = selectedRole == 'employee' && !attendanceRemote
         ? EmployeeAttendanceFormData.locationFromControllers(
             labelController: branchLabelController,
             latController: branchLatController,
@@ -167,6 +169,8 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
           attendanceLocation: branchLocation,
           workHoursFrom: workHoursFrom,
           workHoursTo: workHoursTo,
+          attendanceRemote:
+              selectedRole == 'employee' && attendanceRemote,
         ),
       );
       if (!mounted) return;
@@ -189,7 +193,10 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
           attendanceLocation: branchLocation,
           workHoursFrom: workHoursFrom,
           workHoursTo: workHoursTo,
-          clearAttendanceLocation: selectedRole != 'employee',
+          attendanceRemote:
+              selectedRole == 'employee' && attendanceRemote,
+          clearAttendanceLocation:
+              selectedRole != 'employee' || attendanceRemote,
           clearWorkHours: selectedRole != 'employee',
         ),
         newPassword:
@@ -399,6 +406,9 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                       radiusController: branchRadiusController,
                       workFrom: workFrom,
                       workTo: workTo,
+                      attendanceRemote: attendanceRemote,
+                      onAttendanceRemoteChanged: (v) =>
+                          setState(() => attendanceRemote = v),
                       onWorkFromChanged: (v) => setState(() => workFrom = v),
                       onWorkToChanged: (v) => setState(() => workTo = v),
                     ),

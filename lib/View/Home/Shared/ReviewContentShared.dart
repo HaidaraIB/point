@@ -144,6 +144,39 @@ class _ReviewContentWidgetState extends State<ReviewContentWidget> {
     );
   }
 
+  Widget _buildClientAvatar({required String? imageUrl, required String? name}) {
+    const radius = 24.0;
+    final url = (imageUrl ?? '').trim();
+    final initial =
+        (name ?? '').isNotEmpty ? (name ?? '')[0] : '';
+    final initialStyle = const TextStyle(
+      color: Colors.teal,
+      fontWeight: FontWeight.bold,
+    );
+
+    if (url.isEmpty) {
+      return CircleAvatar(
+        radius: radius,
+        backgroundColor: Colors.teal.shade100,
+        child: Text(initial, style: initialStyle),
+      );
+    }
+
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: Colors.teal.shade100,
+      child: ClipOval(
+        child: Image.network(
+          url,
+          fit: BoxFit.cover,
+          width: radius * 2,
+          height: radius * 2,
+          errorBuilder: (_, __, ___) => Text(initial, style: initialStyle),
+        ),
+      ),
+    );
+  }
+
   Widget _buildClientsCarousel(HomeController controller) {
     return Builder(
       builder: (context) {
@@ -179,28 +212,9 @@ class _ReviewContentWidgetState extends State<ReviewContentWidget> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      CircleAvatar(
-                        radius: 24,
-                        backgroundColor: Colors.teal.shade100,
-                        child: client.image != null
-                            ? ClipRRect(
-                                borderRadius: BorderRadius.circular(25),
-                                child: Image.network(
-                                  client.image ?? '',
-                                  fit: BoxFit.cover,
-                                  height: 50,
-                                  width: 50,
-                                ),
-                              )
-                            : Text(
-                                (client.name ?? '').isNotEmpty
-                                    ? (client.name ?? '')[0]
-                                    : '',
-                                style: const TextStyle(
-                                  color: Colors.teal,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                      _buildClientAvatar(
+                        imageUrl: client.image,
+                        name: client.name,
                       ),
                       const SizedBox(height: 8),
                       Text(

@@ -19,6 +19,7 @@ class AttendanceRecordModel {
   final DateTime? reviewedAt;
   final String? reviewedByEmployeeId;
   final String? reviewedByName;
+  final bool locationBypassed;
 
   const AttendanceRecordModel({
     this.id,
@@ -39,6 +40,7 @@ class AttendanceRecordModel {
     this.reviewedAt,
     this.reviewedByEmployeeId,
     this.reviewedByName,
+    this.locationBypassed = false,
   });
 
   static const String actionPresent = 'present';
@@ -82,6 +84,7 @@ class AttendanceRecordModel {
       reviewedAt: _parseDateTime(json['reviewedAt']),
       reviewedByEmployeeId: json['reviewedByEmployeeId']?.toString(),
       reviewedByName: json['reviewedByName']?.toString(),
+      locationBypassed: json['locationBypassed'] == true,
     );
   }
 
@@ -106,6 +109,7 @@ class AttendanceRecordModel {
         'reviewedByEmployeeId': reviewedByEmployeeId,
       if (reviewedByName != null && reviewedByName!.isNotEmpty)
         'reviewedByName': reviewedByName,
+      if (locationBypassed) 'locationBypassed': true,
     };
   }
 

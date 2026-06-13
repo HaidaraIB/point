@@ -187,6 +187,11 @@ class AppTranslations extends Translations {
       'attendance.action_submitted': 'Awaiting approval',
       'attendance.action_window_closed': 'Window closed',
       'attendance.card_today': 'Today · @date',
+      'attendance.remote_employee': 'Remote employee (skip location check)',
+      'attendance.remote_employee_help':
+          'Photo and work-hour windows still apply. Branch location is optional.',
+      'attendance.remote_banner': 'Location check disabled — remote employee',
+      'attendance.remote_table_label': 'Remote',
       'attendance.day_complete': 'Attendance complete for today',
       'attendance.daily_result': 'Daily result',
       'attendance.filter_daily_result': 'Filter by daily result',
@@ -1585,6 +1590,11 @@ class AppTranslations extends Translations {
       'attendance.action_submitted': 'بانتظار الموافقة',
       'attendance.action_window_closed': 'انتهت النافذة',
       'attendance.card_today': 'اليوم · @date',
+      'attendance.remote_employee': 'موظف عن بُعد (تخطي التحقق من الموقع)',
+      'attendance.remote_employee_help':
+          'الصورة ونوافذ ساعات العمل ما زالت مطلوبة. موقع الفرع اختياري.',
+      'attendance.remote_banner': 'التحقق من الموقع معطّل — موظف عن بُعد',
+      'attendance.remote_table_label': 'عن بُعد',
       'attendance.day_complete': 'اكتمل الحضور لليوم',
       'attendance.daily_result': 'نتيجة اليوم',
       'attendance.filter_daily_result': 'تصفية حسب نتيجة اليوم',

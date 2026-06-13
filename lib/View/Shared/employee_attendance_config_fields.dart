@@ -96,6 +96,8 @@ class EmployeeAttendanceConfigFields extends StatefulWidget {
     required this.workTo,
     required this.onWorkFromChanged,
     required this.onWorkToChanged,
+    required this.attendanceRemote,
+    required this.onAttendanceRemoteChanged,
   });
 
   final TextEditingController labelController;
@@ -106,6 +108,8 @@ class EmployeeAttendanceConfigFields extends StatefulWidget {
   final TimeOfDay? workTo;
   final ValueChanged<TimeOfDay?> onWorkFromChanged;
   final ValueChanged<TimeOfDay?> onWorkToChanged;
+  final bool attendanceRemote;
+  final ValueChanged<bool> onAttendanceRemoteChanged;
 
   @override
   State<EmployeeAttendanceConfigFields> createState() =>
@@ -225,163 +229,203 @@ class _EmployeeAttendanceConfigFieldsState
 
   @override
   Widget build(BuildContext context) {
+    final locationFields = Opacity(
+      opacity: widget.attendanceRemote ? 0.45 : 1,
+      child: IgnorePointer(
+        ignoring: widget.attendanceRemote,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              AppLocaleKeys.attendanceEmployeeLocationTitle.tr,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
+                color: AppColors.primaryfontColor,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              AppLocaleKeys.attendanceEmployeeLocationHelp.tr,
+              style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  InputText(
+                    labelText: AppLocaleKeys.adminSettingsOfficeLabel.tr,
+                    hintText: AppLocaleKeys.adminSettingsOfficeLabel.tr,
+                    controller: widget.labelController,
+                    height: 42,
+                    fillColor: AppColors.greyBackground,
+                    borderRadius: 5,
+                    borderColor: Colors.grey.shade300,
+                  ),
+                  const SizedBox(height: 12),
+                  Responsive(
+                    mobile: Column(
+                      children: [
+                        InputText(
+                          labelText: AppLocaleKeys.adminSettingsOfficeLatitude.tr,
+                          hintText: '0.0',
+                          controller: widget.latController,
+                          height: 42,
+                          fillColor: AppColors.greyBackground,
+                          borderRadius: 5,
+                          borderColor: Colors.grey.shade300,
+                          textInputType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                            signed: true,
+                          ),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(
+                              RegExp(r'^-?\d*\.?\d*'),
+                            ),
+                          ],
+                          validator: widget.attendanceRemote
+                              ? null
+                              : _validateCoordinate,
+                        ),
+                        const SizedBox(height: 12),
+                        InputText(
+                          labelText: AppLocaleKeys.adminSettingsOfficeLongitude.tr,
+                          hintText: '0.0',
+                          controller: widget.lngController,
+                          height: 42,
+                          fillColor: AppColors.greyBackground,
+                          borderRadius: 5,
+                          borderColor: Colors.grey.shade300,
+                          textInputType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                            signed: true,
+                          ),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(
+                              RegExp(r'^-?\d*\.?\d*'),
+                            ),
+                          ],
+                          validator: widget.attendanceRemote
+                              ? null
+                              : _validateCoordinate,
+                        ),
+                      ],
+                    ),
+                    desktop: Row(
+                      children: [
+                        Expanded(
+                          child: InputText(
+                            labelText: AppLocaleKeys.adminSettingsOfficeLatitude.tr,
+                            hintText: '0.0',
+                            controller: widget.latController,
+                            height: 42,
+                            fillColor: AppColors.greyBackground,
+                            borderRadius: 5,
+                            borderColor: Colors.grey.shade300,
+                            textInputType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                              signed: true,
+                            ),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'^-?\d*\.?\d*'),
+                              ),
+                            ],
+                            validator: widget.attendanceRemote
+                                ? null
+                                : _validateCoordinate,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: InputText(
+                            labelText: AppLocaleKeys.adminSettingsOfficeLongitude.tr,
+                            hintText: '0.0',
+                            controller: widget.lngController,
+                            height: 42,
+                            fillColor: AppColors.greyBackground,
+                            borderRadius: 5,
+                            borderColor: Colors.grey.shade300,
+                            textInputType: const TextInputType.numberWithOptions(
+                              decimal: true,
+                              signed: true,
+                            ),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(
+                                RegExp(r'^-?\d*\.?\d*'),
+                              ),
+                            ],
+                            validator: widget.attendanceRemote
+                                ? null
+                                : _validateCoordinate,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  InputText(
+                    labelText: AppLocaleKeys.adminSettingsOfficeRadius.tr,
+                    hintText: EmployeeAttendanceLocation.defaultRadiusMeters
+                        .toString(),
+                    controller: widget.radiusController,
+                    height: 42,
+                    fillColor: AppColors.greyBackground,
+                    borderRadius: 5,
+                    borderColor: Colors.grey.shade300,
+                    textInputType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    validator: widget.attendanceRemote ? null : _validateRadius,
+                  ),
+                  const SizedBox(height: 16),
+                  MainButton(
+                    title: AppLocaleKeys.adminSettingsUseCurrentLocation.tr,
+                    load: _fetchingLocation,
+                    height: 44,
+                    borderSize: 8,
+                    borderColor: AppColors.primary,
+                    backgroundColor: Colors.white,
+                    fontColor: AppColors.primary,
+                    onPressed: _fetchingLocation ? null : _useCurrentLocation,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          AppLocaleKeys.attendanceEmployeeLocationTitle.tr,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 15,
-            color: AppColors.primaryfontColor,
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text(
+            AppLocaleKeys.attendanceRemoteEmployee.tr,
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+              color: AppColors.primaryfontColor,
+            ),
           ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          AppLocaleKeys.attendanceEmployeeLocationHelp.tr,
-          style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+          subtitle: Text(
+            AppLocaleKeys.attendanceRemoteEmployeeHelp.tr,
+            style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
+          ),
+          value: widget.attendanceRemote,
+          activeThumbColor: AppColors.primary,
+          onChanged: widget.onAttendanceRemoteChanged,
         ),
         const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey.shade300),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              InputText(
-                labelText: AppLocaleKeys.adminSettingsOfficeLabel.tr,
-                hintText: AppLocaleKeys.adminSettingsOfficeLabel.tr,
-                controller: widget.labelController,
-                height: 42,
-                fillColor: AppColors.greyBackground,
-                borderRadius: 5,
-                borderColor: Colors.grey.shade300,
-              ),
-              const SizedBox(height: 12),
-              Responsive(
-                mobile: Column(
-                  children: [
-                    InputText(
-                      labelText: AppLocaleKeys.adminSettingsOfficeLatitude.tr,
-                      hintText: '0.0',
-                      controller: widget.latController,
-                      height: 42,
-                      fillColor: AppColors.greyBackground,
-                      borderRadius: 5,
-                      borderColor: Colors.grey.shade300,
-                      textInputType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                        signed: true,
-                      ),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                          RegExp(r'^-?\d*\.?\d*'),
-                        ),
-                      ],
-                      validator: _validateCoordinate,
-                    ),
-                    const SizedBox(height: 12),
-                    InputText(
-                      labelText: AppLocaleKeys.adminSettingsOfficeLongitude.tr,
-                      hintText: '0.0',
-                      controller: widget.lngController,
-                      height: 42,
-                      fillColor: AppColors.greyBackground,
-                      borderRadius: 5,
-                      borderColor: Colors.grey.shade300,
-                      textInputType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                        signed: true,
-                      ),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                          RegExp(r'^-?\d*\.?\d*'),
-                        ),
-                      ],
-                      validator: _validateCoordinate,
-                    ),
-                  ],
-                ),
-                desktop: Row(
-                  children: [
-                    Expanded(
-                      child: InputText(
-                        labelText: AppLocaleKeys.adminSettingsOfficeLatitude.tr,
-                        hintText: '0.0',
-                        controller: widget.latController,
-                        height: 42,
-                        fillColor: AppColors.greyBackground,
-                        borderRadius: 5,
-                        borderColor: Colors.grey.shade300,
-                        textInputType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                          signed: true,
-                        ),
-                        inputFormatters: [
-                          FilteringTextInputFormatter.allow(
-                            RegExp(r'^-?\d*\.?\d*'),
-                          ),
-                        ],
-                        validator: _validateCoordinate,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: InputText(
-                        labelText: AppLocaleKeys.adminSettingsOfficeLongitude.tr,
-                        hintText: '0.0',
-                        controller: widget.lngController,
-                        height: 42,
-                        fillColor: AppColors.greyBackground,
-                        borderRadius: 5,
-                        borderColor: Colors.grey.shade300,
-                        textInputType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                          signed: true,
-                        ),
-                        inputFormatters: [
-                          FilteringTextInputFormatter.allow(
-                            RegExp(r'^-?\d*\.?\d*'),
-                          ),
-                        ],
-                        validator: _validateCoordinate,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              InputText(
-                labelText: AppLocaleKeys.adminSettingsOfficeRadius.tr,
-                hintText: EmployeeAttendanceLocation.defaultRadiusMeters
-                    .toString(),
-                controller: widget.radiusController,
-                height: 42,
-                fillColor: AppColors.greyBackground,
-                borderRadius: 5,
-                borderColor: Colors.grey.shade300,
-                textInputType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                validator: _validateRadius,
-              ),
-              const SizedBox(height: 16),
-              MainButton(
-                title: AppLocaleKeys.adminSettingsUseCurrentLocation.tr,
-                load: _fetchingLocation,
-                height: 44,
-                borderSize: 8,
-                borderColor: AppColors.primary,
-                backgroundColor: Colors.white,
-                fontColor: AppColors.primary,
-                onPressed: _fetchingLocation ? null : _useCurrentLocation,
-              ),
-            ],
-          ),
-        ),
+        locationFields,
         const SizedBox(height: 20),
         Text(
           AppLocaleKeys.attendanceWorkHoursTitle.tr,

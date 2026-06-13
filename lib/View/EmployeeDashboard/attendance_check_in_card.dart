@@ -141,8 +141,9 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
     final emp = controller.currentEmployee.value;
     if (emp == null || emp.id == null) return;
 
+    final isRemote = emp.isRemoteAttendance;
     final location = emp.attendanceLocation;
-    if (location == null || !location.isConfigured) {
+    if (!isRemote && (location == null || !location.isConfigured)) {
       FunHelper.showSnackbar(
         'error'.tr,
         AppLocaleKeys.attendanceOfficeNotConfigured.tr,
@@ -161,38 +162,53 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
 
     setState(() => _busy = true);
     try {
-      final locationResult = await LocationHelper.getCurrentPosition();
-      if (!locationResult.isSuccess) {
-        FunHelper.showSnackbar(
-          'error'.tr,
-          _locationErrorMessage(locationResult.error!),
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
-        return;
-      }
+      double latitude = 0;
+      double longitude = 0;
+      double distance = 0;
+      double officeLatitude = 0;
+      double officeLongitude = 0;
+      double officeRadiusMeters = 0;
 
-      final pos = locationResult.position!;
-      final distance = LocationHelper.distanceMeters(
-        fromLat: pos.latitude,
-        fromLng: pos.longitude,
-        toLat: location.latitude,
-        toLng: location.longitude,
-      );
+      if (!isRemote) {
+        final locationResult = await LocationHelper.getCurrentPosition();
+        if (!locationResult.isSuccess) {
+          FunHelper.showSnackbar(
+            'error'.tr,
+            _locationErrorMessage(locationResult.error!),
+            snackPosition: SnackPosition.TOP,
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+          );
+          return;
+        }
 
-      if (distance > location.radiusMeters) {
-        FunHelper.showSnackbar(
-          'error'.tr,
-          AppLocaleKeys.attendanceOutsideLocation.trParams({
-            'distance': distance.round().toString(),
-            'radius': location.radiusMeters.round().toString(),
-          }),
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
+        final pos = locationResult.position!;
+        distance = LocationHelper.distanceMeters(
+          fromLat: pos.latitude,
+          fromLng: pos.longitude,
+          toLat: location!.latitude,
+          toLng: location.longitude,
         );
-        return;
+
+        if (distance > location.radiusMeters) {
+          FunHelper.showSnackbar(
+            'error'.tr,
+            AppLocaleKeys.attendanceOutsideLocation.trParams({
+              'distance': distance.round().toString(),
+              'radius': location.radiusMeters.round().toString(),
+            }),
+            snackPosition: SnackPosition.TOP,
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+          );
+          return;
+        }
+
+        latitude = pos.latitude;
+        longitude = pos.longitude;
+        officeLatitude = location.latitude;
+        officeLongitude = location.longitude;
+        officeRadiusMeters = location.radiusMeters;
       }
 
       final photoUrl = await controller.uploadFiles(
@@ -216,12 +232,12 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
         employeeId: emp.id!,
         employeeName: emp.name ?? '',
         action: action,
-        latitude: pos.latitude,
-        longitude: pos.longitude,
+        latitude: latitude,
+        longitude: longitude,
         distanceMeters: distance,
-        officeLatitude: location.latitude,
-        officeLongitude: location.longitude,
-        officeRadiusMeters: location.radiusMeters,
+        officeLatitude: officeLatitude,
+        officeLongitude: officeLongitude,
+        officeRadiusMeters: officeRadiusMeters,
         photoUrl: photoUrl,
       );
 
@@ -829,11 +845,39 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
     );
   }
 
+  Widget _buildRemoteBanner() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.home_work_outlined, size: 18, color: AppColors.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              AppLocaleKeys.attendanceRemoteBanner.tr,
+              style: TextStyle(
+                color: AppColors.primary,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCardBody({
     required List<AttendanceRecordModel> records,
     required AttendanceDayOutcomeModel? systemOutcome,
     required String? workHoursFrom,
     required String? workHoursTo,
+    required bool isRemote,
   }) {
     final dayState = AttendanceDayState.compute(
       records: records,
@@ -872,6 +916,10 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildHeader(),
+          if (isRemote) ...[
+            const SizedBox(height: 12),
+            _buildRemoteBanner(),
+          ],
           const SizedBox(height: 16),
           _buildOutcomeHero(dayState),
           const SizedBox(height: 20),
@@ -946,6 +994,7 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
                   systemOutcome: outcomeSnapshot.data,
                   workHoursFrom: emp.workHoursFrom,
                   workHoursTo: emp.workHoursTo,
+                  isRemote: emp.isRemoteAttendance,
                 );
               },
             );

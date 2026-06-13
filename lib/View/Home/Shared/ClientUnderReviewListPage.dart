@@ -140,108 +140,133 @@ class ClientUnderReviewListDialog extends StatelessWidget {
                               ),
                             ),
                           )
-                          : Scrollbar(
-                            thumbVisibility: true,
-                            child: ListView.separated(
-                              padding: EdgeInsetsDirectional.fromSTEB(
-                                horizontalPadding,
-                                12,
-                                horizontalPadding,
-                                16,
-                              ),
-                              itemCount: items.length,
-                              separatorBuilder:
-                                  (_, __) => const SizedBox(height: 8),
-                              itemBuilder: (context, index) {
-                                final task = items[index];
-                                return Material(
-                                  color: colorScheme.surfaceContainerLowest,
-                                  elevation: 0,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    side: BorderSide(
-                                      color: colorScheme.outlineVariant,
-                                    ),
-                                  ),
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(12),
-                                    onTap: () {
-                                      Navigator.of(context).pop();
-                                      controller.uploadedFilesPaths.assignAll(
-                                        task.files ?? [],
-                                      );
-                                      showContentDialogDetails(
-                                        anchorContext,
-                                        task: task,
-                                      );
-                                    },
-                                    child: Padding(
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: 14,
-                                        vertical: isMobile ? 14 : 11,
-                                      ),
-                                      child: Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.center,
-                                        children: [
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  task.title,
-                                                  style: theme
-                                                      .textTheme
-                                                      .titleSmall
-                                                      ?.copyWith(
-                                                        fontWeight:
-                                                            FontWeight.w600,
-                                                      ),
-                                                  maxLines: 2,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                ),
-                                                const SizedBox(height: 4),
-                                                Text(
-                                                  _subtitleLine(task),
-                                                  style: theme
-                                                      .textTheme
-                                                      .bodySmall
-                                                      ?.copyWith(
-                                                        color:
-                                                            colorScheme
-                                                                .onSurfaceVariant,
-                                                      ),
-                                                  maxLines: 2,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          SizedBox(
-                                            width: isMobile ? 44 : 36,
-                                            height: isMobile ? 44 : 36,
-                                            child: Icon(
-                                              Icons.chevron_left,
-                                              color:
-                                                  colorScheme.onSurfaceVariant,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
+                          : _ClientReviewListView(
+                            horizontalPadding: horizontalPadding,
+                            isMobile: isMobile,
+                            items: items,
+                            onItemTap: (task) {
+                              Navigator.of(context).pop();
+                              controller.uploadedFilesPaths.assignAll(
+                                task.files ?? [],
+                              );
+                              showContentDialogDetails(
+                                anchorContext,
+                                task: task,
+                              );
+                            },
                           ),
                 ),
               ],
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+class _ClientReviewListView extends StatefulWidget {
+  final double horizontalPadding;
+  final bool isMobile;
+  final List<ContentModel> items;
+  final ValueChanged<ContentModel> onItemTap;
+
+  const _ClientReviewListView({
+    required this.horizontalPadding,
+    required this.isMobile,
+    required this.items,
+    required this.onItemTap,
+  });
+
+  @override
+  State<_ClientReviewListView> createState() => _ClientReviewListViewState();
+}
+
+class _ClientReviewListViewState extends State<_ClientReviewListView> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Scrollbar(
+      controller: _scrollController,
+      thumbVisibility: true,
+      child: ListView.separated(
+        controller: _scrollController,
+        padding: EdgeInsetsDirectional.fromSTEB(
+          widget.horizontalPadding,
+          12,
+          widget.horizontalPadding,
+          16,
+        ),
+        itemCount: widget.items.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 8),
+        itemBuilder: (context, index) {
+          final task = widget.items[index];
+          return Material(
+            color: colorScheme.surfaceContainerLowest,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: colorScheme.outlineVariant),
+            ),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => widget.onItemTap(task),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: widget.isMobile ? 14 : 11,
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            task.title,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            ClientUnderReviewListDialog._subtitleLine(task),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(
+                      width: widget.isMobile ? 44 : 36,
+                      height: widget.isMobile ? 44 : 36,
+                      child: Icon(
+                        Icons.chevron_left,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
