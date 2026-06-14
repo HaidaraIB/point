@@ -55,6 +55,8 @@
 		<string>نحتاج الكاميرا لالتقاط صور وإرسالها في الدردشة.</string>
 		<key>NSLocationWhenInUseUsageDescription</key>
 		<string>نحتاج موقعك لتسجيل الحضور والانصراف عند مقر الشركة.</string>
+		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+		<string>نحتاج موقعك لتسجيل الحضور والانصراف عند مقر الشركة.</string>
 		<key>UIBackgroundModes</key>
 		<array>
 			<string>remote-notification</string>
