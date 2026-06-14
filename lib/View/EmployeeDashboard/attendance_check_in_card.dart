@@ -966,41 +966,43 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<HomeController>();
-    final emp = controller.currentEmployee.value;
-    if (emp == null || emp.role.trim().toLowerCase() != 'employee') {
-      return const SizedBox.shrink();
-    }
-    final employeeId = emp.id;
-    if (employeeId == null || employeeId.isEmpty) {
-      return const SizedBox.shrink();
-    }
+    return Obx(() {
+      final emp = controller.currentEmployee.value;
+      if (emp == null || emp.role.trim().toLowerCase() != 'employee') {
+        return const SizedBox.shrink();
+      }
+      final employeeId = emp.id;
+      if (employeeId == null || employeeId.isEmpty) {
+        return const SizedBox.shrink();
+      }
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: Responsive.isMobile(context) ? double.infinity : 640,
+      return Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: Responsive.isMobile(context) ? double.infinity : 640,
+          ),
+          child: StreamBuilder<List<AttendanceRecordModel>>(
+            stream: FirestoreServices.streamTodayAttendanceForEmployee(employeeId),
+            builder: (context, recordsSnapshot) {
+              final records = recordsSnapshot.data ?? const [];
+              return StreamBuilder<AttendanceDayOutcomeModel?>(
+                stream: FirestoreServices.streamTodayAttendanceOutcomeForEmployee(
+                  employeeId,
+                ),
+                builder: (context, outcomeSnapshot) {
+                  return _buildCardBody(
+                    records: records,
+                    systemOutcome: outcomeSnapshot.data,
+                    workHoursFrom: emp.workHoursFrom,
+                    workHoursTo: emp.workHoursTo,
+                    isRemote: emp.isRemoteAttendance,
+                  );
+                },
+              );
+            },
+          ),
         ),
-        child: StreamBuilder<List<AttendanceRecordModel>>(
-          stream: FirestoreServices.streamTodayAttendanceForEmployee(employeeId),
-          builder: (context, recordsSnapshot) {
-            final records = recordsSnapshot.data ?? const [];
-            return StreamBuilder<AttendanceDayOutcomeModel?>(
-              stream: FirestoreServices.streamTodayAttendanceOutcomeForEmployee(
-                employeeId,
-              ),
-              builder: (context, outcomeSnapshot) {
-                return _buildCardBody(
-                  records: records,
-                  systemOutcome: outcomeSnapshot.data,
-                  workHoursFrom: emp.workHoursFrom,
-                  workHoursTo: emp.workHoursTo,
-                  isRemote: emp.isRemoteAttendance,
-                );
-              },
-            );
-          },
-        ),
-      ),
-    );
+      );
+    });
   }
 }
