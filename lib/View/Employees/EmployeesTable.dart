@@ -71,6 +71,9 @@ Widget _employeePresenceChip(DateTime? at) {
 
 String _employeeWorkHoursLabel(EmployeeModel emp) {
   if (emp.role != 'employee') return '-';
+  if (emp.hasFlexibleAttendanceHours) {
+    return AppLocaleKeys.attendanceFlexibleHoursTableLabel.tr;
+  }
   if (!emp.hasWorkHours) return '-';
   return '${emp.workHoursFrom} – ${emp.workHoursTo}';
 }
@@ -530,6 +533,7 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
   TimeOfDay? workFrom;
   TimeOfDay? workTo;
   bool attendanceRemote = model?.attendanceRemote ?? false;
+  bool attendanceFlexibleHours = model?.attendanceFlexibleHours ?? false;
   EmployeeAttendanceFormData.populateFromEmployee(
     employee: model,
     labelController: branchLabelController,
@@ -788,6 +792,13 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                     attendanceRemote: attendanceRemote,
                                     onAttendanceRemoteChanged: (v) {
                                       attendanceRemote = v;
+                                      if (!v) attendanceFlexibleHours = false;
+                                      newstate(() {});
+                                    },
+                                    attendanceFlexibleHours:
+                                        attendanceFlexibleHours,
+                                    onAttendanceFlexibleHoursChanged: (v) {
+                                      attendanceFlexibleHours = v;
                                       newstate(() {});
                                     },
                                     onWorkFromChanged: (v) {
@@ -848,12 +859,18 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                                   selectedDepartments,
                                                 )
                                               : <String>[];
+                                          final workHoursOptional =
+                                              selectedRole == 'employee' &&
+                                              attendanceRemote &&
+                                              attendanceFlexibleHours;
                                           final workHoursError =
                                               selectedRole == 'employee'
                                               ? EmployeeAttendanceFormData
                                                   .validateWorkHours(
                                                     workFrom,
                                                     workTo,
+                                                    optional:
+                                                        workHoursOptional,
                                                   )
                                               : null;
                                           if (workHoursError != null) {
@@ -895,6 +912,11 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                               ? EmployeeAttendanceFormData
                                                   .formatTimeOfDay(workTo!)
                                               : null;
+                                          final clearWorkHoursOnSave =
+                                              selectedRole != 'employee' ||
+                                              (workHoursOptional &&
+                                                  workFrom == null &&
+                                                  workTo == null);
                                           if (model == null) {
                                             controller
                                                 .addEmployee(
@@ -931,6 +953,11 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                                         selectedRole ==
                                                             'employee' &&
                                                         attendanceRemote,
+                                                    attendanceFlexibleHours:
+                                                        selectedRole ==
+                                                            'employee' &&
+                                                        attendanceRemote &&
+                                                        attendanceFlexibleHours,
                                                   ),
                                                 )
                                                 .then((v) {
@@ -969,13 +996,17 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                                         selectedRole ==
                                                             'employee' &&
                                                         attendanceRemote,
+                                                    attendanceFlexibleHours:
+                                                        selectedRole ==
+                                                            'employee' &&
+                                                        attendanceRemote &&
+                                                        attendanceFlexibleHours,
                                                     clearAttendanceLocation:
                                                         selectedRole !=
                                                             'employee' ||
                                                         attendanceRemote,
                                                     clearWorkHours:
-                                                        selectedRole !=
-                                                            'employee',
+                                                        clearWorkHoursOnSave,
                                                   ),
                                                   newPassword:
                                                       !canEditCredentials ||

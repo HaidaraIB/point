@@ -192,6 +192,16 @@ class AppTranslations extends Translations {
           'Photo and work-hour windows still apply. Branch location is optional.',
       'attendance.remote_banner': 'Location check disabled — remote employee',
       'attendance.remote_table_label': 'Remote',
+      'attendance.flexible_hours_employee':
+          'Flexible hours (check in/out anytime)',
+      'attendance.flexible_hours_employee_help':
+          'Check in/out anytime. Work hours are optional. Missing either by day end marks absent.',
+      'attendance.flexible_hours_banner':
+          'Time windows disabled — flexible remote schedule',
+      'attendance.flexible_hours_table_label': 'Flexible',
+      'attendance.action_available_all_day': 'Available all day',
+      'attendance.work_hours_optional_flexible':
+          'Optional for flexible remote employees. Used only for reporting if set.',
       'attendance.day_complete': 'Attendance complete for today',
       'attendance.daily_result': 'Daily result',
       'attendance.filter_daily_result': 'Filter by daily result',
@@ -1595,6 +1605,16 @@ class AppTranslations extends Translations {
           'الصورة ونوافذ ساعات العمل ما زالت مطلوبة. موقع الفرع اختياري.',
       'attendance.remote_banner': 'التحقق من الموقع معطّل — موظف عن بُعد',
       'attendance.remote_table_label': 'عن بُعد',
+      'attendance.flexible_hours_employee':
+          'ساعات مرنة (تسجيل الدخول/الخروج في أي وقت)',
+      'attendance.flexible_hours_employee_help':
+          'تسجيل الدخول/الخروج في أي وقت. ساعات العمل اختيارية. إن فُقد أحدهما بنهاية اليوم يُسجَّل غياب.',
+      'attendance.flexible_hours_banner':
+          'نوافذ الوقت معطّلة — جدول عن بُعد مرن',
+      'attendance.flexible_hours_table_label': 'مرنة',
+      'attendance.action_available_all_day': 'متاح طوال اليوم',
+      'attendance.work_hours_optional_flexible':
+          'اختياري للموظفين عن بُعد بساعات مرنة. يُستخدم للتقارير فقط عند تعبئته.',
       'attendance.day_complete': 'اكتمل الحضور لليوم',
       'attendance.daily_result': 'نتيجة اليوم',
       'attendance.filter_daily_result': 'تصفية حسب نتيجة اليوم',

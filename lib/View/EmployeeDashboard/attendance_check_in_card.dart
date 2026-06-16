@@ -313,6 +313,14 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
           backgroundColor: Colors.orange,
           colorText: Colors.white,
         );
+      } else if (!AttendanceDayState.hasPresentSubmitted(dayState.presentRecord)) {
+        FunHelper.showSnackbar(
+          'error'.tr,
+          AppLocaleKeys.attendanceMustPresentFirst.tr,
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+        );
       } else {
         FunHelper.showSnackbar(
           'error'.tr,
@@ -331,14 +339,18 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
     required AttendanceDayState dayState,
     required String? workHoursFrom,
     required String? workHoursTo,
+    required bool flexibleHours,
   }) {
     const accent = Color(0xFF2E7D32);
     const accentSoft = Color(0xFFEAF8F1);
     final record = dayState.presentRecord;
-    final windowLabel = _windowRangeLabel(
-      workHoursFrom,
-      _policy.checkInGraceMinutes,
-    );
+    final allDayLabel = AppLocaleKeys.attendanceActionAvailableAllDay.tr;
+    final windowLabel = flexibleHours
+        ? allDayLabel
+        : _windowRangeLabel(
+            workHoursFrom,
+            _policy.checkInGraceMinutes,
+          );
 
     if (record != null) {
       if (record.isApproved) {
@@ -377,10 +389,23 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
       return _ActionVisual(
         phase: _ActionPhase.active,
         windowLabel: windowLabel,
-        statusLabel: AppLocaleKeys.attendanceActionAvailable.tr,
+        statusLabel: flexibleHours
+            ? AppLocaleKeys.attendanceActionAvailableAllDay.tr
+            : AppLocaleKeys.attendanceActionAvailable.tr,
         enabled: !_busy,
         accent: accent,
         accentSoft: accentSoft,
+      );
+    }
+
+    if (flexibleHours) {
+      return _ActionVisual(
+        phase: _ActionPhase.closed,
+        windowLabel: windowLabel,
+        statusLabel: AppLocaleKeys.attendanceActionWindowClosed.tr,
+        enabled: false,
+        accent: AppColors.fontColorGrey,
+        accentSoft: AppColors.greyBackground,
       );
     }
 
@@ -425,14 +450,18 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
     required AttendanceDayState dayState,
     required String? workHoursFrom,
     required String? workHoursTo,
+    required bool flexibleHours,
   }) {
     const accent = AppColors.primary;
     const accentSoft = Color(0xFFF3F0FA);
     final record = dayState.leftRecord;
-    final windowLabel = _windowRangeLabel(
-      workHoursTo,
-      _policy.checkOutGraceMinutes,
-    );
+    final allDayLabel = AppLocaleKeys.attendanceActionAvailableAllDay.tr;
+    final windowLabel = flexibleHours
+        ? allDayLabel
+        : _windowRangeLabel(
+            workHoursTo,
+            _policy.checkOutGraceMinutes,
+          );
 
     if (record != null) {
       if (record.isApproved) {
@@ -467,14 +496,38 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
       );
     }
 
+    if (!AttendanceDayState.hasPresentSubmitted(dayState.presentRecord)) {
+      return _ActionVisual(
+        phase: _ActionPhase.beforeWindow,
+        windowLabel: windowLabel,
+        statusLabel: AppLocaleKeys.attendanceMustPresentFirst.tr,
+        enabled: false,
+        accent: AppColors.fontColorGrey,
+        accentSoft: AppColors.greyBackground,
+      );
+    }
+
     if (dayState.canPressLeft) {
       return _ActionVisual(
         phase: _ActionPhase.active,
         windowLabel: windowLabel,
-        statusLabel: AppLocaleKeys.attendanceActionAvailable.tr,
+        statusLabel: flexibleHours
+            ? AppLocaleKeys.attendanceActionAvailableAllDay.tr
+            : AppLocaleKeys.attendanceActionAvailable.tr,
         enabled: !_busy,
         accent: accent,
         accentSoft: accentSoft,
+      );
+    }
+
+    if (flexibleHours) {
+      return _ActionVisual(
+        phase: _ActionPhase.closed,
+        windowLabel: windowLabel,
+        statusLabel: AppLocaleKeys.attendanceActionWindowClosed.tr,
+        enabled: false,
+        accent: AppColors.fontColorGrey,
+        accentSoft: AppColors.greyBackground,
       );
     }
 
@@ -872,12 +925,40 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
     );
   }
 
+  Widget _buildFlexibleHoursBanner() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.orange.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.orange.withValues(alpha: 0.25)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.schedule_outlined, size: 18, color: Colors.orange.shade800),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              AppLocaleKeys.attendanceFlexibleHoursBanner.tr,
+              style: TextStyle(
+                color: Colors.orange.shade900,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCardBody({
     required List<AttendanceRecordModel> records,
     required AttendanceDayOutcomeModel? systemOutcome,
     required String? workHoursFrom,
     required String? workHoursTo,
     required bool isRemote,
+    required bool flexibleHours,
   }) {
     final dayState = AttendanceDayState.compute(
       records: records,
@@ -885,17 +966,20 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
       workHoursFrom: workHoursFrom,
       workHoursTo: workHoursTo,
       policy: _policy,
+      flexibleHours: flexibleHours,
     );
 
     final presentVisual = _presentVisual(
       dayState: dayState,
       workHoursFrom: workHoursFrom,
       workHoursTo: workHoursTo,
+      flexibleHours: flexibleHours,
     );
     final leftVisual = _leftVisual(
       dayState: dayState,
       workHoursFrom: workHoursFrom,
       workHoursTo: workHoursTo,
+      flexibleHours: flexibleHours,
     );
 
     return Container(
@@ -919,6 +1003,10 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
           if (isRemote) ...[
             const SizedBox(height: 12),
             _buildRemoteBanner(),
+          ],
+          if (flexibleHours) ...[
+            const SizedBox(height: 12),
+            _buildFlexibleHoursBanner(),
           ],
           const SizedBox(height: 16),
           _buildOutcomeHero(dayState),
@@ -996,6 +1084,7 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
                     workHoursFrom: emp.workHoursFrom,
                     workHoursTo: emp.workHoursTo,
                     isRemote: emp.isRemoteAttendance,
+                    flexibleHours: emp.hasFlexibleAttendanceHours,
                   );
                 },
               );

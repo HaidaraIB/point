@@ -237,8 +237,11 @@ class FirestoreAttendanceApi {
     final workHoursFrom = employeeData?['workHoursFrom']?.toString();
     final workHoursTo = employeeData?['workHoursTo']?.toString();
     final isRemoteEmployee = employeeData?['attendanceRemote'] == true;
+    final isFlexibleHours =
+        isRemoteEmployee && employeeData?['attendanceFlexibleHours'] == true;
 
-    if (!AttendanceDayState.hasWorkHoursConfigured(workHoursFrom, workHoursTo)) {
+    if (!isFlexibleHours &&
+        !AttendanceDayState.hasWorkHoursConfigured(workHoursFrom, workHoursTo)) {
       throw AttendanceRecordRejectedException(
         'attendance.work_hours_not_configured',
       );
@@ -246,25 +249,27 @@ class FirestoreAttendanceApi {
 
     final policy = await AttendancePolicySettings.load();
 
-    if (action == AttendanceRecordModel.actionPresent) {
-      if (!AttendanceDayState.isWithinPresentWindow(
-        workHoursFrom: workHoursFrom,
-        graceMinutes: policy.checkInGraceMinutes,
-        now: now,
-      )) {
-        throw AttendanceRecordRejectedException(
-          'attendance.outside_present_window',
-        );
-      }
-    } else if (action == AttendanceRecordModel.actionLeft) {
-      if (!AttendanceDayState.isWithinLeftWindow(
-        workHoursTo: workHoursTo,
-        graceMinutes: policy.checkOutGraceMinutes,
-        now: now,
-      )) {
-        throw AttendanceRecordRejectedException(
-          'attendance.outside_left_window',
-        );
+    if (!isFlexibleHours) {
+      if (action == AttendanceRecordModel.actionPresent) {
+        if (!AttendanceDayState.isWithinPresentWindow(
+          workHoursFrom: workHoursFrom,
+          graceMinutes: policy.checkInGraceMinutes,
+          now: now,
+        )) {
+          throw AttendanceRecordRejectedException(
+            'attendance.outside_present_window',
+          );
+        }
+      } else if (action == AttendanceRecordModel.actionLeft) {
+        if (!AttendanceDayState.isWithinLeftWindow(
+          workHoursTo: workHoursTo,
+          graceMinutes: policy.checkOutGraceMinutes,
+          now: now,
+        )) {
+          throw AttendanceRecordRejectedException(
+            'attendance.outside_left_window',
+          );
+        }
       }
     }
 
@@ -294,6 +299,12 @@ class FirestoreAttendanceApi {
           'attendance.already_pressed_left',
         );
       }
+      final presentRecord = AttendanceDayState.findPresentRecord(todayRecords);
+      if (!AttendanceDayState.hasPresentSubmitted(presentRecord)) {
+        throw AttendanceRecordRejectedException(
+          'attendance.must_present_first',
+        );
+      }
     }
 
     final dayState = AttendanceDayState.compute(
@@ -302,6 +313,7 @@ class FirestoreAttendanceApi {
       workHoursTo: workHoursTo,
       policy: policy,
       now: now,
+      flexibleHours: isFlexibleHours,
     );
     if (dayState.outcome == AttendanceDailyOutcome.showedUp) {
       throw AttendanceRecordRejectedException('attendance.day_complete');

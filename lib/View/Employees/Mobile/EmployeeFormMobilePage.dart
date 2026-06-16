@@ -42,6 +42,7 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
   TimeOfDay? workFrom;
   TimeOfDay? workTo;
   bool attendanceRemote = false;
+  bool attendanceFlexibleHours = false;
   static const List<String> _roles = ["supervisor", "admin", "employee"];
 
   bool get _canEditCredentials {
@@ -79,6 +80,7 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
     workFrom = EmployeeAttendanceFormData.parseTime(m?.workHoursFrom);
     workTo = EmployeeAttendanceFormData.parseTime(m?.workHoursTo);
     attendanceRemote = m?.attendanceRemote ?? false;
+    attendanceFlexibleHours = m?.attendanceFlexibleHours ?? false;
     selectedRole = m?.role ?? "employee";
     selectedDepartments = m == null
         ? <String>[StorageKeys.departmentPromotion]
@@ -121,8 +123,15 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
     final departmentsToSave = selectedRole == 'employee'
         ? StorageKeys.normalizeDepartments(selectedDepartments)
         : <String>[];
+    final workHoursOptional = selectedRole == 'employee' &&
+        attendanceRemote &&
+        attendanceFlexibleHours;
     final workHoursError = selectedRole == 'employee'
-        ? EmployeeAttendanceFormData.validateWorkHours(workFrom, workTo)
+        ? EmployeeAttendanceFormData.validateWorkHours(
+            workFrom,
+            workTo,
+            optional: workHoursOptional,
+          )
         : null;
     if (workHoursError != null) {
       FunHelper.showSnackbarDeduped(
@@ -149,6 +158,8 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
     final workHoursTo = selectedRole == 'employee' && workTo != null
         ? EmployeeAttendanceFormData.formatTimeOfDay(workTo!)
         : null;
+    final clearWorkHoursOnSave = selectedRole != 'employee' ||
+        (workHoursOptional && workFrom == null && workTo == null);
 
     if (model == null) {
       final success = await controller.addEmployee(
@@ -171,6 +182,9 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
           workHoursTo: workHoursTo,
           attendanceRemote:
               selectedRole == 'employee' && attendanceRemote,
+          attendanceFlexibleHours: selectedRole == 'employee' &&
+              attendanceRemote &&
+              attendanceFlexibleHours,
         ),
       );
       if (!mounted) return;
@@ -195,9 +209,12 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
           workHoursTo: workHoursTo,
           attendanceRemote:
               selectedRole == 'employee' && attendanceRemote,
+          attendanceFlexibleHours: selectedRole == 'employee' &&
+              attendanceRemote &&
+              attendanceFlexibleHours,
           clearAttendanceLocation:
               selectedRole != 'employee' || attendanceRemote,
-          clearWorkHours: selectedRole != 'employee',
+          clearWorkHours: clearWorkHoursOnSave,
         ),
         newPassword:
             !_canEditCredentials || passwordController.text.trim().isEmpty
@@ -407,8 +424,13 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                       workFrom: workFrom,
                       workTo: workTo,
                       attendanceRemote: attendanceRemote,
-                      onAttendanceRemoteChanged: (v) =>
-                          setState(() => attendanceRemote = v),
+                      onAttendanceRemoteChanged: (v) => setState(() {
+                        attendanceRemote = v;
+                        if (!v) attendanceFlexibleHours = false;
+                      }),
+                      attendanceFlexibleHours: attendanceFlexibleHours,
+                      onAttendanceFlexibleHoursChanged: (v) =>
+                          setState(() => attendanceFlexibleHours = v),
                       onWorkFromChanged: (v) => setState(() => workFrom = v),
                       onWorkToChanged: (v) => setState(() => workTo = v),
                     ),

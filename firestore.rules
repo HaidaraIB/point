@@ -104,7 +104,8 @@ service cloud.firestore {
       return (!('attendanceLocation' in data) || validAttendanceLocationMap(data.attendanceLocation))
         && (!('workHoursFrom' in data) || validWorkHoursTime(data.workHoursFrom))
         && (!('workHoursTo' in data) || validWorkHoursTime(data.workHoursTo))
-        && (!('attendanceRemote' in data) || data.attendanceRemote is bool);
+        && (!('attendanceRemote' in data) || data.attendanceRemote is bool)
+        && (!('attendanceFlexibleHours' in data) || data.attendanceFlexibleHours is bool);
     }
 
     function remoteAttendanceBypassRecord(data) {

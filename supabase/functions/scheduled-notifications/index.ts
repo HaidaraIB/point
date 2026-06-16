@@ -2077,6 +2077,128 @@ function windowEndIso(dayKey: string, endMinutes: number): string {
   return new Date(`${dayKey}T${hh}:${mm}:00.000`).toISOString();
 }
 
+const FLEXIBLE_EOD_MINUTES = 23 * 60 + 55;
+const CALENDAR_DAY_END_MINUTES = 23 * 60 + 59;
+
+function dayBoundsIso(dayKey: string): { dayStartIso: string; dayEndIso: string } {
+  return {
+    dayStartIso: new Date(`${dayKey}T00:00:00.000Z`).toISOString(),
+    dayEndIso: new Date(`${dayKey}T23:59:59.999Z`).toISOString(),
+  };
+}
+
+async function fetchAttendanceRecordsForDay({
+  accessToken,
+  projectId,
+  employeeId,
+  dayKey,
+}: {
+  accessToken: string;
+  projectId: string;
+  employeeId: string;
+  dayKey: string;
+}) {
+  const { dayStartIso, dayEndIso } = dayBoundsIso(dayKey);
+  return runQuery({
+    accessToken,
+    projectId,
+    structuredQuery: {
+      from: [{ collectionId: "attendance_records" }],
+      where: {
+        compositeFilter: {
+          op: "AND",
+          filters: [
+            { fieldFilter: { field: { fieldPath: "employeeId" }, op: "EQUAL", value: { stringValue: employeeId } } },
+            { fieldFilter: { field: { fieldPath: "recordedAt" }, op: "GREATER_THAN_OR_EQUAL", value: { timestampValue: dayStartIso } } },
+            { fieldFilter: { field: { fieldPath: "recordedAt" }, op: "LESS_THAN_OR_EQUAL", value: { timestampValue: dayEndIso } } },
+          ],
+        },
+      },
+      limit: 50,
+    },
+  });
+}
+
+async function processFlexibleCalendarDayAbsent({
+  accessToken,
+  projectId,
+  fcmUrl,
+  employeeId,
+  employeeName,
+  dayKey,
+  records,
+  fcmTokens,
+}: {
+  accessToken: string;
+  projectId: string;
+  fcmUrl: string;
+  employeeId: string;
+  employeeName: string;
+  dayKey: string;
+  records: Array<{ fields: Record<string, unknown> }>;
+  fcmTokens: string[];
+}): Promise<void> {
+  const hasPresentRecord = records.some((r) =>
+    getStringField(r.fields, "action") === "present"
+  );
+  const hasLeftRecord = records.some((r) => getStringField(r.fields, "action") === "left");
+  const eodIso = windowEndIso(dayKey, CALENDAR_DAY_END_MINUTES);
+
+  if (!hasPresentRecord) {
+    const dedupeId = `${employeeId}_${dayKey}_auto_no_check_in`;
+    if (!(await reminderDocExists(accessToken, projectId, dedupeId))) {
+      await writeAutoRejectedAttendanceRecord({
+        accessToken,
+        projectId,
+        employeeId,
+        employeeName,
+        action: "present",
+        rejectionReason: "missed_check_in_window",
+        recordedAtIso: eodIso,
+      });
+      await sendFcm({
+        accessToken,
+        fcmUrl,
+        tokens: fcmTokens,
+        title: "Marked absent",
+        body: "Check-in was not recorded by end of day.",
+        notificationType: "employee_attendance_auto_absent",
+        recipientId: employeeId,
+        recipientKind: "employee",
+        projectId,
+      });
+      await markReminderSent(accessToken, projectId, dedupeId);
+    }
+  }
+
+  if (!hasLeftRecord) {
+    const dedupeId = `${employeeId}_${dayKey}_auto_no_checkout`;
+    if (!(await reminderDocExists(accessToken, projectId, dedupeId))) {
+      await writeAutoRejectedAttendanceRecord({
+        accessToken,
+        projectId,
+        employeeId,
+        employeeName,
+        action: "left",
+        rejectionReason: "missed_check_out_window",
+        recordedAtIso: eodIso,
+      });
+      await sendFcm({
+        accessToken,
+        fcmUrl,
+        tokens: fcmTokens,
+        title: "Marked absent",
+        body: "Check-out was not recorded by end of day.",
+        notificationType: "employee_attendance_auto_absent",
+        recipientId: employeeId,
+        recipientKind: "employee",
+        projectId,
+      });
+      await markReminderSent(accessToken, projectId, dedupeId);
+    }
+  }
+}
+
 async function writeDayOutcomeAbsent({
   accessToken,
   projectId,
@@ -2155,21 +2277,70 @@ async function handleAttendanceReminders({
   const dayKey = localDateKey(now);
   const { hour: curHour, minute: curMinute } = localHourMinute(now);
   const nowMinutes = curHour * 60 + curMinute;
-  const dayStartIso = new Date(`${dayKey}T00:00:00.000Z`).toISOString();
-  const dayEndIso = new Date(`${dayKey}T23:59:59.999Z`).toISOString();
 
   for (const e of employees) {
     const id = e.name.split("/").pop() ?? "";
     const role = getStringField(e.fields, "role");
     if (role !== "employee") continue;
 
+    const isRemote = getBooleanField(e.fields, "attendanceRemote");
+    const isFlexibleRemote =
+      isRemote && getBooleanField(e.fields, "attendanceFlexibleHours");
+
     const workFrom = getStringField(e.fields, "workHoursFrom");
     const workTo = getStringField(e.fields, "workHoursTo");
     const from = parseHHmm(workFrom);
     const to = parseHHmm(workTo);
+
+    if (isFlexibleRemote) {
+      const fcmTokens = extractFcmTokensFromFirestoreFields(e.fields);
+      const todayRecords = await fetchAttendanceRecordsForDay({
+        accessToken,
+        projectId,
+        employeeId: id,
+        dayKey,
+      });
+      const employeeName = getStringField(e.fields, "name") ?? id;
+
+      if (nowMinutes >= FLEXIBLE_EOD_MINUTES) {
+        await processFlexibleCalendarDayAbsent({
+          accessToken,
+          projectId,
+          fcmUrl,
+          employeeId: id,
+          employeeName,
+          dayKey,
+          records: todayRecords,
+          fcmTokens,
+        });
+      }
+
+      const yesterdayKey = localDateKey(
+        new Date(now.getTime() - 24 * 60 * 60 * 1000),
+      );
+      if (yesterdayKey !== dayKey) {
+        const yesterdayRecords = await fetchAttendanceRecordsForDay({
+          accessToken,
+          projectId,
+          employeeId: id,
+          dayKey: yesterdayKey,
+        });
+        await processFlexibleCalendarDayAbsent({
+          accessToken,
+          projectId,
+          fcmUrl,
+          employeeId: id,
+          employeeName,
+          dayKey: yesterdayKey,
+          records: yesterdayRecords,
+          fcmTokens,
+        });
+      }
+      continue;
+    }
+
     if (!from || !to) continue;
 
-    const isRemote = getBooleanField(e.fields, "attendanceRemote");
     const loc = (e.fields.attendanceLocation as any)?.mapValue?.fields;
     if (!isRemote) {
       if (!loc) continue;
@@ -2181,26 +2352,15 @@ async function handleAttendanceReminders({
     const fcmTokens = extractFcmTokensFromFirestoreFields(e.fields);
     const email = getStringField(e.fields, "email");
 
-    const todayRecords = await runQuery({
+    const todayRecords = await fetchAttendanceRecordsForDay({
       accessToken,
       projectId,
-      structuredQuery: {
-        from: [{ collectionId: "attendance_records" }],
-        where: {
-          compositeFilter: {
-            op: "AND",
-            filters: [
-              { fieldFilter: { field: { fieldPath: "employeeId" }, op: "EQUAL", value: { stringValue: id } } },
-              { fieldFilter: { field: { fieldPath: "recordedAt" }, op: "GREATER_THAN_OR_EQUAL", value: { timestampValue: dayStartIso } } },
-              { fieldFilter: { field: { fieldPath: "recordedAt" }, op: "LESS_THAN_OR_EQUAL", value: { timestampValue: dayEndIso } } },
-            ],
-          },
-        },
-        limit: 50,
-      },
+      employeeId: id,
+      dayKey,
     });
 
     const employeeName = getStringField(e.fields, "name") ?? id;
+
     const hasPresentRecord = todayRecords.some((r) =>
       getStringField(r.fields, "action") === "present"
     );

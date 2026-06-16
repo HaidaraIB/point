@@ -113,6 +113,8 @@ class AppLocaleKeys {
   static const attendanceEmployeeLocationHelp = 'attendance.employee_location_help';
   static const attendanceWorkHoursTitle = 'attendance.work_hours_title';
   static const attendanceWorkHoursHelp = 'attendance.work_hours_help';
+  static const attendanceWorkHoursOptionalFlexible =
+      'attendance.work_hours_optional_flexible';
   static const attendanceWorkHoursFrom = 'attendance.work_hours_from';
   static const attendanceWorkHoursTo = 'attendance.work_hours_to';
   static const attendanceWorkHoursBothRequired = 'attendance.work_hours_both_required';
@@ -153,6 +155,16 @@ class AppLocaleKeys {
   static const attendanceRemoteEmployeeHelp = 'attendance.remote_employee_help';
   static const attendanceRemoteBanner = 'attendance.remote_banner';
   static const attendanceRemoteTableLabel = 'attendance.remote_table_label';
+  static const attendanceFlexibleHoursEmployee =
+      'attendance.flexible_hours_employee';
+  static const attendanceFlexibleHoursEmployeeHelp =
+      'attendance.flexible_hours_employee_help';
+  static const attendanceFlexibleHoursBanner =
+      'attendance.flexible_hours_banner';
+  static const attendanceFlexibleHoursTableLabel =
+      'attendance.flexible_hours_table_label';
+  static const attendanceActionAvailableAllDay =
+      'attendance.action_available_all_day';
   static const attendanceDayComplete = 'attendance.day_complete';
   static const attendanceDailyResult = 'attendance.daily_result';
   static const attendanceFilterDailyResult = 'attendance.filter_daily_result';

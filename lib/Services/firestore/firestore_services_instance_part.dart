@@ -267,9 +267,15 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
       json['workHoursFrom'] = FieldValue.delete();
       json['workHoursTo'] = FieldValue.delete();
       json['attendanceRemote'] = FieldValue.delete();
-    } else if (employee.attendanceLocation == null ||
-        !employee.attendanceLocation!.isConfigured) {
-      json['attendanceLocation'] = FieldValue.delete();
+      json['attendanceFlexibleHours'] = FieldValue.delete();
+    } else {
+      if (!employee.attendanceRemote) {
+        json['attendanceFlexibleHours'] = FieldValue.delete();
+      }
+      if (employee.attendanceLocation == null ||
+          !employee.attendanceLocation!.isConfigured) {
+        json['attendanceLocation'] = FieldValue.delete();
+      }
     }
     return json;
   }

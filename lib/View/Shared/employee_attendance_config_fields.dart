@@ -70,7 +70,11 @@ class EmployeeAttendanceFormData {
         EmployeeAttendanceLocation.defaultRadiusMeters.toString();
   }
 
-  static String? validateWorkHours(TimeOfDay? from, TimeOfDay? to) {
+  static String? validateWorkHours(
+    TimeOfDay? from,
+    TimeOfDay? to, {
+    bool optional = false,
+  }) {
     if (from == null && to == null) return null;
     if (from == null || to == null) {
       return AppLocaleKeys.attendanceWorkHoursBothRequired.tr;
@@ -98,6 +102,8 @@ class EmployeeAttendanceConfigFields extends StatefulWidget {
     required this.onWorkToChanged,
     required this.attendanceRemote,
     required this.onAttendanceRemoteChanged,
+    required this.attendanceFlexibleHours,
+    required this.onAttendanceFlexibleHoursChanged,
   });
 
   final TextEditingController labelController;
@@ -110,6 +116,8 @@ class EmployeeAttendanceConfigFields extends StatefulWidget {
   final ValueChanged<TimeOfDay?> onWorkToChanged;
   final bool attendanceRemote;
   final ValueChanged<bool> onAttendanceRemoteChanged;
+  final bool attendanceFlexibleHours;
+  final ValueChanged<bool> onAttendanceFlexibleHoursChanged;
 
   @override
   State<EmployeeAttendanceConfigFields> createState() =>
@@ -424,69 +432,102 @@ class _EmployeeAttendanceConfigFieldsState
           activeThumbColor: AppColors.primary,
           onChanged: widget.onAttendanceRemoteChanged,
         ),
+        if (widget.attendanceRemote) ...[
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(
+              AppLocaleKeys.attendanceFlexibleHoursEmployee.tr,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+                color: AppColors.primaryfontColor,
+              ),
+            ),
+            subtitle: Text(
+              AppLocaleKeys.attendanceFlexibleHoursEmployeeHelp.tr,
+              style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
+            ),
+            value: widget.attendanceFlexibleHours,
+            activeThumbColor: AppColors.primary,
+            onChanged: widget.onAttendanceFlexibleHoursChanged,
+          ),
+        ],
         const SizedBox(height: 12),
         locationFields,
         const SizedBox(height: 20),
-        Text(
-          AppLocaleKeys.attendanceWorkHoursTitle.tr,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 15,
-            color: AppColors.primaryfontColor,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          AppLocaleKeys.attendanceWorkHoursHelp.tr,
-          style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
-        ),
-        const SizedBox(height: 12),
-        Responsive(
-          mobile: Column(
-            children: [
-              _timeField(
-                label: AppLocaleKeys.attendanceWorkHoursFrom.tr,
-                value: widget.workFrom,
-                onTap: () => _pickTime(
-                  initial: widget.workFrom,
-                  onChanged: widget.onWorkFromChanged,
-                ),
-              ),
-              const SizedBox(height: 12),
-              _timeField(
-                label: AppLocaleKeys.attendanceWorkHoursTo.tr,
-                value: widget.workTo,
-                onTap: () => _pickTime(
-                  initial: widget.workTo,
-                  onChanged: widget.onWorkToChanged,
-                ),
-              ),
-            ],
-          ),
-          desktop: Row(
-            children: [
-              Expanded(
-                child: _timeField(
-                  label: AppLocaleKeys.attendanceWorkHoursFrom.tr,
-                  value: widget.workFrom,
-                  onTap: () => _pickTime(
-                    initial: widget.workFrom,
-                    onChanged: widget.onWorkFromChanged,
+        Opacity(
+          opacity: widget.attendanceFlexibleHours ? 0.45 : 1,
+          child: IgnorePointer(
+            ignoring: widget.attendanceFlexibleHours,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  AppLocaleKeys.attendanceWorkHoursTitle.tr,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    color: AppColors.primaryfontColor,
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _timeField(
-                  label: AppLocaleKeys.attendanceWorkHoursTo.tr,
-                  value: widget.workTo,
-                  onTap: () => _pickTime(
-                    initial: widget.workTo,
-                    onChanged: widget.onWorkToChanged,
+                const SizedBox(height: 6),
+                Text(
+                  widget.attendanceFlexibleHours
+                      ? AppLocaleKeys.attendanceWorkHoursOptionalFlexible.tr
+                      : AppLocaleKeys.attendanceWorkHoursHelp.tr,
+                  style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+                ),
+                const SizedBox(height: 12),
+                Responsive(
+                  mobile: Column(
+                    children: [
+                      _timeField(
+                        label: AppLocaleKeys.attendanceWorkHoursFrom.tr,
+                        value: widget.workFrom,
+                        onTap: () => _pickTime(
+                          initial: widget.workFrom,
+                          onChanged: widget.onWorkFromChanged,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _timeField(
+                        label: AppLocaleKeys.attendanceWorkHoursTo.tr,
+                        value: widget.workTo,
+                        onTap: () => _pickTime(
+                          initial: widget.workTo,
+                          onChanged: widget.onWorkToChanged,
+                        ),
+                      ),
+                    ],
+                  ),
+                  desktop: Row(
+                    children: [
+                      Expanded(
+                        child: _timeField(
+                          label: AppLocaleKeys.attendanceWorkHoursFrom.tr,
+                          value: widget.workFrom,
+                          onTap: () => _pickTime(
+                            initial: widget.workFrom,
+                            onChanged: widget.onWorkFromChanged,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _timeField(
+                          label: AppLocaleKeys.attendanceWorkHoursTo.tr,
+                          value: widget.workTo,
+                          onTap: () => _pickTime(
+                            initial: widget.workTo,
+                            onChanged: widget.onWorkToChanged,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ],

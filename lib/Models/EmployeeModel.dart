@@ -27,6 +27,8 @@ class EmployeeModel {
   final String? workHoursTo;
   /// When true, employee skips GPS/geofence during attendance (photo + windows only).
   final bool attendanceRemote;
+  /// When true (with [attendanceRemote]), check-in/out buttons are available all day.
+  final bool attendanceFlexibleHours;
 
   EmployeeModel({
     this.id,
@@ -48,6 +50,7 @@ class EmployeeModel {
     this.workHoursFrom,
     this.workHoursTo,
     this.attendanceRemote = false,
+    this.attendanceFlexibleHours = false,
   });
 
   /// First department slug, if any (e.g. notifications / legacy single-field UX).
@@ -55,6 +58,9 @@ class EmployeeModel {
       departments.isEmpty ? null : departments.first;
 
   bool get isRemoteAttendance => attendanceRemote;
+
+  bool get hasFlexibleAttendanceHours =>
+      attendanceRemote && attendanceFlexibleHours;
 
   bool get hasAttendanceLocationConfigured =>
       attendanceLocation?.isConfigured ?? false;
@@ -87,6 +93,7 @@ class EmployeeModel {
     String? workHoursFrom,
     String? workHoursTo,
     bool? attendanceRemote,
+    bool? attendanceFlexibleHours,
     bool clearAttendanceLocation = false,
     bool clearWorkHours = false,
   }) {
@@ -112,6 +119,8 @@ class EmployeeModel {
       workHoursFrom: clearWorkHours ? null : (workHoursFrom ?? this.workHoursFrom),
       workHoursTo: clearWorkHours ? null : (workHoursTo ?? this.workHoursTo),
       attendanceRemote: attendanceRemote ?? this.attendanceRemote,
+      attendanceFlexibleHours:
+          attendanceFlexibleHours ?? this.attendanceFlexibleHours,
     );
   }
 
@@ -182,6 +191,7 @@ class EmployeeModel {
       workHoursFrom: json['workHoursFrom']?.toString(),
       workHoursTo: json['workHoursTo']?.toString(),
       attendanceRemote: json['attendanceRemote'] == true,
+      attendanceFlexibleHours: json['attendanceFlexibleHours'] == true,
     );
   }
 
@@ -224,6 +234,7 @@ class EmployeeModel {
       if (workHoursTo != null && workHoursTo!.trim().isNotEmpty)
         "workHoursTo": workHoursTo!.trim(),
       "attendanceRemote": attendanceRemote,
+      "attendanceFlexibleHours": attendanceFlexibleHours,
     };
   }
 }
