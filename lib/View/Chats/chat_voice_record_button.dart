@@ -10,13 +10,19 @@ import 'package:path_provider/path_provider.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Services/FunHelper.dart';
+import 'package:point/View/Chats/chat_private_typing.dart';
 import 'package:record/record.dart';
 
 /// تسجيل صوتي على الهاتف/سطح المكتب؛ على الويب يُفتح منتقي ملفات صوتية.
 class ChatVoiceRecordButton extends StatefulWidget {
   final Future<void> Function(String url, int durationSec) onUploaded;
+  final ChatActivityWriter? activityWriter;
 
-  const ChatVoiceRecordButton({super.key, required this.onUploaded});
+  const ChatVoiceRecordButton({
+    super.key,
+    required this.onUploaded,
+    this.activityWriter,
+  });
 
   @override
   State<ChatVoiceRecordButton> createState() => _ChatVoiceRecordButtonState();
@@ -86,6 +92,7 @@ class _ChatVoiceRecordButtonState extends State<ChatVoiceRecordButton> {
     if (mounted) {
       setState(() => _recording = true);
     }
+    widget.activityWriter?.setRecording(true);
   }
 
   /// بعد [stop] قد يتأخر ظهور الملف على القرص (خصوصاً Android). نمنع القراءة المزدوجة لـ [stop].
@@ -135,6 +142,7 @@ class _ChatVoiceRecordButtonState extends State<ChatVoiceRecordButton> {
     _activeSw.stop();
     _activeSw.reset();
     _recordPath = null;
+    widget.activityWriter?.setRecording(false);
     if (mounted) {
       setState(() => _recording = false);
     }
@@ -162,6 +170,7 @@ class _ChatVoiceRecordButtonState extends State<ChatVoiceRecordButton> {
     } finally {
       _finishing = false;
       _recordPath = null;
+      widget.activityWriter?.setRecording(false);
       if (mounted) {
         setState(() => _recording = false);
       }
@@ -182,13 +191,18 @@ class _ChatVoiceRecordButtonState extends State<ChatVoiceRecordButton> {
     }
 
     final c = Get.find<HomeController>();
-    final url = await c.uploadFiles(
-      filePathOrBytes: bytes,
-      fileName: 'voice.m4a',
-      useBlockingUploadDialog: false,
-    );
-    if (url != null) {
-      await widget.onUploaded(url, sec);
+    try {
+      widget.activityWriter?.setUploading(ChatUploadKind.file);
+      final url = await c.uploadFiles(
+        filePathOrBytes: bytes,
+        fileName: 'voice.m4a',
+        useBlockingUploadDialog: false,
+      );
+      if (url != null) {
+        await widget.onUploaded(url, sec);
+      }
+    } finally {
+      widget.activityWriter?.setUploading(null);
     }
   }
 

@@ -154,11 +154,14 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
       return;
     }
 
-    final photoCapture = await AttendancePhotoHelper.capture(
-      action: action,
-      employeeId: emp.id!,
-    );
-    if (photoCapture == null) return;
+    AttendancePhotoCapture? photoCapture;
+    if (!isRemote) {
+      photoCapture = await AttendancePhotoHelper.capture(
+        action: action,
+        employeeId: emp.id!,
+      );
+      if (photoCapture == null) return;
+    }
 
     setState(() => _busy = true);
     try {
@@ -211,21 +214,25 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
         officeRadiusMeters = location.radiusMeters;
       }
 
-      final photoUrl = await controller.uploadFiles(
-        filePathOrBytes: photoCapture.bytes,
-        fileName: photoCapture.fileName,
-        useBlockingUploadDialog: true,
-        addToUploadedFilesPathsList: false,
-      );
-      if (photoUrl == null || photoUrl.trim().isEmpty) {
-        FunHelper.showSnackbar(
-          'error'.tr,
-          AppLocaleKeys.attendancePhotoUploadFailed.tr,
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
+      String photoUrl = '';
+      if (photoCapture != null) {
+        final uploaded = await controller.uploadFiles(
+          filePathOrBytes: photoCapture.bytes,
+          fileName: photoCapture.fileName,
+          useBlockingUploadDialog: true,
+          addToUploadedFilesPathsList: false,
         );
-        return;
+        if (uploaded == null || uploaded.trim().isEmpty) {
+          FunHelper.showSnackbar(
+            'error'.tr,
+            AppLocaleKeys.attendancePhotoUploadFailed.tr,
+            snackPosition: SnackPosition.TOP,
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+          );
+          return;
+        }
+        photoUrl = uploaded;
       }
 
       await FirestoreServices.recordAttendance(
@@ -898,66 +905,11 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
     );
   }
 
-  Widget _buildRemoteBanner() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.home_work_outlined, size: 18, color: AppColors.primary),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              AppLocaleKeys.attendanceRemoteBanner.tr,
-              style: TextStyle(
-                color: AppColors.primary,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFlexibleHoursBanner() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.orange.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.orange.withValues(alpha: 0.25)),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.schedule_outlined, size: 18, color: Colors.orange.shade800),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              AppLocaleKeys.attendanceFlexibleHoursBanner.tr,
-              style: TextStyle(
-                color: Colors.orange.shade900,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildCardBody({
     required List<AttendanceRecordModel> records,
     required AttendanceDayOutcomeModel? systemOutcome,
     required String? workHoursFrom,
     required String? workHoursTo,
-    required bool isRemote,
     required bool flexibleHours,
   }) {
     final dayState = AttendanceDayState.compute(
@@ -1000,14 +952,6 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildHeader(),
-          if (isRemote) ...[
-            const SizedBox(height: 12),
-            _buildRemoteBanner(),
-          ],
-          if (flexibleHours) ...[
-            const SizedBox(height: 12),
-            _buildFlexibleHoursBanner(),
-          ],
           const SizedBox(height: 16),
           _buildOutcomeHero(dayState),
           const SizedBox(height: 20),
@@ -1083,7 +1027,6 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
                     systemOutcome: outcomeSnapshot.data,
                     workHoursFrom: emp.workHoursFrom,
                     workHoursTo: emp.workHoursTo,
-                    isRemote: emp.isRemoteAttendance,
                     flexibleHours: emp.hasFlexibleAttendanceHours,
                   );
                 },

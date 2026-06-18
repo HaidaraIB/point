@@ -138,7 +138,10 @@ service cloud.firestore {
         && data.employeeName is string
         && (data.action == 'present' || data.action == 'left')
         && data.photoUrl is string
-        && data.photoUrl.size() > 0
+        && (
+          data.photoUrl.size() > 0
+          || remoteAttendanceBypassRecord(data)
+        )
         && data.recordedAt is timestamp
         && data.approvalStatus == 'pending'
         && (
@@ -507,13 +510,32 @@ service cloud.firestore {
     }
 
     function privateTypingCreateDataOk() {
-      return request.resource.data.keys().hasOnly(['updatedAtMs'])
-        && request.resource.data.updatedAtMs is int;
+      return request.resource.data.updatedAtMs is int
+        && (
+          request.resource.data.keys().hasOnly(['updatedAtMs'])
+          || (
+            request.resource.data.keys().hasOnly(['updatedAtMs', 'kind'])
+            && request.resource.data.kind in ['typing', 'recording', 'uploading']
+          )
+          || (
+            request.resource.data.keys().hasOnly(['updatedAtMs', 'kind', 'uploadKind'])
+            && request.resource.data.kind == 'uploading'
+            && request.resource.data.uploadKind in ['image', 'video', 'file']
+          )
+        );
     }
 
     function privateTypingUpdateDataOk() {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['updatedAtMs'])
-        && request.resource.data.updatedAtMs is int;
+      return request.resource.data.updatedAtMs is int
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['updatedAtMs', 'kind', 'uploadKind'])
+        && (
+          !('kind' in request.resource.data)
+          || request.resource.data.kind in ['typing', 'recording', 'uploading']
+        )
+        && (
+          !('uploadKind' in request.resource.data)
+          || request.resource.data.uploadKind in ['image', 'video', 'file']
+        );
     }
 
     /// يضمّ منطق قراءة رسائل المجموعة: مشارك، أو موظف بقسم يطابق المجموعة قبل الانضمام الرسمي.

@@ -924,6 +924,8 @@ class _ChatMessageTileState extends State<ChatMessageTile>
                     chatMessageBubbleContent(
                       Map<String, dynamic>.from(widget.message),
                       !telegramLikeOutgoing && widget.isMe,
+                      chatId: widget.chatId,
+                      messageId: widget.messageId,
                     ),
                     const SizedBox(height: 6),
                     Row(

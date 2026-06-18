@@ -101,6 +101,9 @@ const Map<String, String> notifyTranslationsEn = {
       'Employee accepted the task; it is now in progress',
   'notify.mgr.received.body': 'Employee: @name — Task: @title',
   'notify.mgr.received.action': 'You can track progress from the task board.',
+  'notify.mgr.attendance_submitted.title': 'Attendance submitted',
+  'notify.mgr.attendance_submitted.body': '@name — @action (pending approval)',
+  'notify.mgr.attendance_submitted.action': 'Open attendance log to review.',
   'notify.mgr.completed.title':
       'Employee completed the task — please review and approve',
   'notify.mgr.completed.body': 'Employee: @name — Task: @title',
@@ -341,6 +344,9 @@ const Map<String, String> notifyTranslationsAr = {
       'تم استلام المهمة من قبل الموظف وهي قيد التنفيذ الآن',
   'notify.mgr.received.body': 'الموظف: @name — المهمة: @title',
   'notify.mgr.received.action': 'يمكن متابعة التقدم عبر لوحة المهام.',
+  'notify.mgr.attendance_submitted.title': 'تم تسجيل حضور',
+  'notify.mgr.attendance_submitted.body': '@name — @action (بانتظار الموافقة)',
+  'notify.mgr.attendance_submitted.action': 'افتح سجل الحضور للمراجعة.',
   'notify.mgr.completed.title':
       'قام الموظف بإنجاز المهمة يرجى الاطلاع والموافقة',
   'notify.mgr.completed.body': 'الموظف: @name — المهمة: @title',

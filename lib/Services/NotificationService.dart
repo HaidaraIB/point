@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Models/AttendanceRecordModel.dart';
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/StorageKeys.dart';
 
@@ -221,6 +222,33 @@ class NotificationService {
       notificationType: 'employee_attendance_check_out',
       actionText: AppLocaleKeys.attendanceLeft.tr,
       referenceId: 'attendance',
+    );
+  }
+
+  static Future<void> notifyManagersAttendanceSubmitted({
+    required String employeeName,
+    required String action,
+  }) async {
+    final ids = await FirestoreServices.getEmployeeIdsByRole(
+      ['admin', 'supervisor'],
+    );
+    if (ids.isEmpty) return;
+    final actionLabel = action == AttendanceRecordModel.actionPresent
+        ? AppLocaleKeys.attendancePresent.tr
+        : AppLocaleKeys.attendanceLeft.tr;
+    await FirestoreServices.sendFcmToEmployees(
+      userIds: ids,
+      title: 'notify.mgr.attendance_submitted.title'.tr,
+      body: 'notify.mgr.attendance_submitted.body'.trParams({
+        'name': employeeName,
+        'action': actionLabel,
+      }),
+      notificationType: 'manager_attendance_submitted',
+      actionText: 'notify.mgr.attendance_submitted.action'.tr,
+      referenceId: 'attendance',
+      emailDetails: _emailLabels({
+        'notify.email.employee': employeeName,
+      }),
     );
   }
 

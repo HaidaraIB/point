@@ -242,6 +242,17 @@ class AppLocaleKeys {
   static const chatNoMessages = 'chat.no_messages';
   static const chatConnectedCount = 'chat.connected_count';
   static const chatTyping = 'chat.typing';
+  static const chatActivityTyping = 'chat.activity_typing';
+  static const chatActivityRecording = 'chat.activity_recording';
+  static const chatActivitySendingPhoto = 'chat.activity_sending_photo';
+  static const chatActivitySendingVideo = 'chat.activity_sending_video';
+  static const chatActivitySendingFile = 'chat.activity_sending_file';
+  static const chatActivityGroupTyping = 'chat.activity_group_typing';
+  static const chatActivityGroupTypingMany = 'chat.activity_group_typing_many';
+  static const chatActivityGroupRecording = 'chat.activity_group_recording';
+  static const chatActivityGroupSendingPhoto = 'chat.activity_group_sending_photo';
+  static const chatActivityGroupSendingVideo = 'chat.activity_group_sending_video';
+  static const chatActivityGroupSendingFile = 'chat.activity_group_sending_file';
   static const chatSenderFallback = 'chat.sender_fallback';
   static const chatWriteMessage = 'chat.write_message';
   static const chatAttachSheetTitle = 'chat.attach_sheet_title';
@@ -275,6 +286,8 @@ class AppLocaleKeys {
   static const chatDownloadDoneDownloads = 'chat.download_done_downloads';
   static const chatDownloadDoneSaved = 'chat.download_done_saved';
   static const chatPinnedMessageLabel = 'chat.pinned_message_label';
+  static const chatPinnedMessageNOfM = 'chat.pinned_message_n_of_m';
+  static const chatAllPinnedMessages = 'chat.all_pinned_messages';
   static const chatEditedLabel = 'chat.edited_label';
   static const chatEditHistoryTitle = 'chat.edit_history_title';
   static const chatEditHistoryBy = 'chat.edit_history_by';

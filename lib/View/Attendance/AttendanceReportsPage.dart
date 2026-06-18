@@ -438,6 +438,201 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
     );
   }
 
+  static BoxDecoration get _mobileCardDecoration => BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      );
+
+  Widget _buildExportButtons(List<AttendanceReportRow> rows, {bool expanded = false}) {
+    final csvButton = MainButton(
+      width: expanded ? double.infinity : 140,
+      height: 40,
+      borderSize: 8,
+      margin: expanded ? EdgeInsets.zero : null,
+      fontColor: AppColors.primary,
+      backgroundColor: Colors.white,
+      borderColor: AppColors.primary,
+      title: AppLocaleKeys.attendanceReportsExportCsv.tr,
+      enabled: !_loading && rows.isNotEmpty,
+      onPressed: _exportCsv,
+    );
+    final pdfButton = MainButton(
+      width: expanded ? double.infinity : 140,
+      height: 40,
+      borderSize: 8,
+      margin: expanded ? EdgeInsets.zero : null,
+      fontColor: Colors.white,
+      backgroundColor: AppColors.primary,
+      title: AppLocaleKeys.attendanceReportsExportPdf.tr,
+      enabled: !_loading && rows.isNotEmpty,
+      onPressed: _exportPdf,
+    );
+
+    if (expanded) {
+      return Row(
+        children: [
+          Expanded(child: csvButton),
+          const SizedBox(width: 8),
+          Expanded(child: pdfButton),
+        ],
+      );
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        csvButton,
+        const SizedBox(width: 8),
+        pdfButton,
+      ],
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, List<AttendanceReportRow> rows) {
+    final titleStyle = TextStyle(
+      color: AppColors.fontColorGrey,
+      fontSize: 17,
+      fontWeight: FontWeight.bold,
+    );
+
+    if (Responsive.isMobile(context)) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(AppLocaleKeys.attendanceReportsTitle.tr, style: titleStyle),
+          const SizedBox(height: 8),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: TextButton.icon(
+              onPressed: () => Get.offNamed('/attendance'),
+              icon: const Icon(Icons.arrow_back, size: 18),
+              label: Text(AppLocaleKeys.attendanceTitle.tr),
+            ),
+          ),
+          const SizedBox(height: 4),
+          _buildExportButtons(rows, expanded: true),
+        ],
+      );
+    }
+
+    return Row(
+      children: [
+        Text(AppLocaleKeys.attendanceReportsTitle.tr, style: titleStyle),
+        const Spacer(),
+        _buildExportButtons(rows),
+        const SizedBox(width: 8),
+        TextButton.icon(
+          onPressed: () => Get.offNamed('/attendance'),
+          icon: const Icon(Icons.arrow_back, size: 18),
+          label: Text(AppLocaleKeys.attendanceTitle.tr),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMobileReportList(List<AttendanceReportRow> rows) {
+    return Column(
+      children: [
+        for (var i = 0; i < rows.length; i++) ...[
+          if (i > 0) const SizedBox(height: 10),
+          Container(
+            decoration: _mobileCardDecoration,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  rows[i].employeeName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Text(
+                            AppLocaleKeys.attendanceShowedUp.tr,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          _buildCountChip(
+                            value: rows[i].showedUpDays,
+                            fg: const Color(0xFF0F9D58),
+                            bg: const Color(0xFFEAF8F1),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Text(
+                            AppLocaleKeys.attendanceAbsent.tr,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          _buildCountChip(
+                            value: rows[i].absentDays,
+                            fg: Colors.red.shade700,
+                            bg: Colors.red.shade50,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        children: [
+                          Text(
+                            AppLocaleKeys.attendancePending.tr,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          _buildCountChip(
+                            value: rows[i].pendingDays,
+                            fg: Colors.orange.shade800,
+                            bg: Colors.orange.shade50,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
   Widget _buildDataTable(List<AttendanceReportRow> rows) {
     return HorizontalScrollbarTable(
       child: SizedBox(
@@ -534,51 +729,12 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
 
   Widget _buildContent(BuildContext context) {
     final rows = _filteredRows;
+    final isMobile = Responsive.isMobile(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 50),
-        Row(
-          children: [
-            Text(
-              AppLocaleKeys.attendanceReportsTitle.tr,
-              style: TextStyle(
-                color: AppColors.fontColorGrey,
-                fontSize: 17,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const Spacer(),
-            MainButton(
-              width: 140,
-              height: 40,
-              borderSize: 8,
-              fontColor: AppColors.primary,
-              backgroundColor: Colors.white,
-              borderColor: AppColors.primary,
-              title: AppLocaleKeys.attendanceReportsExportCsv.tr,
-              enabled: !_loading && rows.isNotEmpty,
-              onPressed: _exportCsv,
-            ),
-            const SizedBox(width: 8),
-            MainButton(
-              width: 140,
-              height: 40,
-              borderSize: 8,
-              fontColor: Colors.white,
-              backgroundColor: AppColors.primary,
-              title: AppLocaleKeys.attendanceReportsExportPdf.tr,
-              enabled: !_loading && rows.isNotEmpty,
-              onPressed: _exportPdf,
-            ),
-            const SizedBox(width: 8),
-            TextButton.icon(
-              onPressed: () => Get.offNamed('/attendance'),
-              icon: const Icon(Icons.arrow_back, size: 18),
-              label: Text(AppLocaleKeys.attendanceTitle.tr),
-            ),
-          ],
-        ),
+        SizedBox(height: isMobile ? 24 : 50),
+        _buildHeader(context, rows),
         const SizedBox(height: 10),
         _buildFilters(context),
         const SizedBox(height: 10),
@@ -594,6 +750,8 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
               ),
             ),
           )
+        else if (isMobile)
+          _buildMobileReportList(rows)
         else
           _buildDataTable(rows),
       ],

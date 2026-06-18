@@ -10,9 +10,10 @@ import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/Services/chat_voice_playback_service.dart';
 import 'package:point/View/Chats/chat_cached_attachment_image.dart';
 import 'package:point/Utils/chat_video_controller.dart';
-import 'package:point/View/Mobile/Shared/VideoCart.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:point/View/Chats/chat_media_gallery.dart';
 import 'package:video_player/video_player.dart';
+
+export 'chat_media_gallery.dart' show openChatMediaFromUrl;
 
 const Color _kChatAccentBlue = AppColors.primary;
 
@@ -64,28 +65,13 @@ bool _messageShowsAsVideo(
   return false;
 }
 
-/// صورة/فيديو داخل التطبيق؛ باقي الأنواع تُفتح خارجياً (متصفح / تطبيق آخر).
-Future<void> openChatMediaFromUrl(String url) async {
-  final trimmed = url.trim();
-  if (!trimmed.startsWith('http')) return;
-
-  if (isImageUrl(trimmed)) {
-    Get.to(() => ImagePreviewPage(url: trimmed));
-    return;
-  }
-  if (isVideoUrl(trimmed)) {
-    Get.to(() => VideoPlayerPage(url: trimmed));
-    return;
-  }
-
-  final uri = Uri.parse(trimmed);
-  if (await canLaunchUrl(uri)) {
-    await launchUrl(uri, mode: LaunchMode.externalApplication);
-  }
-}
-
 /// محتوى فقاعة الرسالة حسب [messageType] مع دعم الرسائل القديمة (نص + رابط فقط).
-Widget chatMessageBubbleContent(Map<String, dynamic> msg, bool isMe) {
+Widget chatMessageBubbleContent(
+  Map<String, dynamic> msg,
+  bool isMe, {
+  String? chatId,
+  String? messageId,
+}) {
   if (msg['deleted'] == true) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
@@ -128,7 +114,7 @@ Widget chatMessageBubbleContent(Map<String, dynamic> msg, bool isMe) {
         children: [
           row,
           const SizedBox(height: 6),
-          messageTextRich(caption, isMe),
+          messageTextRich(caption, isMe, chatId: chatId, messageId: messageId),
         ],
       );
     }
@@ -137,15 +123,25 @@ Widget chatMessageBubbleContent(Map<String, dynamic> msg, bool isMe) {
     final caption = text.trim();
     final hasCaption = caption.isNotEmpty && caption != '📷';
     if (!hasCaption) {
-      return _ChatImageBubble(url: attachmentUrl, isMe: isMe);
+      return _ChatImageBubble(
+        url: attachmentUrl,
+        isMe: isMe,
+        chatId: chatId,
+        messageId: messageId,
+      );
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        _ChatImageBubble(url: attachmentUrl, isMe: isMe),
+        _ChatImageBubble(
+          url: attachmentUrl,
+          isMe: isMe,
+          chatId: chatId,
+          messageId: messageId,
+        ),
         const SizedBox(height: 6),
-        messageTextRich(caption, isMe),
+        messageTextRich(caption, isMe, chatId: chatId, messageId: messageId),
       ],
     );
   }
@@ -158,6 +154,8 @@ Widget chatMessageBubbleContent(Map<String, dynamic> msg, bool isMe) {
       url: attachmentUrl,
       isMe: isMe,
       fileName: msg['fileName'] as String?,
+      chatId: chatId,
+      messageId: messageId,
     );
     if (!hasCaption) return bubble;
     return Column(
@@ -166,7 +164,7 @@ Widget chatMessageBubbleContent(Map<String, dynamic> msg, bool isMe) {
       children: [
         bubble,
         const SizedBox(height: 6),
-        messageTextRich(caption, isMe),
+        messageTextRich(caption, isMe, chatId: chatId, messageId: messageId),
       ],
     );
   }
@@ -181,6 +179,8 @@ Widget chatMessageBubbleContent(Map<String, dynamic> msg, bool isMe) {
       url: attachmentUrl,
       fileName: msg['fileName'] as String?,
       isMe: isMe,
+      chatId: chatId,
+      messageId: messageId,
     );
     if (!hasCaption) return bubble;
     return Column(
@@ -189,12 +189,12 @@ Widget chatMessageBubbleContent(Map<String, dynamic> msg, bool isMe) {
       children: [
         bubble,
         const SizedBox(height: 6),
-        messageTextRich(caption, isMe),
+        messageTextRich(caption, isMe, chatId: chatId, messageId: messageId),
       ],
     );
   }
 
-  return messageTextRich(text, isMe);
+  return messageTextRich(text, isMe, chatId: chatId, messageId: messageId);
 }
 
 String _fmtVoiceDuration(Duration d) {
@@ -409,8 +409,15 @@ class _VoiceMessageRowState extends State<VoiceMessageRow> {
 class _ChatImageBubble extends StatelessWidget {
   final String url;
   final bool isMe;
+  final String? chatId;
+  final String? messageId;
 
-  const _ChatImageBubble({required this.url, required this.isMe});
+  const _ChatImageBubble({
+    required this.url,
+    required this.isMe,
+    this.chatId,
+    this.messageId,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -421,6 +428,8 @@ class _ChatImageBubble extends StatelessWidget {
         width: 200,
         fit: BoxFit.cover,
         isMe: isMe,
+        chatId: chatId,
+        messageId: messageId,
       ),
     );
   }
@@ -432,6 +441,8 @@ class _RetryableChatImage extends StatefulWidget {
   final BoxFit fit;
   final bool isMe;
   final double loadingHeight;
+  final String? chatId;
+  final String? messageId;
 
   const _RetryableChatImage({
     required this.url,
@@ -439,6 +450,8 @@ class _RetryableChatImage extends StatefulWidget {
     required this.fit,
     required this.isMe,
     this.loadingHeight = 120,
+    this.chatId,
+    this.messageId,
   });
 
   @override
@@ -456,7 +469,13 @@ class _RetryableChatImageState extends State<_RetryableChatImage> {
       }
       return;
     }
-    unawaited(openChatMediaFromUrl(widget.url));
+    unawaited(
+      openChatMediaFromUrl(
+        widget.url,
+        chatId: widget.chatId,
+        messageId: widget.messageId,
+      ),
+    );
   }
 
   @override
@@ -510,11 +529,15 @@ class _ChatVideoBubble extends StatefulWidget {
   final String url;
   final bool isMe;
   final String? fileName;
+  final String? chatId;
+  final String? messageId;
 
   const _ChatVideoBubble({
     required this.url,
     required this.isMe,
     this.fileName,
+    this.chatId,
+    this.messageId,
   });
 
   @override
@@ -644,7 +667,11 @@ class _ChatVideoBubbleState extends State<_ChatVideoBubble> {
                         Material(
                           color: Colors.transparent,
                           child: InkWell(
-                            onTap: () => openChatMediaFromUrl(widget.url),
+                            onTap: () => openChatMediaFromUrl(
+                              widget.url,
+                              chatId: widget.chatId,
+                              messageId: widget.messageId,
+                            ),
                             child: DecoratedBox(
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
@@ -700,8 +727,16 @@ class _FileBubble extends StatelessWidget {
   final String url;
   final String? fileName;
   final bool isMe;
+  final String? chatId;
+  final String? messageId;
 
-  const _FileBubble({required this.url, this.fileName, required this.isMe});
+  const _FileBubble({
+    required this.url,
+    this.fileName,
+    required this.isMe,
+    this.chatId,
+    this.messageId,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -751,7 +786,11 @@ class _FileBubble extends StatelessWidget {
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: () => openChatMediaFromUrl(url),
+          onTap: () => openChatMediaFromUrl(
+            url,
+            chatId: chatId,
+            messageId: messageId,
+          ),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             child: Row(
@@ -803,7 +842,12 @@ class _FileBubble extends StatelessWidget {
   }
 }
 
-Widget messageTextRich(String text, bool isMe) {
+Widget messageTextRich(
+  String text,
+  bool isMe, {
+  String? chatId,
+  String? messageId,
+}) {
   return Builder(
     builder: (context) {
       final resolvedDirection = chatMessageTextDirectionFromFirstWord(text) ??
@@ -818,7 +862,15 @@ Widget messageTextRich(String text, bool isMe) {
       final child = matches.isEmpty
           ? Text(text, style: style)
           : RichText(
-              text: TextSpan(children: buildMessageSpans(text, isMe), style: style),
+              text: TextSpan(
+                children: buildMessageSpans(
+                  text,
+                  isMe,
+                  chatId: chatId,
+                  messageId: messageId,
+                ),
+                style: style,
+              ),
             );
 
       return Directionality(textDirection: resolvedDirection, child: child);
@@ -887,7 +939,12 @@ IconData _fileIconForExtension(String ext) {
   }
 }
 
-List<InlineSpan> buildMessageSpans(String text, bool isMe) {
+List<InlineSpan> buildMessageSpans(
+  String text,
+  bool isMe, {
+  String? chatId,
+  String? messageId,
+}) {
   final spans = <InlineSpan>[];
   int lastIndex = 0;
   final linkColor = isMe ? Colors.lightBlueAccent : Colors.blue;
@@ -913,6 +970,8 @@ List<InlineSpan> buildMessageSpans(String text, bool isMe) {
                 fit: BoxFit.cover,
                 isMe: isMe,
                 loadingHeight: 150,
+                chatId: chatId,
+                messageId: messageId,
               ),
             ),
           ),
@@ -927,7 +986,11 @@ List<InlineSpan> buildMessageSpans(String text, bool isMe) {
             decoration: TextDecoration.underline,
           ),
           recognizer: TapGestureRecognizer()
-            ..onTap = () => openChatMediaFromUrl(url),
+            ..onTap = () => openChatMediaFromUrl(
+              url,
+              chatId: chatId,
+              messageId: messageId,
+            ),
         ),
       );
     }

@@ -339,6 +339,11 @@ class FirestoreAttendanceApi {
           'attendance.record_failed',
         );
       }
+      if (photoUrl.trim().isNotEmpty) {
+        throw AttendanceRecordRejectedException(
+          'attendance.record_failed',
+        );
+      }
       latitudeOut = 0;
       longitudeOut = 0;
       distanceOut = 0;
@@ -346,7 +351,13 @@ class FirestoreAttendanceApi {
       officeLongitudeOut = 0;
       officeRadiusOut = 0;
       locationBypassed = true;
+    } else if (photoUrl.trim().isEmpty) {
+      throw AttendanceRecordRejectedException(
+        'attendance.photo_upload_failed',
+      );
     }
+
+    final photoUrlOut = isRemoteEmployee ? '' : photoUrl.trim();
 
     final data = <String, dynamic>{
       'employeeId': id,
@@ -358,7 +369,7 @@ class FirestoreAttendanceApi {
       'officeLatitude': officeLatitudeOut,
       'officeLongitude': officeLongitudeOut,
       'officeRadiusMeters': officeRadiusOut,
-      'photoUrl': photoUrl.trim(),
+      'photoUrl': photoUrlOut,
       'approvalStatus': AttendanceRecordModel.statusPending,
       'recordedAt': FieldValue.serverTimestamp(),
       if (locationBypassed) 'locationBypassed': true,

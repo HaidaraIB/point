@@ -2,6 +2,22 @@
 
   <!-- FCM معطّل على الويب: لا نسجّل firebase-messaging-sw.js (دفع عن بُعد فقط على iOS/Android). -->
 
+  <!-- Self-host Firebase JS SDK (see web/firebasejs/ and scripts/sync-firebase-web-sdk.ps1).
+       Import map redirects FlutterFire's gstatic dynamic imports to local copies when CDN is blocked. -->
+  <script type="importmap">
+  {
+    "imports": {
+      "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js": "./firebasejs/12.14.0/firebase-app.js",
+      "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js": "./firebasejs/12.14.0/firebase-auth.js",
+      "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore-pipelines.js": "./firebasejs/12.14.0/firebase-firestore-pipelines.js",
+      "https://www.gstatic.com/firebasejs/12.14.0/firebase-storage.js": "./firebasejs/12.14.0/firebase-storage.js"
+    }
+  }
+  </script>
+  <script>
+    window.flutterfire_ignore_scripts = ['messaging'];
+  </script>
+
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">

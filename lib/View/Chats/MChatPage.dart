@@ -29,8 +29,9 @@ import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Routing/app_route_observer.dart';
 import 'package:point/Services/FcmServices.dart' as fcm_notifications;
-import 'package:point/View/Chats/chat_message_display.dart';
 import 'package:point/View/Chats/chat_message_tile.dart';
+import 'package:point/View/Chats/chat_media_gallery.dart';
+import 'package:point/View/Chats/chat_pinned_messages_bar.dart';
 import 'package:point/View/Chats/chat_message_list_panel.dart';
 import 'package:point/View/Chats/pending_chat_attachment.dart';
 import 'package:point/View/Chats/chat_ui_helpers.dart';
@@ -1421,11 +1422,6 @@ class _MessageScreenState extends State<MessageScreen>
   bool get _enableContentInsertion =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
-  bool get _isMobileSoftKeyboardPlatform =>
-      !kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.android ||
-          defaultTargetPlatform == TargetPlatform.iOS);
-
   PageRoute<dynamic>? _routeObserved;
 
   void _applyVisibleChatFocusToServices() {
@@ -1539,6 +1535,21 @@ class _MessageScreenState extends State<MessageScreen>
     _typingWriter.onComposerTextChanged(_messageController.text);
   }
 
+  Map<String, String> _participantNamesMap() {
+    final names = <String, String>{};
+    final parts = List<String>.from(widget.chat['participants'] ?? const []);
+    if (Get.isRegistered<HomeController>()) {
+      final hc = Get.find<HomeController>();
+      for (final id in parts) {
+        final n = hc.getEmployeeById(id)?.name;
+        if (n != null && n.trim().isNotEmpty) {
+          names[id] = n.trim();
+        }
+      }
+    }
+    return names;
+  }
+
   void _flushScrollDiskTimer() {
     _scrollDiskFlushTimer?.cancel();
     _scrollDiskFlushTimer = null;
@@ -1590,6 +1601,7 @@ class _MessageScreenState extends State<MessageScreen>
     List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
   ) {
     _orderedChatMessageDocs = docs;
+    ChatMediaGalleryStore.update(_chatId, docs);
   }
 
   KeyEventResult _onComposerKeyEvent(FocusNode node, KeyEvent event) {
@@ -1627,6 +1639,9 @@ class _MessageScreenState extends State<MessageScreen>
         key == LogicalKeyboardKey.enter ||
         key == LogicalKeyboardKey.numpadEnter;
     if (!isEnter) return KeyEventResult.ignored;
+    if (!chatComposerEnterKeySendsMessage()) {
+      return KeyEventResult.ignored;
+    }
     final shiftPressed = composerShiftPressed();
     if (shiftPressed) return KeyEventResult.ignored;
     final busy = Get.find<HomeController>().isUploading.value;
@@ -1660,6 +1675,7 @@ class _MessageScreenState extends State<MessageScreen>
           bytes: shot.bytes,
           fileName: shot.fileName,
           home: homeController,
+          activityWriter: _typingWriter,
         );
         if (!mounted || pending == null) return;
         setState(() => _pendingAttachment = pending);
@@ -1673,6 +1689,7 @@ class _MessageScreenState extends State<MessageScreen>
           bytes: picked.bytes!,
           fileName: picked.name,
           home: homeController,
+          activityWriter: _typingWriter,
         );
         if (!mounted || pending == null) return;
         setState(() => _pendingAttachment = pending);
@@ -1685,6 +1702,7 @@ class _MessageScreenState extends State<MessageScreen>
           bytes: v.first.bytes!,
           fileName: v.first.name,
           home: homeController,
+          activityWriter: _typingWriter,
         );
         if (!mounted || pending == null) return;
         setState(() => _pendingAttachment = pending);
@@ -1728,6 +1746,7 @@ class _MessageScreenState extends State<MessageScreen>
                     iconTheme: const IconThemeData(color: Colors.white),
                   ),
                   child: ChatVoiceRecordButton(
+                    activityWriter: _typingWriter,
                     onUploaded: (url, sec) async {
                       if (Navigator.of(ctx).canPop()) Navigator.pop(ctx);
                       if (!mounted) return;
@@ -1852,6 +1871,7 @@ class _MessageScreenState extends State<MessageScreen>
       bytes: bytes,
       fileName: fileName,
       home: controller,
+      activityWriter: _typingWriter,
     );
     if (!mounted || pending == null) return;
     setState(() => _pendingAttachment = pending);
@@ -2111,7 +2131,8 @@ class _MessageScreenState extends State<MessageScreen>
                         color: Colors.black,
                       ),
                     ),
-                    ChatPresenceSubline(
+                    ChatActivitySubline(
+                      chatId: _chatId,
                       isGroup: isGroup,
                       otherUserId: widget.otherUserId,
                       groupParticipantIds: isGroup
@@ -2119,6 +2140,7 @@ class _MessageScreenState extends State<MessageScreen>
                               widget.chat['participants'] ?? const [],
                             )
                           : const [],
+                      participantNames: _participantNamesMap(),
                       selfUserId: widget.currentUserId,
                     ),
                   ],
@@ -2162,13 +2184,12 @@ class _MessageScreenState extends State<MessageScreen>
                           ),
                           onDocsChanged: _onChatListDocsChanged,
                           onScrollSnapshotChanged: _onChatListScrollSnapshot,
-                          pinnedBannerBuilder: (context, pinnedDoc) => Padding(
+                          pinnedBannerBuilder: (context, pinnedDocs) => Padding(
                             padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
-                            child: _PinnedMessageBanner(
-                              message: pinnedDoc.data(),
+                            child: ChatPinnedMessagesBar(
+                              pinnedDocs: pinnedDocs,
                               isGroup: isGroup,
-                              onTap: () =>
-                                  _scrollToRepliedMessage(pinnedDoc.id),
+                              onTapMessage: _scrollToRepliedMessage,
                             ),
                           ),
                           itemBuilder: (context, doc, index) {
@@ -2231,25 +2252,6 @@ class _MessageScreenState extends State<MessageScreen>
                 ),
               ),
 
-              if (!isGroup)
-                Builder(
-                  builder: (context) {
-                    final oid =
-                        widget.otherUserId?.trim() ?? '';
-                    if (oid.isEmpty || oid == 'N/A') {
-                      return const SizedBox.shrink();
-                    }
-                    return PrivateChatTypingStrip(
-                      key: ValueKey('dmtyping_${_chatId}_$oid'),
-                      otherUserTypingRef: _firestore
-                          .collection('chats')
-                          .doc(_chatId)
-                          .collection('typing')
-                          .doc(oid),
-                    );
-                  },
-                ),
-
               const ChatUploadProgressBanner(),
               if (_replyDraft != null)
                 ChatReplyDraftBanner(
@@ -2268,6 +2270,7 @@ class _MessageScreenState extends State<MessageScreen>
                             _pendingAttachment!.messageType == 'video')
                         ? () => openChatMediaFromUrl(
                             _pendingAttachment!.attachmentUrl,
+                            chatId: _chatId,
                           )
                         : null,
                   ),
@@ -2411,9 +2414,7 @@ class _MessageScreenState extends State<MessageScreen>
                                   minLines: 1,
                                   maxLines: 6,
                                   keyboardType: TextInputType.multiline,
-                                  textInputAction: _isMobileSoftKeyboardPlatform
-                                      ? TextInputAction.newline
-                                      : TextInputAction.send,
+                                  textInputAction: chatComposerTextInputAction(),
                                   readOnly: busy,
                                   textAlignVertical: TextAlignVertical.center,
                                   textDirection:
@@ -2484,87 +2485,6 @@ class _MessageScreenState extends State<MessageScreen>
                         );
                     },
                   ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PinnedMessageBanner extends StatelessWidget {
-  final Map<String, dynamic> message;
-  final bool isGroup;
-  final VoidCallback onTap;
-
-  const _PinnedMessageBanner({
-    required this.message,
-    required this.isGroup,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final sender = (message['senderName'] as String?)?.trim() ?? '';
-    final preview = chatReplyPreviewFromMessage(message);
-    final titleColor = AppColors.primary;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF4F8F6),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 3,
-                height: 28,
-                margin: const EdgeInsets.only(top: 2),
-                decoration: BoxDecoration(
-                  color: titleColor,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Icon(Icons.push_pin_rounded, size: 16, color: titleColor),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      AppLocaleKeys.chatPinnedMessageLabel.tr,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: titleColor,
-                        height: 1.15,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      isGroup && sender.isNotEmpty
-                          ? '$sender: $preview'
-                          : preview,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w400,
-                        color: Colors.black87,
-                        height: 1.2,
-                      ),
-                    ),
-                  ],
                 ),
               ),
             ],

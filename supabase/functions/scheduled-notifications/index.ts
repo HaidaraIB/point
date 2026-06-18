@@ -125,6 +125,9 @@ Deno.serve(async (req: Request) => {
     if (mode === "publish" || mode === "all") {
       await handlePublishReminders({ accessToken, firestoreBase, fcmUrl, now, projectId: sa.project_id });
     }
+    if (mode === "attendance" || mode === "all") {
+      await handleAttendanceReminders({ accessToken, firestoreBase, fcmUrl, now, projectId: sa.project_id });
+    }
 
     const fcm = snapshotCronFcmAgg();
     const durationMs = Date.now() - started;
@@ -2079,6 +2082,53 @@ function windowEndIso(dayKey: string, endMinutes: number): string {
 
 const FLEXIBLE_EOD_MINUTES = 23 * 60 + 55;
 const CALENDAR_DAY_END_MINUTES = 23 * 60 + 59;
+const ATTENDANCE_CLOSING_REMINDER_LEAD_MINUTES = 15;
+/** Last hour of the day — remind flexible remote staff before midnight absent. */
+const FLEXIBLE_EOD_REMINDER_LEAD_MINUTES = 60;
+
+async function sendAttendanceWindowReminder({
+  accessToken,
+  projectId,
+  fcmUrl,
+  employeeId,
+  email,
+  fcmTokens,
+  dayKey,
+  dedupeSuffix,
+  emailType,
+  title,
+  body,
+  notificationType,
+}: {
+  accessToken: string;
+  projectId: string;
+  fcmUrl: string;
+  employeeId: string;
+  email: string | null;
+  fcmTokens: string[];
+  dayKey: string;
+  dedupeSuffix: string;
+  emailType: string;
+  title: string;
+  body: string;
+  notificationType: string;
+}): Promise<void> {
+  const dedupeId = `${employeeId}_${dayKey}_${dedupeSuffix}`;
+  if (await reminderDocExists(accessToken, projectId, dedupeId)) return;
+  await sendEmailIfPolicyAllows(emailType, email, title, body);
+  await sendFcm({
+    accessToken,
+    fcmUrl,
+    tokens: fcmTokens,
+    title,
+    body,
+    notificationType,
+    recipientId: employeeId,
+    recipientKind: "employee",
+    projectId,
+  });
+  await markReminderSent(accessToken, projectId, dedupeId);
+}
 
 function dayBoundsIso(dayKey: string): { dayStartIso: string; dayEndIso: string } {
   return {
@@ -2294,6 +2344,7 @@ async function handleAttendanceReminders({
 
     if (isFlexibleRemote) {
       const fcmTokens = extractFcmTokensFromFirestoreFields(e.fields);
+      const email = getStringField(e.fields, "email");
       const todayRecords = await fetchAttendanceRecordsForDay({
         accessToken,
         projectId,
@@ -2301,6 +2352,54 @@ async function handleAttendanceReminders({
         dayKey,
       });
       const employeeName = getStringField(e.fields, "name") ?? id;
+      const hasPresentRecord = todayRecords.some((r) =>
+        getStringField(r.fields, "action") === "present"
+      );
+      const hasLeftRecord = todayRecords.some((r) =>
+        getStringField(r.fields, "action") === "left"
+      );
+      const hasValidPresent = todayRecords.some((r) =>
+        getStringField(r.fields, "action") === "present" &&
+        getStringField(r.fields, "approvalStatus") !== "absent"
+      );
+
+      const inFlexibleDayEndReminder =
+        nowMinutes >= FLEXIBLE_EOD_MINUTES - FLEXIBLE_EOD_REMINDER_LEAD_MINUTES &&
+        nowMinutes < FLEXIBLE_EOD_MINUTES;
+
+      if (inFlexibleDayEndReminder) {
+        if (!hasPresentRecord) {
+          await sendAttendanceWindowReminder({
+            accessToken,
+            projectId,
+            fcmUrl,
+            employeeId: id,
+            email,
+            fcmTokens,
+            dayKey,
+            dedupeSuffix: "flex_check_in_eod",
+            emailType: "employee_attendance_check_in",
+            title: "Check in before end of day",
+            body: "You have not checked in today. Please submit Present before the day ends.",
+            notificationType: "employee_attendance_check_in",
+          });
+        } else if (hasValidPresent && !hasLeftRecord) {
+          await sendAttendanceWindowReminder({
+            accessToken,
+            projectId,
+            fcmUrl,
+            employeeId: id,
+            email,
+            fcmTokens,
+            dayKey,
+            dedupeSuffix: "flex_check_out_eod",
+            emailType: "employee_attendance_check_out",
+            title: "Check out before end of day",
+            body: "Please submit Left before the day ends to complete attendance.",
+            notificationType: "employee_attendance_check_out",
+          });
+        }
+      }
 
       if (nowMinutes >= FLEXIBLE_EOD_MINUTES) {
         await processFlexibleCalendarDayAbsent({
@@ -2430,53 +2529,79 @@ async function handleAttendanceReminders({
     const inCheckInWindow = nowMinutes >= hhmmToMinutes(from) &&
       nowMinutes <= presentWindowEnd;
     if (inCheckInWindow && !hasValidPresent) {
-      const dedupeId = `${id}_${dayKey}_check_in`;
-      if (!(await reminderDocExists(accessToken, projectId, dedupeId))) {
-        await sendEmailIfPolicyAllows(
-          "employee_attendance_check_in",
-          email,
-          "Time to check in",
-          "Please check in for work now.",
-        );
-        await sendFcm({
-          accessToken,
-          fcmUrl,
-          tokens: fcmTokens,
-          title: "Time to check in",
-          body: "Please check in for work now.",
-          notificationType: "employee_attendance_check_in",
-          recipientId: id,
-          recipientKind: "employee",
-          projectId,
-        });
-        await markReminderSent(accessToken, projectId, dedupeId);
-      }
+      await sendAttendanceWindowReminder({
+        accessToken,
+        projectId,
+        fcmUrl,
+        employeeId: id,
+        email,
+        fcmTokens,
+        dayKey,
+        dedupeSuffix: "check_in",
+        emailType: "employee_attendance_check_in",
+        title: "Time to check in",
+        body: "Please check in for work now.",
+        notificationType: "employee_attendance_check_in",
+      });
+    }
+
+    const inCheckInClosing =
+      nowMinutes >= presentWindowEnd - ATTENDANCE_CLOSING_REMINDER_LEAD_MINUTES &&
+      nowMinutes <= presentWindowEnd;
+    if (inCheckInClosing && !hasValidPresent) {
+      await sendAttendanceWindowReminder({
+        accessToken,
+        projectId,
+        fcmUrl,
+        employeeId: id,
+        email,
+        fcmTokens,
+        dayKey,
+        dedupeSuffix: "check_in_closing",
+        emailType: "employee_attendance_check_in",
+        title: "Check in soon",
+        body: "Your check-in window is closing soon.",
+        notificationType: "employee_attendance_check_in",
+      });
     }
 
     const inCheckOutWindow = nowMinutes >= hhmmToMinutes(to) &&
       nowMinutes <= leftWindowEnd;
-    if (inCheckOutWindow && !hasLeftRecord) {
-      const dedupeId = `${id}_${dayKey}_check_out`;
-      if (!(await reminderDocExists(accessToken, projectId, dedupeId))) {
-        await sendEmailIfPolicyAllows(
-          "employee_attendance_check_out",
-          email,
-          "Time to check out",
-          "Please record your departure.",
-        );
-        await sendFcm({
-          accessToken,
-          fcmUrl,
-          tokens: fcmTokens,
-          title: "Time to check out",
-          body: "Please record your departure.",
-          notificationType: "employee_attendance_check_out",
-          recipientId: id,
-          recipientKind: "employee",
-          projectId,
-        });
-        await markReminderSent(accessToken, projectId, dedupeId);
-      }
+    if (inCheckOutWindow && !hasLeftRecord && hasValidPresent) {
+      await sendAttendanceWindowReminder({
+        accessToken,
+        projectId,
+        fcmUrl,
+        employeeId: id,
+        email,
+        fcmTokens,
+        dayKey,
+        dedupeSuffix: "check_out",
+        emailType: "employee_attendance_check_out",
+        title: "Time to check out",
+        body: "Please record your departure.",
+        notificationType: "employee_attendance_check_out",
+      });
+    }
+
+    const inCheckOutClosing =
+      nowMinutes >= leftWindowEnd - ATTENDANCE_CLOSING_REMINDER_LEAD_MINUTES &&
+      nowMinutes <= leftWindowEnd;
+    if (inCheckOutClosing && !hasLeftRecord && hasValidPresent) {
+      await sendAttendanceWindowReminder({
+        accessToken,
+        projectId,
+        fcmUrl,
+        employeeId: id,
+        email,
+        fcmTokens,
+        dayKey,
+        dedupeSuffix: "check_out_closing",
+        emailType: "employee_attendance_check_out",
+        title: "Check out soon",
+        body: "Your check-out window is closing soon.",
+        notificationType: "employee_attendance_check_out",
+      });
     }
   }
 }

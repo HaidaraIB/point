@@ -27,8 +27,9 @@ import 'package:point/Services/chat_scroll_persistence.dart';
 import 'package:point/Services/chat_image_paste_listener.dart';
 import 'package:point/View/Chats/chat_list_row_trailing.dart';
 import 'package:point/View/Chats/chat_list_folder_utils.dart';
-import 'package:point/View/Chats/chat_message_display.dart';
 import 'package:point/View/Chats/chat_message_tile.dart';
+import 'package:point/View/Chats/chat_media_gallery.dart';
+import 'package:point/View/Chats/chat_pinned_messages_bar.dart';
 import 'package:point/View/Chats/chat_message_list_panel.dart';
 import 'package:point/View/Chats/pending_chat_attachment.dart';
 import 'package:point/View/Chats/chat_list_tile_media_subtitle.dart';
@@ -53,87 +54,6 @@ class ChatScreen extends StatefulWidget {
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
-}
-
-class _PinnedMessageBanner extends StatelessWidget {
-  final Map<String, dynamic> message;
-  final bool isGroup;
-  final VoidCallback onTap;
-
-  const _PinnedMessageBanner({
-    required this.message,
-    required this.isGroup,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final sender = (message['senderName'] as String?)?.trim() ?? '';
-    final preview = chatReplyPreviewFromMessage(message);
-    final titleColor = AppColors.primary;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF4F6FF),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 3,
-                height: 28,
-                margin: const EdgeInsets.only(top: 2),
-                decoration: BoxDecoration(
-                  color: titleColor,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Icon(Icons.push_pin_rounded, size: 16, color: titleColor),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      AppLocaleKeys.chatPinnedMessageLabel.tr,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: titleColor,
-                        height: 1.15,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      isGroup && sender.isNotEmpty
-                          ? '$sender: $preview'
-                          : preview,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w400,
-                        color: Colors.black87,
-                        height: 1.2,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
@@ -266,11 +186,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   bool get _enableContentInsertion =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
-  bool get _isMobileSoftKeyboardPlatform =>
-      !kIsWeb &&
-      (defaultTargetPlatform == TargetPlatform.android ||
-          defaultTargetPlatform == TargetPlatform.iOS);
-
   @override
   void initState() {
     super.initState();
@@ -334,6 +249,22 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
   ) {
     _orderedChatMessageDocs = docs;
+    final chatId = _selectedChat?['id'] as String?;
+    if (chatId != null && chatId.isNotEmpty) {
+      ChatMediaGalleryStore.update(chatId, docs);
+    }
+  }
+
+  Map<String, String> _participantNamesMap() {
+    final names = <String, String>{};
+    for (final emp in _groupParticipants) {
+      final id = emp['id'] as String?;
+      final name = emp['name'] as String?;
+      if (id != null && name != null && name.trim().isNotEmpty) {
+        names[id] = name.trim();
+      }
+    }
+    return names;
   }
 
   void _onComposerTextChanged() {
@@ -362,23 +293,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       myUserId: uid,
       isGroup: isGroup == true,
     );
-  }
-
-  DocumentReference<Map<String, dynamic>>? _dmOtherTypingDocRef() {
-    if (_selectedChat == null || _currentUserId == null) return null;
-    if (_selectedChat!['isGroup'] == true) return null;
-    final chatId = _selectedChat!['id'];
-    if (chatId is! String || chatId.isEmpty) return null;
-    final parts = List<String>.from(_selectedChat!['participants'] ?? const []);
-    var otherId = '';
-    for (final id in parts) {
-      if (id != _currentUserId) {
-        otherId = id;
-        break;
-      }
-    }
-    if (otherId.isEmpty || otherId == 'N/A') return null;
-    return _firestore.collection('chats').doc(chatId).collection('typing').doc(otherId);
   }
 
   void _scrollToRepliedMessage(String messageId) {
@@ -473,6 +387,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         key == LogicalKeyboardKey.enter ||
         key == LogicalKeyboardKey.numpadEnter;
     if (!isEnter) return KeyEventResult.ignored;
+    if (!chatComposerEnterKeySendsMessage()) {
+      return KeyEventResult.ignored;
+    }
     if (composerShiftPressed()) return KeyEventResult.ignored;
     final busy = Get.find<HomeController>().isUploading.value;
     if (!busy) {
@@ -1529,6 +1446,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       bytes: bytes,
       fileName: fileName,
       home: controller,
+      activityWriter: _typingWriter,
     );
     if (!mounted || pending == null) return;
     setState(() => _pendingAttachment = pending);
@@ -2264,7 +2182,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                             FontWeight.bold,
                                                       ),
                                                     ),
-                                                    ChatPresenceSubline(
+                                                    ChatActivitySubline(
+                                                      chatId:
+                                                          (_selectedChat!['id']
+                                                                  as String?) ??
+                                                              '',
                                                       isGroup: isGroup,
                                                       otherUserId:
                                                           otherParticipantId,
@@ -2275,6 +2197,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                                   const [],
                                                             )
                                                           : const [],
+                                                      participantNames:
+                                                          _participantNamesMap(),
                                                       selfUserId:
                                                           _currentUserId ?? '',
                                                     ),
@@ -2360,7 +2284,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                               onScrollSnapshotChanged:
                                                   _onChatListScrollSnapshot,
                                               pinnedBannerBuilder:
-                                                  (context, pinnedDoc) =>
+                                                  (context, pinnedDocs) =>
                                                       Padding(
                                                 padding:
                                                     const EdgeInsets.fromLTRB(
@@ -2369,15 +2293,13 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                   12,
                                                   4,
                                                 ),
-                                                child: _PinnedMessageBanner(
-                                                  message: pinnedDoc.data(),
+                                                child: ChatPinnedMessagesBar(
+                                                  pinnedDocs: pinnedDocs,
                                                   isGroup:
                                                       _selectedChat!['isGroup'] ==
                                                       true,
-                                                  onTap: () =>
-                                                      _scrollToRepliedMessage(
-                                                    pinnedDoc.id,
-                                                  ),
+                                                  onTapMessage:
+                                                      _scrollToRepliedMessage,
                                                 ),
                                               ),
                                               itemBuilder: (context, doc, i) {
@@ -2496,15 +2418,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.stretch,
                                       children: [
-                                        if (_selectedChat != null &&
-                                            _selectedChat!['isGroup'] != true)
-                                          PrivateChatTypingStrip(
-                                            key: ValueKey(
-                                              'dmtyping_${_selectedChat!['id']}',
-                                            ),
-                                            otherUserTypingRef:
-                                                _dmOtherTypingDocRef(),
-                                          ),
                                         const ChatUploadProgressBanner(),
                                         if (_replyDraft != null)
                                           ChatReplyDraftBanner(
@@ -2529,6 +2442,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                 ? () => openChatMediaFromUrl(
                                                     _pendingAttachment!
                                                         .attachmentUrl,
+                                                    chatId: _selectedChat!['id']
+                                                        as String?,
                                                   )
                                                 : null,
                                           ),
@@ -2579,6 +2494,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                             fileName:
                                                                 shot.fileName,
                                                             home: controller,
+                                                            activityWriter:
+                                                                _typingWriter,
                                                           );
                                                           if (pending == null) {
                                                             return;
@@ -2616,6 +2533,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                           bytes: picked.bytes!,
                                                           fileName: picked.name,
                                                           home: controller,
+                                                          activityWriter:
+                                                              _typingWriter,
                                                         );
                                                         if (pending == null) {
                                                           return;
@@ -2652,6 +2571,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                           bytes: v.first.bytes!,
                                                           fileName: v.first.name,
                                                           home: controller,
+                                                          activityWriter:
+                                                              _typingWriter,
                                                         );
                                                         if (pending == null) {
                                                           return;
@@ -2678,6 +2599,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                     : _pasteImageFromClipboard,
                                               ),
                                               ChatVoiceRecordButton(
+                                                activityWriter: _typingWriter,
                                                 onUploaded: (url, sec) async {
                                                   setState(
                                                     () => _pendingAttachment =
@@ -2755,11 +2677,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                           TextInputType
                                                               .multiline,
                                                       textInputAction:
-                                                          _isMobileSoftKeyboardPlatform
-                                                          ? TextInputAction
-                                                                .newline
-                                                          : TextInputAction
-                                                                .send,
+                                                          chatComposerTextInputAction(),
                                                       readOnly: busy,
                                                       textAlignVertical:
                                                           TextAlignVertical

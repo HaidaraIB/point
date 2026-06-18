@@ -11,6 +11,7 @@ import 'package:point/Services/chat_scroll_persistence.dart';
 
 import 'package:point/View/Chats/chat_scroll_to_latest_fab.dart';
 
+import 'package:point/View/Chats/chat_pinned_messages_bar.dart';
 import 'package:point/View/Chats/chat_ui_helpers.dart';
 
 import 'package:scroll_to_index/scroll_to_index.dart';
@@ -205,21 +206,6 @@ bool _docsNeedListRebuild(
 
 
 
-QueryDocumentSnapshot<Map<String, dynamic>>? _findPinnedDoc(
-
-  List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
-
-) {
-
-  for (final doc in docs) {
-
-    if (doc.data()['isPinned'] == true) return doc;
-
-  }
-
-  return null;
-
-}
 
 
 
@@ -303,7 +289,7 @@ class ChatMessageListHost extends StatefulWidget {
   final void Function(ChatScrollSnapshot snapshot)? onScrollSnapshotChanged;
   final Widget Function(
     BuildContext context,
-    QueryDocumentSnapshot<Map<String, dynamic>> pinnedDoc,
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> pinnedDocs,
   )?
   pinnedBannerBuilder;
 
@@ -419,7 +405,7 @@ class ChatMessageListPanel extends StatefulWidget {
 
     BuildContext context,
 
-    QueryDocumentSnapshot<Map<String, dynamic>> pinnedDoc,
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> pinnedDocs,
 
   )?
 
@@ -929,17 +915,15 @@ class _ChatMessageListPanelState extends State<ChatMessageListPanel> {
 
 
 
-    final pinnedDoc = _findPinnedDoc(_docs);
-
-
+    final pinnedDocs = findPinnedMessageDocs(_docs);
 
     return Column(
 
       children: [
 
-        if (pinnedDoc != null && widget.pinnedBannerBuilder != null)
+        if (pinnedDocs.isNotEmpty && widget.pinnedBannerBuilder != null)
 
-          widget.pinnedBannerBuilder!(context, pinnedDoc),
+          widget.pinnedBannerBuilder!(context, pinnedDocs),
 
         Expanded(
 

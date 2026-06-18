@@ -7,6 +7,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:point/Services/NotificationService.dart';
 import 'package:point/config/app_config.dart';
 import 'package:point/Models/AttendanceDayOutcomeModel.dart';
 import 'package:point/Models/AttendanceRecordModel.dart';
@@ -110,19 +111,28 @@ class FirestoreServices extends FirestoreServicesBase
     required double officeLongitude,
     required double officeRadiusMeters,
     required String photoUrl,
-  }) =>
-      FirestoreAttendanceApi.recordAttendance(
-        employeeId: employeeId,
+  }) async {
+    await FirestoreAttendanceApi.recordAttendance(
+      employeeId: employeeId,
+      employeeName: employeeName,
+      action: action,
+      latitude: latitude,
+      longitude: longitude,
+      distanceMeters: distanceMeters,
+      officeLatitude: officeLatitude,
+      officeLongitude: officeLongitude,
+      officeRadiusMeters: officeRadiusMeters,
+      photoUrl: photoUrl,
+    );
+    try {
+      await NotificationService.notifyManagersAttendanceSubmitted(
         employeeName: employeeName,
         action: action,
-        latitude: latitude,
-        longitude: longitude,
-        distanceMeters: distanceMeters,
-        officeLatitude: officeLatitude,
-        officeLongitude: officeLongitude,
-        officeRadiusMeters: officeRadiusMeters,
-        photoUrl: photoUrl,
       );
+    } catch (e, s) {
+      appLog('recordAttendance admin notify failed: $e', error: e, stackTrace: s);
+    }
+  }
 
   static Future<void> reviewAttendanceRecord({
     required String recordId,

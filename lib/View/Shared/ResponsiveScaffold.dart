@@ -23,9 +23,10 @@ import 'package:point/Services/chat_clipboard_image_reader.dart';
 import 'package:point/Services/chat_mark_read_scheduler.dart';
 import 'package:point/Services/chat_scroll_persistence.dart';
 import 'package:point/View/Chats/MChatPage.dart';
-import 'package:point/View/Chats/chat_message_display.dart';
 import 'package:point/View/Chats/chat_message_tile.dart';
 import 'package:point/View/Chats/chat_reply_draft_banner.dart';
+import 'package:point/View/Chats/chat_media_gallery.dart';
+import 'package:point/View/Chats/chat_pinned_messages_bar.dart';
 import 'package:point/View/Chats/chat_message_list_panel.dart';
 import 'package:point/View/Chats/pending_chat_attachment.dart';
 import 'package:point/View/Chats/chat_private_typing.dart';
@@ -384,28 +385,17 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
     );
   }
 
-  DocumentReference<Map<String, dynamic>>? _popupOtherTypingRef() {
-    if (widget.chat.isGroup) return null;
-    final other = _popupOtherUserId?.trim() ?? '';
-    if (other.isEmpty || other == 'N/A') return null;
-    return _firestore
-        .collection('chats')
-        .doc(_chatId)
-        .collection('typing')
-        .doc(other);
-  }
-
   void _rebindTypingWriterForPopup() {
     final uid = Get.find<HomeController>().currentEmployee.value?.id ?? '';
     if (uid.isEmpty) {
       _typingWriter.rebind(chatId: null, myUserId: '', isGroup: true);
       return;
     }
-    if (widget.chat.isGroup) {
-      _typingWriter.rebind(chatId: null, myUserId: uid, isGroup: true);
-      return;
-    }
-    _typingWriter.rebind(chatId: _chatId, myUserId: uid, isGroup: false);
+    _typingWriter.rebind(
+      chatId: _chatId,
+      myUserId: uid,
+      isGroup: widget.chat.isGroup,
+    );
   }
 
   Future<void> _ensurePopupChatContext() async {
@@ -492,6 +482,9 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
         key == LogicalKeyboardKey.enter ||
         key == LogicalKeyboardKey.numpadEnter;
     if (!isEnter) return KeyEventResult.ignored;
+    if (!chatComposerEnterKeySendsMessage()) {
+      return KeyEventResult.ignored;
+    }
     if (composerShiftPressed()) return KeyEventResult.ignored;
     final busy = Get.find<HomeController>().isUploading.value;
     if (!busy) {
@@ -524,6 +517,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
           bytes: shot.bytes,
           fileName: shot.fileName,
           home: controller,
+          activityWriter: _typingWriter,
         );
         if (!mounted || pending == null) return;
         setState(() => _pendingAttachment = pending);
@@ -537,6 +531,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
           bytes: picked.bytes!,
           fileName: picked.name,
           home: controller,
+          activityWriter: _typingWriter,
         );
         if (!mounted || pending == null) return;
         setState(() => _pendingAttachment = pending);
@@ -549,6 +544,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
           bytes: v.first.bytes!,
           fileName: v.first.name,
           home: controller,
+          activityWriter: _typingWriter,
         );
         if (!mounted || pending == null) return;
         setState(() => _pendingAttachment = pending);
@@ -584,6 +580,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
       bytes: bytes,
       fileName: fileName,
       home: controller,
+      activityWriter: _typingWriter,
     );
     if (!mounted || pending == null) return;
     setState(() => _pendingAttachment = pending);
@@ -641,6 +638,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                     iconTheme: const IconThemeData(color: Colors.white),
                   ),
                   child: ChatVoiceRecordButton(
+                    activityWriter: _typingWriter,
                     onUploaded: (url, sec) async {
                       if (Navigator.of(ctx).canPop()) Navigator.pop(ctx);
                       if (!mounted) return;
@@ -759,6 +757,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
     List<QueryDocumentSnapshot<Map<String, dynamic>>> docs,
   ) {
     _orderedChatMessageDocs = docs;
+    ChatMediaGalleryStore.update(_chatId, docs);
   }
 
   @override
@@ -904,7 +903,8 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 if (!widget.chat.minimized)
-                                  ChatPresenceSubline(
+                                  ChatActivitySubline(
+                                    chatId: _chatId,
                                     isGroup: widget.chat.isGroup,
                                     otherUserId: _popupOtherUserId,
                                     groupParticipantIds: _popupParticipants,
@@ -1020,6 +1020,20 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                               onDocsChanged: _onPopupListDocsChanged,
                               onScrollSnapshotChanged:
                                   _onPopupListScrollSnapshot,
+                              pinnedBannerBuilder: (context, pinnedDocs) =>
+                                  Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  10,
+                                  8,
+                                  10,
+                                  4,
+                                ),
+                                child: ChatPinnedMessagesBar(
+                                  pinnedDocs: pinnedDocs,
+                                  isGroup: widget.chat.isGroup,
+                                  onTapMessage: _scrollToRepliedMessage,
+                                ),
+                              ),
                               itemBuilder: (context, doc, index) {
                                 final msg = doc.data();
                                 final mid = doc.id;
@@ -1106,11 +1120,6 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                       ),
                     ),
 
-                    if (!widget.chat.isGroup)
-                      PrivateChatTypingStrip(
-                        key: ValueKey('popup_typing_${_chatId}_$_popupOtherUserId'),
-                        otherUserTypingRef: _popupOtherTypingRef(),
-                      ),
                     const ChatUploadProgressBanner(),
                     if (_replyDraft != null)
                       ChatReplyDraftBanner(
@@ -1131,6 +1140,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                                 _pendingAttachment!.messageType == 'video')
                             ? () => openChatMediaFromUrl(
                                 _pendingAttachment!.attachmentUrl,
+                                chatId: _chatId,
                               )
                             : null,
                       ),
@@ -1217,6 +1227,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                                     minLines: 1,
                                     maxLines: 5,
                                     keyboardType: TextInputType.multiline,
+                                    textInputAction: chatComposerTextInputAction(),
                                     readOnly: busy,
                                     textAlignVertical: TextAlignVertical.center,
                                     textDirection:

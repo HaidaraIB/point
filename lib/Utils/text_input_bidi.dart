@@ -1,5 +1,21 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart' show Bidi;
+
+/// On mobile soft keyboards, Enter inserts a newline ([TextInputAction.newline]).
+/// On desktop/web, Enter sends and Shift+Enter inserts a newline.
+bool chatComposerEnterKeySendsMessage() {
+  if (kIsWeb) return true;
+  return switch (defaultTargetPlatform) {
+    TargetPlatform.android || TargetPlatform.iOS => false,
+    _ => true,
+  };
+}
+
+TextInputAction chatComposerTextInputAction() =>
+    chatComposerEnterKeySendsMessage()
+    ? TextInputAction.send
+    : TextInputAction.newline;
 
 /// كشف موثوق لـ Shift على الويب وسطح المكتب (لـ Enter مقابل Shift+Enter).
 bool composerShiftPressed() {

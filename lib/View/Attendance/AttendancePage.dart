@@ -621,7 +621,20 @@ class _AttendancePageState extends State<AttendancePage> {
     );
   }
 
-  Widget _buildReviewActions(AttendanceRecordModel record) {
+  static BoxDecoration get _mobileCardDecoration => BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      );
+
+  Widget _buildReviewActions(AttendanceRecordModel record, {bool expanded = false}) {
     if (!record.isPending || record.id == null) {
       return const Text('-');
     }
@@ -633,21 +646,52 @@ class _AttendancePageState extends State<AttendancePage> {
         child: CircularProgressIndicator(strokeWidth: 2),
       );
     }
+    final approveButton = IconButton(
+      tooltip: AppLocaleKeys.attendanceApprove.tr,
+      visualDensity: VisualDensity.compact,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+      iconSize: 22,
+      icon: Icon(Icons.check_circle_outline, color: AppColors.success),
+      onPressed: () => unawaited(_reviewRecord(record, approved: true)),
+    );
+    final rejectButton = IconButton(
+      tooltip: AppLocaleKeys.attendanceMarkAbsent.tr,
+      visualDensity: VisualDensity.compact,
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+      iconSize: 22,
+      icon: Icon(Icons.cancel_outlined, color: Colors.red.shade700),
+      onPressed: () => unawaited(_reviewRecord(record, approved: false)),
+    );
+
+    if (expanded) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: () => unawaited(_reviewRecord(record, approved: true)),
+              icon: Icon(Icons.check_circle_outline, color: AppColors.success),
+              label: Text(AppLocaleKeys.attendanceApprove.tr),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: () => unawaited(_reviewRecord(record, approved: false)),
+              icon: Icon(Icons.cancel_outlined, color: Colors.red.shade700),
+              label: Text(AppLocaleKeys.attendanceMarkAbsent.tr),
+            ),
+          ),
+        ],
+      );
+    }
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton(
-          tooltip: AppLocaleKeys.attendanceApprove.tr,
-          icon: Icon(Icons.check_circle_outline, color: AppColors.success),
-          onPressed: () => unawaited(_reviewRecord(record, approved: true)),
-        ),
-        IconButton(
-          tooltip: AppLocaleKeys.attendanceMarkAbsent.tr,
-          icon: Icon(Icons.cancel_outlined, color: Colors.red.shade700),
-          onPressed: () => unawaited(_reviewRecord(record, approved: false)),
-        ),
-      ],
+      children: [approveButton, rejectButton],
     );
   }
 
@@ -672,6 +716,87 @@ class _AttendancePageState extends State<AttendancePage> {
           fontWeight: FontWeight.bold,
           fontSize: 13,
         ),
+      ),
+    );
+  }
+
+  Widget _buildMobileRecordList(
+    List<AttendanceRecordModel> records,
+    Map<String, AttendanceDayState> dailyStates,
+  ) {
+    return Column(
+      children: [
+        for (var i = 0; i < records.length; i++) ...[
+          if (i > 0) const SizedBox(height: 10),
+          _buildMobileRecordCard(records[i], dailyStates[records[i].employeeId]),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildMobileRecordCard(
+    AttendanceRecordModel record,
+    AttendanceDayState? dayState,
+  ) {
+    final time = record.recordedAt != null
+        ? DateFormat.jm().format(record.recordedAt!.toLocal())
+        : '-';
+
+    return Container(
+      decoration: _mobileCardDecoration,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  record.employeeName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              _AttendancePhotoThumbnail(photoUrl: record.photoUrl),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              _buildActionChip(record),
+              const SizedBox(width: 8),
+              Text(
+                time,
+                style: const TextStyle(fontSize: 13),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Flexible(child: _buildApprovalChip(record)),
+              const SizedBox(width: 8),
+              if (dayState != null)
+                Flexible(child: _buildDailyResultChip(dayState.outcome)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            AppLocaleKeys.attendanceMeters.trParams({
+              'value': record.distanceMeters.round().toString(),
+            }),
+            style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+          ),
+          if (record.isPending && record.id != null) ...[
+            const SizedBox(height: 10),
+            _buildReviewActions(record, expanded: true),
+          ],
+        ],
       ),
     );
   }
@@ -813,33 +938,47 @@ class _AttendancePageState extends State<AttendancePage> {
     );
   }
 
-  Widget _buildTitleRow() {
+  Widget _buildTitleRow(BuildContext context) {
+    final titleStyle = TextStyle(
+      color: AppColors.fontColorGrey,
+      fontSize: 17,
+      fontWeight: FontWeight.bold,
+    );
+    final reportsButton = TextButton.icon(
+      onPressed: () => Get.toNamed('/attendanceReports'),
+      icon: const Icon(Icons.assessment_outlined, size: 18),
+      label: Text(AppLocaleKeys.attendanceReportsTitle.tr),
+    );
+
+    if (Responsive.isMobile(context)) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(AppLocaleKeys.attendanceTitle.tr, style: titleStyle),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: reportsButton,
+          ),
+        ],
+      );
+    }
+
     return Row(
       children: [
-        Text(
-          AppLocaleKeys.attendanceTitle.tr,
-          style: TextStyle(
-            color: AppColors.fontColorGrey,
-            fontSize: 17,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        Text(AppLocaleKeys.attendanceTitle.tr, style: titleStyle),
         const Spacer(),
-        TextButton.icon(
-          onPressed: () => Get.toNamed('/attendanceReports'),
-          icon: const Icon(Icons.assessment_outlined, size: 18),
-          label: Text(AppLocaleKeys.attendanceReportsTitle.tr),
-        ),
+        reportsButton,
       ],
     );
   }
 
   Widget _buildPageContent(BuildContext context) {
+    final isMobile = Responsive.isMobile(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 50),
-        _buildTitleRow(),
+        SizedBox(height: isMobile ? 24 : 50),
+        _buildTitleRow(context),
         const SizedBox(height: 10),
         _buildFilters(context),
         const SizedBox(height: 10),
@@ -873,6 +1012,9 @@ class _AttendancePageState extends State<AttendancePage> {
               );
             }
 
+            if (isMobile) {
+              return _buildMobileRecordList(filtered, dailyStates);
+            }
             return _buildDataTable(filtered, dailyStates);
           },
         ),
