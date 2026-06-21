@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:mime/mime.dart' show lookupMimeType;
 import 'package:point/Services/r2_sign_request.dart';
 import 'package:point/Services/upload_cancel_token.dart';
+import 'package:point/Services/upload_errors.dart';
 import 'package:web/web.dart';
 
 String _extFromFileName(String fileName) {
@@ -97,7 +98,12 @@ Future<String> uploadObjectToR2({
       } else {
         final body = _xhrResponseText(xhr);
         completer.completeError(
-          StateError('R2 upload failed: HTTP $status $body'),
+          UploadFailureException(
+            stage: UploadFailureStage.put,
+            errorCode: 'http_$status',
+            httpStatus: status,
+            message: body.length > 500 ? '${body.substring(0, 500)}…' : body,
+          ),
         );
       }
     }),
@@ -115,11 +121,13 @@ Future<String> uploadObjectToR2({
       final st = xhr.status;
       final reason = xhr.statusText;
       completer.completeError(
-        StateError(
-          'R2 web upload failed (XHR error). status=$st reason=$reason. '
-          'Target host: $uploadHost. '
-          'If status is 0, configure R2 bucket CORS for this app\'s Origin '
-          '(PUT + GET + HEAD, AllowedHeaders *, include your exact web origin — not only localhost).',
+        UploadFailureException(
+          stage: UploadFailureStage.put,
+          errorCode: st == 0 ? 'xhr_cors_or_network' : 'xhr_error',
+          httpStatus: st,
+          message:
+              'R2 web upload failed (XHR error). status=$st reason=$reason. '
+              'Target host: $uploadHost.',
         ),
       );
     }),

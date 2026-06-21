@@ -391,7 +391,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       return KeyEventResult.ignored;
     }
     if (composerShiftPressed()) return KeyEventResult.ignored;
-    final busy = Get.find<HomeController>().isUploading.value;
+    final chatId = _selectedChat?['id'] as String?;
+    final hc = Get.find<HomeController>();
+    final busy = chatId != null && hc.isChatUploadActiveFor(chatId);
     if (!busy) {
       unawaited(_sendMessage());
     }
@@ -1442,9 +1444,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
     final fileName =
         'pasted_${DateTime.now().millisecondsSinceEpoch}.${_extFromMime(mimeType)}';
+    final chatId = _selectedChat!['id'] as String;
     final pending = await stageChatMediaUpload(
       bytes: bytes,
       fileName: fileName,
+      chatId: chatId,
       home: controller,
       activityWriter: _typingWriter,
     );
@@ -2418,7 +2422,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.stretch,
                                       children: [
-                                        const ChatUploadProgressBanner(),
+                                        ChatUploadProgressBanner(
+                                          chatId: _selectedChat!['id'] as String,
+                                        ),
                                         if (_replyDraft != null)
                                           ChatReplyDraftBanner(
                                             draft: _replyDraft!,
@@ -2448,8 +2454,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                 : null,
                                           ),
                                         Obx(() {
-                                          final busy =
-                                              controller.isUploading.value;
+                                          final chatId =
+                                              _selectedChat!['id'] as String;
+                                          final busy = controller
+                                              .isChatUploadActiveFor(chatId);
                                           return Row(
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.center,
@@ -2493,6 +2501,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                             bytes: shot.bytes,
                                                             fileName:
                                                                 shot.fileName,
+                                                            chatId: _selectedChat![
+                                                                    'id']
+                                                                as String,
                                                             home: controller,
                                                             activityWriter:
                                                                 _typingWriter,
@@ -2532,6 +2543,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                             await stageChatMediaUpload(
                                                           bytes: picked.bytes!,
                                                           fileName: picked.name,
+                                                          chatId: _selectedChat![
+                                                                  'id']
+                                                              as String,
                                                           home: controller,
                                                           activityWriter:
                                                               _typingWriter,
@@ -2570,6 +2584,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                             await stageChatFileUpload(
                                                           bytes: v.first.bytes!,
                                                           fileName: v.first.name,
+                                                          chatId: _selectedChat![
+                                                                  'id']
+                                                              as String,
                                                           home: controller,
                                                           activityWriter:
                                                               _typingWriter,
@@ -2599,6 +2616,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                     : _pasteImageFromClipboard,
                                               ),
                                               ChatVoiceRecordButton(
+                                                chatId:
+                                                    _selectedChat!['id']
+                                                        as String,
                                                 activityWriter: _typingWriter,
                                                 onUploaded: (url, sec) async {
                                                   setState(

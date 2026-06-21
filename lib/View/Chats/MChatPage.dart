@@ -1644,7 +1644,8 @@ class _MessageScreenState extends State<MessageScreen>
     }
     final shiftPressed = composerShiftPressed();
     if (shiftPressed) return KeyEventResult.ignored;
-    final busy = Get.find<HomeController>().isUploading.value;
+    final hc = Get.find<HomeController>();
+    final busy = hc.isChatUploadActiveFor(_chatId);
     if (!busy) {
       unawaited(_sendMessage());
     }
@@ -1674,6 +1675,7 @@ class _MessageScreenState extends State<MessageScreen>
         final pending = await stageChatMediaUpload(
           bytes: shot.bytes,
           fileName: shot.fileName,
+          chatId: _chatId,
           home: homeController,
           activityWriter: _typingWriter,
         );
@@ -1688,6 +1690,7 @@ class _MessageScreenState extends State<MessageScreen>
         final pending = await stageChatMediaUpload(
           bytes: picked.bytes!,
           fileName: picked.name,
+          chatId: _chatId,
           home: homeController,
           activityWriter: _typingWriter,
         );
@@ -1701,6 +1704,7 @@ class _MessageScreenState extends State<MessageScreen>
         final pending = await stageChatFileUpload(
           bytes: v.first.bytes!,
           fileName: v.first.name,
+          chatId: _chatId,
           home: homeController,
           activityWriter: _typingWriter,
         );
@@ -1746,6 +1750,7 @@ class _MessageScreenState extends State<MessageScreen>
                     iconTheme: const IconThemeData(color: Colors.white),
                   ),
                   child: ChatVoiceRecordButton(
+                    chatId: _chatId,
                     activityWriter: _typingWriter,
                     onUploaded: (url, sec) async {
                       if (Navigator.of(ctx).canPop()) Navigator.pop(ctx);
@@ -1870,6 +1875,7 @@ class _MessageScreenState extends State<MessageScreen>
     final pending = await stageChatMediaUpload(
       bytes: bytes,
       fileName: fileName,
+      chatId: _chatId,
       home: controller,
       activityWriter: _typingWriter,
     );
@@ -2252,7 +2258,7 @@ class _MessageScreenState extends State<MessageScreen>
                 ),
               ),
 
-              const ChatUploadProgressBanner(),
+              ChatUploadProgressBanner(chatId: _chatId),
               if (_replyDraft != null)
                 ChatReplyDraftBanner(
                   draft: _replyDraft!,
@@ -2316,7 +2322,8 @@ class _MessageScreenState extends State<MessageScreen>
                       ],
                     ),
                     child: Obx(() {
-                      final busy = Get.find<HomeController>().isUploading.value;
+                      final busy = Get.find<HomeController>()
+                          .isChatUploadActiveFor(_chatId);
                       return Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [

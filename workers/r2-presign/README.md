@@ -60,6 +60,23 @@ Example:
 point-agency-production,point-f33cb
 ```
 
+### Verify `FIREBASE_PROJECT_IDS` (intermittent `invalid_token` / some users fail)
+
+If uploads fail at **0% progress** for some users only, the presign step likely rejected their Firebase token (`aud` not in the allowlist).
+
+From `workers/r2-presign/`:
+
+```bash
+npx wrangler secret list
+# Re-set if missing or wrong (comma-separated, no spaces required):
+npx wrangler secret put FIREBASE_PROJECT_IDS
+# paste: point-agency-production,point-f33cb
+```
+
+Must include **every** project id shipped in app builds (see repo [`.firebaserc`](../../.firebaserc): `default` = production, `legacy` = test/debug).
+
+**Client-side audit trail:** failed uploads write to Firestore `upload_diagnostics` (manager read). Query by `errorCode`, `stage`, `firebaseProjectId`, `uid`. **Worker logs:** Cloudflare dashboard → Workers → r2-presign → Logs; look for JSON lines `{"event":"sign_upload_fail","error":"invalid_token",...}`.
+
 ## Deploy
 
 ```bash

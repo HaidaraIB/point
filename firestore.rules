@@ -1000,6 +1000,12 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    match /upload_diagnostics/{docId} {
+      allow create: if isSignedIn();
+      allow read: if isSignedIn() && hasAuthRole() && isManager();
+      allow update, delete: if false;
+    }
+
     match /app_error_logs/{docId} {
       allow create: if isSignedIn();
       allow read, update, delete: if isSignedIn() && hasAuthRole() && isAdmin();

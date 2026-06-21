@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
+import 'package:point/Services/upload_errors.dart';
 import 'package:point/config/app_config.dart';
 
 /// Response from [POST /sign-upload] on the Cloudflare Worker.
@@ -19,23 +20,43 @@ class R2SignUploadResult {
   final String key;
 }
 
-/// Calls the R2 presign worker with the current Firebase ID token.
-Future<R2SignUploadResult> requestR2SignUpload({
+String _truncateBody(String body, {int maxLen = 500}) {
+  if (body.length <= maxLen) return body;
+  return '${body.substring(0, maxLen)}…';
+}
+
+UploadFailureException _signFailure({
+  required String errorCode,
+  int? httpStatus,
+  String? message,
+}) {
+  return UploadFailureException(
+    stage: UploadFailureStage.sign,
+    errorCode: errorCode,
+    httpStatus: httpStatus,
+    message: message,
+  );
+}
+
+Future<R2SignUploadResult> _requestR2SignUploadOnce({
   required String contentType,
   required String ext,
   String? friendlyDownloadName,
+  required bool forceRefreshToken,
 }) async {
   final base = AppConfig.r2SignerUrl.trim();
   if (base.isEmpty) {
-    throw StateError('R2_SIGNER_URL not configured');
+    throw _signFailure(errorCode: 'r2_signer_not_configured');
   }
+
   final user = FirebaseAuth.instance.currentUser;
   if (user == null) {
-    throw StateError('Not signed in');
+    throw _signFailure(errorCode: 'not_signed_in');
   }
-  final token = await user.getIdToken();
+
+  final token = await user.getIdToken(forceRefreshToken);
   if (token == null || token.isEmpty) {
-    throw StateError('Missing Firebase ID token');
+    throw _signFailure(errorCode: 'missing_id_token');
   }
 
   final uri = Uri.parse('${base.replaceAll(RegExp(r'/+$'), '')}/sign-upload');
@@ -57,11 +78,19 @@ Future<R2SignUploadResult> requestR2SignUpload({
   try {
     map = jsonDecode(res.body) as Map<String, dynamic>;
   } catch (_) {
-    throw StateError('R2 sign failed: HTTP ${res.statusCode}');
+    throw _signFailure(
+      errorCode: 'sign_invalid_json',
+      httpStatus: res.statusCode,
+      message: _truncateBody(res.body),
+    );
   }
 
   if (map['ok'] != true) {
-    throw StateError(map['error']?.toString() ?? 'r2_sign_failed');
+    throw _signFailure(
+      errorCode: map['error']?.toString() ?? 'r2_sign_failed',
+      httpStatus: res.statusCode,
+      message: _truncateBody(res.body),
+    );
   }
 
   final headers = <String, String>{};
@@ -83,7 +112,10 @@ Future<R2SignUploadResult> requestR2SignUpload({
       publicUrl.isEmpty ||
       key == null ||
       key.isEmpty) {
-    throw StateError('r2_sign_invalid_response');
+    throw _signFailure(
+      errorCode: 'r2_sign_invalid_response',
+      httpStatus: res.statusCode,
+    );
   }
 
   return R2SignUploadResult(
@@ -92,4 +124,31 @@ Future<R2SignUploadResult> requestR2SignUpload({
     publicUrl: publicUrl,
     key: key,
   );
+}
+
+/// Calls the R2 presign worker with the current Firebase ID token.
+///
+/// Retries once with a forced token refresh when the worker returns
+/// [invalid_token] (stale session).
+Future<R2SignUploadResult> requestR2SignUpload({
+  required String contentType,
+  required String ext,
+  String? friendlyDownloadName,
+}) async {
+  try {
+    return await _requestR2SignUploadOnce(
+      contentType: contentType,
+      ext: ext,
+      friendlyDownloadName: friendlyDownloadName,
+      forceRefreshToken: false,
+    );
+  } on UploadFailureException catch (e) {
+    if (e.errorCode != 'invalid_token') rethrow;
+    return _requestR2SignUploadOnce(
+      contentType: contentType,
+      ext: ext,
+      friendlyDownloadName: friendlyDownloadName,
+      forceRefreshToken: true,
+    );
+  }
 }

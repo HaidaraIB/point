@@ -41,6 +41,18 @@ function json(data: unknown, status = 200): Response {
   });
 }
 
+function logSignFailure(error: string, httpStatus: number): Response {
+  console.log(
+    JSON.stringify({
+      event: "sign_upload_fail",
+      error,
+      httpStatus,
+      at: new Date().toISOString(),
+    }),
+  );
+  return json({ ok: false, error }, httpStatus);
+}
+
 function sanitizeFilename(name: string): string {
   const t = name.trim().slice(0, 200);
   if (!t) return "download";
@@ -124,31 +136,31 @@ export default {
 
     const url = new URL(request.url);
     if (!url.pathname.endsWith("/sign-upload")) {
-      return json({ ok: false, error: "not_found" }, 404);
+      return logSignFailure("not_found", 404);
     }
 
     if (request.method !== "POST") {
-      return json({ ok: false, error: "method_not_allowed" }, 405);
+      return logSignFailure("method_not_allowed", 405);
     }
 
     const auth = request.headers.get("Authorization") ?? "";
     if (!auth.startsWith("Bearer ")) {
-      return json({ ok: false, error: "missing_bearer" }, 401);
+      return logSignFailure("missing_bearer", 401);
     }
     const token = auth.slice(7).trim();
     if (!token) {
-      return json({ ok: false, error: "empty_token" }, 401);
+      return logSignFailure("empty_token", 401);
     }
 
     const projectIds = resolveFirebaseProjectIds(env);
     if (projectIds.length === 0) {
-      return json({ ok: false, error: "server_misconfigured" }, 500);
+      return logSignFailure("server_misconfigured", 500);
     }
 
     try {
       await verifyFirebaseIdToken(token, projectIds);
     } catch {
-      return json({ ok: false, error: "invalid_token" }, 401);
+      return logSignFailure("invalid_token", 401);
     }
 
     let body: {
@@ -159,7 +171,7 @@ export default {
     try {
       body = (await request.json()) as typeof body;
     } catch {
-      return json({ ok: false, error: "invalid_json" }, 400);
+      return logSignFailure("invalid_json", 400);
     }
 
     const contentType =
@@ -180,13 +192,21 @@ export default {
     const publicBase = env.R2_PUBLIC_BASE_URL?.trim().replace(/\/+$/, "");
 
     if (!accountId || !accessKey || !secretKey || !bucket || !publicBase) {
-      return json({ ok: false, error: "r2_misconfigured" }, 500);
+      return logSignFailure("r2_misconfigured", 500);
     }
 
     // R2 S3-compatible keys: Access Key ID is 32 hex chars; Secret is 64 hex chars.
     // Swapping them or pasting the secret into R2_ACCESS_KEY_ID yields HTTP 400 from R2:
     // "Credential access key has length 64, should be 32"
     if (accessKey.length !== 32 || secretKey.length !== 64) {
+      console.log(
+        JSON.stringify({
+          event: "sign_upload_fail",
+          error: "r2_keys_wrong_shape",
+          httpStatus: 500,
+          at: new Date().toISOString(),
+        }),
+      );
       return json(
         {
           ok: false,

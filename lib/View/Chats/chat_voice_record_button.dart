@@ -15,11 +15,13 @@ import 'package:record/record.dart';
 
 /// تسجيل صوتي على الهاتف/سطح المكتب؛ على الويب يُفتح منتقي ملفات صوتية.
 class ChatVoiceRecordButton extends StatefulWidget {
+  final String chatId;
   final Future<void> Function(String url, int durationSec) onUploaded;
   final ChatActivityWriter? activityWriter;
 
   const ChatVoiceRecordButton({
     super.key,
+    required this.chatId,
     required this.onUploaded,
     this.activityWriter,
   });
@@ -197,6 +199,7 @@ class _ChatVoiceRecordButtonState extends State<ChatVoiceRecordButton> {
         filePathOrBytes: bytes,
         fileName: 'voice.m4a',
         useBlockingUploadDialog: false,
+        chatScopeId: widget.chatId,
       );
       if (url != null) {
         await widget.onUploaded(url, sec);

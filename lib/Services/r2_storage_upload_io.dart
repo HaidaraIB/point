@@ -1,11 +1,13 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'dart:math' show min;
 import 'dart:typed_data';
 
-import 'package:http/http.dart' as http;
 import 'package:mime/mime.dart' show lookupMimeType;
 import 'package:point/Services/r2_sign_request.dart';
 import 'package:point/Services/upload_cancel_token.dart';
+import 'package:point/Services/upload_errors.dart';
 
 String _extFromFileName(String fileName) {
   final n = fileName.trim();
@@ -13,6 +15,32 @@ String _extFromFileName(String fileName) {
   final dot = n.lastIndexOf('.');
   if (dot < 0 || dot >= n.length - 1) return '.bin';
   return n.substring(dot);
+}
+
+/// Yields [data] in chunks; progress updates when the socket consumes each chunk.
+Stream<List<int>> _chunkedUploadStream({
+  required Uint8List data,
+  UploadCancelToken? cancelToken,
+  void Function(int sent, int total)? onProgress,
+}) async* {
+  const chunkSize = 64 * 1024;
+  final total = data.length;
+  final progressTotal = total > 0 ? total : 1;
+  onProgress?.call(0, progressTotal);
+
+  if (total == 0) {
+    onProgress?.call(1, progressTotal);
+    return;
+  }
+
+  var offset = 0;
+  while (offset < total) {
+    cancelToken?.throwIfCancelled();
+    final end = min(offset + chunkSize, total);
+    yield data.sublist(offset, end);
+    offset = end;
+    onProgress?.call(offset, total);
+  }
 }
 
 Future<String> uploadObjectToR2({
@@ -40,48 +68,49 @@ Future<String> uploadObjectToR2({
   cancelToken?.throwIfCancelled();
 
   final uri = Uri.parse(sign.uploadUrl);
-  final client = http.Client();
-  http.StreamedRequest? request;
+  final client = HttpClient();
   if (cancelToken != null) {
     cancelToken.onCancel = () {
-      client.close();
       try {
-        request?.sink.close();
+        client.close(force: true);
       } catch (_) {}
     };
   }
+
   try {
-    final activeRequest = http.StreamedRequest('PUT', uri);
-    request = activeRequest;
+    final request = await client.putUrl(uri);
     sign.headers.forEach((String k, String v) {
-      activeRequest.headers[k] = v;
+      final lower = k.toLowerCase();
+      if (lower == 'content-length' || lower == 'host') return;
+      request.headers.set(k, v);
     });
-    activeRequest.contentLength = data.length;
+    request.contentLength = data.length;
 
-    Future<void> writeBody() async {
-      const chunkSize = 64 * 1024;
-      var offset = 0;
-      final sink = activeRequest.sink;
-      while (offset < data.length) {
-        cancelToken?.throwIfCancelled();
-        final end = min(offset + chunkSize, data.length);
-        sink.add(data.sublist(offset, end));
-        offset = end;
-        onProgress?.call(offset, data.length);
-      }
-      await sink.close();
-    }
+    await request.addStream(
+      _chunkedUploadStream(
+        data: data,
+        cancelToken: cancelToken,
+        onProgress: onProgress,
+      ),
+    );
 
-    final bodyFuture = writeBody();
-    final streamed = await client.send(activeRequest);
-    await bodyFuture;
+    final response = await request.close();
     cancelToken?.throwIfCancelled();
-    final respBytes = await streamed.stream.toBytes();
-    if (streamed.statusCode < 200 || streamed.statusCode >= 300) {
-      final body =
-          respBytes.isEmpty ? '' : String.fromCharCodes(respBytes.take(2000));
-      throw StateError('R2 upload failed: HTTP ${streamed.statusCode} $body');
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final body = await response
+          .transform(utf8.decoder)
+          .take(2000)
+          .join();
+      throw UploadFailureException(
+        stage: UploadFailureStage.put,
+        errorCode: 'http_${response.statusCode}',
+        httpStatus: response.statusCode,
+        message: body.length > 500 ? '${body.substring(0, 500)}…' : body,
+      );
     }
+
+    await response.drain();
     return sign.publicUrl;
   } on UploadCancelledException {
     rethrow;
@@ -91,6 +120,6 @@ Future<String> uploadObjectToR2({
     }
     rethrow;
   } finally {
-    client.close();
+    client.close(force: cancelToken?.isCancelled == true);
   }
 }

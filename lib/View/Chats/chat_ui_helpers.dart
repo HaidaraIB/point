@@ -282,13 +282,15 @@ bool isChatImageHttpUrl(String? raw) {
 
 /// شريط تقدم رفيع للشات عند الرفع إلى التخزين (بدون حوار يغطي الشاشة).
 class ChatUploadProgressBanner extends StatelessWidget {
-  const ChatUploadProgressBanner({super.key});
+  final String chatId;
+
+  const ChatUploadProgressBanner({super.key, required this.chatId});
 
   @override
   Widget build(BuildContext context) {
     final c = Get.find<HomeController>();
     return Obx(() {
-      if (!c.isUploading.value) return const SizedBox.shrink();
+      if (!c.isChatUploadActiveFor(chatId)) return const SizedBox.shrink();
       final p = c.uploadProgress.value.clamp(0.0, 1.0);
       return Padding(
         padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
@@ -313,6 +315,22 @@ class ChatUploadProgressBanner extends StatelessWidget {
                 minHeight: 4,
                 backgroundColor: Colors.grey.shade200,
                 color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: 2),
+            TextButton(
+              onPressed: c.cancelActiveUpload,
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(
+                AppLocaleKeys.commonCancel.tr,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade700,
+                ),
               ),
             ),
           ],

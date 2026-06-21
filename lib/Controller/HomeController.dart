@@ -30,6 +30,7 @@ import 'package:point/Services/NotificationService.dart';
 import 'package:point/Services/push_permissions_helper.dart';
 import 'package:point/Services/r2_storage_upload.dart';
 import 'package:point/Services/upload_cancel_token.dart';
+import 'package:point/Services/upload_diagnostics.dart';
 import 'package:point/Services/upload_limits.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Services/meta/meta_media_util.dart';
@@ -2209,7 +2210,11 @@ class HomeController extends GetxController {
   RxBool isUploading = false.obs;
   Rx<UploadUiPhase> uploadPhase = UploadUiPhase.idle.obs;
   RxString uploadErrorMessage = ''.obs;
+  RxnString activeChatUploadId = RxnString();
   UploadCancelToken? _activeUploadCancelToken;
+
+  bool isChatUploadActiveFor(String chatId) =>
+      isUploading.value && activeChatUploadId.value == chatId;
 
   void cancelActiveUpload() {
     final token = _activeUploadCancelToken;
@@ -2223,6 +2228,7 @@ class HomeController extends GetxController {
     uploadProgress.value = 0.0;
     uploadPhase.value = UploadUiPhase.idle;
     uploadErrorMessage.value = '';
+    activeChatUploadId.value = null;
     if (Get.isDialogOpen ?? false) {
       Get.back();
     }
@@ -2253,10 +2259,19 @@ class HomeController extends GetxController {
     /// When false, the returned URL is not pushed to [uploadedFilesPaths] (e.g. content
     /// post/story/reel fields that store URLs only in their own text controllers).
     bool addToUploadedFilesPathsList = true,
+
+    /// When set with [useBlockingUploadDialog] false, inline chat upload UI is scoped
+    /// to this chat id (progress banner + composer busy state).
+    String? chatScopeId,
   }) async {
     var dialogShown = false;
+    final uploadStopwatch = Stopwatch()..start();
+    var uploadFileSize = 0;
+    String? uploadFileName;
     try {
       final bytes = filePathOrBytes as Uint8List;
+      uploadFileSize = bytes.length;
+      uploadFileName = fileName;
       if (bytes.length > kMaxUploadBytes) {
         appLog(
           'Upload rejected: ${bytes.length} bytes exceeds $kMaxUploadBytes',
@@ -2281,6 +2296,8 @@ class HomeController extends GetxController {
       if (useBlockingUploadDialog) {
         showUploadDialog();
         dialogShown = true;
+      } else if (chatScopeId != null && chatScopeId.isNotEmpty) {
+        activeChatUploadId.value = chatScopeId;
       }
 
       final signer = AppConfig.r2SignerUrl.trim();
@@ -2292,6 +2309,7 @@ class HomeController extends GetxController {
         );
         isUploading.value = false;
         uploadPhase.value = UploadUiPhase.idle;
+        activeChatUploadId.value = null;
         _activeUploadCancelToken = null;
         if (dialogShown) {
           Get.back();
@@ -2325,6 +2343,7 @@ class HomeController extends GetxController {
 
       isUploading.value = false;
       uploadPhase.value = UploadUiPhase.idle;
+      activeChatUploadId.value = null;
       if (dialogShown) {
         Get.back();
       }
@@ -2335,7 +2354,20 @@ class HomeController extends GetxController {
       return null;
     } catch (e) {
       isUploading.value = false;
+      activeChatUploadId.value = null;
       appLog("Error uploading file: $e");
+      if (e is! UploadCancelledException) {
+        unawaited(
+          UploadDiagnostics.logFailure(
+            error: e,
+            fileSizeBytes: uploadFileSize,
+            fileName: uploadFileName,
+            durationMs: uploadStopwatch.elapsedMilliseconds,
+            context: chatScopeId != null && chatScopeId.isNotEmpty ? 'chat' : null,
+            employeeId: currentEmployee.value?.id,
+          ),
+        );
+      }
       if (dialogShown) {
         uploadPhase.value = UploadUiPhase.failed;
         uploadErrorMessage.value = _friendlyUploadErrorMessage(e);
@@ -2351,6 +2383,9 @@ class HomeController extends GetxController {
       return null;
     } finally {
       _activeUploadCancelToken = null;
+      if (!isUploading.value) {
+        activeChatUploadId.value = null;
+      }
     }
   }
 

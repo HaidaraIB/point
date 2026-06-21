@@ -486,7 +486,8 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
       return KeyEventResult.ignored;
     }
     if (composerShiftPressed()) return KeyEventResult.ignored;
-    final busy = Get.find<HomeController>().isUploading.value;
+    final hc = Get.find<HomeController>();
+    final busy = hc.isChatUploadActiveFor(_chatId);
     if (!busy) {
       unawaited(_sendMessage());
     }
@@ -516,6 +517,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
         final pending = await stageChatMediaUpload(
           bytes: shot.bytes,
           fileName: shot.fileName,
+          chatId: _chatId,
           home: controller,
           activityWriter: _typingWriter,
         );
@@ -530,6 +532,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
         final pending = await stageChatMediaUpload(
           bytes: picked.bytes!,
           fileName: picked.name,
+          chatId: _chatId,
           home: controller,
           activityWriter: _typingWriter,
         );
@@ -543,6 +546,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
         final pending = await stageChatFileUpload(
           bytes: v.first.bytes!,
           fileName: v.first.name,
+          chatId: _chatId,
           home: controller,
           activityWriter: _typingWriter,
         );
@@ -579,6 +583,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
     final pending = await stageChatMediaUpload(
       bytes: bytes,
       fileName: fileName,
+      chatId: _chatId,
       home: controller,
       activityWriter: _typingWriter,
     );
@@ -638,6 +643,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                     iconTheme: const IconThemeData(color: Colors.white),
                   ),
                   child: ChatVoiceRecordButton(
+                    chatId: _chatId,
                     activityWriter: _typingWriter,
                     onUploaded: (url, sec) async {
                       if (Navigator.of(ctx).canPop()) Navigator.pop(ctx);
@@ -1120,7 +1126,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                       ),
                     ),
 
-                    const ChatUploadProgressBanner(),
+                    ChatUploadProgressBanner(chatId: _chatId),
                     if (_replyDraft != null)
                       ChatReplyDraftBanner(
                         draft: _replyDraft!,
@@ -1181,8 +1187,8 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                         ],
                       ),
                       child: Obx(() {
-                        final busy =
-                            Get.find<HomeController>().isUploading.value;
+                        final busy = Get.find<HomeController>()
+                            .isChatUploadActiveFor(_chatId);
                         return Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [

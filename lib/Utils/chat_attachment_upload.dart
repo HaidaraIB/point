@@ -10,6 +10,7 @@ import 'package:point/View/Chats/pending_chat_attachment.dart';
 Future<PendingChatAttachment?> stageChatMediaUpload({
   required Uint8List bytes,
   required String fileName,
+  required String chatId,
   required HomeController home,
   ChatActivityWriter? activityWriter,
 }) async {
@@ -33,6 +34,7 @@ Future<PendingChatAttachment?> stageChatMediaUpload({
       filePathOrBytes: uploadBytes,
       fileName: uploadName,
       useBlockingUploadDialog: false,
+      chatScopeId: chatId,
     );
     if (url == null) return null;
 
@@ -50,6 +52,7 @@ Future<PendingChatAttachment?> stageChatMediaUpload({
 Future<PendingChatAttachment?> stageChatFileUpload({
   required Uint8List bytes,
   required String fileName,
+  required String chatId,
   required HomeController home,
   ChatActivityWriter? activityWriter,
 }) async {
@@ -59,6 +62,7 @@ Future<PendingChatAttachment?> stageChatFileUpload({
       filePathOrBytes: bytes,
       fileName: fileName,
       useBlockingUploadDialog: false,
+      chatScopeId: chatId,
     );
     if (url == null) return null;
     return PendingChatAttachment(
