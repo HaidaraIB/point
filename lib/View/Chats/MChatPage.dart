@@ -19,6 +19,7 @@ import 'package:point/Services/ChatIncomingMessageSound.dart';
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/firestore/firestore_chat_api.dart';
+import 'package:point/Services/firestore/firestore_query_limits.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Services/chat_clipboard_image_reader.dart';
 import 'package:point/Services/chat_list_pins_persistence.dart';
@@ -91,6 +92,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
 
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _chatsListSub;
   int _chatsEnrichGen = 0;
+  final Set<String> _legacyPreviewFetched = {};
   Worker? _presenceWorker;
 
   DateTime? _presenceOf(String? employeeId) {
@@ -489,6 +491,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                 'lastUpdated': data['lastUpdated'],
                 'isGroup': data['isGroup'] ?? false,
                 'title': data['title'],
+                'lastMessageMeta': data['lastMessageMeta'],
               };
               built.add(chat);
             }
@@ -529,46 +532,50 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
       return;
     }
 
-    final ids = built.map((c) => c['id'] as String).toList();
-    final metas = await FirestoreServices.fetchLatestMessageMetaForChatIds(
-      _firestore,
-      ids,
-    );
+    final needsLegacy = <String>[];
+    for (final c in built) {
+      final id = c['id'] as String;
+      final isGroup = c['isGroup'] == true;
+      final preview = (c['lastMessage'] ?? '').toString().trim();
+      if (!isGroup &&
+          preview.isEmpty &&
+          !_legacyPreviewFetched.contains(id)) {
+        needsLegacy.add(id);
+      }
+    }
+    if (needsLegacy.isNotEmpty) {
+      _legacyPreviewFetched.addAll(needsLegacy);
+      final previews = await FirestoreServices.fetchLatestMessagePreviewsForChatIds(
+        _firestore,
+        needsLegacy,
+      );
+      for (final c in built) {
+        final id = c['id'] as String;
+        final p = previews[id];
+        if (p != null && p.trim().isNotEmpty) {
+          c['lastMessage'] = p.trim();
+        }
+      }
+    }
     if (!mounted || gen != _chatsEnrichGen) return;
 
-    _chats = _mergeChatsWithPreviews(built, metas);
+    _chats = _mergeChatsWithPreviews(built);
     _loadingChats = false;
     if (mounted) setState(() {});
   }
 
   List<Map<String, dynamic>> _mergeChatsWithPreviews(
     List<Map<String, dynamic>> built,
-    Map<String, ChatListLastMessageMeta?> metas,
   ) {
     final out = <Map<String, dynamic>>[];
     for (final c in built) {
-      final id = c['id'] as String;
       final isGroup = c['isGroup'] == true;
-      final meta = metas[id];
-      final docLm = (c['lastMessage'] ?? '').toString();
-
-      final fromMeta = meta?.previewText;
-      final preview = (fromMeta != null && fromMeta.trim().isNotEmpty)
-          ? fromMeta.trim()
-          : docLm.trim();
-
-      if (!isGroup && preview.isEmpty) continue;
-
-      if (fromMeta != null && fromMeta.trim().isNotEmpty) {
-        unawaited(
-          FirestoreServices.patchChatLastMessageIfStale(
-            _firestore,
-            id,
-            fromMeta.trim(),
-            docLm,
-          ),
-        );
+      var preview = (c['lastMessage'] ?? '').toString().trim();
+      final meta = FirestoreChatApi.lastMessageMetaFromChatData(c);
+      if (preview.isEmpty && meta != null) {
+        preview = meta.previewText.trim();
       }
+      if (!isGroup && preview.isEmpty) continue;
 
       final row = Map<String, dynamic>.from(c)..['lastMessage'] = preview;
       if (meta != null) {
@@ -1508,6 +1515,7 @@ class _MessageScreenState extends State<MessageScreen>
         .doc(_chatId)
         .collection('messages')
         .orderBy('timestamp', descending: true)
+        .limit(FirestoreQueryLimits.chatMessagesPage)
         .snapshots();
 
     _applyVisibleChatFocusToServices();
@@ -1985,6 +1993,8 @@ class _MessageScreenState extends State<MessageScreen>
       chatId: _chatId,
       actorParticipantId: widget.currentUserId,
       lastMessagePreview: lastMessagePreview,
+      messageData: payload,
+      participantIds: List<String>.from(widget.chat['participants'] ?? []),
     );
 
     final fcmConvTitle = _conversationTitleForFcm();

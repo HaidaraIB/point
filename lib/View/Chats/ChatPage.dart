@@ -19,6 +19,7 @@ import 'package:point/Services/FcmServices.dart' as fcm_notifications;
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/firestore/firestore_chat_api.dart';
+import 'package:point/Services/firestore/firestore_query_limits.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Services/chat_clipboard_image_reader.dart';
 import 'package:point/Services/chat_list_pins_persistence.dart';
@@ -116,6 +117,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   /// يمنع تطبيق دمج معاينات قديم بعد snapshot أحدث.
   int _chatsEnrichGen = 0;
+  final Set<String> _legacyPreviewFetched = {};
 
   /// يمنع إلغاء اشتراك الصوت عند كل تحديث لقائمة المحادثات (كان يُرمى أول snapshot فيه الرسائل الجديدة).
   String? _messageSoundBoundChatId;
@@ -715,6 +717,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         .doc(id)
         .collection('messages')
         .orderBy('timestamp', descending: true)
+        .limit(FirestoreQueryLimits.chatMessagesPage)
         .snapshots();
     _rebindTypingWriter();
   }
@@ -747,6 +750,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 'lastUpdated': data['lastUpdated'],
                 'isGroup': data['isGroup'] ?? false, // **قراءة علامة المجموعة**
                 'title': data['title'], // **قراءة اسم المجموعة**
+                'lastMessageMeta': data['lastMessageMeta'],
               };
               built.add(chat);
             }
@@ -797,14 +801,34 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       return;
     }
 
-    final ids = built.map((c) => c['id'] as String).toList();
-    final metas = await FirestoreServices.fetchLatestMessageMetaForChatIds(
-      _firestore,
-      ids,
-    );
+    final needsLegacy = <String>[];
+    for (final c in built) {
+      final id = c['id'] as String;
+      final isGroup = c['isGroup'] == true;
+      final preview = (c['lastMessage'] ?? '').toString().trim();
+      if (!isGroup &&
+          preview.isEmpty &&
+          !_legacyPreviewFetched.contains(id)) {
+        needsLegacy.add(id);
+      }
+    }
+    if (needsLegacy.isNotEmpty) {
+      _legacyPreviewFetched.addAll(needsLegacy);
+      final previews = await FirestoreServices.fetchLatestMessagePreviewsForChatIds(
+        _firestore,
+        needsLegacy,
+      );
+      for (final c in built) {
+        final id = c['id'] as String;
+        final p = previews[id];
+        if (p != null && p.trim().isNotEmpty) {
+          c['lastMessage'] = p.trim();
+        }
+      }
+    }
     if (!mounted || gen != _chatsEnrichGen) return;
 
-    final merged = _mergeChatsWithPreviews(built, metas);
+    final merged = _mergeChatsWithPreviews(built);
 
     if (_selectedChat != null &&
         !merged.any((c) => c['id'] == _selectedChat!['id'])) {
@@ -833,32 +857,16 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   List<Map<String, dynamic>> _mergeChatsWithPreviews(
     List<Map<String, dynamic>> built,
-    Map<String, ChatListLastMessageMeta?> metas,
   ) {
     final out = <Map<String, dynamic>>[];
     for (final c in built) {
-      final id = c['id'] as String;
       final isGroup = c['isGroup'] == true;
-      final meta = metas[id];
-      final docLm = (c['lastMessage'] ?? '').toString();
-
-      final fromMeta = meta?.previewText;
-      final preview = (fromMeta != null && fromMeta.trim().isNotEmpty)
-          ? fromMeta.trim()
-          : docLm.trim();
-
-      if (!isGroup && preview.isEmpty) continue;
-
-      if (fromMeta != null && fromMeta.trim().isNotEmpty) {
-        unawaited(
-          FirestoreServices.patchChatLastMessageIfStale(
-            _firestore,
-            id,
-            fromMeta.trim(),
-            docLm,
-          ),
-        );
+      var preview = (c['lastMessage'] ?? '').toString().trim();
+      final meta = FirestoreChatApi.lastMessageMetaFromChatData(c);
+      if (preview.isEmpty && meta != null) {
+        preview = meta.previewText.trim();
       }
+      if (!isGroup && preview.isEmpty) continue;
 
       final row = Map<String, dynamic>.from(c)..['lastMessage'] = preview;
       if (meta != null) {
@@ -1366,6 +1374,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       chatId: chatId,
       actorParticipantId: _currentUserId!,
       lastMessagePreview: lastMessagePreview,
+      messageData: payload,
+      participantIds: participants,
     );
 
     final fcmChatLabel = _getSelectedChatNameSync();

@@ -1,13 +1,11 @@
 import 'dart:async';
 
-
-
 import 'package:cloud_firestore/cloud_firestore.dart';
-
 import 'package:flutter/material.dart';
-
 import 'package:point/Services/chat_mark_read_scheduler.dart';
 import 'package:point/Services/chat_scroll_persistence.dart';
+import 'package:point/Services/firestore/firestore_chat_api.dart';
+import 'package:point/Services/firestore/firestore_query_limits.dart';
 
 import 'package:point/View/Chats/chat_scroll_to_latest_fab.dart';
 
@@ -44,6 +42,8 @@ class ChatMessageListPanelController {
   /// forcing a list rebuild when the parent setStates (composer, reply, etc.).
   ChatMessageTileBuilder? tileBuilder;
 
+  Future<void> Function(String messageId)? ensureMessageVisible;
+
   AutoScrollController? get scrollController => _scrollController;
 
   ChatScrollSnapshot? get currentScrollSnapshot =>
@@ -66,11 +66,17 @@ class ChatMessageListPanelController {
     _scrollSnapshotProvider = null;
     orderedDocs = const [];
     tileBuilder = null;
+    ensureMessageVisible = null;
   }
 
 
 
   void scrollToMessageId(String messageId) {
+    unawaited(_scrollToMessageId(messageId));
+  }
+
+  Future<void> _scrollToMessageId(String messageId) async {
+    await ensureMessageVisible?.call(messageId);
 
     final idx = orderedDocs.indexWhere((d) => d.id == messageId);
 
@@ -85,7 +91,6 @@ class ChatMessageListPanelController {
       mounted: () => _scrollController != null,
 
     );
-
   }
 
 
@@ -471,9 +476,14 @@ class _ChatMessageListPanelState extends State<ChatMessageListPanel> {
 
   StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _subscription;
 
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _pinnedSubscription;
 
-
+  List<QueryDocumentSnapshot<Map<String, dynamic>>> _liveDocs = [];
+  List<QueryDocumentSnapshot<Map<String, dynamic>>> _olderDocs = [];
   List<QueryDocumentSnapshot<Map<String, dynamic>>> _docs = [];
+  List<QueryDocumentSnapshot<Map<String, dynamic>>> _pinnedDocs = [];
+  bool _hasMoreOlder = true;
+  bool _loadingOlder = false;
 
   bool _waitingForFirstSnapshot = true;
 
@@ -507,6 +517,7 @@ class _ChatMessageListPanelState extends State<ChatMessageListPanel> {
     _attachPanelController();
     _scrollController.addListener(_onScrollOffset);
     _bindStream(widget.stream);
+    _bindPinnedStream(widget.chatId);
   }
 
   void _attachPanelController() {
@@ -515,6 +526,7 @@ class _ChatMessageListPanelState extends State<ChatMessageListPanel> {
       scrollController: _scrollController,
       scrollSnapshotProvider: _currentScrollSnapshot,
     );
+    widget.panelController.ensureMessageVisible = _ensureMessageVisible;
   }
 
   void _scrollToLatest() {
@@ -533,6 +545,10 @@ class _ChatMessageListPanelState extends State<ChatMessageListPanel> {
     if (oldWidget.stream != widget.stream) {
       _bindStream(widget.stream);
       _resetScrollGate();
+    }
+
+    if (oldWidget.chatId != widget.chatId) {
+      _bindPinnedStream(widget.chatId);
     }
 
     if (oldWidget.listEpoch != widget.listEpoch) {
@@ -585,6 +601,10 @@ class _ChatMessageListPanelState extends State<ChatMessageListPanel> {
 
     _subscription?.cancel();
 
+    _liveDocs = [];
+    _olderDocs = [];
+    _hasMoreOlder = true;
+    _loadingOlder = false;
     _waitingForFirstSnapshot = _docs.isEmpty;
 
     _subscription = stream.listen(
@@ -601,6 +621,107 @@ class _ChatMessageListPanelState extends State<ChatMessageListPanel> {
 
   }
 
+  void _bindPinnedStream(String chatId) {
+    _pinnedSubscription?.cancel();
+    _pinnedDocs = [];
+    if (chatId.isEmpty) return;
+
+    _pinnedSubscription = FirestoreChatApi.pinnedMessagesStream(
+      FirebaseFirestore.instance,
+      chatId,
+    ).listen(
+      (snapshot) {
+        if (!mounted) return;
+        setState(() {
+          _pinnedDocs = findPinnedMessageDocs(snapshot.docs);
+        });
+      },
+      onError: (_) {},
+    );
+  }
+
+  List<QueryDocumentSnapshot<Map<String, dynamic>>> _mergeDocs() {
+    return [..._liveDocs, ..._olderDocs];
+  }
+
+  Future<void> _loadOlderMessages() async {
+    if (_loadingOlder || !_hasMoreOlder || _docs.isEmpty) return;
+    setState(() => _loadingOlder = true);
+    try {
+      final anchor = _docs.last;
+      final older = await FirestoreChatApi.fetchOlderChatMessages(
+        fs: FirebaseFirestore.instance,
+        chatId: widget.chatId,
+        oldestLoaded: anchor,
+      );
+      if (!mounted) return;
+      if (older.isEmpty) {
+        _hasMoreOlder = false;
+      } else {
+        _olderDocs = [..._olderDocs, ...older];
+        if (older.length < FirestoreQueryLimits.chatMessagesPage) {
+          _hasMoreOlder = false;
+        }
+      }
+      _docs = _mergeDocs();
+      widget.panelController.orderedDocs = _docs;
+      widget.onDocsChanged?.call(_docs);
+    } catch (_) {
+      if (mounted) _hasMoreOlder = false;
+    } finally {
+      if (mounted) setState(() => _loadingOlder = false);
+    }
+  }
+
+  Future<void> _ensureMessageVisible(String messageId) async {
+    final id = messageId.trim();
+    if (id.isEmpty || _docs.any((d) => d.id == id)) return;
+
+    var guard = 0;
+    const maxPages = 20;
+    while (_hasMoreOlder &&
+        !_docs.any((d) => d.id == id) &&
+        guard < maxPages) {
+      await _loadOlderMessages();
+      guard++;
+    }
+    if (_docs.any((d) => d.id == id) || !mounted) return;
+
+    final doc = await FirestoreChatApi.fetchChatMessageById(
+      FirebaseFirestore.instance,
+      widget.chatId,
+      id,
+    );
+    if (doc == null || !mounted) return;
+    setState(() => _insertOlderDocIfMissing(doc));
+  }
+
+  void _insertOlderDocIfMissing(
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
+    if (_docs.any((d) => d.id == doc.id)) return;
+    final ts = doc.data()['timestamp'] as Timestamp?;
+    if (ts == null) {
+      _olderDocs = [..._olderDocs, doc];
+    } else {
+      final list = [..._olderDocs];
+      var inserted = false;
+      for (var i = 0; i < list.length; i++) {
+        final otherTs = list[i].data()['timestamp'] as Timestamp?;
+        if (otherTs == null || ts.compareTo(otherTs) > 0) {
+          list.insert(i, doc);
+          inserted = true;
+          break;
+        }
+      }
+      if (!inserted) list.add(doc);
+      _olderDocs = list;
+    }
+    _docs = _mergeDocs();
+    widget.panelController.orderedDocs = _docs;
+    widget.onDocsChanged?.call(_docs);
+  }
+
 
 
   void _onSnapshot(QuerySnapshot<Map<String, dynamic>> snapshot) {
@@ -608,6 +729,9 @@ class _ChatMessageListPanelState extends State<ChatMessageListPanel> {
     if (!mounted) return;
 
     final next = snapshot.docs;
+    if (next.length < FirestoreQueryLimits.chatMessagesPage) {
+      _hasMoreOlder = _olderDocs.isNotEmpty;
+    }
 
     final prevLen = _docs.length;
 
@@ -629,15 +753,15 @@ class _ChatMessageListPanelState extends State<ChatMessageListPanel> {
 
       setState(() {
 
-        _docs = next;
-
+        _liveDocs = next;
+        _docs = _mergeDocs();
         _waitingForFirstSnapshot = false;
 
       });
 
-      widget.panelController.orderedDocs = next;
+      widget.panelController.orderedDocs = _docs;
 
-      widget.onDocsChanged?.call(next);
+      widget.onDocsChanged?.call(_docs);
       _scheduleMarkReadIfAllowed();
 
       if (!_initialScrollApplied || _listEpochApplied != widget.listEpoch) {
@@ -658,11 +782,12 @@ class _ChatMessageListPanelState extends State<ChatMessageListPanel> {
 
     } else {
 
-      _docs = next;
+      _liveDocs = next;
+      _docs = _mergeDocs();
 
-      widget.panelController.orderedDocs = next;
+      widget.panelController.orderedDocs = _docs;
 
-      widget.onDocsChanged?.call(next);
+      widget.onDocsChanged?.call(_docs);
       _scheduleMarkReadIfAllowed();
     }
 
@@ -875,6 +1000,7 @@ class _ChatMessageListPanelState extends State<ChatMessageListPanel> {
 
     _fabThrottle?.cancel();
     _subscription?.cancel();
+    _pinnedSubscription?.cancel();
     ChatMarkReadScheduler.cancelForChat(widget.chatId);
 
     _scrollController.removeListener(_onScrollOffset);
@@ -901,33 +1027,33 @@ class _ChatMessageListPanelState extends State<ChatMessageListPanel> {
 
 
 
-    if (_waitingForFirstSnapshot && _docs.isEmpty) {
+    if (_waitingForFirstSnapshot && _docs.isEmpty && _pinnedDocs.isEmpty) {
 
       return widget.loadingWidget;
 
     }
 
-    if (_docs.isEmpty) {
 
-      return widget.emptyWidget;
-
-    }
-
-
-
-    final pinnedDocs = findPinnedMessageDocs(_docs);
 
     return Column(
 
       children: [
 
-        if (pinnedDocs.isNotEmpty && widget.pinnedBannerBuilder != null)
+        if (_pinnedDocs.isNotEmpty && widget.pinnedBannerBuilder != null)
 
-          widget.pinnedBannerBuilder!(context, pinnedDocs),
+          widget.pinnedBannerBuilder!(context, _pinnedDocs),
 
         Expanded(
 
-          child: Stack(
+          child: _docs.isEmpty
+
+              ? (_waitingForFirstSnapshot
+
+                  ? widget.loadingWidget
+
+                  : widget.emptyWidget)
+
+              : Stack(
 
             clipBehavior: Clip.none,
 
@@ -948,6 +1074,9 @@ class _ChatMessageListPanelState extends State<ChatMessageListPanel> {
                   padding: widget.padding,
 
                   docs: _docs,
+                  hasMoreOlder: _hasMoreOlder,
+                  loadingOlder: _loadingOlder,
+                  onLoadOlder: _loadOlderMessages,
 
                   onScrollNotification: _handleScrollNotification,
 
@@ -997,10 +1126,6 @@ class _ChatMessageListPanelState extends State<ChatMessageListPanel> {
 
 }
 
-
-
-/// List body isolated from FAB / parent composer state — only rebuilds when
-
 /// [docs], [padding], or [listKey] change.
 
 class _ChatMessageScrollList extends StatefulWidget {
@@ -1014,6 +1139,9 @@ class _ChatMessageScrollList extends StatefulWidget {
   final EdgeInsets padding;
 
   final List<QueryDocumentSnapshot<Map<String, dynamic>>> docs;
+  final bool hasMoreOlder;
+  final bool loadingOlder;
+  final VoidCallback? onLoadOlder;
 
   final bool Function(ScrollNotification notification) onScrollNotification;
 
@@ -1030,6 +1158,9 @@ class _ChatMessageScrollList extends StatefulWidget {
     required this.padding,
 
     required this.docs,
+    this.hasMoreOlder = false,
+    this.loadingOlder = false,
+    this.onLoadOlder,
 
     required this.onScrollNotification,
 
@@ -1097,7 +1228,7 @@ class _ChatMessageScrollListState extends State<_ChatMessageScrollList> {
 
           padding: widget.padding,
 
-          itemCount: widget.docs.length,
+          itemCount: widget.docs.length + (widget.hasMoreOlder ? 1 : 0),
 
           addAutomaticKeepAlives: true,
 
@@ -1115,6 +1246,23 @@ class _ChatMessageScrollListState extends State<_ChatMessageScrollList> {
           },
 
           itemBuilder: (context, index) {
+            if (widget.hasMoreOlder && index == widget.docs.length) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Center(
+                  child: widget.loadingOlder
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : TextButton(
+                          onPressed: widget.onLoadOlder,
+                          child: const Text('Load older messages'),
+                        ),
+                ),
+              );
+            }
 
             final doc = widget.docs[index];
 

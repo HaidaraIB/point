@@ -3,6 +3,7 @@ import 'package:point/Utils/app_log.dart';
 import 'dart:math' show Random, min;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/NotificationModel.dart';
 import 'package:point/Services/EmailNotificationService.dart';
@@ -53,6 +54,7 @@ class FirestoreFcmApi {
     String? fcmErrorMessage,
     Object? details,
   }) async {
+    if (!kDebugMode) return;
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
       await FirebaseFirestore.instance.collection('push_diagnostics').add({

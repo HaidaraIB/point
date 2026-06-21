@@ -7,8 +7,11 @@ import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/View/Chats/chat_ui_helpers.dart';
 
-/// How long since the last heartbeat we still show activity text.
-const Duration kChatTypingStale = Duration(seconds: 6);
+/// How long since the last pulse we still show activity text.
+const Duration kChatTypingStale = Duration(seconds: 9);
+
+/// Minimum gap between typing pulses while the composer still has text.
+const Duration kChatTypingPulseGap = Duration(seconds: 5);
 
 enum ChatActivityKind { typing, recording, uploading }
 
@@ -158,8 +161,9 @@ class ChatActivityWriter {
 
   DocumentReference<Map<String, dynamic>>? _ref;
   Timer? _debounce;
-  Timer? _heartbeat;
+  Timer? _staleCleanup;
   ChatActivityKind? _lockedKind;
+  DateTime? _lastPulseAt;
 
   void rebind({
     required String? chatId,
@@ -168,7 +172,9 @@ class ChatActivityWriter {
   }) {
     _debounce?.cancel();
     _debounce = null;
-    _stopHeartbeat();
+    _staleCleanup?.cancel();
+    _staleCleanup = null;
+    _lastPulseAt = null;
     _lockedKind = null;
 
     final DocumentReference<Map<String, dynamic>>? next =
@@ -201,17 +207,15 @@ class ChatActivityWriter {
       if (_lockedKind == ChatActivityKind.typing) {
         _lockedKind = null;
       }
-      _stopHeartbeat();
+      _staleCleanup?.cancel();
+      _staleCleanup = null;
       unawaited(_deleteDoc(ref));
       return;
     }
     _lockedKind = ChatActivityKind.typing;
-    unawaited(_pulse(ref, kind: ChatActivityKind.typing));
+    _schedulePulse(ref, kind: ChatActivityKind.typing);
     _debounce = Timer(const Duration(milliseconds: 400), () {
-      unawaited(_pulse(ref, kind: ChatActivityKind.typing));
-    });
-    _heartbeat ??= Timer.periodic(const Duration(seconds: 2), (_) {
-      unawaited(_pulse(ref, kind: ChatActivityKind.typing));
+      _schedulePulse(ref, kind: ChatActivityKind.typing);
     });
   }
 
@@ -221,17 +225,15 @@ class ChatActivityWriter {
     if (!active) {
       if (_lockedKind == ChatActivityKind.recording) {
         _lockedKind = null;
-        _stopHeartbeat();
+        _staleCleanup?.cancel();
+        _staleCleanup = null;
         unawaited(_deleteDoc(ref));
       }
       return;
     }
     _debounce?.cancel();
     _lockedKind = ChatActivityKind.recording;
-    unawaited(_pulse(ref, kind: ChatActivityKind.recording));
-    _heartbeat ??= Timer.periodic(const Duration(seconds: 2), (_) {
-      unawaited(_pulse(ref, kind: ChatActivityKind.recording));
-    });
+    _schedulePulse(ref, kind: ChatActivityKind.recording);
   }
 
   void setUploading(ChatUploadKind? kind) {
@@ -240,24 +242,24 @@ class ChatActivityWriter {
     if (kind == null) {
       if (_lockedKind == ChatActivityKind.uploading) {
         _lockedKind = null;
-        _stopHeartbeat();
+        _staleCleanup?.cancel();
+        _staleCleanup = null;
         unawaited(_deleteDoc(ref));
       }
       return;
     }
     _debounce?.cancel();
     _lockedKind = ChatActivityKind.uploading;
-    unawaited(_pulse(ref, kind: ChatActivityKind.uploading, uploadKind: kind));
-    _heartbeat ??= Timer.periodic(const Duration(seconds: 2), (_) {
-      unawaited(_pulse(ref, kind: ChatActivityKind.uploading, uploadKind: kind));
-    });
+    _schedulePulse(ref, kind: ChatActivityKind.uploading, uploadKind: kind);
   }
 
   Future<void> clearActivity() async {
     _debounce?.cancel();
     _debounce = null;
+    _staleCleanup?.cancel();
+    _staleCleanup = null;
+    _lastPulseAt = null;
     _lockedKind = null;
-    _stopHeartbeat();
     final ref = _ref;
     if (ref != null) {
       await _deleteDoc(ref);
@@ -268,9 +270,24 @@ class ChatActivityWriter {
 
   Future<void> dispose() => clearActivity();
 
-  void _stopHeartbeat() {
-    _heartbeat?.cancel();
-    _heartbeat = null;
+  void _schedulePulse(
+    DocumentReference<Map<String, dynamic>> ref, {
+    required ChatActivityKind kind,
+    ChatUploadKind? uploadKind,
+  }) {
+    final now = DateTime.now();
+    final last = _lastPulseAt;
+    if (last != null && now.difference(last) < kChatTypingPulseGap) {
+      return;
+    }
+    unawaited(_pulse(ref, kind: kind, uploadKind: uploadKind));
+    _staleCleanup?.cancel();
+    _staleCleanup = Timer(kChatTypingStale + const Duration(seconds: 1), () {
+      if (_lockedKind == kind) {
+        _lockedKind = null;
+      }
+      unawaited(_deleteDoc(ref));
+    });
   }
 
   Future<void> _pulse(
@@ -287,6 +304,7 @@ class ChatActivityWriter {
         data['uploadKind'] = uploadKind.name;
       }
       await ref.set(data, SetOptions(merge: true));
+      _lastPulseAt = DateTime.now();
     } catch (_) {}
   }
 

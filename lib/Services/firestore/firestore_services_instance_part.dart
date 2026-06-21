@@ -460,7 +460,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
   Stream<List<EmployeeModel>> getEmployees() {
     try {
       return safeFirestoreListStream(
-        _employeeCollection.snapshots().map((snapshot) {
+        _employeeCollection.limit(FirestoreQueryLimits.employees).snapshots().map((snapshot) {
           final employees = <EmployeeModel>[];
           for (final doc in snapshot.docs) {
             try {
@@ -923,6 +923,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
     return safeFirestoreListStream(
       _clientCollection
           .orderBy("createdAt", descending: true)
+          .limit(FirestoreQueryLimits.clients)
           .snapshots()
           .map(
             (snapshot) =>
@@ -1016,6 +1017,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
     return safeFirestoreListStream(
       _db
           .orderBy("createdAt", descending: true)
+          .limit(FirestoreQueryLimits.contents)
           .snapshots()
           .map(
             (snapshot) =>
@@ -1037,6 +1039,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
       _db
           .where('clientId', isEqualTo: clientId)
           .orderBy("createdAt", descending: true)
+          .limit(FirestoreQueryLimits.contents)
           .snapshots()
           .map(
             (snapshot) =>
@@ -1057,6 +1060,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
     return safeFirestoreListStream(
       _metaPostsCollection
           .orderBy('createdAt', descending: true)
+          .limit(FirestoreQueryLimits.metaPosts)
           .snapshots()
           .map(
             (snapshot) =>
@@ -1139,7 +1143,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
 
   Stream<List<TaskModel>> getTasks() {
     return safeFirestoreListStream(
-      _dbtask.snapshots().map(
+      _dbtask.limit(FirestoreQueryLimits.tasks).snapshots().map(
         (snapshot) =>
             snapshot.docs.map((doc) {
               final raw = doc.data();
@@ -1187,7 +1191,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
         _dbtask.where(combined) as Query<Map<String, dynamic>>;
 
     return safeFirestoreListStream(
-      q.snapshots().map((snapshot) {
+      q.limit(FirestoreQueryLimits.tasks).snapshots().map((snapshot) {
         final list =
             snapshot.docs.map((doc) {
               final raw = doc.data();
@@ -1206,6 +1210,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
       db
           .collection('chats/$chatId/messages')
           .orderBy('timestamp', descending: false)
+          .limit(FirestoreQueryLimits.chatMessagesPage)
           .snapshots()
           .map(
             (snapshot) =>
@@ -1224,128 +1229,69 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
         .set(message.toJson());
   }
 
+  int _unreadCountFromChatData(Map<String, dynamic> data, String userId) {
+    final raw = data[FirestoreChatApi.unreadCountField(userId)];
+    if (raw is int) return raw < 0 ? 0 : raw;
+    if (raw is num) return raw.toInt().clamp(0, 1 << 30);
+    return 0;
+  }
+
   /// Stream of total unread messages count across all chats for [userId].
-  /// Updates in real time when chats or messages change.
-  ///
-  /// [onPerChatUnreadIncrease] يُستدعى عندما يرتفع عدد غير المقروء من الطرف الآخر
-  /// في محادثة معيّنة (بعد تجاهل أول emission لكل اشتراك لتفادي الطنين عند إعادة الربط).
+  /// Reads denormalized [unreadCount_<userId>] on each chat doc (no per-chat
+  /// message listeners).
   Stream<int> getTotalUnreadMessagesStream(
     String userId, {
     void Function(String chatId)? onPerChatUnreadIncrease,
   }) {
-    final controller = StreamController<int>.broadcast();
-    controller.add(0);
-    StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? chatsSub;
-    final Map<String, StreamSubscription<int>> unreadSubs = {};
-
-    void onUnreadSubError(Object e, StackTrace st) {
-      // أثناء تسجيل الخروج تُلغى صلاحيات Firestore؛ لا نُمرّر الخطأ للمستمع (RethrownDartError).
-      if (FirebaseAuth.instance.currentUser == null) return;
-      final msg = e.toString();
-      if (msg.contains('permission-denied')) return;
-      appLog('⚠️ getTotalUnreadMessagesStream (messages sub): $e');
+    final uid = userId.trim();
+    if (uid.isEmpty) {
+      return Stream<int>.value(0);
     }
+    final previousByChat = <String, int>{};
+    var skipIncrease = true;
 
-    void onChatsSubError(Object e, StackTrace st) {
-      if (FirebaseAuth.instance.currentUser == null) {
-        try {
-          controller.add(0);
-        } catch (_) {}
-        return;
-      }
-      final msg = e.toString();
-      if (msg.contains('permission-denied')) {
-        try {
-          controller.add(0);
-        } catch (_) {}
-        return;
-      }
-      appLog('⚠️ getTotalUnreadMessagesStream (chats): $e');
-      try {
-        controller.add(0);
-      } catch (_) {}
-    }
-
-    void cancelUnreadSubs() {
-      for (final sub in unreadSubs.values) {
-        sub.cancel();
-      }
-      unreadSubs.clear();
-    }
-
-    void onChatsUpdate(QuerySnapshot<Map<String, dynamic>> chatsSnapshot) {
-      cancelUnreadSubs();
-      final chatIds = chatsSnapshot.docs.map((d) => d.id).toList();
-      final counts = <String, int>{};
-      for (final id in chatIds) {
-        counts[id] = 0;
-      }
-      final unreadFirstDone = <String, bool>{};
-
-      void emitTotal() {
-        controller.add(counts.values.fold<int>(0, (a, b) => a + b));
-      }
-
-      if (chatIds.isEmpty) {
-        controller.add(0);
-        return;
-      }
-
-      for (final chatId in chatIds) {
-        final unreadStream = db
-            .collection('chats')
-            .doc(chatId)
-            .collection('messages')
-            .where('isRead', isEqualTo: false)
-            .snapshots()
-            .map(
-              (s) => s.docs.where((d) => d.data()['senderId'] != userId).length,
-            );
-        unreadSubs[chatId] = unreadStream.listen(
-          (count) {
-            if (unreadFirstDone[chatId] != true) {
-              unreadFirstDone[chatId] = true;
-              counts[chatId] = count;
-              emitTotal();
-              return;
-            }
-            final previous = counts[chatId] ?? 0;
-            counts[chatId] = count;
-            if (count > previous) {
-              onPerChatUnreadIncrease?.call(chatId);
-            }
-            emitTotal();
-          },
-          onError: onUnreadSubError,
-          cancelOnError: false,
-        );
-      }
-    }
-
-    chatsSub = db
+    return db
         .collection('chats')
-        .where('participants', arrayContains: userId)
+        .where('participants', arrayContains: uid)
         .snapshots()
-        .listen(onChatsUpdate, onError: onChatsSubError);
-
-    controller.onCancel = () {
-      chatsSub?.cancel();
-      cancelUnreadSubs();
-    };
-
-    return controller.stream;
+        .map((snapshot) {
+          var total = 0;
+          for (final doc in snapshot.docs) {
+            final count = _unreadCountFromChatData(doc.data(), uid);
+            total += count;
+            if (!skipIncrease && onPerChatUnreadIncrease != null) {
+              final prev = previousByChat[doc.id] ?? 0;
+              if (count > prev) {
+                onPerChatUnreadIncrease(doc.id);
+              }
+            }
+            previousByChat[doc.id] = count;
+          }
+          skipIncrease = false;
+          return total;
+        })
+        .handleError((Object e, StackTrace st) {
+          if (FirebaseAuth.instance.currentUser == null) return;
+          final msg = e.toString();
+          if (msg.contains('permission-denied')) return;
+          appLog('⚠️ getTotalUnreadMessagesStream: $e');
+        });
   }
 
-  /// عدد الرسائل غير المقروءة الواردة من غير [userId] داخل محادثة [chatId].
-  /// يتبع نفس منطق [getTotalUnreadMessagesStream] لكل محادثة.
+  /// Unread count for one chat from denormalized field on the chat doc.
   Stream<int> unreadIncomingCountStream(String chatId, String userId) {
+    final uid = userId.trim();
+    if (chatId.trim().isEmpty || uid.isEmpty) {
+      return Stream<int>.value(0);
+    }
     return db
         .collection('chats')
         .doc(chatId)
-        .collection('messages')
-        .where('isRead', isEqualTo: false)
         .snapshots()
-        .map((s) => s.docs.where((d) => d.data()['senderId'] != userId).length);
+        .map((snap) {
+          if (!snap.exists) return 0;
+          return _unreadCountFromChatData(snap.data() ?? {}, uid);
+        });
   }
 
   Stream<List<NotificationModel>> getNotifications(
@@ -1359,6 +1305,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
         .collection('notifications')
         .where('recipientId', whereIn: [userId, otherId])
         .orderBy('createdAt', descending: true)
+        .limit(FirestoreQueryLimits.notifications)
         .snapshots()
         .map(
           (snapshot) => snapshot.docs

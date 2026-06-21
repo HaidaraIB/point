@@ -1,5 +1,6 @@
 import 'dart:async' show unawaited;
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart'
     show Firebase, FirebaseException;
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -92,6 +93,10 @@ void main(List<String> args) async {
         '(استخدم point (debug mode) أو USE_FIREBASE_TEST للاختبار؛ '
         'USE_FIREBASE_PROD للإنتاج)',
       );
+      FirebaseFirestore.instance.settings = const Settings(
+        persistenceEnabled: true,
+        cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+      );
     } on FirebaseException catch (e) {
       if (!e.code.contains('duplicate-app')) rethrow;
     }
@@ -173,6 +178,12 @@ class _AppState extends State<App> with WidgetsBindingObserver {
       }
       if (!kIsWeb) {
         unawaited(_recheckMobileVersionGateOnResume());
+      }
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached) {
+      if (Get.isRegistered<HomeController>()) {
+        Get.find<HomeController>().handleAppLifecyclePaused();
       }
     }
   }

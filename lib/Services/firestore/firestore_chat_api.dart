@@ -7,6 +7,8 @@ import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Services/FcmServices.dart' as fcm_notifications;
 
+import 'package:point/Services/firestore/firestore_query_limits.dart';
+
 /// Last row for chat list: sync string + optional image/video thumb URLs.
 class ChatListLastMessageMeta {
   const ChatListLastMessageMeta({
@@ -85,8 +87,46 @@ class ChatListLastMessageMeta {
 class FirestoreChatApi {
   FirestoreChatApi._();
 
+  static String unreadCountField(String userId) =>
+      'unreadCount_${userId.trim()}';
+
+  static String lastReadAtField(String userId) =>
+      'lastReadAt_${userId.trim()}';
+
+  static Map<String, dynamic> lastMessageMetaMapFromMessageData(
+    Map<String, dynamic> data,
+  ) {
+    final meta = ChatListLastMessageMeta.fromMessageData(data);
+    return <String, dynamic>{
+      'previewText': meta.previewText,
+      'subtitleLine': meta.subtitleLine,
+      if (meta.imageThumbUrl != null) 'imageThumbUrl': meta.imageThumbUrl,
+      if (meta.videoThumbUrl != null) 'videoThumbUrl': meta.videoThumbUrl,
+    };
+  }
+
+  static ChatListLastMessageMeta? lastMessageMetaFromChatData(
+    Map<String, dynamic>? chatData,
+  ) {
+    final raw = chatData?['lastMessageMeta'];
+    if (raw is! Map) return null;
+    final map = Map<String, dynamic>.from(raw);
+    final preview =
+        (map['previewText'] ?? chatData?['lastMessage'] ?? '').toString();
+    if (preview.trim().isEmpty) return null;
+    return ChatListLastMessageMeta(
+      previewText: preview,
+      subtitleLine: (map['subtitleLine'] ?? preview).toString(),
+      imageThumbUrl: map['imageThumbUrl']?.toString(),
+      videoThumbUrl: map['videoThumbUrl']?.toString(),
+    );
+  }
+
   /// يضع [isRead] = true لكل الرسائل الواردة (مرسل ليس [viewerUserId]) داخل [chatId].
   /// يُستدعى عند فتح المحادثة أو عند وصول تحديثات أثناء بقاء الشاشة مفتوحة.
+  static String? _activeChatSyncEmployeeId;
+  static String? _activeChatSyncChatId;
+
   /// يحدّد المحادثة المفتوحة حالياً لموظف. الخادم ([send-fcm]) يتخطّى دفع [chat_message]
   /// لنفس المحادثة فقط إذا كان [activeChatUpdatedAt] حديثاً (بضع دقائق) — يقلّل الإشعارات المزدوجة
   /// دون إسقاط الدفع عند بقاء [activeChatId] قديماً بعد إغلاق التطبيق.
@@ -94,19 +134,30 @@ class FirestoreChatApi {
     String employeeId,
     String? chatId,
   ) async {
+    final id = employeeId.trim();
+    if (id.isEmpty) return;
+
+    final nextChat = chatId?.trim();
+    // Skip close-time writes; the next open overwrites activeChatId.
+    if (nextChat == null || nextChat.isEmpty) {
+      _activeChatSyncEmployeeId = id;
+      _activeChatSyncChatId = null;
+      return;
+    }
+
+    if (_activeChatSyncEmployeeId == id && _activeChatSyncChatId == nextChat) {
+      return;
+    }
+    _activeChatSyncEmployeeId = id;
+    _activeChatSyncChatId = nextChat;
+
     try {
-      final ref = FirebaseFirestore.instance.collection('employees').doc(employeeId);
-      if (chatId == null || chatId.isEmpty) {
-        await ref.update({
-          'activeChatId': FieldValue.delete(),
-          'activeChatUpdatedAt': FieldValue.serverTimestamp(),
-        });
-      } else {
-        await ref.update({
-          'activeChatId': chatId,
-          'activeChatUpdatedAt': FieldValue.serverTimestamp(),
-        });
-      }
+      final ref =
+          FirebaseFirestore.instance.collection('employees').doc(id);
+      await ref.update({
+        'activeChatId': nextChat,
+        'activeChatUpdatedAt': FieldValue.serverTimestamp(),
+      });
     } catch (e) {
       appLog('syncEmployeeActiveChatId: $e');
     }
@@ -116,36 +167,67 @@ class FirestoreChatApi {
     String chatId,
     String viewerUserId,
   ) async {
+    final uid = viewerUserId.trim();
+    if (uid.isEmpty) return;
     final chatRef = FirebaseFirestore.instance.collection('chats').doc(chatId);
     try {
-      final unreadMessages =
-          await chatRef
-              .collection('messages')
-              .where('isRead', isEqualTo: false)
-              .where('senderId', isNotEqualTo: viewerUserId)
-              .get();
-
-      for (final doc in unreadMessages.docs) {
-        await doc.reference.update({'isRead': true});
-      }
+      await chatRef.update({
+        unreadCountField(uid): 0,
+        lastReadAtField(uid): FieldValue.serverTimestamp(),
+      });
     } catch (e) {
-      if (e.toString().contains('failed-precondition') ||
-          e.toString().contains('index')) {
-        final unreadSnapshot =
-            await chatRef
-                .collection('messages')
-                .where('isRead', isEqualTo: false)
-                .get();
-        final toMark =
-            unreadSnapshot.docs
-                .where((d) => d.data()['senderId'] != viewerUserId)
-                .toList();
-        for (final doc in toMark) {
-          await doc.reference.update({'isRead': true});
+      appLog('markIncomingMessagesReadInChat chat doc: $e');
+    }
+
+    try {
+      QuerySnapshot<Map<String, dynamic>> unreadMessages;
+      try {
+        unreadMessages = await chatRef
+            .collection('messages')
+            .where('isRead', isEqualTo: false)
+            .where('senderId', isNotEqualTo: uid)
+            .limit(500)
+            .get();
+      } catch (e) {
+        if (!e.toString().contains('failed-precondition') &&
+            !e.toString().contains('index')) {
+          rethrow;
         }
-      } else {
-        rethrow;
+        final unreadSnapshot = await chatRef
+            .collection('messages')
+            .where('isRead', isEqualTo: false)
+            .limit(500)
+            .get();
+        final toMark = unreadSnapshot.docs
+            .where((d) => d.data()['senderId'] != uid)
+            .toList();
+        if (toMark.isEmpty) return;
+        final batch = FirebaseFirestore.instance.batch();
+        for (final doc in toMark) {
+          batch.update(doc.reference, {'isRead': true});
+        }
+        await batch.commit();
+        unawaited(
+          fcm_notifications.NotificationService()
+              .dismissChatMessageNotification(chatId),
+        );
+        return;
       }
+
+      if (unreadMessages.docs.isEmpty) {
+        unawaited(
+          fcm_notifications.NotificationService()
+              .dismissChatMessageNotification(chatId),
+        );
+        return;
+      }
+      final batch = FirebaseFirestore.instance.batch();
+      for (final doc in unreadMessages.docs) {
+        batch.update(doc.reference, {'isRead': true});
+      }
+      await batch.commit();
+    } catch (e) {
+      appLog('markIncomingMessagesReadInChat messages batch: $e');
     }
     unawaited(
       fcm_notifications.NotificationService().dismissChatMessageNotification(
@@ -184,6 +266,75 @@ class FirestoreChatApi {
       return '↩ $inner';
     }
     return inner;
+  }
+
+  /// Older messages before [oldestLoaded] (descending order, same as live stream).
+  static Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>>
+      fetchOlderChatMessages({
+    required FirebaseFirestore fs,
+    required String chatId,
+    required QueryDocumentSnapshot<Map<String, dynamic>> oldestLoaded,
+    int limit = FirestoreQueryLimits.chatMessagesPage,
+  }) async {
+    try {
+      final snap = await fs
+          .collection('chats')
+          .doc(chatId)
+          .collection('messages')
+          .orderBy('timestamp', descending: true)
+          .startAfterDocument(oldestLoaded)
+          .limit(limit)
+          .get();
+      return snap.docs;
+    } catch (e, st) {
+      appLog('fetchOlderChatMessages $chatId: $e\n$st');
+      return const [];
+    }
+  }
+
+  /// Pinned messages for the chat bar — independent of the paginated live stream.
+  static Query<Map<String, dynamic>> pinnedMessagesQuery(
+    FirebaseFirestore fs,
+    String chatId,
+  ) {
+    return fs
+        .collection('chats')
+        .doc(chatId)
+        .collection('messages')
+        .where('isPinned', isEqualTo: true)
+        .limit(FirestoreQueryLimits.pinnedMessages);
+  }
+
+  /// Live pinned list while a chat is open (~N reads per update, N = pin count).
+  static Stream<QuerySnapshot<Map<String, dynamic>>> pinnedMessagesStream(
+    FirebaseFirestore fs,
+    String chatId,
+  ) {
+    return pinnedMessagesQuery(fs, chatId).snapshots();
+  }
+
+  /// Fetch a single message as [QueryDocumentSnapshot] (e.g. pin outside loaded window).
+  static Future<QueryDocumentSnapshot<Map<String, dynamic>>?> fetchChatMessageById(
+    FirebaseFirestore fs,
+    String chatId,
+    String messageId,
+  ) async {
+    final id = messageId.trim();
+    if (id.isEmpty) return null;
+    try {
+      final snap = await fs
+          .collection('chats')
+          .doc(chatId)
+          .collection('messages')
+          .where(FieldPath.documentId, isEqualTo: id)
+          .limit(1)
+          .get();
+      if (snap.docs.isEmpty) return null;
+      return snap.docs.first;
+    } catch (e, st) {
+      appLog('fetchChatMessageById $chatId/$messageId: $e\n$st');
+      return null;
+    }
   }
 
   /// آخر رسالة فعلية من المجموعة الفرعية (مصدر موثوق عند تعارض حقل المحادثة).
@@ -289,14 +440,28 @@ class FirestoreChatApi {
     required String chatId,
     required String actorParticipantId,
     required String lastMessagePreview,
+    Map<String, dynamic>? messageData,
+    List<String>? participantIds,
   }) async {
     final chatRef = fs.collection('chats').doc(chatId);
+    final actorId = actorParticipantId.trim();
 
     Future<void> writeLastMessage() {
-      return chatRef.update({
+      final data = <String, dynamic>{
         'lastMessage': lastMessagePreview,
         'lastUpdated': FieldValue.serverTimestamp(),
-      });
+      };
+      if (messageData != null) {
+        data['lastMessageMeta'] =
+            lastMessageMetaMapFromMessageData(messageData);
+      }
+      final recipients = participantIds ?? const <String>[];
+      for (final id in recipients) {
+        final pid = id.trim();
+        if (pid.isEmpty || pid == actorId) continue;
+        data[unreadCountField(pid)] = FieldValue.increment(1);
+      }
+      return chatRef.update(data);
     }
 
     try {

@@ -460,6 +460,34 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/chats/$(chatIdParam)).data;
     }
 
+    function chatSelfUnreadField() {
+      return 'unreadCount_' + actorParticipantId();
+    }
+
+    function chatSelfLastReadField() {
+      return 'lastReadAt_' + actorParticipantId();
+    }
+
+    function chatMarkSelfReadUpdateOk() {
+      let keys = request.resource.data.diff(resource.data).affectedKeys();
+      return keys.hasOnly([chatSelfUnreadField(), chatSelfLastReadField()])
+        || keys.hasOnly([chatSelfUnreadField()]);
+    }
+
+    function chatSenderPreviewAndUnreadBumpOk() {
+      let keys = request.resource.data.diff(resource.data).affectedKeys();
+      return keys.hasAll(['lastMessage', 'lastUpdated'])
+        && !keys.hasAny(['participants', 'isGroup', 'title', 'createdAt']);
+    }
+
+    function chatParticipantQuotaUpdateOk() {
+      let keys = request.resource.data.diff(resource.data).affectedKeys();
+      return keys.hasOnly(['lastMessage', 'lastUpdated'])
+        || keys.hasOnly(['lastMessage', 'lastUpdated', 'lastMessageMeta'])
+        || chatMarkSelfReadUpdateOk()
+        || chatSenderPreviewAndUnreadBumpOk();
+    }
+
     function messageParticipantInChat(chatIdParam) {
       return actorParticipantId() in chatDataForId(chatIdParam).participants;
     }
@@ -869,7 +897,7 @@ service cloud.firestore {
           || (
             isEmployeeRole()
             && actorParticipantId() in resource.data.participants
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage', 'lastUpdated'])
+            && chatParticipantQuotaUpdateOk()
           )
           || (
             isEmployeeRole()
@@ -884,7 +912,10 @@ service cloud.firestore {
           || (
             isClientRole()
             && actorParticipantId() in resource.data.participants
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage', 'lastUpdated', 'participants', 'isGroup', 'title'])
+            && (
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastMessage', 'lastUpdated', 'participants', 'isGroup', 'title'])
+              || chatParticipantQuotaUpdateOk()
+            )
           )
         );
 

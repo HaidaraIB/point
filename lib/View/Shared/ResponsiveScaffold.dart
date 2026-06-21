@@ -19,6 +19,7 @@ import 'package:point/Services/FcmServices.dart' as fcm_notifications;
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/firestore/firestore_chat_api.dart';
+import 'package:point/Services/firestore/firestore_query_limits.dart';
 import 'package:point/Services/chat_clipboard_image_reader.dart';
 import 'package:point/Services/chat_mark_read_scheduler.dart';
 import 'package:point/Services/chat_scroll_persistence.dart';
@@ -721,6 +722,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
         .doc(_chatId)
         .collection('messages')
         .orderBy('timestamp', descending: true)
+        .limit(FirestoreQueryLimits.chatMessagesPage)
         .snapshots();
 
     _rebindTypingWriterForPopup();
@@ -1422,6 +1424,12 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
       }
     }
 
+    var participants = List<String>.from(_popupParticipants);
+    if (participants.isEmpty) {
+      final preSnap = await chatRef.get();
+      participants = List<String>.from(preSnap.data()?['participants'] ?? []);
+    }
+
     await msgRef.set(payload);
     if (mounted) {
       setState(() => _replyDraft = null);
@@ -1432,12 +1440,16 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
       chatId: _chatId,
       actorParticipantId: me.id!,
       lastMessagePreview: lastMessagePreview,
+      messageData: payload,
+      participantIds: participants,
     );
 
     final chatSnap = await chatRef.get();
     final data = chatSnap.data() ?? {};
     final isGroup = data['isGroup'] == true;
-    final participants = List<String>.from(data['participants'] ?? []);
+    if (participants.isEmpty) {
+      participants = List<String>.from(data['participants'] ?? []);
+    }
     final title = data['title']?.toString() ?? widget.chat.name;
     final chatForTitle = Map<String, dynamic>.from(data)..['id'] = _chatId;
     final fcmChatLabel = chatConversationTitleForPushDisplay(chatForTitle);

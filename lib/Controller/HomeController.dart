@@ -84,7 +84,8 @@ class HomeController extends GetxController {
   Timer? _employeeDashFilterSaveDebounce;
   Timer? _presenceHeartbeatTimer;
   String? _presenceHeartbeatEmployeeId;
-  static const Duration _presenceHeartbeatInterval = Duration(seconds: 75);
+  static const Duration _presenceHeartbeatInterval = Duration(minutes: 5);
+  bool _appInForeground = true;
 
   // RxList<TaskModel> allTasks = <TaskModel>[].obs;
   RxList<TaskModel> tasksSearched = <TaskModel>[].obs;
@@ -2407,10 +2408,18 @@ class HomeController extends GetxController {
     if (role == 'admin' || role == 'supervisor') {
       unawaited(BackfillEmployeeDepartments.runIfNeeded(isManager: true));
     }
-    fetchEmployees();
+    if (role == 'admin' || role == 'supervisor' || role == 'employee') {
+      fetchEmployees();
+    } else {
+      employees.bindStream(Stream<List<EmployeeModel>>.value([]));
+    }
     _rebindClientsAndTasksStreams();
     fetchContents();
-    fetchMetaPosts();
+    if (role == 'admin' || role == 'supervisor') {
+      fetchMetaPosts();
+    } else {
+      metaPosts.bindStream(Stream<List<MetaPostModel>>.value([]));
+    }
     _startEmployeePresenceStream();
     _startTotalUnreadStream(employee.id!);
     _startPresenceHeartbeatForEmployee(employee.id!);
@@ -2601,13 +2610,13 @@ class HomeController extends GetxController {
 
   Future<void> _sendPresenceHeartbeat(String employeeId) async {
     final id = employeeId.trim();
-    if (id.isEmpty) return;
+    if (id.isEmpty || !_appInForeground) return;
     await _service.syncEmployeePresenceHeartbeat(id);
   }
 
   void _startPresenceHeartbeatForEmployee(String employeeId) {
     final id = employeeId.trim();
-    if (id.isEmpty) return;
+    if (id.isEmpty || !_appInForeground) return;
     if (_presenceHeartbeatEmployeeId == id && _presenceHeartbeatTimer != null) {
       return;
     }
@@ -2616,6 +2625,7 @@ class HomeController extends GetxController {
     _presenceHeartbeatEmployeeId = id;
     unawaited(_sendPresenceHeartbeat(id));
     _presenceHeartbeatTimer = Timer.periodic(_presenceHeartbeatInterval, (_) {
+      if (!_appInForeground) return;
       unawaited(_sendPresenceHeartbeat(id));
     });
   }
@@ -2627,17 +2637,28 @@ class HomeController extends GetxController {
   }
 
   void handleAppLifecycleResumed() {
+    _appInForeground = true;
     final id = currentEmployee.value?.id?.trim();
     if (id == null || id.isEmpty) return;
     _startPresenceHeartbeatForEmployee(id);
   }
 
+  void handleAppLifecyclePaused() {
+    _appInForeground = false;
+    _presenceHeartbeatTimer?.cancel();
+    _presenceHeartbeatTimer = null;
+  }
+
   void _startEmployeePresenceStream() {
     _employeePresenceSub?.cancel();
     _employeePresenceSub = null;
-    // employee_presence rules require isSignedIn() && hasAuthRole() — do not
-    // subscribe on the login screen (see HomeController.onInit).
     if (FirebaseAuth.instance.currentUser == null) {
+      employeePresenceById.clear();
+      return;
+    }
+    final emp = effectiveEmployee;
+    final role = emp?.role.trim().toLowerCase() ?? '';
+    if (role != 'admin' && role != 'supervisor') {
       employeePresenceById.clear();
       return;
     }
@@ -2945,7 +2966,6 @@ class HomeController extends GetxController {
   @override
   void onInit() {
     // currentemployee.value?.id = '3';
-    fetchEmployees();
     _rebindClientsAndTasksStreams();
     fetchContents();
     ever(contents, (_) => refreshFilteredContents());
