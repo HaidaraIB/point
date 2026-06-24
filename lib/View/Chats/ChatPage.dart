@@ -67,7 +67,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   PendingChatAttachment? _pendingAttachment;
   // Firebase instances
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirestoreServices _firestoreServices = FirestoreServices();
   late final PrivateChatTypingWriter _typingWriter;
   // final FirebaseAuth _auth = FirebaseAuth.instance;
 
@@ -134,7 +133,16 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   bool _isOnlinePresence(DateTime? at) {
     if (at == null) return false;
-    return DateTime.now().difference(at.toLocal()) <= const Duration(minutes: 2);
+    return DateTime.now().difference(at.toLocal()) <= kEmployeePresenceOnlineWindow;
+  }
+
+  void _syncPresenceWatchFromChats(List<Map<String, dynamic>> chats) {
+    final uid = _currentUserId?.trim() ?? '';
+    if (uid.isEmpty || uid == 'temp_current_user') return;
+    if (!Get.isRegistered<HomeController>()) return;
+    Get.find<HomeController>().setPresenceWatchIds(
+      presenceWatchIdsFromChats(chats, uid),
+    );
   }
 
   String _privatePresenceLabel(String? otherEmployeeId) {
@@ -751,6 +759,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 'isGroup': data['isGroup'] ?? false, // **قراءة علامة المجموعة**
                 'title': data['title'], // **قراءة اسم المجموعة**
                 'lastMessageMeta': data['lastMessageMeta'],
+                if (_currentUserId != null &&
+                    _currentUserId != 'temp_current_user')
+                  'unreadIncoming': FirestoreChatApi.unreadCountFromChatData(
+                    data,
+                    _currentUserId!,
+                  ),
               };
               built.add(chat);
             }
@@ -849,6 +863,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
     _chats = merged;
     _loadingChats = false;
+    _syncPresenceWatchFromChats(merged);
     if (!mounted || _chatsSubscription == null) return;
     _syncMessagesStreamWithSelection();
     setState(() {});
@@ -1876,167 +1891,151 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                           _privatePresenceLabel(otherIdForPresence);
                                     }
 
-                                    return StreamBuilder<int>(
-                                      stream: _firestoreServices
-                                          .unreadIncomingCountStream(
-                                            chatId,
-                                            _currentUserId ?? '',
-                                          ),
-                                      builder: (context, unreadSnap) {
-                                        final unreadCount =
-                                            unreadSnap.data ?? 0;
-                                        final isPinned = _pinnedChatIds
-                                            .contains(chatId);
-                                        return GestureDetector(
-                                          onLongPressStart: (details) {
-                                            _showChatListPinMenu(
-                                              context,
-                                              details.globalPosition,
-                                              chatId,
-                                            );
-                                          },
-                                          child: ListTile(
-                                            dense: true,
-                                            visualDensity: VisualDensity.compact,
-                                            contentPadding:
-                                                const EdgeInsets.symmetric(
-                                              horizontal: 16,
-                                              vertical: 4,
-                                            ),
-                                            tileColor:
-                                                _selectedChat != null &&
-                                                    _selectedChat!['id'] ==
-                                                        chatId
-                                                ? Colors.grey.shade100
-                                                : null,
-                                            onTap: () async {
-                                              final prevId =
-                                                  _selectedChat?['id']
-                                                      as String?;
-                                              final uid = _currentUserId;
-                                              if (uid != null &&
-                                                  prevId != null) {
-                                                await _persistScrollSnapshotForChatId(
-                                                  uid,
-                                                  prevId,
-                                                );
-                                              }
-                                              _flushScrollDiskTimer();
-                                              _replyDraft = null;
-                                              final nextChatId =
-                                                  ch['id'] as String;
-                                              _scrollSnapshotCache.remove(
-                                                nextChatId,
-                                              );
-                                              _selectedChat = ch;
-                                              final participants =
-                                                  List<String>.from(
-                                                    ch['participants'] ?? [],
-                                                  );
-                                              final otherId = participants
-                                                  .firstWhere(
-                                                    (id) =>
-                                                        id != _currentUserId,
-                                                    orElse: () => 'N/A',
-                                                  );
-
-                                              _otherUserId = otherId;
-                                              _syncMessagesStreamWithSelection();
-                                              appLog(_otherUserId.toString());
-
-                                              final openSnap =
-                                                  _currentUserId != null
-                                                  ? await ChatScrollPersistence.load(
-                                                      _currentUserId!,
-                                                      nextChatId,
-                                                    )
-                                                  : null;
-
-                                              if (!isGroup) {
-                                                final participants =
-                                                    List<String>.from(
-                                                      ch['participants'] ?? [],
-                                                    );
-                                                _otherUserId = participants
-                                                    .firstWhere(
-                                                      (id) =>
-                                                          id != _currentUserId,
-                                                    );
-                                              } else {
-                                                _otherUserId = null;
-                                              }
-                                              if (!mounted) return;
-                                              setState(() {
-                                                if (prevId != nextChatId) {
-                                                  _chatMessageListEpoch++;
-                                                }
-                                                _persistedOpenScroll = openSnap;
-                                                _persistedOpenScrollForChatId =
-                                                    nextChatId;
-                                              });
-                                              _syncMessageSoundListener();
-                                            },
-                                            leading:
-                                                chatListLeadingWithPinBadge(
-                                                  pinned: isPinned,
-                                                  avatarChild:
-                                                      _avatarWithOnlineDot(
-                                                    showOnlineDot: !isGroup &&
-                                                        showPrivateOnlineDot,
-                                                    avatar: chatLeadingAvatar(
-                                                      radius: 24,
-                                                      backgroundColor:
-                                                          avatarColor,
-                                                      initial: initial,
-                                                      groupIcon: avatarIcon,
-                                                      assetImagePath:
-                                                          groupAssetPath,
-                                                      imageUrl: employImage
-                                                          ?.toString()
-                                                          .trim(),
-                                                    ),
-                                                  ),
-                                                ),
-                                            title: Row(
-                                              children: [
-                                                Expanded(
-                                                  child: Text(
-                                                    displayName,
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: TextStyle(
-                                                      fontWeight: unreadCount > 0
-                                                          ? FontWeight.bold
-                                                          : FontWeight.w400,
-                                                      color: titleColor,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                            subtitle: Padding(
-                                              padding: const EdgeInsets.only(
-                                                top: 2,
-                                              ),
-                                              child: _chatListSubtitleWidget(
-                                                ch,
-                                                isGroup
-                                                    ? AppLocaleKeys
-                                                          .chatGroupConversation
-                                                          .tr
-                                                    : '',
-                                              ),
-                                            ),
-                                            trailing: ChatListRowTrailing(
-                                              titleSubline: titleSubline,
-                                              highlightSubline: !isGroup &&
-                                                  showPrivateOnlineDot,
-                                              unreadCount: unreadCount,
-                                            ),
-                                          ),
+                                    return GestureDetector(
+                                      onLongPressStart: (details) {
+                                        _showChatListPinMenu(
+                                          context,
+                                          details.globalPosition,
+                                          chatId,
                                         );
                                       },
+                                      child: ListTile(
+                                        dense: true,
+                                        visualDensity: VisualDensity.compact,
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 4,
+                                        ),
+                                        tileColor:
+                                            _selectedChat != null &&
+                                                _selectedChat!['id'] == chatId
+                                            ? Colors.grey.shade100
+                                            : null,
+                                        onTap: () async {
+                                          final prevId =
+                                              _selectedChat?['id'] as String?;
+                                          final uid = _currentUserId;
+                                          if (uid != null && prevId != null) {
+                                            await _persistScrollSnapshotForChatId(
+                                              uid,
+                                              prevId,
+                                            );
+                                          }
+                                          _flushScrollDiskTimer();
+                                          _replyDraft = null;
+                                          final nextChatId = ch['id'] as String;
+                                          _scrollSnapshotCache.remove(
+                                            nextChatId,
+                                          );
+                                          _selectedChat = ch;
+                                          final participants =
+                                              List<String>.from(
+                                                ch['participants'] ?? [],
+                                              );
+                                          final otherId = participants
+                                              .firstWhere(
+                                                (id) => id != _currentUserId,
+                                                orElse: () => 'N/A',
+                                              );
+
+                                          _otherUserId = otherId;
+                                          _syncMessagesStreamWithSelection();
+                                          appLog(_otherUserId.toString());
+
+                                          final openSnap =
+                                              _currentUserId != null
+                                              ? await ChatScrollPersistence.load(
+                                                  _currentUserId!,
+                                                  nextChatId,
+                                                )
+                                              : null;
+
+                                          if (!isGroup) {
+                                            final participants =
+                                                List<String>.from(
+                                                  ch['participants'] ?? [],
+                                                );
+                                            _otherUserId = participants
+                                                .firstWhere(
+                                                  (id) => id != _currentUserId,
+                                                );
+                                          } else {
+                                            _otherUserId = null;
+                                          }
+                                          if (!mounted) return;
+                                          setState(() {
+                                            if (prevId != nextChatId) {
+                                              _chatMessageListEpoch++;
+                                            }
+                                            _persistedOpenScroll = openSnap;
+                                            _persistedOpenScrollForChatId =
+                                                nextChatId;
+                                          });
+                                          _syncMessageSoundListener();
+                                        },
+                                        leading: chatListLeadingWithPinBadge(
+                                          pinned: _pinnedChatIds.contains(
+                                            chatId,
+                                          ),
+                                          avatarChild: _avatarWithOnlineDot(
+                                            showOnlineDot: !isGroup &&
+                                                showPrivateOnlineDot,
+                                            avatar: chatLeadingAvatar(
+                                              radius: 24,
+                                              backgroundColor: avatarColor,
+                                              initial: initial,
+                                              groupIcon: avatarIcon,
+                                              assetImagePath: groupAssetPath,
+                                              imageUrl: employImage
+                                                  ?.toString()
+                                                  .trim(),
+                                            ),
+                                          ),
+                                        ),
+                                        title: Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                displayName,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                  fontWeight:
+                                                      ((ch['unreadIncoming']
+                                                                  as int?) ??
+                                                              0) >
+                                                          0
+                                                      ? FontWeight.bold
+                                                      : FontWeight.w400,
+                                                  color: titleColor,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        subtitle: Padding(
+                                          padding: const EdgeInsets.only(
+                                            top: 2,
+                                          ),
+                                          child: _chatListSubtitleWidget(
+                                            ch,
+                                            isGroup
+                                                ? AppLocaleKeys
+                                                      .chatGroupConversation
+                                                      .tr
+                                                : '',
+                                          ),
+                                        ),
+                                        trailing: ChatListRowTrailing(
+                                          titleSubline: titleSubline,
+                                          highlightSubline: !isGroup &&
+                                              showPrivateOnlineDot,
+                                          unreadCount:
+                                              (ch['unreadIncoming'] as int?) ??
+                                              0,
+                                        ),
+                                      ),
                                     );
                                   },
                                 ),

@@ -13,6 +13,35 @@ import 'package:point/Services/StorageKeys.dart';
 /// scroll_to_index asserts `duration > Duration.zero`; use 1ms for instant jumps.
 const Duration kChatInstantScrollDuration = Duration(milliseconds: 1);
 
+/// Presence heartbeat interval (see [HomeController._presenceHeartbeatInterval]).
+const Duration kEmployeePresenceHeartbeatInterval = Duration(seconds: 90);
+
+/// User is "online" when last heartbeat is within this window.
+const Duration kEmployeePresenceOnlineWindow = Duration(minutes: 2);
+
+/// Max distinct presence docs watched by non-manager employees in chat UI.
+const int kEmployeePresenceWatchIdCap = 30;
+
+/// Collect other participants from chat rows for targeted presence listeners.
+Set<String> presenceWatchIdsFromChats(
+  Iterable<Map<String, dynamic>> chats,
+  String selfUserId, {
+  int cap = kEmployeePresenceWatchIdCap,
+}) {
+  final self = selfUserId.trim();
+  if (self.isEmpty) return const {};
+  final ids = <String>{};
+  for (final ch in chats) {
+    for (final raw in List<String>.from(ch['participants'] ?? const [])) {
+      final id = raw.trim();
+      if (id.isEmpty || id == self) continue;
+      ids.add(id);
+      if (ids.length >= cap) return ids;
+    }
+  }
+  return ids;
+}
+
 /// Call at the top of an [Obx] builder so GetX tracks presence map updates.
 RxMap<String, DateTime>? chatPresenceMapForObx() {
   if (!Get.isRegistered<HomeController>()) return null;
@@ -342,7 +371,7 @@ class ChatUploadProgressBanner extends StatelessWidget {
 
 bool chatIsOnlineFromLastSeen(DateTime? at) {
   if (at == null) return false;
-  return DateTime.now().difference(at.toLocal()) <= const Duration(minutes: 2);
+  return DateTime.now().difference(at.toLocal()) <= kEmployeePresenceOnlineWindow;
 }
 
 String chatPrivatePresenceLabelFromLastSeen(DateTime? at) {

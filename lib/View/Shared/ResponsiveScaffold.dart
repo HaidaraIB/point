@@ -422,6 +422,14 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
         _popupOtherUserId = otherId;
       });
       _rebindTypingWriterForPopup();
+      if (selfId.isNotEmpty && Get.isRegistered<HomeController>()) {
+        Get.find<HomeController>().setPresenceWatchIds(
+          parts
+              .map((id) => id.trim())
+              .where((id) => id.isNotEmpty && id != selfId)
+              .toSet(),
+        );
+      }
     } catch (_) {}
   }
 

@@ -37,6 +37,7 @@ import 'package:point/Services/meta/meta_media_util.dart';
 import 'package:point/Services/firestore/firestore_task_utils.dart'
     show taskTypeCodeForNormalizedDepartment;
 import 'package:point/Services/firestore/migrations/backfill_employee_departments.dart';
+import 'package:point/View/Chats/chat_ui_helpers.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
@@ -84,7 +85,8 @@ class HomeController extends GetxController {
   Timer? _employeeDashFilterSaveDebounce;
   Timer? _presenceHeartbeatTimer;
   String? _presenceHeartbeatEmployeeId;
-  static const Duration _presenceHeartbeatInterval = Duration(minutes: 5);
+  static const Duration _presenceHeartbeatInterval =
+      kEmployeePresenceHeartbeatInterval;
   bool _appInForeground = true;
 
   // RxList<TaskModel> allTasks = <TaskModel>[].obs;
@@ -2544,6 +2546,10 @@ class HomeController extends GetxController {
   String? _totalUnreadUserId;
   StreamSubscription<String>? _fcmTokenRefreshSub;
   StreamSubscription<Map<String, DateTime>>? _employeePresenceSub;
+  final Map<String, StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>>
+      _presenceDocSubs = {};
+  Set<String> _presenceWatchIds = const {};
+  bool _useFullPresenceStream = false;
   final RxMap<String, DateTime> employeePresenceById = <String, DateTime>{}.obs;
   bool _fcmSetupInProgress = false;
 
@@ -2652,25 +2658,95 @@ class HomeController extends GetxController {
   void _startEmployeePresenceStream() {
     _employeePresenceSub?.cancel();
     _employeePresenceSub = null;
+    _stopTargetedPresenceDocListeners();
+
     if (FirebaseAuth.instance.currentUser == null) {
       employeePresenceById.clear();
+      _useFullPresenceStream = false;
       return;
     }
+
     final emp = effectiveEmployee;
     final role = emp?.role.trim().toLowerCase() ?? '';
-    if (role != 'admin' && role != 'supervisor') {
-      employeePresenceById.clear();
+
+    if (role == 'admin' || role == 'supervisor') {
+      _useFullPresenceStream = true;
+      _employeePresenceSub = _service.getEmployeePresenceMap().listen(
+        (map) {
+          employeePresenceById.assignAll(map);
+        },
+        onError: (Object e, StackTrace st) {
+          appLog('employee_presence stream: $e');
+          appLog('$st');
+        },
+      );
       return;
     }
-    _employeePresenceSub = _service.getEmployeePresenceMap().listen(
-      (map) {
-        employeePresenceById.assignAll(map);
-      },
-      onError: (Object e, StackTrace st) {
-        appLog('employee_presence stream: $e');
-        appLog('$st');
-      },
-    );
+
+    if (role == 'employee') {
+      _useFullPresenceStream = false;
+      employeePresenceById.clear();
+      _rebindTargetedPresenceDocListeners();
+      return;
+    }
+
+    _useFullPresenceStream = false;
+    employeePresenceById.clear();
+  }
+
+  /// Targeted presence reads for regular employees (chat list + open chat).
+  void setPresenceWatchIds(Set<String> ids) {
+    final emp = effectiveEmployee;
+    final role = emp?.role.trim().toLowerCase() ?? '';
+    if (role != 'employee' || _useFullPresenceStream) return;
+
+    final selfId = emp?.id?.trim() ?? '';
+    final capped = ids
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty && e != selfId)
+        .take(kEmployeePresenceWatchIdCap)
+        .toSet();
+
+    if (_presenceWatchIds.length == capped.length &&
+        capped.every(_presenceWatchIds.contains)) {
+      return;
+    }
+    _presenceWatchIds = capped;
+    _rebindTargetedPresenceDocListeners();
+  }
+
+  void _stopTargetedPresenceDocListeners() {
+    for (final sub in _presenceDocSubs.values) {
+      sub.cancel();
+    }
+    _presenceDocSubs.clear();
+    _presenceWatchIds = const {};
+  }
+
+  void _rebindTargetedPresenceDocListeners() {
+    if (_useFullPresenceStream) return;
+
+    final next = _presenceWatchIds;
+    final toRemove =
+        _presenceDocSubs.keys.where((id) => !next.contains(id)).toList();
+    for (final id in toRemove) {
+      _presenceDocSubs.remove(id)?.cancel();
+      employeePresenceById.remove(id);
+    }
+
+    for (final id in next) {
+      if (_presenceDocSubs.containsKey(id)) continue;
+      _presenceDocSubs[id] = _service.watchEmployeePresenceDoc(
+        id,
+        (employeeId, lastSeenAt) {
+          if (lastSeenAt == null) {
+            employeePresenceById.remove(employeeId);
+          } else {
+            employeePresenceById[employeeId] = lastSeenAt;
+          }
+        },
+      );
+    }
   }
 
   DateTime? employeeLastSeenAt(String? employeeId) {
@@ -2991,6 +3067,7 @@ class HomeController extends GetxController {
     _fcmTokenRefreshSub = null;
     _employeePresenceSub?.cancel();
     _employeePresenceSub = null;
+    _stopTargetedPresenceDocListeners();
     super.onClose();
   }
 
@@ -3027,6 +3104,7 @@ class HomeController extends GetxController {
     _stopTotalUnreadStream();
     _employeePresenceSub?.cancel();
     _employeePresenceSub = null;
+    _stopTargetedPresenceDocListeners();
     employeePresenceById.clear();
     employees.bindStream(Stream<List<EmployeeModel>>.value([]));
     clients.bindStream(Stream<List<ClientModel>>.value([]));

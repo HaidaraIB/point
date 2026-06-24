@@ -93,6 +93,17 @@ class FirestoreChatApi {
   static String lastReadAtField(String userId) =>
       'lastReadAt_${userId.trim()}';
 
+  /// Denormalized unread count for [userId] on a chat document map.
+  static int unreadCountFromChatData(
+    Map<String, dynamic> data,
+    String userId,
+  ) {
+    final raw = data[unreadCountField(userId)];
+    if (raw is int) return raw < 0 ? 0 : raw;
+    if (raw is num) return raw.toInt().clamp(0, 1 << 30);
+    return 0;
+  }
+
   static Map<String, dynamic> lastMessageMetaMapFromMessageData(
     Map<String, dynamic> data,
   ) {
@@ -468,15 +479,30 @@ class FirestoreChatApi {
       await writeLastMessage();
       return;
     } on FirebaseException catch (e) {
-      if (e.code != 'permission-denied') rethrow;
+      if (e.code != 'permission-denied') {
+        appLog(
+          'updateChatAfterMessageSend $chatId failed: '
+          'actor=$actorId participants=$participantIds code=${e.code} ${e.message}',
+        );
+        rethrow;
+      }
 
       final snap = await chatRef.get();
       final data = snap.data();
-      if (data == null) rethrow;
+      if (data == null) {
+        appLog(
+          'updateChatAfterMessageSend $chatId permission-denied, chat missing',
+        );
+        rethrow;
+      }
 
       final isGroup = data['isGroup'] == true;
       final participants = List<String>.from(data['participants'] ?? const []);
       if (!isGroup || participants.contains(actorParticipantId)) {
+        appLog(
+          'updateChatAfterMessageSend $chatId permission-denied: '
+          'actor=$actorId participants=$participantIds',
+        );
         rethrow;
       }
 
@@ -485,7 +511,23 @@ class FirestoreChatApi {
         'lastUpdated': FieldValue.serverTimestamp(),
       });
 
-      await writeLastMessage();
+      try {
+        await writeLastMessage();
+      } catch (e2, st) {
+        appLog(
+          'updateChatAfterMessageSend $chatId retry after join failed: '
+          'actor=$actorId participants=$participantIds error=$e2',
+          stackTrace: st,
+        );
+        rethrow;
+      }
+    } catch (e, st) {
+      appLog(
+        'updateChatAfterMessageSend $chatId failed: '
+        'actor=$actorId participants=$participantIds error=$e',
+        stackTrace: st,
+      );
+      rethrow;
     }
   }
 }

@@ -69,7 +69,6 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
   final TextEditingController _searchController = TextEditingController();
   // Firebase instances
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirestoreServices _firestoreServices = FirestoreServices();
 
   // local caches
   String? _currentUserId;
@@ -103,7 +102,16 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
 
   bool _isOnlinePresence(DateTime? at) {
     if (at == null) return false;
-    return DateTime.now().difference(at.toLocal()) <= const Duration(minutes: 2);
+    return DateTime.now().difference(at.toLocal()) <= kEmployeePresenceOnlineWindow;
+  }
+
+  void _syncPresenceWatchFromChats(List<Map<String, dynamic>> chats) {
+    final uid = _currentUserId?.trim() ?? '';
+    if (uid.isEmpty || uid == 'temp_current_user') return;
+    if (!Get.isRegistered<HomeController>()) return;
+    Get.find<HomeController>().setPresenceWatchIds(
+      presenceWatchIdsFromChats(chats, uid),
+    );
   }
 
   String _privatePresenceLabel(String? otherEmployeeId) {
@@ -492,6 +500,12 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                 'isGroup': data['isGroup'] ?? false,
                 'title': data['title'],
                 'lastMessageMeta': data['lastMessageMeta'],
+                if (_currentUserId != null &&
+                    _currentUserId != 'temp_current_user')
+                  'unreadIncoming': FirestoreChatApi.unreadCountFromChatData(
+                    data,
+                    _currentUserId!,
+                  ),
               };
               built.add(chat);
             }
@@ -561,6 +575,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
 
     _chats = _mergeChatsWithPreviews(built);
     _loadingChats = false;
+    _syncPresenceWatchFromChats(_chats);
     if (mounted) setState(() {});
   }
 
@@ -1224,85 +1239,74 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                               );
                             }
 
-                            return StreamBuilder<int>(
-                              stream: _firestoreServices
-                                  .unreadIncomingCountStream(
-                                    chatId,
-                                    _currentUserId ?? '',
-                                  ),
-                              builder: (context, snapshot) {
-                                final unreadCount = snapshot.data ?? 0;
-                                final isPinned = _pinnedChatIds.contains(
+                            return GestureDetector(
+                              onLongPressStart: (details) {
+                                _showChatListPinMenu(
+                                  context,
+                                  details.globalPosition,
                                   chatId,
                                 );
-                                return GestureDetector(
-                                  onLongPressStart: (details) {
-                                    _showChatListPinMenu(
-                                      context,
-                                      details.globalPosition,
-                                      chatId,
-                                    );
-                                  },
-                                  child: ListTile(
-                                    dense: true,
-                                    visualDensity: VisualDensity.compact,
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 4,
-                                    ),
-                                    onTap: () => _openExistingChat(ch),
-                                    leading: chatListLeadingWithPinBadge(
-                                      pinned: isPinned,
-                                      avatarChild: _avatarWithOnlineDot(
-                                        showOnlineDot:
-                                            !isGroup && showPrivateOnlineDot,
-                                        avatar: chatLeadingAvatar(
-                                          radius: 24,
-                                          backgroundColor: avatarColor,
-                                          initial: initial,
-                                          groupIcon: avatarIcon,
-                                          assetImagePath: groupAssetPath,
-                                          imageUrl: dmImageUrl,
-                                        ),
-                                      ),
-                                    ),
-                                    title: Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            displayName,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              fontWeight: unreadCount > 0
-                                                  ? FontWeight.bold
-                                                  : FontWeight.w400,
-                                              color: titleColor,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    subtitle: Padding(
-                                      padding: const EdgeInsets.only(top: 2),
-                                      child: _chatListSubtitleWidget(
-                                        ch,
-                                        isGroup
-                                            ? AppLocaleKeys
-                                                  .chatGroupConversation
-                                                  .tr
-                                            : '',
-                                      ),
-                                    ),
-                                    trailing: ChatListRowTrailing(
-                                      titleSubline: titleSubline,
-                                      highlightSubline:
-                                          !isGroup && showPrivateOnlineDot,
-                                      unreadCount: unreadCount,
+                              },
+                              child: ListTile(
+                                dense: true,
+                                visualDensity: VisualDensity.compact,
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 4,
+                                ),
+                                onTap: () => _openExistingChat(ch),
+                                leading: chatListLeadingWithPinBadge(
+                                  pinned: _pinnedChatIds.contains(chatId),
+                                  avatarChild: _avatarWithOnlineDot(
+                                    showOnlineDot:
+                                        !isGroup && showPrivateOnlineDot,
+                                    avatar: chatLeadingAvatar(
+                                      radius: 24,
+                                      backgroundColor: avatarColor,
+                                      initial: initial,
+                                      groupIcon: avatarIcon,
+                                      assetImagePath: groupAssetPath,
+                                      imageUrl: dmImageUrl,
                                     ),
                                   ),
-                                );
-                              },
+                                ),
+                                title: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        displayName,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontWeight:
+                                              ((ch['unreadIncoming'] as int?) ??
+                                                      0) >
+                                                  0
+                                              ? FontWeight.bold
+                                              : FontWeight.w400,
+                                          color: titleColor,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                subtitle: Padding(
+                                  padding: const EdgeInsets.only(top: 2),
+                                  child: _chatListSubtitleWidget(
+                                    ch,
+                                    isGroup
+                                        ? AppLocaleKeys.chatGroupConversation.tr
+                                        : '',
+                                  ),
+                                ),
+                                trailing: ChatListRowTrailing(
+                                  titleSubline: titleSubline,
+                                  highlightSubline:
+                                      !isGroup && showPrivateOnlineDot,
+                                  unreadCount:
+                                      (ch['unreadIncoming'] as int?) ?? 0,
+                                ),
+                              ),
                             );
                           }, childCount: visibleChats.length),
                         ),
@@ -1367,7 +1371,7 @@ class _MessageScreenState extends State<MessageScreen>
 
   bool _isOnlinePresence(DateTime? at) {
     if (at == null) return false;
-    return DateTime.now().difference(at.toLocal()) <= const Duration(minutes: 2);
+    return DateTime.now().difference(at.toLocal()) <= kEmployeePresenceOnlineWindow;
   }
 
   Widget _avatarWithOnlineDot({

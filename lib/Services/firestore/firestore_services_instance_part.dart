@@ -486,6 +486,13 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
     }
   }
 
+  static DateTime? parseEmployeePresenceLastSeen(Map<String, dynamic>? data) {
+    final ts = data?['lastSeenAt'];
+    if (ts is Timestamp) return ts.toDate();
+    if (ts is String) return DateTime.tryParse(ts);
+    return null;
+  }
+
   Stream<Map<String, DateTime>> getEmployeePresenceMap() {
     return FirebaseFirestore.instance
         .collection('employee_presence')
@@ -493,20 +500,40 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
         .map((snapshot) {
           final out = <String, DateTime>{};
           for (final doc in snapshot.docs) {
-            final raw = doc.data();
-            final ts = raw['lastSeenAt'];
-            DateTime? dt;
-            if (ts is Timestamp) {
-              dt = ts.toDate();
-            } else if (ts is String) {
-              dt = DateTime.tryParse(ts);
-            }
+            final dt = parseEmployeePresenceLastSeen(doc.data());
             if (dt != null) {
               out[doc.id] = dt;
             }
           }
           return out;
         });
+  }
+
+  /// One doc listener per id — for employees watching chat partners only.
+  StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>
+      watchEmployeePresenceDoc(
+    String employeeId,
+    void Function(String id, DateTime? lastSeenAt) onUpdate, {
+    void Function(Object error, StackTrace stackTrace)? onError,
+  }) {
+    final id = employeeId.trim();
+    return FirebaseFirestore.instance
+        .collection('employee_presence')
+        .doc(id)
+        .snapshots()
+        .listen(
+          (snap) {
+            if (!snap.exists) {
+              onUpdate(id, null);
+              return;
+            }
+            onUpdate(id, parseEmployeePresenceLastSeen(snap.data()));
+          },
+          onError: onError ??
+              (Object e, StackTrace st) {
+                appLog('employee_presence/$id: $e');
+              },
+        );
   }
 
   Future<void> syncEmployeePresenceHeartbeat(String employeeId) async {
@@ -1230,10 +1257,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
   }
 
   int _unreadCountFromChatData(Map<String, dynamic> data, String userId) {
-    final raw = data[FirestoreChatApi.unreadCountField(userId)];
-    if (raw is int) return raw < 0 ? 0 : raw;
-    if (raw is num) return raw.toInt().clamp(0, 1 << 30);
-    return 0;
+    return FirestoreChatApi.unreadCountFromChatData(data, userId);
   }
 
   /// Stream of total unread messages count across all chats for [userId].
@@ -1280,14 +1304,15 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
 
   /// Unread count for one chat from denormalized field on the chat doc.
   Stream<int> unreadIncomingCountStream(String chatId, String userId) {
+    final cid = chatId.trim();
     final uid = userId.trim();
-    if (chatId.trim().isEmpty || uid.isEmpty) {
-      return Stream<int>.value(0);
+    if (cid.isEmpty || uid.isEmpty) {
+      return const Stream<int>.empty();
     }
     return db
         .collection('chats')
-        .doc(chatId)
-        .snapshots()
+        .doc(cid)
+        .snapshots(includeMetadataChanges: false)
         .map((snap) {
           if (!snap.exists) return 0;
           return _unreadCountFromChatData(snap.data() ?? {}, uid);
