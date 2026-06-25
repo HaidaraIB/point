@@ -257,6 +257,7 @@ async function writeCronPushDiagnostic(args: {
   fcmErrorMessage?: string;
   details?: unknown;
 }): Promise<void> {
+  if (args.status !== "error") return;
   try {
     const url =
       `https://firestore.googleapis.com/v1/projects/${args.projectId}/databases/(default)/documents/push_diagnostics`;

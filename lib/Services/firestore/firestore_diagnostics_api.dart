@@ -25,16 +25,14 @@ class FirestoreDiagnosticsApi {
         .snapshots();
   }
 
-  /// Diagnostics query focused on recent iOS-like failures.
+  /// Diagnostics query focused on recent push failures.
   static Stream<QuerySnapshot<Map<String, dynamic>>>
-  watchRecentIosPushFailures() {
+  watchRecentPushFailures({int limit = 200}) {
     return FirebaseFirestore.instance
         .collection('push_diagnostics')
         .where('status', isEqualTo: 'error')
-        .where('fcmErrorMessage', isGreaterThanOrEqualTo: 'A')
-        .orderBy('fcmErrorMessage')
         .orderBy('createdAt', descending: true)
-        .limit(200)
+        .limit(limit)
         .snapshots();
   }
 

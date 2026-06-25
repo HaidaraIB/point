@@ -63,6 +63,7 @@ Future<String> uploadObjectToR2({
     contentType: ct,
     ext: ext,
     friendlyDownloadName: friendlyDownloadName,
+    cancelToken: cancelToken,
   );
 
   cancelToken?.throwIfCancelled();

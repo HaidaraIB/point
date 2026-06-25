@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:http/http.dart' as http;
 import 'package:point/Services/upload_cancel_token.dart';
 
 /// Where an R2 upload failed: presign worker vs direct PUT to R2.
@@ -28,8 +31,91 @@ class UploadFailureException implements Exception {
   }
 }
 
+/// True for presign failures that may succeed on a single retry (Wi‑Fi handoff, etc.).
+bool isTransientNetworkUploadFailure(UploadFailureException error) {
+  return error.stage == UploadFailureStage.sign &&
+      (error.errorCode == 'network_unreachable' ||
+          error.errorCode == 'network_error' ||
+          error.errorCode == 'network_timeout');
+}
+
+/// Maps [SocketException], [ClientException], [TimeoutException], etc. to sign-stage codes.
+UploadFailureException? tryUploadFailureFromNetworkError(
+  Object error, {
+  UploadFailureStage stage = UploadFailureStage.sign,
+}) {
+  if (error is UploadFailureException) return error;
+  if (error is TimeoutException) {
+    return UploadFailureException(
+      stage: stage,
+      errorCode: 'network_timeout',
+      message: _truncateSafe(error.toString()),
+    );
+  }
+  if (error is http.ClientException) {
+    return _networkFailureFromText(error.toString(), stage: stage);
+  }
+  final text = error.toString();
+  if (text.contains('SocketException') ||
+      text.contains('ClientException') ||
+      text.contains('Network is unreachable') ||
+      text.contains('Failed host lookup') ||
+      text.contains('Connection refused') ||
+      text.contains('Connection reset')) {
+    return _networkFailureFromText(text, stage: stage);
+  }
+  return null;
+}
+
+UploadFailureException uploadFailureFromNetworkError(
+  Object error, {
+  UploadFailureStage stage = UploadFailureStage.sign,
+}) {
+  return tryUploadFailureFromNetworkError(error, stage: stage) ??
+      UploadFailureException(
+        stage: stage,
+        errorCode: 'network_error',
+        message: _truncateSafe(error.toString()),
+      );
+}
+
+UploadFailureException _networkFailureFromText(
+  String text, {
+  required UploadFailureStage stage,
+}) {
+  if (text.contains('errno = 101') ||
+      text.contains('Network is unreachable') ||
+      text.contains('ENETUNREACH')) {
+    return UploadFailureException(
+      stage: stage,
+      errorCode: 'network_unreachable',
+      message: _truncateSafe(text),
+    );
+  }
+  if (text.contains('TimeoutException') ||
+      text.contains('timed out') ||
+      text.contains('Timeout')) {
+    return UploadFailureException(
+      stage: stage,
+      errorCode: 'network_timeout',
+      message: _truncateSafe(text),
+    );
+  }
+  return UploadFailureException(
+    stage: stage,
+    errorCode: 'network_error',
+    message: _truncateSafe(text),
+  );
+}
+
 UploadFailureException uploadFailureFromPutError(Object error) {
   if (error is UploadFailureException) return error;
+
+  final network = tryUploadFailureFromNetworkError(
+    error,
+    stage: UploadFailureStage.put,
+  );
+  if (network != null) return network;
 
   final text = error.toString();
   final httpMatch = RegExp(r'HTTP (\d{3})').firstMatch(text);
@@ -68,10 +154,19 @@ UploadFailureException uploadFailureFromUnknown(Object error) {
       errorCode: 'cancelled',
     );
   }
+
+  final network = tryUploadFailureFromNetworkError(error);
+  if (network != null) return network;
+
+  final text = error.toString();
+  if (text.contains('R2') || text.contains('HTTP')) {
+    return uploadFailureFromPutError(error);
+  }
+
   return UploadFailureException(
     stage: UploadFailureStage.put,
     errorCode: 'unknown',
-    message: _truncateSafe(error.toString()),
+    message: _truncateSafe(text),
   );
 }
 

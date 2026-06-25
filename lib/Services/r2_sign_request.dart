@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:http/http.dart' as http;
+import 'package:point/Services/upload_cancel_token.dart';
 import 'package:point/Services/upload_errors.dart';
 import 'package:point/config/app_config.dart';
 
@@ -43,7 +44,10 @@ Future<R2SignUploadResult> _requestR2SignUploadOnce({
   required String ext,
   String? friendlyDownloadName,
   required bool forceRefreshToken,
+  UploadCancelToken? cancelToken,
 }) async {
+  cancelToken?.throwIfCancelled();
+
   final base = AppConfig.r2SignerUrl.trim();
   if (base.isEmpty) {
     throw _signFailure(errorCode: 'r2_signer_not_configured');
@@ -59,20 +63,28 @@ Future<R2SignUploadResult> _requestR2SignUploadOnce({
     throw _signFailure(errorCode: 'missing_id_token');
   }
 
+  cancelToken?.throwIfCancelled();
+
   final uri = Uri.parse('${base.replaceAll(RegExp(r'/+$'), '')}/sign-upload');
-  final res = await http.post(
-    uri,
-    headers: {
-      'Authorization': 'Bearer $token',
-      'Content-Type': 'application/json',
-    },
-    body: jsonEncode({
-      'contentType': contentType,
-      'ext': ext,
-      if (friendlyDownloadName != null && friendlyDownloadName.trim().isNotEmpty)
-        'friendlyDownloadName': friendlyDownloadName.trim(),
-    }),
-  );
+  final http.Response res;
+  try {
+    res = await http.post(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'contentType': contentType,
+        'ext': ext,
+        if (friendlyDownloadName != null &&
+            friendlyDownloadName.trim().isNotEmpty)
+          'friendlyDownloadName': friendlyDownloadName.trim(),
+      }),
+    );
+  } catch (e) {
+    throw uploadFailureFromNetworkError(e, stage: UploadFailureStage.sign);
+  }
 
   Map<String, dynamic> map;
   try {
@@ -129,26 +141,35 @@ Future<R2SignUploadResult> _requestR2SignUploadOnce({
 /// Calls the R2 presign worker with the current Firebase ID token.
 ///
 /// Retries once with a forced token refresh when the worker returns
-/// [invalid_token] (stale session).
+/// [invalid_token], and once after a short delay on transient network errors.
 Future<R2SignUploadResult> requestR2SignUpload({
   required String contentType,
   required String ext,
   String? friendlyDownloadName,
+  UploadCancelToken? cancelToken,
 }) async {
-  try {
-    return await _requestR2SignUploadOnce(
-      contentType: contentType,
-      ext: ext,
-      friendlyDownloadName: friendlyDownloadName,
-      forceRefreshToken: false,
-    );
-  } on UploadFailureException catch (e) {
-    if (e.errorCode != 'invalid_token') rethrow;
+  Future<R2SignUploadResult> attempt({required bool forceRefreshToken}) {
     return _requestR2SignUploadOnce(
       contentType: contentType,
       ext: ext,
       friendlyDownloadName: friendlyDownloadName,
-      forceRefreshToken: true,
+      forceRefreshToken: forceRefreshToken,
+      cancelToken: cancelToken,
     );
+  }
+
+  try {
+    return await attempt(forceRefreshToken: false);
+  } on UploadFailureException catch (e) {
+    if (e.errorCode == 'invalid_token') {
+      return attempt(forceRefreshToken: true);
+    }
+    if (isTransientNetworkUploadFailure(e)) {
+      cancelToken?.throwIfCancelled();
+      await Future<void>.delayed(const Duration(seconds: 2));
+      cancelToken?.throwIfCancelled();
+      return attempt(forceRefreshToken: false);
+    }
+    rethrow;
   }
 }

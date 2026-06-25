@@ -1054,6 +1054,7 @@ async function writePushDiagnostic(args: {
   projectId: string;
   payload: PushDiagnosticPayload;
 }): Promise<void> {
+  if (args.payload.status !== "error") return;
   try {
     const url =
       `https://firestore.googleapis.com/v1/projects/${args.projectId}/databases/(default)/documents/push_diagnostics`;
@@ -1064,6 +1065,7 @@ async function writePushDiagnostic(args: {
       status: { stringValue: p.status },
       targetType: { stringValue: p.targetType },
       functionVersion: { stringValue: p.functionVersion },
+      source: { stringValue: "send_fcm" },
       createdAt: { timestampValue: new Date().toISOString() },
       bodyLen: { integerValue: String(p.bodyLen ?? 0) },
     };

@@ -257,8 +257,8 @@ class FirestoreServices extends FirestoreServicesBase
           FirestoreDiagnosticsApi.watchPushDiagnosticsByRecipient(recipientId);
 
   static Stream<QuerySnapshot<Map<String, dynamic>>>
-      watchRecentIosPushFailures() =>
-          FirestoreDiagnosticsApi.watchRecentIosPushFailures();
+      watchRecentPushFailures({int limit = 200}) =>
+          FirestoreDiagnosticsApi.watchRecentPushFailures(limit: limit);
 
   static Future<void> sendFcm({
     required String userId,

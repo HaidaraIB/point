@@ -3,13 +3,13 @@ import 'package:point/Utils/app_log.dart';
 import 'dart:math' show Random, min;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/NotificationModel.dart';
 import 'package:point/Services/EmailNotificationService.dart';
 import 'package:point/Services/firestore/fcm_exceptions.dart';
 import 'package:point/Services/firestore/firestore_notification_api.dart';
 import 'package:point/Services/notification_email_policy.dart';
+import 'package:point/Services/push_diagnostics.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -34,54 +34,6 @@ class FirestoreFcmApi {
     return '${t.substring(0, 6)}...${t.substring(t.length - 4)}';
   }
 
-  /// Query in Firestore `push_diagnostics`: `source` is `flutter_app` here vs `scheduled_notifications`
-  /// from the cron Edge Function (`functionVersion` / `stage` distinguish send-fcm vs cron).
-  static Future<void> _logPushDiagnostic({
-    required String requestId,
-    required String stage,
-    required String status,
-    required String targetType,
-    String? recipientId,
-    String? recipientType,
-    String? tokenMasked,
-    String? topic,
-    String? title,
-    int? bodyLen,
-    String? notificationType,
-    int? fcmHttpStatus,
-    String? fcmErrorCode,
-    String? fcmErrorStatus,
-    String? fcmErrorMessage,
-    Object? details,
-  }) async {
-    if (!kDebugMode) return;
-    try {
-      final currentUser = FirebaseAuth.instance.currentUser;
-      await FirebaseFirestore.instance.collection('push_diagnostics').add({
-        'createdAt': FieldValue.serverTimestamp(),
-        'requestId': requestId,
-        'stage': stage,
-        'status': status,
-        'targetType': targetType,
-        'senderUid': currentUser?.uid,
-        'recipientId': recipientId,
-        'recipientType': recipientType,
-        'tokenMasked': tokenMasked,
-        'topic': topic,
-        'title': title,
-        'bodyLen': bodyLen ?? 0,
-        'notificationType': notificationType,
-        'fcmHttpStatus': fcmHttpStatus,
-        'fcmErrorCode': fcmErrorCode,
-        'fcmErrorStatus': fcmErrorStatus,
-        'fcmErrorMessage': fcmErrorMessage,
-        if (details != null) 'details': details.toString(),
-        'source': 'flutter_app',
-      });
-    } catch (_) {
-      // Keep diagnostics non-blocking.
-    }
-  }
   static List<String> _extractFcmTokens(Map<String, dynamic>? data) {
     if (data == null) return const [];
     final tokens = <String>{};
@@ -511,10 +463,9 @@ class FirestoreFcmApi {
       final recipientType = map['recipientType']?.toString();
       final tokenMasked = map['tokenMasked']?.toString();
 
-      await _logPushDiagnostic(
+      await PushDiagnostics.logFailure(
         requestId: requestId.isNotEmpty ? requestId : _newPushRequestId(),
         stage: 'app_result',
-        status: 'error',
         targetType: 'token',
         recipientId: recipientId,
         recipientType: recipientType,
@@ -953,10 +904,9 @@ class FirestoreFcmApi {
         );
       }
     } on FcmSendException catch (e) {
-      await _logPushDiagnostic(
+      await PushDiagnostics.logFailure(
         requestId: requestId,
         stage: 'app_result',
-        status: 'error',
         targetType: 'topic',
         topic: topic,
         title: title,
