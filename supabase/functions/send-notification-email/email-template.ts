@@ -154,6 +154,7 @@ function renderEmailShell(args: {
  */
 export function buildEmailHtml(bodyText: string, language?: EmailLocale): string {
   const locale = language ?? detectLocale(bodyText);
+  const isArabic = locale === "ar";
   const lines = bodyText
     .split(/\n+/)
     .map((p) => p.trim())

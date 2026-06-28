@@ -89,7 +89,17 @@ Deno.serve(async (req: Request) => {
   try {
     const apiKey = Deno.env.get("RESEND_API_KEY");
     if (!apiKey) {
-      return jsonResponse({ errorCode: "ERR_SERVER" }, 500);
+      console.error(
+        JSON.stringify({
+          emailError: true,
+          errorCode: "ERR_SERVER",
+          details: "RESEND_API_KEY not set in Edge Function secrets",
+        }),
+      );
+      return jsonResponse(
+        { errorCode: "ERR_SERVER", details: "RESEND_API_KEY not set" },
+        500,
+      );
     }
 
     const body = await req.json() as {
@@ -108,6 +118,9 @@ Deno.serve(async (req: Request) => {
     };
 
     if (Array.isArray(body.messages) && body.messages.length > 0) {
+      console.log(
+        JSON.stringify({ emailStart: true, batch: true, count: body.messages.length }),
+      );
       if (body.toEmail) {
         return jsonResponse(
           { errorCode: "ERR_INVALID_DATA", details: "use either messages[] or toEmail, not both" },
@@ -165,6 +178,14 @@ Deno.serve(async (req: Request) => {
     }
 
     const toEmail = body?.toEmail?.trim();
+    console.log(
+      JSON.stringify({
+        emailStart: true,
+        batch: false,
+        toEmail: toEmail ? `${toEmail.slice(0, 3)}…` : null,
+        isHtml: body?.isHtml === true,
+      }),
+    );
     const subject = body?.subject ?? "";
     const rawBody = body?.body ?? "";
     const isHtml = body?.isHtml === true;
@@ -176,12 +197,32 @@ Deno.serve(async (req: Request) => {
 
     const out = await sendOneViaResend(apiKey, toEmail, subject, rawBody, isHtml, language);
     if (!out.ok) {
+      console.error(
+        JSON.stringify({
+          emailError: true,
+          errorCode: "ERR_SERVER",
+          toEmail: `${toEmail.slice(0, 3)}…`,
+          resendStatus: out.status,
+          details: out.details,
+        }),
+      );
       return jsonResponse({ errorCode: "ERR_SERVER", details: out.details }, out.status);
     }
 
+    console.log(JSON.stringify({ emailOk: true, id: out.id }));
     return jsonResponse({ ok: true, id: out.id }, 200);
   } catch (e) {
-    return jsonResponse({ errorCode: "ERR_SERVER", details: String(e) }, 500);
+    const details = e instanceof Error ? e.message : String(e);
+    const stack = e instanceof Error ? e.stack : undefined;
+    console.error(
+      JSON.stringify({
+        emailError: true,
+        errorCode: "ERR_SERVER",
+        details,
+        stack: stack?.slice(0, 2000),
+      }),
+    );
+    return jsonResponse({ errorCode: "ERR_SERVER", details }, 500);
   }
 });
 

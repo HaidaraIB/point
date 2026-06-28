@@ -83,16 +83,23 @@ Deno.serve(async (req: Request) => {
       mode?: string;
       firebaseProjectId?: string;
     };
+    const mode = (body?.mode ?? "all").toLowerCase();
+    console.log(
+      JSON.stringify({
+        cronStart: true,
+        mode,
+        firebaseProjectId: body.firebaseProjectId ?? null,
+      }),
+    );
     resetCronFcmAgg();
     const started = Date.now();
     const sa = resolveServiceAccountForScheduledCron(body.firebaseProjectId);
+    console.log(JSON.stringify({ cronFirebaseProject: sa.project_id }));
     const accessToken = await getAccessToken(sa);
     const firestoreBase = `https://firestore.googleapis.com/v1/projects/${sa.project_id}/databases/(default)/documents`;
     const fcmUrl = `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`;
 
     const now = new Date();
-
-    const mode = (body?.mode ?? "all").toLowerCase();
 
     if (mode === "unread_chats") {
       await handleUnreadChatDigest({ accessToken, firestoreBase, fcmUrl, projectId: sa.project_id });
@@ -155,7 +162,17 @@ Deno.serve(async (req: Request) => {
       200,
     );
   } catch (e) {
-    return json({ errorCode: "ERR_SERVER", details: String(e) }, 500);
+    const details = e instanceof Error ? e.message : String(e);
+    const stack = e instanceof Error ? e.stack : undefined;
+    console.error(
+      JSON.stringify({
+        cronError: true,
+        errorCode: "ERR_SERVER",
+        details,
+        stack: stack?.slice(0, 2000),
+      }),
+    );
+    return json({ errorCode: "ERR_SERVER", details }, 500);
   }
 });
 
