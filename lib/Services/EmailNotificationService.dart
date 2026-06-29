@@ -130,13 +130,11 @@ class EmailNotificationService {
         '$title\n$body\n${(details ?? const <String, String>{}).entries.map((e) => '${e.key} ${e.value}').join(' ')}',
         preferredLanguageCode: languageCode,
       );
-      final safeDetails = <String, String>{
-        if (details != null) ...details,
-        if (notificationType != null && notificationType.trim().isNotEmpty)
-          locale == 'ar' ? 'نوع الإشعار' : 'Notification type': notificationType.trim(),
-        if (referenceId != null && referenceId.trim().isNotEmpty)
-          locale == 'ar' ? 'المرجع' : 'Reference': referenceId.trim(),
-      };
+      final safeDetails = _dedupeDetails(
+        title: title,
+        body: body,
+        details: details,
+      );
 
       final html = _buildHtmlTemplate(
         title: title,
@@ -179,40 +177,6 @@ class EmailNotificationService {
     }
   }
 
-  /// Builds local detailed HTML (legacy-compatible path for batch when wrapper is disabled).
-  static String _buildDetailedNotificationHtml({
-    required String title,
-    required String body,
-    String? recipientLabel,
-    String? notificationType,
-    String? actionText,
-    String? referenceId,
-    Map<String, String>? details,
-    DateTime? sentAt,
-    String? languageCode,
-  }) {
-    final locale = _resolveLocale(
-      '$title\n$body\n${(details ?? const <String, String>{}).entries.map((e) => '${e.key} ${e.value}').join(' ')}',
-      preferredLanguageCode: languageCode,
-    );
-    final safeDetails = <String, String>{
-      if (details != null) ...details,
-      if (notificationType != null && notificationType.trim().isNotEmpty)
-        locale == 'ar' ? 'نوع الإشعار' : 'Notification type': notificationType.trim(),
-      if (referenceId != null && referenceId.trim().isNotEmpty)
-        locale == 'ar' ? 'المرجع' : 'Reference': referenceId.trim(),
-    };
-    return _buildHtmlTemplate(
-      title: title,
-      body: body,
-      recipientLabel: recipientLabel,
-      actionText: actionText,
-      details: safeDetails,
-      sentAt: sentAt ?? DateTime.now(),
-      localeCode: locale,
-    );
-  }
-
   /// Sends many distinct emails in one/few Edge invocations (`messages[]`, max 40 each).
   /// Default is wrapper-first when `useSupabaseTemplateWrapper` is true.
   static Future<void> sendDetailedNotificationBatch(
@@ -230,26 +194,19 @@ class EmailNotificationService {
           '${item.title}\n${item.body}\n${(item.details ?? const <String, String>{}).entries.map((e) => '${e.key} ${e.value}').join(' ')}',
           preferredLanguageCode: item.languageCode,
         );
-        final safeDetails = <String, String>{
-          if (item.details != null) ...item.details!,
-          if (item.notificationType != null &&
-              item.notificationType!.trim().isNotEmpty)
-            locale == 'ar'
-                ? 'نوع الإشعار'
-                : 'Notification type': item.notificationType!.trim(),
-          if (item.referenceId != null && item.referenceId!.trim().isNotEmpty)
-            locale == 'ar' ? 'المرجع' : 'Reference': item.referenceId!.trim(),
-        };
-        final html = _buildDetailedNotificationHtml(
+        final safeDetails = _dedupeDetails(
+          title: item.title,
+          body: item.body,
+          details: item.details,
+        );
+        final html = _buildHtmlTemplate(
           title: item.title,
           body: item.body,
           recipientLabel: item.recipientLabel,
-          notificationType: item.notificationType,
           actionText: item.actionText,
-          referenceId: item.referenceId,
           details: safeDetails,
-          sentAt: item.sentAt,
-          languageCode: locale,
+          sentAt: item.sentAt ?? DateTime.now(),
+          localeCode: locale,
         );
         final wrapperBody = _buildWrapperFriendlyBody(
           body: item.body,
@@ -375,9 +332,13 @@ class EmailNotificationService {
       _composeConciseSummary(body: body, details: details, isArabic: isArabic),
     );
 
+    final dedupedDetails = _dedupeDetails(
+      title: title,
+      body: body,
+      details: details,
+    );
     final detailRows =
-        (details ?? const <String, String>{})
-            .entries
+        dedupedDetails.entries
             .where((e) => e.key.trim().isNotEmpty && e.value.trim().isNotEmpty)
             .map(
               (e) =>
@@ -474,19 +435,56 @@ class EmailNotificationService {
       'Employee',
     ]);
 
-    if (task != null && status != null) {
+    if (status != null) {
       if (isArabic) {
+        final taskPart = task == null ? '' : ' للمهمة $task';
         final actorPart = actor == null ? '' : ' من قبل $actor';
-        return 'تم تغيير حالة المهمة $task إلى $status$actorPart.';
+        return 'تم تغيير الحالة$taskPart إلى $status$actorPart.';
       }
+      final taskPart = task == null ? '' : ' for $task';
       final actorPart = actor == null ? '' : ' by $actor';
-      return 'Task status changed for $task to $status$actorPart.';
+      return 'Status changed$taskPart to $status$actorPart.';
     }
 
-    return body.trim().isEmpty
-        ? (isArabic ? 'لديك تحديث جديد.' : 'You have a new update.')
-        : body.trim();
+    final cleanBody = body.trim();
+    if (cleanBody.isEmpty) {
+      return isArabic ? 'لديك تحديث جديد.' : 'You have a new update.';
+    }
+    // Avoid repeating the task title when body is only the title.
+    if (task != null && _normCompare(cleanBody, task)) {
+      return isArabic ? 'يرجى مراجعة التفاصيل أدناه.' : 'See details below.';
+    }
+    return cleanBody;
   }
+
+  /// Drops detail rows that duplicate title/body or each other.
+  static Map<String, String> _dedupeDetails({
+    required String title,
+    required String body,
+    Map<String, String>? details,
+  }) {
+    if (details == null || details.isEmpty) return const {};
+    final seenValues = <String>{
+      _normCompareKey(title),
+      _normCompareKey(body),
+    };
+    final out = <String, String>{};
+    for (final e in details.entries) {
+      final key = e.key.trim();
+      final value = e.value.trim();
+      if (key.isEmpty || value.isEmpty) continue;
+      final valueKey = _normCompareKey(value);
+      if (seenValues.contains(valueKey)) continue;
+      seenValues.add(valueKey);
+      out[key] = value;
+    }
+    return out;
+  }
+
+  static String _normCompareKey(String s) => s.trim().toLowerCase();
+
+  static bool _normCompare(String a, String b) =>
+      _normCompareKey(a) == _normCompareKey(b);
 
   static String? _findDetailValue(Map<String, String> details, List<String> keys) {
     for (final key in keys) {

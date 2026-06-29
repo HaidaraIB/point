@@ -578,7 +578,6 @@ class FirestoreFcmApi {
       if (sendThisEmail) {
         // إرسال إيميل حتى عند غياب FCM (من لم يثبت التطبيق أو عطّل الإشعارات يظل يحصل على الإيميل)
         final details = <String, String>{
-          'المستلم': recipientName,
           if (emailDetails != null) ...emailDetails,
         };
         unawaited(
@@ -588,9 +587,7 @@ class FirestoreFcmApi {
             body: body,
             useSupabaseTemplateWrapper: useSupabaseTemplateWrapper,
             recipientLabel: recipientName,
-            notificationType: notificationType ?? 'إشعار موظف',
             actionText: actionText,
-            referenceId: referenceId,
             details: details,
             languageCode: preferredLanguageCode,
           ),
@@ -751,7 +748,6 @@ class FirestoreFcmApi {
       }
       if (sendThisClientEmail) {
         final details = <String, String>{
-          'المستلم': recipientName,
           if (emailDetails != null) ...emailDetails,
         };
         unawaited(
@@ -761,9 +757,7 @@ class FirestoreFcmApi {
             body: body,
             useSupabaseTemplateWrapper: useSupabaseTemplateWrapper,
             recipientLabel: recipientName,
-            notificationType: notificationType ?? 'إشعار عميل',
             actionText: actionText,
-            referenceId: referenceId,
             details: details,
             languageCode: preferredLanguageCode,
           ),
@@ -1130,8 +1124,6 @@ class FirestoreFcmApi {
       }
       if (sendThisEmail) {
         final details = <String, String>{
-          'المستلم': recipientName,
-          'معرف المستلم': trimmedUserId,
           if (emailDetails != null) ...emailDetails,
         };
         emailItems.add(
@@ -1140,9 +1132,7 @@ class FirestoreFcmApi {
             title: title,
             body: body,
             recipientLabel: recipientName,
-            notificationType: notificationType ?? 'إشعار موظف',
             actionText: actionText,
-            referenceId: referenceId ?? trimmedUserId,
             details: details,
             languageCode: preferredLanguageCode,
           ),
@@ -1184,7 +1174,7 @@ class FirestoreFcmApi {
       unawaited(
         EmailNotificationService.sendDetailedNotificationBatch(
           emailItems,
-          useSupabaseTemplateWrapper: true,
+          useSupabaseTemplateWrapper: false,
         ),
       );
     }

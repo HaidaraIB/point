@@ -27,6 +27,7 @@ import 'package:point/Localization/LanguageController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Services/fcm_token_cache.dart';
 import 'package:point/Services/NotificationService.dart';
+import 'package:point/Services/notification_email_fields.dart';
 import 'package:point/Services/push_permissions_helper.dart';
 import 'package:point/Services/r2_storage_upload.dart';
 import 'package:point/Services/upload_cancel_token.dart';
@@ -928,10 +929,12 @@ class HomeController extends GetxController {
     final result = await _service.addTask(taskWithTimeline);
     isLoading.value = false;
     if (result && task.assignedTo.trim().isNotEmpty) {
+      final ctx = _taskEmailContext(task);
       unawaited(
         NotificationService.notifyEmployeeAssignedToTask(
           employeeId: task.assignedTo,
           taskTitle: task.title,
+          taskContext: ctx,
         ),
       );
       unawaited(
@@ -940,6 +943,8 @@ class HomeController extends GetxController {
           departmentNameAr: NotificationService.departmentNameFromTaskType(
             task.type,
           ),
+          dueDate: ctx.dueDate,
+          clientName: ctx.clientName,
         ),
       );
     }
@@ -974,6 +979,54 @@ class HomeController extends GetxController {
     return result;
   }
 
+  TaskEmailContext _taskEmailContext(
+    TaskModel task, {
+    String? actorName,
+    String? commentPreview,
+    int? attachmentCount,
+    String? newDueDate,
+    String? newStatus,
+    String? commenterName,
+  }) {
+    final priority = task.priority.trim();
+    final client = task.clientName.trim();
+    return TaskEmailContext(
+      taskTitle: task.title,
+      department: NotificationService.departmentNameFromTaskType(task.type),
+      dueDate: FunHelper.formatdate(task.toDate),
+      startDate: FunHelper.formatdate(task.fromDate),
+      priority: priority.isEmpty ? null : priority,
+      clientName: client.isEmpty ? null : client,
+      editMessage: task.managementEditRequestMessage.trim().isEmpty
+          ? null
+          : task.managementEditRequestMessage,
+      requestedBy: actorName,
+      rejectionReason: task.rejectionMessage.trim().isEmpty
+          ? null
+          : task.rejectionMessage,
+      rejectedBy: actorName,
+      commentPreview: commentPreview,
+      extensionReason: task.deadlineExtensionReason.trim().isEmpty
+          ? null
+          : task.deadlineExtensionReason,
+      newDueDate: newDueDate ?? FunHelper.formatdate(task.deadlineExtensionRequestedTo),
+      denialNote: task.deadlineExtensionDeniedNote.trim().isEmpty
+          ? null
+          : task.deadlineExtensionDeniedNote,
+      attachmentCount: attachmentCount,
+      addedBy: actorName,
+      changedBy: actorName,
+      newStatus: newStatus,
+      commenterName: commenterName,
+    );
+  }
+
+  String? _latestNoteText(TaskModel task) {
+    if (task.notes.isEmpty) return null;
+    final last = task.notes.last;
+    return last.note.trim().isEmpty ? null : last.note;
+  }
+
   Future<void> _triggerTaskNotifications(
     TaskModel oldTask,
     TaskModel newTask,
@@ -985,13 +1038,22 @@ class HomeController extends GetxController {
         assigneeId;
     final isUpdateByAssignee = emp?.id == assigneeId;
 
+    final actorName = (emp?.name ?? '').trim().isEmpty
+        ? null
+        : (emp?.name ?? '').trim();
+
     if (oldTask.status != newTask.status) {
       if (assigneeId.isNotEmpty) {
         await NotificationService.notifyEmployeeTaskStatusChanged(
           employeeId: assigneeId,
           taskTitle: newTask.title,
           newStatus: newTask.status,
-          changedBy: (emp?.name ?? '').trim(),
+          changedBy: actorName ?? '',
+          taskContext: _taskEmailContext(
+            newTask,
+            actorName: actorName,
+            newStatus: NotificationService.statusLabelAr(newTask.status),
+          ),
         );
       }
       if (isUpdateByAssignee) {
@@ -1000,6 +1062,7 @@ class HomeController extends GetxController {
           await NotificationService.notifyManagersTaskReceivedByEmployee(
             employeeName: assigneeName,
             taskTitle: newTask.title,
+            taskContext: _taskEmailContext(newTask, actorName: assigneeName),
           );
         } else if (newTask.status == StorageKeys.status_ready_to_publish ||
             newTask.status == StorageKeys.status_under_revision ||
@@ -1008,6 +1071,7 @@ class HomeController extends GetxController {
           await NotificationService.notifyManagersTaskCompletedByEmployee(
             employeeName: assigneeName,
             taskTitle: newTask.title,
+            taskContext: _taskEmailContext(newTask, actorName: assigneeName),
           );
         }
       }
@@ -1016,6 +1080,7 @@ class HomeController extends GetxController {
         await NotificationService.notifyEmployeeTaskRejected(
           employeeId: assigneeId,
           taskTitle: newTask.title,
+          taskContext: _taskEmailContext(newTask, actorName: actorName),
         );
       }
       if (assigneeId.isNotEmpty &&
@@ -1028,6 +1093,7 @@ class HomeController extends GetxController {
         await NotificationService.notifyEmployeeEditRequestedByManagement(
           employeeId: assigneeId,
           taskTitle: newTask.title,
+          taskContext: _taskEmailContext(newTask, actorName: actorName),
         );
       }
       if (oldTask.status != newTask.status &&
@@ -1037,6 +1103,7 @@ class HomeController extends GetxController {
         await NotificationService.notifyAdminsSupervisorEscalatedTask(
           supervisorName: sn.isEmpty ? 'notify.unknown_actor'.tr : sn,
           taskTitle: newTask.title,
+          taskContext: _taskEmailContext(newTask),
         );
       }
       final wasEnded = StorageKeys.isTaskEnded(oldTask);
@@ -1045,6 +1112,7 @@ class HomeController extends GetxController {
         await NotificationService.notifyEmployeeTaskReopened(
           employeeId: assigneeId,
           taskTitle: newTask.title,
+          taskContext: _taskEmailContext(newTask),
         );
       }
     }
@@ -1053,6 +1121,11 @@ class HomeController extends GetxController {
       await NotificationService.notifyEmployeeNewAttachments(
         employeeId: assigneeId,
         taskTitle: newTask.title,
+        taskContext: _taskEmailContext(
+          newTask,
+          actorName: actorName,
+          attachmentCount: newTask.files.length - oldTask.files.length,
+        ),
       );
     }
 
@@ -1071,6 +1144,8 @@ class HomeController extends GetxController {
         employeeName: assigneeName,
         taskTitle: newTask.title,
         kind: editKind,
+        taskContext: _taskEmailContext(newTask, actorName: assigneeName),
+        commentPreview: addedNotes ? _latestNoteText(newTask) : null,
       );
     }
 
@@ -1086,6 +1161,11 @@ class HomeController extends GetxController {
         employeeId: assigneeId,
         commenterName: commenterName,
         taskTitle: newTask.title,
+        taskContext: _taskEmailContext(
+          newTask,
+          commenterName: commenterName,
+          commentPreview: _latestNoteText(newTask),
+        ),
       );
     }
 
@@ -1108,6 +1188,7 @@ class HomeController extends GetxController {
       await NotificationService.notifyManagersDeadlineExtensionRequested(
         employeeName: assigneeName,
         taskTitle: newTask.title,
+        taskContext: _taskEmailContext(newTask, actorName: assigneeName),
       );
     }
     if (oldDe == TaskModel.kDeadlineExtensionPending &&
@@ -1119,6 +1200,10 @@ class HomeController extends GetxController {
         employeeId: assigneeId,
         taskTitle: newTask.title,
         newDueLabel: fmt ?? newTask.toDate.toIso8601String(),
+        taskContext: _taskEmailContext(
+          newTask,
+          newDueDate: fmt,
+        ),
       );
     }
     if (oldDe == TaskModel.kDeadlineExtensionPending &&
@@ -1127,6 +1212,7 @@ class HomeController extends GetxController {
       await NotificationService.notifyEmployeeDeadlineExtensionDenied(
         employeeId: assigneeId,
         taskTitle: newTask.title,
+        taskContext: _taskEmailContext(newTask),
       );
     }
   }
