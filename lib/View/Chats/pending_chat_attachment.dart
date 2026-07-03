@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/View/Chats/chat_cached_attachment_image.dart';
 import 'package:point/View/Chats/chat_reply_draft_banner.dart';
+import 'package:point/View/Chats/voice_recorder_scope.dart';
 
 /// Staged attachment (uploaded URL) until the user taps Send — same pattern as paste.
 class PendingChatAttachment {
@@ -56,6 +57,16 @@ class PendingAttachmentStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (pending.messageType == 'voice') {
+      return VoiceRecorderSavedPreview(
+        voiceUrl: pending.attachmentUrl,
+        durationSec: pending.durationSec ?? 0,
+        onClear: onCancel,
+        padding: padding,
+        captionHint: AppLocaleKeys.chatVoiceCaptionHint.tr,
+      );
+    }
+
     final label = _label();
     Widget leading = _leading();
     if (onTapPreview != null &&

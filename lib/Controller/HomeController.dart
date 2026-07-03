@@ -17,6 +17,7 @@ import 'package:point/Models/ContentModel.dart';
 import 'package:point/Models/MetaPostModel.dart';
 import 'package:point/Models/EmployeeModel.dart';
 import 'package:point/Models/NotificationModel.dart';
+import 'package:point/Models/ProgrammingUpdateModel.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/AudioService.dart';
 import 'package:point/Services/audio_tab_visibility.dart';
@@ -907,6 +908,63 @@ class HomeController extends GetxController {
     _rebindClientsAndTasksStreams();
   }
 
+  void fetchProgrammingUpdates() {
+    final emp = currentEmployee.value ?? lastKnownEmployee.value;
+    if (emp == null) {
+      programmingUpdates.bindStream(
+        Stream<List<ProgrammingUpdateModel>>.value(const []),
+      );
+      return;
+    }
+    final role = emp.role.trim().toLowerCase();
+    final isManager = role == 'admin' || role == 'supervisor';
+    final isProgramming = emp.hasDepartment(StorageKeys.departmentProgramming);
+    if (isManager || isProgramming) {
+      programmingUpdates.bindStream(_service.getProgrammingUpdatesStream());
+    } else {
+      programmingUpdates.bindStream(
+        Stream<List<ProgrammingUpdateModel>>.value(const []),
+      );
+    }
+  }
+
+  int get pendingProgrammingUpdatesCount => programmingUpdates
+      .where((u) => u.isPending)
+      .length;
+
+  Future<bool> addProgrammingUpdate(ProgrammingUpdateModel update) async {
+    isLoading.value = true;
+    final emp = currentEmployee.value;
+    final withMeta = update.copyWith(
+      createdBy: emp?.id ?? '',
+      status: StorageKeys.programmingUpdateStatusPending,
+    );
+    final id = await _service.addProgrammingUpdate(withMeta);
+    isLoading.value = false;
+    return id != null;
+  }
+
+  Future<bool> updateProgrammingUpdate(ProgrammingUpdateModel update) async {
+    isLoading.value = true;
+    final result = await _service.updateProgrammingUpdate(update);
+    isLoading.value = false;
+    return result;
+  }
+
+  Future<bool> deleteProgrammingUpdate(String id) async {
+    isLoading.value = true;
+    final result = await _service.deleteProgrammingUpdate(id);
+    isLoading.value = false;
+    return result;
+  }
+
+  Future<bool> markProgrammingUpdatesConverted(
+    List<String> updateIds,
+    String taskId,
+  ) async {
+    return _service.markProgrammingUpdatesConverted(updateIds, taskId);
+  }
+
   /// بعد دفع صامت أو استئناف التطبيق — إعادة ربط تدفقات البيانات.
   void refreshAfterSilentPush() {
     fetchClients();
@@ -926,7 +984,13 @@ class HomeController extends GetxController {
       timestamp: DateTime.now(),
     );
     final taskWithTimeline = task.copyWith(timelineEvents: [createdEvent]);
-    final result = await _service.addTask(taskWithTimeline);
+    final newId = await _service.addTask(taskWithTimeline);
+    final result = newId != null;
+    if (result && task.sourceUpdateIds.isNotEmpty && newId.isNotEmpty) {
+      unawaited(
+        markProgrammingUpdatesConverted(task.sourceUpdateIds, newId),
+      );
+    }
     isLoading.value = false;
     if (result && task.assignedTo.trim().isNotEmpty) {
       final ctx = _taskEmailContext(task);
@@ -2502,6 +2566,7 @@ class HomeController extends GetxController {
       employees.bindStream(Stream<List<EmployeeModel>>.value([]));
     }
     _rebindClientsAndTasksStreams();
+    fetchProgrammingUpdates();
     fetchContents();
     if (role == 'admin' || role == 'supervisor') {
       fetchMetaPosts();
@@ -2624,6 +2689,7 @@ class HomeController extends GetxController {
   RxString selectedDate = ''.obs;
   var notifications = <NotificationModel>[].obs;
   var tasks = <TaskModel>[].obs;
+  var programmingUpdates = <ProgrammingUpdateModel>[].obs;
   var isLoading = false.obs;
 
   /// Total unread messages across all chats (for header badge).
@@ -3129,6 +3195,7 @@ class HomeController extends GetxController {
   void onInit() {
     // currentemployee.value?.id = '3';
     _rebindClientsAndTasksStreams();
+    fetchProgrammingUpdates();
     fetchContents();
     ever(contents, (_) => refreshFilteredContents());
     ever(tasks, (_) {
@@ -3196,6 +3263,9 @@ class HomeController extends GetxController {
     clients.bindStream(Stream<List<ClientModel>>.value([]));
     contents.bindStream(Stream<List<ContentModel>>.value([]));
     tasks.bindStream(Stream<List<TaskModel>>.value([]));
+    programmingUpdates.bindStream(
+      Stream<List<ProgrammingUpdateModel>>.value(const []),
+    );
     notifications.bindStream(Stream<List<NotificationModel>>.value([]));
     searchedContents.clear();
     clearEmployeeWebContentFilters();

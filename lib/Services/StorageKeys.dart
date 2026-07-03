@@ -399,6 +399,9 @@ class StorageKeys {
   static const String departmentProgramming = 'programming';
   static const String departmentAdministration = 'administration';
 
+  static const String programmingUpdateStatusPending = 'pending';
+  static const String programmingUpdateStatusConverted = 'converted';
+
   static const List<String> departmentSlugs = [
     departmentPromotion,
     departmentDesign,

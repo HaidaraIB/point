@@ -125,6 +125,9 @@ class AdministrationTaskFormDelegate extends TaskFormDialogDelegate {
         type: taskType,
         administrationModel: administrationModel,
         notes: notes,
+        voiceRecords: common.voiceRecords,
+        voiceRecordUrl: common.voiceRecordUrl,
+        voiceRecordDurationSec: common.voiceRecordDurationSec,
       );
     }
     return existing.copyWith(
@@ -141,6 +144,9 @@ class AdministrationTaskFormDelegate extends TaskFormDialogDelegate {
       notes: notes,
       files: common.files,
       administrationModel: administrationModel,
+      voiceRecords: common.voiceRecords,
+      voiceRecordUrl: common.voiceRecordUrl,
+      voiceRecordDurationSec: common.voiceRecordDurationSec,
     );
   }
 

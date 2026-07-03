@@ -21,6 +21,10 @@ import 'package:point/View/Tasks/Dialogs/TaskFormDialogHeader.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/t.dart';
 import 'package:point/View/Tasks/Dialogs/task_dialog_constants.dart';
+import 'package:point/View/Tasks/Shared/task_form_dialog_actions.dart';
+import 'package:point/View/Tasks/Shared/task_voice_form_helpers.dart';
+import 'package:point/View/Tasks/Shared/task_voice_record_field.dart';
+import 'package:point/Models/VoiceRecordEntry.dart';
 
 void designDialog(BuildContext context, {TaskModel? model}) {
   const otherClientValue = kTaskOtherClientSentinel;
@@ -71,6 +75,7 @@ void designDialog(BuildContext context, {TaskModel? model}) {
 
   DateTime? startAt = model?.fromDate;
   DateTime? endAt = model?.toDate;
+  var voiceRecords = voiceRecordsFromTask(model);
 
   Get.find<HomeController>().uploadedFilesPaths.assignAll(
     List.from(model?.files ?? []),
@@ -86,7 +91,9 @@ void designDialog(BuildContext context, {TaskModel? model}) {
         child: GetBuilder<HomeController>(
           builder: (controller) {
             final dialogW = (Get.width * 0.7).clamp(300.0, Get.width - 24.0);
-            return Form(
+            return StatefulBuilder(
+              builder: (context, setLocal) {
+                return Form(
               key: _key,
               child: SizedBox(
                 width: dialogW,
@@ -663,24 +670,18 @@ void designDialog(BuildContext context, {TaskModel? model}) {
                       ),
 
                       Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          children: [
-                            Obx(
-                              () => SizedBox(
-                                width: (dialogW - 212).clamp(80.0, double.infinity),
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.primary,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(24),
-                                    ),
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 48,
-                                      vertical: 20,
-                                    ),
-                                  ),
-                                  onPressed: () {
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: TaskVoiceRecordField(
+                          records: voiceRecords,
+                          onRecordsChanged: (v) =>
+                              setLocal(() => voiceRecords = v),
+                        ),
+                      ),
+
+                      Obx(
+                        () => TaskFormDialogActions(
+                          isLoading: controller.isLoading.value,
+                          onSave: () {
                                     final fallbackDate = DateTime.now();
                                     final effectiveStartAt = startAt ?? fallbackDate;
                                     final effectiveEndAt = endAt ?? effectiveStartAt;
@@ -729,6 +730,16 @@ void designDialog(BuildContext context, {TaskModel? model}) {
                                             files:
                                                 controller.uploadedFilesPaths,
                                             type: '1',
+                                            voiceRecords: voiceRecords,
+                                            voiceRecordUrl:
+                                                VoiceRecordEntry.primaryUrl(
+                                              voiceRecords,
+                                            ),
+                                            voiceRecordDurationSec:
+                                                VoiceRecordEntry
+                                                    .primaryDurationSec(
+                                              voiceRecords,
+                                            ),
                                             designDetails: DesignTaskModel(
                                               designsDimensions:
                                                   dimensionsController.text,
@@ -779,6 +790,16 @@ void designDialog(BuildContext context, {TaskModel? model}) {
                                                     .toList(),
                                             notes: model.notes,
                                             type: '1',
+                                            voiceRecords: voiceRecords,
+                                            voiceRecordUrl:
+                                                VoiceRecordEntry.primaryUrl(
+                                              voiceRecords,
+                                            ),
+                                            voiceRecordDurationSec:
+                                                VoiceRecordEntry
+                                                    .primaryDurationSec(
+                                              voiceRecords,
+                                            ),
                                             designDetails: DesignTaskModel(
                                               designsDimensions:
                                                   dimensionsController.text,
@@ -794,59 +815,22 @@ void designDialog(BuildContext context, {TaskModel? model}) {
                                         Get.back();
                                         controller.uploadedFilesPaths.clear();
                                       }
-                                  },
-                                  child:
-                                      controller.isLoading.value
-                                          ? Center(
-                                            child: CircularProgressIndicator(
-                                              color: Colors.white,
-                                            ),
-                                          )
-                                          : Text(
-                                            (model != null &&
-                                                    ((controller
-                                                                .currentEmployee
-                                                                .value
-                                                                ?.role ==
-                                                            'admin') ||
-                                                        (controller
-                                                                .currentEmployee
-                                                                .value
-                                                                ?.role ==
-                                                            'supervisor')))
-                                                ? 'edit'.tr
-                                                : 'common.save'.tr,
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                ),
-                              ),
-                            ),
-                            SizedBox(width: 20),
-                            SizedBox(
-                              width: 160,
-                              child: OutlinedButton(
-                                style: OutlinedButton.styleFrom(
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(24),
-                                  ),
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 32,
-                                    vertical: 20,
-                                  ),
-                                ),
-                                onPressed: () => Navigator.pop(context),
-                                child: Text('common.cancel'.tr),
-                              ),
-                            ),
-                          ],
+                          },
+                          saveLabel: (model != null &&
+                                  ((controller.currentEmployee.value?.role ==
+                                          'admin') ||
+                                      (controller.currentEmployee.value?.role ==
+                                          'supervisor')))
+                              ? 'edit'.tr
+                              : 'common.save'.tr,
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
+            );
+              },
             );
           },
         ),

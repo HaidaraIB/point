@@ -16,6 +16,10 @@ import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Tasks/Dialogs/TaskFormDialogDelegate.dart';
 import 'package:point/View/Tasks/Dialogs/task_dialog_constants.dart';
 import 'package:point/View/Tasks/Dialogs/TaskFormDialogHeader.dart';
+import 'package:point/View/Tasks/Shared/task_form_dialog_actions.dart';
+import 'package:point/View/Tasks/Shared/task_voice_form_helpers.dart';
+import 'package:point/View/Tasks/Shared/task_voice_record_field.dart';
+import 'package:point/Models/VoiceRecordEntry.dart';
 
 /// Generic web dialog for add/edit task. Renders common fields and delegates
 /// type-specific fields and task building to [TaskFormDialogDelegate].
@@ -47,6 +51,7 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
   DateTime? _startAt;
   DateTime? _endAt;
   bool _useCustomClient = false;
+  List<VoiceRecordEntry> _voiceRecords = const [];
 
   @override
   void initState() {
@@ -62,6 +67,7 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
     _notesController = TextEditingController(text: m?.description ?? '');
     _startAt = m?.fromDate;
     _endAt = m?.toDate;
+    _voiceRecords = voiceRecordsFromTask(m);
     Get.find<HomeController>().uploadedFilesPaths.assignAll(m?.files ?? []);
     widget.delegate.initFromModel(m);
   }
@@ -108,6 +114,14 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
                           _buildPriorityRow(controller),
                           _buildDatesRow(context),
                           _buildNotesAndAttachmentsRow(controller),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 16),
+                            child: TaskVoiceRecordField(
+                              records: _voiceRecords,
+                              onRecordsChanged: (v) =>
+                                  setState(() => _voiceRecords = v),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -504,52 +518,15 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
   }
 
   Widget _buildActions(HomeController controller) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        children: [
-          Obx(
-            () => SizedBox(
-              width: Get.width * 0.4 - 260,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 20),
-                ),
-                onPressed: () => _onSave(controller),
-                child: controller.isLoading.value
-                    ? const Center(child: CircularProgressIndicator(color: Colors.white))
-                    : Text(
-                        (widget.model != null &&
-                                ((controller.currentEmployee.value?.role ==
-                                        'admin') ||
-                                    (controller.currentEmployee.value?.role ==
-                                        'supervisor')))
-                            ? 'edit'.tr
-                            : 'common.save'.tr,
-                        style: const TextStyle(color: Colors.white),
-                      ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 20),
-          SizedBox(
-            width: 160,
-            child: OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
-              ),
-              onPressed: () => Navigator.pop(context),
-              child: Text('common.cancel'.tr),
-            ),
-          ),
-        ],
+    return Obx(
+      () => TaskFormDialogActions(
+        isLoading: controller.isLoading.value,
+        onSave: () => _onSave(controller),
+        saveLabel: (widget.model != null &&
+                ((controller.currentEmployee.value?.role == 'admin') ||
+                    (controller.currentEmployee.value?.role == 'supervisor')))
+            ? 'edit'.tr
+            : 'common.save'.tr,
       ),
     );
   }
@@ -582,8 +559,15 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
           : null,
       newNoteAuthor: controller.currentEmployee.value?.name,
       files: controller.uploadedFilesPaths.cast<String>().toList(),
+      voiceRecords: _voiceRecords,
+      voiceRecordUrl: VoiceRecordEntry.primaryUrl(_voiceRecords),
+      voiceRecordDurationSec:
+          VoiceRecordEntry.primaryDurationSec(_voiceRecords),
     );
-    final task = widget.delegate.buildTask(common, widget.model, controller);
+    final task = applyVoiceRecordsToTask(
+      widget.delegate.buildTask(common, widget.model, controller),
+      _voiceRecords,
+    );
     if (widget.model == null) {
       await controller.addTask(task);
       Get.back();

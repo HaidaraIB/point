@@ -23,6 +23,7 @@ import 'package:point/View/Tasks/Dialogs/PromotionDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PublishDialog.dart';
 import 'package:point/View/Tasks/Shared/deadline_extension_request_dialog.dart';
 import 'package:point/View/Tasks/Shared/task_details_feedback_widgets.dart';
+import 'package:point/View/Tasks/Shared/task_voice_details_tile.dart';
 import 'package:point/View/Tasks/Shared/task_attachment_gallery.dart';
 import 'package:point/View/Tasks/Shared/edit_final_deliverable_dialog.dart';
 import 'package:point/View/Tasks/Shared/open_task_final_work.dart';
@@ -851,6 +852,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
                       },
                     ),
           ),
+          TaskVoiceDetailsTile(task: t),
         ],
       ),
     );

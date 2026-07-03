@@ -26,6 +26,8 @@ import 'package:point/View/Tasks/Dialogs/MontageDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PhotographyDialog.dart';
 import 'package:point/View/Tasks/Dialogs/AdministrativeDialog.dart';
 import 'package:point/View/Tasks/Dialogs/ProgrammingDialog.dart';
+import 'package:point/View/Tasks/ProgrammingUpdates/add_programming_update_dialog.dart';
+import 'package:point/View/Tasks/ProgrammingUpdates/programming_department_tabs.dart';
 import 'package:point/View/Tasks/Dialogs/PromotionDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PublishDialog.dart';
 import 'package:point/View/Tasks/TaskCard.dart';
@@ -103,6 +105,39 @@ class Tasks extends StatelessWidget {
                                     ),
                                   ),
                                   Spacer(),
+                                  if (selectedIndex == 6) ...[
+                                    MainButton(
+                                      width: 150,
+                                      height: 45,
+                                      borderSize: 35,
+                                      fontColor: Colors.white,
+                                      backgroundColor: AppColors.primary,
+                                      widget: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            'programming.updates.add'.tr,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                          const Icon(
+                                            Icons.update,
+                                            color: Colors.white,
+                                            size: 18,
+                                          ),
+                                        ],
+                                      ),
+                                      onPressed: () {
+                                        controller.uploadedFilesPaths.clear();
+                                        showAddProgrammingUpdateDialog(context);
+                                      },
+                                    ),
+                                    const SizedBox(width: 8),
+                                  ],
                                   MainButton(
                                     width: 178,
                                     height: 45,
@@ -162,6 +197,23 @@ class Tasks extends StatelessWidget {
                                 ],
                               ),
                               SizedBox(height: 10),
+                              if (selectedIndex == 6)
+                                SizedBox(
+                                  height: MediaQuery.of(context).size.height -
+                                      180,
+                                  child: ProgrammingDepartmentTabs(
+                                    initialTabIndex:
+                                        programmingUpdatesTabFromRoute(),
+                                    tasksTab: SingleChildScrollView(
+                                      child: _buildProgrammingTasksDesktopBody(
+                                        context,
+                                        controller,
+                                        selectedIndex,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              else ...[
                               Obx(() {
                                 final tasks =
                                     controller.tasksSearched
@@ -520,6 +572,7 @@ class Tasks extends StatelessWidget {
                                   selectedIndex: selectedIndex,
                                 ),
                               ),
+                              ],
                             ],
                           ),
                         ),
@@ -531,6 +584,279 @@ class Tasks extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildProgrammingTasksDesktopBody(
+    BuildContext context,
+    HomeController controller,
+    int selectedIndex,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Obx(() {
+          final tasks = controller.tasksSearched
+              .where((a) => a.type == selectedIndex.toString())
+              .toList();
+          final isDesktop = Responsive.isDesktop(Get.context!);
+          final boxWidth = isDesktop
+              ? null
+              : (Get.width / 5 - 30).clamp(88.0, double.infinity);
+          final perStatus = taskManagementOngoingStatEntriesOrdered(
+            tasks: tasks,
+            taskType: selectedIndex.toString(),
+          );
+          final statRow = Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildStatBox(
+                tasks.length.toString(),
+                'employee.dashboard.total_tasks'.tr,
+                Colors.blue,
+                width: boxWidth,
+              ),
+              for (final e in perStatus)
+                _buildStatBox(
+                  e.value.toString(),
+                  FunHelper.trStored(
+                    e.key,
+                    kind: StoredValueKind.taskStatus,
+                  ),
+                  TaskStatusVisuals.iconTintFor(e.key),
+                  width: boxWidth,
+                ),
+            ],
+          );
+          return SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: statRow,
+          );
+        }),
+        const SizedBox(height: 15),
+        _buildDesktopFilters(context, controller, selectedIndex),
+        const SizedBox(height: 15),
+        Text(
+          'tasks.summary.sent_tasks'.tr,
+          style: TextStyle(
+            color: AppColors.fontColorGrey,
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        SizedBox(
+          width: Responsive.isDesktop(context) ? Get.width - 300 : Get.width,
+          height: 620,
+          child: TasksGridPage(selectedIndex: selectedIndex),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDesktopFilters(
+    BuildContext context,
+    HomeController controller,
+    int selectedIndex,
+  ) {
+    return SizedBox(
+      height: 62,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              SizedBox(
+                width: (Get.width * 0.7 / 3) - 25,
+                child: InputText(
+                  prefixIcon: Icon(CupertinoIcons.search, color: Colors.grey),
+                  hintText: 'tasks.search_hint_extended'.tr,
+                  height: 42,
+                  fillColor: Colors.white,
+                  controller: controller.searchController,
+                  onchange: (value) {
+                    controller.filterTasks();
+                    return null;
+                  },
+                  borderRadius: 5,
+                  borderColor: Colors.grey.shade300,
+                ),
+              ),
+              const SizedBox(width: 10),
+              InkWell(
+                onTap: () {
+                  controller.searchController.clear();
+                  controller.selectedPriority.value = '';
+                  controller.selectedStatus.value = '';
+                  controller.selectedExecutor.value = '';
+                  controller.filterTasks();
+                },
+                child: SvgPicture.asset(
+                  'assets/svgs/icon_menu.svg',
+                  height: 42,
+                ),
+              ),
+              const SizedBox(width: 24),
+              _desktopPriorityDropdown(controller),
+              const SizedBox(width: 10),
+              _desktopStatusDropdown(controller, selectedIndex),
+              const SizedBox(width: 10),
+              _desktopExecutorDropdown(controller),
+              const SizedBox(width: 10),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _desktopPriorityDropdown(HomeController controller) {
+    return Container(
+      width: 150,
+      height: 40,
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          isExpanded: true,
+          hint: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(
+              'tasks.filter_priority'.tr,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 13,
+                color: AppColors.primaryfontColor,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          value: controller.selectedPriority.value.isEmpty
+              ? null
+              : controller.selectedPriority.value,
+          items: StorageKeys.priority
+              .map((e) => DropdownMenuItem(value: e, child: Text(e.tr)))
+              .toList(),
+          onChanged: (value) {
+            controller.selectedPriority.value = value ?? '';
+            controller.filterTasks();
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _desktopStatusDropdown(
+    HomeController controller,
+    int selectedIndex,
+  ) {
+    final ongoingStatusItems =
+        StorageKeys.ongoingStatusFilterDropdownValues(
+          selectedIndex.toString(),
+        );
+    return Container(
+      width: 170,
+      height: 40,
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          isExpanded: true,
+          hint: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Text(
+              'tasks.filter_status'.tr,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 13,
+                color: AppColors.primaryfontColor,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          value: controller.selectedStatus.value.isEmpty ||
+                  !ongoingStatusItems
+                      .contains(controller.selectedStatus.value)
+              ? null
+              : controller.selectedStatus.value,
+          items: [
+            DropdownMenuItem(
+              value: '',
+              child: Text(
+                'filter_status_ongoing'.tr,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+            ...ongoingStatusItems.map(
+              (e) => DropdownMenuItem(
+                value: e,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Text(e.tr),
+                ),
+              ),
+            ),
+          ],
+          onChanged: (value) {
+            controller.selectedStatus.value = value ?? '';
+            controller.filterTasks();
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _desktopExecutorDropdown(HomeController controller) {
+    return SizedBox(
+      width: 150,
+      height: 40,
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String>(
+            isExpanded: true,
+            hint: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                'tasks.filter_assignee'.tr,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: AppColors.primaryfontColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            value: controller.selectedExecutor.value.isEmpty
+                ? null
+                : controller.selectedExecutor.value,
+            items: controller.employees
+                .map(
+                  (e) => DropdownMenuItem(
+                    value: e.id ?? e.name ?? '',
+                    child: Text(
+                      (e.name ?? '').split(' ').take(2).join(' '),
+                    ),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) {
+              controller.selectedExecutor.value = value ?? '';
+              controller.filterTasks();
+            },
+          ),
+        ),
       ),
     );
   }

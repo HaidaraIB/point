@@ -196,6 +196,9 @@ class ContentWriteFormDelegate extends TaskFormDialogDelegate {
         type: taskType,
         contentWriteModel: contentWriteModel,
         notes: notes,
+        voiceRecords: common.voiceRecords,
+        voiceRecordUrl: common.voiceRecordUrl,
+        voiceRecordDurationSec: common.voiceRecordDurationSec,
       );
     }
     return existing.copyWith(
@@ -212,6 +215,9 @@ class ContentWriteFormDelegate extends TaskFormDialogDelegate {
       notes: notes,
       files: common.files,
       contentWriteModel: contentWriteModel,
+      voiceRecords: common.voiceRecords,
+      voiceRecordUrl: common.voiceRecordUrl,
+      voiceRecordDurationSec: common.voiceRecordDurationSec,
     );
   }
 

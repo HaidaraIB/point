@@ -15,6 +15,9 @@ import 'package:point/View/Shared/CustomDropDown.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/t.dart';
 import 'package:point/View/Tasks/Dialogs/task_dialog_constants.dart';
+import 'package:point/View/Tasks/Shared/task_voice_form_helpers.dart';
+import 'package:point/View/Tasks/Shared/task_voice_record_field.dart';
+import 'package:point/Models/VoiceRecordEntry.dart';
 
 /// Mobile-only full-screen add/edit design task form.
 /// Opened when designDialog() is called on mobile; desktop keeps the dialog.
@@ -47,6 +50,10 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
   DateTime? startAt;
   DateTime? endAt;
   bool useCustomClient = false;
+  List<VoiceRecordEntry> _voiceRecords = const [];
+
+  TaskModel _applyVoice(TaskModel task) =>
+      applyVoiceRecordsToTask(task, _voiceRecords);
 
   @override
   void initState() {
@@ -69,6 +76,7 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
     notesController = TextEditingController(text: m?.description ?? '');
     startAt = m?.fromDate;
     endAt = m?.toDate;
+    _voiceRecords = voiceRecordsFromTask(m);
     Get.find<HomeController>().uploadedFilesPaths.assignAll(
       List.from(m?.files ?? []),
     );
@@ -133,7 +141,8 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
 
     if (model == null) {
       await controller.addTask(
-        TaskModel(
+        _applyVoice(
+          TaskModel(
           title: titleController.text,
           description: notesController.text,
           status: StorageKeys.status_not_start_yet,
@@ -163,13 +172,15 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
             designCount: designsCountController.text,
           ),
         ),
+        ),
       );
       if (!mounted) return;
       Get.back();
       controller.uploadedFilesPaths.clear();
     } else {
       await controller.updateTask(
-        TaskModel(
+        _applyVoice(
+          TaskModel(
           id: model.id,
           title: titleController.text,
           description: notesController.text,
@@ -193,6 +204,7 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
             designType: designTypeController.text,
             designCount: designsCountController.text,
           ),
+        ),
         ),
       );
       if (!mounted) return;
@@ -608,6 +620,12 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                               },
                             ),
                           ),
+                  ),
+                  const SizedBox(height: 16),
+                  TaskVoiceRecordField(
+                    records: _voiceRecords,
+                    onRecordsChanged: (v) =>
+                        setState(() => _voiceRecords = v),
                   ),
                   const SizedBox(height: 32),
                   Obx(

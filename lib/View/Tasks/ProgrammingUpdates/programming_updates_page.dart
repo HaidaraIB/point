@@ -1,0 +1,27 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:point/Services/StorageKeys.dart';
+
+/// Legacy route — opens programming tasks with the pending-updates tab selected.
+class ProgrammingUpdatesPage extends StatelessWidget {
+  final int initialTabIndex;
+
+  const ProgrammingUpdatesPage({super.key, this.initialTabIndex = 1});
+
+  @override
+  Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (Get.currentRoute != '/programming-updates') return;
+      Get.offNamed(
+        '/tasks',
+        parameters: {
+          'department': StorageKeys.departmentProgramming,
+          'updatesTab': initialTabIndex.clamp(0, 2).toString(),
+        },
+      );
+    });
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
+    );
+  }
+}

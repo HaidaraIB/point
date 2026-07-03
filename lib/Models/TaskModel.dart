@@ -6,6 +6,7 @@ import 'package:point/Models/PhotographyModel.dart';
 import 'package:point/Models/ProgrammingModel.dart';
 import 'package:point/Models/PromotionModel.dart';
 import 'package:point/Models/PublishModel.dart';
+import 'package:point/Models/VoiceRecordEntry.dart';
 
 /// خرائط Firestore على الويب قد تكون كائنات JS وليست [Map] دارتية؛
 /// [Map.from] يحوّلها حتى يعمل المشغّل [] في النماذج الفرعية.
@@ -88,6 +89,15 @@ class TaskModel {
   final String deadlineExtensionRequestedBy;
   final String deadlineExtensionDeniedNote;
 
+  /// Optional voice note URL (R2) attached at task creation/edit.
+  final String voiceRecordUrl;
+  /// Duration of [voiceRecordUrl] in seconds (0 if unknown).
+  final int voiceRecordDurationSec;
+  /// All voice notes attached to this task (supports multiple).
+  final List<VoiceRecordEntry> voiceRecords;
+  /// Programming updates merged into this task (type `'6'`).
+  final List<String> sourceUpdateIds;
+
   static const String kDeadlineExtensionPending = 'pending';
   static const String kDeadlineExtensionDenied = 'denied';
 
@@ -144,6 +154,10 @@ class TaskModel {
     this.deadlineExtensionRequestedAt = '',
     this.deadlineExtensionRequestedBy = '',
     this.deadlineExtensionDeniedNote = '',
+    this.voiceRecordUrl = '',
+    this.voiceRecordDurationSec = 0,
+    this.voiceRecords = const [],
+    this.sourceUpdateIds = const [],
   });
 
   /// قيمة عددية لـ [progressMilestoneMask]؛ يُحوَّل الترميز القديم (1–31) إلى 32|64|128|256.
@@ -184,6 +198,7 @@ class TaskModel {
 
   // ✅ fromJson
   factory TaskModel.fromJson(Map<String, dynamic> json) {
+    final parsedVoiceRecords = VoiceRecordEntry.listFromJson(json);
     return TaskModel(
       id: json['id'] ?? '',
       title: json['title'] ?? '',
@@ -315,6 +330,16 @@ class TaskModel {
           json['deadlineExtensionRequestedBy']?.toString() ?? '',
       deadlineExtensionDeniedNote:
           json['deadlineExtensionDeniedNote']?.toString() ?? '',
+      voiceRecords: parsedVoiceRecords,
+      voiceRecordUrl: parsedVoiceRecords.isNotEmpty
+          ? parsedVoiceRecords.first.url
+          : (json['voiceRecordUrl']?.toString() ?? ''),
+      voiceRecordDurationSec: parsedVoiceRecords.isNotEmpty
+          ? parsedVoiceRecords.first.durationSec
+          : ((json['voiceRecordDurationSec'] as num?)?.toInt() ?? 0),
+      sourceUpdateIds: json['sourceUpdateIds'] != null
+          ? List<String>.from(json['sourceUpdateIds'] as List)
+          : <String>[],
     );
   }
 
@@ -386,6 +411,12 @@ class TaskModel {
       'deadlineExtensionRequestedAt': deadlineExtensionRequestedAt,
       'deadlineExtensionRequestedBy': deadlineExtensionRequestedBy,
       'deadlineExtensionDeniedNote': deadlineExtensionDeniedNote,
+      if (voiceRecordUrl.isNotEmpty) 'voiceRecordUrl': voiceRecordUrl,
+      if (voiceRecordDurationSec > 0)
+        'voiceRecordDurationSec': voiceRecordDurationSec,
+      if (voiceRecords.isNotEmpty)
+        'voiceRecords': VoiceRecordEntry.listToJson(voiceRecords),
+      if (sourceUpdateIds.isNotEmpty) 'sourceUpdateIds': sourceUpdateIds,
     };
   }
 
@@ -443,6 +474,11 @@ class TaskModel {
     String? deadlineExtensionRequestedAt,
     String? deadlineExtensionRequestedBy,
     String? deadlineExtensionDeniedNote,
+    String? voiceRecordUrl,
+    int? voiceRecordDurationSec,
+    List<VoiceRecordEntry>? voiceRecords,
+    List<String>? sourceUpdateIds,
+    bool clearVoiceRecord = false,
   }) {
     return TaskModel(
       id: id ?? this.id,
@@ -518,6 +554,15 @@ class TaskModel {
           deadlineExtensionRequestedBy ?? this.deadlineExtensionRequestedBy,
       deadlineExtensionDeniedNote:
           deadlineExtensionDeniedNote ?? this.deadlineExtensionDeniedNote,
+      voiceRecordUrl:
+          clearVoiceRecord ? '' : (voiceRecordUrl ?? this.voiceRecordUrl),
+      voiceRecordDurationSec: clearVoiceRecord
+          ? 0
+          : (voiceRecordDurationSec ?? this.voiceRecordDurationSec),
+      voiceRecords: clearVoiceRecord
+          ? const []
+          : (voiceRecords ?? this.voiceRecords),
+      sourceUpdateIds: sourceUpdateIds ?? this.sourceUpdateIds,
     );
   }
 

@@ -1136,14 +1136,15 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
     }
   }
 
-  Future<bool> addTask(TaskModel task) async {
+  Future<String?> addTask(TaskModel task) async {
     try {
       final docRef = _dbtask.doc(); // auto id
-      await docRef.set(task.copyWith(id: docRef.id).toJson());
-      return true;
+      final id = docRef.id;
+      await docRef.set(task.copyWith(id: id).toJson());
+      return id;
     } catch (e) {
       appLog("❌ Error addTask: $e");
-      return false;
+      return null;
     }
   }
 
@@ -1166,6 +1167,90 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
       appLog("❌ Error deleteTask: $e");
       return false;
     }
+  }
+
+  Future<String?> addProgrammingUpdate(ProgrammingUpdateModel update) async {
+    try {
+      final docRef = _dbProgrammingUpdates.doc();
+      final id = docRef.id;
+      final now = DateTime.now();
+      final payload = update.copyWith(
+        id: id,
+        createdAt: update.createdAt,
+        updatedAt: now,
+      );
+      await docRef.set(payload.toJson());
+      return id;
+    } catch (e) {
+      appLog('❌ Error addProgrammingUpdate: $e');
+      return null;
+    }
+  }
+
+  Future<bool> updateProgrammingUpdate(ProgrammingUpdateModel update) async {
+    try {
+      if (update.id == null || update.id!.isEmpty) {
+        throw Exception('id is null');
+      }
+      final payload = update.copyWith(updatedAt: DateTime.now());
+      await _dbProgrammingUpdates.doc(update.id).update(payload.toJson());
+      return true;
+    } catch (e) {
+      appLog('❌ Error updateProgrammingUpdate: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deleteProgrammingUpdate(String id) async {
+    try {
+      await _dbProgrammingUpdates.doc(id).delete();
+      return true;
+    } catch (e) {
+      appLog('❌ Error deleteProgrammingUpdate: $e');
+      return false;
+    }
+  }
+
+  Future<bool> markProgrammingUpdatesConverted(
+    List<String> updateIds,
+    String taskId,
+  ) async {
+    if (updateIds.isEmpty || taskId.trim().isEmpty) return true;
+    try {
+      final batch = db.batch();
+      final now = DateTime.now().toIso8601String();
+      for (final rawId in updateIds) {
+        final id = rawId.trim();
+        if (id.isEmpty) continue;
+        batch.update(_dbProgrammingUpdates.doc(id), {
+          'status': StorageKeys.programmingUpdateStatusConverted,
+          'convertedToTaskId': taskId,
+          'convertedAt': now,
+          'updatedAt': now,
+        });
+      }
+      await batch.commit();
+      return true;
+    } catch (e) {
+      appLog('❌ Error markProgrammingUpdatesConverted: $e');
+      return false;
+    }
+  }
+
+  Stream<List<ProgrammingUpdateModel>> getProgrammingUpdatesStream() {
+    return safeFirestoreListStream(
+      _dbProgrammingUpdates
+          .orderBy('createdAt', descending: true)
+          .snapshots()
+          .map(
+            (snapshot) => snapshot.docs.map((doc) {
+              final map = Map<String, dynamic>.from(doc.data() as Map);
+              map['id'] = doc.id;
+              return ProgrammingUpdateModel.fromJson(map);
+            }).toList(),
+          ),
+      'programming_updates',
+    );
   }
 
   Stream<List<TaskModel>> getTasks() {

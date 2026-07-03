@@ -38,7 +38,7 @@ import 'package:point/View/Chats/chat_private_typing.dart';
 import 'package:point/View/Chats/chat_reply_draft_banner.dart';
 import 'package:point/View/Chats/chat_ui_helpers.dart';
 import 'package:point/Utils/chat_attachment_upload.dart';
-import 'package:point/View/Chats/chat_voice_record_button.dart';
+import 'package:point/View/Chats/voice_recorder_scope.dart';
 
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 
@@ -65,6 +65,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   ChatImagePasteListener? _imagePasteListener;
   bool _isEmojiVisible = false;
   PendingChatAttachment? _pendingAttachment;
+  VoiceRecorderController? _voiceRecorder;
+  String? _voiceRecorderChatId;
   // Firebase instances
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   late final PrivateChatTypingWriter _typingWriter;
@@ -917,6 +919,29 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     );
   }
 
+  VoiceRecorderController _voiceRecorderFor(String chatId) {
+    if (_voiceRecorderChatId != chatId) {
+      _voiceRecorder?.dispose();
+      _voiceRecorderChatId = chatId;
+      _voiceRecorder = VoiceRecorderController(
+        scopeId: chatId,
+        usage: VoiceRecorderUsage.chat,
+        activityWriter: _typingWriter,
+        onSaved: (url, sec) async {
+          if (!mounted) return;
+          setState(() {
+            _pendingAttachment = PendingChatAttachment(
+              messageType: 'voice',
+              attachmentUrl: url,
+              durationSec: sec > 0 ? sec : null,
+            );
+          });
+        },
+      );
+    }
+    return _voiceRecorder!;
+  }
+
   @override
   void dispose() {
     _flushScrollDiskTimer();
@@ -940,6 +965,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       );
     }
     unawaited(_typingWriter.dispose());
+    _voiceRecorder?.dispose();
     _messageController.removeListener(_onComposerTextChanged);
     _messageController.dispose();
     // Do not call unfocus() here: during Android route pop it can deadlock the
@@ -2426,7 +2452,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                     constraints: const BoxConstraints(
                                       maxWidth: 860,
                                     ),
-                                    child: Column(
+                                    child: VoiceRecorderScope(
+                                      controller: _voiceRecorderFor(
+                                        _selectedChat!['id'] as String,
+                                      ),
+                                      child: Column(
                                       mainAxisSize: MainAxisSize.min,
                                       crossAxisAlignment:
                                           CrossAxisAlignment.stretch,
@@ -2441,6 +2471,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                               () => _replyDraft = null,
                                             ),
                                           ),
+                                        VoiceRecorderActiveStrip(),
                                         if (_pendingAttachment != null)
                                           PendingAttachmentStrip(
                                             pending: _pendingAttachment!,
@@ -2624,26 +2655,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                     ? null
                                                     : _pasteImageFromClipboard,
                                               ),
-                                              ChatVoiceRecordButton(
-                                                chatId:
-                                                    _selectedChat!['id']
-                                                        as String,
-                                                activityWriter: _typingWriter,
-                                                onUploaded: (url, sec) async {
-                                                  setState(
-                                                    () => _pendingAttachment =
-                                                        PendingChatAttachment(
-                                                          messageType: 'voice',
-                                                          attachmentUrl: url,
-                                                          durationSec: sec > 0
-                                                              ? sec
-                                                              : null,
-                                                        ),
-                                                  );
-                                                  controller.uploadedFilesPaths
-                                                      .clear();
-                                                },
-                                              ),
+                                              const VoiceRecorderTrigger(),
                                               Expanded(
                                                 child: Theme(
                                                   data: Theme.of(context).copyWith(
@@ -2789,6 +2801,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                     ),
                                   ),
                                 ),
+                              ),
                               ),
 
                               // Emoji Picker

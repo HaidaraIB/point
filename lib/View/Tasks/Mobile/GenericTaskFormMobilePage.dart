@@ -12,6 +12,7 @@ import 'package:point/Models/AdministrationTaskModel.dart';
 import 'package:point/Models/ProgrammingModel.dart';
 import 'package:point/Models/PromotionModel.dart';
 import 'package:point/Models/PublishModel.dart';
+import 'package:point/Models/ProgrammingUpdateModel.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
@@ -20,6 +21,10 @@ import 'package:point/View/Shared/CustomDropDown.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/t.dart';
 import 'package:point/View/Tasks/Dialogs/task_dialog_constants.dart';
+import 'package:point/View/Tasks/ProgrammingUpdates/updates_source_banner.dart';
+import 'package:point/View/Tasks/Shared/task_voice_form_helpers.dart';
+import 'package:point/View/Tasks/Shared/task_voice_record_field.dart';
+import 'package:point/Models/VoiceRecordEntry.dart';
 
 /// Mobile full-screen form for add/edit task. Used for all task types except Design
 /// (Design uses DesignTaskFormMobilePage). Web dialogs are not touched.
@@ -92,6 +97,10 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
   DateTime? endAt;
   late String taskType;
   bool useCustomClient = false;
+  List<VoiceRecordEntry> _voiceRecords = const [];
+
+  TaskModel _applyVoice(TaskModel task) =>
+      applyVoiceRecordsToTask(task, _voiceRecords);
 
   @override
   void initState() {
@@ -108,6 +117,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
     notesController = TextEditingController(text: m?.description);
     startAt = m?.fromDate;
     endAt = m?.toDate;
+    _voiceRecords = voiceRecordsFromTask(m);
 
     // Promotion (0)
     final promo = m?.promotionModel;
@@ -485,7 +495,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             files: updatedFiles,
           );
       }
-      await controller.updateTask(updated);
+      await controller.updateTask(_applyVoice(updated));
       if (!mounted) return;
       Get.back();
       controller.uploadedFilesPaths.clear();
@@ -506,7 +516,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
     ];
     switch (taskType) {
       case '0':
-        return TaskModel(
+        return _applyVoice(TaskModel(
           title: titleController.text,
           description: notesController.text,
           status: StorageKeys.status_promotion_in_progress,
@@ -541,9 +551,9 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             specializations: specializationsList.toList(),
             attachementurl: attachmentPromoController.text,
           ),
-        );
+        ));
       case '2':
-        return TaskModel(
+        return _applyVoice(TaskModel(
           title: titleController.text,
           description: notesController.text,
           status: StorageKeys.status_not_start_yet,
@@ -564,9 +574,9 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             designCount: designCountPhotoController.text,
             duration: durationPhotoController.text,
           ),
-        );
+        ));
       case '3':
-        return TaskModel(
+        return _applyVoice(TaskModel(
           title: titleController.text,
           description: notesController.text,
           status: StorageKeys.status_not_start_yet,
@@ -586,9 +596,9 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             designCount: designCountContentController.text,
             designsDimensions: dimensionsContentController.text,
           ),
-        );
+        ));
       case '4':
-        return TaskModel(
+        return _applyVoice(TaskModel(
           title: titleController.text,
           description: notesController.text,
           status: StorageKeys.status_not_start_yet,
@@ -609,9 +619,9 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             attachementurl: attachmentMontageController.text,
             duration: durationMontageController.text,
           ),
-        );
+        ));
       case '5':
-        return TaskModel(
+        return _applyVoice(TaskModel(
           title: titleController.text,
           description: notesController.text,
           status: StorageKeys.status_not_start_yet,
@@ -632,9 +642,9 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             fileurl: fileUrlController.text,
             designsDimensions: dimensionsPublishController.text,
           ),
-        );
+        ));
       case '6':
-        return TaskModel(
+        return _applyVoice(TaskModel(
           title: titleController.text,
           description: notesController.text,
           status: StorageKeys.status_not_start_yet,
@@ -653,11 +663,12 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             category: categoryController.text,
             fileurl: fileUrlController.text,
             designsDimensions: '',
-            aboutTask: aboutTaskController.text,
-          ),
-        );
+              aboutTask: aboutTaskController.text,
+            ),
+            sourceUpdateIds: widget.model?.sourceUpdateIds ?? const [],
+          ));
       case '7':
-        return TaskModel(
+        return _applyVoice(TaskModel(
           title: titleController.text,
           description: notesController.text,
           status: StorageKeys.status_not_start_yet,
@@ -679,7 +690,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                         aboutTaskController.text,
                   },
           ),
-        );
+        ));
       default:
         FunHelper.showSnackbar(
           'validation.title'.tr,
@@ -1034,6 +1045,12 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                             ),
                           ),
                   ),
+                  const SizedBox(height: 16),
+                  TaskVoiceRecordField(
+                    records: _voiceRecords,
+                    onRecordsChanged: (v) =>
+                        setState(() => _voiceRecords = v),
+                  ),
                   const SizedBox(height: 32),
                   Obx(
                     () => SizedBox(
@@ -1317,7 +1334,18 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
           InputText(labelText: 'task_details.dimensions'.tr, hintText: 'task_details.dimensions'.tr, height: 48, fillColor: Colors.white, controller: dimensionsPublishController, borderRadius: 8, borderColor: Colors.grey.shade300),
         ];
       case '6': // Programming
+        final sourceIds = widget.model?.sourceUpdateIds ?? const <String>[];
+        final sourceUpdates = sourceIds.isEmpty
+            ? const <ProgrammingUpdateModel>[]
+            : Get.find<HomeController>()
+                .programmingUpdates
+                .where((u) => u.id != null && sourceIds.contains(u.id))
+                .toList();
         return [
+          if (sourceUpdates.isNotEmpty) ...[
+            UpdatesSourceBanner(sourceUpdates: sourceUpdates),
+            const SizedBox(height: 12),
+          ],
           const SizedBox(height: 24),
           _sectionLabel('tasks.form.section_programming'.tr),
           InputText(labelText: 'task_details.content_link'.tr, hintText: 'task_details.content_link'.tr, height: 48, fillColor: Colors.white, controller: contentUrlController, borderRadius: 8, borderColor: Colors.grey.shade300),

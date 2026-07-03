@@ -263,6 +263,11 @@ class AppLocaleKeys {
   static const chatPasteImageFailed = 'chat.paste_image_failed';
   static const chatAttachVoice = 'chat.attach_voice';
   static const chatVoiceDiscard = 'chat.voice_discard';
+  static const chatVoicePause = 'chat.voice_pause';
+  static const chatVoicePaused = 'chat.voice_paused';
+  static const chatVoiceResume = 'chat.voice_resume';
+  static const chatVoiceUploading = 'chat.voice_uploading';
+  static const chatVoiceCaptionHint = 'chat.voice_caption_hint';
   static const chatVoiceSaveFailed = 'chat.voice_save_failed';
   static const chatVoicePlaybackSpeed = 'chat.voice_playback_speed';
   static const chatPickEmployee = 'chat.pick_employee';

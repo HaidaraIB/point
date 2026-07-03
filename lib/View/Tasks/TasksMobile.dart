@@ -24,6 +24,8 @@ import 'package:point/View/Tasks/Dialogs/MontageDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PhotographyDialog.dart';
 import 'package:point/View/Tasks/Dialogs/AdministrativeDialog.dart';
 import 'package:point/View/Tasks/Dialogs/ProgrammingDialog.dart';
+import 'package:point/View/Tasks/ProgrammingUpdates/add_programming_update_dialog.dart';
+import 'package:point/View/Tasks/ProgrammingUpdates/programming_department_tabs.dart';
 import 'package:point/View/Tasks/Dialogs/PromotionDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PublishDialog.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
@@ -48,6 +50,9 @@ class TasksMobile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (selectedIndex == 6) {
+      return _ProgrammingTasksMobileLayout(selectedIndex: selectedIndex);
+    }
     return GetBuilder<HomeController>(
       builder: (controller) {
         return Obx(() {
@@ -86,31 +91,94 @@ class TasksMobile extends StatelessWidget {
                   ),
                 ),
               ),
-              SliverList(
-                delegate: SliverChildBuilderDelegate((context, index) {
-                  // TaskCard uses LayoutBuilder and needs bounded height
-                  // (GridView on desktop provides it; SliverList does not).
-                  final cardHeight =
-                      MediaQuery.of(context).size.width / 1.35 + 24;
-                  return SizedBox(
-                    height: cardHeight.clamp(280.0, 400.0),
-                    child: TaskCard(
-                      task: tasks[index],
-                      onTap:
-                          () => _openTaskDetails(
-                            context,
-                            selectedIndex,
-                            tasks[index],
-                          ),
-                    ),
-                  );
-                }, childCount: tasks.length),
-              ),
+              _tasksSliverList(context, tasks),
               SliverPadding(padding: EdgeInsets.only(bottom: bottomPadding)),
             ],
           );
         });
       },
+    );
+  }
+
+  /// Programming department: tabs for tasks / pending / converted updates.
+  Widget buildProgrammingShell(
+    BuildContext context,
+    HomeController controller,
+    List<TaskModel> tasks,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 20),
+              _buildHeader(context, controller),
+            ],
+          ),
+        ),
+        Expanded(
+          child: ProgrammingDepartmentTabs(
+            initialTabIndex: programmingUpdatesTabFromRoute(),
+            tasksTab: buildProgrammingTasksTab(context, controller, tasks),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget buildProgrammingTasksTab(
+    BuildContext context,
+    HomeController controller,
+    List<TaskModel> tasks,
+  ) {
+    final bottomPadding = MediaQuery.of(context).padding.bottom + 16.0;
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 10),
+                _buildStats(context, controller, tasks),
+                const SizedBox(height: 15),
+                _buildFilters(context, controller),
+                const SizedBox(height: 15),
+                Text(
+                  'tasks.summary.sent_tasks'.tr,
+                  style: const TextStyle(
+                    color: AppColors.fontColorGrey,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        ),
+        _tasksSliverList(context, tasks),
+        SliverPadding(padding: EdgeInsets.only(bottom: bottomPadding)),
+      ],
+    );
+  }
+
+  Widget _tasksSliverList(BuildContext context, List<TaskModel> tasks) {
+    return SliverList(
+      delegate: SliverChildBuilderDelegate((context, index) {
+        final cardHeight = MediaQuery.of(context).size.width / 1.35 + 24;
+        return SizedBox(
+          height: cardHeight.clamp(280.0, 400.0),
+          child: TaskCard(
+            task: tasks[index],
+            onTap: () => _openTaskDetails(context, selectedIndex, tasks[index]),
+          ),
+        );
+      }, childCount: tasks.length),
     );
   }
 
@@ -123,68 +191,116 @@ class TasksMobile extends StatelessWidget {
     final labelKey = StorageKeys.semanticDepartmentLabelKey(
       _departmentRouteSlugs[safeIndex],
     );
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          labelKey.tr,
-          style: const TextStyle(
-            color: AppColors.fontColorGrey,
-            fontSize: 15,
-            fontWeight: FontWeight.bold,
-          ),
+        Row(
+          children: [
+            Text(
+              labelKey.tr,
+              style: const TextStyle(
+                color: AppColors.fontColorGrey,
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
-        const Spacer(),
-        MainButton(
-          width: 178,
-          height: 45,
-          borderSize: 35,
-          fontColor: Colors.white,
-          backgroundColor: AppColors.primary,
-          widget: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+        if (safeIndex == 6) ...[
+          const SizedBox(height: 8),
+          Row(
             children: [
-              Text(
-                'addnewtask'.tr,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
+              Expanded(
+                child: MainButton(
+                  margin: EdgeInsets.zero,
+                  height: 44,
+                  borderSize: 35,
+                  fontColor: Colors.white,
+                  backgroundColor: AppColors.primary,
+                  title: 'programming.updates.add'.tr,
+                  fontSize: 12,
+                  onPressed: () {
+                    controller.uploadedFilesPaths.clear();
+                    showAddProgrammingUpdateDialog(context);
+                  },
                 ),
               ),
-              const Icon(Icons.add_circle_outline_rounded, color: Colors.white),
+              const SizedBox(width: 8),
+              Expanded(
+                child: MainButton(
+                  margin: EdgeInsets.zero,
+                  height: 44,
+                  borderSize: 35,
+                  fontColor: Colors.white,
+                  backgroundColor: AppColors.primary,
+                  title: 'addnewtask'.tr,
+                  fontSize: 12,
+                  onPressed: () {
+                    controller.uploadedFilesPaths.clear();
+                    programmingDialog(context);
+                  },
+                ),
+              ),
             ],
           ),
-          onPressed: () {
-            controller.uploadedFilesPaths.clear();
-            switch (selectedIndex) {
-              case 0:
-                showPromotionDialog(context);
-                break;
-              case 1:
-                designDialog(context);
-                break;
-              case 2:
-                photographyDialog(context);
-                break;
-              case 3:
-                contentWriteDialog(context);
-                break;
-              case 4:
-                montageDialog(context);
-                break;
-              case 5:
-                publishDialog(context);
-                break;
-              case 6:
-                programmingDialog(context);
-                break;
-              case 7:
-                administrationDialog(context);
-                break;
-              default:
-            }
-          },
-        ),
+        ] else
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: MainButton(
+                width: 178,
+                height: 45,
+                borderSize: 35,
+                fontColor: Colors.white,
+                backgroundColor: AppColors.primary,
+                widget: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'addnewtask'.tr,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const Icon(
+                      Icons.add_circle_outline_rounded,
+                      color: Colors.white,
+                    ),
+                  ],
+                ),
+                onPressed: () {
+                  controller.uploadedFilesPaths.clear();
+                  switch (selectedIndex) {
+                    case 0:
+                      showPromotionDialog(context);
+                      break;
+                    case 1:
+                      designDialog(context);
+                      break;
+                    case 2:
+                      photographyDialog(context);
+                      break;
+                    case 3:
+                      contentWriteDialog(context);
+                      break;
+                    case 4:
+                      montageDialog(context);
+                      break;
+                    case 5:
+                      publishDialog(context);
+                      break;
+                    case 7:
+                      administrationDialog(context);
+                      break;
+                    default:
+                  }
+                },
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -516,5 +632,26 @@ class TasksMobile extends StatelessWidget {
         break;
       default:
     }
+  }
+}
+
+class _ProgrammingTasksMobileLayout extends StatelessWidget {
+  final int selectedIndex;
+
+  const _ProgrammingTasksMobileLayout({required this.selectedIndex});
+
+  @override
+  Widget build(BuildContext context) {
+    final view = TasksMobile(selectedIndex: selectedIndex);
+    return GetBuilder<HomeController>(
+      builder: (controller) {
+        return Obx(() {
+          final tasks = controller.tasksSearched
+              .where((a) => a.type == selectedIndex.toString())
+              .toList();
+          return view.buildProgrammingShell(context, controller, tasks);
+        });
+      },
+    );
   }
 }

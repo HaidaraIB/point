@@ -16,6 +16,7 @@ import 'package:point/View/Tasks/Shared/open_task_final_work.dart';
 import 'package:point/View/Tasks/Shared/reject_task_dialog.dart';
 import 'package:point/View/Tasks/Shared/request_task_modification_dialog.dart';
 import 'package:point/View/Tasks/Shared/task_attachment_gallery.dart';
+import 'package:point/View/Tasks/Shared/task_voice_details_tile.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
 
 /// Generic web dialog for task details. Renders common shell (header, notes,
@@ -528,11 +529,14 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
     double dialogWidth,
     TaskModel task,
   ) {
+    const rowGap = 16.0;
+    // Matches dialog padding (18×2) + scroll end inset (14) + section shell (14×2).
+    const horizontalInset = 78.0;
     final bool stacked = dialogWidth < 720;
-    final contentWidth =
-        stacked
-            ? (dialogWidth - 80).clamp(240.0, 760.0)
-            : ((dialogWidth - 90) / 2).clamp(260.0, 700.0);
+    final contentWidth = stacked
+        ? (dialogWidth - 80).clamp(240.0, 760.0)
+        : ((dialogWidth - horizontalInset - rowGap) / 2).clamp(260.0, 700.0);
+    final boxWidth = stacked ? contentWidth : double.infinity;
 
     final latestNote = task.notes.isNotEmpty ? task.notes.last : null;
     final notesSection = Column(
@@ -542,7 +546,7 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
         const SizedBox(height: 8),
         Container(
           constraints: const BoxConstraints(minHeight: 200),
-          width: contentWidth,
+          width: boxWidth,
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surfaceContainerLowest,
@@ -658,7 +662,7 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
         Text('content.dialog.attachments'.tr, style: textTheme.titleSmall),
         const SizedBox(height: 10),
         Container(
-          width: contentWidth,
+          width: boxWidth,
           constraints: const BoxConstraints(minHeight: 200),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surfaceContainerLowest,
@@ -718,14 +722,26 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
           notesSection,
           const SizedBox(height: 16),
           attachmentsSection,
+          TaskVoiceDetailsTile(task: task),
         ],
       );
     }
 
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [notesSection, attachmentsSection],
+      children: [
+        Expanded(child: notesSection),
+        const SizedBox(width: rowGap),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              attachmentsSection,
+              TaskVoiceDetailsTile(task: task),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/TaskModel.dart';
+import 'package:point/Models/VoiceRecordEntry.dart';
 
 /// Common form data collected by [GenericTaskFormDialog] and passed to the
 /// delegate to build the full [TaskModel].
@@ -17,6 +18,9 @@ class CommonFormData {
   final String? newNoteText;
   final String? newNoteAuthor;
   final List<String> files;
+  final List<VoiceRecordEntry> voiceRecords;
+  final String voiceRecordUrl;
+  final int voiceRecordDurationSec;
 
   const CommonFormData({
     required this.title,
@@ -31,6 +35,9 @@ class CommonFormData {
     this.newNoteText,
     this.newNoteAuthor,
     required this.files,
+    this.voiceRecords = const [],
+    this.voiceRecordUrl = '',
+    this.voiceRecordDurationSec = 0,
   });
 }
 

@@ -26,6 +26,7 @@ import 'package:point/View/Employees/EmployeesTable.dart';
 import 'package:point/View/History/History.dart';
 import 'package:point/View/History/TaskHistory.dart';
 import 'package:point/View/Home/Home.dart';
+import 'package:point/View/Tasks/ProgrammingUpdates/programming_updates_page.dart';
 import 'package:point/View/Mobile/ClientHome.dart';
 import 'package:point/View/Mobile/CreateUserAccount.dart';
 import 'package:point/View/Mobile/MobileClientSplashDecider.dart';
@@ -241,6 +242,11 @@ class AppRouting {
           page: () {
             return Tasks();
           },
+          middlewares: [AuthMiddleware()],
+        ),
+        GetPage(
+          name: '/programming-updates',
+          page: () => const ProgrammingUpdatesPage(),
           middlewares: [AuthMiddleware()],
         ),
       ],

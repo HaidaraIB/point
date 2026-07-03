@@ -32,7 +32,7 @@ import 'package:point/View/Chats/chat_message_list_panel.dart';
 import 'package:point/View/Chats/pending_chat_attachment.dart';
 import 'package:point/View/Chats/chat_private_typing.dart';
 import 'package:point/View/Chats/chat_ui_helpers.dart';
-import 'package:point/View/Chats/chat_voice_record_button.dart';
+import 'package:point/View/Chats/voice_recorder_scope.dart';
 import 'package:point/View/Chats/telegram_style_attachment_menu.dart';
 import 'package:point/Utils/chat_attachment_upload.dart';
 import 'package:point/View/Shared/CustomHeader.dart';
@@ -326,6 +326,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
   final TextEditingController _messageController = TextEditingController();
   final FocusNode _messageFocusNode = FocusNode();
   PendingChatAttachment? _pendingAttachment;
+  late final VoiceRecorderController _voiceRecorder;
   ChatReplyDraft? _replyDraft;
   final ChatMessageListPanelController _chatListPanelController =
       ChatMessageListPanelController();
@@ -564,7 +565,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
         controller.uploadedFilesPaths.clear();
         return;
       case ChatAttachmentMenuAction.voice:
-        await _showPopupVoiceAttachmentSheet();
+        await _voiceRecorder.startRecording();
         return;
       case ChatAttachmentMenuAction.pasteImage:
         await _pasteImageFromClipboard();
@@ -623,59 +624,6 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
     );
   }
 
-  Future<void> _showPopupVoiceAttachmentSheet() async {
-    if (!mounted) return;
-    await showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: const Color(0xFF2C2F3E),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'chat.attach_voice'.tr,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Theme(
-                  data: Theme.of(context).copyWith(
-                    iconTheme: const IconThemeData(color: Colors.white),
-                  ),
-                  child: ChatVoiceRecordButton(
-                    chatId: _chatId,
-                    activityWriter: _typingWriter,
-                    onUploaded: (url, sec) async {
-                      if (Navigator.of(ctx).canPop()) Navigator.pop(ctx);
-                      if (!mounted) return;
-                      setState(
-                        () => _pendingAttachment = PendingChatAttachment(
-                          messageType: 'voice',
-                          attachmentUrl: url,
-                          durationSec: sec > 0 ? sec : null,
-                        ),
-                      );
-                      Get.find<HomeController>().uploadedFilesPaths.clear();
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   void _syncExpandedPopupRegistration() {
     if (!mounted) return;
     if (widget.chat.minimized) {
@@ -721,6 +669,22 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
     super.initState();
     _chatId = widget.chat.id;
     _typingWriter = PrivateChatTypingWriter(_firestore);
+    _voiceRecorder = VoiceRecorderController(
+      scopeId: _chatId,
+      usage: VoiceRecorderUsage.chat,
+      activityWriter: _typingWriter,
+      onSaved: (url, sec) async {
+        if (!mounted) return;
+        setState(() {
+          _pendingAttachment = PendingChatAttachment(
+            messageType: 'voice',
+            attachmentUrl: url,
+            durationSec: sec > 0 ? sec : null,
+          );
+        });
+        Get.find<HomeController>().uploadedFilesPaths.clear();
+      },
+    );
     final uid = Get.find<HomeController>().currentEmployee.value?.id ?? '';
     _openScrollPrefsFuture = uid.isEmpty
         ? Future<ChatScrollSnapshot?>.value(null)
@@ -804,6 +768,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
   @override
   void dispose() {
     unawaited(_typingWriter.dispose());
+    _voiceRecorder.dispose();
     ChatAudioFocus.unregisterExpandedChatPopup(_chatId);
     _flushScrollDiskTimer();
     WidgetsBinding.instance.removeObserver(this);
@@ -1136,6 +1101,11 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                       ),
                     ),
 
+                    VoiceRecorderScope(
+                      controller: _voiceRecorder,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
                     ChatUploadProgressBanner(chatId: _chatId),
                     if (_replyDraft != null)
                       ChatReplyDraftBanner(
@@ -1144,6 +1114,9 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                         padding: const EdgeInsets.fromLTRB(8, 2, 8, 2),
                         onCancel: () => setState(() => _replyDraft = null),
                       ),
+                    const VoiceRecorderActiveStrip(
+                      padding: EdgeInsets.fromLTRB(8, 2, 8, 2),
+                    ),
                     if (_pendingAttachment != null)
                       PendingAttachmentStrip(
                         pending: _pendingAttachment!,
@@ -1292,6 +1265,9 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                           ],
                         );
                       }),
+                    ),
+                        ],
+                      ),
                     ),
                   ],
                 ),

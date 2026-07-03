@@ -41,7 +41,7 @@ import 'package:point/View/Chats/chat_reply_draft_banner.dart';
 import 'package:point/View/Chats/chat_list_row_trailing.dart';
 import 'package:point/View/Chats/chat_list_folder_utils.dart';
 import 'package:point/View/Chats/chat_private_typing.dart';
-import 'package:point/View/Chats/chat_voice_record_button.dart';
+import 'package:point/View/Chats/voice_recorder_scope.dart';
 import 'package:point/View/Chats/telegram_style_attachment_menu.dart';
 import 'package:point/Utils/chat_attachment_upload.dart';
 
@@ -1353,6 +1353,7 @@ class _MessageScreenState extends State<MessageScreen>
   ChatImagePasteListener? _imagePasteListener;
   bool _isEmojiVisible = false;
   PendingChatAttachment? _pendingAttachment;
+  late final VoiceRecorderController _voiceRecorder;
   ChatReplyDraft? _replyDraft;
   final ChatMessageListPanelController _chatListPanelController =
       ChatMessageListPanelController();
@@ -1496,6 +1497,21 @@ class _MessageScreenState extends State<MessageScreen>
       chatId: _chatId,
       myUserId: widget.currentUserId,
       isGroup: widget.chat['isGroup'] ?? false,
+    );
+    _voiceRecorder = VoiceRecorderController(
+      scopeId: _chatId,
+      usage: VoiceRecorderUsage.chat,
+      activityWriter: _typingWriter,
+      onSaved: (url, sec) async {
+        if (!mounted) return;
+        setState(() {
+          _pendingAttachment = PendingChatAttachment(
+            messageType: 'voice',
+            attachmentUrl: url,
+            durationSec: sec > 0 ? sec : null,
+          );
+        });
+      },
     );
     _openScrollPrefsFuture = ChatScrollPersistence.load(
       widget.currentUserId,
@@ -1725,65 +1741,12 @@ class _MessageScreenState extends State<MessageScreen>
         homeController.uploadedFilesPaths.clear();
         return;
       case ChatAttachmentMenuAction.voice:
-        await _showVoiceAttachmentSheet();
+        await _voiceRecorder.startRecording();
         return;
       case ChatAttachmentMenuAction.pasteImage:
         await _pasteImageFromClipboard();
         return;
     }
-  }
-
-  Future<void> _showVoiceAttachmentSheet() async {
-    if (!mounted) return;
-    await showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: const Color(0xFF2C2F3E),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  AppLocaleKeys.chatAttachVoice.tr,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Theme(
-                  data: Theme.of(context).copyWith(
-                    iconTheme: const IconThemeData(color: Colors.white),
-                  ),
-                  child: ChatVoiceRecordButton(
-                    chatId: _chatId,
-                    activityWriter: _typingWriter,
-                    onUploaded: (url, sec) async {
-                      if (Navigator.of(ctx).canPop()) Navigator.pop(ctx);
-                      if (!mounted) return;
-                      setState(
-                        () => _pendingAttachment = PendingChatAttachment(
-                          messageType: 'voice',
-                          attachmentUrl: url,
-                          durationSec: sec > 0 ? sec : null,
-                        ),
-                      );
-                      Get.find<HomeController>().uploadedFilesPaths.clear();
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
   }
 
   @override
@@ -1798,6 +1761,7 @@ class _MessageScreenState extends State<MessageScreen>
     _imagePasteListener?.dispose();
     _messageSoundSubscription?.cancel();
     unawaited(_typingWriter.dispose());
+    _voiceRecorder.dispose();
     _clearVisibleChatFocusFromServices();
     // Do not call unfocus() here: during Android route pop it can deadlock the
     // platform text input channel; dispose() releases focus.
@@ -2272,6 +2236,11 @@ class _MessageScreenState extends State<MessageScreen>
                 ),
               ),
 
+              VoiceRecorderScope(
+                controller: _voiceRecorder,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
               ChatUploadProgressBanner(chatId: _chatId),
               if (_replyDraft != null)
                 ChatReplyDraftBanner(
@@ -2279,6 +2248,9 @@ class _MessageScreenState extends State<MessageScreen>
                   padding: const EdgeInsets.fromLTRB(14, 0, 14, 4),
                   onCancel: () => setState(() => _replyDraft = null),
                 ),
+              const VoiceRecorderActiveStrip(
+                padding: EdgeInsets.fromLTRB(14, 0, 14, 2),
+              ),
               if (_pendingAttachment != null)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(14, 0, 14, 2),
@@ -2490,6 +2462,9 @@ class _MessageScreenState extends State<MessageScreen>
                       );
                     }),
                   ),
+                ),
+              ),
+                  ],
                 ),
               ),
               // عرض لوحة الإيموجي

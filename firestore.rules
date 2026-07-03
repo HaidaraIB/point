@@ -823,6 +823,15 @@ service cloud.firestore {
           && employeeTaskUpdateAllowed());
     }
 
+    match /programming_updates/{updateId} {
+      allow read: if isSignedIn() && hasAuthRole()
+        && (isManager()
+          || (isEmployeeRole()
+            && myDepartmentsList().hasAny(['programming'])));
+
+      allow create, update, delete: if isSignedIn() && hasAuthRole() && isManager();
+    }
+
     match /notifications/{docId} {
       allow read: if isSignedIn() && hasAuthRole()
         && (isManager()
