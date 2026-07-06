@@ -66,7 +66,7 @@ class PublishTable extends StatelessWidget {
     }
   }
 
-  Widget _statusChip(String status) {
+  ({Color fg, Color bg, IconData icon}) _statusVisuals(String status) {
     final s = status.trim().toLowerCase();
     Color fg = Colors.grey.shade700;
     Color bg = Colors.grey.shade100;
@@ -88,30 +88,49 @@ class PublishTable extends StatelessWidget {
       bg = Colors.amber.shade50;
       icon = Icons.schedule_rounded;
     }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) => Row(
+    return (fg: fg, bg: bg, icon: icon);
+  }
+
+  String _statusForAction(String action) {
+    switch (action) {
+      case 'publish_now':
+        return 'queued';
+      case 'cancel_schedule':
+        return 'cancelled';
+      default:
+        return 'created';
+    }
+  }
+
+  Widget _statusChip(String status, {bool showDropdownCaret = false}) {
+    final visuals = _statusVisuals(status);
+    return MouseRegion(
+      cursor: showDropdownCaret
+          ? SystemMouseCursors.click
+          : SystemMouseCursors.basic,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        decoration: BoxDecoration(
+          color: visuals.bg,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Flexible(
-              child: Text(
-                _statusLabel(status),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: fg,
-                  fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                ),
+            Text(
+              _statusLabel(status),
+              style: TextStyle(
+                color: visuals.fg,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
               ),
             ),
             const SizedBox(width: 4),
-            Icon(icon, size: 15, color: fg),
+            Icon(visuals.icon, size: 15, color: visuals.fg),
+            if (showDropdownCaret) ...[
+              const SizedBox(width: 2),
+              Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: visuals.fg),
+            ],
           ],
         ),
       ),
@@ -200,6 +219,157 @@ class PublishTable extends StatelessWidget {
       spacing: 6,
       runSpacing: 6,
       children: items.map(_platformBadge).toList(),
+    );
+  }
+
+  Future<void> _handlePostAction(
+    HomeController controller,
+    MetaPostModel p,
+    String action,
+  ) async {
+    if (action == 'publish_now') {
+      await controller.publishMetaPost(p.id!);
+      return;
+    }
+    if (action == 'edit') {
+      await showAddPublishDialog(existing: p);
+      return;
+    }
+    if (action == 'cancel_schedule') {
+      await controller.updateMetaPost(
+        p.copyWith(status: 'cancelled', scheduledAt: p.scheduledAt),
+      );
+      return;
+    }
+    if (action == 'details') {
+      await _showPostDetailsDialog(p);
+      return;
+    }
+    if (action == 'delete') {
+      await FunHelper.showConfirmDailog(
+        Get.context!,
+        title: 'publish.delete'.tr,
+        message: 'content.bulk_delete_confirm_title'.tr,
+        confirmText: 'delete'.tr,
+        confirmColor: Colors.red,
+        onTap: () async {
+          await controller.deleteMetaPost(p.id!);
+        },
+      );
+    }
+  }
+
+  bool _showPublishNowAction(MetaPostModel p, bool canChange) {
+    if (!canChange) return false;
+    final status = p.status.trim().toLowerCase();
+    return status == 'created' ||
+        status == 'failed' ||
+        status == 'cancelled' ||
+        status == 'scheduled';
+  }
+
+  bool _showCancelScheduleAction(MetaPostModel p, bool canChange) {
+    if (!canChange) return false;
+    final status = p.status.trim().toLowerCase();
+    return status == 'scheduled' ||
+        status == 'queued' ||
+        status == 'queued_now';
+  }
+
+  bool _showEditAction(MetaPostModel p, bool canChange) {
+    if (!canChange) return false;
+    final status = p.status.trim().toLowerCase();
+    return status != 'publishing' && status != 'published';
+  }
+
+  List<({String action, String label})> _statusChangeOptions(
+    HomeController controller,
+    MetaPostModel p,
+  ) {
+    final canChange = ContentPermissions.canChangePostStatus(
+      controller.currentEmployee.value,
+    );
+    if (!canChange) return [];
+
+    final options = <({String action, String label})>[];
+
+    if (_showPublishNowAction(p, canChange)) {
+      options.add((action: 'publish_now', label: 'publish.queued'.tr));
+    }
+    if (_showCancelScheduleAction(p, canChange)) {
+      options.add((action: 'cancel_schedule', label: 'publish.cancelled'.tr));
+    }
+    return options;
+  }
+
+  Widget _buildStatusControl(HomeController controller, MetaPostModel p) {
+    final options = _statusChangeOptions(controller, p);
+    if (options.isEmpty) {
+      return _statusChip(p.status);
+    }
+
+    return Builder(
+      builder: (context) {
+        final chipKey = GlobalKey();
+        return GestureDetector(
+          key: chipKey,
+          onTap: () async {
+            final renderBox =
+                chipKey.currentContext!.findRenderObject()! as RenderBox;
+            final offset = renderBox.localToGlobal(Offset.zero);
+            final size = renderBox.size;
+            final overlayBox =
+                Overlay.of(context).context.findRenderObject()! as RenderBox;
+            final overlaySize = overlayBox.size;
+            const menuWidth = 196.0;
+            final centerX = offset.dx + size.width / 2;
+            final left = (centerX - menuWidth / 2)
+                .clamp(8.0, overlaySize.width - menuWidth - 8);
+
+            final selected = await showMenu<String>(
+              context: context,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              color: Colors.white,
+              elevation: 4,
+              position: RelativeRect.fromLTRB(
+                left,
+                offset.dy + size.height + 4,
+                overlaySize.width - left - menuWidth,
+                0,
+              ),
+              items: options
+                  .map((option) {
+                    final visuals =
+                        _statusVisuals(_statusForAction(option.action));
+                    return PopupMenuItem<String>(
+                      value: option.action,
+                      child: SizedBox(
+                        width: menuWidth - 32,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(option.label),
+                            Icon(
+                              visuals.icon,
+                              size: 18,
+                              color: visuals.fg,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  })
+                  .toList(),
+            );
+            if (selected != null) {
+              await _handlePostAction(controller, p, selected);
+            }
+          },
+          child: _statusChip(p.status, showDropdownCaret: true),
+        );
+      },
     );
   }
 
@@ -384,15 +554,9 @@ class PublishTable extends StatelessWidget {
     final canDelete = ContentPermissions.canDeleteContent(
       controller.currentEmployee.value,
     );
-    final canPublishNow = canChange &&
-        (p.status == 'created' ||
-            p.status == 'failed' ||
-            p.status == 'cancelled' ||
-            p.status == 'scheduled' ||
-            p.status == 'queued' ||
-            p.status == 'queued_now');
-    final canCancelSchedule = canChange &&
-        (p.status == 'scheduled' || p.status == 'queued' || p.status == 'queued_now');
+    final canPublishNow = _showPublishNowAction(p, canChange);
+    final canCancelSchedule = _showCancelScheduleAction(p, canChange);
+    final canEdit = _showEditAction(p, canChange);
     return PopupMenuButton<String>(
       tooltip: 'tasks.options_tooltip'.tr,
       padding: EdgeInsets.zero,
@@ -415,7 +579,7 @@ class PublishTable extends StatelessWidget {
             ),
           );
         }
-        if (canChange) {
+        if (canEdit) {
           items.add(
             PopupMenuItem<String>(
               value: 'edit',
@@ -472,38 +636,7 @@ class PublishTable extends StatelessWidget {
         
         return items;
       },
-      onSelected: (value) async {
-        if (value == 'publish_now') {
-          await controller.publishMetaPost(p.id!);
-          return;
-        }
-        if (value == 'edit') {
-          await showAddPublishDialog(existing: p);
-          return;
-        }
-        if (value == 'cancel_schedule') {
-          await controller.updateMetaPost(
-            p.copyWith(status: 'cancelled', scheduledAt: p.scheduledAt),
-          );
-          return;
-        }
-        if (value == 'details') {
-          await _showPostDetailsDialog(p);
-          return;
-        }
-        if (value == 'delete') {
-          await FunHelper.showConfirmDailog(
-            Get.context!,
-            title: 'publish.delete'.tr,
-            message: 'content.bulk_delete_confirm_title'.tr,
-            confirmText: 'delete'.tr,
-            confirmColor: Colors.red,
-            onTap: () async {
-              await controller.deleteMetaPost(p.id!);
-            },
-          );
-        }
-      },
+      onSelected: (value) => _handlePostAction(controller, p, value),
       child: compact
           ? const Icon(Icons.more_vert, size: 20)
           : Row(
@@ -667,7 +800,7 @@ class PublishTable extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.only(top: 6, bottom: 14),
                 child: SizedBox(
-                  width: 1500,
+                  width: 1510,
                   child: DataTable(
                       dataRowMinHeight: 64,
                       dataRowMaxHeight: double.infinity,
@@ -701,7 +834,7 @@ class PublishTable extends StatelessWidget {
                           label: _headerText('publish.platforms'),
                         ),
                         DataColumn(
-                          columnWidth: const FixedColumnWidth(150),
+                          columnWidth: const FixedColumnWidth(200),
                           headingRowAlignment: MainAxisAlignment.center,
                           label: _headerText('publish.status'),
                         ),
@@ -801,7 +934,7 @@ class PublishTable extends StatelessWidget {
                           ),
                           DataCell(
                             TableCellCenter(
-                              child: _statusChip(p.status),
+                              child: _buildStatusControl(controller, p),
                             ),
                           ),
                           DataCell(
@@ -951,7 +1084,7 @@ class PublishTable extends StatelessWidget {
                           runSpacing: 6,
                           children: [
                             _postTypeChip(p.postType),
-                            _statusChip(p.status),
+                            _buildStatusControl(controller, p),
                           ],
                         ),
                         if (p.platforms.isNotEmpty) ...[
