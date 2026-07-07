@@ -1,3 +1,4 @@
+import 'package:point/Models/LibraryFileModel.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
@@ -104,5 +105,59 @@ class LibraryPathUtils {
       return true;
     }
     return false;
+  }
+
+  static bool libraryFileMatchesBrowse(
+    LibraryFileModel f,
+    String clientId,
+    String clientName,
+  ) {
+    final fid = f.clientId.trim();
+    final cid = clientId.trim();
+    if (cid.isNotEmpty && fid == cid) return true;
+    final cname = clientName.trim();
+    final fname = f.clientName.trim();
+    if (cname.isNotEmpty && fname.toLowerCase() == cname.toLowerCase()) {
+      return true;
+    }
+    return false;
+  }
+
+  static List<LibraryFileModel> libraryFilesInLeafFolder(
+    List<LibraryFileModel> all,
+    String clientId,
+    String clientName,
+    String yearMonth,
+    String category,
+  ) {
+    return all
+        .where(
+          (f) =>
+              libraryFileMatchesBrowse(f, clientId, clientName) &&
+              f.yearMonth == yearMonth &&
+              f.category == category,
+        )
+        .toList(growable: false);
+  }
+
+  static List<String> libraryMonthKeysForClientBrowse({
+    required String clientId,
+    required String clientName,
+    required List<TaskModel> tasks,
+    required List<LibraryFileModel> libraryFiles,
+    DateTime? now,
+  }) {
+    final virtual = virtualMonthKeysFrom(now ?? DateTime.now());
+    final fromTasks = tasks
+        .where((t) => taskMatchesLibraryBrowse(t, clientId, clientName))
+        .map(libraryMonthFolderKeyForTask)
+        .toSet();
+    final fromFiles = libraryFiles
+        .where((f) => libraryFileMatchesBrowse(f, clientId, clientName))
+        .map((f) => f.yearMonth.trim())
+        .where((ym) => ym.isNotEmpty)
+        .toSet();
+    final merged = {...virtual, ...fromTasks, ...fromFiles}.toList()..sort();
+    return merged;
   }
 }

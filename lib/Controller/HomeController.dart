@@ -16,6 +16,7 @@ import 'package:point/Models/ClientModel.dart';
 import 'package:point/Models/ContentModel.dart';
 import 'package:point/Models/MetaPostModel.dart';
 import 'package:point/Models/EmployeeModel.dart';
+import 'package:point/Models/LibraryFileModel.dart';
 import 'package:point/Models/NotificationModel.dart';
 import 'package:point/Models/ProgrammingUpdateModel.dart';
 import 'package:point/Models/TaskModel.dart';
@@ -316,6 +317,7 @@ class HomeController extends GetxController {
     if (FirebaseAuth.instance.currentUser == null) {
       clients.bindStream(Stream<List<ClientModel>>.value([]));
       tasks.bindStream(Stream<List<TaskModel>>.value([]));
+      libraryFiles.bindStream(Stream<List<LibraryFileModel>>.value([]));
       update();
       return;
     }
@@ -2276,6 +2278,35 @@ class HomeController extends GetxController {
     return result;
   }
 
+  Future<bool> addLibraryFile(LibraryFileModel file) async {
+    final id = await _service.addLibraryFile(file);
+    if (id == null) {
+      FunHelper.showSnackbar(
+        'error'.tr,
+        'library.upload_failed'.tr,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return false;
+    }
+    return true;
+  }
+
+  Future<bool> deleteLibraryFile(String id) async {
+    final result = await _service.deleteLibraryFile(id);
+    if (!result) {
+      FunHelper.showSnackbar(
+        'error'.tr,
+        'errors.forbidden'.tr,
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+    return result;
+  }
+
   RxList<dynamic> uploadedFilesPaths = [].obs;
   Future<List<PlatformFile>> pickMultiFiles() async {
     final result = await FilePicker.pickFiles(
@@ -2674,6 +2705,7 @@ class HomeController extends GetxController {
 
   var employees = <EmployeeModel>[].obs;
   var clients = <ClientModel>[].obs;
+  var libraryFiles = <LibraryFileModel>[].obs;
   var contents = <ContentModel>[].obs;
   var metaPosts = <MetaPostModel>[].obs;
   var searchedContents = <ContentModel>[].obs;

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:point/Models/ClientModel.dart';
+import 'package:point/Models/LibraryFileModel.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/library_path_utils.dart';
 import 'package:point/Utils/AppColors.dart';
@@ -89,17 +90,14 @@ List<String> libraryMonthKeysForClient(
   String clientId,
   String clientName,
   List<TaskModel> all,
+  List<LibraryFileModel> libraryFiles,
 ) {
-  final virtual = LibraryPathUtils.virtualMonthKeysFrom(DateTime.now());
-  final fromData = all
-      .where(
-        (t) =>
-            LibraryPathUtils.taskMatchesLibraryBrowse(t, clientId, clientName),
-      )
-      .map(LibraryPathUtils.libraryMonthFolderKeyForTask)
-      .toSet();
-  final merged = {...virtual, ...fromData}.toList()..sort();
-  return merged;
+  return LibraryPathUtils.libraryMonthKeysForClientBrowse(
+    clientId: clientId,
+    clientName: clientName,
+    tasks: all,
+    libraryFiles: libraryFiles,
+  );
 }
 
 List<TaskModel> libraryTasksInLeafFolder(
@@ -126,11 +124,13 @@ class LibraryFolderBrowser extends StatelessWidget {
   final LibraryBrowseNav nav;
   final ValueChanged<LibraryBrowseNav> onNavChanged;
   final List<TaskModel> tasks;
+  final List<LibraryFileModel> libraryFiles;
   final List<ClientModel> clients;
   final Widget Function(
     BuildContext context,
     LibraryBrowseNav nav,
     List<TaskModel> tasksInFolder,
+    List<LibraryFileModel> directFilesInFolder,
   )
   buildLeaf;
 
@@ -139,6 +139,7 @@ class LibraryFolderBrowser extends StatelessWidget {
     required this.nav,
     required this.onNavChanged,
     required this.tasks,
+    required this.libraryFiles,
     required this.clients,
     required this.buildLeaf,
   });
@@ -290,6 +291,7 @@ class LibraryFolderBrowser extends StatelessWidget {
           nav.clientId,
           nav.clientName,
           tasks,
+          libraryFiles,
         );
         return _folderGrid(
           context,
@@ -328,19 +330,14 @@ class LibraryFolderBrowser extends StatelessWidget {
         );
       case 4:
         final files = libraryTasksInLeafFolder(tasks, nav);
-        if (files.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text(
-                'library.empty'.tr,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey.shade700),
-              ),
-            ),
-          );
-        }
-        return buildLeaf(context, nav, files);
+        final directFiles = LibraryPathUtils.libraryFilesInLeafFolder(
+          libraryFiles,
+          nav.clientId,
+          nav.clientName,
+          nav.yearMonth,
+          nav.category,
+        );
+        return buildLeaf(context, nav, files, directFiles);
       default:
         return Center(child: Text('library.empty'.tr));
     }

@@ -1145,6 +1145,33 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    function validLibraryFile(data) {
+      return data.keys().hasAll([
+          'clientId', 'clientName', 'yearMonth', 'category',
+          'url', 'fileName', 'uploadedAt', 'uploadedBy'
+        ])
+        && data.clientId is string
+        && data.clientName is string
+        && data.yearMonth is string
+        && data.category is string
+        && data.url is string
+        && data.fileName is string
+        && data.uploadedAt is timestamp
+        && data.uploadedBy is string
+        && data.category in ['post', 'story', 'video', 'documents'];
+    }
+
+    match /library_files/{fileId} {
+      allow read: if isSignedIn() && hasAuthRole() && isManager();
+
+      allow create: if isSignedIn() && hasAuthRole() && isManager()
+        && validLibraryFile(request.resource.data);
+
+      allow delete: if isSignedIn() && hasAuthRole() && isManager();
+
+      allow update: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

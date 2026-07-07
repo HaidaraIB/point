@@ -8,6 +8,8 @@ import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/attachment_download.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Library/library_folder_browser.dart';
+import 'package:point/View/Library/library_leaf_list.dart';
+import 'package:point/View/Library/library_upload_dialog.dart';
 import 'package:point/View/Tasks/Shared/task_attachment_gallery.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
@@ -22,6 +24,12 @@ class LibraryPage extends StatefulWidget {
 
 class _LibraryPageState extends State<LibraryPage> {
   LibraryBrowseNav _nav = const LibraryBrowseNav();
+
+  Future<void> _openUploadDialog() async {
+    if (_nav.level != 4) return;
+    await showLibraryUploadDialog(context: context, nav: _nav);
+    if (mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,6 +46,7 @@ class _LibraryPageState extends State<LibraryPage> {
         final all = hc.tasks
             .where(LibraryPathUtils.libraryEntryDesired)
             .toList(growable: false);
+        final libraryFiles = hc.libraryFiles.toList(growable: false);
         return Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -73,6 +82,12 @@ class _LibraryPageState extends State<LibraryPage> {
                       ],
                     ),
                   ),
+                  if (_nav.level == 4)
+                    FilledButton.icon(
+                      onPressed: _openUploadDialog,
+                      icon: const Icon(Icons.upload_file_outlined, size: 20),
+                      label: Text('library.upload_files'.tr),
+                    ),
                 ],
               ),
               const SizedBox(height: 8),
@@ -96,15 +111,13 @@ class _LibraryPageState extends State<LibraryPage> {
                       nav: _nav,
                       onNavChanged: (n) => setState(() => _nav = n),
                       tasks: all,
+                      libraryFiles: libraryFiles,
                       clients: hc.clients.toList(),
-                      buildLeaf: (context, nav, files) {
-                        return ListView.separated(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          itemCount: files.length,
-                          separatorBuilder: (_, __) => const Divider(height: 1),
-                          itemBuilder: (context, i) {
-                            return _FileEntryCard(task: files[i]);
-                          },
+                      buildLeaf: (context, nav, files, directFiles) {
+                        return LibraryLeafList(
+                          tasks: files,
+                          directFiles: directFiles,
+                          onChanged: () => setState(() {}),
                         );
                       },
                     ),
@@ -119,10 +132,10 @@ class _LibraryPageState extends State<LibraryPage> {
   }
 }
 
-class _FileEntryCard extends StatelessWidget {
+class LibraryFileEntryCard extends StatelessWidget {
   final TaskModel task;
 
-  const _FileEntryCard({required this.task});
+  const LibraryFileEntryCard({super.key, required this.task});
 
   String _formatTs(DateTime? d) {
     if (d == null) return '';

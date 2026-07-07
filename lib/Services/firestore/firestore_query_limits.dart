@@ -10,5 +10,6 @@ class FirestoreQueryLimits {
   static const int contents = 500;
   static const int metaPosts = 500;
   static const int tasks = 500;
+  static const int libraryFiles = 2000;
   static const int notifications = 50;
 }

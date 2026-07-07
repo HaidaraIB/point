@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Models/LibraryFileModel.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/library_path_utils.dart';
 import 'package:point/View/Library/library_folder_browser.dart';
@@ -113,10 +114,23 @@ class _LibraryAttachmentPickerDialog extends StatefulWidget {
 }
 
 class _LibraryAttachmentRow {
-  final TaskModel task;
+  final TaskModel? task;
+  final LibraryFileModel? directFile;
   final String url;
 
-  const _LibraryAttachmentRow({required this.task, required this.url});
+  const _LibraryAttachmentRow({
+    this.task,
+    this.directFile,
+    required this.url,
+  });
+
+  String displayTitle() {
+    final fromTask = task?.title.trim() ?? '';
+    if (fromTask.isNotEmpty) return fromTask;
+    final fromFile = directFile?.fileName.trim() ?? '';
+    if (fromFile.isNotEmpty) return fromFile;
+    return '-';
+  }
 }
 
 class _LibraryAttachmentPickerDialogState
@@ -169,7 +183,10 @@ class _LibraryAttachmentPickerDialogState
     return '$client • $month • $type';
   }
 
-  List<_LibraryAttachmentRow> _rowsForTasks(List<TaskModel> tasksInFolder) {
+  List<_LibraryAttachmentRow> _rowsForFolder(
+    List<TaskModel> tasksInFolder,
+    List<LibraryFileModel> directFilesInFolder,
+  ) {
     final out = <_LibraryAttachmentRow>[];
     for (final t in tasksInFolder) {
       for (final raw in t.finalDeliverableFileUrls) {
@@ -179,25 +196,40 @@ class _LibraryAttachmentPickerDialogState
         }
       }
     }
+    for (final f in directFilesInFolder) {
+      final u = f.url.trim();
+      if (u.isNotEmpty) {
+        out.add(_LibraryAttachmentRow(directFile: f, url: u));
+      }
+    }
     return out;
   }
 
-  List<_LibraryAttachmentRow> _filteredRows(List<TaskModel> tasksInFolder) {
-    final rows = _rowsForTasks(tasksInFolder);
+  List<_LibraryAttachmentRow> _filteredRows(
+    List<TaskModel> tasksInFolder,
+    List<LibraryFileModel> directFilesInFolder,
+  ) {
+    final rows = _rowsForFolder(tasksInFolder, directFilesInFolder);
     final q = _search.text.trim().toLowerCase();
     if (q.isEmpty) return rows;
     return rows
         .where((row) {
+          final title = row.displayTitle().toLowerCase();
+          final file = row.directFile?.fileName.trim().isNotEmpty == true
+              ? row.directFile!.fileName.trim().toLowerCase()
+              : TaskDetailsDialogHelpers.attachmentFileNameFromUrl(
+                  row.url,
+                ).toLowerCase();
           final t = row.task;
-          final title = t.title.trim().toLowerCase();
-          final file = TaskDetailsDialogHelpers.attachmentFileNameFromUrl(
-            row.url,
-          ).toLowerCase();
-          final typeRaw = t.finalDeliverableType.trim();
+          final typeRaw = t?.finalDeliverableType.trim() ?? '';
           final typeLabel = typeRaw.isEmpty ? '' : typeRaw.tr.toLowerCase();
-          final clientField = t.clientName.trim().toLowerCase();
-          final ym = LibraryPathUtils.libraryMonthFolderKeyForTask(t);
-          final monthDisp = libraryMonthDisplayLabel(ym).toLowerCase();
+          final clientField = t?.clientName.trim().toLowerCase() ??
+              row.directFile?.clientName.trim().toLowerCase() ??
+              '';
+          final ym = t != null
+              ? LibraryPathUtils.libraryMonthFolderKeyForTask(t)
+              : (row.directFile?.yearMonth ?? '');
+          final monthDisp = ym.isEmpty ? '' : libraryMonthDisplayLabel(ym).toLowerCase();
           final navClient = _nav.clientName.trim().toLowerCase();
           final navMonth = _nav.yearMonth.toLowerCase();
           final navCat = libraryCategoryTitle(_nav.category).toLowerCase();
@@ -214,6 +246,7 @@ class _LibraryAttachmentPickerDialogState
     final tasksSnapshot = hc.tasks
         .where(LibraryPathUtils.libraryEntryDesired)
         .toList(growable: false);
+    final libraryFilesSnapshot = hc.libraryFiles.toList(growable: false);
 
     return AlertDialog(
       title: widget.single
@@ -265,9 +298,10 @@ class _LibraryAttachmentPickerDialogState
                 nav: _nav,
                 onNavChanged: (n) => setState(() => _nav = n),
                 tasks: tasksSnapshot,
+                libraryFiles: libraryFilesSnapshot,
                 clients: hc.clients.toList(),
-                buildLeaf: (ctx, nav, files) {
-                  final rows = _filteredRows(files);
+                buildLeaf: (ctx, nav, files, directFiles) {
+                  final rows = _filteredRows(files, directFiles);
                   if (rows.isEmpty) {
                     return Center(
                       child: Text(
@@ -284,12 +318,12 @@ class _LibraryAttachmentPickerDialogState
                       final row = rows[i];
                       final checked = _selected.contains(row.url);
                       final fileName =
-                          TaskDetailsDialogHelpers.attachmentFileNameFromUrl(
-                            row.url,
-                          );
-                      final titleText = row.task.title.trim().isEmpty
-                          ? '-'
-                          : row.task.title.trim();
+                          row.directFile?.fileName.trim().isNotEmpty == true
+                          ? row.directFile!.fileName.trim()
+                          : TaskDetailsDialogHelpers.attachmentFileNameFromUrl(
+                              row.url,
+                            );
+                      final titleText = row.displayTitle();
                       return Material(
                         color: Colors.grey.shade50,
                         borderRadius: BorderRadius.circular(10),

@@ -16,6 +16,7 @@ import 'package:point/Models/ClientModel.dart';
 import 'package:point/Models/ContentModel.dart';
 import 'package:point/Models/MetaPostModel.dart';
 import 'package:point/Models/EmployeeModel.dart';
+import 'package:point/Models/LibraryFileModel.dart';
 import 'package:point/Models/NotificationModel.dart';
 import 'package:point/Models/ProgrammingUpdateModel.dart';
 import 'package:point/Models/TaskModel.dart';
@@ -50,6 +51,8 @@ class FirestoreServicesBase {
       FirebaseFirestore.instance.collection('programming_updates');
   final CollectionReference _metaPostsCollection =
       FirebaseFirestore.instance.collection('meta_posts');
+  final CollectionReference _dbLibraryFiles =
+      FirebaseFirestore.instance.collection('library_files');
 }
 
 /// واجهة Firestore الرئيسية للتطبيق؛ المنطق مُقسّم على [FirestoreFcmApi] ووحدات أخرى.

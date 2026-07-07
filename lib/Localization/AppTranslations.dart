@@ -1107,6 +1107,16 @@ class AppTranslations extends Translations {
       'library.files': 'Files',
       'library.client_unassigned': 'Unassigned client',
       'library.forbidden': 'You do not have access to the library.',
+      'library.upload_files': 'Upload files',
+      'library.upload_hint':
+          'Select one or more files to add directly to this folder. No task is required.',
+      'library.uploading': 'Uploading…',
+      'library.upload_success': '@count file(s) uploaded to the library.',
+      'library.upload_failed': 'Could not save file to the library.',
+      'library.direct_upload_label': 'Direct upload',
+      'library.delete_file': 'Delete file',
+      'library.delete_file_confirm':
+          'Remove this file from the library? The storage file will not be deleted.',
       'tasks': 'Task management',
       'programming': 'Programming',
       'statistcs': 'Statistics',
@@ -1344,6 +1354,16 @@ class AppTranslations extends Translations {
       'library.files': 'الملفات',
       'library.client_unassigned': 'عميل غير مرتبط',
       'library.forbidden': 'لا تملك صلاحية الوصول إلى المكتبة.',
+      'library.upload_files': 'رفع ملفات',
+      'library.upload_hint':
+          'اختر ملفاً أو أكثر لإضافته مباشرة إلى هذا المجلد دون الحاجة إلى مهمة.',
+      'library.uploading': 'جاري الرفع…',
+      'library.upload_success': 'تم رفع @count ملف/ملفات إلى المكتبة.',
+      'library.upload_failed': 'تعذّر حفظ الملف في المكتبة.',
+      'library.direct_upload_label': 'رفع مباشر',
+      'library.delete_file': 'حذف الملف',
+      'library.delete_file_confirm':
+          'إزالة هذا الملف من المكتبة؟ لن يُحذف الملف من التخزين.',
       'tasks': "ادارة المهام",
       'programming': "قسم البرمجة ",
       'statistcs': "الاحصائيات",

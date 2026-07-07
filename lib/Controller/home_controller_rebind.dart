@@ -1,5 +1,13 @@
 part of 'package:point/Controller/HomeController.dart';
 
+void homeBindLibraryFilesStream(HomeController c, bool isManager) {
+  if (isManager) {
+    c.libraryFiles.bindStream(c._service.getLibraryFiles());
+  } else {
+    c.libraryFiles.bindStream(Stream<List<LibraryFileModel>>.value([]));
+  }
+}
+
 List<String> _departmentsFromFirestoreMap(Map<String, dynamic>? m) {
   if (m == null) return const [];
   final raw = m['departments'];
@@ -35,6 +43,7 @@ Future<void> homeRebindClientsAndTasksStreamsAsync(
     if (role == 'client') {
       c.clients.bindStream(c._service.getClientsStreamForCurrentAuthEmail());
       c.tasks.bindStream(Stream<List<TaskModel>>.value([]));
+      homeBindLibraryFilesStream(c, false);
       c.update();
       return;
     }
@@ -42,6 +51,7 @@ Future<void> homeRebindClientsAndTasksStreamsAsync(
     if (role == 'admin' || role == 'supervisor') {
       c.clients.bindStream(c._service.getClientsStream());
       c.tasks.bindStream(c._service.getTasks());
+      homeBindLibraryFilesStream(c, true);
       c.update();
       return;
     }
@@ -61,6 +71,7 @@ Future<void> homeRebindClientsAndTasksStreamsAsync(
       } else {
         c.tasks.bindStream(Stream<List<TaskModel>>.value([]));
       }
+      homeBindLibraryFilesStream(c, false);
       c.update();
       return;
     }
@@ -68,6 +79,7 @@ Future<void> homeRebindClientsAndTasksStreamsAsync(
     if (role != null) {
       c.clients.bindStream(c._service.getClientsStream());
       c.tasks.bindStream(c._service.getTasks());
+      homeBindLibraryFilesStream(c, role == 'admin' || role == 'supervisor');
       c.update();
       return;
     }
@@ -76,6 +88,7 @@ Future<void> homeRebindClientsAndTasksStreamsAsync(
     if (email == null || email.isEmpty) {
       c.clients.bindStream(Stream<List<ClientModel>>.value([]));
       c.tasks.bindStream(Stream<List<TaskModel>>.value([]));
+      homeBindLibraryFilesStream(c, false);
       c.update();
       return;
     }
@@ -107,9 +120,14 @@ Future<void> homeRebindClientsAndTasksStreamsAsync(
       } else {
         c.tasks.bindStream(c._service.getTasks());
       }
+      homeBindLibraryFilesStream(
+        c,
+        empRole == 'admin' || empRole == 'supervisor',
+      );
     } else {
       c.clients.bindStream(c._service.getClientsStreamForCurrentAuthEmail());
       c.tasks.bindStream(Stream<List<TaskModel>>.value([]));
+      homeBindLibraryFilesStream(c, false);
     }
     c.update();
   } catch (e, s) {
@@ -118,6 +136,7 @@ Future<void> homeRebindClientsAndTasksStreamsAsync(
     if (gen != c._clientsTasksRebindGeneration) return;
     c.clients.bindStream(c._service.getClientsStreamForCurrentAuthEmail());
     c.tasks.bindStream(Stream<List<TaskModel>>.value([]));
+    homeBindLibraryFilesStream(c, false);
     c.update();
   }
 }

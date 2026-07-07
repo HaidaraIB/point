@@ -1169,6 +1169,48 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
     }
   }
 
+  Future<String?> addLibraryFile(LibraryFileModel file) async {
+    try {
+      final docRef = _dbLibraryFiles.doc();
+      final id = docRef.id;
+      await docRef.set(file.copyWith(id: id).toJson());
+      return id;
+    } catch (e) {
+      appLog('❌ Error addLibraryFile: $e');
+      return null;
+    }
+  }
+
+  Future<bool> deleteLibraryFile(String id) async {
+    try {
+      await _dbLibraryFiles.doc(id).delete();
+      return true;
+    } catch (e) {
+      appLog('❌ Error deleteLibraryFile: $e');
+      return false;
+    }
+  }
+
+  Stream<List<LibraryFileModel>> getLibraryFiles() {
+    return safeFirestoreListStream(
+      _dbLibraryFiles
+          .orderBy('uploadedAt', descending: true)
+          .limit(FirestoreQueryLimits.libraryFiles)
+          .snapshots()
+          .map(
+            (snapshot) => snapshot.docs
+                .map(
+                  (doc) => LibraryFileModel.fromJson(
+                    Map<String, dynamic>.from(doc.data() as Map),
+                    doc.id,
+                  ),
+                )
+                .toList(),
+          ),
+      'library_files',
+    );
+  }
+
   Future<String?> addProgrammingUpdate(ProgrammingUpdateModel update) async {
     try {
       final docRef = _dbProgrammingUpdates.doc();
