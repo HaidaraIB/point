@@ -80,7 +80,6 @@ class EmployeeTaskCard extends StatelessWidget {
           margin: const EdgeInsets.all(8),
           padding: const EdgeInsets.all(12),
           width: double.infinity,
-          height: double.infinity,
           decoration: BoxDecoration(
               color: resolveAppTheme().cardSurface,
             borderRadius: BorderRadius.circular(16),
@@ -95,7 +94,7 @@ class EmployeeTaskCard extends StatelessWidget {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final isDesktop = Responsive.isDesktop(context);
-              return SingleChildScrollView(
+              final scrollView = SingleChildScrollView(
                 physics: const ClampingScrollPhysics(),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(minWidth: constraints.maxWidth),
@@ -369,9 +368,11 @@ class EmployeeTaskCard extends StatelessWidget {
                             vertical: 8,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF7F6FF),
+                            color: resolveAppTheme().panelTint,
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: const Color(0xFFD9D4FF)),
+                            border: Border.all(
+                              color: AppColors.primary.withValues(alpha: 0.35),
+                            ),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -394,6 +395,7 @@ class EmployeeTaskCard extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
+                                  color: resolveAppTheme().primaryText,
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -728,6 +730,15 @@ class EmployeeTaskCard extends StatelessWidget {
                   ),
                 ),
               );
+              if (constraints.hasBoundedHeight &&
+                  constraints.maxHeight.isFinite) {
+                return SizedBox(
+                  height: constraints.maxHeight,
+                  width: constraints.maxWidth,
+                  child: scrollView,
+                );
+              }
+              return scrollView;
             },
           ),
         );

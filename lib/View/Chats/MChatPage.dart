@@ -819,9 +819,9 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                     final displayName =
                                         _localizedGroupTitleFromChat(group);
                                     return ListTile(
-                                      leading: chatLeadingAvatar(
+                                      leading: chatLeadingAvatar(context,
                                         radius: 20,
-                                        backgroundColor: Colors.blueGrey.shade100,
+                                        backgroundColor: chatGroupAvatarBackground(context),
                                         initial: _initialFromName(displayName),
                                         groupIcon: Icons.group,
                                         assetImagePath:
@@ -877,7 +877,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                         .toString()
                                         .trim();
                                     return ListTile(
-                                      leading: chatLeadingAvatar(
+                                      leading: chatLeadingAvatar(context,
                                         radius: 20,
                                         backgroundColor:
                                             chatAvatarPlaceholder(context),
@@ -1209,7 +1209,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                             if (isGroup) {
                               displayName = _localizedGroupTitleFromChat(ch);
                               initial = _initialFromName(displayName);
-                              avatarColor = Colors.blueGrey.shade100;
+                              avatarColor = chatGroupAvatarBackground(context);
                               avatarIcon = Icons.group;
                               groupAssetPath =
                                   _departmentGroupAssetPathFromChat(ch);
@@ -1276,7 +1276,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                   avatarChild: _avatarWithOnlineDot(
                                     showOnlineDot:
                                         !isGroup && showPrivateOnlineDot,
-                                    avatar: chatLeadingAvatar(
+                                    avatar: chatLeadingAvatar(context,
                                       radius: 24,
                                       backgroundColor: avatarColor,
                                       initial: initial,
@@ -2094,24 +2094,11 @@ class _MessageScreenState extends State<MessageScreen>
               if (!isGroup && isChatImageHttpUrl(widget.otherAvatarUrl)) ...[
                 _avatarWithOnlineDot(
                   showOnlineDot: privateOnlineDot,
-                  avatar: CircleAvatar(
+                  avatar: chatLeadingAvatar(
+                    context,
                     radius: 18,
-                    backgroundColor: Colors.grey.shade200,
-                    child: ClipOval(
-                      child: Image.network(
-                        otherAvatarUrl,
-                        width: 36,
-                        height: 36,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Text(
-                          _initialFromName(_displayName),
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: context.appTheme.primaryText,
-                          ),
-                        ),
-                      ),
-                    ),
+                    initial: _initialFromName(_displayName),
+                    imageUrl: otherAvatarUrl,
                   ),
                 ),
                 const SizedBox(width: 10),

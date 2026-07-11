@@ -1639,9 +1639,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                     final displayName =
                                         _localizedGroupTitleFromChat(group);
                                     return ListTile(
-                                      leading: chatLeadingAvatar(
+                                      leading: chatLeadingAvatar(context,
                                         radius: 20,
-                                        backgroundColor: Colors.blueGrey.shade100,
+                                        backgroundColor: chatGroupAvatarBackground(context),
                                         initial: _initialFromName(displayName),
                                         groupIcon: Icons.group,
                                         assetImagePath:
@@ -1693,7 +1693,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                         .toString()
                                         .trim();
                                     return ListTile(
-                                      leading: chatLeadingAvatar(
+                                      leading: chatLeadingAvatar(context,
                                         radius: 20,
                                         backgroundColor:
                                             chatAvatarPlaceholder(context),
@@ -1869,7 +1869,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                       displayName =
                                           _localizedGroupTitleFromChat(ch);
                                       initial = _initialFromName(displayName);
-                                      avatarColor = Colors.blueGrey.shade100;
+                                      avatarColor = chatGroupAvatarBackground(context);
                                       avatarIcon = Icons.group;
                                       groupAssetPath =
                                           _departmentGroupAssetPathFromChat(ch);
@@ -2008,7 +2008,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                           avatarChild: _avatarWithOnlineDot(
                                             showOnlineDot: !isGroup &&
                                                 showPrivateOnlineDot,
-                                            avatar: chatLeadingAvatar(
+                                            avatar: chatLeadingAvatar(context,
                                               radius: 24,
                                               backgroundColor: avatarColor,
                                               initial: initial,
@@ -2173,13 +2173,15 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                             avatar = _avatarWithOnlineDot(
                                               showOnlineDot:
                                                   privateOnlineDot && !isGroup,
-                                              avatar: chatLeadingAvatar(
+                                              avatar: chatLeadingAvatar(context,
                                                 radius: 28,
                                                 backgroundColor: isGroup
-                                                    ? Colors
-                                                        .blueGrey
-                                                        .shade100
-                                                    : Colors.grey.shade200,
+                                                    ? chatGroupAvatarBackground(
+                                                        context,
+                                                      )
+                                                    : chatAvatarPlaceholder(
+                                                        context,
+                                                      ),
                                                 initial:
                                                     _initialFromName(name),
                                                 groupIcon: isGroup

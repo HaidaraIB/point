@@ -1,7 +1,6 @@
 import 'package:point/Utils/app_log.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Services/StorageKeys.dart';
@@ -198,8 +197,8 @@ class _TasksHistoryState extends State<TasksHistory> {
                                           ),
                                         ),
                                         SizedBox(width: 10),
-                                        InkWell(
-                                          onTap: () {
+                                        FilterResetButton(
+                                          onPressed: () {
                                             controller.searchController.clear();
                                             controller.selectedPriority.value =
                                                 '';
@@ -209,10 +208,6 @@ class _TasksHistoryState extends State<TasksHistory> {
                                                 '';
                                             controller.filterTasksHistory();
                                           },
-                                          child: SvgPicture.asset(
-                                            'assets/svgs/icon_menu.svg',
-                                            height: 42,
-                                          ),
                                         ),
                                         const SizedBox(width: 24),
                                         AppFilterDropdown<String>(

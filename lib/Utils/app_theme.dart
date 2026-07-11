@@ -118,6 +118,27 @@ class AppTheme {
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(foregroundColor: ext.accentText),
       ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          disabledBackgroundColor: ext.unselected,
+          disabledForegroundColor: ext.mutedText,
+        ),
+      ),
+      tabBarTheme: TabBarThemeData(
+        labelColor: AppColors.primary,
+        unselectedLabelColor: ext.secondaryText,
+        indicatorColor: AppColors.primary,
+        dividerColor: ext.border,
+        labelStyle: almaraiTextTheme.labelLarge?.copyWith(
+          fontWeight: FontWeight.w600,
+        ),
+        unselectedLabelStyle: almaraiTextTheme.labelLarge?.copyWith(
+          fontWeight: FontWeight.w500,
+          color: ext.secondaryText,
+        ),
+      ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: ext.accentText,

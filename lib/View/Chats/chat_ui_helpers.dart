@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
@@ -131,8 +132,33 @@ Color chatIncomingBubbleColorBright(BuildContext context) =>
 Color chatPinnedBarBackground(BuildContext context) =>
     context.appTheme.panelTint;
 
-Color chatAvatarPlaceholder(BuildContext context) =>
-    context.appTheme.unselected;
+Color chatAvatarPlaceholder(BuildContext context) {
+  if (Theme.of(context).brightness == Brightness.dark) {
+    return AppColors.primary.withValues(alpha: 0.22);
+  }
+  return context.appTheme.unselected;
+}
+
+Color chatGroupAvatarBackground(BuildContext context) {
+  if (Theme.of(context).brightness == Brightness.dark) {
+    return AppColors.primary.withValues(alpha: 0.28);
+  }
+  return Colors.blueGrey.shade100;
+}
+
+Color chatAvatarInitialTextColor(BuildContext context) {
+  if (Theme.of(context).brightness == Brightness.dark) {
+    return Colors.white;
+  }
+  return context.appTheme.primaryText;
+}
+
+Color chatAvatarIconColor(BuildContext context) {
+  if (Theme.of(context).brightness == Brightness.dark) {
+    return Colors.white;
+  }
+  return Colors.blueGrey.shade700;
+}
 
 Color chatListSelectedTile(BuildContext context) =>
     Theme.of(context).brightness == Brightness.dark
@@ -520,21 +546,33 @@ class ChatPresenceSubline extends StatelessWidget {
   }
 }
 
-Widget chatLeadingAvatar({
+Widget chatLeadingAvatar(
+  BuildContext context, {
   required double radius,
-  required Color backgroundColor,
+  Color? backgroundColor,
   required String initial,
   IconData? groupIcon,
   String? assetImagePath,
   String? imageUrl,
-  Color iconColor = Colors.blueGrey,
-  Color initialTextColor = Colors.black,
+  Color? iconColor,
+  Color? initialTextColor,
 }) {
+  final bg = backgroundColor ?? chatAvatarPlaceholder(context);
+  final resolvedIconColor = iconColor ?? chatAvatarIconColor(context);
+  final resolvedInitialTextColor =
+      initialTextColor ?? chatAvatarInitialTextColor(context);
+
   Widget fallbackChild() {
     if (groupIcon != null) {
-      return Icon(groupIcon, color: iconColor);
+      return Icon(groupIcon, color: resolvedIconColor);
     }
-    return Text(initial, style: TextStyle(color: initialTextColor));
+    return Text(
+      initial,
+      style: TextStyle(
+        color: resolvedInitialTextColor,
+        fontWeight: FontWeight.w700,
+      ),
+    );
   }
 
   final localAsset = assetImagePath?.trim() ?? '';
@@ -542,7 +580,7 @@ Widget chatLeadingAvatar({
     final dim = radius * 2;
     return CircleAvatar(
       radius: radius,
-      backgroundColor: backgroundColor,
+      backgroundColor: bg,
       child: ClipOval(
         child: Image.asset(
           localAsset,
@@ -557,7 +595,7 @@ Widget chatLeadingAvatar({
   if (groupIcon != null) {
     return CircleAvatar(
       radius: radius,
-      backgroundColor: backgroundColor,
+      backgroundColor: bg,
       child: fallbackChild(),
     );
   }
@@ -566,7 +604,7 @@ Widget chatLeadingAvatar({
     final dim = radius * 2;
     return CircleAvatar(
       radius: radius,
-      backgroundColor: backgroundColor,
+      backgroundColor: bg,
       child: ClipOval(
         child: Image.network(
           u,
@@ -575,7 +613,11 @@ Widget chatLeadingAvatar({
           fit: BoxFit.cover,
           errorBuilder: (_, __, ___) => Text(
             initial,
-            style: TextStyle(color: initialTextColor, fontSize: 14),
+            style: TextStyle(
+              color: resolvedInitialTextColor,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ),
@@ -583,7 +625,7 @@ Widget chatLeadingAvatar({
   }
   return CircleAvatar(
     radius: radius,
-    backgroundColor: backgroundColor,
+    backgroundColor: bg,
     child: fallbackChild(),
   );
 }

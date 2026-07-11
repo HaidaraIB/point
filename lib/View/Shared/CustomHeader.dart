@@ -20,7 +20,103 @@ import 'package:point/View/Shared/internet_status_badge.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/EmployeeDashboard/employee_profile_form.dart';
 import 'package:point/View/Shared/responsive.dart';
+import 'package:point/Utils/AppConstants.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+
+bool _usesLocalAvatarPlaceholder(String url) {
+  final trimmed = url.trim();
+  return trimmed.isEmpty ||
+      trimmed == kDefaultAvatarUrl ||
+      trimmed.contains('ui-avatars.com');
+}
+
+String avatarInitialsFromName(String raw) {
+  final name = raw.trim();
+  if (name.isEmpty) return 'U';
+
+  final parts = name.split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+  if (parts.length >= 2) {
+    final first = parts.first.characters.first;
+    final last = parts.last.characters.first;
+    final initials = '$first$last';
+    if (RegExp(r'^[A-Za-z]+$').hasMatch(initials)) {
+      return initials.toUpperCase();
+    }
+    return initials;
+  }
+
+  return name.characters.take(2).join();
+}
+
+/// Profile avatar that respects light/dark theme for placeholders and fallbacks.
+class AppUserAvatar extends StatelessWidget {
+  final String url;
+  final double radius;
+  final String? displayName;
+
+  const AppUserAvatar({
+    super.key,
+    required this.url,
+    required this.radius,
+    this.displayName,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.appTheme;
+    final trimmedUrl = url.trim();
+
+    if (_usesLocalAvatarPlaceholder(trimmedUrl)) {
+      final initials = avatarInitialsFromName(displayName ?? '');
+      return CircleAvatar(
+        radius: radius,
+        backgroundColor: theme.unselected,
+        child: Text(
+          initials,
+          style: TextStyle(
+            color: theme.primaryText,
+            fontWeight: FontWeight.w700,
+            fontSize: radius * 0.9,
+            height: 1,
+          ),
+        ),
+      );
+    }
+
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: theme.unselected,
+      child: ClipOval(
+        child: Image.network(
+          trimmedUrl,
+          fit: BoxFit.cover,
+          width: radius * 2,
+          height: radius * 2,
+          errorBuilder: (_, __, ___) {
+            final initials = avatarInitialsFromName(displayName ?? '');
+            if (initials != 'U') {
+              return ColoredBox(
+                color: theme.unselected,
+                child: Center(
+                  child: Text(
+                    initials,
+                    style: TextStyle(
+                      color: theme.primaryText,
+                      fontWeight: FontWeight.w700,
+                      fontSize: radius * 0.9,
+                      height: 1,
+                    ),
+                  ),
+                ),
+              );
+            }
+            return Icon(Icons.person, color: theme.mutedText, size: radius);
+          },
+        ),
+      ),
+    );
+  }
+}
 
 /// Firestore role slug (e.g. employee, admin) shown in headers.
 String _localizedStoredRole(String raw) {
@@ -76,27 +172,15 @@ Widget _webEmployeeThemeMenuButton() {
   return const AppThemeMenuButton(compact: true);
 }
 
-Widget _buildAvatar(String url, {required double radius}) {
-  final muted = resolveAppTheme().mutedText;
-  if (url.isEmpty) {
-    return CircleAvatar(
-      radius: radius,
-      backgroundColor: Colors.grey.shade300,
-      child: Icon(Icons.person, color: muted, size: radius),
-    );
-  }
-  return CircleAvatar(
+Widget _buildAvatar(
+  String url, {
+  required double radius,
+  String? displayName,
+}) {
+  return AppUserAvatar(
+    url: url,
     radius: radius,
-    backgroundColor: Colors.grey.shade300,
-    child: ClipOval(
-      child: Image.network(
-        url,
-        fit: BoxFit.cover,
-        width: radius * 2,
-        height: radius * 2,
-        errorBuilder: (_, __, ___) => Icon(Icons.person, color: muted, size: radius),
-      ),
-    ),
+    displayName: displayName,
   );
 }
 
@@ -243,7 +327,7 @@ class MobileAppBarProfileWidget extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        _buildAvatar(avatarUrl, radius: 18),
+        _buildAvatar(avatarUrl, radius: 18, displayName: name),
         const SizedBox(width: 8),
         Flexible(
           fit: FlexFit.loose,
@@ -501,7 +585,7 @@ class HeaderWidget extends StatelessWidget {
           const InternetStatusBadge(),
           const SizedBox(width: 10),
         ],
-        _buildAvatar(avatarUrl, radius: isMobile ? 15 : 16),
+        _buildAvatar(avatarUrl, radius: isMobile ? 15 : 16, displayName: name),
         SizedBox(width: isMobile ? 6 : 10),
         Flexible(
           fit: FlexFit.loose,

@@ -83,11 +83,9 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final logoWidth = isDark
-        ? (kIsWeb ? 80.0 : 88.0)
-        : (kIsWeb ? min(Get.width * 0.35, 280.0) : min(Get.width * 0.45, 320.0));
-    final logoHeight = isDark ? logoWidth : (kIsWeb ? 64.0 : 72.0);
+    final logoWidth =
+        kIsWeb ? min(Get.width * 0.35, 280.0) : min(Get.width * 0.45, 320.0);
+    const logoHeight = kIsWeb ? 64.0 : 72.0;
 
     final content = Center(
       child: Padding(
@@ -98,6 +96,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
             BrandLogo(
               width: logoWidth,
               height: logoHeight,
+              iconOnlyInDark: false,
             ),
             const SizedBox(height: 28),
             FadeTransition(

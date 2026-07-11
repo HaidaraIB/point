@@ -17,6 +17,7 @@ import 'package:point/View/Tasks/Shared/request_task_modification_dialog.dart';
 import 'package:point/View/Tasks/Shared/task_attachment_gallery.dart';
 import 'package:point/View/Tasks/Shared/task_voice_details_tile.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
+import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 
 /// Generic web dialog for task details. Renders common shell (header, notes,
@@ -574,9 +575,11 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF7F6FF),
+                          color: context.appTheme.panelTint,
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFFD9D4FF)),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.35),
+                          ),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,

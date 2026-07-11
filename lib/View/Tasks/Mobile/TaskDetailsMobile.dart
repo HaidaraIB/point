@@ -49,6 +49,22 @@ bool _employeeMayEditFinalDeliverableInDetails(TaskModel t, String role) {
       StorageKeys.status_approved;
 }
 
+BoxDecoration _taskDetailsInsetPanelDecoration(BuildContext context) =>
+    BoxDecoration(
+      color: context.appTheme.panelTint,
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: context.appTheme.border),
+    );
+
+Color _taskDetailsTintedBg(
+  BuildContext context,
+  Color accent, {
+  required Color lightBg,
+}) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+  return isDark ? accent.withValues(alpha: 0.18) : lightBg;
+}
+
 /// Mobile-only full-screen task details. Used when opening any task type on mobile.
 class TaskDetailsMobilePage extends StatelessWidget {
   final TaskModel task;
@@ -60,7 +76,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
     final bottomPadding = MediaQuery.of(context).padding.bottom + 24;
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: context.appTheme.pageBackground,
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
@@ -119,6 +135,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
                         FunHelper.canonicalStoredStatus(task.status),
                       ),
                       bg: _statusBg(
+                        context,
                         FunHelper.canonicalStoredStatus(task.status),
                       ),
                       iconSize: 14,
@@ -134,6 +151,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
                         FunHelper.canonicalStoredPriority(task.priority),
                       ),
                       _priorityBg(
+                        context,
                         FunHelper.canonicalStoredPriority(task.priority),
                       ),
                     ),
@@ -157,7 +175,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
                     const SizedBox(height: 8),
                     LinearProgressIndicator(
                       value: task.progress ?? 0,
-                      backgroundColor: Colors.grey.shade200,
+                      backgroundColor: context.appTheme.border,
                       color: context.appTheme.accentText,
                       minHeight: 8,
                       borderRadius: BorderRadius.circular(4),
@@ -180,7 +198,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
                   children: [
                     CircleAvatar(
                       radius: 22,
-                      backgroundColor: Colors.grey.shade300,
+                      backgroundColor: context.appTheme.elevatedSurface,
                       backgroundImage: NetworkImage(
                         task.assignedImageUrl.isEmpty
                             ? '${StorageKeys.supabaseStorageBaseUrl}/Avatar.png'
@@ -220,7 +238,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
                                   fontWeight: FontWeight.w600,
                                   color: t == 'tasks.deadline_expired'.tr
                                       ? Colors.red
-                                      : Colors.grey.shade600,
+                                      : context.appTheme.mutedText,
                                 ),
                               );
                             },
@@ -592,11 +610,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
+              decoration: _taskDetailsInsetPanelDecoration(context),
               child: Text(
                 finalType.tr,
                 style: TextStyle(
@@ -625,11 +639,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
+              decoration: _taskDetailsInsetPanelDecoration(context),
               child: LinkifiedText(
                 body,
                 style: TextStyle(
@@ -647,11 +657,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
             Container(
               width: double.infinity,
               constraints: const BoxConstraints(minHeight: 72),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
+              decoration: _taskDetailsInsetPanelDecoration(context),
               padding: const EdgeInsets.all(10),
               child: GridView.builder(
                 shrinkWrap: true,
@@ -712,11 +718,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
             width: double.infinity,
             constraints: const BoxConstraints(minHeight: 120),
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade300),
-            ),
+            decoration: _taskDetailsInsetPanelDecoration(context),
             child: t.notes.isEmpty
                 ? Center(
                     child: Text(
@@ -736,9 +738,11 @@ class TaskDetailsMobilePage extends StatelessWidget {
                           width: double.infinity,
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF7F6FF),
+                            color: context.appTheme.panelTint,
                             borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: const Color(0xFFD9D4FF)),
+                            border: Border.all(
+                              color: AppColors.primary.withValues(alpha: 0.35),
+                            ),
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -814,11 +818,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
           Container(
             width: double.infinity,
             constraints: const BoxConstraints(minHeight: 100),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade300),
-            ),
+            decoration: _taskDetailsInsetPanelDecoration(context),
             padding: const EdgeInsets.all(10),
             child:
                 t.files.isEmpty
@@ -1470,42 +1470,28 @@ class TaskDetailsMobilePage extends StatelessWidget {
     }
   }
 
-  Color _statusBg(String status) {
-    switch (status) {
-      case StorageKeys.status_not_start_yet:
-        return Colors.grey.shade200;
-      case StorageKeys.status_processing:
-        return Colors.amber.shade50;
-      case StorageKeys.status_under_revision:
-        return Colors.blue.shade50;
-      case StorageKeys.status_in_edit:
-        return Colors.purple.shade50;
-      case StorageKeys.status_edit_requested:
-        return Colors.deepOrange.shade50;
-      case StorageKeys.status_ready_to_publish:
-        return Colors.teal.shade50;
-      case StorageKeys.status_awaiting_manager:
-        return Colors.indigo.shade50;
-      case StorageKeys.status_approved:
-        return Colors.green.shade50;
-      case StorageKeys.status_scheduled:
-        return Colors.orange.shade50;
-      case StorageKeys.status_task_completed:
-      case StorageKeys.status_published:
-        return Colors.lightGreen.shade50;
-      case StorageKeys.status_rejected:
-        return Colors.red.shade50;
-      case StorageKeys.status_promotion_in_progress:
-        return Colors.amber.shade50;
-      case StorageKeys.status_promotion_ad_platform_review:
-        return Colors.blue.shade50;
-      case StorageKeys.status_promotion_running:
-        return Colors.green.shade50;
-      case StorageKeys.status_promotion_finished:
-        return Colors.blueGrey.shade100;
-      default:
-        return Colors.grey.shade200;
-    }
+  Color _statusBg(BuildContext context, String status) {
+    final fg = _statusColor(status);
+    final lightBg = switch (status) {
+      StorageKeys.status_not_start_yet => Colors.grey.shade200,
+      StorageKeys.status_processing => Colors.amber.shade50,
+      StorageKeys.status_under_revision => Colors.blue.shade50,
+      StorageKeys.status_in_edit => Colors.purple.shade50,
+      StorageKeys.status_edit_requested => Colors.deepOrange.shade50,
+      StorageKeys.status_ready_to_publish => Colors.teal.shade50,
+      StorageKeys.status_awaiting_manager => Colors.indigo.shade50,
+      StorageKeys.status_approved => Colors.green.shade50,
+      StorageKeys.status_scheduled => Colors.orange.shade50,
+      StorageKeys.status_task_completed || StorageKeys.status_published =>
+        Colors.lightGreen.shade50,
+      StorageKeys.status_rejected => Colors.red.shade50,
+      StorageKeys.status_promotion_in_progress => Colors.amber.shade50,
+      StorageKeys.status_promotion_ad_platform_review => Colors.blue.shade50,
+      StorageKeys.status_promotion_running => Colors.green.shade50,
+      StorageKeys.status_promotion_finished => Colors.blueGrey.shade100,
+      _ => Colors.grey.shade200,
+    };
+    return _taskDetailsTintedBg(context, fg, lightBg: lightBg);
   }
 
   Color _priorityColor(String priority) {
@@ -1523,19 +1509,16 @@ class TaskDetailsMobilePage extends StatelessWidget {
     }
   }
 
-  Color _priorityBg(String priority) {
-    switch (priority) {
-      case 'normal':
-        return Colors.blue.shade50;
-      case 'imp':
-        return Colors.orange.shade50;
-      case 'veryimp':
-        return Colors.red.shade50;
-      case 'veryveryimp':
-        return Colors.red.shade100;
-      default:
-        return Colors.green.shade50;
-    }
+  Color _priorityBg(BuildContext context, String priority) {
+    final fg = _priorityColor(priority);
+    final lightBg = switch (priority) {
+      'normal' => Colors.blue.shade50,
+      'imp' => Colors.orange.shade50,
+      'veryimp' => Colors.red.shade50,
+      'veryveryimp' => Colors.red.shade100,
+      _ => Colors.green.shade50,
+    };
+    return _taskDetailsTintedBg(context, fg, lightBg: lightBg);
   }
 
   String _buildNoteMeta(String author, DateTime timestamp) {

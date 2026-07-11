@@ -295,7 +295,10 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                                 // vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.purple.shade50,
+                                color: context.statusChipBackground(
+                                  Colors.purple,
+                                  Colors.purple.shade50,
+                                ),
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: Text(
@@ -304,7 +307,7 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                                   kind: StoredValueKind.contentType,
                                 ),
                                 style: TextStyle(
-                                  color: Colors.purple,
+                                  color: Colors.purple.shade700,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 13,
                                 ),
@@ -323,7 +326,10 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                                 // vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.blueGrey.shade100,
+                                color: context.statusChipBackground(
+                                  Colors.blueGrey.shade700,
+                                  Colors.blueGrey.shade100,
+                                ),
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: Text(
@@ -334,7 +340,7 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                                 textAlign: TextAlign.center,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  color: Colors.blueGrey,
+                                  color: Colors.blueGrey.shade700,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 13,
                                 ),
@@ -348,6 +354,7 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                               child: Builder(
                                 builder: (context) {
                                   final statusChip = buildTaskStatusDropdownChip(
+                                    context: context,
                                     rawStatus: emp.status,
                                     label: FunHelper.trStored(
                                       emp.status,
@@ -441,6 +448,10 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                             TableCellCenter(
                               child: Builder(
                                 builder: (context) {
+                                  final promoKey = FunHelper.canonicalStoredPromotion(
+                                    emp.promotion,
+                                  );
+                                  final promoFg = getContentPromotionColor(promoKey);
                                   final promotionChip = buildContentDropdownChip(
                                     label:
                                         emp.promotion == null ||
@@ -450,15 +461,10 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                                             emp.promotion,
                                             kind: StoredValueKind.promotion,
                                           ),
-                                    textColor: getContentPromotionColor(
-                                      FunHelper.canonicalStoredPromotion(
-                                        emp.promotion,
-                                      ),
-                                    ),
-                                    backgroundColor: getContentPromotionBgColor(
-                                      FunHelper.canonicalStoredPromotion(
-                                        emp.promotion,
-                                      ),
+                                    textColor: promoFg,
+                                    backgroundColor: context.statusChipBackground(
+                                      promoFg,
+                                      getContentPromotionBgColor(promoKey),
                                     ),
                                   );
                                   if (!ContentPermissions.canChangePromotionField(
@@ -721,10 +727,15 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  color: Colors.white,
+                                  color: context.appTheme.cardSurface,
                                   elevation: 4,
                                   itemBuilder: (context) {
                                     final items = <PopupMenuEntry<int>>[];
+                                    final menuTextStyle = TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                      color: context.appTheme.primaryText,
+                                    );
                                     if (canEdit) {
                                       items.add(
                                         PopupMenuItem(
@@ -734,10 +745,7 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                                             children: [
                                               Text(
                                                 'edit'.tr,
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 12,
-                                                ),
+                                                style: menuTextStyle,
                                                 overflow: TextOverflow.ellipsis,
                                               ),
                                               SizedBox(width: 4),
@@ -760,10 +768,7 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                                             children: [
                                               Text(
                                                 'delete'.tr,
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 12,
-                                                ),
+                                                style: menuTextStyle,
                                               ),
                                               SizedBox(width: 4),
                                               Icon(
@@ -782,11 +787,15 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                                           value: 2,
                                           child: Row(
                                             children: [
-                                              Text('content.publish_now'.tr),
+                                              Text(
+                                                'content.publish_now'.tr,
+                                                style: menuTextStyle,
+                                              ),
                                               const SizedBox(width: 4),
-                                              const Icon(
+                                              Icon(
                                                 Icons.publish,
                                                 size: 18,
+                                                color: context.appTheme.primaryText,
                                               ),
                                             ],
                                           ),
@@ -797,11 +806,15 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                                           value: 3,
                                           child: Row(
                                             children: [
-                                              Text('content.schedule'.tr),
+                                              Text(
+                                                'content.schedule'.tr,
+                                                style: menuTextStyle,
+                                              ),
                                               const SizedBox(width: 4),
-                                              const Icon(
+                                              Icon(
                                                 Icons.schedule,
                                                 size: 18,
+                                                color: context.appTheme.primaryText,
                                               ),
                                             ],
                                           ),

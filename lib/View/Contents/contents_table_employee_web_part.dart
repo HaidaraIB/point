@@ -332,12 +332,8 @@ Widget _EmployeeWebContentFiltersRow(
           ),
         ),
         const SizedBox(width: 10),
-        InkWell(
-          onTap: () => controller.clearEmployeeWebContentFilters(),
-          child: SvgPicture.asset(
-            'assets/svgs/icon_menu.svg',
-            height: 42,
-          ),
+        FilterResetButton(
+          onPressed: () => controller.clearEmployeeWebContentFilters(),
         ),
         const SizedBox(width: 10),
         Flexible(

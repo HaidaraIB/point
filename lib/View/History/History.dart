@@ -416,7 +416,10 @@ class History extends StatelessWidget {
                                                       // vertical: 4,
                                                     ),
                                                 decoration: BoxDecoration(
-                                                  color: Colors.purple.shade50,
+                                                  color: context.statusChipBackground(
+                                                    Colors.purple,
+                                                    Colors.purple.shade50,
+                                                  ),
                                                   borderRadius:
                                                       BorderRadius.circular(16),
                                                 ),
@@ -426,7 +429,7 @@ class History extends StatelessWidget {
                                                     kind: StoredValueKind.contentType,
                                                   ),
                                                   style: TextStyle(
-                                                    color: Colors.purple,
+                                                    color: Colors.purple.shade700,
                                                     fontWeight: FontWeight.bold,
                                                     fontSize: 13,
                                                   ),
@@ -446,8 +449,10 @@ class History extends StatelessWidget {
                                                       // vertical: 4,
                                                     ),
                                                 decoration: BoxDecoration(
-                                                  color:
-                                                      Colors.blueGrey.shade100,
+                                                  color: context.statusChipBackground(
+                                                    Colors.blueGrey.shade700,
+                                                    Colors.blueGrey.shade100,
+                                                  ),
                                                   borderRadius:
                                                       BorderRadius.circular(16),
                                                 ),
@@ -462,7 +467,7 @@ class History extends StatelessWidget {
                                                   overflow:
                                                       TextOverflow.ellipsis,
                                                   style: TextStyle(
-                                                    color: Colors.blueGrey,
+                                                    color: Colors.blueGrey.shade700,
                                                     fontWeight: FontWeight.bold,
                                                     fontSize: 13,
                                                   ),
@@ -559,6 +564,7 @@ class History extends StatelessWidget {
                                                       });
                                                     },
                                                     child: buildTaskStatusDropdownChip(
+                                                      context: context,
                                                       rawStatus: emp.status,
                                                       label: FunHelper.trStored(
                                                         emp.status,
@@ -708,12 +714,18 @@ class History extends StatelessWidget {
                                                               emp.promotion,
                                                             ),
                                                           ),
-                                                      backgroundColor:
-                                                          getContentPromotionBgColor(
-                                                            FunHelper.canonicalStoredPromotion(
-                                                              emp.promotion,
-                                                            ),
+                                                      backgroundColor: context.statusChipBackground(
+                                                        getContentPromotionColor(
+                                                          FunHelper.canonicalStoredPromotion(
+                                                            emp.promotion,
                                                           ),
+                                                        ),
+                                                        getContentPromotionBgColor(
+                                                          FunHelper.canonicalStoredPromotion(
+                                                            emp.promotion,
+                                                          ),
+                                                        ),
+                                                      ),
                                                     ),
                                                   );
                                                 },
@@ -822,10 +834,15 @@ class History extends StatelessWidget {
                                                           12,
                                                         ),
                                                   ),
-                                                  color: Colors.white,
+                                                  color: context.appTheme.cardSurface,
                                                   elevation: 4,
                                                   itemBuilder:
-                                                      (context) => [
+                                                      (context) {
+                                                        final menuTextStyle = TextStyle(
+                                                          fontWeight: FontWeight.bold,
+                                                          color: context.appTheme.primaryText,
+                                                        );
+                                                        return [
                                                         PopupMenuItem(
                                                           value: 0,
                                                           height: 30,
@@ -844,11 +861,7 @@ class History extends StatelessWidget {
                                                               children: [
                                                                 Text(
                                                                   'edit'.tr,
-                                                                  style: TextStyle(
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .bold,
-                                                                  ),
+                                                                  style: menuTextStyle,
                                                                 ),
                                                                 SizedBox(
                                                                   width: 5,
@@ -893,11 +906,7 @@ class History extends StatelessWidget {
                                                                 children: [
                                                                   Text(
                                                                     'delete'.tr,
-                                                                    style: TextStyle(
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .bold,
-                                                                    ),
+                                                                    style: menuTextStyle,
                                                                   ),
                                                                   SizedBox(
                                                                     width: 5,
@@ -913,7 +922,8 @@ class History extends StatelessWidget {
                                                               ),
                                                             ),
                                                           ),
-                                                      ],
+                                                      ];
+                                                      },
                                                   onSelected: (value) {
                                                     if (value == 0) {
                                                       controller

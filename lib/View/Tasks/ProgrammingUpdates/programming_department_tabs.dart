@@ -58,9 +58,10 @@ class _ProgrammingDepartmentTabsState extends State<ProgrammingDepartmentTabs>
             return TabBar(
               controller: _tabController,
               labelColor: AppColors.primary,
-              unselectedLabelColor: context.appTheme.mutedText,
+              unselectedLabelColor: context.appTheme.secondaryText,
               indicatorColor: AppColors.primary,
               indicatorWeight: 3,
+              dividerColor: context.appTheme.border,
               tabs: [
                 Tab(text: 'programming.tab.tasks'.tr),
                 Tab(

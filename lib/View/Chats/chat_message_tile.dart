@@ -910,7 +910,7 @@ class _ChatMessageTileState extends State<ChatMessageTile>
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 10,
-                      color: Colors.blue.shade700,
+                      color: context.appTheme.accentText,
                     ),
                   ),
                 ),

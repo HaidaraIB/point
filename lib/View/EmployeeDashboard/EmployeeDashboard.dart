@@ -27,6 +27,36 @@ import 'package:point/View/Tasks/DetailsDialogs/DPromotionDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPublishDialog.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 
+void _openEmployeeDashboardTaskDetails(BuildContext context, TaskModel task) {
+  switch (task.type) {
+    case '0':
+      showCampaignDetailsDialog(context, task: task);
+      break;
+    case '1':
+      showDesignDetailsDialog(context, task: task);
+      break;
+    case '2':
+      showDPhotographyDialog(context, task: task);
+      break;
+    case '3':
+      showContentWriteDialog(context, task: task);
+      break;
+    case '4':
+      showMontageDialog(context, task: task);
+      break;
+    case '5':
+      showPublishDialog(context, task: task);
+      break;
+    case '6':
+      showProgrammingDialog(context, task: task);
+      break;
+    case '7':
+      showAdministrativeTaskDetailsDialog(context, task: task);
+      break;
+    default:
+  }
+}
+
 Widget _employeeDashboardDepartmentChip(
   BuildContext context, {
   required String label,
@@ -34,19 +64,38 @@ Widget _employeeDashboardDepartmentChip(
   required VoidCallback onSelected,
 }) {
   final theme = context.appTheme;
-  return ChoiceChip(
-    label: Text(label),
-    selected: selected,
-    onSelected: (_) => onSelected(),
-    selectedColor: AppColors.primary,
-    backgroundColor: theme.inputFill,
-    side: BorderSide(color: selected ? AppColors.primary : theme.border),
-    labelStyle: TextStyle(
-      color: selected ? Colors.white : theme.primaryText,
-      fontSize: 13,
-      fontWeight: FontWeight.w600,
+  final foreground = selected ? Colors.white : theme.primaryText;
+  final background = selected ? AppColors.primary : theme.inputFill;
+  final borderColor = selected ? AppColors.primary : theme.border;
+
+  return Material(
+    color: background,
+    shape: StadiumBorder(side: BorderSide(color: borderColor)),
+    clipBehavior: Clip.antiAlias,
+    child: InkWell(
+      onTap: onSelected,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (selected) ...[
+              const Icon(Icons.check, size: 18, color: Colors.white),
+              const SizedBox(width: 6),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                color: foreground,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                height: 1.3,
+              ),
+            ),
+          ],
+        ),
+      ),
     ),
-    checkmarkColor: Colors.white,
   );
 }
 
@@ -375,11 +424,7 @@ class _EmployeeDashboardBody extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(
-                        width: Get.width,
-                        height: 620,
-                        child: TasksGridPage(),
-                      ),
+                      TasksGridPage(),
                       AppVersionLabel(
                         padding: const EdgeInsets.only(top: 16, bottom: 8),
                         textStyle: TextStyle(
@@ -713,70 +758,76 @@ class _EmployeeDashboardBody extends StatelessWidget {
 }
 
 class TasksGridPage extends StatelessWidget {
+  static const _crossAxisCount = 3;
+  static const _spacing = 12.0;
+  static const _aspectRatio = 1.35;
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      child: GetBuilder<HomeController>(
-        builder: (controller) {
-          return Obx(() {
-            final tasks =
-                controller.tasksSearched
-                    .where(
-                      (a) =>
-                          a.assignedTo == controller.currentEmployee.value?.id,
-                    )
-                    .toList();
-            return GridView.builder(
-              itemCount: tasks.length,
+    return GetBuilder<HomeController>(
+      builder: (controller) {
+        return Obx(() {
+          final tasks =
+              controller.tasksSearched
+                  .where(
+                    (a) => a.assignedTo == controller.currentEmployee.value?.id,
+                  )
+                  .toList();
+          if (tasks.isEmpty) {
+            return const SizedBox.shrink();
+          }
 
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 1.35,
-              ),
-              itemBuilder: (context, index) {
-                return EmployeeTaskCard(
-                  key: ValueKey(tasks[index].id ?? 'task-$index'),
-                  task: tasks[index],
-                  onTap: () {
-                    switch (tasks[index].type) {
-                      case '0':
-                        showCampaignDetailsDialog(context, task: tasks[index]);
-                        break;
-                      case '1':
-                        showDesignDetailsDialog(context, task: tasks[index]);
-                        break;
-                      case '2':
-                        showDPhotographyDialog(context, task: tasks[index]);
-                        break;
-                      case '3':
-                        showContentWriteDialog(context, task: tasks[index]);
-                        break;
-                      case '4':
-                        showMontageDialog(context, task: tasks[index]);
-                        break;
-                      case '5':
-                        showPublishDialog(context, task: tasks[index]);
-                        break;
-                      case '6':
-                        showProgrammingDialog(context, task: tasks[index]);
-                        break;
-                      case '7':
-                        showAdministrativeTaskDetailsDialog(
-                          context,
-                          task: tasks[index],
-                        );
-                        break;
-                      default:
-                    }
-                  },
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final cellWidth =
+                  (constraints.maxWidth - _spacing * (_crossAxisCount - 1)) /
+                  _crossAxisCount;
+              final cellHeight = cellWidth / _aspectRatio;
+              final rows = <Widget>[];
+
+              for (var i = 0; i < tasks.length; i += _crossAxisCount) {
+                final rowTasks = tasks.skip(i).take(_crossAxisCount).toList();
+                rows.add(
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (var col = 0; col < _crossAxisCount; col++) ...[
+                        if (col > 0) const SizedBox(width: _spacing),
+                        SizedBox(
+                          width: cellWidth,
+                          height: cellHeight,
+                          child:
+                              col < rowTasks.length
+                                  ? EmployeeTaskCard(
+                                    key: ValueKey(
+                                      rowTasks[col].id ?? 'task-${i + col}',
+                                    ),
+                                    task: rowTasks[col],
+                                    onTap:
+                                        () => _openEmployeeDashboardTaskDetails(
+                                          context,
+                                          rowTasks[col],
+                                        ),
+                                  )
+                                  : const SizedBox.shrink(),
+                        ),
+                      ],
+                    ],
+                  ),
                 );
-              },
-            );
-          });
-        },
-      ),
+                if (i + _crossAxisCount < tasks.length) {
+                  rows.add(const SizedBox(height: _spacing));
+                }
+              }
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: rows,
+              );
+            },
+          );
+        });
+      },
     );
   }
 }
@@ -795,49 +846,20 @@ class TasksListPage extends StatelessWidget {
                           a.assignedTo == controller.currentEmployee.value?.id,
                     )
                     .toList();
-            return ListView.builder(
-              itemCount: tasks.length,
-              shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
-
-              itemBuilder: (context, index) {
-                return EmployeeTaskCard(
-                  key: ValueKey(tasks[index].id ?? 'task-$index'),
-                  task: tasks[index],
-                  onTap: () {
-                    switch (tasks[index].type) {
-                      case '0':
-                        showCampaignDetailsDialog(context, task: tasks[index]);
-                        break;
-                      case '1':
-                        showDesignDetailsDialog(context, task: tasks[index]);
-                        break;
-                      case '2':
-                        showDPhotographyDialog(context, task: tasks[index]);
-                        break;
-                      case '3':
-                        showContentWriteDialog(context, task: tasks[index]);
-                        break;
-                      case '4':
-                        showMontageDialog(context, task: tasks[index]);
-                        break;
-                      case '5':
-                        showPublishDialog(context, task: tasks[index]);
-                        break;
-                      case '6':
-                        showProgrammingDialog(context, task: tasks[index]);
-                        break;
-                      case '7':
-                        showAdministrativeTaskDetailsDialog(
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (var index = 0; index < tasks.length; index++)
+                  EmployeeTaskCard(
+                    key: ValueKey(tasks[index].id ?? 'task-$index'),
+                    task: tasks[index],
+                    onTap:
+                        () => _openEmployeeDashboardTaskDetails(
                           context,
-                          task: tasks[index],
-                        );
-                        break;
-                      default:
-                    }
-                  },
-                );
-              },
+                          tasks[index],
+                        ),
+                  ),
+              ],
             );
           });
         },

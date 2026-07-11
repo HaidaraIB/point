@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
 
 Color getContentStatusColor(String status) {
@@ -123,14 +124,16 @@ Widget buildContentDropdownChip({
 
 /// Status chip for tables/history: label + tint from [getContentStatusColor], with status icon.
 Widget buildTaskStatusDropdownChip({
+  required BuildContext context,
   required String rawStatus,
   required String label,
 }) {
   final canon = FunHelper.canonicalStoredStatus(rawStatus);
+  final fg = getContentStatusColor(canon);
   return buildContentDropdownChip(
     label: label,
-    textColor: getContentStatusColor(canon),
-    backgroundColor: getContentStatusBgColor(canon),
+    textColor: fg,
+    backgroundColor: context.statusChipBackground(fg, getContentStatusBgColor(canon)),
     leadingIcon: TaskStatusVisuals.iconFor(rawStatus),
     leadingIconColor: TaskStatusVisuals.iconTintFor(rawStatus),
   );

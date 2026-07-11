@@ -150,7 +150,7 @@ class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidge
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    color: Colors.white,
+                    color: context.appTheme.cardSurface,
                     elevation: 4,
                     onSelected: (value) async {
                       if (value == 0) {
@@ -176,6 +176,7 @@ class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidge
                                   'employee.profile.menu'.tr,
                                   style: TextStyle(
                                     fontWeight: FontWeight.w500,
+                                    color: context.appTheme.primaryText,
                                   ),
                                 ),
                                 const SizedBox(width: 8),
@@ -194,6 +195,7 @@ class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidge
                                   'resetpassword'.tr,
                                   style: TextStyle(
                                     fontWeight: FontWeight.w500,
+                                    color: context.appTheme.primaryText,
                                   ),
                                 ),
                                 const SizedBox(width: 8),
@@ -212,6 +214,7 @@ class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidge
                                   'logout'.tr,
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
+                                    color: context.appTheme.primaryText,
                                   ),
                                 ),
                                 const SizedBox(width: 8),
@@ -220,9 +223,10 @@ class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidge
                             ),
                           ),
                         ],
-                    child: CircleAvatar(
+                    child: AppUserAvatar(
+                      url: avatarUrl,
                       radius: 16,
-                      backgroundImage: NetworkImage(avatarUrl),
+                      displayName: displayName,
                     ),
                   ),
                 ],
