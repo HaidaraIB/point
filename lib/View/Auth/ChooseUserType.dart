@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Utils/AppColors.dart';
-import 'package:point/Utils/AppImages.dart';
+import 'package:point/View/Shared/brand_logo.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Auth/Shared/Rights.dart';
 
 /// شاشة اختيار نوع المستخدم (عميل / موظف) - بدون تسجيل حساب جديد
@@ -10,8 +11,9 @@ class ChooseUserType extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appTheme = context.appTheme;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -21,11 +23,9 @@ class ChooseUserType extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 // الشعار
-                Image.asset(
-                  AppImages.images.logocolored,
+                BrandLogo(
                   width: Get.width * 0.6,
                   height: 80,
-                  fit: BoxFit.contain,
                 ),
                 SizedBox(height: 32),
                 // عنوان اختيار نوع المستخدم
@@ -35,7 +35,7 @@ class ChooseUserType extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+                    color: appTheme.primaryText,
                   ),
                 ),
                 SizedBox(height: 28),
@@ -52,7 +52,7 @@ class ChooseUserType extends StatelessWidget {
                   onTap: () => Get.toNamed('/auth/login'),
                 ),
                 SizedBox(height: 40),
-                buildRightsSection(),
+                buildRightsSection(context),
               ],
             ),
           ),
@@ -76,7 +76,10 @@ class _UserTypeButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appTheme = context.appTheme;
     final radius = BorderRadius.circular(12);
+    final isPrimary = gradient != null;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -87,12 +90,9 @@ class _UserTypeButton extends StatelessWidget {
           padding: EdgeInsets.symmetric(vertical: 18, horizontal: 24),
           decoration: BoxDecoration(
             gradient: gradient,
-            color: gradient == null ? Colors.grey.shade100 : null,
+            color: isPrimary ? null : appTheme.unselected,
             borderRadius: radius,
-            border:
-                gradient == null
-                    ? Border.all(color: Colors.grey.shade300, width: 1)
-                    : null,
+            border: isPrimary ? null : Border.all(color: appTheme.border, width: 1),
           ),
           child: Center(
             child: Text(
@@ -100,7 +100,7 @@ class _UserTypeButton extends StatelessWidget {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: gradient == null ? Colors.black87 : Colors.white,
+                color: isPrimary ? Colors.white : appTheme.primaryText,
               ),
             ),
           ),

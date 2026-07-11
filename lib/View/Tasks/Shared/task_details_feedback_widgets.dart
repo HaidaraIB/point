@@ -200,7 +200,7 @@ class TaskDetailsFeedbackWidgets {
               if (reqLabel.isNotEmpty)
                 Text(
                   '${'tasks.deadline_extension_new_date'.tr}: $reqLabel',
-                  style: const TextStyle(fontSize: 13),
+                  style: TextStyle(fontSize: 13),
                 ),
               if (t.deadlineExtensionReason.trim().isNotEmpty)
                 Padding(
@@ -348,7 +348,7 @@ class TaskDetailsFeedbackWidgets {
             const SizedBox(height: 6),
             LinkifiedText(
               body,
-              style: const TextStyle(fontSize: 13, height: 1.35),
+              style: TextStyle(fontSize: 13, height: 1.35),
               selectable: true,
             ),
           ],

@@ -9,6 +9,7 @@ import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/firebase_app_options.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// حوار لمسؤولي النظام (admin / supervisor):
 /// إرسال تجربة Push: أي [notificationType] إلى أي مزيج من الموظفين والعملاء.
@@ -19,7 +20,7 @@ void showPushNotificationTestDialog(BuildContext context) {
     barrierDismissible: false,
     builder: (ctx) {
       return Dialog(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
         child: ConstrainedBox(
@@ -327,7 +328,7 @@ class _PushNotificationTestDialogBodyState
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: Text(
                 AppLocaleKeys.pushTestAudienceHint.tr,
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                style: TextStyle(fontSize: 12, color: context.appTheme.mutedText),
               ),
             ),
             Expanded(
@@ -353,7 +354,7 @@ class _PushNotificationTestDialogBodyState
                   children: [
                     Text(
                       AppLocaleKeys.pushTestAudienceHint.tr,
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                      style: TextStyle(fontSize: 12, color: context.appTheme.mutedText),
                     ),
                     const SizedBox(height: 12),
                     _buildTypeColumnMobile(),
@@ -391,7 +392,7 @@ class _PushNotificationTestDialogBodyState
       width: double.infinity,
       margin: const EdgeInsets.fromLTRB(12, 12, 12, 8),
       decoration: BoxDecoration(
-        color: AppColors.primary,
+        color: context.appTheme.navSurface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
       ),
       padding: const EdgeInsets.all(14),
@@ -405,7 +406,7 @@ class _PushNotificationTestDialogBodyState
               children: [
                 Text(
                   AppLocaleKeys.pushTestTitle.tr,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -444,7 +445,7 @@ class _PushNotificationTestDialogBodyState
                     _sending ? null : (v) => setState(() => _sendPush = v ?? true),
                 title: Text(
                   AppLocaleKeys.pushTestSendPush.tr,
-                  style: const TextStyle(fontSize: 13),
+                  style: TextStyle(fontSize: 13),
                 ),
                 controlAffinity: ListTileControlAffinity.leading,
               ),
@@ -464,7 +465,7 @@ class _PushNotificationTestDialogBodyState
                         }),
                 title: Text(
                   AppLocaleKeys.pushTestSendEmail.tr,
-                  style: const TextStyle(fontSize: 13),
+                  style: TextStyle(fontSize: 13),
                 ),
                 controlAffinity: ListTileControlAffinity.leading,
               ),
@@ -483,7 +484,7 @@ class _PushNotificationTestDialogBodyState
                     ),
             title: Text(
               AppLocaleKeys.pushTestUseSupabaseWrapper.tr,
-              style: const TextStyle(fontSize: 13),
+              style: TextStyle(fontSize: 13),
             ),
             controlAffinity: ListTileControlAffinity.leading,
           ),
@@ -522,7 +523,7 @@ class _PushNotificationTestDialogBodyState
                     )
                     : Text(
                       AppLocaleKeys.pushTestSend.tr,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
                       ),
@@ -542,15 +543,13 @@ class _PushNotificationTestDialogBodyState
           labelText: AppLocaleKeys.pushTestFilterTypes.tr,
           hintText: AppLocaleKeys.commonSearch.tr,
           height: 40,
-          fillColor: Colors.white,
           controller: _typeFilter,
           borderRadius: 8,
-          borderColor: Colors.grey.shade300,
         ),
         const SizedBox(height: 8),
         Text(
           AppLocaleKeys.pushTestSelectType.tr,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
         ),
         const SizedBox(height: 4),
         DecoratedBox(
@@ -589,7 +588,7 @@ class _PushNotificationTestDialogBodyState
                           value: i,
                           title: Text(
                             def.notificationType,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
                               fontFamily: 'monospace',
                             ),
@@ -598,7 +597,7 @@ class _PushNotificationTestDialogBodyState
                             def.categoryKey.tr,
                             style: TextStyle(
                               fontSize: 11,
-                              color: Colors.grey.shade600,
+                              color: context.appTheme.mutedText,
                             ),
                           ),
                           selected: sel,
@@ -637,10 +636,8 @@ class _PushNotificationTestDialogBodyState
             labelText: AppLocaleKeys.pushTestSearchRecipients.tr,
             hintText: AppLocaleKeys.commonSearch.tr,
             height: 40,
-            fillColor: Colors.white,
             controller: _recipientSearch,
             borderRadius: 8,
-            borderColor: Colors.grey.shade300,
           ),
           const SizedBox(height: 8),
           Wrap(
@@ -709,7 +706,7 @@ class _PushNotificationTestDialogBodyState
                           e.role,
                           style: TextStyle(
                             fontSize: 11,
-                            color: Colors.grey.shade600,
+                            color: context.appTheme.mutedText,
                           ),
                         ),
                       );
@@ -764,7 +761,7 @@ class _PushNotificationTestDialogBodyState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        Text(title, style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
         DecoratedBox(
           decoration: BoxDecoration(
@@ -786,15 +783,13 @@ class _PushNotificationTestDialogBodyState
           labelText: AppLocaleKeys.pushTestFilterTypes.tr,
           hintText: AppLocaleKeys.commonSearch.tr,
           height: 40,
-          fillColor: Colors.white,
           controller: _typeFilter,
           borderRadius: 8,
-          borderColor: Colors.grey.shade300,
         ),
         const SizedBox(height: 8),
         Text(
           AppLocaleKeys.pushTestSelectType.tr,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
         ),
         const SizedBox(height: 4),
         Expanded(
@@ -833,7 +828,7 @@ class _PushNotificationTestDialogBodyState
                     value: i,
                     title: Text(
                       def.notificationType,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontFamily: 'monospace',
                       ),
@@ -842,7 +837,7 @@ class _PushNotificationTestDialogBodyState
                       def.categoryKey.tr,
                       style: TextStyle(
                         fontSize: 11,
-                        color: Colors.grey.shade600,
+                        color: context.appTheme.mutedText,
                       ),
                     ),
                     selected: sel,
@@ -882,10 +877,8 @@ class _PushNotificationTestDialogBodyState
             labelText: AppLocaleKeys.pushTestSearchRecipients.tr,
             hintText: AppLocaleKeys.commonSearch.tr,
             height: 40,
-            fillColor: Colors.white,
             controller: _recipientSearch,
             borderRadius: 8,
-            borderColor: Colors.grey.shade300,
           ),
           const SizedBox(height: 8),
           Wrap(
@@ -953,7 +946,7 @@ class _PushNotificationTestDialogBodyState
                             e.role,
                             style: TextStyle(
                               fontSize: 11,
-                              color: Colors.grey.shade600,
+                              color: context.appTheme.mutedText,
                             ),
                           ),
                         );
@@ -1007,7 +1000,7 @@ class _PushNotificationTestDialogBodyState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        Text(title, style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 4),
         Expanded(
           child: DecoratedBox(

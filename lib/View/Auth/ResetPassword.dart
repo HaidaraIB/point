@@ -15,6 +15,7 @@ import 'package:point/View/Auth/Shared/Rights.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/responsive.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 class ResetPassword extends StatefulWidget {
   const ResetPassword({super.key});
@@ -41,17 +42,18 @@ class _ResetPasswordState extends State<ResetPassword> {
   }
 
   PreferredSizeWidget _buildResetPasswordAppBar() {
+    final appTheme = context.appTheme;
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: appTheme.cardSurface,
       elevation: 0,
       leading: IconButton(
-        icon: Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+        icon: Icon(Icons.arrow_back_ios_new, color: appTheme.primaryText),
         onPressed: _goBack,
       ),
       title: Text(
         'resetpassword'.tr,
         style: TextStyle(
-          color: Colors.black87,
+          color: appTheme.primaryText,
           fontSize: 18,
           fontWeight: FontWeight.w600,
         ),
@@ -166,6 +168,7 @@ Widget _buildDesktopLayout(
         key: formKey,
         child: LayoutBuilder(
           builder: (context, constraints) {
+            final appTheme = context.appTheme;
             final showAuthSplit =
                 Responsive.showAuthSplitLayout(constraints.maxWidth);
             final viewportMinHeight = constraints.hasBoundedHeight
@@ -182,18 +185,21 @@ Widget _buildDesktopLayout(
                     fontWeight: FontWeight.w600,
                     wordSpacing: 1.2,
                     letterSpacing: 0.5,
+                    color: appTheme.primaryText,
                   ),
                 ),
                 SizedBox(height: 10),
                 Text(
                   'enternewpassword'.tr,
-                  style: TextStyle(color: Colors.grey, fontSize: 13),
+                  style: TextStyle(
+                    color: appTheme.secondaryText,
+                    fontSize: 13,
+                  ),
                 ),
                 InputText(
                   hintText: '********'.tr,
                   labelText: 'password'.tr,
                   height: 42,
-                  fillColor: Colors.white,
                   controller: currentPassController,
                   obscureText: controller.obSecure,
                   suffixIcon: InkWell(
@@ -204,7 +210,7 @@ Widget _buildDesktopLayout(
                       controller.obSecure
                           ? Icons.visibility
                           : Icons.visibility_off,
-                      color: Colors.grey,
+                      color: appTheme.secondaryText,
                       size: 12,
                     ),
                   ),
@@ -215,13 +221,11 @@ Widget _buildDesktopLayout(
                     return null;
                   },
                   borderRadius: 5,
-                  borderColor: Colors.grey.shade300,
                 ),
                 InputText(
                   hintText: '********'.tr,
                   labelText: 'newpass'.tr,
                   height: 42,
-                  fillColor: Colors.white,
                   controller: newPassController,
                   obscureText: controller.obSecure,
                   suffixIcon: InkWell(
@@ -232,7 +236,7 @@ Widget _buildDesktopLayout(
                       controller.obSecure
                           ? Icons.visibility
                           : Icons.visibility_off,
-                      color: Colors.grey,
+                      color: appTheme.secondaryText,
                       size: 12,
                     ),
                   ),
@@ -243,7 +247,6 @@ Widget _buildDesktopLayout(
                     return validatePasswordStrong(v);
                   },
                   borderRadius: 5,
-                  borderColor: Colors.grey.shade300,
                 ),
                 InputText(
                   hintText: '******'.tr,
@@ -251,7 +254,6 @@ Widget _buildDesktopLayout(
                   controller: confirmPassController,
                   obscureText: controller.obSecure,
                   height: 42,
-                  fillColor: Colors.white,
                   suffixIcon: InkWell(
                     onTap: () {
                       controller.changeObsecure();
@@ -260,7 +262,7 @@ Widget _buildDesktopLayout(
                       controller.obSecure
                           ? Icons.visibility
                           : Icons.visibility_off,
-                      color: Colors.grey,
+                      color: appTheme.secondaryText,
                       size: 12,
                     ),
                   ),
@@ -271,7 +273,6 @@ Widget _buildDesktopLayout(
                     return null;
                   },
                   borderRadius: 5,
-                  borderColor: Colors.grey.shade300,
                 ),
                 SizedBox(height: 25),
                 MainButton(
@@ -284,7 +285,7 @@ Widget _buildDesktopLayout(
                   load: isLoading,
                   onPressed: onSubmit,
                 ),
-                buildRightsSection(),
+                buildRightsSection(context),
               ],
             );
 

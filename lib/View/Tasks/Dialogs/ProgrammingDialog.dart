@@ -24,6 +24,7 @@ import 'package:point/View/Tasks/Shared/task_form_dialog_actions.dart';
 import 'package:point/View/Tasks/Shared/task_voice_form_helpers.dart';
 import 'package:point/View/Tasks/Shared/task_voice_record_field.dart';
 import 'package:point/Models/VoiceRecordEntry.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 void programmingDialog(
   BuildContext context, {
@@ -84,7 +85,7 @@ void programmingDialog(
     context: context,
     builder: (context) {
       return Dialog(
-        backgroundColor: Colors.white,
+        backgroundColor: context.appTheme.cardSurface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: GetBuilder<HomeController>(
           builder: (controller) {
@@ -101,7 +102,7 @@ void programmingDialog(
                       Container(
                         margin: EdgeInsets.all(15),
                         decoration: BoxDecoration(
-                          color: AppColors.primary,
+                          color: context.appTheme.navSurface,
                           borderRadius: BorderRadius.vertical(
                             top: Radius.circular(12),
                           ),
@@ -151,14 +152,12 @@ void programmingDialog(
                                     labelText: 'task_details.task_title'.tr,
                                     hintText: 'tasks.form.write_title_hint'.tr,
                                     height: 42,
-                                    fillColor: Colors.white,
                                     controller: titleController,
                                     validator: (v) {
                                       if (v == null || v.isEmpty) return ' ';
                                       return null;
                                     },
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
                                   ),
                                 ),
 
@@ -197,9 +196,7 @@ void programmingDialog(
                                             ),
                                     label: 'tasks.form.select_executor'.tr,
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
                                     height: 42,
-                                    fillColor: Colors.white,
                                     onChanged: (value) {
                                       if (value != null) {
                                         executorController.text =
@@ -245,9 +242,7 @@ void programmingDialog(
                                                     )),
                                           label: 'chooseclient'.tr,
                                           borderRadius: 5,
-                                          borderColor: Colors.grey.shade300,
                                           height: 42,
-                                          fillColor: Colors.white,
                                           onChanged: (value) {
                                             if (value == otherClientValue) {
                                               isCustomClient.value = true;
@@ -267,12 +262,10 @@ void programmingDialog(
                                             labelText: 'tasks.form.client_name_label'.tr,
                                             hintText: 'tasks.form.client_name_hint'.tr,
                                             height: 42,
-                                            fillColor: Colors.white,
                                             controller: customClientController,
                                             validator: (v) =>
                                                 (v == null || v.trim().isEmpty) ? ' ' : null,
                                             borderRadius: 5,
-                                            borderColor: Colors.grey.shade300,
                                           ),
                                       ],
                                     ),
@@ -289,11 +282,9 @@ void programmingDialog(
                                     labelText: 'task_details.content_link'.tr,
                                     hintText: 'task_details.content_link'.tr,
                                     height: 42,
-                                    fillColor: Colors.white,
                                     controller: contenturl,
 
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
                                   ),
                                 ),
                                 SizedBox(
@@ -302,11 +293,9 @@ void programmingDialog(
                                     labelText: 'task_details.files_link'.tr,
                                     hintText: 'task_details.files_link_hint'.tr,
                                     height: 42,
-                                    fillColor: Colors.white,
                                     controller: filesurl,
 
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
                                   ),
                                 ),
                               ],
@@ -333,9 +322,7 @@ void programmingDialog(
                                             : priorityController.text,
                                     label: 'priortity'.tr,
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
                                     height: 42,
-                                    fillColor: Colors.white,
                                     onChanged: (value) {
                                       if (value != null) {
                                         priorityController.text =
@@ -353,13 +340,11 @@ void programmingDialog(
                                     labelText: 'task_details.category'.tr,
                                     hintText: ''.tr,
                                     height: 42,
-                                    fillColor: Colors.white,
                                     controller: category,
                                     validator:
                                         (v) =>
                                             v == null || v.isEmpty ? ' ' : null,
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
                                   ),
                                 ),
                               ],
@@ -375,12 +360,10 @@ void programmingDialog(
                                   height: 148,
                                   expanded: true,
                                   minLines: 5,
-                                  fillColor: Colors.white,
                                   controller: aboutTaskController,
                                   textInputType: TextInputType.multiline,
                                   textInputAction: TextInputAction.newline,
                                   borderRadius: 5,
-                                  borderColor: Colors.grey.shade300,
                                 ),
                               ),
                             ),
@@ -408,7 +391,6 @@ void programmingDialog(
                                     labelText: 'startat'.tr,
                                     hintText: '1/10/2025'.tr,
                                     height: 42,
-                                    fillColor: Colors.white,
                                     textInputType: TextInputType.datetime,
                                     controller: startDateController,
                                     readOnly: true,
@@ -418,10 +400,9 @@ void programmingDialog(
                                     },
                                     suffixIcon: Icon(
                                       CupertinoIcons.calendar,
-                                      color: Colors.grey,
+                                      color: context.appTheme.secondaryText,
                                     ),
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
                                   ),
                                 ),
 
@@ -444,7 +425,6 @@ void programmingDialog(
                                     labelText: 'endat'.tr,
                                     hintText: '1/10/2026'.tr,
                                     height: 42,
-                                    fillColor: Colors.white,
                                     textInputType: TextInputType.datetime,
                                     controller: endDateController,
                                     readOnly: true,
@@ -454,10 +434,9 @@ void programmingDialog(
                                     },
                                     suffixIcon: Icon(
                                       CupertinoIcons.calendar,
-                                      color: Colors.grey,
+                                      color: context.appTheme.secondaryText,
                                     ),
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
                                   ),
                                 ),
                               ],
@@ -477,7 +456,6 @@ void programmingDialog(
                                           labelText: 'tasks.form.notes_log'.tr,
                                           hintText: ''.tr,
                                           height: 250,
-                                          fillColor: Colors.white,
                                           enable: false,
                                           // controller: notesController,
                                           body: SingleChildScrollView(
@@ -517,7 +495,6 @@ void programmingDialog(
                                           ),
                                           expanded: true,
                                           borderRadius: 5,
-                                          borderColor: Colors.grey.shade300,
                                         ),
                                       ),
                                     SizedBox(
@@ -526,11 +503,9 @@ void programmingDialog(
                                         labelText: 'notes'.tr,
                                         hintText: 'enternotes'.tr,
                                         height: 30,
-                                        fillColor: Colors.white,
                                         controller: notesController,
                                         // expanded: true,
                                         borderRadius: 5,
-                                        borderColor: Colors.grey.shade300,
                                       ),
                                     ),
                                   ],
@@ -552,14 +527,13 @@ void programmingDialog(
                                       hintText: 'enternotes'.tr,
                                       enable: false,
                                       height: 100,
-                                      fillColor: Colors.white,
                                       expanded: true,
                                       body: Container(
                                         padding: EdgeInsets.symmetric(
                                           vertical: 10,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: Colors.grey.shade200,
+                                          color: context.appTheme.unselected,
                                         ),
                                         child: Row(
                                           mainAxisAlignment:
@@ -584,15 +558,14 @@ void programmingDialog(
                                               fontSize: 12,
                                               load: controller.isUploading.value,
                                               title: 'uploadfile'.tr,
-                                              backgroundColor: Colors.white,
+                                              backgroundColor: context.appTheme.cardSurface,
                                               fontColor:
-                                                  AppColors.primaryfontColor,
+                                                  context.appTheme.primaryText,
                                             ),
                                           ],
                                         ),
                                       ),
                                       borderRadius: 5,
-                                      borderColor: Colors.grey.shade300,
                                     ),
                                   ),
                                 ),

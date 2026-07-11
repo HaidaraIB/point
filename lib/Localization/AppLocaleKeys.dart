@@ -4,6 +4,10 @@ class AppLocaleKeys {
   static const appLanguage = 'app.language';
   static const appLanguageArabic = 'app.language.arabic';
   static const appLanguageEnglish = 'app.language.english';
+  static const appTheme = 'app.theme';
+  static const appThemeLight = 'app.theme.light';
+  static const appThemeDark = 'app.theme.dark';
+  static const appThemeSystem = 'app.theme.system';
   static const appVersionLine = 'app.version_line';
   static const forceUpdateTitle = 'force_update.title';
   static const forceUpdateBody = 'force_update.body';

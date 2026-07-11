@@ -6,22 +6,23 @@ import 'package:point/Models/ClientModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
-import 'package:point/Utils/AppImages.dart';
+import 'package:point/View/Shared/brand_logo.dart';
 import 'package:point/Utils/PasswordValidator.dart';
 import 'package:point/View/Auth/Shared/Rights.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:uuid/uuid.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 class CreateUserAccountMobileVersion extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(body: _buildDesktopLayout());
+    return Scaffold(body: _buildDesktopLayout(context));
   }
 }
 
 // --- IGNORE ---
-Widget _buildDesktopLayout() {
+Widget _buildDesktopLayout(BuildContext context) {
   var _key = GlobalKey<FormState>();
   var nameController = TextEditingController();
   var emailController = TextEditingController();
@@ -43,8 +44,7 @@ Widget _buildDesktopLayout() {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Center(
-                    child: Image.asset(
-                      AppImages.images.logocolored,
+                    child: BrandLogo(
                       width: Get.width,
                       height: 80,
                     ),
@@ -63,7 +63,7 @@ Widget _buildDesktopLayout() {
 
                   Text(
                     'enteremailandpassword'.tr,
-                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                    style: TextStyle(color: context.appTheme.secondaryText, fontSize: 12),
                   ),
                   InputText(
                     labelText: 'companyname'.tr,
@@ -110,7 +110,7 @@ Widget _buildDesktopLayout() {
                         controller.obSecure
                             ? Icons.visibility_off
                             : Icons.visibility,
-                        color: Colors.grey,
+                        color: context.appTheme.secondaryText,
                         size: 12,
                       ),
                     ),
@@ -127,7 +127,7 @@ Widget _buildDesktopLayout() {
                   // SizedBox(height: 10),
                   // Text(
                   //   'forgotpassword'.tr,
-                  //   style: TextStyle(color: Colors.grey, fontSize: 13),
+                  //   style: TextStyle(color: context.appTheme.secondaryText, fontSize: 13),
                   // ),
                   SizedBox(height: 25),
                   Obx(
@@ -174,7 +174,7 @@ Widget _buildDesktopLayout() {
                       },
                     ),
                   ),
-                  buildRightsSection(),
+                  buildRightsSection(context),
                 ],
               ),
             ),

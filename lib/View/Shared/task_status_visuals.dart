@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// Material icons for canonical task/content status keys ([StorageKeys.status_*]
 /// and promotion task statuses). Used on chips, menus, and meta tiles.
@@ -133,6 +134,7 @@ class TaskStatusVisuals {
 
   /// Popup row: label on the left, status icon on the right (matches TaskCard shortcuts).
   static Widget popupMenuRow({
+    required BuildContext context,
     required String label,
     required String rawOrCanonicalForIcon,
   }) {
@@ -142,7 +144,10 @@ class TaskStatusVisuals {
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(fontWeight: FontWeight.w600),
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: context.appTheme.primaryText,
+            ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),

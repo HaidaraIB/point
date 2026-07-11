@@ -34,7 +34,7 @@ class ChatListTileMediaSubtitle extends StatelessWidget {
         text,
         maxLines: maxLines,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(),
+        style: TextStyle(),
         textDirection: resolvedDirection,
         textAlign: avatarSideAlign,
       );

@@ -13,6 +13,7 @@ import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/voice_recording_file_bytes.dart';
 import 'package:point/View/Chats/chat_private_typing.dart';
 import 'package:record/record.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 enum VoiceRecorderPhase { idle, recording, paused, uploading }
 
@@ -364,7 +365,7 @@ class _FormTrigger extends StatelessWidget {
                         padding: EdgeInsets.all(10),
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Icon(Icons.mic, color: AppColors.primary),
+                    : Icon(Icons.mic, color: context.appTheme.accentText),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -372,7 +373,7 @@ class _FormTrigger extends StatelessWidget {
                   'tasks.form.voice_record_start'.tr,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: AppColors.primaryfontColor,
+                    color: context.appTheme.primaryText,
                   ),
                 ),
               ),
@@ -455,7 +456,7 @@ class VoiceRecorderActiveStrip extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey.shade700,
+                        color: context.appTheme.mutedText,
                       ),
                     ),
                   ),
@@ -475,7 +476,7 @@ class VoiceRecorderActiveStrip extends StatelessWidget {
                           : AppLocaleKeys.chatVoicePause.tr,
                       icon: Icon(
                         paused ? Icons.play_arrow_rounded : Icons.pause_rounded,
-                        color: AppColors.primary,
+                        color: context.appTheme.accentText,
                         size: 24,
                       ),
                       onPressed: paused
@@ -484,9 +485,9 @@ class VoiceRecorderActiveStrip extends StatelessWidget {
                     ),
                     IconButton(
                       tooltip: 'common.save'.tr,
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.check_circle,
-                        color: AppColors.primary,
+                        color: context.appTheme.accentText,
                         size: 24,
                       ),
                       onPressed: ctrl.saveRecording,
@@ -540,7 +541,7 @@ class VoiceRecorderSavedPreview extends StatelessWidget {
                   Expanded(
                     child: Text(
                       AppLocaleKeys.chatAttachVoice.tr,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
@@ -573,7 +574,7 @@ class VoiceRecorderSavedPreview extends StatelessWidget {
                 child: Text(
                   captionHint!,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey.shade600,
+                    color: context.appTheme.mutedText,
                     fontStyle: FontStyle.italic,
                   ),
                 ),

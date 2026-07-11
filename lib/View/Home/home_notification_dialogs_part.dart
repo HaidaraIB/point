@@ -15,7 +15,7 @@ void showAddNotifications(BuildContext context) {
     context: context,
     builder: (context) {
       return Dialog(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: GetBuilder<HomeController>(
           builder: (controller) {
@@ -35,7 +35,7 @@ void showAddNotifications(BuildContext context) {
                       Container(
                         margin: EdgeInsets.all(15),
                         decoration: BoxDecoration(
-                          color: AppColors.primary,
+                          color: context.appTheme.navSurface,
                           borderRadius: BorderRadius.vertical(
                             top: Radius.circular(12),
                           ),
@@ -83,7 +83,7 @@ void showAddNotifications(BuildContext context) {
                               children: [
                                 Text(
                                   AppLocaleKeys.homeNotificationTarget.tr,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13,
                                   ),
@@ -101,12 +101,14 @@ void showAddNotifications(BuildContext context) {
                                           CrossAxisAlignment.stretch,
                                       children: [
                                         _userTypeButton(
+                                          context,
                                           AppLocaleKeys.homeUserTypeClients.tr,
                                           'clients',
                                           selected,
                                         ),
                                         const SizedBox(height: 10),
                                         _userTypeButton(
+                                          context,
                                           AppLocaleKeys
                                               .homeUserTypeEmployees
                                               .tr,
@@ -115,6 +117,7 @@ void showAddNotifications(BuildContext context) {
                                         ),
                                         const SizedBox(height: 10),
                                         _userTypeButton(
+                                          context,
                                           AppLocaleKeys.homeUserTypeAll.tr,
                                           'all',
                                           selected,
@@ -127,6 +130,7 @@ void showAddNotifications(BuildContext context) {
                                     children: [
                                       Expanded(
                                         child: _userTypeButton(
+                                          context,
                                           AppLocaleKeys.homeUserTypeClients.tr,
                                           'clients',
                                           selected,
@@ -134,6 +138,7 @@ void showAddNotifications(BuildContext context) {
                                       ),
                                       Expanded(
                                         child: _userTypeButton(
+                                          context,
                                           AppLocaleKeys
                                               .homeUserTypeEmployees
                                               .tr,
@@ -143,6 +148,7 @@ void showAddNotifications(BuildContext context) {
                                       ),
                                       Expanded(
                                         child: _userTypeButton(
+                                          context,
                                           AppLocaleKeys.homeUserTypeAll.tr,
                                           'all',
                                           selected,
@@ -159,7 +165,6 @@ void showAddNotifications(BuildContext context) {
                               hintText:
                                   AppLocaleKeys.homeNotificationTitleHint.tr,
                               height: 42,
-                              fillColor: Colors.white,
                               controller: title,
 
                               validator: (v) {
@@ -170,7 +175,6 @@ void showAddNotifications(BuildContext context) {
                               },
 
                               borderRadius: 5,
-                              borderColor: Colors.grey.shade300,
                             ),
                             InputText(
                               onTap: () async {
@@ -188,7 +192,6 @@ void showAddNotifications(BuildContext context) {
                               labelText: AppLocaleKeys.homeNotificationDate.tr,
                               hintText: AppLocaleKeys.homeNotificationDate.tr,
                               height: 42,
-                              fillColor: Colors.white,
                               textInputType: TextInputType.datetime,
                               controller: datectr,
                               readOnly: true,
@@ -198,17 +201,15 @@ void showAddNotifications(BuildContext context) {
                               },
                               suffixIcon: Icon(
                                 CupertinoIcons.calendar,
-                                color: Colors.grey,
+                                color: context.appTheme.secondaryText,
                               ),
                               borderRadius: 5,
-                              borderColor: Colors.grey.shade300,
                             ),
                             InputText(
                               labelText: AppLocaleKeys.homeNotificationBody.tr,
                               hintText:
                                   AppLocaleKeys.homeNotificationBodyHint.tr,
                               height: 42,
-                              fillColor: Colors.white,
                               controller: body,
                               expanded: true,
                               validator: (v) {
@@ -218,7 +219,6 @@ void showAddNotifications(BuildContext context) {
                                 return null;
                               },
                               borderRadius: 5,
-                              borderColor: Colors.grey.shade300,
                             ),
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -227,7 +227,7 @@ void showAddNotifications(BuildContext context) {
                                   AppLocaleKeys
                                       .homeNotificationSendChannelsTitle
                                       .tr,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 13,
                                   ),
@@ -364,7 +364,7 @@ void showAddNotifications(BuildContext context) {
                                                         AppLocaleKeys
                                                             .commonConfirm
                                                             .tr,
-                                                        style: const TextStyle(
+                                                        style: TextStyle(
                                                           color: Colors.white,
                                                         ),
                                                       ),
@@ -626,7 +626,7 @@ void showAddNotifications(BuildContext context) {
                                                         AppLocaleKeys
                                                             .commonConfirm
                                                             .tr,
-                                                        style: const TextStyle(
+                                                        style: TextStyle(
                                                           color: Colors.white,
                                                         ),
                                                       ),
@@ -830,7 +830,7 @@ void showSendTestEmailDialog(BuildContext context) {
     context: context,
     builder: (context) {
       return Dialog(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Form(
           key: _key,
@@ -846,7 +846,7 @@ void showSendTestEmailDialog(BuildContext context) {
                   Container(
                     margin: const EdgeInsets.all(15),
                     decoration: BoxDecoration(
-                      color: AppColors.primary,
+                      color: context.appTheme.navSurface,
                       borderRadius: const BorderRadius.vertical(
                         top: Radius.circular(12),
                       ),
@@ -891,7 +891,6 @@ void showSendTestEmailDialog(BuildContext context) {
                           labelText: 'home.test_email.to_label'.tr,
                           hintText: 'example@email.com',
                           height: 42,
-                          fillColor: Colors.white,
                           controller: toEmailController,
                           textInputType: TextInputType.emailAddress,
                           validator: (v) {
@@ -901,14 +900,12 @@ void showSendTestEmailDialog(BuildContext context) {
                             return null;
                           },
                           borderRadius: 5,
-                          borderColor: Colors.grey.shade300,
                         ),
                         const SizedBox(height: 14),
                         InputText(
                           labelText: 'home.test_email.subject_label'.tr,
                           hintText: 'home.test_email.subject_hint'.tr,
                           height: 42,
-                          fillColor: Colors.white,
                           controller: subjectController,
                           validator: (v) {
                             if (v == null || v.isEmpty) {
@@ -917,18 +914,15 @@ void showSendTestEmailDialog(BuildContext context) {
                             return null;
                           },
                           borderRadius: 5,
-                          borderColor: Colors.grey.shade300,
                         ),
                         const SizedBox(height: 14),
                         InputText(
                           labelText: 'home.test_email.body_label'.tr,
                           hintText: 'home.test_email.body_hint'.tr,
                           height: 100,
-                          fillColor: Colors.white,
                           controller: bodyController,
                           expanded: true,
                           borderRadius: 5,
-                          borderColor: Colors.grey.shade300,
                         ),
                       ],
                     ),

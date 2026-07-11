@@ -10,6 +10,7 @@ import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 Future<void> _openAddContentEmployeeFile(String rawUrl) async {
   await openUrlPreferInAppMedia(rawUrl);
@@ -28,7 +29,7 @@ void addContentEmployeeDialog(
     builder: (context) {
       return Dialog(
         insetPadding: EdgeInsets.zero,
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: GetBuilder<HomeController>(
           builder: (controller) {
@@ -47,7 +48,7 @@ void addContentEmployeeDialog(
                       Container(
                         margin: EdgeInsets.all(15),
                         decoration: BoxDecoration(
-                          color: AppColors.primary,
+                          color: context.appTheme.navSurface,
                           borderRadius: BorderRadius.vertical(
                             top: Radius.circular(12),
                           ),
@@ -150,9 +151,9 @@ void addContentEmployeeDialog(
                                                         .isUploading
                                                         .value,
                                                 title: 'uploadfile'.tr,
-                                                backgroundColor: Colors.white,
+                                                backgroundColor: Theme.of(context).colorScheme.surface,
                                                 fontColor:
-                                                    AppColors.primaryfontColor,
+                                                    context.appTheme.primaryText,
                                               ),
                                             ],
                                           ),
@@ -190,7 +191,7 @@ void addContentEmployeeDialog(
                                               'Copy',
                                               style: TextStyle(
                                                 fontSize: 13,
-                                                color: Colors.grey,
+                                                color: context.appTheme.secondaryText,
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
@@ -199,7 +200,7 @@ void addContentEmployeeDialog(
                                               Icons.copy_rounded,
                                               weight: 1,
                                               size: 16,
-                                              color: Colors.grey,
+                                              color: context.appTheme.secondaryText,
                                             ),
                                           ],
                                         ),

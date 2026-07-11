@@ -9,6 +9,7 @@ import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/final_deliverable_upload_names.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// Admin / supervisor: add, edit, or clear final deliverable without changing task status.
 Future<void> showEditFinalDeliverableDialog({
@@ -241,7 +242,7 @@ class _EditFinalDeliverableDialogState extends State<_EditFinalDeliverableDialog
               widget.subtitleKey.tr,
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.grey.shade700,
+                color: context.appTheme.mutedText,
                 height: 1.35,
               ),
             ),
@@ -290,7 +291,7 @@ class _EditFinalDeliverableDialogState extends State<_EditFinalDeliverableDialog
               const SizedBox(height: 8),
               Text(
                 'tasks.final_deliverable_files_label'.tr,
-                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
               ),
               const SizedBox(height: 10),
               Wrap(
@@ -345,7 +346,7 @@ class _EditFinalDeliverableDialogState extends State<_EditFinalDeliverableDialog
                                       child: Icon(
                                         Icons.close,
                                         size: 18,
-                                        color: Colors.grey.shade800,
+                                        color: context.appTheme.mutedText,
                                       ),
                                     ),
                                   ),

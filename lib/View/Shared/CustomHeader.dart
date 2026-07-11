@@ -9,16 +9,18 @@ import 'package:point/Localization/LanguageController.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Services/FunHelper.dart';
-import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/AppImages.dart';
 import 'package:point/Utils/AppNotificationInbox.dart';
 import 'package:point/View/Chats/ChatPage.dart';
 import 'package:point/View/Chats/MChatPage.dart';
+import 'package:point/View/Chats/chat_ui_helpers.dart';
+import 'package:point/View/Shared/app_theme_menu_button.dart';
 import 'package:point/View/Shared/in_app_notifications_panel.dart';
 import 'package:point/View/Shared/internet_status_badge.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/EmployeeDashboard/employee_profile_form.dart';
 import 'package:point/View/Shared/responsive.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// Firestore role slug (e.g. employee, admin) shown in headers.
 String _localizedStoredRole(String raw) {
@@ -50,10 +52,11 @@ String localizedRoleWithDepartments(String role, List<String> departments) {
 /// زر اللغة في شريط الويب لموظفي الأقسام (بجانب الإشعارات والمحادثات).
 Widget _webEmployeeLanguageMenuButton() {
   final lc = Get.find<LanguageController>();
+  final accent = resolveAppTheme().accentText;
   return PopupMenuButton<String>(
     tooltip: AppLocaleKeys.appLanguage.tr,
     padding: EdgeInsets.zero,
-    icon: const Icon(Icons.language, color: AppColors.primary),
+    icon: Icon(Icons.language, color: accent),
     onSelected: (value) => lc.changeLanguage(value),
     itemBuilder:
         (context) => [
@@ -69,12 +72,17 @@ Widget _webEmployeeLanguageMenuButton() {
   );
 }
 
+Widget _webEmployeeThemeMenuButton() {
+  return const AppThemeMenuButton(compact: true);
+}
+
 Widget _buildAvatar(String url, {required double radius}) {
+  final muted = resolveAppTheme().mutedText;
   if (url.isEmpty) {
     return CircleAvatar(
       radius: radius,
       backgroundColor: Colors.grey.shade300,
-      child: Icon(Icons.person, color: Colors.grey.shade600, size: radius),
+      child: Icon(Icons.person, color: muted, size: radius),
     );
   }
   return CircleAvatar(
@@ -86,7 +94,7 @@ Widget _buildAvatar(String url, {required double radius}) {
         fit: BoxFit.cover,
         width: radius * 2,
         height: radius * 2,
-        errorBuilder: (_, __, ___) => Icon(Icons.person, color: Colors.grey.shade600, size: radius),
+        errorBuilder: (_, __, ___) => Icon(Icons.person, color: muted, size: radius),
       ),
     ),
   );
@@ -105,7 +113,7 @@ class HeaderCountBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
       constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: Colors.red,
         shape: BoxShape.rectangle,
         borderRadius: BorderRadius.all(Radius.circular(9)),
@@ -113,7 +121,7 @@ class HeaderCountBadge extends StatelessWidget {
       alignment: Alignment.center,
       child: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 11,
           color: Colors.white,
           fontWeight: FontWeight.bold,
@@ -128,6 +136,7 @@ void _showNotificationsDialog(BuildContext context) {
   showDialog(
     context: context,
     builder: (dialogContext) {
+      final appTheme = resolveAppTheme();
       return Dialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
@@ -144,9 +153,9 @@ void _showNotificationsDialog(BuildContext context) {
                 padding: const EdgeInsets.all(16),
                 child: Text(
                   'header.notifications'.tr,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.teal,
+                    color: appTheme.primaryText,
                     fontSize: 18,
                   ),
                 ),
@@ -200,7 +209,7 @@ Future<bool> _confirmLogoutDialog(BuildContext context) async {
               onPressed: () => Navigator.of(ctx).pop(true),
               child: Text(
                 'logout'.tr,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: Colors.white),
               ),
             ),
           ],
@@ -229,6 +238,7 @@ class MobileAppBarProfileWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appTheme = context.appTheme;
     return Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -244,7 +254,7 @@ class MobileAppBarProfileWidget extends StatelessWidget {
             children: [
               Text(
                 name,
-                style: const TextStyle(
+                style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
@@ -282,7 +292,7 @@ class MobileAppBarProfileWidget extends StatelessWidget {
                       Expanded(
                         child: Text(
                           'header.notifications'.tr,
-                          style: const TextStyle(fontWeight: FontWeight.w500),
+                          style: TextStyle(fontWeight: FontWeight.w500),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -299,7 +309,7 @@ class MobileAppBarProfileWidget extends StatelessWidget {
                           );
                         },
                       ),
-                      Icon(Icons.notifications_outlined, color: AppColors.primary),
+                      Icon(Icons.notifications_outlined, color: appTheme.accentText),
                     ],
                   ),
                 ),
@@ -311,7 +321,7 @@ class MobileAppBarProfileWidget extends StatelessWidget {
                         Expanded(
                           child: Text(
                             'header.chat'.tr,
-                            style: const TextStyle(fontWeight: FontWeight.w500),
+                            style: TextStyle(fontWeight: FontWeight.w500),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -327,7 +337,7 @@ class MobileAppBarProfileWidget extends StatelessWidget {
                             );
                           },
                         ),
-                        Icon(Icons.chat_bubble_outline, color: AppColors.primary),
+                        Icon(Icons.chat_bubble_outline, color: appTheme.accentText),
                       ],
                     ),
                   ),
@@ -340,10 +350,10 @@ class MobileAppBarProfileWidget extends StatelessWidget {
                   children: [
                     Text(
                       'resetpassword'.tr,
-                      style: const TextStyle(fontWeight: FontWeight.w500),
+                      style: TextStyle(fontWeight: FontWeight.w500),
                     ),
                     const SizedBox(width: 8),
-                    Icon(Icons.lock_reset, color: AppColors.primary),
+                    Icon(Icons.lock_reset, color: appTheme.accentText),
                   ],
                 ),
               ),
@@ -423,6 +433,7 @@ class HeaderWidget extends StatelessWidget {
     final isMobile = Responsive.isMobile(context);
     if (isMobile) return const SizedBox.shrink();
 
+    final appTheme = context.appTheme;
     final screenWidth = MediaQuery.sizeOf(context).width;
 
     final Widget logoOrSearch = (employee == true || client == true)
@@ -432,7 +443,9 @@ class HeaderWidget extends StatelessWidget {
               fit: BoxFit.contain,
               alignment: Alignment.centerLeft,
               child: Image.asset(
-                AppImages.images.logocolored,
+                Theme.of(context).brightness == Brightness.dark
+                    ? AppImages.images.logo
+                    : AppImages.images.logocolored,
                 height: isMobile ? 28 : 30,
                 fit: BoxFit.contain,
               ),
@@ -444,10 +457,9 @@ class HeaderWidget extends StatelessWidget {
             child: InputText(
               hintText: 'search'.tr,
               borderRadius: 25,
-              fillColor: Colors.white,
               prefixIcon: Icon(
                 CupertinoIcons.search,
-                color: Colors.grey,
+                color: appTheme.mutedText,
                 size: 16,
               ),
             ),
@@ -469,8 +481,20 @@ class HeaderWidget extends StatelessWidget {
                     .toLowerCase();
             if (r != 'employee') return const SizedBox.shrink();
             return Padding(
-              padding: const EdgeInsetsDirectional.only(start: 4, end: 8),
+              padding: const EdgeInsetsDirectional.only(start: 4, end: 4),
               child: _webEmployeeLanguageMenuButton(),
+            );
+          }),
+        if (!isMobile && employee == true && client != true && kIsWeb)
+          Obx(() {
+            final r =
+                (Get.find<HomeController>().currentEmployee.value?.role ?? '')
+                    .trim()
+                    .toLowerCase();
+            if (r != 'employee') return const SizedBox.shrink();
+            return Padding(
+              padding: const EdgeInsetsDirectional.only(start: 0, end: 8),
+              child: _webEmployeeThemeMenuButton(),
             );
           }),
         if (!isMobile && kIsWeb) ...[
@@ -491,6 +515,7 @@ class HeaderWidget extends StatelessWidget {
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: isMobile ? 13 : null,
+                  color: appTheme.primaryText,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -500,7 +525,7 @@ class HeaderWidget extends StatelessWidget {
                     ? localizedRoleWithDepartments(role, departments)
                     : localizedRoleWithDepartment(role, department),
                 style: TextStyle(
-                  color: Colors.grey,
+                  color: appTheme.secondaryText,
                   fontSize: isMobile ? 11 : null,
                 ),
                 maxLines: 2,
@@ -516,7 +541,7 @@ class HeaderWidget extends StatelessWidget {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.surface,
             elevation: 4,
             itemBuilder: (context) {
               final items = <PopupMenuItem<int>>[];
@@ -531,7 +556,7 @@ class HeaderWidget extends StatelessWidget {
                         style: TextStyle(fontWeight: FontWeight.w500),
                       ),
                         SizedBox(width: 8),
-                        Icon(Icons.notifications_outlined, color: AppColors.primary),
+                        Icon(Icons.notifications_outlined, color: appTheme.accentText),
                       ],
                     ),
                   ),
@@ -545,7 +570,7 @@ class HeaderWidget extends StatelessWidget {
                           style: TextStyle(fontWeight: FontWeight.w500),
                         ),
                           SizedBox(width: 8),
-                          Icon(Icons.chat_bubble_outline, color: AppColors.primary),
+                          Icon(Icons.chat_bubble_outline, color: appTheme.accentText),
                         ],
                       ),
                     ),
@@ -562,7 +587,7 @@ class HeaderWidget extends StatelessWidget {
                           style: TextStyle(fontWeight: FontWeight.w500),
                         ),
                         SizedBox(width: 8),
-                        Icon(Icons.person_outline, color: AppColors.primary),
+                        Icon(Icons.person_outline, color: appTheme.accentText),
                       ],
                     ),
                   ),
@@ -578,7 +603,7 @@ class HeaderWidget extends StatelessWidget {
                         style: TextStyle(fontWeight: FontWeight.w500),
                       ),
                       SizedBox(width: 8),
-                      Icon(Icons.lock_reset, color: AppColors.primary),
+                      Icon(Icons.lock_reset, color: appTheme.accentText),
                     ],
                   ),
                 ),
@@ -661,7 +686,7 @@ class HeaderWidget extends StatelessWidget {
         child: Container(
           width: boundedWidth,
           decoration: BoxDecoration(
-            color: Colors.white,
+              color: context.appTheme.cardSurface,
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
@@ -678,7 +703,7 @@ class HeaderWidget extends StatelessWidget {
     }
 
     return Container(
-      color: Colors.white,
+      color: context.appTheme.cardSurface,
       width: boundedWidth,
       padding: EdgeInsets.symmetric(horizontal: 12),
       child: rowChild,
@@ -691,13 +716,14 @@ class NotificationDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appTheme = context.appTheme;
     return GetBuilder<HomeController>(
       builder: (controller) {
         return Stack(
           clipBehavior: Clip.none,
           children: [
             IconButton(
-              icon: const Icon(Icons.notifications_outlined, color: AppColors.primary),
+              icon: Icon(Icons.notifications_outlined, color: appTheme.accentText),
               onPressed: () {
                 final buttonObject = context.findRenderObject();
                 final overlayObject =
@@ -722,7 +748,7 @@ class NotificationDropdown extends StatelessWidget {
                 showMenu(
                   context: context,
                   position: position,
-                  color: Colors.white,
+                  color: context.appTheme.cardSurface,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -752,7 +778,7 @@ class NotificationDropdown extends StatelessWidget {
                           'header.notifications'.tr,
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Colors.teal,
+                            color: appTheme.primaryText,
                           ),
                         ),
                       ),
@@ -782,13 +808,14 @@ class NotificationDropdown extends StatelessWidget {
 class _chats extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final appTheme = context.appTheme;
     return GetBuilder<HomeController>(
       builder: (controller) {
         return Stack(
           clipBehavior: Clip.none,
           children: [
             IconButton(
-              icon: const Icon(Icons.chat_bubble_outline, color: AppColors.primary),
+              icon: Icon(Icons.chat_bubble_outline, color: appTheme.accentText),
               onPressed: () {
                 Responsive.isMobile(context)
                     ? Get.to(() => ChatsListScreen(onMinimize: () {}))
@@ -803,13 +830,18 @@ class _chats extends StatelessWidget {
                               borderRadius: BorderRadius.circular(20),
                             ),
                             backgroundColor: Colors.transparent,
-                            child: SizedBox(
-                              width: MediaQuery.of(context).size.width * 0.7,
-                              height: MediaQuery.of(context).size.height * 0.9,
-                              child: ChatScreen(
-                                onMinimize: () {
-                                  Get.back();
-                                },
+                            child: Material(
+                              color: chatShellBackground(context),
+                              borderRadius: BorderRadius.circular(20),
+                              clipBehavior: Clip.antiAlias,
+                              child: SizedBox(
+                                width: MediaQuery.of(context).size.width * 0.7,
+                                height: MediaQuery.of(context).size.height * 0.9,
+                                child: ChatScreen(
+                                  onMinimize: () {
+                                    Get.back();
+                                  },
+                                ),
                               ),
                             ),
                           ),

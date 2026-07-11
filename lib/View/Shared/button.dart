@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 Widget MainButton({
   double? width,
@@ -20,6 +21,12 @@ Widget MainButton({
   bool icon = false,
   FontWeight? fontWeight,
 }) {
+  final theme = resolveAppTheme();
+  final isOutlined = borderColor != null;
+  final resolvedFontColor = fontColor ??
+      (isOutlined ? theme.accentText : Colors.white);
+  final progressColor = theme.accentText;
+
   return InkWell(
     onTap: (enabled == false || load == true) ? null : onPressed,
     child: Opacity(
@@ -47,7 +54,9 @@ Widget MainButton({
         ),
         child:
             load == true
-                ? Center(child: CircularProgressIndicator())
+                ? Center(
+                  child: CircularProgressIndicator(color: progressColor),
+                )
                 : widget != null
                 ? widget
                 : !icon
@@ -60,7 +69,7 @@ Widget MainButton({
                     softWrap: true,
                     overflow: TextOverflow.clip,
                     style: TextStyle(
-                      color: fontColor ?? Colors.white,
+                      color: resolvedFontColor,
                       fontSize: fontSize ?? 15,
                       fontWeight: FontWeight.w500,
                       // fontFamily: Appfonts.basicFont,
@@ -74,7 +83,7 @@ Widget MainButton({
                     Text(
                       title ?? '',
                       style: TextStyle(
-                        color: fontColor ?? Colors.white,
+                        color: resolvedFontColor,
                         fontSize: fontSize ?? 15,
                         fontWeight: fontWeight ?? FontWeight.w500,
                         // fontFamily: Appfonts.basicFont,
@@ -84,11 +93,11 @@ Widget MainButton({
                     CircleAvatar(
                       radius: 20,
                       foregroundColor: Colors.white,
-                      backgroundColor: Colors.white,
+                      backgroundColor: resolveAppTheme().cardSurface,
                       child: Icon(
                         Icons.arrow_forward_ios_sharp,
                         size: 20,
-                        color: AppColors.primary,
+                        color: theme.accentText,
                       ),
                     ),
                     SizedBox(width: 20),

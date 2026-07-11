@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/AdminSettings/settings_sections.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 class SettingsSectionNav extends StatelessWidget {  const SettingsSectionNav({
     super.key,
@@ -68,7 +69,7 @@ class _SettingsSectionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? AppColors.primary : AppColors.primaryfontColor;
+    final color = selected ? AppColors.primary : resolveAppTheme().primaryText;
     final bg = selected ? AppColors.primary.withValues(alpha: 0.08) : null;
 
     return Material(
@@ -154,14 +155,14 @@ class SettingsSectionLayout extends StatelessWidget {
   final ValueChanged<SettingsSection> onSelected;
   final Widget content;
 
-  static const _panelDecoration = BoxDecoration(
-    color: Colors.white,
-    borderRadius: BorderRadius.all(Radius.circular(12)),
+  BoxDecoration _panelDecoration(BuildContext context) => BoxDecoration(
+    color: context.appTheme.cardSurface,
+    borderRadius: const BorderRadius.all(Radius.circular(12)),
     boxShadow: [
       BoxShadow(
-        color: Color(0x0F000000),
+        color: context.appTheme.shadowColor,
         blurRadius: 10,
-        offset: Offset(0, 2),
+        offset: const Offset(0, 2),
       ),
     ],
   );
@@ -179,16 +180,16 @@ class SettingsSectionLayout extends StatelessWidget {
         style: TextStyle(
           fontSize: compact ? 16 : 17,
           fontWeight: FontWeight.w700,
-          color: AppColors.primaryfontColor,
+          color: resolveAppTheme().primaryText,
           height: 1.2,
         ),
       ),
     );
   }
 
-  Widget _buildContentPanel(Widget child) {
+  Widget _buildContentPanel(BuildContext context, Widget child) {
     return DecoratedBox(
-      decoration: _panelDecoration,
+      decoration: _panelDecoration(context),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: child,
@@ -215,7 +216,7 @@ class SettingsSectionLayout extends StatelessWidget {
                   vertical: false,
                 ),
                 const SizedBox(height: 16),
-                Expanded(child: _buildContentPanel(content)),
+                Expanded(child: _buildContentPanel(context, content)),
               ],
             ),
           );
@@ -229,7 +230,7 @@ class SettingsSectionLayout extends StatelessWidget {
               SizedBox(
                 width: 240,
                 child: DecoratedBox(
-                  decoration: _panelDecoration,
+                  decoration: _panelDecoration(context),
                   child: Align(
                     alignment: AlignmentDirectional.topStart,
                     child: Padding(
@@ -250,7 +251,7 @@ class SettingsSectionLayout extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 20),
-              Expanded(child: _buildContentPanel(content)),
+              Expanded(child: _buildContentPanel(context, content)),
             ],
           ),
         );

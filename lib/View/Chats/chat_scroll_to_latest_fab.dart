@@ -147,7 +147,7 @@ class ChatScrollToLatestFab extends StatelessWidget {
                     child: Text(
                       badgeCount > 99 ? '99+' : '$badgeCount',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.white,
                         fontSize: 11,
                         fontWeight: FontWeight.w600,

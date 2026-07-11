@@ -10,6 +10,7 @@ import 'package:point/View/Mobile/Shared/PdfViewr.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 import 'package:dots_indicator/dots_indicator.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 class VideoCard extends StatelessWidget {
   final ContentModel model;
@@ -23,7 +24,7 @@ class VideoCard extends StatelessWidget {
         width: Get.width,
         margin: EdgeInsets.symmetric(horizontal: 15),
         decoration: BoxDecoration(
-          color: Colors.white,
+              color: context.appTheme.cardSurface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: Colors.grey.shade100),
         ),
@@ -38,7 +39,7 @@ class VideoCard extends StatelessWidget {
             //       Container(
             //         height: 160,
             //         width: double.infinity,
-            //         color: Colors.grey[300],
+            //         color: context.appTheme.border,
             //       ),
             //       Icon(
             //         Icons.file_copy_outlined,
@@ -84,7 +85,7 @@ class VideoCard extends StatelessWidget {
               child: Text(
                 model.title,
                 textAlign: TextAlign.start,
-                style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                style: TextStyle(fontSize: 13, color: context.appTheme.mutedText),
               ),
             ),
 
@@ -106,7 +107,7 @@ class VideoCard extends StatelessWidget {
               child: Text(
                 model.notes ?? '',
                 textAlign: TextAlign.start,
-                style: TextStyle(fontSize: 13, color: Colors.grey[800]),
+                style: TextStyle(fontSize: 13, color: context.appTheme.mutedText),
               ),
             ),
 
@@ -175,9 +176,9 @@ Widget buildFilePreview(String url) {
         onTap: () {
           Get.to(() => UnknownFilePage(url: url));
         },
-        child: const Icon(
+        child: Icon(
           Icons.insert_drive_file,
-          color: Colors.grey,
+          color: resolveAppTheme().secondaryText,
           size: 46,
         ),
       );
@@ -218,7 +219,7 @@ class ImagePreviewPage extends StatelessWidget {
         leading: IconButton(
           onPressed: () => Get.back(),
           style: IconButton.styleFrom(
-            backgroundColor: Colors.white.withValues(alpha: 0.14),
+            backgroundColor: Theme.of(context).colorScheme.surface.withValues(alpha: 0.14),
             foregroundColor: Colors.white,
           ),
           icon: const Icon(Icons.close_rounded, size: 22),
@@ -226,7 +227,7 @@ class ImagePreviewPage extends StatelessWidget {
         ),
         title: Text(
           AppLocaleKeys.chatPreviewImageTitle.tr,
-          style: const TextStyle(
+          style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w600,
             fontSize: 17,
@@ -463,7 +464,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         leading: IconButton(
           onPressed: () => Get.back(),
           style: IconButton.styleFrom(
-            backgroundColor: Colors.white.withValues(alpha: 0.14),
+            backgroundColor: Theme.of(context).colorScheme.surface.withValues(alpha: 0.14),
             foregroundColor: Colors.white,
           ),
           icon: const Icon(Icons.close_rounded, size: 22),
@@ -471,7 +472,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
         ),
         title: Text(
           AppLocaleKeys.chatPreviewVideoTitle.tr,
-          style: const TextStyle(
+          style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w600,
             fontSize: 17,
@@ -568,10 +569,10 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                                         ? Icons.pause_circle_filled_rounded
                                         : Icons.play_circle_fill_rounded,
                                     color: Colors.white,
-                                    shadows: const [
+                                    shadows: [
                                       Shadow(
                                         blurRadius: 12,
-                                        color: Colors.black54,
+                                        color: context.appTheme.secondaryText,
                                       ),
                                     ],
                                   ),
@@ -596,7 +597,7 @@ class UnknownFilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         title: const Text(
@@ -613,7 +614,7 @@ class UnknownFilePage extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.insert_drive_file, size: 80, color: Colors.grey),
+            Icon(Icons.insert_drive_file, size: 80, color: context.appTheme.secondaryText),
             const SizedBox(height: 20),
             const Text(
               'لا يمكن عرض هذا الملف داخل التطبيق',
@@ -723,7 +724,7 @@ class _FilesPreviewWidgetState extends State<FilesPreviewWidget> {
                   margin: const EdgeInsets.symmetric(horizontal: 8),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(10),
-                    color: Colors.white,
+                    color: context.appTheme.cardSurface,
                     boxShadow: [
                       BoxShadow(color: Colors.grey.shade200, blurRadius: 5),
                     ],

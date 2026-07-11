@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// Drag / tap zone + "add from source" (library vs local) — same layout as the
 /// add/edit Content desktop dialog (`ContentsTable` attachment rows).
@@ -30,11 +30,10 @@ class ContentAttachmentSourceInput extends StatelessWidget {
         validator: (_) => null,
         enable: false,
         height: 100,
-        fillColor: Colors.white,
         expanded: true,
         body: Container(
           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-          decoration: BoxDecoration(color: Colors.grey.shade200),
+          decoration: BoxDecoration(color: context.appTheme.unselected),
           child: Row(
             children: [
               Expanded(
@@ -44,9 +43,10 @@ class ContentAttachmentSourceInput extends StatelessWidget {
                     bodyHintText,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
+                      color: context.appTheme.secondaryText,
                     ),
                   ),
                 ),
@@ -60,14 +60,13 @@ class ContentAttachmentSourceInput extends StatelessWidget {
                 margin: EdgeInsets.zero,
                 load: loading,
                 title: 'content.attachment_add_from_source'.tr,
-                backgroundColor: Colors.white,
-                fontColor: AppColors.primaryfontColor,
+                backgroundColor: context.appTheme.cardSurface,
+                fontColor: context.appTheme.primaryText,
               ),
             ],
           ),
         ),
         borderRadius: 5,
-        borderColor: Colors.grey.shade300,
       ),
     );
   }

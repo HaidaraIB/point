@@ -7,6 +7,7 @@ import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/table_actions_menu_row.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 bool _isEmployeeRecentlyOnline(DateTime? at) {
   if (at == null) return false;
@@ -42,6 +43,7 @@ class EmployeesMobileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appTheme = context.appTheme;
     return RefreshIndicator(
       onRefresh: () async {
         Get.find<HomeController>().fetchEmployees();
@@ -60,7 +62,7 @@ class EmployeesMobileScreen extends StatelessWidget {
                 child: Text(
                   'employees'.tr,
                   style: TextStyle(
-                    color: AppColors.fontColorGrey,
+                    color: appTheme.secondaryText,
                     fontSize: 17,
                     fontWeight: FontWeight.bold,
                   ),
@@ -82,7 +84,7 @@ class EmployeesMobileScreen extends StatelessWidget {
                       children: [
                         Text(
                           'addnewwmployee'.tr,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
@@ -111,7 +113,7 @@ class EmployeesMobileScreen extends StatelessWidget {
                   'history.empty_data'.tr,
                   style: TextStyle(
                     fontSize: 14,
-                    color: AppColors.fontColorGrey,
+                    color: appTheme.secondaryText,
                   ),
                 ),
               ),
@@ -133,9 +135,9 @@ class EmployeesMobileScreen extends StatelessWidget {
                     (emp.id ?? '') == selfEmployeeId;
                 return Container(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: appTheme.cardSurface,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade200),
+                    border: Border.all(color: appTheme.border),
                   ),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
@@ -153,7 +155,7 @@ class EmployeesMobileScreen extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
-                                color: AppColors.fontColorGrey,
+                                color: appTheme.primaryText,
                               ),
                             ),
                           ),
@@ -163,7 +165,7 @@ class EmployeesMobileScreen extends StatelessWidget {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            color: Colors.white,
+                            color: appTheme.cardSurface,
                             elevation: 4,
                             itemBuilder: (context) => [
                               PopupMenuItem(
@@ -195,12 +197,12 @@ class EmployeesMobileScreen extends StatelessWidget {
                               width: 36,
                               height: 36,
                               decoration: BoxDecoration(
-                                color: Colors.grey.shade100,
+                                color: appTheme.unselected,
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Icon(
                                 Icons.more_vert,
-                                color: AppColors.primaryfontColor,
+                                color: appTheme.primaryText,
                                 size: 20,
                               ),
                             ),
@@ -214,7 +216,7 @@ class EmployeesMobileScreen extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 13,
-                          color: AppColors.fontColorGrey,
+                          color: appTheme.secondaryText,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -228,8 +230,8 @@ class EmployeesMobileScreen extends StatelessWidget {
                             ),
                             decoration: BoxDecoration(
                               color: _isEmployeeRecentlyOnline(lastSeenAt)
-                                  ? const Color(0xFFEAF8F1)
-                                  : const Color(0xFFF3F4F6),
+                                  ? const Color(0xFF4ADE80).withValues(alpha: 0.15)
+                                  : context.appTheme.unselected,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
@@ -238,8 +240,8 @@ class EmployeesMobileScreen extends StatelessWidget {
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
                                 color: _isEmployeeRecentlyOnline(lastSeenAt)
-                                    ? const Color(0xFF0F9D58)
-                                    : AppColors.fontColorGrey,
+                                    ? const Color(0xFF4ADE80)
+                                    : appTheme.secondaryText,
                               ),
                             ),
                           ),
@@ -254,7 +256,7 @@ class EmployeesMobileScreen extends StatelessWidget {
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.purple.shade50,
+                          color: context.appTheme.panelTint,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
@@ -262,8 +264,8 @@ class EmployeesMobileScreen extends StatelessWidget {
                               ? '${emp.role.tr}\n(${emp.departments.map((d) => StorageKeys.semanticDepartmentLabelKey(d).tr).join(', ')})'
                               : emp.role.tr,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Colors.purple,
+                          style: TextStyle(
+                            color: appTheme.accentText,
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
                           ),

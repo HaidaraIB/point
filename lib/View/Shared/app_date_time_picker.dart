@@ -33,8 +33,9 @@ Future<DateTime?> pickAppDateTime(
   final picked = await showDialog<DateTime>(
     context: context,
     builder: (dialogContext) {
+      final surface = Theme.of(dialogContext).colorScheme.surface;
       return AlertDialog(
-        backgroundColor: Colors.white,
+        backgroundColor: surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         content: SizedBox(
           height: 400,
@@ -57,8 +58,10 @@ Future<DateTime?> pickAppDateTime(
                   context: dialogContext,
                   builder: (timeContext) {
                     final timePanelKey = GlobalKey<_AppTimePickerPanelState>();
+                    final timeSurface =
+                        Theme.of(timeContext).colorScheme.surface;
                     return AlertDialog(
-                      backgroundColor: Colors.white,
+                      backgroundColor: timeSurface,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -154,7 +157,7 @@ class _AppPickerDialogActionsRow extends StatelessWidget {
             onPressed: onConfirm,
             child: Text(
               confirmLabel,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: Colors.white),
             ),
           ),
         ),
@@ -323,7 +326,9 @@ class _AppTimePickerPanelState extends State<_AppTimePickerPanel> {
         SizedBox(
           height: 216,
           child: CupertinoTheme(
-            data: const CupertinoThemeData(brightness: Brightness.light),
+            data: CupertinoThemeData(
+              brightness: Theme.of(context).brightness,
+            ),
             child: CupertinoDatePicker(
               key: ValueKey<int>(_wheelResyncToken),
               mode: CupertinoDatePickerMode.time,

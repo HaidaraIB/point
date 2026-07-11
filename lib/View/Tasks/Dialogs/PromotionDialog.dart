@@ -23,6 +23,7 @@ import 'package:point/View/Tasks/Shared/task_form_dialog_actions.dart';
 import 'package:point/View/Tasks/Shared/task_voice_form_helpers.dart';
 import 'package:point/View/Tasks/Shared/task_voice_record_field.dart';
 import 'package:point/Models/VoiceRecordEntry.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 void showPromotionDialog(BuildContext context, {TaskModel? model}) {
   const otherClientValue = kTaskOtherClientSentinel;
@@ -96,7 +97,7 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
     context: context,
     builder: (context) {
       return Dialog(
-        backgroundColor: Colors.white,
+        backgroundColor: context.appTheme.cardSurface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: GetBuilder<HomeController>(
           builder: (controller) {
@@ -114,7 +115,7 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                           Container(
                             margin: EdgeInsets.all(15),
                             decoration: BoxDecoration(
-                              color: AppColors.primary,
+                              color: context.appTheme.navSurface,
                               borderRadius: BorderRadius.vertical(
                                 top: Radius.circular(12),
                               ),
@@ -160,13 +161,11 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                     labelText: 'campainname'.tr,
                                     hintText: 'entercampainname'.tr,
                                     height: 42,
-                                    fillColor: Colors.white,
                                     controller: titleController,
                                     validator:
                                         (v) =>
                                             v == null || v.isEmpty ? ' ' : null,
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
                                   ),
                                 ),
 
@@ -203,9 +202,7 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                                         )),
                                               label: 'chooseclient'.tr,
                                               borderRadius: 5,
-                                              borderColor: Colors.grey.shade300,
                                               height: 42,
-                                              fillColor: Colors.white,
                                               onChanged: (value) {
                                                 if (value == otherClientValue) {
                                                   isCustomClient.value = true;
@@ -222,12 +219,10 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                                 labelText: 'tasks.form.client_name_label'.tr,
                                                 hintText: 'tasks.form.client_name_hint'.tr,
                                                 height: 42,
-                                                fillColor: Colors.white,
                                                 controller: customClientController,
                                                 validator: (v) =>
                                                     (v == null || v.trim().isEmpty) ? ' ' : null,
                                                 borderRadius: 5,
-                                                borderColor: Colors.grey.shade300,
                                               ),
                                           ],
                                         ),
@@ -255,9 +250,7 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                                 : campaignReasonController.text,
                                         label: 'campainreason'.tr,
                                         borderRadius: 5,
-                                        borderColor: Colors.grey.shade300,
                                         height: 42,
-                                        fillColor: Colors.white,
                                         onChanged: (value) {
                                           if (value != null) {
                                             campaignReasonController.text =
@@ -282,9 +275,7 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                           selectedValues: platforms.toList(),
                                           label: 'platform'.tr,
                                           borderRadius: 5,
-                                          borderColor: Colors.grey.shade300,
                                           height: 42,
-                                          fillColor: Colors.white,
 
                                           validator: (v) {
                                             if (v == null || v.isEmpty) {
@@ -343,9 +334,7 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                                     ),
                                         label: 'content.dialog.executor'.tr,
                                         borderRadius: 5,
-                                        borderColor: Colors.grey.shade300,
                                         height: 42,
-                                        fillColor: Colors.white,
                                         onChanged: (value) {
                                           if (value != null) {
                                             executorController.text =
@@ -376,9 +365,7 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                                 : priorityController.text,
                                         label: 'priortity'.tr,
                                         borderRadius: 5,
-                                        borderColor: Colors.grey.shade300,
                                         height: 42,
-                                        fillColor: Colors.white,
                                         onChanged: (value) {
                                           if (value != null) {
                                             priorityController.text =
@@ -397,7 +384,6 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                         labelText: 'marks'.tr,
                                         hintText: 'addmark'.tr,
                                         height: 42,
-                                        fillColor: Colors.white,
                                         controller: marksController,
                                         validator:
                                             (v) =>
@@ -405,7 +391,6 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                                     ? ' '
                                                     : null,
                                         borderRadius: 5,
-                                        borderColor: Colors.grey.shade300,
                                       ),
                                     ),
                                   ],
@@ -423,7 +408,6 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                         hintText: 'promotion.campaign_duration_hint'.tr,
 
                                         height: 42,
-                                        fillColor: Colors.white,
                                         controller: durationController,
 
                                         validator:
@@ -432,7 +416,6 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                                     ? ' '
                                                     : null,
                                         borderRadius: 5,
-                                        borderColor: Colors.grey.shade300,
                                       ),
                                     ),
                                     SizedBox(
@@ -444,10 +427,8 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                             'promotion.campaign_budget_hint'
                                                 .tr,
                                         height: 42,
-                                        fillColor: Colors.white,
                                         controller: campaignBudgetController,
                                         borderRadius: 5,
-                                        borderColor: Colors.grey.shade300,
                                       ),
                                     ),
                                   ],
@@ -480,7 +461,6 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                         labelText: 'startat'.tr,
                                         hintText: '1/10/2025'.tr,
                                         height: 42,
-                                        fillColor: Colors.white,
                                         textInputType: TextInputType.datetime,
                                         controller: startDateController,
                                         readOnly: true,
@@ -491,10 +471,9 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                                     : null,
                                         suffixIcon: Icon(
                                           CupertinoIcons.calendar,
-                                          color: Colors.grey,
+                                          color: context.appTheme.secondaryText,
                                         ),
                                         borderRadius: 5,
-                                        borderColor: Colors.grey.shade300,
                                       ),
                                     ),
 
@@ -521,7 +500,6 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                           });
                                         },
                                         height: 42,
-                                        fillColor: Colors.white,
                                         textInputType: TextInputType.datetime,
                                         controller: endDateController,
                                         validator:
@@ -531,10 +509,9 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                                     : null,
                                         suffixIcon: Icon(
                                           CupertinoIcons.calendar,
-                                          color: Colors.grey,
+                                          color: context.appTheme.secondaryText,
                                         ),
                                         borderRadius: 5,
-                                        borderColor: Colors.grey.shade300,
                                       ),
                                     ),
                                   ],
@@ -551,10 +528,8 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                         labelText: 'task_details.files_link'.tr,
                                         hintText: 'task_details.files_link_hint'.tr,
                                         height: 42,
-                                        fillColor: Colors.white,
                                         controller: attachmentController,
                                         borderRadius: 5,
-                                        borderColor: Colors.grey.shade300,
                                       ),
                                     ),
                                     SizedBox(
@@ -575,14 +550,13 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                           hintText: ''.tr,
                                           enable: false,
                                           height: 100,
-                                          fillColor: Colors.white,
                                           expanded: true,
                                           body: Container(
                                             padding: EdgeInsets.symmetric(
                                               vertical: 10,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: Colors.grey.shade200,
+                                              color: context.appTheme.unselected,
                                             ),
                                             child: Row(
                                               mainAxisAlignment:
@@ -612,8 +586,7 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                                       controller
                                                           .isUploading.value,
                                                   title: 'uploadfile'.tr,
-                                                  backgroundColor:
-                                                      Colors.white,
+                                                  backgroundColor: context.appTheme.cardSurface,
                                                   fontColor:
                                                       AppColors
                                                           .primaryfontColor,
@@ -622,7 +595,6 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                             ),
                                           ),
                                           borderRadius: 5,
-                                          borderColor: Colors.grey.shade300,
                                         ),
                                       ),
                                     ),
@@ -658,12 +630,12 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                   margin: EdgeInsets.symmetric(vertical: 7),
                                   padding: EdgeInsets.all(5),
                                   decoration: BoxDecoration(
-                                    color: Colors.grey.shade200,
+                                    color: context.appTheme.unselected,
                                   ),
                                   child: Text(
                                     'promotion.audience_section'.tr,
                                     style: TextStyle(
-                                      color: AppColors.fontColorGrey,
+                                      color: context.appTheme.secondaryText,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -685,9 +657,7 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
 
                                         label: 'task_details.country'.tr,
                                         borderRadius: 5,
-                                        borderColor: Colors.grey.shade300,
                                         height: 42,
-                                        fillColor: Colors.white,
                                         onChanged: (value) {
                                           countriesList = value;
                                           final allowedCities =
@@ -724,9 +694,7 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                         //         : interestsController.text,
                                         label: 'task_details.interests'.tr,
                                         borderRadius: 5,
-                                        borderColor: Colors.grey.shade300,
                                         height: 42,
-                                        fillColor: Colors.white,
                                         onChanged: (value) {
                                           interestsList = value;
                                         },
@@ -749,9 +717,7 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                             ),
                                         label: 'task_details.cities'.tr,
                                         borderRadius: 5,
-                                        borderColor: Colors.grey.shade300,
                                         height: 42,
-                                        fillColor: Colors.white,
                                         onChanged: (value) {
                                           cityList = value;
                                         },
@@ -776,7 +742,6 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                         labelText: 'promotion.age_label'.tr,
                                         hintText: 'promotion.age_range_hint'.tr,
                                         height: 42,
-                                        fillColor: Colors.white,
                                         controller: tagsController,
                                         validator:
                                             (v) =>
@@ -784,7 +749,6 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                                     ? ' '
                                                     : null,
                                         borderRadius: 5,
-                                        borderColor: Colors.grey.shade300,
                                       ),
                                     ),
                                     SizedBox(
@@ -795,9 +759,7 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
 
                                         label: 'promotion.specialization_label'.tr,
                                         borderRadius: 5,
-                                        borderColor: Colors.grey.shade300,
                                         height: 42,
-                                        fillColor: Colors.white,
                                         onChanged: (value) {
                                           specializationList = value;
                                         },
@@ -819,7 +781,6 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                       labelText: 'tasks.form.notes_log'.tr,
                                       hintText: ''.tr,
                                       height: 250,
-                                      fillColor: Colors.white,
                                       enable: false,
                                       // controller: notesController,
                                       body: SingleChildScrollView(
@@ -858,7 +819,6 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                       ),
                                       expanded: true,
                                       borderRadius: 5,
-                                      borderColor: Colors.grey.shade300,
                                     ),
                                   ),
                                 SizedBox(
@@ -867,11 +827,9 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                     labelText: 'notes'.tr,
                                     hintText: 'enternotes'.tr,
                                     height: 30,
-                                    fillColor: Colors.white,
                                     controller: notesController,
                                     // expanded: true,
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
                                   ),
                                 ),
                               ],

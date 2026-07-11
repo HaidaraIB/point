@@ -11,6 +11,7 @@ import 'package:point/Utils/AppImages.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/responsive.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 class ForgetPassword extends StatefulWidget {
   const ForgetPassword({super.key});
@@ -41,17 +42,18 @@ class _ForgetPasswordState extends State<ForgetPassword> {
   }
 
   PreferredSizeWidget _buildForgetPasswordAppBar() {
+    final appTheme = context.appTheme;
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: appTheme.cardSurface,
       elevation: 0,
       leading: IconButton(
-        icon: Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+        icon: Icon(Icons.arrow_back_ios_new, color: appTheme.primaryText),
         onPressed: _goBack,
       ),
       title: Text(
         'forgotpassword'.tr,
         style: TextStyle(
-          color: Colors.black87,
+          color: appTheme.primaryText,
           fontSize: 18,
           fontWeight: FontWeight.w600,
         ),
@@ -81,6 +83,7 @@ class _ForgetPasswordState extends State<ForgetPassword> {
   }
 
   Widget _buildBody() {
+    final appTheme = context.appTheme;
     return Form(
       key: _formKey,
       child: LayoutBuilder(
@@ -101,19 +104,22 @@ class _ForgetPasswordState extends State<ForgetPassword> {
                   fontWeight: FontWeight.w600,
                   wordSpacing: 1.2,
                   letterSpacing: 0.5,
+                  color: appTheme.primaryText,
                 ),
               ),
               SizedBox(height: 10),
               Text(
                 'enteremailandwaitcode'.tr,
-                style: TextStyle(color: Colors.grey, fontSize: 13),
+                style: TextStyle(
+                  color: appTheme.secondaryText,
+                  fontSize: 13,
+                ),
               ),
               InputText(
                 hintText: 'example@gmail.com'.tr,
                 labelText: 'email'.tr,
                 controller: _emailController,
                 height: 42,
-                fillColor: Colors.white,
                 validator: (v) {
                   if (v == null || v.isEmpty) {
                     return ' ';
@@ -121,7 +127,6 @@ class _ForgetPasswordState extends State<ForgetPassword> {
                   return null;
                 },
                 borderRadius: 5,
-                borderColor: Colors.grey.shade300,
               ),
               SizedBox(height: 25),
               MainButton(

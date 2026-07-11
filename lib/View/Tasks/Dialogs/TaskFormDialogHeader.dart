@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:point/Utils/AppColors.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// Shared header for task form dialogs (add/edit task). Used by
 /// [GenericTaskFormDialog] and [DesignDialog].
@@ -13,7 +13,7 @@ class TaskFormDialogHeader extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.all(15),
       decoration: BoxDecoration(
-        color: AppColors.primary,
+        color: context.appTheme.navSurface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
       ),
       padding: const EdgeInsets.all(16),
@@ -27,7 +27,7 @@ class TaskFormDialogHeader extends StatelessWidget {
               children: [
                 Text(
                   'tasks.form.add_title'.tr,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
@@ -35,7 +35,7 @@ class TaskFormDialogHeader extends StatelessWidget {
                 ),
                 Text(
                   'tasks.form.fill_required'.tr,
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  style: TextStyle(color: Colors.white, fontSize: 13),
                 ),
               ],
             ),

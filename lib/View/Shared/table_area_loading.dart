@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// Centered loading indicator for table/list content areas.
 class TableAreaLoading extends StatelessWidget {
@@ -12,8 +12,8 @@ class TableAreaLoading extends StatelessWidget {
     return SizedBox(
       height: minHeight,
       width: double.infinity,
-      child: const Center(
-        child: CircularProgressIndicator(color: AppColors.primary),
+      child: Center(
+        child: CircularProgressIndicator(color: context.appTheme.accentText),
       ),
     );
   }

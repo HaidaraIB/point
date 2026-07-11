@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
-import 'package:point/Utils/AppColors.dart';
 
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Statistics/Mobile/StatisticsMobileScreen.dart';
 import 'package:point/View/Statistics/StatistcsCard.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 class Statistics extends StatelessWidget {
   @override
@@ -33,7 +33,7 @@ class Statistics extends StatelessWidget {
                             children: [
                               Container(
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+              color: context.appTheme.cardSurface,
                                   borderRadius: BorderRadius.circular(5),
                                 ),
                                 width: Get.width / 3 - 120,
@@ -57,7 +57,7 @@ class Statistics extends StatelessWidget {
                                     Text(
                                       'employeecount'.tr,
                                       style: TextStyle(
-                                        color: Colors.grey,
+                                        color: context.appTheme.secondaryText,
                                         fontWeight: FontWeight.bold,
                                         fontSize: 15,
                                       ),
@@ -67,7 +67,7 @@ class Statistics extends StatelessWidget {
                               ),
                               Container(
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+              color: context.appTheme.cardSurface,
                                   borderRadius: BorderRadius.circular(5),
                                 ),
                                 width: Get.width / 3 - 120,
@@ -90,7 +90,7 @@ class Statistics extends StatelessWidget {
                                     Text(
                                       'clientscount'.tr,
                                       style: TextStyle(
-                                        color: Colors.grey,
+                                        color: context.appTheme.secondaryText,
                                         fontWeight: FontWeight.bold,
                                         fontSize: 15,
                                       ),
@@ -100,7 +100,7 @@ class Statistics extends StatelessWidget {
                               ),
                               Container(
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+              color: context.appTheme.cardSurface,
                                   borderRadius: BorderRadius.circular(5),
                                 ),
                                 width: Get.width / 3 - 120,
@@ -115,7 +115,7 @@ class Statistics extends StatelessWidget {
                                       '${controller.clients.length}',
                                       style: TextStyle(
                                         fontSize: 22,
-                                        color: AppColors.primary,
+                                        color: context.appTheme.accentText,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
@@ -123,7 +123,7 @@ class Statistics extends StatelessWidget {
                                     Text(
                                       'taskscount'.tr,
                                       style: TextStyle(
-                                        color: Colors.grey,
+                                        color: context.appTheme.secondaryText,
                                         fontWeight: FontWeight.bold,
                                         fontSize: 15,
                                       ),

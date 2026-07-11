@@ -1,4 +1,4 @@
-﻿part of 'package:point/View/Home/Home.dart';
+part of 'package:point/View/Home/Home.dart';
 
 Widget contentScheduletoday(BuildContext context) {
   final isMobile = Responsive.isMobile(context);
@@ -25,7 +25,7 @@ Widget contentScheduletoday(BuildContext context) {
                 ? const EdgeInsets.only(bottom: _kMobileSectionSpacing)
                 : null,
         decoration: BoxDecoration(
-          color: Colors.white,
+              color: context.appTheme.cardSurface,
           borderRadius: BorderRadius.circular(
             isMobile ? _kMobileCardRadius : 16,
           ),
@@ -53,7 +53,7 @@ Widget contentScheduletoday(BuildContext context) {
               Container(
                 height: _kMobileAccentBarHeight,
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
+                  color: context.appTheme.navSurface,
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(_kMobileCardRadius),
                   ),
@@ -71,7 +71,7 @@ Widget contentScheduletoday(BuildContext context) {
                     Icon(
                       Icons.calendar_today_rounded,
                       size: 20,
-                      color: AppColors.primary,
+                      color: context.appTheme.accentText,
                     ),
                     const SizedBox(width: 8),
                   ],
@@ -81,7 +81,7 @@ Widget contentScheduletoday(BuildContext context) {
                       style: TextStyle(
                         fontSize: isMobile ? 15 : 16,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.primary,
+                        color: context.appTheme.accentText,
                       ),
                     ),
                   ),
@@ -93,6 +93,7 @@ Widget contentScheduletoday(BuildContext context) {
               Expanded(
                 child: Center(
                   child: _buildEmptySection(
+                    context,
                     icon: Icons.calendar_today_outlined,
                     message: AppLocaleKeys.homeNoScheduleToday.tr,
                     compact: isMobile,
@@ -169,7 +170,7 @@ Widget contentScheduletoday(BuildContext context) {
                                                         ?.name
                                                         .toString()[0] ??
                                                     '',
-                                                style: const TextStyle(
+                                                style: TextStyle(
                                                   color: Colors.teal,
                                                   fontWeight: FontWeight.bold,
                                                 ),
@@ -185,7 +186,7 @@ Widget contentScheduletoday(BuildContext context) {
                                                 ?.name
                                                 .toString()[0] ??
                                             '',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           color: Colors.teal,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -214,7 +215,7 @@ Widget contentScheduletoday(BuildContext context) {
                                         '',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.grey,
+                                      color: context.appTheme.secondaryText,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -236,7 +237,8 @@ Widget contentScheduletoday(BuildContext context) {
   );
 }
 
-Widget _buildEmptySection({
+Widget _buildEmptySection(
+  BuildContext context, {
   required IconData icon,
   required String message,
   bool compact = false,
@@ -253,14 +255,14 @@ Widget _buildEmptySection({
         Icon(
           icon,
           size: compact ? _kMobileEmptyIconSize : 48,
-          color: Colors.grey.shade400,
+          color: context.appTheme.mutedText,
         ),
         SizedBox(height: compact ? 10 : 12),
         Text(
           message,
           style: TextStyle(
             fontSize: compact ? 13 : 14,
-            color: Colors.grey.shade600,
+            color: context.appTheme.mutedText,
             height: 1.3,
           ),
           textAlign: TextAlign.center,
@@ -290,7 +292,7 @@ Widget contentUnderPromotion(BuildContext context) {
                 ? const EdgeInsets.only(bottom: _kMobileSectionSpacing)
                 : null,
         decoration: BoxDecoration(
-          color: Colors.white,
+              color: context.appTheme.cardSurface,
           borderRadius: BorderRadius.circular(
             isMobile ? _kMobileCardRadius : 16,
           ),
@@ -318,7 +320,7 @@ Widget contentUnderPromotion(BuildContext context) {
               Container(
                 height: _kMobileAccentBarHeight,
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
+                  color: context.appTheme.navSurface,
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(_kMobileCardRadius),
                   ),
@@ -337,7 +339,7 @@ Widget contentUnderPromotion(BuildContext context) {
                           Icon(
                             Icons.campaign_rounded,
                             size: 20,
-                            color: AppColors.primary,
+                            color: context.appTheme.accentText,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
@@ -346,7 +348,7 @@ Widget contentUnderPromotion(BuildContext context) {
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
-                                color: AppColors.primary,
+                                color: context.appTheme.accentText,
                               ),
                             ),
                           ),
@@ -357,7 +359,7 @@ Widget contentUnderPromotion(BuildContext context) {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
+                          color: context.appTheme.accentText,
                         ),
                       ),
             ),
@@ -366,6 +368,7 @@ Widget contentUnderPromotion(BuildContext context) {
               Expanded(
                 child: Center(
                   child: _buildEmptySection(
+                    context,
                     icon: Icons.campaign_outlined,
                     message: AppLocaleKeys.homeNoUnderPromotion.tr,
                     compact: isMobile,
@@ -442,7 +445,7 @@ Widget contentUnderPromotion(BuildContext context) {
                                                         ?.name
                                                         .toString()[0] ??
                                                     '',
-                                                style: const TextStyle(
+                                                style: TextStyle(
                                                   color: Colors.teal,
                                                   fontWeight: FontWeight.bold,
                                                 ),
@@ -458,7 +461,7 @@ Widget contentUnderPromotion(BuildContext context) {
                                                 ?.name
                                                 .toString()[0] ??
                                             '',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           color: Colors.teal,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -487,7 +490,7 @@ Widget contentUnderPromotion(BuildContext context) {
                                         '',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.grey,
+                                      color: context.appTheme.secondaryText,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -529,7 +532,7 @@ Widget tasksUnderProcessing(BuildContext context) {
                 ? const EdgeInsets.only(bottom: _kMobileSectionSpacing)
                 : null,
         decoration: BoxDecoration(
-          color: Colors.white,
+              color: context.appTheme.cardSurface,
           borderRadius: BorderRadius.circular(
             isMobile ? _kMobileCardRadius : 16,
           ),
@@ -557,7 +560,7 @@ Widget tasksUnderProcessing(BuildContext context) {
               Container(
                 height: _kMobileAccentBarHeight,
                 decoration: BoxDecoration(
-                  color: AppColors.primary,
+                  color: context.appTheme.navSurface,
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(_kMobileCardRadius),
                   ),
@@ -576,7 +579,7 @@ Widget tasksUnderProcessing(BuildContext context) {
                           Icon(
                             Icons.pending_actions_rounded,
                             size: 20,
-                            color: AppColors.primary,
+                            color: context.appTheme.accentText,
                           ),
                           const SizedBox(width: 8),
                           Expanded(
@@ -585,7 +588,7 @@ Widget tasksUnderProcessing(BuildContext context) {
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
-                                color: AppColors.primary,
+                                color: context.appTheme.accentText,
                               ),
                             ),
                           ),
@@ -596,7 +599,7 @@ Widget tasksUnderProcessing(BuildContext context) {
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
+                          color: context.appTheme.accentText,
                         ),
                       ),
             ),
@@ -605,6 +608,7 @@ Widget tasksUnderProcessing(BuildContext context) {
               Expanded(
                 child: Center(
                   child: _buildEmptySection(
+                    context,
                     icon: Icons.pending_actions_outlined,
                     message: AppLocaleKeys.homeNoTasksInProgress.tr,
                     compact: isMobile,
@@ -709,7 +713,7 @@ Widget tasksUnderProcessing(BuildContext context) {
                                                         ?.name
                                                         .toString()[0] ??
                                                     '',
-                                                style: const TextStyle(
+                                                style: TextStyle(
                                                   color: Colors.teal,
                                                   fontWeight: FontWeight.bold,
                                                 ),
@@ -726,7 +730,7 @@ Widget tasksUnderProcessing(BuildContext context) {
                                                 ?.name
                                                 .toString()[0] ??
                                             '',
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           color: Colors.teal,
                                           fontWeight: FontWeight.bold,
                                         ),
@@ -755,7 +759,7 @@ Widget tasksUnderProcessing(BuildContext context) {
                                         '',
                                     style: TextStyle(
                                       fontSize: 12,
-                                      color: Colors.grey,
+                                      color: context.appTheme.secondaryText,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,

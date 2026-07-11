@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/library_path_utils.dart';
-import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/attachment_download.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Library/library_folder_browser.dart';
@@ -13,6 +12,7 @@ import 'package:point/View/Library/library_upload_dialog.dart';
 import 'package:point/View/Tasks/Shared/task_attachment_gallery.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// Drive-style library: completed tasks → client → month → posts/stories/videos/documents → files.
 class LibraryPage extends StatefulWidget {
@@ -65,17 +65,17 @@ class _LibraryPageState extends State<LibraryPage> {
                       children: [
                         Text(
                           'library.title'.tr,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.w800,
-                            color: AppColors.primaryfontColor,
+                            color: context.appTheme.primaryText,
                           ),
                         ),
                         Text(
                           'library.subtitle'.tr,
                           style: TextStyle(
                             fontSize: 13,
-                            color: Colors.grey.shade700,
+                            color: context.appTheme.mutedText,
                             height: 1.3,
                           ),
                         ),
@@ -94,7 +94,7 @@ class _LibraryPageState extends State<LibraryPage> {
               Expanded(
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+              color: context.appTheme.cardSurface,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: Colors.grey.shade300),
                     boxShadow: [
@@ -155,7 +155,7 @@ class LibraryFileEntryCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.description_outlined, color: Colors.grey.shade700),
+          Icon(Icons.description_outlined, color: context.appTheme.mutedText),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -163,7 +163,7 @@ class LibraryFileEntryCard extends StatelessWidget {
               children: [
                 Text(
                   task.title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 15,
                   ),
@@ -173,7 +173,7 @@ class LibraryFileEntryCard extends StatelessWidget {
                   '${'library.uploaded_at'.tr}: ${_formatTs(uploaded)}',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey.shade700,
+                    color: context.appTheme.mutedText,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -181,7 +181,7 @@ class LibraryFileEntryCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     '${'tasks.final_deliverable_type_label'.tr}: $typeLabel',
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                    style: TextStyle(fontSize: 12, color: context.appTheme.mutedText),
                   ),
                 ],
                 const SizedBox(height: 6),
@@ -190,7 +190,7 @@ class LibraryFileEntryCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: Colors.grey.shade600,
+                    color: context.appTheme.mutedText,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -200,7 +200,7 @@ class LibraryFileEntryCard extends StatelessWidget {
                       : task.finalDeliverableText,
                   maxLines: 8,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 13, color: Colors.grey.shade900),
+                  style: TextStyle(fontSize: 13, color: context.appTheme.primaryText),
                 ),
                 if (task.finalDeliverableFileUrls.isNotEmpty) ...[
                   const SizedBox(height: 10),
@@ -209,7 +209,7 @@ class LibraryFileEntryCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
-                      color: Colors.grey.shade600,
+                      color: context.appTheme.mutedText,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -287,7 +287,7 @@ class LibraryFileEntryCard extends StatelessWidget {
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: Colors.grey.shade700,
+                                  color: context.appTheme.mutedText,
                                 ),
                               ),
                             ],

@@ -52,7 +52,7 @@ class ChatListRowTrailing extends StatelessWidget {
             ),
             child: Text(
               unreadCount > 99 ? '99+' : '$unreadCount',
-              style: const TextStyle(
+              style: TextStyle(
                 color: Colors.white,
                 fontSize: 12,
                 height: 1.0,

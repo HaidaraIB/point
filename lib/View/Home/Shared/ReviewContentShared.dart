@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Services/StorageKeys.dart';
-import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Home/Shared/ClientUnderReviewListPage.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 const double _kScrollStep = 220.0;
 
@@ -65,7 +65,7 @@ class _ReviewContentWidgetState extends State<ReviewContentWidget> {
             style: TextStyle(
               fontSize: isMobile ? 15 : 16,
               fontWeight: FontWeight.bold,
-              color: AppColors.fontColorGrey,
+              color: context.appTheme.secondaryText,
             ),
           ),
         );
@@ -105,7 +105,7 @@ class _ReviewContentWidgetState extends State<ReviewContentWidget> {
 
         return Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+              color: context.appTheme.cardSurface,
             borderRadius: BorderRadius.circular(isMobile ? 16 : 0),
             boxShadow: isMobile
                 ? [
@@ -149,7 +149,7 @@ class _ReviewContentWidgetState extends State<ReviewContentWidget> {
     final url = (imageUrl ?? '').trim();
     final initial =
         (name ?? '').isNotEmpty ? (name ?? '')[0] : '';
-    final initialStyle = const TextStyle(
+    final initialStyle = TextStyle(
       color: Colors.teal,
       fontWeight: FontWeight.bold,
     );
@@ -219,10 +219,10 @@ class _ReviewContentWidgetState extends State<ReviewContentWidget> {
                       const SizedBox(height: 8),
                       Text(
                         client.name ?? '',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
-                          color: Colors.black87,
+                          color: context.appTheme.primaryText,
                         ),
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,

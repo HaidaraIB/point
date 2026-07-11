@@ -13,6 +13,7 @@ import 'package:point/View/Shared/voice_message_row.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DProgrammingDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 import 'package:point/View/Tasks/Shared/task_voice_form_helpers.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 void showProgrammingUpdateDetails(
   BuildContext context, {
@@ -90,16 +91,17 @@ class ProgrammingUpdateDetailsMobilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appTheme = context.appTheme;
     final bottomPadding = MediaQuery.paddingOf(context).bottom + 24;
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: appTheme.pageBackground,
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
         title: Text(
           'programming.updates.details_title'.tr,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
@@ -315,7 +317,7 @@ class ProgrammingUpdateDetailsBody extends StatelessWidget {
                         assignee.isEmpty ? '-' : assignee,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                         ),
@@ -445,7 +447,7 @@ class ProgrammingUpdateDetailsBody extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
           decoration: BoxDecoration(
-            color: Colors.white,
+              color: context.appTheme.cardSurface,
             borderRadius: BorderRadius.circular(10),
           ),
           child: Wrap(
@@ -512,7 +514,7 @@ class ProgrammingUpdateDetailsBody extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: context.appTheme.cardSurface,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Column(
@@ -520,7 +522,7 @@ class ProgrammingUpdateDetailsBody extends StatelessWidget {
               children: [
                 Text(
                   'task_details.about_task'.tr,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
                   ),
@@ -530,7 +532,7 @@ class ProgrammingUpdateDetailsBody extends StatelessWidget {
                   u.aboutTask.trim(),
                   style: TextStyle(
                     fontSize: 13,
-                    color: Colors.grey.shade800,
+                    color: context.appTheme.secondaryText,
                     height: 1.35,
                   ),
                 ),
@@ -543,7 +545,7 @@ class ProgrammingUpdateDetailsBody extends StatelessWidget {
           constraints: const BoxConstraints(minHeight: 110),
           padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
           decoration: BoxDecoration(
-            color: Colors.white,
+              color: context.appTheme.cardSurface,
             borderRadius: BorderRadius.circular(10),
           ),
           child: Wrap(
@@ -625,17 +627,17 @@ class ProgrammingUpdateDetailsBody extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey.shade600,
+              color: context.appTheme.mutedText,
               fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 4),
           LinkifiedText(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: AppColors.primaryfontColor,
+              color: context.appTheme.primaryText,
             ),
           ),
         ],
@@ -655,7 +657,7 @@ class ProgrammingUpdateDetailsBody extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey.shade600,
+              color: context.appTheme.mutedText,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -715,10 +717,10 @@ class ProgrammingUpdateDetailsBody extends StatelessWidget {
                 )
               : LinkifiedText(
                   u.description.trim(),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.primaryfontColor,
+                    color: context.appTheme.primaryText,
                     height: 1.35,
                   ),
                 ),

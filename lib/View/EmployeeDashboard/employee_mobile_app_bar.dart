@@ -5,13 +5,14 @@ import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Localization/LanguageController.dart';
 import 'package:point/Services/FunHelper.dart';
-import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/AppConstants.dart';
 import 'package:point/Utils/AppNotificationInbox.dart';
 import 'package:point/View/Chats/MChatPage.dart';
 import 'package:point/View/EmployeeDashboard/employee_dashboard_dialogs.dart';
 import 'package:point/View/Shared/CustomHeader.dart';
+import 'package:point/View/Shared/app_theme_menu_button.dart';
 import 'package:point/View/Shared/internet_status_badge.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// Shared white app bar for employee flows (dashboard, content management).
 class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -25,10 +26,12 @@ class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidge
   @override
   Widget build(BuildContext context) {
     final languageController = Get.find<LanguageController>();
+    final theme = Theme.of(context);
+    final appTheme = theme.colorScheme;
     return AppBar(
       automaticallyImplyLeading: false,
-      backgroundColor: Colors.white,
-      surfaceTintColor: Colors.white,
+      backgroundColor: appTheme.surface,
+      surfaceTintColor: Colors.transparent,
       elevation: 0.5,
       titleSpacing: 10,
       title: Row(
@@ -38,7 +41,7 @@ class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidge
             icon: Stack(
               clipBehavior: Clip.none,
               children: [
-                const Icon(Icons.notifications_outlined, color: AppColors.primary),
+                Icon(Icons.notifications_outlined, color: context.appTheme.accentText),
                 Positioned(
                   right: -4,
                   top: -4,
@@ -57,7 +60,7 @@ class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidge
           PopupMenuButton<String>(
             tooltip: AppLocaleKeys.appLanguage.tr,
             padding: EdgeInsets.zero,
-            icon: const Icon(Icons.language, color: AppColors.primary),
+            icon: Icon(Icons.language, color: context.appTheme.accentText),
             onSelected: (value) => languageController.changeLanguage(value),
             itemBuilder:
                 (context) => [
@@ -71,12 +74,13 @@ class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidge
                   ),
                 ],
           ),
+          const AppThemeMenuButton(compact: true),
           IconButton(
             tooltip: 'header.chat'.tr,
             icon: Stack(
               clipBehavior: Clip.none,
               children: [
-                const Icon(Icons.chat_bubble_outline, color: AppColors.primary),
+                Icon(Icons.chat_bubble_outline, color: context.appTheme.accentText),
                 Positioned(
                   right: -4,
                   top: -4,
@@ -114,10 +118,10 @@ class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidge
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             textAlign: TextAlign.end,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: 13,
-                              color: Color(0xFF1A1A1A),
+                              color: context.appTheme.primaryText,
                             ),
                           ),
                         if (displayRole.isNotEmpty) ...[
@@ -132,7 +136,7 @@ class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidge
                             textAlign: TextAlign.end,
                             style: TextStyle(
                               fontSize: 11,
-                              color: Colors.grey.shade700,
+                              color: context.appTheme.mutedText,
                             ),
                           ),
                         ],
@@ -170,14 +174,14 @@ class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidge
                               children: [
                                 Text(
                                   'employee.profile.menu'.tr,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                const Icon(
+                                Icon(
                                   Icons.person_outline,
-                                  color: AppColors.primary,
+                                  color: context.appTheme.accentText,
                                 ),
                               ],
                             ),
@@ -188,14 +192,14 @@ class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidge
                               children: [
                                 Text(
                                   'resetpassword'.tr,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                const Icon(
+                                Icon(
                                   Icons.lock_reset,
-                                  color: AppColors.primary,
+                                  color: context.appTheme.accentText,
                                 ),
                               ],
                             ),
@@ -206,7 +210,7 @@ class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidge
                               children: [
                                 Text(
                                   'logout'.tr,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),

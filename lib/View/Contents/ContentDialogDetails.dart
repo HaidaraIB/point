@@ -210,7 +210,7 @@ class _ContentDialogDetailsState extends State<ContentDialogDetails> {
                         executorName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                         ),

@@ -31,6 +31,7 @@ import 'package:point/View/Tasks/DetailsDialogs/DProgrammingDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPromotionDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPublishDialog.dart';
 import 'package:point/firebase_app_options.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 part 'home_dashboard_sections_part.dart';
 part 'home_notification_dialogs_part.dart';
@@ -108,7 +109,7 @@ class Home extends StatelessWidget {
                         child: SafeArea(
                           child: Container(
                             width: double.infinity,
-                            color: AppColors.greyBackground,
+                            color: context.appTheme.pageBackground,
                             child: Padding(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 16,
@@ -185,9 +186,9 @@ class Home extends StatelessWidget {
                     width: double.infinity,
                     child: OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.primary,
+                        foregroundColor: context.appTheme.accentText,
                         side: BorderSide(
-                          color: AppColors.primary.withValues(alpha: 0.5),
+                          color: context.appTheme.accentBorder,
                         ),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 8,
@@ -212,7 +213,7 @@ class Home extends StatelessWidget {
                       ),
                       label: Text(
                         AppLocaleKeys.pushTestOpenButton.tr,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
                         ),
@@ -261,9 +262,9 @@ class Home extends StatelessWidget {
                   height: _kHomePairButtonHeight,
                   child: OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primary,
+                      foregroundColor: context.appTheme.accentText,
                       side: BorderSide(
-                        color: AppColors.primary.withValues(alpha: 0.5),
+                        color: context.appTheme.accentBorder,
                       ),
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
@@ -291,7 +292,7 @@ class Home extends StatelessWidget {
                     ),
                     label: Text(
                       AppLocaleKeys.pushTestOpenButton.tr,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
                       ),

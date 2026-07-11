@@ -7,7 +7,8 @@ import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
-import 'package:point/Utils/AppImages.dart';
+import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/View/Shared/brand_logo.dart';
 import 'package:point/Utils/app_log.dart';
 
 /// Shown after successful client auth while local session and push setup finish.
@@ -124,7 +125,7 @@ class _ClientSessionSetupScreenState extends State<ClientSessionSetupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: Center(
           child: Padding(
@@ -132,11 +133,9 @@ class _ClientSessionSetupScreenState extends State<ClientSessionSetupScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset(
-                  AppImages.images.logocolored,
+                BrandLogo(
                   width: Get.width * 0.55,
                   height: 80,
-                  fit: BoxFit.contain,
                 ),
                 const SizedBox(height: 32),
                 const CircularProgressIndicator(),
@@ -146,7 +145,7 @@ class _ClientSessionSetupScreenState extends State<ClientSessionSetupScreen> {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 15,
-                    color: Colors.grey.shade700,
+                    color: context.appTheme.mutedText,
                   ),
                 ),
               ],

@@ -5,7 +5,7 @@ import 'package:point/Models/ClientModel.dart';
 import 'package:point/Models/LibraryFileModel.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/library_path_utils.dart';
-import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// Navigation state for drive-style library: completed → client → month → category → leaf.
 class LibraryBrowseNav {
@@ -208,7 +208,7 @@ class LibraryFolderBrowser extends StatelessWidget {
                 child: Icon(
                   Icons.chevron_right,
                   size: 18,
-                  color: Colors.grey.shade600,
+                  color: context.appTheme.mutedText,
                 ),
               ),
             if (i == labels.length - 1)
@@ -217,7 +217,7 @@ class LibraryFolderBrowser extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
+                  color: context.appTheme.accentText,
                 ),
               )
             else
@@ -236,9 +236,9 @@ class LibraryFolderBrowser extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: Colors.grey.shade700,
+                        color: context.appTheme.mutedText,
                         decoration: TextDecoration.underline,
-                        decorationColor: Colors.grey.shade600,
+                        decorationColor: context.appTheme.mutedText,
                       ),
                     ),
                   ),
@@ -257,13 +257,18 @@ class LibraryFolderBrowser extends StatelessWidget {
           _FolderTileData(
             label: 'library.completed_tasks_folder'.tr,
             icon: Icons.folder_shared_outlined,
-            color: AppColors.primary,
+            color: context.appTheme.accentText,
             onTap: () => onNavChanged(nav.goCompleted()),
           ),
         ], emptyHint: 'library.empty_drive'.tr);
       case 1:
         if (clients.isEmpty) {
-          return Center(child: Text('library.empty'.tr));
+          return Center(
+            child: Text(
+              'library.empty'.tr,
+              style: TextStyle(color: context.appTheme.secondaryText),
+            ),
+          );
         }
         return _folderGrid(
           context,
@@ -339,7 +344,12 @@ class LibraryFolderBrowser extends StatelessWidget {
         );
         return buildLeaf(context, nav, files, directFiles);
       default:
-        return Center(child: Text('library.empty'.tr));
+        return Center(
+          child: Text(
+            'library.empty'.tr,
+            style: TextStyle(color: context.appTheme.secondaryText),
+          ),
+        );
     }
   }
 
@@ -349,8 +359,14 @@ class LibraryFolderBrowser extends StatelessWidget {
     required String emptyHint,
   }) {
     if (folders.isEmpty) {
-      return Center(child: Text(emptyHint));
+      return Center(
+        child: Text(
+          emptyHint,
+          style: TextStyle(color: context.appTheme.secondaryText),
+        ),
+      );
     }
+    final theme = context.appTheme;
     return GridView.builder(
       padding: const EdgeInsets.all(16),
       gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
@@ -363,8 +379,11 @@ class LibraryFolderBrowser extends StatelessWidget {
       itemBuilder: (context, i) {
         final f = folders[i];
         return Material(
-          color: Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(14),
+          color: theme.cardSurface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(color: theme.border),
+          ),
           child: InkWell(
             borderRadius: BorderRadius.circular(14),
             onTap: f.onTap,
@@ -379,9 +398,10 @@ class LibraryFolderBrowser extends StatelessWidget {
                     f.label,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
+                      color: theme.primaryText,
                     ),
                   ),
                 ],

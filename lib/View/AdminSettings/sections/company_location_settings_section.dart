@@ -11,6 +11,7 @@ import 'package:point/Utils/app_log.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/responsive.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 class CompanyLocationSettingsSection extends StatefulWidget {
   const CompanyLocationSettingsSection({super.key});
@@ -200,7 +201,7 @@ class _CompanyLocationSettingsSectionState
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.location_on_outlined, color: AppColors.primary, size: 22),
+          Icon(Icons.location_on_outlined, color: context.appTheme.accentText, size: 22),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -209,24 +210,24 @@ class _CompanyLocationSettingsSectionState
                 if (label.isNotEmpty)
                   Text(
                     label,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
-                      color: AppColors.primaryfontColor,
+                      color: context.appTheme.primaryText,
                     ),
                   ),
                 if (label.isNotEmpty) const SizedBox(height: 4),
                 Text(
                   '${AppLocaleKeys.adminSettingsOfficeLatitude.tr}: ${lat.toStringAsFixed(6)}',
-                  style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+                  style: TextStyle(color: context.appTheme.secondaryText, fontSize: 13),
                 ),
                 Text(
                   '${AppLocaleKeys.adminSettingsOfficeLongitude.tr}: ${lng.toStringAsFixed(6)}',
-                  style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+                  style: TextStyle(color: context.appTheme.secondaryText, fontSize: 13),
                 ),
                 Text(
                   '${AppLocaleKeys.adminSettingsOfficeRadius.tr}: ${radius.round()}',
-                  style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+                  style: TextStyle(color: context.appTheme.secondaryText, fontSize: 13),
                 ),
               ],
             ),
@@ -242,9 +243,7 @@ class _CompanyLocationSettingsSectionState
       hintText: '0.0',
       controller: _latController,
       height: 42,
-      fillColor: Colors.white,
       borderRadius: 5,
-      borderColor: Colors.grey.shade300,
       textInputType: const TextInputType.numberWithOptions(
         decimal: true,
         signed: true,
@@ -264,9 +263,7 @@ class _CompanyLocationSettingsSectionState
       hintText: '0.0',
       controller: _lngController,
       height: 42,
-      fillColor: Colors.white,
       borderRadius: 5,
-      borderColor: Colors.grey.shade300,
       textInputType: const TextInputType.numberWithOptions(
         decimal: true,
         signed: true,
@@ -316,17 +313,17 @@ class _CompanyLocationSettingsSectionState
             children: [
               Text(
                 AppLocaleKeys.adminSettingsSectionCompanyLocation.tr,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.primaryfontColor,
+                  color: context.appTheme.primaryText,
                 ),
               ),
               const SizedBox(height: 8),
               Text(
                 AppLocaleKeys.adminSettingsCompanyLocationHelp.tr,
                 style: TextStyle(
-                  color: Colors.grey.shade700,
+                  color: context.appTheme.secondaryText,
                   fontSize: 13,
                 ),
               ),
@@ -335,7 +332,7 @@ class _CompanyLocationSettingsSectionState
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+              color: context.appTheme.cardSurface,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.grey.shade300),
                 ),
@@ -347,9 +344,8 @@ class _CompanyLocationSettingsSectionState
                       hintText: AppLocaleKeys.adminSettingsOfficeLabel.tr,
                       controller: _labelController,
                       height: 42,
-                      fillColor: AppColors.greyBackground,
+                      fillColor: context.appTheme.pageBackground,
                       borderRadius: 5,
-                      borderColor: Colors.grey.shade300,
                       onchange: (_) {
                         setState(() {});
                         return null;
@@ -363,9 +359,8 @@ class _CompanyLocationSettingsSectionState
                       hintText: AttendanceSettings.defaultRadiusMeters.toString(),
                       controller: _radiusController,
                       height: 42,
-                      fillColor: AppColors.greyBackground,
+                      fillColor: context.appTheme.pageBackground,
                       borderRadius: 5,
-                      borderColor: Colors.grey.shade300,
                       textInputType: TextInputType.number,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       validator: _validateRadius,
@@ -381,8 +376,8 @@ class _CompanyLocationSettingsSectionState
                       height: 44,
                       borderSize: 8,
                       borderColor: AppColors.primary,
-                      backgroundColor: Colors.white,
-                      fontColor: AppColors.primary,
+                      backgroundColor: Theme.of(context).colorScheme.surface,
+                      fontColor: context.appTheme.accentText,
                       onPressed: _fetchingLocation ? null : _useCurrentLocation,
                     ),
                   ],

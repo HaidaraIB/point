@@ -17,6 +17,7 @@ import 'package:point/View/Shared/TableCellCenter.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/table_area_loading.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 enum _ReportPeriod { month, year }
 
@@ -36,10 +37,10 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
   List<AttendanceReportRow> _rows = const [];
   bool _loading = true;
 
-  static const TextStyle _columnHeaderStyle = TextStyle(
+  TextStyle _columnHeaderStyle(BuildContext context) => TextStyle(
     fontWeight: FontWeight.bold,
     fontSize: 13,
-    color: AppColors.fontColorGrey,
+    color: context.appTheme.secondaryText,
   );
 
   static const double _filterHeight = 42;
@@ -49,18 +50,18 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
     return Theme.of(context).textTheme.bodyMedium?.copyWith(
           fontSize: 13,
           fontWeight: FontWeight.w500,
-          color: AppColors.primaryfontColor,
+          color: context.appTheme.primaryText,
         ) ??
-        const TextStyle(
+        TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w500,
-          color: AppColors.primaryfontColor,
+          color: context.appTheme.primaryText,
         );
   }
 
-  BoxDecoration get _filterDecoration => BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.grey.shade300),
+  BoxDecoration _filterDecoration(BuildContext context) => BoxDecoration(
+        color: context.appTheme.inputFill,
+        border: Border.all(color: context.appTheme.border),
         borderRadius: BorderRadius.circular(_filterRadius),
       );
 
@@ -262,7 +263,7 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
     return SizedBox(
       height: _filterHeight,
       child: DecoratedBox(
-        decoration: _filterDecoration,
+        decoration: _filterDecoration(context),
         child: DropdownButtonHideUnderline(
           child: DropdownButton<_ReportPeriod>(
             isExpanded: true,
@@ -270,8 +271,9 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
             value: _period,
             icon: Icon(
               Icons.keyboard_arrow_down_rounded,
-              color: Colors.grey.shade600,
+              color: context.appTheme.mutedText,
             ),
+            dropdownColor: context.appTheme.cardSurface,
             style: textStyle,
             items: [
               DropdownMenuItem(
@@ -310,26 +312,25 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
       controller: _periodController,
       hintText: AppLocaleKeys.attendanceSelectDate.tr,
       height: _filterHeight,
-      fillColor: Colors.white,
       borderRadius: _filterRadius,
-      borderColor: Colors.grey.shade300,
       suffixIcon: Icon(
         Icons.calendar_today_outlined,
         size: 18,
-        color: AppColors.primary,
+        color: context.appTheme.accentText,
       ),
     );
   }
 
-  Widget _buildEmployeeFilter() {
+  Widget _buildEmployeeFilter(BuildContext context) {
     return InputText(
-      prefixIcon: Icon(CupertinoIcons.search, color: Colors.grey),
+      prefixIcon: Icon(
+        CupertinoIcons.search,
+        color: context.appTheme.mutedText,
+      ),
       hintText: AppLocaleKeys.attendanceFilterEmployee.tr,
       controller: _filterController,
       height: _filterHeight,
-      fillColor: Colors.white,
       borderRadius: _filterRadius,
-      borderColor: Colors.grey.shade300,
       onchange: (_) {
         setState(() {});
         return null;
@@ -342,7 +343,7 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
     return SizedBox(
       height: _filterHeight,
       child: DecoratedBox(
-        decoration: _filterDecoration,
+        decoration: _filterDecoration(context),
         child: DropdownButtonHideUnderline(
           child: DropdownButton<String>(
             isExpanded: true,
@@ -356,8 +357,9 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
             value: _summaryFilter.isEmpty ? null : _summaryFilter,
             icon: Icon(
               Icons.keyboard_arrow_down_rounded,
-              color: Colors.grey.shade600,
+              color: context.appTheme.mutedText,
             ),
+            dropdownColor: context.appTheme.cardSurface,
             style: textStyle,
             items: [
               DropdownMenuItem(value: '', child: Text('all'.tr, style: textStyle)),
@@ -393,7 +395,7 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
           const SizedBox(height: 12),
           _buildPeriodValueFilter(),
           const SizedBox(height: 12),
-          _buildEmployeeFilter(),
+          _buildEmployeeFilter(context),
           const SizedBox(height: 12),
           _buildSummaryFilter(context),
         ],
@@ -407,24 +409,25 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
         const SizedBox(width: 10),
         Expanded(flex: 4, child: _buildPeriodValueFilter()),
         const SizedBox(width: 10),
-        Expanded(flex: 5, child: _buildEmployeeFilter()),
+        Expanded(flex: 5, child: _buildEmployeeFilter(context)),
         const SizedBox(width: 10),
         Expanded(flex: 4, child: _buildSummaryFilter(context)),
       ],
     );
   }
 
-  Widget _buildCountChip({
+  Widget _buildCountChip(
+    BuildContext context, {
     required int value,
     required Color fg,
-    required Color bg,
+    required Color lightBg,
   }) {
     return Container(
       alignment: Alignment.center,
       height: 36,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: bg,
+        color: context.statusChipBackground(fg, lightBg),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
@@ -438,13 +441,13 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
     );
   }
 
-  static BoxDecoration get _mobileCardDecoration => BoxDecoration(
-        color: Colors.white,
+  BoxDecoration _mobileCardDecoration(BuildContext context) => BoxDecoration(
+        color: context.appTheme.cardSurface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: context.appTheme.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
+            color: context.appTheme.shadowColor,
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -457,8 +460,8 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
       height: 40,
       borderSize: 8,
       margin: expanded ? EdgeInsets.zero : null,
-      fontColor: AppColors.primary,
-      backgroundColor: Colors.white,
+      fontColor: context.appTheme.accentText,
+      backgroundColor: context.appTheme.inputFill,
       borderColor: AppColors.primary,
       title: AppLocaleKeys.attendanceReportsExportCsv.tr,
       enabled: !_loading && rows.isNotEmpty,
@@ -498,7 +501,7 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
 
   Widget _buildHeader(BuildContext context, List<AttendanceReportRow> rows) {
     final titleStyle = TextStyle(
-      color: AppColors.fontColorGrey,
+      color: context.appTheme.secondaryText,
       fontSize: 17,
       fontWeight: FontWeight.bold,
     );
@@ -544,7 +547,7 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
         for (var i = 0; i < rows.length; i++) ...[
           if (i > 0) const SizedBox(height: 10),
           Container(
-            decoration: _mobileCardDecoration,
+            decoration: _mobileCardDecoration(context),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -553,7 +556,7 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
                   rows[i].employeeName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 16,
                   ),
@@ -569,14 +572,15 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey.shade600,
+                              color: context.appTheme.mutedText,
                             ),
                           ),
                           const SizedBox(height: 4),
                           _buildCountChip(
+                            context,
                             value: rows[i].showedUpDays,
                             fg: const Color(0xFF0F9D58),
-                            bg: const Color(0xFFEAF8F1),
+                            lightBg: const Color(0xFFEAF8F1),
                           ),
                         ],
                       ),
@@ -590,14 +594,15 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey.shade600,
+                              color: context.appTheme.mutedText,
                             ),
                           ),
                           const SizedBox(height: 4),
                           _buildCountChip(
+                            context,
                             value: rows[i].absentDays,
                             fg: Colors.red.shade700,
-                            bg: Colors.red.shade50,
+                            lightBg: Colors.red.shade50,
                           ),
                         ],
                       ),
@@ -611,14 +616,15 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey.shade600,
+                              color: context.appTheme.mutedText,
                             ),
                           ),
                           const SizedBox(height: 4),
                           _buildCountChip(
+                            context,
                             value: rows[i].pendingDays,
                             fg: Colors.orange.shade800,
-                            bg: Colors.orange.shade50,
+                            lightBg: Colors.orange.shade50,
                           ),
                         ],
                       ),
@@ -640,7 +646,8 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
         child: DataTable(
           dataRowMinHeight: 60,
           dataRowMaxHeight: 60,
-          dataRowColor: WidgetStateProperty.all(Colors.white),
+          dataRowColor: context.tableDataRowColor,
+          headingRowColor: context.tableHeadingRowColor,
           dividerThickness: 0.5,
           columns: [
             DataColumn(
@@ -648,7 +655,7 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
               headingRowAlignment: MainAxisAlignment.center,
               label: Text(
                 AppLocaleKeys.attendanceEmployee.tr,
-                style: _columnHeaderStyle,
+                style: _columnHeaderStyle(context),
               ),
             ),
             DataColumn(
@@ -656,7 +663,7 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
               headingRowAlignment: MainAxisAlignment.center,
               label: Text(
                 AppLocaleKeys.attendanceShowedUp.tr,
-                style: _columnHeaderStyle,
+                style: _columnHeaderStyle(context),
               ),
             ),
             DataColumn(
@@ -664,7 +671,7 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
               headingRowAlignment: MainAxisAlignment.center,
               label: Text(
                 AppLocaleKeys.attendanceAbsent.tr,
-                style: _columnHeaderStyle,
+                style: _columnHeaderStyle(context),
               ),
             ),
             DataColumn(
@@ -672,7 +679,7 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
               headingRowAlignment: MainAxisAlignment.center,
               label: Text(
                 AppLocaleKeys.attendancePending.tr,
-                style: _columnHeaderStyle,
+                style: _columnHeaderStyle(context),
               ),
             ),
           ],
@@ -684,7 +691,7 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
                       TableCellCenter(
                         child: Text(
                           row.employeeName,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                           ),
@@ -694,27 +701,30 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
                     DataCell(
                       TableCellCenter(
                         child: _buildCountChip(
+                          context,
                           value: row.showedUpDays,
                           fg: const Color(0xFF0F9D58),
-                          bg: const Color(0xFFEAF8F1),
+                          lightBg: const Color(0xFFEAF8F1),
                         ),
                       ),
                     ),
                     DataCell(
                       TableCellCenter(
                         child: _buildCountChip(
+                          context,
                           value: row.absentDays,
                           fg: Colors.red.shade700,
-                          bg: Colors.red.shade50,
+                          lightBg: Colors.red.shade50,
                         ),
                       ),
                     ),
                     DataCell(
                       TableCellCenter(
                         child: _buildCountChip(
+                          context,
                           value: row.pendingDays,
                           fg: Colors.orange.shade800,
-                          bg: Colors.orange.shade50,
+                          lightBg: Colors.orange.shade50,
                         ),
                       ),
                     ),
@@ -746,7 +756,7 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
             child: Center(
               child: Text(
                 AppLocaleKeys.attendanceNoRecords.tr,
-                style: TextStyle(color: Colors.grey.shade600),
+                style: TextStyle(color: context.appTheme.mutedText),
               ),
             ),
           )

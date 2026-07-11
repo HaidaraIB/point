@@ -12,12 +12,14 @@ import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/ContentPermissions.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Clients/ClientsTable.dart' show customDatePicker;
+import 'package:point/View/Contents/Shared/content_attachment_source_input.dart';
 import 'package:point/View/Contents/Shared/content_library_attachment_picker.dart';
 import 'package:point/View/Shared/CustomDropDown.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/t.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// Mobile-only full-screen form for add/edit content. Desktop keeps using [showAddContentDialog].
 class ContentFormMobilePage extends StatefulWidget {
@@ -326,17 +328,18 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final appTheme = context.appTheme;
     final bottomPadding = MediaQuery.of(context).padding.bottom + 24;
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: context.appTheme.pageBackground,
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
         title: Text(
           widget.model == null ? 'addcontent'.tr : 'content.form.edit_title'.tr,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
@@ -357,11 +360,9 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                     labelText: 'title'.tr,
                     hintText: 'entertitle'.tr,
                     height: 48,
-                    fillColor: Colors.white,
                     controller: titleController,
                     validator: (_) => null,
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                   ),
                   const SizedBox(height: 16),
                   GestureDetector(
@@ -370,17 +371,15 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                       labelText: 'publish_date'.tr,
                       hintText: '1/10/2025'.tr,
                       height: 48,
-                      fillColor: Colors.white,
                       textInputType: TextInputType.datetime,
                       controller: publishDateController,
                       readOnly: true,
                       validator: (_) => null,
                       suffixIcon: Icon(
                         CupertinoIcons.calendar,
-                        color: Colors.grey.shade600,
+                        color: appTheme.mutedText,
                       ),
                       borderRadius: 8,
-                      borderColor: Colors.grey.shade300,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -400,9 +399,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                           ),
                     label: 'content_provider'.tr,
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                     height: 48,
-                    fillColor: Colors.white,
                     onChanged: (value) {
                       if (value != null) {
                         executorController.text = value.id ?? '';
@@ -425,9 +422,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                         : contentTypeController.text,
                     label: 'choosecontenttype'.tr,
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                     height: 48,
-                    fillColor: Colors.white,
                     onChanged: (value) {
                       if (value != null) contentTypeController.text = value;
                     },
@@ -442,9 +437,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                       selectedValues: List<String>.from(platforms),
                       label: 'platform'.tr,
                       borderRadius: 8,
-                      borderColor: Colors.grey.shade300,
                       height: 48,
-                      fillColor: Colors.white,
                       validator: (_) => null,
                       onChanged: (value) => platforms.assignAll(value),
                     ),
@@ -454,199 +447,49 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                     labelText: 'notes'.tr,
                     hintText: 'enternotes'.tr,
                     height: 100,
-                    fillColor: Colors.white,
                     controller: notesController,
                     expanded: true,
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                   ),
                   const SizedBox(height: 16),
                   InputText(
                     labelText: 'content.caption'.tr,
                     hintText: 'content.caption_hint'.tr,
                     height: 100,
-                    fillColor: Colors.white,
                     controller: captionController,
                     expanded: true,
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                   ),
                   const SizedBox(height: 16),
                   InputText(
                     labelText: 'content.form.insert_link'.tr,
                     hintText: 'googledrivelink .com'.tr,
                     height: 48,
-                    fillColor: Colors.white,
                     controller: fileController,
                     validator: (_) => null,
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                   ),
                   const SizedBox(height: 16),
-                  GestureDetector(
-                    onTap:
-                        () =>
-                            _pickAttachmentFieldWithSource(postAttachmentController),
-                    child: InputText(
-                      labelText: 'content.post_attachment'.tr,
-                      hintText: ''.tr,
-                      enable: false,
-                      height: 92,
-                      fillColor: Colors.white,
-                      controller: postAttachmentController,
-                      validator: (_) => null,
-                      expanded: true,
-                      body: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade200,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                'content.attachment_field_hint'.tr,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey.shade700,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            MainButton(
-                              width: 132,
-                              borderSize: 5,
-                              height: 34,
-                              fontSize: 11,
-                              title: 'content.attachment_add_from_source'.tr,
-                              backgroundColor: Colors.white,
-                              fontColor: AppColors.primaryfontColor,
-                            ),
-                          ],
-                        ),
-                      ),
-                      borderRadius: 8,
-                      borderColor: Colors.grey.shade300,
+                  ContentAttachmentSourceInput(
+                    labelText: 'content.post_attachment'.tr,
+                    bodyHintText: 'content.attachment_field_hint'.tr,
+                    onTap: () =>
+                        _pickAttachmentFieldWithSource(postAttachmentController),
+                  ),
+                  const SizedBox(height: 16),
+                  ContentAttachmentSourceInput(
+                    labelText: 'content.story_attachment'.tr,
+                    bodyHintText: 'content.attachment_field_hint'.tr,
+                    onTap: () => _pickAttachmentFieldWithSource(
+                      storyAttachmentController,
                     ),
                   ),
                   const SizedBox(height: 16),
-                  GestureDetector(
-                    onTap:
-                        () => _pickAttachmentFieldWithSource(
-                          storyAttachmentController,
-                        ),
-                    child: InputText(
-                      labelText: 'content.story_attachment'.tr,
-                      hintText: ''.tr,
-                      enable: false,
-                      height: 92,
-                      fillColor: Colors.white,
-                      controller: storyAttachmentController,
-                      validator: (_) => null,
-                      expanded: true,
-                      body: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade200,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                'content.attachment_field_hint'.tr,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey.shade700,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            MainButton(
-                              width: 132,
-                              borderSize: 5,
-                              height: 34,
-                              fontSize: 11,
-                              title: 'content.attachment_add_from_source'.tr,
-                              backgroundColor: Colors.white,
-                              fontColor: AppColors.primaryfontColor,
-                            ),
-                          ],
-                        ),
-                      ),
-                      borderRadius: 8,
-                      borderColor: Colors.grey.shade300,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  GestureDetector(
-                    onTap:
-                        () => _pickAttachmentFieldWithSource(
-                          reelAttachmentController,
-                        ),
-                    child: InputText(
-                      labelText: 'content.reel_attachment'.tr,
-                      hintText: ''.tr,
-                      enable: false,
-                      height: 92,
-                      fillColor: Colors.white,
-                      controller: reelAttachmentController,
-                      validator: (_) => null,
-                      expanded: true,
-                      body: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade200,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Text(
-                                'content.attachment_field_hint'.tr,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey.shade700,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            MainButton(
-                              width: 132,
-                              borderSize: 5,
-                              height: 34,
-                              fontSize: 11,
-                              title: 'content.attachment_add_from_source'.tr,
-                              backgroundColor: Colors.white,
-                              fontColor: AppColors.primaryfontColor,
-                            ),
-                          ],
-                        ),
-                      ),
-                      borderRadius: 8,
-                      borderColor: Colors.grey.shade300,
+                  ContentAttachmentSourceInput(
+                    labelText: 'content.reel_attachment'.tr,
+                    bodyHintText: 'content.attachment_field_hint'.tr,
+                    onTap: () => _pickAttachmentFieldWithSource(
+                      reelAttachmentController,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -660,19 +503,21 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                         vertical: 14,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
+                        color: appTheme.unselected,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade300),
+                        border: Border.all(color: appTheme.border),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            'dragfile'.tr,
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey.shade700,
+                          Expanded(
+                            child: Text(
+                              'dragfile'.tr,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: appTheme.secondaryText,
+                              ),
                             ),
                           ),
                           Obx(
@@ -691,8 +536,8 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                                     fontSize: 12,
                                     title:
                                         'content.attachment_add_from_source'.tr,
-                                    backgroundColor: Colors.white,
-                                    fontColor: AppColors.primaryfontColor,
+                                    backgroundColor: appTheme.cardSurface,
+                                    fontColor: appTheme.primaryText,
                                   ),
                           ),
                         ],
@@ -777,7 +622,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                                                 width: 22,
                                                 height: 22,
                                                 decoration: BoxDecoration(
-                                                  color: Colors.black54,
+                                                  color: appTheme.secondaryText,
                                                   borderRadius:
                                                       BorderRadius.circular(
                                                         11,
@@ -829,7 +674,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                               )
                             : Text(
                                 'common.save'.tr,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
@@ -842,6 +687,8 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                   OutlinedButton(
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(double.infinity, 52),
+                      foregroundColor: appTheme.primaryText,
+                      side: BorderSide(color: appTheme.border),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),

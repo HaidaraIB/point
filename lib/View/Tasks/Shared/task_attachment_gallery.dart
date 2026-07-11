@@ -88,7 +88,7 @@ class _TaskAttachmentGalleryPageState extends State<TaskAttachmentGalleryPage> {
         foregroundColor: Colors.white,
         title: Text(
           '${_index + 1} / ${urls.length}',
-          style: const TextStyle(fontWeight: FontWeight.w600),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
         actions: [
           IconButton(

@@ -8,6 +8,7 @@ import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/ReadOnlyAccountEmailField.dart';
 import 'package:point/View/Shared/app_version_label.dart';
 import 'package:point/Models/ClientModel.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 class ClientProfileForm extends StatefulWidget {
   const ClientProfileForm({
@@ -139,7 +140,7 @@ class _ClientProfileFormState extends State<ClientProfileForm> {
                         },
                         child: Obx(
                           () => CircleAvatar(
-                            backgroundColor: Colors.grey.shade200,
+                            backgroundColor: context.appTheme.unselected,
                             radius: 50,
                             child:
                                 uploadController.uploadedFilesPaths.isNotEmpty
@@ -154,7 +155,7 @@ class _ClientProfileFormState extends State<ClientProfileForm> {
                                             (_, __, ___) => Icon(
                                               Icons.person,
                                               size: 50,
-                                              color: AppColors.primary,
+                                              color: context.appTheme.accentText,
                                             ),
                                       ),
                                     )
@@ -173,14 +174,14 @@ class _ClientProfileFormState extends State<ClientProfileForm> {
                                                   (_, __, ___) => Icon(
                                                     Icons.camera_alt,
                                                     size: 50,
-                                                    color: AppColors.primary,
+                                                    color: context.appTheme.accentText,
                                                   ),
                                             ),
                                           )
                                         : Icon(
                                             Icons.camera_alt,
                                             size: 50,
-                                            color: AppColors.primary,
+                                            color: context.appTheme.accentText,
                                           ),
                           ),
                         ),
@@ -192,19 +193,15 @@ class _ClientProfileFormState extends State<ClientProfileForm> {
                     labelText: 'client.profile.name'.tr,
                     hintText: 'entername'.tr,
                     height: 48,
-                    fillColor: Colors.white,
                     controller: _nameController,
                     validator: (v) => (v == null || v.trim().isEmpty) ? ' ' : null,
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                   ),
                   const SizedBox(height: 16),
                   ReadOnlyAccountEmailField(
                     email: _accountEmail(client),
                     height: 48,
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
-                    fillColor: Colors.white,
                   ),
                   const SizedBox(height: 16),
                   _readOnlyLine(
@@ -237,7 +234,7 @@ class _ClientProfileFormState extends State<ClientProfileForm> {
                                 )
                                 : Text(
                                   'client.profile.save'.tr,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
@@ -251,7 +248,7 @@ class _ClientProfileFormState extends State<ClientProfileForm> {
                     textStyle: TextStyle(
                       fontSize: 12,
                       height: 1.25,
-                      color: Colors.grey.shade600,
+                      color: context.appTheme.mutedText,
                     ),
                   ),
                 ],
@@ -272,20 +269,23 @@ class _ClientProfileFormState extends State<ClientProfileForm> {
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: Colors.grey.shade800,
+            color: context.appTheme.secondaryText,
           ),
         ),
         const SizedBox(height: 6),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: context.appTheme.inputFill,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey.shade300),
+            border: Border.all(color: context.appTheme.border),
           ),
           child: Text(
             value,
-            style: TextStyle(fontSize: 15, color: Colors.grey.shade800),
+            style: TextStyle(
+              fontSize: 15,
+              color: context.appTheme.primaryText,
+            ),
           ),
         ),
       ],
@@ -316,10 +316,10 @@ void showClientProfileDialog(BuildContext context) {
                     Expanded(
                       child: Text(
                         'client.profile.title'.tr,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 18,
-                          color: Color(0xFF1A1A1A),
+                          color: context.appTheme.primaryText,
                         ),
                       ),
                     ),
@@ -331,7 +331,7 @@ void showClientProfileDialog(BuildContext context) {
                   ],
                 ),
               ),
-              Divider(height: 1, color: Colors.grey.shade200),
+              Divider(height: 1, color: context.appTheme.border),
               Expanded(
                 child: ClientProfileForm(
                   closeOnSuccess: true,

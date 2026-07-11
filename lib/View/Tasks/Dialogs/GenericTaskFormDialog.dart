@@ -6,7 +6,6 @@ import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
-import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Shared/form_attachment_thumbnails_grid.dart';
 import 'package:point/View/Clients/ClientsTable.dart';
@@ -20,6 +19,7 @@ import 'package:point/View/Tasks/Shared/task_form_dialog_actions.dart';
 import 'package:point/View/Tasks/Shared/task_voice_form_helpers.dart';
 import 'package:point/View/Tasks/Shared/task_voice_record_field.dart';
 import 'package:point/Models/VoiceRecordEntry.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// Generic web dialog for add/edit task. Renders common fields and delegates
 /// type-specific fields and task building to [TaskFormDialogDelegate].
@@ -91,7 +91,7 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      backgroundColor: Colors.white,
+      backgroundColor: context.appTheme.cardSurface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: GetBuilder<HomeController>(
         builder: (controller) {
@@ -147,11 +147,9 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
             labelText: 'tasks.form.title_short'.tr,
             hintText: 'tasks.form.write_title_hint'.tr,
             height: 42,
-            fillColor: Colors.white,
             controller: _titleController,
             validator: (v) => (v == null || v.isEmpty) ? ' ' : null,
             borderRadius: 5,
-            borderColor: Colors.grey.shade300,
           ),
         ),
         SizedBox(
@@ -181,9 +179,7 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
                   ),
             label: 'tasks.form.select_executor'.tr,
             borderRadius: 5,
-            borderColor: Colors.grey.shade300,
             height: 42,
-            fillColor: Colors.white,
             onChanged: (value) {
               if (value != null) _executorController.text = value.id ?? '';
             },
@@ -229,9 +225,7 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
                       : (_clientController.text.isEmpty ? null : matchedClient),
                   label: 'chooseclient'.tr,
                   borderRadius: 5,
-                  borderColor: Colors.grey.shade300,
                   height: 42,
-                  fillColor: Colors.white,
                   onChanged: (value) {
                     setState(() {
                       if (value == _otherClientValue) {
@@ -255,11 +249,9 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
                 labelText: 'tasks.form.client_name_label'.tr,
                 hintText: 'tasks.form.client_name_hint'.tr,
                 height: 42,
-                fillColor: Colors.white,
                 controller: _customClientController,
                 validator: (v) => (v == null || v.trim().isEmpty) ? ' ' : null,
                 borderRadius: 5,
-                borderColor: Colors.grey.shade300,
               ),
             ),
         ],
@@ -283,9 +275,7 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
               value: _priorityController.text.isEmpty ? null : _priorityController.text,
               label: 'priortity'.tr,
               borderRadius: 5,
-              borderColor: Colors.grey.shade300,
               height: 42,
-              fillColor: Colors.white,
               onChanged: (value) {
                 if (value != null) _priorityController.text = value;
               },
@@ -323,14 +313,12 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
               labelText: 'startat'.tr,
               hintText: '1/10/2025'.tr,
               height: 42,
-              fillColor: Colors.white,
               textInputType: TextInputType.datetime,
               controller: _startDateController,
               readOnly: true,
               validator: (v) => (v == null || v.isEmpty) ? ' ' : null,
-              suffixIcon: Icon(CupertinoIcons.calendar, color: Colors.grey),
+              suffixIcon: Icon(CupertinoIcons.calendar, color: context.appTheme.secondaryText),
               borderRadius: 5,
-              borderColor: Colors.grey.shade300,
             ),
           ),
           SizedBox(
@@ -352,14 +340,12 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
               labelText: 'endat'.tr,
               hintText: '1/10/2026'.tr,
               height: 42,
-              fillColor: Colors.white,
               textInputType: TextInputType.datetime,
               controller: _endDateController,
               readOnly: true,
               validator: (v) => (v == null || v.isEmpty) ? ' ' : null,
-              suffixIcon: Icon(CupertinoIcons.calendar, color: Colors.grey),
+              suffixIcon: Icon(CupertinoIcons.calendar, color: context.appTheme.secondaryText),
               borderRadius: 5,
-              borderColor: Colors.grey.shade300,
             ),
           ),
         ],
@@ -385,7 +371,6 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
                     labelText: 'tasks.form.notes_log'.tr,
                     hintText: '',
                     height: 250,
-                    fillColor: Colors.white,
                     enable: false,
                     body: SingleChildScrollView(
                       child: Column(
@@ -397,15 +382,15 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
                               children: [
                                 Text(
                                   note.note,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
-                                    color: AppColors.primaryfontColor,
+                                    color: context.appTheme.primaryText,
                                   ),
                                 ),
                                 Text(
                                   note.byWho,
-                                  style: const TextStyle(fontSize: 12, color: Colors.green),
+                                  style: TextStyle(fontSize: 12, color: Colors.green),
                                 ),
                                 const SizedBox(height: 5),
                               ],
@@ -415,7 +400,6 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
                     ),
                     expanded: true,
                     borderRadius: 5,
-                    borderColor: Colors.grey.shade300,
                   ),
                 ),
               SizedBox(
@@ -424,10 +408,8 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
                   labelText: 'notes'.tr,
                   hintText: 'enternotes'.tr,
                   height: 30,
-                  fillColor: Colors.white,
                   controller: _notesController,
                   borderRadius: 5,
-                  borderColor: Colors.grey.shade300,
                 ),
               ),
             ],
@@ -452,11 +434,10 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
                       hintText: '',
                       enable: false,
                       height: 100,
-                      fillColor: Colors.white,
                       expanded: true,
                       body: Container(
                         padding: const EdgeInsets.symmetric(vertical: 10),
-                        decoration: BoxDecoration(color: Colors.grey.shade200),
+                        decoration: BoxDecoration(color: context.appTheme.unselected),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -464,7 +445,7 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
                               margin: const EdgeInsets.symmetric(horizontal: 10),
                               child: Text(
                                 'dragfile'.tr,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -477,14 +458,13 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
                               fontSize: 12,
                               load: controller.isUploading.value,
                               title: 'uploadfile'.tr,
-                              backgroundColor: Colors.white,
-                              fontColor: AppColors.primaryfontColor,
+                              backgroundColor: context.appTheme.cardSurface,
+                              fontColor: context.appTheme.primaryText,
                             ),
                           ],
                         ),
                       ),
                       borderRadius: 5,
-                      borderColor: Colors.grey.shade300,
                     ),
                   ),
                 ),

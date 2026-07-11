@@ -30,6 +30,7 @@ import 'package:point/View/Tasks/Shared/open_task_final_work.dart';
 import 'package:point/View/Tasks/Shared/reject_task_dialog.dart';
 import 'package:point/View/Tasks/Shared/request_task_modification_dialog.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 bool _taskInManagementReviewMobile(TaskModel task) {
   final s = FunHelper.canonicalStoredStatus(task.status);
@@ -66,7 +67,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
         elevation: 0,
         title: Text(
           'tasks.dialog_title'.tr,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
@@ -89,10 +90,10 @@ class TaskDetailsMobilePage extends StatelessWidget {
                   children: [
                     Text(
                       task.title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.primaryfontColor,
+                        color: context.appTheme.primaryText,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -100,7 +101,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
                       task.description,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade700,
+                        color: context.appTheme.mutedText,
                         height: 1.4,
                       ),
                     ),
@@ -149,7 +150,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
                       'tasks.progress_label'.tr,
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey.shade700,
+                        color: context.appTheme.mutedText,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -157,7 +158,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
                     LinearProgressIndicator(
                       value: task.progress ?? 0,
                       backgroundColor: Colors.grey.shade200,
-                      color: AppColors.primary,
+                      color: context.appTheme.accentText,
                       minHeight: 8,
                       borderRadius: BorderRadius.circular(4),
                     ),
@@ -166,7 +167,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
                       '${((task.progress ?? 0) * 100).toInt()}%',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey.shade600,
+                        color: context.appTheme.mutedText,
                       ),
                     ),
                   ],
@@ -193,7 +194,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
                         children: [
                           Text(
                             _assigneeName(context),
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
                             ),
@@ -201,11 +202,11 @@ class TaskDetailsMobilePage extends StatelessWidget {
                           const SizedBox(height: 4),
                           Row(
                             children: [
-                              Icon(Icons.calendar_today_outlined, size: 14, color: Colors.grey.shade600),
+                              Icon(Icons.calendar_today_outlined, size: 14, color: context.appTheme.mutedText),
                               const SizedBox(width: 4),
                               Text(
                                 FunHelper.formatdate(task.fromDate) ?? '',
-                                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                                style: TextStyle(fontSize: 12, color: context.appTheme.mutedText),
                               ),
                             ],
                           ),
@@ -319,7 +320,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+              color: context.appTheme.cardSurface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -365,7 +366,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey.shade600,
+              color: context.appTheme.mutedText,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -374,7 +375,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
             value,
             style: TextStyle(
               fontSize: 13,
-              color: AppColors.primaryfontColor,
+              color: context.appTheme.primaryText,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -481,7 +482,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 12,
-              color: Colors.grey.shade600,
+              color: context.appTheme.mutedText,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -490,7 +491,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
             onTap: () => _launchAttachmentUrl(value),
             child: Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 color: Colors.blue,
                 fontWeight: FontWeight.w600,
@@ -534,7 +535,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.outbox_outlined, size: 18, color: Colors.grey.shade800),
+              Icon(Icons.outbox_outlined, size: 18, color: context.appTheme.mutedText),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -542,7 +543,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: Colors.grey.shade700,
+                    color: context.appTheme.mutedText,
                   ),
                 ),
               ),
@@ -598,10 +599,10 @@ class TaskDetailsMobilePage extends StatelessWidget {
               ),
               child: Text(
                 finalType.tr,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.primaryfontColor,
+                  color: context.appTheme.primaryText,
                 ),
               ),
             ),
@@ -614,7 +615,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
               'tasks.final_deliverable_empty_manager'.tr,
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.grey.shade700,
+                color: context.appTheme.mutedText,
                 height: 1.35,
               ),
             ),
@@ -631,10 +632,10 @@ class TaskDetailsMobilePage extends StatelessWidget {
               ),
               child: LinkifiedText(
                 body,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.primaryfontColor,
+                  color: context.appTheme.primaryText,
                 ),
               ),
             ),
@@ -690,7 +691,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.attach_file_outlined, size: 18, color: Colors.grey.shade800),
+              Icon(Icons.attach_file_outlined, size: 18, color: context.appTheme.mutedText),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -698,7 +699,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
-                    color: Colors.grey.shade700,
+                    color: context.appTheme.mutedText,
                   ),
                 ),
               ),
@@ -722,7 +723,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
                       'content.dialog.no_notes'.tr,
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey.shade600,
+                        color: context.appTheme.mutedText,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -744,10 +745,10 @@ class TaskDetailsMobilePage extends StatelessWidget {
                             children: [
                               Text(
                                 'tasks.latest_comment'.tr,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
-                                  color: AppColors.primary,
+                                  color: context.appTheme.accentText,
                                 ),
                               ),
                               const SizedBox(height: 5),
@@ -755,10 +756,10 @@ class TaskDetailsMobilePage extends StatelessWidget {
                                 latestNote.note,
                                 maxLines: 4,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w700,
-                                  color: AppColors.primaryfontColor,
+                                  color: context.appTheme.primaryText,
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -766,7 +767,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
                                 _buildNoteMeta(latestNote.byWho, latestNote.timestamp),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 11,
                                   color: Colors.green,
                                   fontWeight: FontWeight.w600,
@@ -785,17 +786,17 @@ class TaskDetailsMobilePage extends StatelessWidget {
                             children: [
                               LinkifiedText(
                                 note.note,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
-                                  color: AppColors.primaryfontColor,
+                                  color: context.appTheme.primaryText,
                                 ),
                               ),
                               Text(
                                 '${note.byWho} • ${_formatRelativeTime(note.timestamp)}',
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.green,
                                 ),
@@ -826,7 +827,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
                         'content.dialog.no_attachments'.tr,
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey.shade600,
+                          color: context.appTheme.mutedText,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -1400,7 +1401,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w700,
-              color: Colors.grey.shade700,
+              color: context.appTheme.mutedText,
             ),
           ),
           const SizedBox(height: 10),

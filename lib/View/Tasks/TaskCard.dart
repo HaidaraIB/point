@@ -20,6 +20,7 @@ import 'package:point/View/Tasks/Shared/request_task_modification_dialog.dart';
 import 'package:point/View/Tasks/Shared/task_client_display_name.dart';
 import 'package:point/View/Tasks/Shared/task_details_feedback_widgets.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 bool _taskInManagementReview(TaskModel task) {
   final s = FunHelper.canonicalStoredStatus(task.status);
@@ -39,15 +40,24 @@ class TaskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final outlineButtonStyle = OutlinedButton.styleFrom(
+      foregroundColor: context.appTheme.primaryText,
+      side: BorderSide(color: context.appTheme.border),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      padding: const EdgeInsets.symmetric(vertical: 10),
+    );
+
     return Container(
+      width: double.infinity,
+      height: double.infinity,
       margin: const EdgeInsets.all(8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+              color: context.appTheme.cardSurface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.shade200,
+            color: context.appTheme.shadowColor,
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -86,18 +96,25 @@ class TaskCard extends StatelessWidget {
                           Expanded(
                             child: Text(
                               task.title,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
                           SizedBox(
-                            child: PopupMenuButton<int>(
+                            child: Theme(
+                              data: Theme.of(context).copyWith(
+                                textTheme: Theme.of(context).textTheme.apply(
+                                  bodyColor: context.appTheme.primaryText,
+                                  displayColor: context.appTheme.primaryText,
+                                ),
+                              ),
+                              child: PopupMenuButton<int>(
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              color: Colors.white,
+                              color: context.appTheme.cardSurface,
                               elevation: 4,
                               itemBuilder: (context) {
                                 final items = <PopupMenuEntry<int>>[
@@ -251,7 +268,7 @@ class TaskCard extends StatelessWidget {
                                   items.add(
                                     PopupMenuItem(
                                       value: 20,
-                                      child: TaskStatusVisuals.popupMenuRow(
+                                      child: TaskStatusVisuals.popupMenuRow(context: context,
                                         label: StorageKeys
                                             .status_promotion_in_progress
                                             .tr,
@@ -263,7 +280,7 @@ class TaskCard extends StatelessWidget {
                                   items.add(
                                     PopupMenuItem(
                                       value: 21,
-                                      child: TaskStatusVisuals.popupMenuRow(
+                                      child: TaskStatusVisuals.popupMenuRow(context: context,
                                         label: StorageKeys
                                             .status_promotion_ad_platform_review
                                             .tr,
@@ -275,7 +292,7 @@ class TaskCard extends StatelessWidget {
                                   items.add(
                                     PopupMenuItem(
                                       value: 22,
-                                      child: TaskStatusVisuals.popupMenuRow(
+                                      child: TaskStatusVisuals.popupMenuRow(context: context,
                                         label: StorageKeys.status_promotion_running
                                             .tr,
                                         rawOrCanonicalForIcon:
@@ -286,7 +303,7 @@ class TaskCard extends StatelessWidget {
                                   items.add(
                                     PopupMenuItem(
                                       value: 23,
-                                      child: TaskStatusVisuals.popupMenuRow(
+                                      child: TaskStatusVisuals.popupMenuRow(context: context,
                                         label: StorageKeys.status_promotion_finished
                                             .tr,
                                         rawOrCanonicalForIcon:
@@ -301,7 +318,7 @@ class TaskCard extends StatelessWidget {
                                   items.add(
                                     PopupMenuItem(
                                       value: 60,
-                                      child: TaskStatusVisuals.popupMenuRow(
+                                      child: TaskStatusVisuals.popupMenuRow(context: context,
                                         label: StorageKeys.status_processing.tr,
                                         rawOrCanonicalForIcon:
                                             StorageKeys.status_processing,
@@ -311,7 +328,7 @@ class TaskCard extends StatelessWidget {
                                   items.add(
                                     PopupMenuItem(
                                       value: 61,
-                                      child: TaskStatusVisuals.popupMenuRow(
+                                      child: TaskStatusVisuals.popupMenuRow(context: context,
                                         label: StorageKeys.status_under_revision.tr,
                                         rawOrCanonicalForIcon:
                                             StorageKeys.status_under_revision,
@@ -486,6 +503,7 @@ class TaskCard extends StatelessWidget {
                               child: const Icon(Icons.more_vert),
                               tooltip: 'tasks.options_tooltip'.tr,
                             ),
+                            ),
                           ),
                         ],
                       );
@@ -496,9 +514,9 @@ class TaskCard extends StatelessWidget {
                   // --- الحالة و الأولوية ---
                   Row(
                     children: [
-                      _buildstatusTag(task.status),
+                      _buildstatusTag(context, task.status),
                       const SizedBox(width: 8),
-                      _buildpriortyTag(task.priority),
+                      _buildpriortyTag(context, task.priority),
                     ],
                   ),
                   TaskCardClientNameRow(task: task),
@@ -517,8 +535,8 @@ class TaskCard extends StatelessWidget {
                     final theme = Theme.of(context);
                     final cs = theme.colorScheme;
                     const stripPurple = AppColors.primary;
-                    const stripBg = Color(0xFFF7F6FF);
-                    const stripBorder = Color(0xFFE4DEF7);
+                    final stripBg = context.appTheme.panelTint;
+                    final stripBorder = AppColors.primary.withValues(alpha: 0.35);
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       mainAxisSize: MainAxisSize.min,
@@ -691,14 +709,17 @@ class TaskCard extends StatelessWidget {
                     task.description,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+                    style: TextStyle(
+                      color: context.appTheme.secondaryText,
+                      fontSize: 13,
+                    ),
                   ),
                   const SizedBox(height: 12),
 
                   // --- التقدم ---
                   Text(
                     'tasks.progress_label'.tr,
-                    style: TextStyle(color: Colors.grey.shade600),
+                    style: TextStyle(color: context.appTheme.mutedText),
                   ),
                   const SizedBox(height: 4),
                   Row(
@@ -707,7 +728,7 @@ class TaskCard extends StatelessWidget {
                         child: LinearProgressIndicator(
                           value: task.progress ?? 0,
                           color: Colors.blue,
-                          backgroundColor: Colors.grey.shade200,
+                          backgroundColor: context.appTheme.unselected,
                           minHeight: 6,
                           borderRadius: BorderRadius.circular(10),
                         ),
@@ -715,7 +736,10 @@ class TaskCard extends StatelessWidget {
                       const SizedBox(width: 8),
                       Text(
                         '${((task.progress ?? 0) * 100).toInt()}%',
-                        style: const TextStyle(fontSize: 12),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: context.appTheme.secondaryText,
+                        ),
                       ),
                     ],
                   ),
@@ -746,7 +770,7 @@ class TaskCard extends StatelessWidget {
                                 maxLines: 1,
                                 softWrap: false,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -777,7 +801,7 @@ class TaskCard extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w700,
-                                    color: Colors.blueGrey.shade700,
+                                    color: context.appTheme.mutedText,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
@@ -813,14 +837,7 @@ class TaskCard extends StatelessWidget {
                           Expanded(
                             child: OutlinedButton(
                               onPressed: onTap,
-                              style: OutlinedButton.styleFrom(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 10,
-                                ),
-                              ),
+                              style: outlineButtonStyle,
                               child: Text(
                                 'tasks.view_details'.tr,
                                 maxLines: 1,
@@ -835,14 +852,7 @@ class TaskCard extends StatelessWidget {
                                 context: context,
                                 task: task,
                               ),
-                              style: OutlinedButton.styleFrom(
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 10,
-                                ),
-                              ),
+                              style: outlineButtonStyle,
                               child: Text(
                                 'tasks.add_comment_title'.tr,
                                 maxLines: 1,
@@ -877,14 +887,7 @@ class TaskCard extends StatelessWidget {
                                     context: context,
                                     task: task,
                                   ),
-                                  style: OutlinedButton.styleFrom(
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 10,
-                                    ),
-                                  ),
+                                  style: outlineButtonStyle,
                                   child: Text(
                                     'tasks.final_deliverable_section'.tr,
                                     maxLines: 1,
@@ -907,12 +910,12 @@ class TaskCard extends StatelessWidget {
     );
   }
 
-  Widget _buildpriortyTag(String raw) {
+  Widget _buildpriortyTag(BuildContext context, String raw) {
     final key = FunHelper.canonicalStoredPriority(raw);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: _getprioritybgColor(key),
+        color: _getprioritybgColor(context, key),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
@@ -927,12 +930,12 @@ class TaskCard extends StatelessWidget {
   }
 }
 
-Widget _buildstatusTag(String raw) {
+Widget _buildstatusTag(BuildContext context, String raw) {
   final key = FunHelper.canonicalStoredStatus(raw);
   return TaskStatusVisuals.statusChip(
     rawStatus: raw,
     fg: _getStatusColor(key),
-    bg: _getStatusbgColor(key),
+    bg: _getStatusbgColor(context, key),
   );
 }
 
@@ -951,7 +954,9 @@ Color _getPriorityColor(String priority) {
   }
 }
 
-Color _getprioritybgColor(String priority) {
+Color _getprioritybgColor(BuildContext context, String priority) {
+  final fg = _getPriorityColor(priority);
+  if (Theme.of(context).brightness == Brightness.dark) return fg.withValues(alpha: 0.18);
   switch (priority) {
     case 'normal':
       return Colors.blue.shade50;
@@ -1005,7 +1010,9 @@ Color _getStatusColor(String status) {
   }
 }
 
-Color _getStatusbgColor(String status) {
+Color _getStatusbgColor(BuildContext context, String status) {
+  final fg = _getStatusColor(status);
+  if (Theme.of(context).brightness == Brightness.dark) return fg.withValues(alpha: 0.18);
   switch (status) {
     case StorageKeys.status_under_revision:
       return Colors.blue.shade50;
@@ -1056,7 +1063,7 @@ class OptionsMenu extends StatelessWidget {
     return Container(
       width: 150,
       decoration: BoxDecoration(
-        color: Colors.white,
+              color: context.appTheme.cardSurface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -1116,7 +1123,7 @@ class OptionsMenu extends StatelessWidget {
             Text(
               text,
               style: TextStyle(
-                color: Colors.black87,
+                color: resolveAppTheme().primaryText,
                 fontWeight: FontWeight.w500,
                 fontSize: 14,
               ),

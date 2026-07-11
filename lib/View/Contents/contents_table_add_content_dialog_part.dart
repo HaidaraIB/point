@@ -132,7 +132,7 @@ void showAddContentDialog(
     context: context,
     builder: (context) {
       return Dialog(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: GetBuilder<HomeController>(
           builder: (controller) {
@@ -148,7 +148,7 @@ void showAddContentDialog(
                       Container(
                         margin: EdgeInsets.all(15),
                         decoration: BoxDecoration(
-                          color: AppColors.primary,
+                          color: context.appTheme.navSurface,
                           borderRadius: BorderRadius.vertical(
                             top: Radius.circular(12),
                           ),
@@ -195,13 +195,11 @@ void showAddContentDialog(
                                 labelText: 'title'.tr,
                                 hintText: 'entertitle'.tr,
                                 height: 42,
-                                fillColor: Colors.white,
                                 controller: titleController,
 
                                 validator: (_) => null,
 
                                 borderRadius: 5,
-                                borderColor: Colors.grey.shade300,
                               ),
                             ),
                             Row(
@@ -225,17 +223,15 @@ void showAddContentDialog(
                                     labelText: 'publish_date'.tr,
                                     hintText: '1/10/2025'.tr,
                                     height: 42,
-                                    fillColor: Colors.white,
                                     textInputType: TextInputType.datetime,
                                     controller: publishDatectr,
                                     readOnly: true,
                                     validator: (_) => null,
                                     suffixIcon: Icon(
                                       CupertinoIcons.calendar,
-                                      color: Colors.grey,
+                                      color: context.appTheme.mutedText,
                                     ),
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
                                   ),
                                 ),
 
@@ -265,9 +261,7 @@ void showAddContentDialog(
                                                 ),
                                     label: 'content_provider'.tr,
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
                                     height: 42,
-                                    fillColor: Colors.white,
                                     onChanged: (value) {
                                       if (value != null) {
                                         executorController.text =
@@ -303,9 +297,7 @@ void showAddContentDialog(
                                             : contentTypeController.text,
                                     label: 'choosecontenttype'.tr,
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
                                     height: 42,
-                                    fillColor: Colors.white,
                                     onChanged: (value) {
                                       if (value != null) {
                                         contentTypeController.text = value;
@@ -327,9 +319,7 @@ void showAddContentDialog(
                                       selectedValues: List.from(platforms),
                                       label: 'platform'.tr,
                                       borderRadius: 5,
-                                      borderColor: Colors.grey.shade300,
                                       height: 42,
-                                      fillColor: Colors.white,
 
                                       validator: (_) => null,
                                       onChanged: (value) {
@@ -346,11 +336,9 @@ void showAddContentDialog(
                                 labelText: 'content.caption'.tr,
                                 hintText: 'content.caption_hint'.tr,
                                 height: 100,
-                                fillColor: Colors.white,
                                 controller: captionController,
                                 expanded: true,
                                 borderRadius: 5,
-                                borderColor: Colors.grey.shade300,
                               ),
                             ),
                             Row(
@@ -362,11 +350,9 @@ void showAddContentDialog(
                                     labelText: 'notes'.tr,
                                     hintText: 'enternotes'.tr,
                                     height: 100,
-                                    fillColor: Colors.white,
                                     controller: notesController,
                                     expanded: true,
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
                                   ),
                                 ),
                                 Obx(
@@ -380,7 +366,6 @@ void showAddContentDialog(
                                               'content.form.insert_link'.tr,
                                           hintText: 'googledrivelink .com'.tr,
                                           height: 40,
-                                          fillColor: Colors.white,
                                           validator: (_) => null,
                                           controller: filecontroller,
                                           suffixIcon: Container(
@@ -388,9 +373,8 @@ void showAddContentDialog(
                                             decoration: BoxDecoration(
                                               borderRadius:
                                                   BorderRadius.circular(5),
-                                              color: Colors.grey.shade200,
+                                              color: context.appTheme.unselected,
                                             ),
-                                            // padding: EdgeInsets.only(left: 10),
                                             child: Row(
                                               mainAxisAlignment:
                                                   MainAxisAlignment.center,
@@ -399,7 +383,7 @@ void showAddContentDialog(
                                                   'Copy',
                                                   style: TextStyle(
                                                     fontSize: 13,
-                                                    color: Colors.grey,
+                                                    color: context.appTheme.mutedText,
                                                     fontWeight: FontWeight.bold,
                                                   ),
                                                 ),
@@ -408,13 +392,12 @@ void showAddContentDialog(
                                                   Icons.copy_rounded,
                                                   weight: 1,
                                                   size: 16,
-                                                  color: Colors.grey,
+                                                  color: context.appTheme.mutedText,
                                                 ),
                                               ],
                                             ),
                                           ),
                                           borderRadius: 5,
-                                          borderColor: Colors.grey.shade300,
                                         ),
                                       ),
                                       SizedBox(

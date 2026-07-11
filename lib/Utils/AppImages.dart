@@ -9,5 +9,6 @@ class _Images {
 
   final String authcover = 'assets/images/auth_cover.png';
   final String logo = 'assets/images/brand_logo_sidebar.png';
+  final String logoIconWhite = 'assets/images/logo_white.png';
   final String logocolored = 'assets/images/brand_logo_colored.png';
 }

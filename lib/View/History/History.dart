@@ -27,6 +27,7 @@ import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 import 'package:point/Utils/media_url_opener.dart';
 
 import 'package:point/View/History/history_date_utils.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 class History extends StatelessWidget {
   @override
@@ -66,7 +67,7 @@ class History extends StatelessWidget {
                             Text(
                               'settings'.tr,
                               style: TextStyle(
-                                color: AppColors.fontColorGrey,
+                                color: context.appTheme.secondaryText,
                                 fontSize: 17,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -98,9 +99,7 @@ class History extends StatelessWidget {
                                       ),
                               label: 'chooseclient'.tr,
                               borderRadius: 5,
-                              borderColor: Colors.grey.shade300,
                               height: 42,
-                              fillColor: Colors.white,
                               onChanged: (value) {
                                 if (value != null) {
                                   controller.searchedContents.assignAll(
@@ -147,9 +146,7 @@ class History extends StatelessWidget {
                                         : controller.selectedDate.value,
                                 label: 'common.select_date'.tr,
                                 borderRadius: 5,
-                                borderColor: Colors.grey.shade300,
                                 height: 42,
-                                fillColor: Colors.white,
                                 onChanged: (value) {
                                   if (value != null) {
                                     final date = value;
@@ -201,9 +198,8 @@ class History extends StatelessWidget {
                                 () => DataTable(
                                 dataRowMinHeight: 72,
                                 dataRowMaxHeight: double.infinity,
-                                dataRowColor: WidgetStateProperty.all(
-                                  Colors.white,
-                                ),
+                                dataRowColor: context.tableDataRowColor,
+                                headingRowColor: context.tableHeadingRowColor,
                                 dividerThickness: 0.5,
                                 columns: [
                                   DataColumn(
@@ -216,7 +212,7 @@ class History extends StatelessWidget {
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 13,
-                                        color: AppColors.fontColorGrey,
+                                        color: context.appTheme.secondaryText,
                                       ),
                                     ),
                                   ),
@@ -231,7 +227,7 @@ class History extends StatelessWidget {
                                         fontSize: 13,
 
                                         fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
+                                        color: context.appTheme.secondaryText,
                                       ),
                                     ),
                                   ),
@@ -246,7 +242,7 @@ class History extends StatelessWidget {
                                         fontSize: 13,
 
                                         fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
+                                        color: context.appTheme.secondaryText,
                                       ),
                                     ),
                                   ),
@@ -261,7 +257,7 @@ class History extends StatelessWidget {
                                         fontSize: 13,
 
                                         fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
+                                        color: context.appTheme.secondaryText,
                                       ),
                                     ),
                                   ),
@@ -275,7 +271,7 @@ class History extends StatelessWidget {
                                         fontSize: 13,
 
                                         fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
+                                        color: context.appTheme.secondaryText,
                                       ),
                                     ),
                                   ),
@@ -289,7 +285,7 @@ class History extends StatelessWidget {
                                         fontSize: 13,
 
                                         fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
+                                        color: context.appTheme.secondaryText,
                                       ),
                                     ),
                                   ),
@@ -303,7 +299,7 @@ class History extends StatelessWidget {
                                         fontSize: 13,
 
                                         fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
+                                        color: context.appTheme.secondaryText,
                                       ),
                                     ),
                                   ),
@@ -317,7 +313,7 @@ class History extends StatelessWidget {
                                         fontSize: 13,
 
                                         fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
+                                        color: context.appTheme.secondaryText,
                                       ),
                                     ),
                                   ),
@@ -331,7 +327,7 @@ class History extends StatelessWidget {
                                         fontSize: 13,
 
                                         fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
+                                        color: context.appTheme.secondaryText,
                                       ),
                                     ),
                                   ),
@@ -345,7 +341,7 @@ class History extends StatelessWidget {
                                         fontSize: 13,
 
                                         fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
+                                        color: context.appTheme.secondaryText,
                                       ),
                                     ),
                                   ),
@@ -359,7 +355,7 @@ class History extends StatelessWidget {
                                         fontSize: 13,
 
                                         fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
+                                        color: context.appTheme.secondaryText,
                                       ),
                                     ),
                                   ),
@@ -380,7 +376,7 @@ class History extends StatelessWidget {
                                                   style: TextStyle(
                                                     fontWeight: FontWeight.bold,
                                                     color:
-                                                        AppColors.fontColorGrey,
+                                                        context.appTheme.secondaryText,
                                                   ),
                                                 ),
                                               ),
@@ -402,7 +398,7 @@ class History extends StatelessWidget {
                                                   style: TextStyle(
                                                     fontWeight: FontWeight.bold,
                                                     color:
-                                                        AppColors.fontColorGrey,
+                                                        context.appTheme.secondaryText,
                                                   ),
                                                 ),
                                               ),
@@ -762,7 +758,7 @@ class History extends StatelessWidget {
                                                   style: TextStyle(
                                                     fontWeight: FontWeight.bold,
                                                     color:
-                                                        AppColors.fontColorGrey,
+                                                        context.appTheme.secondaryText,
                                                   ),
                                                 ),
                                               ),
@@ -787,7 +783,7 @@ class History extends StatelessWidget {
                                                   style: TextStyle(
                                                     fontWeight: FontWeight.bold,
                                                     color:
-                                                        AppColors.fontColorGrey,
+                                                        context.appTheme.secondaryText,
                                                   ),
                                                 ),
                                               ),
@@ -1038,7 +1034,7 @@ void showAddContentDialog(
     context: context,
     builder: (context) {
       return Dialog(
-        backgroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: GetBuilder<HomeController>(
           builder: (controller) {
@@ -1054,7 +1050,7 @@ void showAddContentDialog(
                       Container(
                         margin: EdgeInsets.all(15),
                         decoration: BoxDecoration(
-                          color: AppColors.primary,
+                          color: context.appTheme.navSurface,
                           borderRadius: BorderRadius.vertical(
                             top: Radius.circular(12),
                           ),
@@ -1099,7 +1095,6 @@ void showAddContentDialog(
                                 labelText: 'title'.tr,
                                 hintText: 'entertitle'.tr,
                                 height: 42,
-                                fillColor: Colors.white,
                                 controller: titleController,
 
                                 validator: (v) {
@@ -1110,7 +1105,6 @@ void showAddContentDialog(
                                 },
 
                                 borderRadius: 5,
-                                borderColor: Colors.grey.shade300,
                               ),
                             ),
                             Row(
@@ -1134,7 +1128,6 @@ void showAddContentDialog(
                                     labelText: 'publish_date'.tr,
                                     hintText: '1/10/2025'.tr,
                                     height: 42,
-                                    fillColor: Colors.white,
                                     textInputType: TextInputType.datetime,
                                     controller: publishDatectr,
                                     readOnly: true,
@@ -1144,10 +1137,9 @@ void showAddContentDialog(
                                     },
                                     suffixIcon: Icon(
                                       CupertinoIcons.calendar,
-                                      color: Colors.grey,
+                                      color: context.appTheme.secondaryText,
                                     ),
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
                                   ),
                                 ),
 
@@ -1176,9 +1168,7 @@ void showAddContentDialog(
                                             ),
                                     label: 'content_provider'.tr,
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
                                     height: 42,
-                                    fillColor: Colors.white,
                                     onChanged: (value) {
                                       if (value != null) {
                                         executorController.text =
@@ -1219,9 +1209,7 @@ void showAddContentDialog(
                                             : contentTypeController.text,
                                     label: 'choosecontenttype'.tr,
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
                                     height: 42,
-                                    fillColor: Colors.white,
                                     onChanged: (value) {
                                       if (value != null) {
                                         contentTypeController.text = value;
@@ -1248,9 +1236,7 @@ void showAddContentDialog(
                                       selectedValues: List.from(platforms),
                                       label: 'platform'.tr,
                                       borderRadius: 5,
-                                      borderColor: Colors.grey.shade300,
                                       height: 42,
-                                      fillColor: Colors.white,
 
                                       validator: (v) {
                                         if (v == null || v.isEmpty) {
@@ -1275,11 +1261,9 @@ void showAddContentDialog(
                                     labelText: 'notes'.tr,
                                     hintText: 'enternotes'.tr,
                                     height: 100,
-                                    fillColor: Colors.white,
                                     controller: notesController,
                                     expanded: true,
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
                                   ),
                                 ),
                                 Obx(
@@ -1293,7 +1277,6 @@ void showAddContentDialog(
                                               'content.form.insert_link'.tr,
                                           hintText: 'googledrivelink .com'.tr,
                                           height: 40,
-                                          fillColor: Colors.white,
 
                                           controller: filecontroller,
                                           suffixIcon: Container(
@@ -1311,7 +1294,7 @@ void showAddContentDialog(
                                                   'Copy',
                                                   style: TextStyle(
                                                     fontSize: 13,
-                                                    color: Colors.grey,
+                                                    color: context.appTheme.secondaryText,
                                                     fontWeight: FontWeight.bold,
                                                   ),
                                                 ),
@@ -1320,13 +1303,12 @@ void showAddContentDialog(
                                                   Icons.copy_rounded,
                                                   weight: 1,
                                                   size: 16,
-                                                  color: Colors.grey,
+                                                  color: context.appTheme.secondaryText,
                                                 ),
                                               ],
                                             ),
                                           ),
                                           borderRadius: 5,
-                                          borderColor: Colors.grey.shade300,
                                         ),
                                       ),
                                       SizedBox(
@@ -1356,7 +1338,6 @@ void showAddContentDialog(
                                             },
                                             enable: false,
                                             height: 100,
-                                            fillColor: Colors.white,
                                             // controller: notesController,
                                             expanded: true,
 
@@ -1396,8 +1377,7 @@ void showAddContentDialog(
                                                             .isUploading
                                                             .value,
                                                     title: 'uploadfile'.tr,
-                                                    backgroundColor:
-                                                        Colors.white,
+                                                    backgroundColor: Theme.of(context).colorScheme.surface,
                                                     fontColor:
                                                         AppColors
                                                             .primaryfontColor,
@@ -1406,7 +1386,6 @@ void showAddContentDialog(
                                               ),
                                             ),
                                             borderRadius: 5,
-                                            borderColor: Colors.grey.shade300,
                                           ),
                                         ),
                                       ),

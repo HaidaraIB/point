@@ -9,6 +9,7 @@ import 'package:get/get.dart';
 import 'package:point/Controller/ClientController.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppImages.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/Utils/PasswordValidator.dart';
 import 'package:point/View/Auth/Shared/Rights.dart';
 import 'package:point/View/Shared/InputText.dart';
@@ -54,6 +55,7 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
 
   @override
   Widget build(BuildContext context) {
+    final appTheme = context.appTheme;
     if (kIsWeb) {
       return Scaffold(
         body: GetBuilder<ClientController>(
@@ -65,16 +67,16 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
     }
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: context.appTheme.cardSurface,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+          icon: Icon(Icons.arrow_back_ios_new, color: appTheme.primaryText),
           onPressed: () => Get.back(),
         ),
         title: Text(
           'login_client_title'.tr,
           style: TextStyle(
-            color: Colors.black87,
+            color: appTheme.primaryText,
             fontSize: 18,
             fontWeight: FontWeight.w600,
           ),
@@ -165,6 +167,7 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
         final viewportMinHeight =
             constraints.hasBoundedHeight ? constraints.maxHeight : 0.0;
         final authFormCore = _buildFormColumn(
+          context,
           controller,
           useWebEmployeeChrome: true,
           trailingLoginVersion: false,
@@ -182,6 +185,7 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
                       maxWidth: min(480, constraints.maxWidth - 20),
                     ),
                     child: _buildFormColumn(
+                      context,
                       controller,
                       useWebEmployeeChrome: true,
                       trailingLoginVersion: true,
@@ -278,6 +282,7 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
         width: Get.width - 50,
         child: SingleChildScrollView(
           child: _buildFormColumn(
+            context,
             controller,
             useWebEmployeeChrome: false,
             trailingLoginVersion: true,
@@ -288,6 +293,7 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
   }
 
   Widget _buildFormColumn(
+    BuildContext context,
     ClientController controller, {
     required bool useWebEmployeeChrome,
     bool trailingLoginVersion = true,
@@ -298,6 +304,7 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
     final afterPasswordGap = useWebEmployeeChrome ? 10.0 : 25.0;
     final beforeButtonGap = useWebEmployeeChrome ? 25.0 : 8.0;
 
+    final appTheme = context.appTheme;
     return AutofillGroup(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -310,19 +317,19 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
               fontWeight: FontWeight.w600,
               wordSpacing: 1.2,
               letterSpacing: 0.5,
+              color: appTheme.primaryText,
             ),
           ),
           SizedBox(height: 10),
           Text(
             'enteremailandpassword'.tr,
-            style: TextStyle(color: Colors.grey, fontSize: subtitleSize),
+            style: TextStyle(color: appTheme.secondaryText, fontSize: subtitleSize),
           ),
           InputText(
             labelText: 'email'.tr,
             hintText:
                 useWebEmployeeChrome ? 'email'.tr : 'example@example.com'.tr,
             height: inputHeight,
-            fillColor: Colors.white,
             controller: emailController,
             focusNode: _emailFocus,
             autofillHints: const [AutofillHints.email],
@@ -336,7 +343,6 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
               return null;
             },
             borderRadius: 5,
-            borderColor: Colors.grey.shade300,
           ),
           InputText(
             hintText: useWebEmployeeChrome ? 'password'.tr : ''.tr,
@@ -348,7 +354,6 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
             autofillHints: const [AutofillHints.password],
             textInputAction: TextInputAction.go,
             onFieldSubmitted: (_) => _submitClientLogin(controller),
-            fillColor: Colors.white,
             textInputType: TextInputType.visiblePassword,
             suffixIcon:
                 useWebEmployeeChrome
@@ -360,7 +365,7 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
                         _obscurePassword
                             ? Icons.visibility_off
                             : Icons.visibility,
-                        color: Colors.grey,
+                        color: appTheme.secondaryText,
                         size: 12,
                       ),
                     )
@@ -369,7 +374,7 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
                         _obscurePassword
                             ? Icons.visibility_off
                             : Icons.visibility,
-                        color: Colors.grey,
+                        color: appTheme.secondaryText,
                         size: 22,
                       ),
                       onPressed: () {
@@ -385,14 +390,13 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
               return validatePasswordStrong(v);
             },
             borderRadius: 5,
-            borderColor: Colors.grey.shade300,
           ),
           SizedBox(height: afterPasswordGap),
           InkWell(
             onTap: () => Get.toNamed('/auth/forgetPassword'),
             child: Text(
               'forgotpassword'.tr,
-              style: TextStyle(color: Colors.grey, fontSize: linkSize),
+              style: TextStyle(color: appTheme.secondaryText, fontSize: linkSize),
             ),
           ),
           SizedBox(height: beforeButtonGap),
@@ -418,11 +422,11 @@ class _LoginUserAccountState extends State<LoginUserAccount> {
             child: Center(
               child: Text(
                 'are_you_employee'.tr,
-                style: TextStyle(color: Colors.grey, fontSize: 13),
+                style: TextStyle(color: appTheme.secondaryText, fontSize: 13),
               ),
             ),
           ),
-          buildRightsSection(),
+          buildRightsSection(context),
           if (trailingLoginVersion)
             Padding(
               padding: const EdgeInsets.only(top: 12),

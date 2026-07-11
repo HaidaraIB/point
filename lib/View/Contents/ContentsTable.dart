@@ -31,11 +31,13 @@ import 'package:point/View/Shared/attachment_thumbnail_tile.dart';
 import 'package:point/View/Shared/form_attachment_thumbnails_grid.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 import 'package:point/View/Shared/button.dart';
+import 'package:point/View/Shared/app_filter_dropdown.dart';
 import 'package:point/View/Shared/ContentStatusPromotionDropdownChip.dart';
 import 'package:point/View/Shared/HorizontalScroll.dart';
 import 'package:point/View/Shared/TableCellCenter.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/t.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 part 'contents_table_employee_web_part.dart';
 part 'contents_table_desktop_data_table_part.dart';
@@ -79,7 +81,7 @@ Widget _bulkActionChipButton({
     icon: Icon(icon, size: 17),
     label: Text(
       label,
-      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5),
+      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5),
     ),
     onPressed: onPressed,
   );
@@ -200,7 +202,7 @@ class ContentsTable extends StatelessWidget {
                             Text(
                               'managecontent'.tr,
                               style: TextStyle(
-                                color: AppColors.fontColorGrey,
+                                color: context.appTheme.secondaryText,
                                 fontSize: 17,
                                 fontWeight: FontWeight.bold,
                               ),

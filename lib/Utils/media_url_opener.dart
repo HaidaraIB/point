@@ -169,7 +169,7 @@ class _LinkifiedTextState extends State<LinkifiedText> {
     final effectiveStyle = DefaultTextStyle.of(context).style.merge(widget.style);
     final effectiveLinkStyle = effectiveStyle.merge(
       widget.linkStyle ??
-          const TextStyle(
+          TextStyle(
             color: Colors.blue,
             decoration: TextDecoration.underline,
           ),

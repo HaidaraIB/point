@@ -18,6 +18,7 @@ import 'package:point/View/Tasks/Dialogs/task_dialog_constants.dart';
 import 'package:point/View/Tasks/Shared/task_voice_form_helpers.dart';
 import 'package:point/View/Tasks/Shared/task_voice_record_field.dart';
 import 'package:point/Models/VoiceRecordEntry.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// Mobile-only full-screen add/edit design task form.
 /// Opened when designDialog() is called on mobile; desktop keeps the dialog.
@@ -218,14 +219,14 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
     final bottomPadding = MediaQuery.of(context).padding.bottom + 24;
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: context.appTheme.pageBackground,
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
         title: Text(
           widget.model == null ? 'tasks.form.add_title'.tr : 'tasks.form.edit_title'.tr,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
@@ -254,11 +255,9 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                     labelText: 'tasks.form.design_title_label'.tr,
                     hintText: 'tasks.form.design_name_hint'.tr,
                     height: 48,
-                    fillColor: Colors.white,
                     controller: titleController,
                     validator: (v) => (v == null || v.isEmpty) ? ' ' : null,
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                   ),
                   const SizedBox(height: 16),
                   DynamicDropdown<EmployeeModel>(
@@ -284,9 +283,7 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                     value: executorController.text.isEmpty ? null : safeEmployees.firstWhereOrNull((a) => a.id == executorController.text),
                     label: 'content.dialog.executor'.tr,
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                     height: 48,
-                    fillColor: Colors.white,
                     onChanged: (value) {
                       if (value != null) executorController.text = value.id ?? '';
                     },
@@ -298,9 +295,7 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                     value: taskTypeController.text.isEmpty ? null : taskTypeController.text,
                     label: 'tasks.form.task_type_label'.tr,
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                     height: 48,
-                    fillColor: Colors.white,
                     onChanged: (value) {
                       if (value != null) taskTypeController.text = value;
                     },
@@ -319,9 +314,7 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                     value: useCustomClient ? _otherClientValue : (clientController.text.isEmpty ? null : matchedClient),
                     label: 'chooseclient'.tr,
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                     height: 48,
-                    fillColor: Colors.white,
                     onChanged: (value) {
                       setState(() {
                         if (value == _otherClientValue) {
@@ -341,11 +334,9 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                       labelText: 'tasks.form.client_name_label'.tr,
                       hintText: 'tasks.form.client_name_hint'.tr,
                       height: 48,
-                      fillColor: Colors.white,
                       controller: customClientController,
                       validator: (v) => (v == null || v.trim().isEmpty) ? ' ' : null,
                       borderRadius: 8,
-                      borderColor: Colors.grey.shade300,
                     ),
                   ],
                   const SizedBox(height: 16),
@@ -356,9 +347,7 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                       itemLabel: (v) => v,
                       label: 'platform'.tr,
                       borderRadius: 8,
-                      borderColor: Colors.grey.shade300,
                       height: 48,
-                      fillColor: Colors.white,
                       validator: (v) => (v == null || v.isEmpty) ? ' ' : null,
                       onChanged: (value) => platforms.assignAll(value),
                     ),
@@ -370,9 +359,7 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                     value: designTypeController.text.isEmpty ? null : designTypeController.text,
                     label: 'tasks.form.design_type_label'.tr,
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                     height: 48,
-                    fillColor: Colors.white,
                     onChanged: (value) {
                       if (value != null) designTypeController.text = value;
                     },
@@ -384,9 +371,7 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                     value: priorityController.text.isEmpty ? null : priorityController.text,
                     label: 'priortity'.tr,
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                     height: 48,
-                    fillColor: Colors.white,
                     onChanged: (value) {
                       if (value != null) priorityController.text = value.toString();
                     },
@@ -397,22 +382,18 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                     labelText: 'task_details.design_count'.tr,
                     hintText: 'task_details.design_count'.tr,
                     height: 48,
-                    fillColor: Colors.white,
                     controller: designsCountController,
                     validator: (v) => (v == null || v.isEmpty) ? ' ' : null,
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                   ),
                   const SizedBox(height: 16),
                   InputText(
                     labelText: 'task_details.dimensions'.tr,
                     hintText: 'tasks.form.write_dimensions_hint'.tr,
                     height: 48,
-                    fillColor: Colors.white,
                     controller: dimensionsController,
                     validator: (val) => (val == null || val.isEmpty) ? ' ' : null,
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                   ),
                   const SizedBox(height: 24),
                   _sectionLabel('tasks.form.section_dates'.tr),
@@ -421,13 +402,11 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                     labelText: 'startat'.tr,
                     hintText: '1/10/2025'.tr,
                     height: 48,
-                    fillColor: Colors.white,
                     controller: startDateController,
                     readOnly: true,
                     validator: (v) => (v == null || v.isEmpty) ? ' ' : null,
-                    suffixIcon: Icon(CupertinoIcons.calendar, color: Colors.grey.shade600),
+                    suffixIcon: Icon(CupertinoIcons.calendar, color: context.appTheme.mutedText),
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                   ),
                   const SizedBox(height: 16),
                   InputText(
@@ -435,13 +414,11 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                     labelText: 'endat'.tr,
                     hintText: '1/10/2026'.tr,
                     height: 48,
-                    fillColor: Colors.white,
                     controller: endDateController,
                     readOnly: true,
                     validator: (v) => (v == null || v.isEmpty) ? ' ' : null,
-                    suffixIcon: Icon(CupertinoIcons.calendar, color: Colors.grey.shade600),
+                    suffixIcon: Icon(CupertinoIcons.calendar, color: context.appTheme.mutedText),
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                   ),
                   const SizedBox(height: 24),
                   if (widget.model != null && widget.model!.notes.isNotEmpty) ...[
@@ -449,7 +426,7 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+              color: context.appTheme.cardSurface,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: Colors.grey.shade300),
                       ),
@@ -468,13 +445,13 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
-                                  color: AppColors.primaryfontColor,
+                                  color: context.appTheme.primaryText,
                                 ),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 note.byWho,
-                                style: const TextStyle(fontSize: 12, color: Colors.green),
+                                style: TextStyle(fontSize: 12, color: Colors.green),
                               ),
                             ],
                           );
@@ -488,10 +465,8 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                     labelText: 'notes'.tr,
                     hintText: 'enternotes'.tr,
                     height: 48,
-                    fillColor: Colors.white,
                     controller: notesController,
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                   ),
                   const SizedBox(height: 16),
                   GestureDetector(
@@ -504,15 +479,15 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
+                        color: context.appTheme.unselected,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade300),
+                        border: Border.all(color: context.appTheme.border),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('uploadfile'.tr, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey.shade700)),
-                          Obx(() => controller.isUploading.value ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)) : Icon(Icons.upload_file, color: AppColors.primary)),
+                          Text('uploadfile'.tr, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.appTheme.secondaryText)),
+                          Obx(() => controller.isUploading.value ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)) : Icon(Icons.upload_file, color: context.appTheme.accentText)),
                         ],
                       ),
                     ),
@@ -601,7 +576,7 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                                               width: 20,
                                               height: 20,
                                               decoration: BoxDecoration(
-                                                color: Colors.black54,
+                                                color: context.appTheme.secondaryText,
                                                 borderRadius:
                                                     BorderRadius.circular(10),
                                               ),
@@ -650,7 +625,7 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                                                 'supervisor')))
                                     ? 'edit'.tr
                                     : 'common.save'.tr,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
@@ -685,7 +660,7 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
         style: TextStyle(
           fontSize: 15,
           fontWeight: FontWeight.bold,
-          color: Colors.grey.shade800,
+          color: context.appTheme.primaryText,
         ),
       ),
     );

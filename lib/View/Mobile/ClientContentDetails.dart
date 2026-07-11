@@ -116,7 +116,7 @@ class Clientcontentdetails extends StatelessWidget {
                     ),
                   AppVersionLabel(
                     padding: const EdgeInsets.fromLTRB(16, 32, 16, 24),
-                    textStyle: const TextStyle(
+                    textStyle: TextStyle(
                       fontSize: 12,
                       height: 1.25,
                       color: Color(0xFF888888),

@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Controller/home_task_filters.dart';
@@ -9,6 +8,7 @@ import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
+import 'package:point/View/Shared/app_filter_dropdown.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
@@ -32,6 +32,7 @@ import 'package:point/View/Tasks/Dialogs/PromotionDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PublishDialog.dart';
 import 'package:point/View/Tasks/TaskCard.dart';
 import 'package:point/View/Tasks/TasksMobile.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 class Tasks extends StatelessWidget {
   static const List<String> _departmentRouteSlugs = <String>[
@@ -99,7 +100,7 @@ class Tasks extends StatelessWidget {
                                   Text(
                                     _departmentTranslationKey(selectedIndex).tr,
                                     style: TextStyle(
-                                      color: AppColors.fontColorGrey,
+                                      color: resolveAppTheme().secondaryText,
                                       fontSize: 15,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -118,7 +119,7 @@ class Tasks extends StatelessWidget {
                                         children: [
                                           Text(
                                             'programming.updates.add'.tr,
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               color: Colors.white,
                                               fontWeight: FontWeight.bold,
                                               fontSize: 12,
@@ -267,297 +268,16 @@ class Tasks extends StatelessWidget {
                               }),
 
                               SizedBox(height: 15),
-                              SizedBox(
-                                height: 62,
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 10,
-                                  ),
-                                  child: SingleChildScrollView(
-                                    scrollDirection: Axis.horizontal,
-                                    child: Row(
-                                      children: [
-                                        SizedBox(
-                                          width: (Get.width * 0.7 / 3) - 25,
-                                          child: InputText(
-                                            prefixIcon: Icon(
-                                              CupertinoIcons.search,
-                                              color: Colors.grey,
-                                            ),
-                                            hintText:
-                                                'tasks.search_hint_extended'.tr,
-                                            height: 42,
-                                            fillColor: Colors.white,
-                                            controller:
-                                                controller.searchController,
-
-                                            onchange: (value) {
-                                              controller.filterTasks();
-                                              return null;
-                                            },
-
-                                            borderRadius: 5,
-                                            borderColor: Colors.grey.shade300,
-                                          ),
-                                        ),
-                                        SizedBox(width: 10),
-                                        InkWell(
-                                          onTap: () {
-                                            controller.searchController.clear();
-                                            controller.selectedPriority.value =
-                                                '';
-                                            controller.selectedStatus.value =
-                                                '';
-                                            controller.selectedExecutor.value =
-                                                '';
-                                            controller.filterTasks();
-                                          },
-                                          child: SvgPicture.asset(
-                                            'assets/svgs/icon_menu.svg',
-                                            height: 42,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 24),
-                                        Container(
-                                          width: 150,
-                                          height: 40,
-                                          decoration: BoxDecoration(
-                                            border: Border.all(
-                                              color: Colors.grey.shade300,
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                          ),
-                                          child: DropdownButtonHideUnderline(
-                                            child: DropdownButton<String>(
-                                              isExpanded: true,
-                                              hint: Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 8,
-                                                    ),
-                                                child: Text(
-                                                  'tasks.filter_priority'.tr,
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                    fontSize: 13,
-                                                    color:
-                                                        AppColors
-                                                            .primaryfontColor,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                              ),
-                                              value:
-                                                  controller
-                                                          .selectedPriority
-                                                          .value
-                                                          .isEmpty
-                                                      ? null
-                                                      : controller
-                                                          .selectedPriority
-                                                          .value,
-                                              items:
-                                                  StorageKeys.priority
-                                                      .map(
-                                                        (e) => DropdownMenuItem(
-                                                          value: e,
-                                                          child: Text(e.tr),
-                                                        ),
-                                                      )
-                                                      .toList(),
-                                              onChanged: (value) {
-                                                controller
-                                                    .selectedPriority
-                                                    .value = value ?? '';
-                                                controller.filterTasks();
-                                              },
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 10),
-
-                                        // 🔹 الحالة (فقط المهام الجارية)
-                                        Builder(
-                                          builder: (_) {
-                                            final ongoingStatusItems =
-                                                StorageKeys
-                                                    .ongoingStatusFilterDropdownValues(
-                                                      selectedIndex.toString(),
-                                                    );
-                                            return Container(
-                                              width: 170,
-                                              height: 40,
-                                              decoration: BoxDecoration(
-                                                border: Border.all(
-                                                  color: Colors.grey.shade300,
-                                                ),
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                              ),
-                                              child: DropdownButtonHideUnderline(
-                                                child: DropdownButton<String>(
-                                                  isExpanded: true,
-                                                  hint: Padding(
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                          horizontal: 8,
-                                                        ),
-                                                    child: Text(
-                                                      'tasks.filter_status'.tr,
-                                                      maxLines: 1,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                      style: TextStyle(
-                                                        fontSize: 13,
-                                                        color:
-                                                            AppColors
-                                                                .primaryfontColor,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  value:
-                                                      controller
-                                                                  .selectedStatus
-                                                                  .value
-                                                                  .isEmpty ||
-                                                              !ongoingStatusItems
-                                                                  .contains(
-                                                                    controller
-                                                                        .selectedStatus
-                                                                        .value,
-                                                                  )
-                                                          ? null
-                                                          : controller
-                                                              .selectedStatus
-                                                              .value,
-                                                  items: [
-                                                    DropdownMenuItem(
-                                                      value: '',
-                                                      child: Text(
-                                                        'filter_status_ongoing'
-                                                            .tr,
-                                                        style: TextStyle(
-                                                          fontWeight:
-                                                              FontWeight.w600,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    ...ongoingStatusItems.map(
-                                                      (e) => DropdownMenuItem(
-                                                        value: e,
-                                                        child: Padding(
-                                                          padding:
-                                                              const EdgeInsets.only(
-                                                                right: 8,
-                                                              ),
-                                                          child: Text(e.tr),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                  onChanged: (value) {
-                                                    controller
-                                                        .selectedStatus
-                                                        .value = value ?? '';
-                                                    controller.filterTasks();
-                                                  },
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                        const SizedBox(width: 10),
-
-                                        // 🔹 الملف
-                                        SizedBox(
-                                          width: 150,
-                                          height: 40,
-
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                              border: Border.all(
-                                                color: Colors.grey.shade300,
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                            ),
-                                            child: DropdownButtonHideUnderline(
-                                              child: DropdownButton<String>(
-                                                isExpanded: true,
-                                                hint: Padding(
-                                                  padding:
-                                                      const EdgeInsets.symmetric(
-                                                        horizontal: 8,
-                                                      ),
-                                                  child: Text(
-                                                    'tasks.filter_assignee'.tr,
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: TextStyle(
-                                                      fontSize: 13,
-                                                      color:
-                                                          AppColors
-                                                              .primaryfontColor,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                ),
-                                                value:
-                                                    controller
-                                                            .selectedExecutor
-                                                            .value
-                                                            .isEmpty
-                                                        ? null
-                                                        : controller
-                                                            .selectedExecutor
-                                                            .value,
-                                                items:
-                                                    controller.employees
-                                                        .map(
-                                                          (
-                                                            e,
-                                                          ) => DropdownMenuItem(
-                                                            value:
-                                                                e.id ??
-                                                                e.name ??
-                                                                '',
-                                                            child: Text(
-                                                              (e.name ?? '')
-                                                                  .split(' ')
-                                                                  .take(2)
-                                                                  .join(' '),
-                                                            ),
-                                                          ),
-                                                        )
-                                                        .toList(),
-                                                onChanged: (value) {
-                                                  controller
-                                                      .selectedExecutor
-                                                      .value = value ?? '';
-                                                  controller.filterTasks();
-                                                },
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 10),
-                                      ],
-                                    ),
-                                  ),
-                                ),
+                              _buildDesktopFilters(
+                                context,
+                                controller,
+                                selectedIndex,
                               ),
                               SizedBox(height: 15),
                               Text(
                                 'tasks.summary.sent_tasks'.tr,
                                 style: TextStyle(
-                                  color: AppColors.fontColorGrey,
+                                  color: resolveAppTheme().secondaryText,
                                   fontSize: 15,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -640,7 +360,7 @@ class Tasks extends StatelessWidget {
         Text(
           'tasks.summary.sent_tasks'.tr,
           style: TextStyle(
-            color: AppColors.fontColorGrey,
+            color: resolveAppTheme().secondaryText,
             fontSize: 15,
             fontWeight: FontWeight.bold,
           ),
@@ -670,32 +390,29 @@ class Tasks extends StatelessWidget {
               SizedBox(
                 width: (Get.width * 0.7 / 3) - 25,
                 child: InputText(
-                  prefixIcon: Icon(CupertinoIcons.search, color: Colors.grey),
+                  prefixIcon: Icon(
+                    CupertinoIcons.search,
+                    color: context.appTheme.mutedText,
+                  ),
                   hintText: 'tasks.search_hint_extended'.tr,
                   height: 42,
-                  fillColor: Colors.white,
                   controller: controller.searchController,
                   onchange: (value) {
                     controller.filterTasks();
                     return null;
                   },
                   borderRadius: 5,
-                  borderColor: Colors.grey.shade300,
                 ),
               ),
               const SizedBox(width: 10),
-              InkWell(
-                onTap: () {
+              FilterResetButton(
+                onPressed: () {
                   controller.searchController.clear();
                   controller.selectedPriority.value = '';
                   controller.selectedStatus.value = '';
                   controller.selectedExecutor.value = '';
                   controller.filterTasks();
                 },
-                child: SvgPicture.asset(
-                  'assets/svgs/icon_menu.svg',
-                  height: 42,
-                ),
               ),
               const SizedBox(width: 24),
               _desktopPriorityDropdown(controller),
@@ -712,41 +429,18 @@ class Tasks extends StatelessWidget {
   }
 
   Widget _desktopPriorityDropdown(HomeController controller) {
-    return Container(
-      width: 150,
-      height: 40,
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          isExpanded: true,
-          hint: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Text(
-              'tasks.filter_priority'.tr,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 13,
-                color: AppColors.primaryfontColor,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          value: controller.selectedPriority.value.isEmpty
-              ? null
-              : controller.selectedPriority.value,
-          items: StorageKeys.priority
-              .map((e) => DropdownMenuItem(value: e, child: Text(e.tr)))
-              .toList(),
-          onChanged: (value) {
-            controller.selectedPriority.value = value ?? '';
-            controller.filterTasks();
-          },
-        ),
-      ),
+    return AppFilterDropdown<String>(
+      hint: 'tasks.filter_priority'.tr,
+      value: controller.selectedPriority.value.isEmpty
+          ? null
+          : controller.selectedPriority.value,
+      items: StorageKeys.priority
+          .map((e) => DropdownMenuItem(value: e, child: Text(e.tr)))
+          .toList(),
+      onChanged: (value) {
+        controller.selectedPriority.value = value ?? '';
+        controller.filterTasks();
+      },
     );
   }
 
@@ -754,110 +448,62 @@ class Tasks extends StatelessWidget {
     HomeController controller,
     int selectedIndex,
   ) {
-    final ongoingStatusItems =
-        StorageKeys.ongoingStatusFilterDropdownValues(
-          selectedIndex.toString(),
-        );
-    return Container(
+    final ongoingStatusItems = StorageKeys.ongoingStatusFilterDropdownValues(
+      selectedIndex.toString(),
+    );
+    return AppFilterDropdown<String>(
+      hint: 'tasks.filter_status'.tr,
       width: 170,
-      height: 40,
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          isExpanded: true,
-          hint: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Text(
-              'tasks.filter_status'.tr,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 13,
-                color: AppColors.primaryfontColor,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          value: controller.selectedStatus.value.isEmpty ||
-                  !ongoingStatusItems
-                      .contains(controller.selectedStatus.value)
+      value:
+          controller.selectedStatus.value.isEmpty ||
+                  !ongoingStatusItems.contains(controller.selectedStatus.value)
               ? null
               : controller.selectedStatus.value,
-          items: [
-            DropdownMenuItem(
-              value: '',
-              child: Text(
-                'filter_status_ongoing'.tr,
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-            ),
-            ...ongoingStatusItems.map(
-              (e) => DropdownMenuItem(
-                value: e,
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: Text(e.tr),
-                ),
-              ),
-            ),
-          ],
-          onChanged: (value) {
-            controller.selectedStatus.value = value ?? '';
-            controller.filterTasks();
-          },
+      items: [
+        DropdownMenuItem(
+          value: '',
+          child: Text(
+            'filter_status_ongoing'.tr,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
         ),
-      ),
+        ...ongoingStatusItems.map(
+          (e) => DropdownMenuItem(
+            value: e,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Text(e.tr),
+            ),
+          ),
+        ),
+      ],
+      onChanged: (value) {
+        controller.selectedStatus.value = value ?? '';
+        controller.filterTasks();
+      },
     );
   }
 
   Widget _desktopExecutorDropdown(HomeController controller) {
-    return SizedBox(
-      width: 150,
-      height: 40,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.shade300),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<String>(
-            isExpanded: true,
-            hint: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
+    return AppFilterDropdown<String>(
+      hint: 'tasks.filter_assignee'.tr,
+      value: controller.selectedExecutor.value.isEmpty
+          ? null
+          : controller.selectedExecutor.value,
+      items: controller.employees
+          .map(
+            (e) => DropdownMenuItem(
+              value: e.id ?? e.name ?? '',
               child: Text(
-                'tasks.filter_assignee'.tr,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: AppColors.primaryfontColor,
-                  fontWeight: FontWeight.bold,
-                ),
+                (e.name ?? '').split(' ').take(2).join(' '),
               ),
             ),
-            value: controller.selectedExecutor.value.isEmpty
-                ? null
-                : controller.selectedExecutor.value,
-            items: controller.employees
-                .map(
-                  (e) => DropdownMenuItem(
-                    value: e.id ?? e.name ?? '',
-                    child: Text(
-                      (e.name ?? '').split(' ').take(2).join(' '),
-                    ),
-                  ),
-                )
-                .toList(),
-            onChanged: (value) {
-              controller.selectedExecutor.value = value ?? '';
-              controller.filterTasks();
-            },
-          ),
-        ),
-      ),
+          )
+          .toList(),
+      onChanged: (value) {
+        controller.selectedExecutor.value = value ?? '';
+        controller.filterTasks();
+      },
     );
   }
 
@@ -872,7 +518,7 @@ class Tasks extends StatelessWidget {
         width ?? (isDesktop ? Get.width / 5 - 78 : Get.width / 5 - 30);
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+              color: resolveAppTheme().cardSurface,
         borderRadius: BorderRadius.circular(10),
       ),
       width: boxWidth,
@@ -905,7 +551,7 @@ class Tasks extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: Colors.grey,
+                  color: resolveAppTheme().secondaryText,
                   fontWeight: FontWeight.bold,
                   fontSize: 15,
                 ),

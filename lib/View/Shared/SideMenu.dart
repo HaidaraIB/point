@@ -5,11 +5,12 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Localization/LanguageController.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/View/Shared/app_version_label.dart';
+import 'package:point/View/Shared/app_theme_menu_button.dart';
 import 'package:point/Services/StorageKeys.dart';
-import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/AppConstants.dart';
 import 'package:point/Utils/AppImages.dart';
 import 'package:point/Utils/ContentPermissions.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 class CustomSidebar extends StatefulWidget {
   final int selectedTab;
@@ -51,7 +52,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
                 onPressed: () => Navigator.of(ctx).pop(true),
                 child: Text(
                   'logout'.tr,
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: Colors.white),
                 ),
               ),
             ],
@@ -96,6 +97,11 @@ class _CustomSidebarState extends State<CustomSidebar> {
   }
 
   Widget _buildLanguageSelector() {
+    final localeCode = Get.locale?.languageCode ?? 'ar';
+    final currentLangLabel = localeCode == 'ar'
+        ? AppLocaleKeys.appLanguageArabic.tr
+        : AppLocaleKeys.appLanguageEnglish.tr;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
@@ -117,13 +123,24 @@ class _CustomSidebarState extends State<CustomSidebar> {
               ),
             ),
           ),
+          Text(
+            currentLangLabel,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.9),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(width: 2),
           PopupMenuButton<String>(
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints(
               minWidth: 36,
               minHeight: 36,
             ),
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.surface,
             icon: const Icon(
               Icons.arrow_drop_down,
               color: Colors.white,
@@ -156,7 +173,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
     return Container(
       width: 270,
       decoration: BoxDecoration(
-        color: AppColors.primary,
+        color: context.appTheme.navSurface,
         boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5)],
       ),
       child: Column(
@@ -201,7 +218,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
                               displayImage.isEmpty
                                   ? Text(
                                     firstLetter,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w700,
                                     ),
@@ -217,7 +234,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                 displayName,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -1111,6 +1128,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
             },
           ),
           _buildLanguageSelector(),
+          const AppThemeMenuButton(onDarkSurface: true),
           AppVersionLabel(
             padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
             textStyle: TextStyle(
@@ -1155,11 +1173,14 @@ class _CustomSidebarState extends State<CustomSidebar> {
     final tileColor = customColor;
     final color =
         tileColor ??
-        (selectedTab == _selectedTab ? AppColors.fontColorGrey : Colors.white);
+        (selectedTab == _selectedTab
+            ? Colors.white
+            : Colors.white.withValues(alpha: 0.85));
+    final selectedBg = Colors.white.withValues(alpha: 0.18);
     final decoration =
         selectedTab == _selectedTab
             ? BoxDecoration(
-              color: Color(0xffECECEC),
+              color: selectedBg,
               borderRadius: BorderRadius.circular(3),
             )
             : null;
@@ -1190,8 +1211,8 @@ class _CustomSidebarState extends State<CustomSidebar> {
             color:
                 tileColor ??
                 (selectedTab == _selectedTab
-                    ? AppColors.fontColorGrey
-                    : Colors.white),
+                    ? Colors.white
+                    : Colors.white.withValues(alpha: 0.85)),
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -1201,7 +1222,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
                 ? Icon(
                   _selectedNavArrowIcon(context),
                   size: 18,
-                  color: AppColors.fontColorGrey,
+                  color: Colors.white,
                 )
                 : null,
       ),
@@ -1215,12 +1236,12 @@ class _CustomSidebarState extends State<CustomSidebar> {
   }) {
     final dotColor =
         selectedTab == _selectedSubTab
-            ? AppColors.fontColorGrey
-            : Colors.white;
+            ? Colors.white
+            : Colors.white.withValues(alpha: 0.85);
     final textColor =
         selectedTab == _selectedSubTab
-            ? AppColors.fontColorGrey
-            : Colors.white;
+            ? Colors.white
+            : Colors.white.withValues(alpha: 0.85);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 5),
@@ -1228,7 +1249,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
       decoration:
           selectedTab == _selectedSubTab
               ? BoxDecoration(
-                color: Color(0xffECECEC),
+                color: Colors.white.withValues(alpha: 0.18),
                 borderRadius: BorderRadius.circular(3),
               )
               : null,
@@ -1271,12 +1292,12 @@ class _CustomSidebarState extends State<CustomSidebar> {
   }) {
     final iconColor =
         selectedTab == _selectedTab
-            ? AppColors.fontColorGrey
-            : Colors.white;
+            ? Colors.white
+            : Colors.white.withValues(alpha: 0.85);
     final decoration =
         selectedTab == _selectedTab
             ? BoxDecoration(
-              color: Color(0xffECECEC),
+              color: Colors.white.withValues(alpha: 0.18),
               borderRadius: BorderRadius.circular(3),
             )
             : null;
@@ -1312,8 +1333,8 @@ class _CustomSidebarState extends State<CustomSidebar> {
               fontSize: 14,
               color:
                   selectedTab == _selectedTab
-                      ? AppColors.fontColorGrey
-                      : Colors.white,
+                      ? Colors.white
+                      : Colors.white.withValues(alpha: 0.85),
               fontWeight: FontWeight.w500,
             ),
           ),

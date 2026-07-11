@@ -8,6 +8,7 @@ import 'package:point/Models/VoiceRecordEntry.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Clients/ClientsTable.dart';
 import 'package:point/View/Shared/CustomDropDown.dart';
@@ -184,6 +185,7 @@ class _AddProgrammingUpdateMobilePageState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: context.appTheme.pageBackground,
       appBar: AppBar(
         title: Text('programming.updates.form_title'.tr),
         backgroundColor: AppColors.primary,
@@ -201,9 +203,7 @@ class _AddProgrammingUpdateMobilePageState
                   labelText: 'task_details.task_title'.tr,
                   hintText: 'tasks.form.write_title_hint'.tr,
                   controller: titleController,
-                  fillColor: Colors.white,
                   borderRadius: 8,
-                  borderColor: Colors.grey.shade300,
                 ),
                 const SizedBox(height: 12),
                 DynamicDropdown<EmployeeModel>(
@@ -222,9 +222,7 @@ class _AddProgrammingUpdateMobilePageState
                         ),
                   label: 'tasks.form.select_executor'.tr,
                   borderRadius: 8,
-                  borderColor: Colors.grey.shade300,
                   height: 42,
-                  fillColor: Colors.white,
                   onChanged: (value) {
                     if (value != null) {
                       executorController.text = value.id ?? '';
@@ -254,9 +252,7 @@ class _AddProgrammingUpdateMobilePageState
                             )),
                   label: 'chooseclient'.tr,
                   borderRadius: 8,
-                  borderColor: Colors.grey.shade300,
                   height: 42,
-                  fillColor: Colors.white,
                   onChanged: (value) {
                     setState(() {
                       if (value == _otherClient) {
@@ -275,9 +271,7 @@ class _AddProgrammingUpdateMobilePageState
                     labelText: 'tasks.form.client_name_label'.tr,
                     hintText: 'tasks.form.client_name_hint'.tr,
                     controller: customClientController,
-                    fillColor: Colors.white,
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                   ),
                 ],
                 const SizedBox(height: 12),
@@ -285,18 +279,14 @@ class _AddProgrammingUpdateMobilePageState
                   labelText: 'task_details.content_link'.tr,
                   hintText: '',
                   controller: contenturlController,
-                  fillColor: Colors.white,
                   borderRadius: 8,
-                  borderColor: Colors.grey.shade300,
                 ),
                 const SizedBox(height: 12),
                 InputText(
                   labelText: 'task_details.files_link'.tr,
                   hintText: '',
                   controller: fileurlController,
-                  fillColor: Colors.white,
                   borderRadius: 8,
-                  borderColor: Colors.grey.shade300,
                 ),
                 const SizedBox(height: 12),
                 DynamicDropdown<String>(
@@ -313,9 +303,7 @@ class _AddProgrammingUpdateMobilePageState
                       : priorityController.text,
                   label: 'priortity'.tr,
                   borderRadius: 8,
-                  borderColor: Colors.grey.shade300,
                   height: 42,
-                  fillColor: Colors.white,
                   onChanged: (value) {
                     if (value != null) {
                       setState(() => priorityController.text = value);
@@ -327,9 +315,7 @@ class _AddProgrammingUpdateMobilePageState
                   labelText: 'task_details.category'.tr,
                   hintText: '',
                   controller: categoryController,
-                  fillColor: Colors.white,
                   borderRadius: 8,
-                  borderColor: Colors.grey.shade300,
                 ),
                 const SizedBox(height: 12),
                 InputText(
@@ -337,11 +323,9 @@ class _AddProgrammingUpdateMobilePageState
                   labelText: 'startat'.tr,
                   hintText: 'common.select_date'.tr,
                   height: 48,
-                  fillColor: Colors.white,
                   controller: startDateController,
                   readOnly: true,
                   borderRadius: 8,
-                  borderColor: Colors.grey.shade300,
                 ),
                 const SizedBox(height: 12),
                 InputText(
@@ -349,11 +333,9 @@ class _AddProgrammingUpdateMobilePageState
                   labelText: 'endat'.tr,
                   hintText: 'common.select_date'.tr,
                   height: 48,
-                  fillColor: Colors.white,
                   controller: endDateController,
                   readOnly: true,
                   borderRadius: 8,
-                  borderColor: Colors.grey.shade300,
                 ),
                 const SizedBox(height: 12),
                 InputText(
@@ -362,9 +344,7 @@ class _AddProgrammingUpdateMobilePageState
                   controller: aboutTaskController,
                   height: 80,
                   expanded: true,
-                  fillColor: Colors.white,
                   borderRadius: 8,
-                  borderColor: Colors.grey.shade300,
                 ),
                 const SizedBox(height: 12),
                 InputText(
@@ -373,9 +353,7 @@ class _AddProgrammingUpdateMobilePageState
                   controller: notesController,
                   height: 80,
                   expanded: true,
-                  fillColor: Colors.white,
                   borderRadius: 8,
-                  borderColor: Colors.grey.shade300,
                 ),
                 const SizedBox(height: 12),
                 GestureDetector(
@@ -391,14 +369,17 @@ class _AddProgrammingUpdateMobilePageState
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
+                      color: context.appTheme.unselected,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.shade300),
+                      border: Border.all(color: context.appTheme.border),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('dragfile'.tr),
+                        Text(
+                          'dragfile'.tr,
+                          style: TextStyle(color: context.appTheme.secondaryText),
+                        ),
                         Obx(
                           () => controller.isUploading.value
                               ? const SizedBox(

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Models/ProgrammingUpdateModel.dart';
-import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// Banner shown when creating a programming task from pending updates.
 class UpdatesSourceBanner extends StatefulWidget {
@@ -22,14 +22,19 @@ class _UpdatesSourceBannerState extends State<UpdatesSourceBanner> {
     if (n == 0) return const SizedBox.shrink();
 
     final theme = Theme.of(context);
+    final appTheme = context.appTheme;
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.08),
+        color: appTheme.panelTint,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.35)),
+        border: Border.all(
+          color: appTheme.accentText.withValues(
+            alpha: Theme.of(context).brightness == Brightness.dark ? 0.45 : 0.35,
+          ),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -38,7 +43,7 @@ class _UpdatesSourceBannerState extends State<UpdatesSourceBanner> {
             onTap: () => setState(() => _expanded = !_expanded),
             child: Row(
               children: [
-                Icon(Icons.merge_type, color: AppColors.primary, size: 20),
+                Icon(Icons.merge_type, color: appTheme.accentText, size: 20),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -46,13 +51,13 @@ class _UpdatesSourceBannerState extends State<UpdatesSourceBanner> {
                         .trParams({'count': '$n'}),
                     style: theme.textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: AppColors.primaryfontColor,
+                      color: appTheme.primaryText,
                     ),
                   ),
                 ),
                 Icon(
                   _expanded ? Icons.expand_less : Icons.expand_more,
-                  color: AppColors.primary,
+                  color: appTheme.accentText,
                 ),
               ],
             ),
@@ -83,21 +88,26 @@ class _SourceUpdateCard extends StatelessWidget {
         ? update.title.trim()
         : 'programming.updates.update_n'.trParams({'n': '$index'});
     final desc = update.description.trim();
+    final appTheme = context.appTheme;
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white,
+              color: context.appTheme.cardSurface,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: context.appTheme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+              color: appTheme.primaryText,
+            ),
           ),
           if (desc.isNotEmpty) ...[
             const SizedBox(height: 4),
@@ -105,7 +115,10 @@ class _SourceUpdateCard extends StatelessWidget {
               desc,
               maxLines: 4,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+              style: TextStyle(
+                fontSize: 12,
+                color: appTheme.secondaryText,
+              ),
             ),
           ],
           const SizedBox(height: 6),

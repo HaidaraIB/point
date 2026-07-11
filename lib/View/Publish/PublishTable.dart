@@ -15,6 +15,7 @@ import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 import 'package:point/Utils/media_url_opener.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 class PublishTable extends StatelessWidget {
   const PublishTable({super.key});
 
@@ -46,7 +47,7 @@ class PublishTable extends StatelessWidget {
       style: TextStyle(
         fontSize: 13,
         fontWeight: FontWeight.bold,
-        color: AppColors.fontColorGrey,
+        color: resolveAppTheme().secondaryText,
       ),
       textAlign: TextAlign.center,
       maxLines: 1,
@@ -66,26 +67,28 @@ class PublishTable extends StatelessWidget {
     }
   }
 
+  Color _chipBackground(Color accent) => accent.withValues(alpha: 0.18);
+
   ({Color fg, Color bg, IconData icon}) _statusVisuals(String status) {
     final s = status.trim().toLowerCase();
-    Color fg = Colors.grey.shade700;
-    Color bg = Colors.grey.shade100;
+    Color fg = resolveAppTheme().secondaryText;
+    Color bg = resolveAppTheme().unselected;
     IconData icon = Icons.hourglass_empty_rounded;
     if (s == 'published') {
-      fg = Colors.lightGreen.shade700;
-      bg = Colors.lightGreen.shade50;
+      fg = const Color(0xFF4ADE80);
+      bg = _chipBackground(fg);
       icon = Icons.check_box_rounded;
     } else if (s == 'publishing') {
-      fg = Colors.orange.shade700;
-      bg = Colors.orange.shade50;
+      fg = const Color(0xFFFB923C);
+      bg = _chipBackground(fg);
       icon = Icons.play_circle_outline_rounded;
     } else if (s == 'failed' || s == 'cancelled') {
-      fg = Colors.red.shade700;
-      bg = Colors.red.shade50;
+      fg = const Color(0xFFF87171);
+      bg = _chipBackground(fg);
       icon = s == 'cancelled' ? Icons.block_rounded : Icons.error_outline_rounded;
     } else if (s == 'queued' || s == 'queued_now' || s == 'scheduled') {
-      fg = Colors.amber.shade800;
-      bg = Colors.amber.shade50;
+      fg = const Color(0xFFFBBF24);
+      bg = _chipBackground(fg);
       icon = Icons.schedule_rounded;
     }
     return (fg: fg, bg: bg, icon: icon);
@@ -139,20 +142,18 @@ class PublishTable extends StatelessWidget {
 
   Widget _postTypeChip(String postType) {
     final type = postType.trim().toLowerCase();
-    Color fg = Colors.purple.shade700;
-    Color bg = Colors.purple.shade100;
+    Color fg = const Color(0xFFA78BFA);
     if (type == 'feed') {
-      fg = Colors.indigo.shade700;
-      bg = Colors.indigo.shade50;
+      fg = const Color(0xFF818CF8);
     } else if (type == 'story') {
-      fg = Colors.pink.shade700;
-      bg = Colors.pink.shade50;
+      fg = const Color(0xFFF472B6);
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
-        color: bg,
+        color: _chipBackground(fg),
         borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: fg.withValues(alpha: 0.35)),
       ),
       child: Text(
         _postTypeLabel(postType),
@@ -182,8 +183,9 @@ class PublishTable extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
+        color: resolveAppTheme().panelTint,
         borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: resolveAppTheme().border),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -193,7 +195,7 @@ class PublishTable extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              color: AppColors.fontColorGrey,
+              color: resolveAppTheme().primaryText,
               fontSize: 12,
               fontWeight: FontWeight.w600,
             ),
@@ -212,7 +214,7 @@ class PublishTable extends StatelessWidget {
         .where((e) => e.isNotEmpty)
         .toList();
     if (items.isEmpty) {
-      return Text('-', style: TextStyle(color: Colors.grey.shade700));
+      return Text('-', style: TextStyle(color: resolveAppTheme().mutedText));
     }
     return Wrap(
       alignment: alignment,
@@ -331,7 +333,7 @@ class PublishTable extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              color: Colors.white,
+              color: resolveAppTheme().cardSurface,
               elevation: 4,
               position: RelativeRect.fromLTRB(
                 left,
@@ -406,7 +408,7 @@ class PublishTable extends StatelessWidget {
                           child: Text(
                             label,
                             style: TextStyle(
-                              color: AppColors.primary,
+                              color: resolveAppTheme().accentText,
                             ),
                           ),
                         );
@@ -431,7 +433,7 @@ class PublishTable extends StatelessWidget {
                           child: Text(
                             label,
                             style: TextStyle(
-                              color: AppColors.primary,
+                              color: resolveAppTheme().accentText,
                             ),
                           ),
                         );
@@ -475,7 +477,7 @@ class PublishTable extends StatelessWidget {
                   const SizedBox(height: 10),
                   Text(
                     'publish.caption'.tr,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
+                    style: TextStyle(fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 4),
                   Text(p.caption!.trim()),
@@ -484,7 +486,7 @@ class PublishTable extends StatelessWidget {
                   const SizedBox(height: 12),
                   Text(
                     'publish.media'.tr,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
+                    style: TextStyle(fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 8),
                   SizedBox(
@@ -508,19 +510,19 @@ class PublishTable extends StatelessWidget {
                   const SizedBox(height: 10),
                   Text(
                     'publish.meta_response'.tr,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
+                    style: TextStyle(fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     p.metaResponse!.trim(),
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade800),
+                    style: TextStyle(fontSize: 12, color: resolveAppTheme().mutedText),
                   ),
                 ],
                 if ((p.lastError ?? '').trim().isNotEmpty) ...[
                   const SizedBox(height: 10),
                   Text(
                     'publish.last_error'.tr,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w700,
                       color: Colors.red,
                     ),
@@ -528,7 +530,7 @@ class PublishTable extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     p.lastError!.trim(),
-                    style: const TextStyle(fontSize: 12, color: Colors.red),
+                    style: TextStyle(fontSize: 12, color: Colors.red),
                   ),
                 ],
               ],
@@ -561,7 +563,7 @@ class PublishTable extends StatelessWidget {
       tooltip: 'tasks.options_tooltip'.tr,
       padding: EdgeInsets.zero,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      color: Colors.white,
+      color: resolveAppTheme().cardSurface,
       elevation: 4,
       itemBuilder: (context) {
         final items = <PopupMenuEntry<String>>[];
@@ -705,7 +707,7 @@ class PublishTable extends StatelessWidget {
           tooltip: 'publish.meta_settings'.tr,
           onPressed: showPublishMetaSettingsDialog,
           icon: const Icon(Icons.settings_outlined, size: 22),
-          color: AppColors.primary,
+          color: resolveAppTheme().accentText,
         );
       }
       return TextButton.icon(
@@ -734,7 +736,7 @@ class PublishTable extends StatelessWidget {
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: TextStyle(
-        color: AppColors.fontColorGrey,
+        color: resolveAppTheme().secondaryText,
         fontSize: 17,
         fontWeight: FontWeight.bold,
       ),
@@ -804,9 +806,9 @@ class PublishTable extends StatelessWidget {
                   child: DataTable(
                       dataRowMinHeight: 64,
                       dataRowMaxHeight: double.infinity,
-                      dataRowColor: WidgetStateProperty.all(Colors.white),
+                      dataRowColor: context.tableDataRowColor,
+                      headingRowColor: context.tableHeadingRowColor,
                       dividerThickness: 0.5,
-                      headingRowColor: WidgetStateProperty.all(Colors.grey.shade200),
                       columns: [
                         DataColumn(
                           columnWidth: const FixedColumnWidth(220),
@@ -884,7 +886,7 @@ class PublishTable extends StatelessWidget {
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
-                                        color: AppColors.primary,
+                                        color: resolveAppTheme().accentText,
                                       ),
                                     ),
                                   );
@@ -914,7 +916,7 @@ class PublishTable extends StatelessWidget {
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
-                                        color: AppColors.primary,
+                                        color: resolveAppTheme().accentText,
                                       ),
                                     ),
                                   );
@@ -986,7 +988,7 @@ class PublishTable extends StatelessWidget {
                   final p = list[i];
                   return Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+              color: resolveAppTheme().cardSurface,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(color: Colors.grey.shade200),
                       boxShadow: [
@@ -1008,7 +1010,7 @@ class PublishTable extends StatelessWidget {
                                 p.title,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontWeight: FontWeight.w700,
                                   fontSize: 16,
                                 ),
@@ -1029,7 +1031,7 @@ class PublishTable extends StatelessWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  color: Colors.grey.shade800,
+                                  color: resolveAppTheme().mutedText,
                                   fontSize: 14,
                                 ),
                               );
@@ -1041,7 +1043,7 @@ class PublishTable extends StatelessWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  color: AppColors.primary,
+                                  color: resolveAppTheme().accentText,
                                   fontSize: 14,
                                 ),
                               ),
@@ -1059,7 +1061,7 @@ class PublishTable extends StatelessWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  color: Colors.grey.shade700,
+                                  color: resolveAppTheme().mutedText,
                                   fontSize: 12,
                                 ),
                               );
@@ -1071,7 +1073,7 @@ class PublishTable extends StatelessWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  color: AppColors.primary,
+                                  color: resolveAppTheme().accentText,
                                   fontSize: 12,
                                 ),
                               ),
@@ -1100,7 +1102,7 @@ class PublishTable extends StatelessWidget {
                             Icon(
                               Icons.schedule_outlined,
                               size: 15,
-                              color: Colors.grey.shade600,
+                              color: resolveAppTheme().mutedText,
                             ),
                             const SizedBox(width: 5),
                             Expanded(
@@ -1109,7 +1111,7 @@ class PublishTable extends StatelessWidget {
                                   (p.scheduledAt ?? p.createdAt).toLocal(),
                                 ),
                                 style: TextStyle(
-                                  color: Colors.grey.shade700,
+                                  color: resolveAppTheme().mutedText,
                                   fontSize: 12,
                                 ),
                               ),

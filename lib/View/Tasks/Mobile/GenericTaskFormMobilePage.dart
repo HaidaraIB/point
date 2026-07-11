@@ -25,6 +25,7 @@ import 'package:point/View/Tasks/ProgrammingUpdates/updates_source_banner.dart';
 import 'package:point/View/Tasks/Shared/task_voice_form_helpers.dart';
 import 'package:point/View/Tasks/Shared/task_voice_record_field.dart';
 import 'package:point/Models/VoiceRecordEntry.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// Mobile full-screen form for add/edit task. Used for all task types except Design
 /// (Design uses DesignTaskFormMobilePage). Web dialogs are not touched.
@@ -706,17 +707,18 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final appTheme = context.appTheme;
     final bottomPadding = MediaQuery.of(context).padding.bottom + 24;
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: appTheme.pageBackground,
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
         title: Text(
           widget.model == null ? 'tasks.form.add_title'.tr : 'tasks.form.edit_title'.tr,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
@@ -756,11 +758,9 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                     labelText: 'task_details.task_title'.tr,
                     hintText: 'tasks.form.write_task_title_hint'.tr,
                     height: 48,
-                    fillColor: Colors.white,
                     controller: titleController,
                     validator: (v) => (v == null || v.isEmpty) ? ' ' : null,
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                   ),
                   const SizedBox(height: 16),
                   DynamicDropdown<dynamic>(
@@ -777,9 +777,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                         : (clientController.text.isEmpty ? null : matchedClient),
                     label: 'content.dialog.client'.tr,
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                     height: 48,
-                    fillColor: Colors.white,
                     onChanged: (value) {
                       setState(() {
                         if (value == _otherClientValue) {
@@ -799,11 +797,9 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                       labelText: 'tasks.form.client_name_label'.tr,
                       hintText: 'tasks.form.client_name_hint'.tr,
                       height: 48,
-                      fillColor: Colors.white,
                       controller: customClientController,
                       validator: (v) => (v == null || v.trim().isEmpty) ? ' ' : null,
                       borderRadius: 8,
-                      borderColor: Colors.grey.shade300,
                     ),
                   ],
                   const SizedBox(height: 16),
@@ -814,9 +810,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                     value: executorController.text.isEmpty ? null : filteredEmployees.firstWhereOrNull((a) => a.id == executorController.text),
                     label: 'content.dialog.executor'.tr,
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                     height: 48,
-                    fillColor: Colors.white,
                     onChanged: (value) {
                       if (value != null) executorController.text = value.id ?? '';
                     },
@@ -830,9 +824,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                     value: priorityController.text.isEmpty ? null : priorityController.text,
                     label: 'task_details.task_priority'.tr,
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                     height: 48,
-                    fillColor: Colors.white,
                     onChanged: (value) {
                       if (value != null) priorityController.text = value;
                     },
@@ -845,12 +837,10 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                     labelText: 'startat'.tr,
                     hintText: 'common.select_date'.tr,
                     height: 48,
-                    fillColor: Colors.white,
                     controller: startDateController,
                     readOnly: true,
                     validator: (v) => (v == null || v.isEmpty) ? ' ' : null,
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                   ),
                   const SizedBox(height: 16),
                   InputText(
@@ -858,12 +848,10 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                     labelText: 'endat'.tr,
                     hintText: 'common.select_date'.tr,
                     height: 48,
-                    fillColor: Colors.white,
                     controller: endDateController,
                     readOnly: true,
                     validator: (v) => (v == null || v.isEmpty) ? ' ' : null,
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                   ),
                   ..._buildTypeSpecificFields(),
                   const SizedBox(height: 16),
@@ -872,9 +860,9 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+              color: context.appTheme.cardSurface,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade300),
+                        border: Border.all(color: appTheme.border),
                       ),
                       constraints: const BoxConstraints(maxHeight: 200),
                       child: ListView.separated(
@@ -891,13 +879,13 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                                 style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
-                                  color: AppColors.primaryfontColor,
+                                  color: appTheme.primaryText,
                                 ),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 note.byWho,
-                                style: const TextStyle(fontSize: 12, color: Colors.green),
+                                style: TextStyle(fontSize: 12, color: Colors.green),
                               ),
                             ],
                           );
@@ -910,11 +898,9 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                     labelText: 'notes'.tr,
                     hintText: 'tasks.form.notes_optional_hint'.tr,
                     height: 80,
-                    fillColor: Colors.white,
                     controller: notesController,
                     expanded: true,
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                   ),
                   const SizedBox(height: 24),
                   _sectionLabel('tasks.form.section_notes_attachments'.tr),
@@ -928,15 +914,15 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
+                        color: context.appTheme.unselected,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade300),
+                        border: Border.all(color: context.appTheme.border),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('uploadfile'.tr, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey.shade700)),
-                          Obx(() => controller.isUploading.value ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)) : Icon(Icons.upload_file, color: AppColors.primary)),
+                          Text('uploadfile'.tr, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: appTheme.secondaryText)),
+                          Obx(() => controller.isUploading.value ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)) : Icon(Icons.upload_file, color: appTheme.accentText)),
                         ],
                       ),
                     ),
@@ -1025,7 +1011,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                                               width: 20,
                                               height: 20,
                                               decoration: BoxDecoration(
-                                                color: Colors.black54,
+                                                color: appTheme.secondaryText,
                                                 borderRadius:
                                                     BorderRadius.circular(10),
                                               ),
@@ -1074,7 +1060,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                                                 'supervisor')))
                                     ? 'edit'.tr
                                     : 'common.save'.tr,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
@@ -1087,6 +1073,8 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
                   OutlinedButton(
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(double.infinity, 52),
+                      foregroundColor: appTheme.primaryText,
+                      side: BorderSide(color: appTheme.border),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     onPressed: () => Get.back(),
@@ -1113,9 +1101,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             value: campaignReasonController.text.isEmpty ? null : campaignReasonController.text,
             label: 'campainreason'.tr,
             borderRadius: 8,
-            borderColor: Colors.grey.shade300,
             height: 48,
-            fillColor: Colors.white,
             onChanged: (v) { if (v != null) campaignReasonController.text = v; },
             validator: (v) => v == null ? ' ' : null,
           ),
@@ -1126,25 +1112,21 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             itemLabel: (v) => v,
             label: 'platform'.tr,
             borderRadius: 8,
-            borderColor: Colors.grey.shade300,
             height: 48,
-            fillColor: Colors.white,
             onChanged: (v) => platformsPromo.assignAll(v),
             validator: (v) => (v == null || v.isEmpty) ? ' ' : null,
           )),
           pad,
-          InputText(labelText: 'marks'.tr, hintText: 'addmark'.tr, height: 48, fillColor: Colors.white, controller: marksController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          InputText(labelText: 'marks'.tr, hintText: 'addmark'.tr, height: 48, controller: marksController, borderRadius: 8),
           pad,
-          InputText(labelText: 'task_details.duration'.tr, hintText: 'promotion.campaign_duration_hint'.tr, height: 48, fillColor: Colors.white, controller: durationPromoController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          InputText(labelText: 'task_details.duration'.tr, hintText: 'promotion.campaign_duration_hint'.tr, height: 48, controller: durationPromoController, borderRadius: 8),
           pad,
           InputText(
             labelText: 'promotion.campaign_budget'.tr,
             hintText: 'promotion.campaign_budget_hint'.tr,
             height: 48,
-            fillColor: Colors.white,
             controller: campaignBudgetPromoController,
             borderRadius: 8,
-            borderColor: Colors.grey.shade300,
           ),
           pad,
           Obx(() => DynamicDropdownMultiSelect<String>(
@@ -1153,9 +1135,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             itemLabel: (v) => v,
             label: 'task_details.countries'.tr,
             borderRadius: 8,
-            borderColor: Colors.grey.shade300,
             height: 48,
-            fillColor: Colors.white,
             onChanged: (v) {
               countriesList.assignAll(v);
               final allowed = StorageKeys.getCitiesForCountries(v);
@@ -1169,9 +1149,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             itemLabel: (v) => v,
             label: 'task_details.interests'.tr,
             borderRadius: 8,
-            borderColor: Colors.grey.shade300,
             height: 48,
-            fillColor: Colors.white,
             onChanged: (v) => interestsList.assignAll(v),
           )),
           pad,
@@ -1181,13 +1159,11 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             itemLabel: (v) => v,
             label: 'task_details.cities'.tr,
             borderRadius: 8,
-            borderColor: Colors.grey.shade300,
             height: 48,
-            fillColor: Colors.white,
             onChanged: (v) => cityList.assignAll(v),
           )),
           pad,
-          InputText(labelText: 'task_details.age_ranges'.tr, hintText: 'task_details.age_ranges'.tr, height: 48, fillColor: Colors.white, controller: ageRangesController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          InputText(labelText: 'task_details.age_ranges'.tr, hintText: 'task_details.age_ranges'.tr, height: 48, controller: ageRangesController, borderRadius: 8),
           pad,
           Obx(() => DynamicDropdownMultiSelect<String>(
             items: StorageKeys.specialist,
@@ -1195,13 +1171,11 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             itemLabel: (v) => v,
             label: 'task_details.specializations'.tr,
             borderRadius: 8,
-            borderColor: Colors.grey.shade300,
             height: 48,
-            fillColor: Colors.white,
             onChanged: (v) => specializationsList.assignAll(v),
           )),
           pad,
-          InputText(labelText: 'task_details.files_link'.tr, hintText: 'task_details.files_link_hint'.tr, height: 48, fillColor: Colors.white, controller: attachmentPromoController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          InputText(labelText: 'task_details.files_link'.tr, hintText: 'task_details.files_link_hint'.tr, height: 48, controller: attachmentPromoController, borderRadius: 8),
         ];
       case '2': // Photography
         return [
@@ -1213,9 +1187,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             itemLabel: (v) => v,
             label: 'platform'.tr,
             borderRadius: 8,
-            borderColor: Colors.grey.shade300,
             height: 48,
-            fillColor: Colors.white,
             onChanged: (v) => platformsPhoto.assignAll(v),
           )),
           pad,
@@ -1224,9 +1196,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             value: shootingTypeController.text.isEmpty ? null : shootingTypeController.text,
             label: 'task_details.shooting_type'.tr,
             borderRadius: 8,
-            borderColor: Colors.grey.shade300,
             height: 48,
-            fillColor: Colors.white,
             onChanged: (v) { if (v != null) shootingTypeController.text = v; },
           ),
           pad,
@@ -1235,15 +1205,13 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             value: shootingLocationController.text.isEmpty ? null : shootingLocationController.text,
             label: 'task_details.shooting_location'.tr,
             borderRadius: 8,
-            borderColor: Colors.grey.shade300,
             height: 48,
-            fillColor: Colors.white,
             onChanged: (v) { if (v != null) shootingLocationController.text = v; },
           ),
           pad,
-          InputText(labelText: 'task_details.design_count'.tr, hintText: 'task_details.design_count'.tr, height: 48, fillColor: Colors.white, controller: designCountPhotoController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          InputText(labelText: 'task_details.design_count'.tr, hintText: 'task_details.design_count'.tr, height: 48, controller: designCountPhotoController, borderRadius: 8),
           pad,
-          InputText(labelText: 'task_details.duration'.tr, hintText: 'task_details.duration'.tr, height: 48, fillColor: Colors.white, controller: durationPhotoController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          InputText(labelText: 'task_details.duration'.tr, hintText: 'task_details.duration'.tr, height: 48, controller: durationPhotoController, borderRadius: 8),
         ];
       case '3': // ContentWrite
         return [
@@ -1255,9 +1223,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             itemLabel: (v) => v,
             label: 'platform'.tr,
             borderRadius: 8,
-            borderColor: Colors.grey.shade300,
             height: 48,
-            fillColor: Colors.white,
             onChanged: (v) => platformsContent.assignAll(v),
           )),
           pad,
@@ -1266,15 +1232,13 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             value: contentTypeController.text.isEmpty ? null : contentTypeController.text,
             label: 'task_details.content_type'.tr,
             borderRadius: 8,
-            borderColor: Colors.grey.shade300,
             height: 48,
-            fillColor: Colors.white,
             onChanged: (v) { if (v != null) contentTypeController.text = v; },
           ),
           pad,
-          InputText(labelText: 'task_details.design_count'.tr, hintText: 'task_details.design_count'.tr, height: 48, fillColor: Colors.white, controller: designCountContentController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          InputText(labelText: 'task_details.design_count'.tr, hintText: 'task_details.design_count'.tr, height: 48, controller: designCountContentController, borderRadius: 8),
           pad,
-          InputText(labelText: 'task_details.dimensions'.tr, hintText: 'task_details.dimensions'.tr, height: 48, fillColor: Colors.white, controller: dimensionsContentController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          InputText(labelText: 'task_details.dimensions'.tr, hintText: 'task_details.dimensions'.tr, height: 48, controller: dimensionsContentController, borderRadius: 8),
         ];
       case '4': // Montage
         return [
@@ -1286,9 +1250,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             itemLabel: (v) => v,
             label: 'platform'.tr,
             borderRadius: 8,
-            borderColor: Colors.grey.shade300,
             height: 48,
-            fillColor: Colors.white,
             onChanged: (v) => platformsMontage.assignAll(v),
           )),
           pad,
@@ -1297,27 +1259,25 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             value: categoryMontageController.text.isEmpty ? null : categoryMontageController.text,
             label: 'task_details.category'.tr,
             borderRadius: 8,
-            borderColor: Colors.grey.shade300,
             height: 48,
-            fillColor: Colors.white,
             onChanged: (v) { if (v != null) categoryMontageController.text = v; },
           ),
           pad,
-          InputText(labelText: 'task_details.dimensions'.tr, hintText: 'task_details.dimensions'.tr, height: 48, fillColor: Colors.white, controller: dimensionsMontageController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          InputText(labelText: 'task_details.dimensions'.tr, hintText: 'task_details.dimensions'.tr, height: 48, controller: dimensionsMontageController, borderRadius: 8),
           pad,
-          InputText(labelText: 'task_details.attachment_link'.tr, hintText: 'task_details.attachment_link'.tr, height: 48, fillColor: Colors.white, controller: attachmentMontageController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          InputText(labelText: 'task_details.attachment_link'.tr, hintText: 'task_details.attachment_link'.tr, height: 48, controller: attachmentMontageController, borderRadius: 8),
           pad,
-          InputText(labelText: 'task_details.duration'.tr, hintText: 'task_details.duration'.tr, height: 48, fillColor: Colors.white, controller: durationMontageController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          InputText(labelText: 'task_details.duration'.tr, hintText: 'task_details.duration'.tr, height: 48, controller: durationMontageController, borderRadius: 8),
         ];
       case '5': // Publish
         return [
           const SizedBox(height: 24),
           _sectionLabel('tasks.form.section_publish'.tr),
-          InputText(labelText: 'task_details.content_link'.tr, hintText: 'task_details.content_link'.tr, height: 48, fillColor: Colors.white, controller: contentUrlController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          InputText(labelText: 'task_details.content_link'.tr, hintText: 'task_details.content_link'.tr, height: 48, controller: contentUrlController, borderRadius: 8),
           pad,
-          InputText(labelText: 'task_details.files_link'.tr, hintText: 'task_details.files_link'.tr, height: 48, fillColor: Colors.white, controller: fileUrlController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          InputText(labelText: 'task_details.files_link'.tr, hintText: 'task_details.files_link'.tr, height: 48, controller: fileUrlController, borderRadius: 8),
           pad,
-          InputText(labelText: 'task_details.category'.tr, hintText: 'task_details.category'.tr, height: 48, fillColor: Colors.white, controller: categoryController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          InputText(labelText: 'task_details.category'.tr, hintText: 'task_details.category'.tr, height: 48, controller: categoryController, borderRadius: 8),
           pad,
           Obx(() => DynamicDropdownMultiSelect<String>(
             items: StorageKeys.platformList.map((v) => v.tr).toList(),
@@ -1325,13 +1285,11 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             itemLabel: (v) => v,
             label: 'platform'.tr,
             borderRadius: 8,
-            borderColor: Colors.grey.shade300,
             height: 48,
-            fillColor: Colors.white,
             onChanged: (v) => platformsPublish.assignAll(v),
           )),
           pad,
-          InputText(labelText: 'task_details.dimensions'.tr, hintText: 'task_details.dimensions'.tr, height: 48, fillColor: Colors.white, controller: dimensionsPublishController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          InputText(labelText: 'task_details.dimensions'.tr, hintText: 'task_details.dimensions'.tr, height: 48, controller: dimensionsPublishController, borderRadius: 8),
         ];
       case '6': // Programming
         final sourceIds = widget.model?.sourceUpdateIds ?? const <String>[];
@@ -1348,11 +1306,11 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
           ],
           const SizedBox(height: 24),
           _sectionLabel('tasks.form.section_programming'.tr),
-          InputText(labelText: 'task_details.content_link'.tr, hintText: 'task_details.content_link'.tr, height: 48, fillColor: Colors.white, controller: contentUrlController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          InputText(labelText: 'task_details.content_link'.tr, hintText: 'task_details.content_link'.tr, height: 48, controller: contentUrlController, borderRadius: 8),
           pad,
-          InputText(labelText: 'task_details.files_link'.tr, hintText: 'task_details.files_link'.tr, height: 48, fillColor: Colors.white, controller: fileUrlController, borderRadius: 8, borderColor: Colors.grey.shade300),
+          InputText(labelText: 'task_details.files_link'.tr, hintText: 'task_details.files_link'.tr, height: 48, controller: fileUrlController, borderRadius: 8),
           pad,
-          InputText(labelText: 'task_details.category'.tr, hintText: 'task_details.category'.tr, height: 48, fillColor: Colors.white, controller: categoryController, validator: (v) => (v == null || v.isEmpty) ? ' ' : null, borderRadius: 8, borderColor: Colors.grey.shade300),
+          InputText(labelText: 'task_details.category'.tr, hintText: 'task_details.category'.tr, height: 48, controller: categoryController, validator: (v) => (v == null || v.isEmpty) ? ' ' : null, borderRadius: 8),
           pad,
           InputText(
             labelText: 'tasks.form.about_task_label'.tr,
@@ -1360,12 +1318,10 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             height: 148,
             expanded: true,
             minLines: 5,
-            fillColor: Colors.white,
             controller: aboutTaskController,
             textInputType: TextInputType.multiline,
             textInputAction: TextInputAction.newline,
             borderRadius: 8,
-            borderColor: Colors.grey.shade300,
           ),
         ];
       case '7': // Administration (common fields only; optional extra in model)
@@ -1378,12 +1334,10 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             height: 148,
             expanded: true,
             minLines: 5,
-            fillColor: Colors.white,
             controller: aboutTaskController,
             textInputType: TextInputType.multiline,
             textInputAction: TextInputAction.newline,
             borderRadius: 8,
-            borderColor: Colors.grey.shade300,
           ),
         ];
       default:
@@ -1399,7 +1353,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
         style: TextStyle(
           fontSize: 15,
           fontWeight: FontWeight.bold,
-          color: Colors.grey.shade800,
+          color: context.appTheme.primaryText,
         ),
       ),
     );

@@ -7,6 +7,7 @@ import 'package:point/Utils/attachment_download.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 import 'package:point/View/Tasks/Shared/task_attachment_gallery.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 class LibraryDirectFileCard extends StatelessWidget {
   final LibraryFileModel file;
@@ -77,7 +78,7 @@ class LibraryDirectFileCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.insert_drive_file_outlined, color: Colors.grey.shade700),
+          Icon(Icons.insert_drive_file_outlined, color: context.appTheme.mutedText),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -92,7 +93,7 @@ class LibraryDirectFileCard extends StatelessWidget {
                       name,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 15,
                       ),
@@ -123,7 +124,7 @@ class LibraryDirectFileCard extends StatelessWidget {
                   '${'library.uploaded_at'.tr}: ${_formatTs(file.uploadedAt)}',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey.shade700,
+                    color: context.appTheme.mutedText,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -190,7 +191,7 @@ class LibraryDirectFileCard extends StatelessWidget {
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Colors.grey.shade700,
+                                color: context.appTheme.mutedText,
                               ),
                             ),
                           ],

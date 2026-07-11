@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Shared/in_app_notifications_panel.dart';
 
 Future<bool> confirmEmployeeLogoutDialog(BuildContext context) async {
@@ -25,7 +26,7 @@ Future<bool> confirmEmployeeLogoutDialog(BuildContext context) async {
               onPressed: () => Navigator.of(ctx).pop(true),
               child: Text(
                 'logout'.tr,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: Colors.white),
               ),
             ),
           ],
@@ -54,9 +55,9 @@ void showEmployeeNotificationsDialog(
                 padding: const EdgeInsets.all(16),
                 child: Text(
                   'header.notifications'.tr,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.teal,
+                    color: context.appTheme.primaryText,
                     fontSize: 18,
                   ),
                 ),

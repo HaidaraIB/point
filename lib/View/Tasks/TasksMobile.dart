@@ -1,6 +1,4 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Controller/home_task_filters.dart';
@@ -8,7 +6,6 @@ import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
-import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DContentWriteDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DDesignDialog.dart';
@@ -30,6 +27,8 @@ import 'package:point/View/Tasks/Dialogs/PromotionDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PublishDialog.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
 import 'package:point/View/Tasks/TaskCard.dart';
+import 'package:point/View/Shared/app_filter_dropdown.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// Mobile-only tasks screen with a single scroll so the last item is fully visible.
 class TasksMobile extends StatelessWidget {
@@ -80,8 +79,8 @@ class TasksMobile extends StatelessWidget {
                       const SizedBox(height: 15),
                       Text(
                         'tasks.summary.sent_tasks'.tr,
-                        style: const TextStyle(
-                          color: AppColors.fontColorGrey,
+                        style: TextStyle(
+                          color: resolveAppTheme().secondaryText,
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
                         ),
@@ -150,8 +149,8 @@ class TasksMobile extends StatelessWidget {
                 const SizedBox(height: 15),
                 Text(
                   'tasks.summary.sent_tasks'.tr,
-                  style: const TextStyle(
-                    color: AppColors.fontColorGrey,
+                  style: TextStyle(
+                    color: resolveAppTheme().secondaryText,
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
                   ),
@@ -198,8 +197,8 @@ class TasksMobile extends StatelessWidget {
           children: [
             Text(
               labelKey.tr,
-              style: const TextStyle(
-                color: AppColors.fontColorGrey,
+              style: TextStyle(
+                color: resolveAppTheme().secondaryText,
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
               ),
@@ -259,7 +258,7 @@ class TasksMobile extends StatelessWidget {
                   children: [
                     Text(
                       'addnewtask'.tr,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
@@ -351,7 +350,7 @@ class TasksMobile extends StatelessWidget {
     final boxWidth = width ?? (Get.width / 5 - 30);
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+              color: resolveAppTheme().cardSurface,
         borderRadius: BorderRadius.circular(10),
       ),
       width: boxWidth,
@@ -383,8 +382,8 @@ class TasksMobile extends StatelessWidget {
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.grey,
+                style: TextStyle(
+                  color: resolveAppTheme().secondaryText,
                   fontWeight: FontWeight.bold,
                   fontSize: 15,
                 ),
@@ -407,35 +406,23 @@ class TasksMobile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
-                child: InputText(
-                  prefixIcon: Icon(CupertinoIcons.search, color: Colors.grey),
-                  hintText: 'tasks.search_hint_extended'.tr,
-                  height: 42,
-                  fillColor: Colors.white,
+                child: MobileFilterSearchBar(
                   controller: controller.searchController,
-                  textInputAction: TextInputAction.search,
-                  onchange: (value) {
-                    controller.filterTasks();
-                    return null;
-                  },
-                  onFieldSubmitted: (_) {
-                    controller.filterTasks();
-                    FocusManager.instance.primaryFocus?.unfocus();
-                  },
+                  hintText: 'tasks.search_hint_extended'.tr,
                   borderRadius: 5,
-                  borderColor: Colors.grey.shade300,
+                  onChanged: controller.filterTasks,
+                  onSubmitted: (_) => controller.filterTasks(),
                 ),
               ),
               const SizedBox(width: 10),
-              InkWell(
-                onTap: () {
+              FilterResetButton(
+                onPressed: () {
                   controller.searchController.clear();
                   controller.selectedPriority.value = '';
                   controller.selectedStatus.value = '';
                   controller.selectedExecutor.value = '';
                   controller.filterTasks();
                 },
-                child: SvgPicture.asset('assets/svgs/icon_menu.svg', height: 42),
               ),
             ],
           ),
@@ -507,96 +494,48 @@ class TasksMobile extends StatelessWidget {
     required List<DropdownMenuItem<T>> items,
     required ValueChanged<T?> onChanged,
   }) {
-    return SizedBox(
+    return AppFilterDropdown<T>(
       width: width,
-      height: 40,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.shade300),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<T>(
-            isExpanded: true,
-            hint: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Text(
-                hint,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: AppColors.primaryfontColor,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            value: value,
-            items: items,
-            onChanged: onChanged,
-          ),
-        ),
-      ),
+      hint: hint,
+      value: value,
+      items: items,
+      onChanged: onChanged,
     );
   }
 
   Widget _buildStatusDropdown(HomeController controller, int tabIndex) {
     final ongoingItems =
         StorageKeys.ongoingStatusFilterDropdownValues(tabIndex.toString());
-    return SizedBox(
+    return AppFilterDropdown<String>(
+      hint: 'tasks.filter_status'.tr,
       width: 170,
-      height: 40,
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.shade300),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<String>(
-            isExpanded: true,
-            hint: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Text(
-                'tasks.filter_status'.tr,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: AppColors.primaryfontColor,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            value:
-                controller.selectedStatus.value.isEmpty ||
-                        !ongoingItems.contains(controller.selectedStatus.value)
-                    ? null
-                    : controller.selectedStatus.value,
-            items: [
-              DropdownMenuItem(
-                value: '',
-                child: Text(
-                  'filter_status_ongoing'.tr,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-              ),
-              ...ongoingItems.map(
-                (e) => DropdownMenuItem(
-                  value: e,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: Text(e.tr),
-                  ),
-                ),
-              ),
-            ],
-            onChanged: (value) {
-              controller.selectedStatus.value = value ?? '';
-              controller.filterTasks();
-            },
+      value:
+          controller.selectedStatus.value.isEmpty ||
+                  !ongoingItems.contains(controller.selectedStatus.value)
+              ? null
+              : controller.selectedStatus.value,
+      items: [
+        DropdownMenuItem(
+          value: '',
+          child: Text(
+            'filter_status_ongoing'.tr,
+            style: const TextStyle(fontWeight: FontWeight.w600),
           ),
         ),
-      ),
+        ...ongoingItems.map(
+          (e) => DropdownMenuItem(
+            value: e,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Text(e.tr),
+            ),
+          ),
+        ),
+      ],
+      onChanged: (value) {
+        controller.selectedStatus.value = value ?? '';
+        controller.filterTasks();
+      },
     );
   }
 

@@ -19,7 +19,7 @@ class ClientProfileScreen extends StatelessWidget {
         elevation: 0,
         title: Text(
           'client.profile.title'.tr,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),

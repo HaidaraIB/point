@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 class DynamicMultiSelect<T> extends StatefulWidget {
   final String? label;
@@ -111,7 +112,9 @@ class _DynamicMultiSelectState<T> extends State<DynamicMultiSelect<T>> {
                               padding: EdgeInsets.all(10),
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(10),
-                                color: isSelected ? Colors.grey.shade300 : null,
+                                color: isSelected
+                                    ? context.appTheme.unselected
+                                    : null,
                               ),
                               child: Row(
                                 mainAxisAlignment:
@@ -120,7 +123,7 @@ class _DynamicMultiSelectState<T> extends State<DynamicMultiSelect<T>> {
                                   Text(
                                     label.toString().tr,
                                     style: TextStyle(
-                                      color: AppColors.fontColorGrey,
+                                      color: context.appTheme.secondaryText,
                                     ),
                                   ),
                                   if (isSelected)
@@ -200,6 +203,7 @@ class _DynamicMultiSelectState<T> extends State<DynamicMultiSelect<T>> {
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
+                        color: context.appTheme.primaryText,
                       ),
                     ),
                     if (widget.require == true)
@@ -213,9 +217,9 @@ class _DynamicMultiSelectState<T> extends State<DynamicMultiSelect<T>> {
                   height: widget.height ?? 45,
                   padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: widget.fillColor ?? context.appTheme.inputFill,
                     border: Border.all(
-                      color: widget.borderColor ?? Color(0xffF1F5F9),
+                      color: widget.borderColor ?? context.appTheme.border,
                     ),
                     borderRadius: BorderRadius.circular(
                       widget.borderRadius ?? 15,
@@ -232,15 +236,21 @@ class _DynamicMultiSelectState<T> extends State<DynamicMultiSelect<T>> {
                             fontSize: 13,
                             color:
                                 selectedText.isEmpty
-                                    ? Colors.grey
-                                    : Colors.black87,
+                                    ? context.hintOnFill(
+                                      widget.fillColor ??
+                                          context.appTheme.inputFill,
+                                    )
+                                    : context.textOnFill(
+                                      widget.fillColor ??
+                                          context.appTheme.inputFill,
+                                    ),
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       Icon(
                         Icons.keyboard_arrow_down_rounded,
-                        color: Colors.grey,
+                        color: context.appTheme.mutedText,
                       ),
                     ],
                   ),

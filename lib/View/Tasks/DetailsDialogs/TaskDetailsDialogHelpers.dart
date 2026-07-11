@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Services/FunHelper.dart';
-import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Shared/attachment_thumbnail_tile.dart'
     as attachment_thumb;
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// Shared helpers for task details dialogs (web). Used by GenericTaskDetailsDialog
 /// and type-specific sections to avoid duplication.
@@ -84,7 +84,7 @@ class TaskDetailsDialogHelpers {
       width: width,
       constraints: BoxConstraints(minHeight: height ?? 0),
       padding: const EdgeInsets.all(8),
-      decoration: const BoxDecoration(),
+      decoration: BoxDecoration(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
@@ -92,7 +92,7 @@ class TaskDetailsDialogHelpers {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 12, color: Colors.grey),
+            style: TextStyle(fontSize: 12, color: resolveAppTheme().secondaryText),
           ),
           const SizedBox(height: 10),
           child ??
@@ -103,10 +103,10 @@ class TaskDetailsDialogHelpers {
                   textAlign: TextAlign.center,
                   maxLines: 4,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 12,
-                    color: AppColors.primaryfontColor,
+                    color: resolveAppTheme().primaryText,
                   ),
                 ),
               ),
@@ -131,7 +131,7 @@ class TaskDetailsDialogHelpers {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: Colors.grey),
+              Icon(icon, color: resolveAppTheme().secondaryText),
               const SizedBox(width: 5),
               Expanded(
                 child: Text(
@@ -139,7 +139,7 @@ class TaskDetailsDialogHelpers {
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                  style: TextStyle(fontSize: 14, color: resolveAppTheme().secondaryText),
                 ),
               ),
             ],
@@ -150,10 +150,10 @@ class TaskDetailsDialogHelpers {
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 12,
-              color: AppColors.primaryfontColor,
+              color: resolveAppTheme().primaryText,
             ),
           ),
         ],
@@ -200,17 +200,17 @@ class TaskDetailsDialogHelpers {
                     softWrap: true,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 12,
-                      color: AppColors.primaryfontColor,
+                      color: resolveAppTheme().primaryText,
                     ),
                   ),
                 ),
               ),
             ],
           ),
-          Text(size, style: const TextStyle(color: Colors.grey)),
+          Text(size, style: TextStyle(color: resolveAppTheme().secondaryText)),
           const SizedBox(height: 10),
           ElevatedButton.icon(
             onPressed: onDownload,

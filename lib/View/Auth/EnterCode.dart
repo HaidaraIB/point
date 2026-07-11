@@ -8,6 +8,7 @@ import 'package:point/Utils/AppImages.dart';
 import 'package:point/View/Auth/Shared/Rights.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/responsive.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 class EnterCode extends StatelessWidget {
   @override
@@ -21,13 +22,13 @@ class EnterCode extends StatelessWidget {
         appBar: AppBar(title: Text('auth.debug.login_tablet_title'.tr)),
         body: Center(child: Text('auth.debug.login_tablet_body'.tr)),
       ),
-      desktop: Scaffold(body: _buildDesktopLayout()),
+      desktop: Scaffold(body: _buildDesktopLayout(context)),
     );
   }
 }
 
 // --- IGNORE ---
-Widget _buildDesktopLayout() {
+Widget _buildDesktopLayout(BuildContext context) {
   return GetBuilder<AuthController>(
     builder: (controller) {
       return Row(
@@ -62,7 +63,7 @@ Widget _buildDesktopLayout() {
 
                   Text(
                     'entercodefore'.trParams({'email': controller.email.text}),
-                    style: TextStyle(color: Colors.grey, fontSize: 13),
+                    style: TextStyle(color: context.appTheme.secondaryText, fontSize: 13),
                   ),
                   SizedBox(height: 25),
 
@@ -94,7 +95,7 @@ Widget _buildDesktopLayout() {
                                               .text
                                               .isEmpty
                                           ? Colors.white
-                                          : Color(0xffF1F5F9),
+                                          : resolveAppTheme().inputFill,
                                 ),
                                 margin: EdgeInsets.symmetric(horizontal: 5),
                                 width: 60,
@@ -113,25 +114,25 @@ Widget _buildDesktopLayout() {
                                     counterText: "",
                                     disabledBorder: OutlineInputBorder(
                                       borderSide: BorderSide(
-                                        color: Color(0xffF1F5F9),
+                                        color: resolveAppTheme().inputFill,
                                       ),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     focusedBorder: OutlineInputBorder(
                                       borderSide: BorderSide(
-                                        color: Color(0xffF1F5F9),
+                                        color: resolveAppTheme().inputFill,
                                       ),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     enabledBorder: OutlineInputBorder(
                                       borderSide: BorderSide(
-                                        color: Color(0xffF1F5F9),
+                                        color: resolveAppTheme().inputFill,
                                       ),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     border: OutlineInputBorder(
                                       borderSide: BorderSide(
-                                        color: Color(0xffF1F5F9),
+                                        color: resolveAppTheme().inputFill,
                                       ),
                                       borderRadius: BorderRadius.circular(10),
                                     ),
@@ -157,7 +158,7 @@ Widget _buildDesktopLayout() {
                             Text(
                               'resendcode'.tr,
                               style: TextStyle(
-                                color: AppColors.primary,
+                                color: context.appTheme.accentText,
                                 decoration: TextDecoration.underline,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
@@ -167,7 +168,7 @@ Widget _buildDesktopLayout() {
                             Text(
                               'aftermin'.trParams({'min': '30'}),
                               style: TextStyle(
-                                color: Colors.grey,
+                                color: context.appTheme.secondaryText,
                                 fontSize: 13,
                               ),
                             ),
@@ -187,7 +188,7 @@ Widget _buildDesktopLayout() {
                     linearGradient: AppColors.authLoginButtonGradient,
                     title: 'confirm'.tr,
                   ),
-                  buildRightsSection(),
+                  buildRightsSection(context),
                 ],
               ),
             ),

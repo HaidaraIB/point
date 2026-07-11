@@ -5,6 +5,7 @@ import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/library_path_utils.dart';
 import 'package:point/View/Library/library_direct_file_card.dart';
 import 'package:point/View/Library/LibraryPage.dart' show LibraryFileEntryCard;
+import 'package:point/Utils/app_theme_extension.dart';
 
 enum _LibraryLeafEntryKind { task, directFile }
 
@@ -76,7 +77,7 @@ class LibraryLeafList extends StatelessWidget {
           child: Text(
             'library.empty'.tr,
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.grey.shade700),
+            style: TextStyle(color: context.appTheme.mutedText),
           ),
         ),
       );

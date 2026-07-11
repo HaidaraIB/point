@@ -8,6 +8,7 @@ import 'package:point/Services/library_path_utils.dart';
 import 'package:point/View/Library/library_folder_browser.dart';
 import 'package:point/View/Shared/attachment_thumbnail_tile.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 enum ContentAttachmentSource { library, local }
 
@@ -23,7 +24,7 @@ Future<ContentAttachmentSource?> showContentAttachmentSourceDialog(
         children: [
           Text(
             'content.attachment_source_title'.tr,
-            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
           ),
           const SizedBox(height: 12),
           OutlinedButton.icon(
@@ -56,7 +57,7 @@ Future<ContentAttachmentSource?> showContentAttachmentSourceDialog(
 
   return showModalBottomSheet<ContentAttachmentSource>(
     context: context,
-    shape: const RoundedRectangleBorder(
+    shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
     ),
     builder: (ctx) => SafeArea(child: sourceBody(ctx)),
@@ -256,7 +257,7 @@ class _LibraryAttachmentPickerDialogState
               children: [
                 Text(
                   widget.title ?? 'publish.library_picker_title'.tr,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 18,
                   ),
@@ -266,7 +267,7 @@ class _LibraryAttachmentPickerDialogState
                   'publish.library_picker_single_hint'.tr,
                   style: TextStyle(
                     fontSize: 13,
-                    color: Colors.grey.shade700,
+                    color: context.appTheme.mutedText,
                     height: 1.35,
                   ),
                 ),
@@ -306,7 +307,7 @@ class _LibraryAttachmentPickerDialogState
                     return Center(
                       child: Text(
                         'content.library_picker_empty'.tr,
-                        style: TextStyle(color: Colors.grey.shade700),
+                        style: TextStyle(color: context.appTheme.mutedText),
                       ),
                     );
                   }
@@ -368,7 +369,7 @@ class _LibraryAttachmentPickerDialogState
                                         titleText,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           fontWeight: FontWeight.w600,
                                           fontSize: 13,
                                         ),
@@ -378,7 +379,7 @@ class _LibraryAttachmentPickerDialogState
                                         fileName,
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(fontSize: 11),
+                                        style: TextStyle(fontSize: 11),
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
@@ -387,7 +388,7 @@ class _LibraryAttachmentPickerDialogState
                                         overflow: TextOverflow.ellipsis,
                                         style: TextStyle(
                                           fontSize: 10,
-                                          color: Colors.grey.shade700,
+                                          color: context.appTheme.mutedText,
                                           height: 1.25,
                                         ),
                                       ),

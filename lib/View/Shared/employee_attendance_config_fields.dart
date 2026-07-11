@@ -10,6 +10,7 @@ import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/responsive.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// Helpers for employee attendance location + work hours form fields.
 class EmployeeAttendanceFormData {
@@ -199,7 +200,7 @@ class _EmployeeAttendanceConfigFieldsState
         const SizedBox(height: 8),
         Text(
           label,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
         ),
         const SizedBox(height: 8),
         InkWell(
@@ -208,7 +209,7 @@ class _EmployeeAttendanceConfigFieldsState
             height: 42,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: context.appTheme.cardSurface,
               borderRadius: BorderRadius.circular(5),
               border: Border.all(color: Colors.grey.shade300, width: 1.2),
             ),
@@ -220,13 +221,13 @@ class _EmployeeAttendanceConfigFieldsState
                     style: TextStyle(
                       fontSize: 13,
                       color: value == null
-                          ? AppColors.primaryfontColor
-                          : AppColors.primaryfontColor,
+                          ? context.appTheme.primaryText
+                          : context.appTheme.primaryText,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
-                Icon(Icons.access_time, size: 18, color: AppColors.primary),
+                Icon(Icons.access_time, size: 18, color: context.appTheme.accentText),
               ],
             ),
           ),
@@ -246,22 +247,22 @@ class _EmployeeAttendanceConfigFieldsState
           children: [
             Text(
               AppLocaleKeys.attendanceEmployeeLocationTitle.tr,
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 15,
-                color: AppColors.primaryfontColor,
+                color: context.appTheme.primaryText,
               ),
             ),
             const SizedBox(height: 6),
             Text(
               AppLocaleKeys.attendanceEmployeeLocationHelp.tr,
-              style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+              style: TextStyle(color: context.appTheme.mutedText, fontSize: 13),
             ),
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+              color: context.appTheme.cardSurface,
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: Colors.grey.shade300),
               ),
@@ -273,7 +274,7 @@ class _EmployeeAttendanceConfigFieldsState
                     hintText: AppLocaleKeys.adminSettingsOfficeLabel.tr,
                     controller: widget.labelController,
                     height: 42,
-                    fillColor: AppColors.greyBackground,
+                    fillColor: context.appTheme.pageBackground,
                     borderRadius: 5,
                     borderColor: Colors.grey.shade300,
                   ),
@@ -286,7 +287,7 @@ class _EmployeeAttendanceConfigFieldsState
                           hintText: '0.0',
                           controller: widget.latController,
                           height: 42,
-                          fillColor: AppColors.greyBackground,
+                          fillColor: context.appTheme.pageBackground,
                           borderRadius: 5,
                           borderColor: Colors.grey.shade300,
                           textInputType: const TextInputType.numberWithOptions(
@@ -308,7 +309,7 @@ class _EmployeeAttendanceConfigFieldsState
                           hintText: '0.0',
                           controller: widget.lngController,
                           height: 42,
-                          fillColor: AppColors.greyBackground,
+                          fillColor: context.appTheme.pageBackground,
                           borderRadius: 5,
                           borderColor: Colors.grey.shade300,
                           textInputType: const TextInputType.numberWithOptions(
@@ -334,7 +335,7 @@ class _EmployeeAttendanceConfigFieldsState
                             hintText: '0.0',
                             controller: widget.latController,
                             height: 42,
-                            fillColor: AppColors.greyBackground,
+                            fillColor: context.appTheme.pageBackground,
                             borderRadius: 5,
                             borderColor: Colors.grey.shade300,
                             textInputType: const TextInputType.numberWithOptions(
@@ -358,7 +359,7 @@ class _EmployeeAttendanceConfigFieldsState
                             hintText: '0.0',
                             controller: widget.lngController,
                             height: 42,
-                            fillColor: AppColors.greyBackground,
+                            fillColor: context.appTheme.pageBackground,
                             borderRadius: 5,
                             borderColor: Colors.grey.shade300,
                             textInputType: const TextInputType.numberWithOptions(
@@ -385,7 +386,7 @@ class _EmployeeAttendanceConfigFieldsState
                         .toString(),
                     controller: widget.radiusController,
                     height: 42,
-                    fillColor: AppColors.greyBackground,
+                    fillColor: context.appTheme.pageBackground,
                     borderRadius: 5,
                     borderColor: Colors.grey.shade300,
                     textInputType: TextInputType.number,
@@ -398,9 +399,8 @@ class _EmployeeAttendanceConfigFieldsState
                     load: _fetchingLocation,
                     height: 44,
                     borderSize: 8,
-                    borderColor: AppColors.primary,
-                    backgroundColor: Colors.white,
-                    fontColor: AppColors.primary,
+                    borderColor: context.appTheme.accentBorder,
+                    backgroundColor: Theme.of(context).colorScheme.surface,
                     onPressed: _fetchingLocation ? null : _useCurrentLocation,
                   ),
                 ],
@@ -418,15 +418,15 @@ class _EmployeeAttendanceConfigFieldsState
           contentPadding: EdgeInsets.zero,
           title: Text(
             AppLocaleKeys.attendanceRemoteEmployee.tr,
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 14,
-              color: AppColors.primaryfontColor,
+              color: context.appTheme.primaryText,
             ),
           ),
           subtitle: Text(
             AppLocaleKeys.attendanceRemoteEmployeeHelp.tr,
-            style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
+            style: TextStyle(color: context.appTheme.mutedText, fontSize: 12),
           ),
           value: widget.attendanceRemote,
           activeThumbColor: AppColors.primary,
@@ -437,15 +437,15 @@ class _EmployeeAttendanceConfigFieldsState
             contentPadding: EdgeInsets.zero,
             title: Text(
               AppLocaleKeys.attendanceFlexibleHoursEmployee.tr,
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
-                color: AppColors.primaryfontColor,
+                color: context.appTheme.primaryText,
               ),
             ),
             subtitle: Text(
               AppLocaleKeys.attendanceFlexibleHoursEmployeeHelp.tr,
-              style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
+              style: TextStyle(color: context.appTheme.mutedText, fontSize: 12),
             ),
             value: widget.attendanceFlexibleHours,
             activeThumbColor: AppColors.primary,
@@ -464,10 +464,10 @@ class _EmployeeAttendanceConfigFieldsState
               children: [
                 Text(
                   AppLocaleKeys.attendanceWorkHoursTitle.tr,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 15,
-                    color: AppColors.primaryfontColor,
+                    color: context.appTheme.primaryText,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -475,7 +475,7 @@ class _EmployeeAttendanceConfigFieldsState
                   widget.attendanceFlexibleHours
                       ? AppLocaleKeys.attendanceWorkHoursOptionalFlexible.tr
                       : AppLocaleKeys.attendanceWorkHoursHelp.tr,
-                  style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
+                  style: TextStyle(color: context.appTheme.mutedText, fontSize: 13),
                 ),
                 const SizedBox(height: 12),
                 Responsive(

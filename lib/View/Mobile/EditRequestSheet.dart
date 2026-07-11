@@ -11,6 +11,7 @@ import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 class EditRequestSheet extends StatelessWidget {
   final ContentModel model;
@@ -25,7 +26,7 @@ class EditRequestSheet extends StatelessWidget {
           ),
           child: Container(
             padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
@@ -37,7 +38,7 @@ class EditRequestSheet extends StatelessWidget {
                   Center(
                     child: Text(
                       'requests.sheet_edit_heading'.tr,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
@@ -130,7 +131,7 @@ class EditRequestSheet extends StatelessWidget {
                                                       width: 22,
                                                       height: 22,
                                                       decoration: BoxDecoration(
-                                                        color: Colors.black54,
+                                                        color: context.appTheme.secondaryText,
                                                         borderRadius:
                                                             BorderRadius.circular(
                                                               11,
@@ -224,7 +225,7 @@ class EditRequestSheet extends StatelessWidget {
                                     )
                                     : Text(
                                       'confirm'.tr,
-                                      style: const TextStyle(color: Colors.white),
+                                      style: TextStyle(color: Colors.white),
                                     ),
                           ),
                         ),
@@ -242,7 +243,7 @@ class EditRequestSheet extends StatelessWidget {
                             ),
                             child: Text(
                               'common.cancel'.tr,
-                              style: const TextStyle(color: Colors.teal),
+                              style: TextStyle(color: Colors.teal),
                             ),
                           ),
                         ),

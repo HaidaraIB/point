@@ -13,6 +13,7 @@ import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/chat_message_actions.dart';
 import 'package:point/Utils/chat_attachment_download.dart';
 import 'package:point/Utils/chat_attachment_save.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Chats/chat_message_display.dart';
 import 'package:point/View/Chats/chat_reply_draft_banner.dart';
 import 'package:point/View/Chats/chat_ui_helpers.dart';
@@ -884,7 +885,11 @@ class _ChatMessageTileState extends State<ChatMessageTile>
         bubbleRed >= 160;
     final footerTextColor = telegramLikeOutgoing
         ? const Color(0xFF667781)
-        : (widget.isMe ? Colors.white.withValues(alpha: 0.78) : Colors.black45);
+        : (widget.isMe
+            ? Colors.white.withValues(alpha: 0.78)
+            : (Theme.of(context).brightness == Brightness.dark
+                ? context.appTheme.mutedText
+                : Colors.black45));
     final slidableChild = GestureDetector(
       behavior: HitTestBehavior.deferToChild,
       onDoubleTap: _emitReply,

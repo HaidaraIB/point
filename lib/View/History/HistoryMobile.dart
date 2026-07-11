@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
-import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Contents/ContentDialogDetails.dart';
 import 'package:point/View/Mobile/ContentStatusCard.dart';
 import 'package:point/View/Shared/CustomDropDown.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 Widget buildMobileHistory(
   BuildContext context,
@@ -28,7 +28,7 @@ Widget buildMobileHistory(
             Text(
               'settings'.tr,
               style: TextStyle(
-                color: AppColors.fontColorGrey,
+                color: context.appTheme.secondaryText,
                 fontSize: 17,
                 fontWeight: FontWeight.bold,
               ),
@@ -55,9 +55,7 @@ Widget buildMobileHistory(
                           ),
                   label: 'chooseclient'.tr,
                   borderRadius: 5,
-                  borderColor: Colors.grey.shade300,
                   height: 42,
-                  fillColor: Colors.white,
                   onChanged: (value) {
                     if (value != null) {
                       controller.searchedContents.assignAll(
@@ -98,9 +96,7 @@ Widget buildMobileHistory(
                             : controller.selectedDate.value,
                     label: 'common.select_date'.tr,
                     borderRadius: 5,
-                    borderColor: Colors.grey.shade300,
                     height: 42,
-                    fillColor: Colors.white,
                     onChanged: (value) {
                       if (value != null) {
                         final parts = value.split('-');
@@ -139,7 +135,7 @@ Widget buildMobileHistory(
                         'history.pick_client_content'.tr,
                         style: TextStyle(
                           fontSize: 15,
-                          color: AppColors.fontColorGrey,
+                          color: context.appTheme.secondaryText,
                         ),
                       ),
                     ),
@@ -153,7 +149,7 @@ Widget buildMobileHistory(
                         'history.empty_data'.tr,
                         style: TextStyle(
                           fontSize: 15,
-                          color: AppColors.fontColorGrey,
+                          color: context.appTheme.secondaryText,
                         ),
                       ),
                     ),

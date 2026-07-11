@@ -462,7 +462,7 @@ class _ChatActivitySublineState extends State<ChatActivitySubline> {
         activityLabel,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 11,
           color: Color(0xFF16A34A),
           fontWeight: FontWeight.w500,

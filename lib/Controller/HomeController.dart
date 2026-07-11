@@ -50,6 +50,7 @@ import 'package:mime/mime.dart' show lookupMimeType;
 import 'package:point/config/app_config.dart';
 
 import 'package:point/Controller/home_task_filters.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 part 'home_controller_rebind.dart';
 
@@ -3065,7 +3066,7 @@ class HomeController extends GetxController {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 320),
           child: Material(
-            color: Colors.white,
+            color: resolveAppTheme().cardSurface,
             elevation: 8,
             shadowColor: Colors.black26,
             borderRadius: BorderRadius.circular(16),
@@ -3088,10 +3089,10 @@ class HomeController extends GetxController {
                       Text(
                         uploadErrorMessage.value,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.primaryfontColor,
+                          color: resolveAppTheme().primaryText,
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -3100,7 +3101,7 @@ class HomeController extends GetxController {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 14,
-                          color: AppColors.fontColorGrey,
+                          color: resolveAppTheme().secondaryText,
                           height: 1.4,
                         ),
                       ),
@@ -3134,7 +3135,7 @@ class HomeController extends GetxController {
                     Icon(
                       Icons.cloud_upload_outlined,
                       size: 40,
-                      color: AppColors.primary,
+                      color: resolveAppTheme().accentText,
                     ),
                     const SizedBox(height: 16),
                     ClipRRect(
@@ -3142,18 +3143,18 @@ class HomeController extends GetxController {
                       child: LinearProgressIndicator(
                         value: p,
                         minHeight: 8,
-                        backgroundColor: AppColors.greylight,
-                        color: AppColors.primary,
+                        backgroundColor: resolveAppTheme().border,
+                        color: resolveAppTheme().accentText,
                       ),
                     ),
                     const SizedBox(height: 16),
                     Text(
                       '${(p * 100).toStringAsFixed(0)}%',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.primaryfontColor,
+                        color: resolveAppTheme().primaryText,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -3162,7 +3163,7 @@ class HomeController extends GetxController {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 14,
-                        color: AppColors.fontColorGrey,
+                        color: resolveAppTheme().secondaryText,
                       ),
                     ),
                     const SizedBox(height: 20),

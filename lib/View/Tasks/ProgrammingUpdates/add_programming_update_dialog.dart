@@ -6,7 +6,6 @@ import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/ProgrammingUpdateModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
-import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Clients/ClientsTable.dart';
 import 'package:point/View/Shared/CustomDropDown.dart';
@@ -19,6 +18,7 @@ import 'package:point/View/Tasks/ProgrammingUpdates/add_programming_update_mobil
 import 'package:point/View/Tasks/Shared/task_form_dialog_actions.dart';
 import 'package:point/View/Tasks/Shared/task_voice_form_helpers.dart';
 import 'package:point/View/Tasks/Shared/task_voice_record_field.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 void showAddProgrammingUpdateDialog(
   BuildContext context, {
@@ -65,7 +65,7 @@ void showAddProgrammingUpdateDialog(
     context: context,
     builder: (dialogContext) {
       return Dialog(
-        backgroundColor: Colors.white,
+        backgroundColor: dialogContext.appTheme.cardSurface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: GetBuilder<HomeController>(
           builder: (controller) {
@@ -80,7 +80,7 @@ void showAddProgrammingUpdateDialog(
                         Container(
                           margin: const EdgeInsets.all(15),
                           decoration: BoxDecoration(
-                            color: AppColors.primary,
+                            color: context.appTheme.navSurface,
                             borderRadius: const BorderRadius.vertical(
                               top: Radius.circular(12),
                             ),
@@ -93,7 +93,7 @@ void showAddProgrammingUpdateDialog(
                               Expanded(
                                 child: Text(
                                   'programming.updates.form_title'.tr,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 15,
@@ -114,10 +114,8 @@ void showAddProgrammingUpdateDialog(
                                       labelText: 'task_details.task_title'.tr,
                                       hintText: 'tasks.form.write_title_hint'.tr,
                                       height: 42,
-                                      fillColor: Colors.white,
                                       controller: titleController,
                                       borderRadius: 5,
-                                      borderColor: Colors.grey.shade300,
                                     ),
                                   ),
                                   const SizedBox(width: 12),
@@ -162,9 +160,7 @@ void showAddProgrammingUpdateDialog(
                                             ),
                                       label: 'tasks.form.select_executor'.tr,
                                       borderRadius: 5,
-                                      borderColor: Colors.grey.shade300,
                                       height: 42,
-                                      fillColor: Colors.white,
                                       onChanged: (value) {
                                         if (value != null) {
                                           executorController.text =
@@ -202,9 +198,7 @@ void showAddProgrammingUpdateDialog(
                                               )),
                                   label: 'chooseclient'.tr,
                                   borderRadius: 5,
-                                  borderColor: Colors.grey.shade300,
                                   height: 42,
-                                  fillColor: Colors.white,
                                   onChanged: (value) {
                                     if (value == otherClientValue) {
                                       isCustomClient.value = true;
@@ -224,10 +218,8 @@ void showAddProgrammingUpdateDialog(
                                         'tasks.form.client_name_label'.tr,
                                     hintText: 'tasks.form.client_name_hint'.tr,
                                     height: 42,
-                                    fillColor: Colors.white,
                                     controller: customClientController,
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
                                   ),
                                 ),
                               const SizedBox(height: 12),
@@ -239,10 +231,8 @@ void showAddProgrammingUpdateDialog(
                                           'task_details.content_link'.tr,
                                       hintText: '',
                                       height: 42,
-                                      fillColor: Colors.white,
                                       controller: contenturlController,
                                       borderRadius: 5,
-                                      borderColor: Colors.grey.shade300,
                                     ),
                                   ),
                                   const SizedBox(width: 12),
@@ -251,10 +241,8 @@ void showAddProgrammingUpdateDialog(
                                       labelText: 'task_details.files_link'.tr,
                                       hintText: '',
                                       height: 42,
-                                      fillColor: Colors.white,
                                       controller: filesurlController,
                                       borderRadius: 5,
-                                      borderColor: Colors.grey.shade300,
                                     ),
                                   ),
                                 ],
@@ -277,9 +265,7 @@ void showAddProgrammingUpdateDialog(
                                           : priorityController.text,
                                       label: 'priortity'.tr,
                                       borderRadius: 5,
-                                      borderColor: Colors.grey.shade300,
                                       height: 42,
-                                      fillColor: Colors.white,
                                       onChanged: (value) {
                                         if (value != null) {
                                           priorityController.text = value;
@@ -293,10 +279,8 @@ void showAddProgrammingUpdateDialog(
                                       labelText: 'task_details.category'.tr,
                                       hintText: '',
                                       height: 42,
-                                      fillColor: Colors.white,
                                       controller: categoryController,
                                       borderRadius: 5,
-                                      borderColor: Colors.grey.shade300,
                                     ),
                                   ),
                                 ],
@@ -324,16 +308,14 @@ void showAddProgrammingUpdateDialog(
                                       labelText: 'startat'.tr,
                                       hintText: '1/10/2025'.tr,
                                       height: 42,
-                                      fillColor: Colors.white,
                                       textInputType: TextInputType.datetime,
                                       controller: startDateController,
                                       readOnly: true,
                                       suffixIcon: Icon(
                                         CupertinoIcons.calendar,
-                                        color: Colors.grey,
+                                        color: context.appTheme.secondaryText,
                                       ),
                                       borderRadius: 5,
-                                      borderColor: Colors.grey.shade300,
                                     ),
                                   ),
                                   const SizedBox(width: 12),
@@ -357,16 +339,14 @@ void showAddProgrammingUpdateDialog(
                                       labelText: 'endat'.tr,
                                       hintText: '1/10/2026'.tr,
                                       height: 42,
-                                      fillColor: Colors.white,
                                       textInputType: TextInputType.datetime,
                                       controller: endDateController,
                                       readOnly: true,
                                       suffixIcon: Icon(
                                         CupertinoIcons.calendar,
-                                        color: Colors.grey,
+                                        color: context.appTheme.secondaryText,
                                       ),
                                       borderRadius: 5,
-                                      borderColor: Colors.grey.shade300,
                                     ),
                                   ),
                                 ],
@@ -376,21 +356,17 @@ void showAddProgrammingUpdateDialog(
                                 labelText: 'tasks.form.about_task_label'.tr,
                                 hintText: 'tasks.form.about_task_hint'.tr,
                                 height: 80,
-                                fillColor: Colors.white,
                                 controller: aboutTaskController,
                                 expanded: true,
                                 borderRadius: 5,
-                                borderColor: Colors.grey.shade300,
                               ),
                               const SizedBox(height: 12),
                               InputText(
                                 labelText: 'notes'.tr,
                                 hintText: 'enternotes'.tr,
                                 height: 60,
-                                fillColor: Colors.white,
                                 controller: notesController,
                                 borderRadius: 5,
-                                borderColor: Colors.grey.shade300,
                               ),
                               const SizedBox(height: 12),
                               GestureDetector(
@@ -407,24 +383,29 @@ void showAddProgrammingUpdateDialog(
                                 child: InputText(
                                   labelText: 'dragfile'.tr,
                                   hintText: '',
-                                  enable: false,
                                   height: 80,
-                                  fillColor: Colors.white,
                                   expanded: true,
-                                  body: Container(
+                                  fillColor: context.appTheme.unselected,
+                                  borderRadius: 5,
+                                  body: Padding(
                                     padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
                                       vertical: 10,
                                     ),
-                                    color: Colors.grey.shade200,
                                     child: Row(
                                       mainAxisAlignment:
                                           MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 10,
+                                        Expanded(
+                                          child: Text(
+                                            'dragfile'.tr,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                              color: context
+                                                  .appTheme.secondaryText,
+                                            ),
                                           ),
-                                          child: Text('dragfile'.tr),
                                         ),
                                         MainButton(
                                           width: 100,
@@ -433,14 +414,14 @@ void showAddProgrammingUpdateDialog(
                                           fontSize: 12,
                                           load: controller.isUploading.value,
                                           title: 'uploadfile'.tr,
-                                          backgroundColor: Colors.white,
-                                          fontColor: AppColors.primaryfontColor,
+                                          backgroundColor:
+                                              context.appTheme.cardSurface,
+                                          fontColor:
+                                              context.appTheme.primaryText,
                                         ),
                                       ],
                                     ),
                                   ),
-                                  borderRadius: 5,
-                                  borderColor: Colors.grey.shade300,
                                 ),
                               ),
                               Obx(

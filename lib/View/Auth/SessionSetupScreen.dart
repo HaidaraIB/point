@@ -9,7 +9,8 @@ import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
-import 'package:point/Utils/AppImages.dart';
+import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/View/Shared/brand_logo.dart';
 
 /// Shown immediately after valid employee login while prefs, FCM topics, and
 /// token setup complete (avoids idle login button between auth and navigation).
@@ -175,7 +176,7 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: Center(
           child: Padding(
@@ -183,11 +184,9 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset(
-                  AppImages.images.logocolored,
+                BrandLogo(
                   width: Get.width * 0.55,
                   height: 80,
-                  fit: BoxFit.contain,
                 ),
                 const SizedBox(height: 32),
                 const CircularProgressIndicator(),
@@ -197,7 +196,7 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 15,
-                    color: Colors.grey.shade700,
+                    color: context.appTheme.mutedText,
                   ),
                 ),
               ],

@@ -66,12 +66,10 @@ class AdministrationTaskFormDelegate extends TaskFormDialogDelegate {
           height: 148,
           expanded: true,
           minLines: 5,
-          fillColor: Colors.white,
           controller: aboutTaskController,
           textInputType: TextInputType.multiline,
           textInputAction: TextInputAction.newline,
           borderRadius: 5,
-          borderColor: Colors.grey.shade300,
         ),
       ),
     );

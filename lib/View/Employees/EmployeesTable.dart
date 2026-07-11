@@ -24,6 +24,7 @@ import 'package:point/View/Shared/employee_attendance_config_fields.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/table_actions_menu_row.dart';
 import 'package:uuid/uuid.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 bool _canEditEmployeeCredentials(EmployeeModel? model) {
   if (model == null) return true;
@@ -49,9 +50,12 @@ String _employeePresenceLabel(DateTime? at) {
 }
 
 Widget _employeePresenceChip(DateTime? at) {
+  final theme = resolveAppTheme();
   final online = _isEmployeeRecentlyOnline(at);
-  final fg = online ? const Color(0xFF0F9D58) : AppColors.fontColorGrey;
-  final bg = online ? const Color(0xFFEAF8F1) : const Color(0xFFF3F4F6);
+  final fg = online ? const Color(0xFF4ADE80) : theme.secondaryText;
+  final bg = online
+      ? const Color(0xFF4ADE80).withValues(alpha: 0.15)
+      : theme.unselected;
   return Container(
     alignment: Alignment.center,
     height: 36,
@@ -101,7 +105,7 @@ Widget _employeeTableMetaText(String text) {
     style: TextStyle(
       fontWeight: FontWeight.w600,
       fontSize: 12,
-      color: AppColors.fontColorGrey,
+      color: resolveAppTheme().secondaryText,
     ),
   );
 }
@@ -114,6 +118,7 @@ class EmployeeTable extends StatefulWidget {
 class _EmployeeTableState extends State<EmployeeTable> {
   @override
   Widget build(BuildContext context) {
+    final appTheme = context.appTheme;
     return ResponsiveScaffold(
       selectedTab: 1,
 
@@ -181,7 +186,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                             Text(
                               'employees'.tr,
                               style: TextStyle(
-                                color: AppColors.fontColorGrey,
+                                color: appTheme.primaryText,
                                 fontSize: 17,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -228,9 +233,8 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                 dataRowMinHeight: 60,
                                 dataRowMaxHeight: 60,
                                 // headingRowColor: WidgetStateProperty.all(Colors.blue.shade50),
-                                dataRowColor: WidgetStateProperty.all(
-                                  Colors.white,
-                                ),
+                                dataRowColor: context.tableDataRowColor,
+                                headingRowColor: context.tableHeadingRowColor,
                                 dividerThickness: 0.5,
                                 columns: [
                                   DataColumn(
@@ -241,7 +245,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                       'name'.tr,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
+                                        color: resolveAppTheme().secondaryText,
                                       ),
                                     ),
                                   ),
@@ -253,7 +257,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                       'email'.tr,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
+                                        color: resolveAppTheme().secondaryText,
                                       ),
                                     ),
                                   ),
@@ -265,7 +269,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                       'role'.tr,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
+                                        color: resolveAppTheme().secondaryText,
                                       ),
                                     ),
                                   ),
@@ -276,7 +280,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                       AppLocaleKeys.attendanceWorkHoursTitle.tr,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
+                                        color: resolveAppTheme().secondaryText,
                                       ),
                                     ),
                                   ),
@@ -287,7 +291,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                       AppLocaleKeys.attendanceEmployeeLocationTitle.tr,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
+                                        color: resolveAppTheme().secondaryText,
                                       ),
                                     ),
                                   ),
@@ -298,7 +302,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                       'employees.presence'.tr,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
+                                        color: resolveAppTheme().secondaryText,
                                       ),
                                     ),
                                   ),
@@ -309,7 +313,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                       'actions'.tr,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
+                                        color: resolveAppTheme().secondaryText,
                                       ),
                                     ),
                                   ),
@@ -323,7 +327,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                             emp.name ?? '',
                                             style: TextStyle(
                                               fontWeight: FontWeight.bold,
-                                              color: AppColors.fontColorGrey,
+                                              color: resolveAppTheme().secondaryText,
                                             ),
                                           ),
                                         ),
@@ -334,7 +338,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                             emp.email ?? '',
                                             style: TextStyle(
                                               fontWeight: FontWeight.bold,
-                                              color: AppColors.fontColorGrey,
+                                              color: resolveAppTheme().secondaryText,
                                             ),
                                           ),
                                         ),
@@ -348,7 +352,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                               horizontal: 8,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: Colors.purple.shade50,
+                                              color: context.appTheme.panelTint,
                                               borderRadius:
                                                   BorderRadius.circular(12),
                                             ),
@@ -358,7 +362,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                                   : emp.role.tr,
                                               textAlign: TextAlign.center,
                                               style: TextStyle(
-                                                color: Colors.purple,
+                                                color: appTheme.accentText,
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 13,
                                               ),
@@ -399,7 +403,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                               borderRadius:
                                                   BorderRadius.circular(12),
                                             ),
-                                            color: Colors.white,
+                                            color: Theme.of(context).colorScheme.surface,
                                             elevation: 4,
                                             itemBuilder: (context) => [
                                               PopupMenuItem(
@@ -478,7 +482,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                               child: Icon(
                                                 Icons.more_vert,
                                                 color:
-                                                    AppColors.primaryfontColor,
+                                                    resolveAppTheme().primaryText,
                                               ),
                                             ),
                                           ),
@@ -553,12 +557,13 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
     context: context,
     builder: (context) {
       return Dialog(
-        backgroundColor: Colors.white,
+        backgroundColor: resolveAppTheme().cardSurface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: GetBuilder<HomeController>(
           builder: (controller) {
             return StatefulBuilder(
               builder: (context, newstate) {
+                final appTheme = context.appTheme;
                 return Form(
                   key: _key,
                   child: SizedBox(
@@ -571,7 +576,7 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                           Container(
                             margin: EdgeInsets.all(15),
                             decoration: BoxDecoration(
-                              color: AppColors.primary,
+                              color: appTheme.accentText,
                               borderRadius: BorderRadius.vertical(
                                 top: Radius.circular(12),
                               ),
@@ -625,7 +630,7 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                       });
                                     },
                                     child: CircleAvatar(
-                                      backgroundColor: Colors.grey.shade200,
+                                      backgroundColor: appTheme.unselected,
                                       radius: 50,
                                       child: Obx(
                                         () =>
@@ -644,7 +649,11 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                                   fit: BoxFit.cover,
                                                 ),
                                               )
-                                            : Icon(Icons.camera_alt, size: 50),
+                                            : Icon(
+                                                Icons.camera_alt,
+                                                size: 50,
+                                                color: appTheme.mutedText,
+                                              ),
                                       ),
                                     ),
                                   ),
@@ -654,7 +663,6 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                   labelText: 'name'.tr,
                                   hintText: 'entername'.tr,
                                   height: 42,
-                                  fillColor: Colors.white,
                                   controller: nameController,
 
                                   validator: (v) {
@@ -665,14 +673,12 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                   },
 
                                   borderRadius: 5,
-                                  borderColor: Colors.grey.shade300,
                                 ),
                                 if (model == null || canEditCredentials)
                                   InputText(
                                     labelText: 'email'.tr,
                                     hintText: 'example@example.com'.tr,
                                     height: 42,
-                                    fillColor: Colors.white,
                                     textInputType: TextInputType.emailAddress,
                                     controller: emailController,
                                     validator: (v) {
@@ -684,15 +690,12 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                       return null;
                                     },
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
                                   )
                                 else
                                   ReadOnlyAccountEmailField(
                                     email: model.email ?? '',
                                     height: 42,
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
-                                    fillColor: Colors.white,
                                   ),
                                 if (model == null || canEditCredentials)
                                   InputText(
@@ -703,13 +706,12 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                     obscureText: obscurePassword,
                                     controller: passwordController,
                                     height: 42,
-                                    fillColor: Colors.white,
                                     suffixIcon: IconButton(
                                       icon: Icon(
                                         obscurePassword
                                             ? Icons.visibility_off
                                             : Icons.visibility,
-                                        color: Colors.grey.shade600,
+                                        color: appTheme.mutedText,
                                       ),
                                       onPressed: () {
                                         obscurePassword = !obscurePassword;
@@ -723,7 +725,6 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                       return validatePasswordStrong(v.trim());
                                     },
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
                                   ),
                                 DynamicDropdown(
                                   items: roles
@@ -737,9 +738,7 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                   value: selectedRole,
                                   label: 'role'.tr,
                                   borderRadius: 5,
-                                  borderColor: Colors.grey.shade300,
                                   height: 42,
-                                  fillColor: Colors.white,
                                   onChanged: (value) {
                                     if (value != null) {
                                       selectedRole = value;
@@ -766,9 +765,7 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                     hint: 'employees.departments'.tr,
                                     require: true,
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
                                     height: 42,
-                                    fillColor: Colors.white,
                                     onChanged: (list) {
                                       selectedDepartments = List<String>.from(
                                         list,

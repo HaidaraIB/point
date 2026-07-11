@@ -6,6 +6,7 @@ import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/AppNotificationInbox.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// لوحة إشعارات صندوق التطبيق: تعليم الكل كمقروء عند أول فتح، واختيار متعدد للحذف.
 class InAppNotificationsPanel extends StatefulWidget {
@@ -124,6 +125,7 @@ class _InAppNotificationsPanelState extends State<InAppNotificationsPanel> {
                     : 'notifications.action.selection_mode'.tr,
                 icon: Icon(
                   selectionMode ? Icons.close : Icons.checklist_outlined,
+                  color: context.appTheme.primaryText,
                 ),
                 onPressed: _toggleSelectionMode,
               ),
@@ -135,10 +137,16 @@ class _InAppNotificationsPanelState extends State<InAppNotificationsPanel> {
                         .toList();
                     _selectAllFiltered(inbox);
                   },
+                  style: TextButton.styleFrom(
+                    foregroundColor: context.appTheme.accentText,
+                  ),
                   child: Text('notifications.action.select_all'.tr),
                 ),
                 TextButton(
                   onPressed: _deselectAll,
+                  style: TextButton.styleFrom(
+                    foregroundColor: context.appTheme.secondaryText,
+                  ),
                   child: Text('notifications.action.deselect_all'.tr),
                 ),
                 Padding(
@@ -173,7 +181,10 @@ class _InAppNotificationsPanelState extends State<InAppNotificationsPanel> {
               return Center(
                 child: Text(
                   'notifications.empty'.tr,
-                  style: const TextStyle(fontSize: 16, color: Colors.grey),
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: context.appTheme.mutedText,
+                  ),
                 ),
               );
             }
@@ -181,16 +192,19 @@ class _InAppNotificationsPanelState extends State<InAppNotificationsPanel> {
             return ListView.separated(
               padding: widget.listPadding,
               itemCount: inbox.length,
-              separatorBuilder: (_, __) => const Divider(height: 10),
+              separatorBuilder: (_, __) => Divider(
+                height: 10,
+                color: context.appTheme.border,
+              ),
               itemBuilder: (context, index) {
                 final n = inbox[index];
-                final bgColors = [
-                  Colors.pink.shade100,
-                  Colors.green.shade100,
-                  Colors.purple.shade100,
-                  Colors.teal.shade100,
+                final accentColors = [
+                  AppColors.primary,
+                  Colors.green,
+                  Colors.purple,
+                  Colors.teal,
                 ];
-                final randomColor = bgColors[index % bgColors.length];
+                final accent = accentColors[index % accentColors.length];
                 final isUnread = isInAppNotificationUnread(n);
                 final id = n.id;
                 final hasId = id != null && id.isNotEmpty;
@@ -213,10 +227,10 @@ class _InAppNotificationsPanelState extends State<InAppNotificationsPanel> {
                 } else {
                   leading = CircleAvatar(
                     radius: 24,
-                    backgroundColor: randomColor,
-                    child: const Icon(
+                    backgroundColor: accent.withValues(alpha: 0.2),
+                    child: Icon(
                       Icons.notifications_active_outlined,
-                      color: Colors.white,
+                      color: accent,
                     ),
                   );
                 }
@@ -243,17 +257,20 @@ class _InAppNotificationsPanelState extends State<InAppNotificationsPanel> {
                       Text(
                         n.title ?? '',
                         textDirection: TextDirection.rtl,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
+                          color: context.appTheme.accentText,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         n.body ?? '',
                         textDirection: TextDirection.rtl,
-                        style: const TextStyle(fontSize: 13),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: context.appTheme.primaryText,
+                        ),
                       ),
                     ],
                   ),
@@ -264,7 +281,7 @@ class _InAppNotificationsPanelState extends State<InAppNotificationsPanel> {
                     textDirection: TextDirection.rtl,
                     style: TextStyle(
                       fontSize: 11,
-                      color: Colors.grey.shade600,
+                      color: context.appTheme.mutedText,
                     ),
                   ),
                   trailing: selectionMode
@@ -275,9 +292,9 @@ class _InAppNotificationsPanelState extends State<InAppNotificationsPanel> {
                             if (isUnread)
                               IconButton(
                                 tooltip: 'notifications.action.mark_as_read'.tr,
-                                icon: const Icon(
+                                icon: Icon(
                                   Icons.mark_email_read_outlined,
-                                  color: AppColors.primary,
+                                  color: context.appTheme.accentText,
                                 ),
                                 onPressed: !hasId
                                     ? null

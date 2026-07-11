@@ -9,6 +9,7 @@ import 'package:point/Services/app_version.dart';
 import 'package:point/Services/app_version_gate_settings.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// Minimum mobile build numbers and store URLs for force-update.
 class AppVersionSettingsSection extends StatefulWidget {
@@ -191,7 +192,7 @@ class _AppVersionSettingsSectionState extends State<AppVersionSettingsSection> {
             children: [
               Text(
                 AppLocaleKeys.adminSettingsSectionAppVersion.tr,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                 ),
@@ -201,7 +202,7 @@ class _AppVersionSettingsSectionState extends State<AppVersionSettingsSection> {
                 Text(
                   _currentVersionLine!,
                   style: TextStyle(
-                    color: Colors.grey.shade700,
+                    color: context.appTheme.secondaryText,
                     fontSize: 14,
                   ),
                 ),
@@ -210,7 +211,7 @@ class _AppVersionSettingsSectionState extends State<AppVersionSettingsSection> {
               Text(
                 AppLocaleKeys.adminSettingsMobileGateHelp.tr,
                 style: TextStyle(
-                  color: Colors.grey.shade700,
+                  color: context.appTheme.secondaryText,
                   fontSize: 13,
                 ),
               ),
@@ -220,10 +221,8 @@ class _AppVersionSettingsSectionState extends State<AppVersionSettingsSection> {
                 labelText: AppLocaleKeys.adminSettingsAndroidMinBuild.tr,
                 hintText: '0',
                 height: 42,
-                fillColor: Colors.white,
                 controller: _androidMinController,
                 borderRadius: 5,
-                borderColor: Colors.grey.shade300,
                 textInputType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 validator: _validateMinBuild,
@@ -237,10 +236,8 @@ class _AppVersionSettingsSectionState extends State<AppVersionSettingsSection> {
                 labelText: AppLocaleKeys.adminSettingsIosMinBuild.tr,
                 hintText: '0',
                 height: 42,
-                fillColor: Colors.white,
                 controller: _iosMinController,
                 borderRadius: 5,
-                borderColor: Colors.grey.shade300,
                 textInputType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 validator: _validateMinBuild,
@@ -254,10 +251,8 @@ class _AppVersionSettingsSectionState extends State<AppVersionSettingsSection> {
                 labelText: AppLocaleKeys.adminSettingsAndroidStoreUrl.tr,
                 hintText: 'https://play.google.com/...',
                 height: 42,
-                fillColor: Colors.white,
                 controller: _androidStoreController,
                 borderRadius: 5,
-                borderColor: Colors.grey.shade300,
                 textInputType: TextInputType.url,
               ),
               const SizedBox(height: 12),
@@ -265,10 +260,8 @@ class _AppVersionSettingsSectionState extends State<AppVersionSettingsSection> {
                 labelText: AppLocaleKeys.adminSettingsIosStoreUrl.tr,
                 hintText: 'https://apps.apple.com/...',
                 height: 42,
-                fillColor: Colors.white,
                 controller: _iosStoreController,
                 borderRadius: 5,
-                borderColor: Colors.grey.shade300,
                 textInputType: TextInputType.url,
               ),
               const SizedBox(height: 24),

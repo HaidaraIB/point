@@ -13,6 +13,7 @@ import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/ReadOnlyAccountEmailField.dart';
 import 'package:point/View/Shared/employee_attendance_config_fields.dart';
 import 'package:point/Utils/PasswordValidator.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 import 'package:uuid/uuid.dart';
 
 /// Mobile-only full-screen add/edit employee form.
@@ -231,17 +232,18 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final appTheme = context.appTheme;
     final bottomPadding = MediaQuery.of(context).padding.bottom + 24;
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: appTheme.pageBackground,
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
         title: Text(
           widget.model == null ? 'addemployee'.tr : 'editemployee'.tr,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
@@ -272,7 +274,7 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                       },
                       child: Obx(
                         () => CircleAvatar(
-                          backgroundColor: Colors.grey.shade200,
+                          backgroundColor: appTheme.unselected,
                           radius: 50,
                           child: controller.uploadedFilesPaths.isNotEmpty
                               ? ClipRRect(
@@ -287,7 +289,7 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                               : Icon(
                                   Icons.camera_alt,
                                   size: 50,
-                                  color: AppColors.primary,
+                                  color: appTheme.mutedText,
                                 ),
                         ),
                       ),
@@ -298,11 +300,9 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                     labelText: 'name'.tr,
                     hintText: 'entername'.tr,
                     height: 48,
-                    fillColor: Colors.white,
                     controller: nameController,
                     validator: (v) => (v == null || v.isEmpty) ? ' ' : null,
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                   ),
                   const SizedBox(height: 16),
                   if (widget.model == null || _canEditCredentials) ...[
@@ -310,7 +310,6 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                       labelText: 'email'.tr,
                       hintText: 'example@example.com'.tr,
                       height: 48,
-                      fillColor: Colors.white,
                       textInputType: TextInputType.emailAddress,
                       controller: emailController,
                       validator: (v) {
@@ -320,7 +319,6 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                         return null;
                       },
                       borderRadius: 8,
-                      borderColor: Colors.grey.shade300,
                     ),
                     const SizedBox(height: 16),
                     InputText(
@@ -331,13 +329,12 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                       obscureText: obscurePassword,
                       controller: passwordController,
                       height: 48,
-                      fillColor: Colors.white,
                       suffixIcon: IconButton(
                         icon: Icon(
                           obscurePassword
                               ? Icons.visibility_off
                               : Icons.visibility,
-                          color: Colors.grey.shade600,
+                          color: appTheme.mutedText,
                         ),
                         onPressed: () {
                           setState(() => obscurePassword = !obscurePassword);
@@ -350,7 +347,6 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                         return validatePasswordStrong(v);
                       },
                       borderRadius: 8,
-                      borderColor: Colors.grey.shade300,
                     ),
                     const SizedBox(height: 16),
                   ] else ...[
@@ -358,8 +354,6 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                       email: widget.model?.email ?? '',
                       height: 48,
                       borderRadius: 8,
-                      borderColor: Colors.grey.shade300,
-                      fillColor: Colors.white,
                     ),
                     const SizedBox(height: 16),
                   ],
@@ -375,9 +369,7 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                     value: selectedRole,
                     label: 'role'.tr,
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                     height: 48,
-                    fillColor: Colors.white,
                     onChanged: (value) {
                       if (value != null) {
                         setState(() {
@@ -404,9 +396,7 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                       hint: 'employees.departments'.tr,
                       require: true,
                       borderRadius: 8,
-                      borderColor: Colors.grey.shade300,
                       height: 48,
-                      fillColor: Colors.white,
                       onChanged: (list) {
                         setState(
                           () => selectedDepartments = List<String>.from(list),
@@ -459,7 +449,7 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                               )
                             : Text(
                                 'common.confirm'.tr,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,

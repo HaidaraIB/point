@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/Models/ClientModel.dart';
 import 'package:point/Models/TaskModel.dart';
 
@@ -161,7 +162,11 @@ class _TaskCardClientNameRowState extends State<TaskCardClientNameRow> {
         padding: const EdgeInsets.only(top: 6),
         child: Row(
           children: [
-            Icon(Icons.person_outline, size: 15, color: Colors.grey.shade600),
+            Icon(
+              Icons.person_outline,
+              size: 15,
+              color: context.appTheme.mutedText,
+            ),
             const SizedBox(width: 6),
             Expanded(
               child: Text(
@@ -171,7 +176,7 @@ class _TaskCardClientNameRowState extends State<TaskCardClientNameRow> {
                 style: TextStyle(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w600,
-                  color: Colors.blueGrey.shade800,
+                  color: context.appTheme.secondaryText,
                 ),
               ),
             ),

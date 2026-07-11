@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Shared/attachment_thumbnail_tile.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// Two-column (default) grid of attachment thumbnails directly under a form
 /// upload field. Tap opens in-app preview / player when possible.
@@ -82,7 +83,7 @@ class FormAttachmentThumbnailsGrid extends StatelessWidget {
                     width: closeButtonSize,
                     height: closeButtonSize,
                     decoration: BoxDecoration(
-                      color: Colors.black54,
+                      color: context.appTheme.secondaryText,
                       borderRadius: BorderRadius.circular(closeButtonSize / 2),
                     ),
                     child: Icon(

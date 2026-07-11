@@ -51,9 +51,7 @@ Widget _buildClientPickerRow(
                 ),
         label: 'chooseclient'.tr,
         borderRadius: 5,
-        borderColor: Colors.grey.shade300,
         height: 42,
-        fillColor: Colors.white,
         onChanged: (value) {
           if (value != null) {
             controller.clientController.text = (value).id ?? '';
@@ -81,7 +79,7 @@ Widget _employeeWebContentStatBox(
       width ?? (isDesktop ? Get.width / 5 - 78 : Get.width / 5 - 30);
   return Container(
     decoration: BoxDecoration(
-      color: Colors.white,
+              color: context.appTheme.cardSurface,
       borderRadius: BorderRadius.circular(10),
     ),
     width: boxWidth,
@@ -113,8 +111,8 @@ Widget _employeeWebContentStatBox(
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.grey,
+              style: TextStyle(
+                color: context.appTheme.secondaryText,
                 fontWeight: FontWeight.bold,
                 fontSize: 15,
               ),
@@ -135,7 +133,7 @@ Widget _EmployeeWebContentTitleRow(
       Text(
         'managecontent'.tr,
         style: TextStyle(
-          color: AppColors.fontColorGrey,
+          color: context.appTheme.secondaryText,
           fontSize: 15,
           fontWeight: FontWeight.bold,
         ),
@@ -161,7 +159,7 @@ Widget _EmployeeWebContentTitleRow(
                 children: [
                   Text(
                     'addnewcontent'.tr,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
@@ -207,7 +205,7 @@ Widget _EmployeeWebContentTitleRow(
           children: [
             Text(
               'tasks'.tr,
-              style: const TextStyle(
+              style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
                 fontSize: 13,
@@ -319,20 +317,18 @@ Widget _EmployeeWebContentFiltersRow(
       children: [
         Expanded(
           child: InputText(
-            prefixIcon: const Icon(
+            prefixIcon: Icon(
               CupertinoIcons.search,
-              color: Colors.grey,
+              color: context.appTheme.secondaryText,
             ),
             hintText: 'employee.search_content_hint'.tr,
             height: 42,
-            fillColor: Colors.white,
             controller: controller.employeeWebContentSearchController,
             onchange: (value) {
               controller.update(['employeeWebContent']);
               return null;
             },
             borderRadius: 5,
-            borderColor: Colors.grey.shade300,
           ),
         ),
         const SizedBox(width: 10),
@@ -347,85 +343,27 @@ Widget _EmployeeWebContentFiltersRow(
         Flexible(
           flex: 2,
           child: Obx(
-            () => Container(
-              height: 40,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  isExpanded: true,
-                  hint: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Text(
-                      'employee.content.filter_type'.tr,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.primaryfontColor,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  value:
-                      controller.employeeWebContentTypeFilter.value.isEmpty
-                          ? null
-                          : controller.employeeWebContentTypeFilter.value,
-                  items:
-                      StorageKeys.contentTypes
-                          .map(
-                            (e) => DropdownMenuItem(
-                              value: e,
-                              child: Text(e.tr),
-                            ),
-                          )
-                          .toList(),
-                  onChanged: (value) {
-                    controller.employeeWebContentTypeFilter.value =
-                        value ?? '';
-                    controller.update(['employeeWebContent']);
-                  },
-                ),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Flexible(
-          flex: 2,
-          child: Obx(
-            () => InkWell(
-              onTap: () async {
-                final picked = await pickAppDateTime(
-                  context,
-                  initialDateTime:
-                      controller.employeeWebContentDateFilter.value ??
-                      DateTime.now(),
-                  firstDate: DateTime(2020),
-                  lastDate: DateTime(2100),
-                );
-                if (picked == null) return;
-                controller.employeeWebContentDateFilter.value = picked;
+            () => AppFilterDropdown<String>(
+              hint: 'employee.content.filter_type'.tr,
+              fontSize: 12,
+              expandWidth: true,
+              value:
+                  controller.employeeWebContentTypeFilter.value.isEmpty
+                      ? null
+                      : controller.employeeWebContentTypeFilter.value,
+              items:
+                  StorageKeys.contentTypes
+                      .map(
+                        (e) => DropdownMenuItem(
+                          value: e,
+                          child: Text(e.tr),
+                        ),
+                      )
+                      .toList(),
+              onChanged: (value) {
+                controller.employeeWebContentTypeFilter.value = value ?? '';
                 controller.update(['employeeWebContent']);
               },
-              child: Container(
-                height: 40,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  controller.employeeWebContentDateFilter.value == null
-                      ? 'publish_date'.tr
-                      : DateFormat('yyyy-MM-dd HH:mm').format(
-                        controller.employeeWebContentDateFilter.value!,
-                      ),
-                ),
-              ),
             ),
           ),
         ),
@@ -433,48 +371,76 @@ Widget _EmployeeWebContentFiltersRow(
         Flexible(
           flex: 2,
           child: Obx(
-            () => Container(
-              height: 40,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade300),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  isExpanded: true,
-                  hint: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Text(
-                      'tasks.filter_status'.tr,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.primaryfontColor,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      overflow: TextOverflow.ellipsis,
+            () {
+              final theme = context.appTheme;
+              return InkWell(
+                onTap: () async {
+                  final picked = await pickAppDateTime(
+                    context,
+                    initialDateTime:
+                        controller.employeeWebContentDateFilter.value ??
+                        DateTime.now(),
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime(2100),
+                  );
+                  if (picked == null) return;
+                  controller.employeeWebContentDateFilter.value = picked;
+                  controller.update(['employeeWebContent']);
+                },
+                child: Container(
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: theme.inputFill,
+                    border: Border.all(color: theme.border),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    controller.employeeWebContentDateFilter.value == null
+                        ? 'publish_date'.tr
+                        : DateFormat('yyyy-MM-dd HH:mm').format(
+                          controller.employeeWebContentDateFilter.value!,
+                        ),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color:
+                          controller.employeeWebContentDateFilter.value == null
+                              ? theme.mutedText
+                              : theme.primaryText,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
-                  value:
-                      controller.employeeWebContentStatusFilter.value.isEmpty
-                          ? null
-                          : controller.employeeWebContentStatusFilter.value,
-                  items:
-                      StorageKeys.statusList
-                          .map(
-                            (e) => DropdownMenuItem(
-                              value: e,
-                              child: Text(e.tr),
-                            ),
-                          )
-                          .toList(),
-                  onChanged: (value) {
-                    controller.employeeWebContentStatusFilter.value =
-                        value ?? '';
-                    controller.update(['employeeWebContent']);
-                  },
                 ),
-              ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          flex: 2,
+          child: Obx(
+            () => AppFilterDropdown<String>(
+              hint: 'tasks.filter_status'.tr,
+              fontSize: 12,
+              expandWidth: true,
+              value:
+                  controller.employeeWebContentStatusFilter.value.isEmpty
+                      ? null
+                      : controller.employeeWebContentStatusFilter.value,
+              items:
+                  StorageKeys.statusList
+                      .map(
+                        (e) => DropdownMenuItem(
+                          value: e,
+                          child: Text(e.tr),
+                        ),
+                      )
+                      .toList(),
+              onChanged: (value) {
+                controller.employeeWebContentStatusFilter.value = value ?? '';
+                controller.update(['employeeWebContent']);
+              },
             ),
           ),
         ),
@@ -489,7 +455,7 @@ class _EmployeeWebDesktopContentShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: context.appTheme.pageBackground,
       body: GetBuilder<HomeController>(
         builder: (controller) {
           return SingleChildScrollView(
@@ -527,7 +493,7 @@ class _EmployeeWebDesktopContentShell extends StatelessWidget {
                   Text(
                     'employee.content.list_section'.tr,
                     style: TextStyle(
-                      color: AppColors.fontColorGrey,
+                      color: context.appTheme.secondaryText,
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
                     ),

@@ -5,10 +5,10 @@ import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Services/StorageKeys.dart';
-import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Shared/CustomDropDown.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
+import 'package:point/View/Shared/app_filter_dropdown.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DContentWriteDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DDesignDialog.dart';
@@ -20,6 +20,7 @@ import 'package:point/View/Tasks/DetailsDialogs/DPromotionDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPublishDialog.dart';
 import 'package:point/View/Tasks/TaskCard.dart';
 import 'package:point/View/History/TasksHistoryMobile.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 class TasksHistory extends StatefulWidget {
   @override
@@ -83,7 +84,7 @@ class _TasksHistoryState extends State<TasksHistory> {
                                       StorageKeys.departments[selectedDepartmentIndex],
                                     ).tr,
                                     style: TextStyle(
-                                      color: AppColors.fontColorGrey,
+                                      color: context.appTheme.secondaryText,
                                       fontSize: 15,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -113,9 +114,7 @@ class _TasksHistoryState extends State<TasksHistory> {
                                               : departmentController.text,
                                       label: 'history.select_department'.tr,
                                       borderRadius: 5,
-                                      borderColor: Colors.grey.shade300,
                                       height: 42,
-                                      fillColor: Colors.white,
                                       onChanged: (value) {
                                         if (value != null) {
                                           setState(() {
@@ -182,12 +181,11 @@ class _TasksHistoryState extends State<TasksHistory> {
                                           child: InputText(
                                             prefixIcon: Icon(
                                               CupertinoIcons.search,
-                                              color: Colors.grey,
+                                              color: context.appTheme.secondaryText,
                                             ),
                                             hintText:
                                                 'tasks.search_hint_extended'.tr,
                                             height: 42,
-                                            fillColor: Colors.white,
                                             controller:
                                                 controller.searchController,
 
@@ -197,7 +195,6 @@ class _TasksHistoryState extends State<TasksHistory> {
                                             },
 
                                             borderRadius: 5,
-                                            borderColor: Colors.grey.shade300,
                                           ),
                                         ),
                                         SizedBox(width: 10),
@@ -218,68 +215,34 @@ class _TasksHistoryState extends State<TasksHistory> {
                                           ),
                                         ),
                                         const SizedBox(width: 24),
-                                        Container(
-                                          width: 150,
-                                          height: 40,
-                                          decoration: BoxDecoration(
-                                            border: Border.all(
-                                              color: Colors.grey.shade300,
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                          ),
-                                          child: DropdownButtonHideUnderline(
-                                            child: DropdownButton<String>(
-                                              isExpanded: true,
-                                              hint: Padding(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 8,
+                                        AppFilterDropdown<String>(
+                                          hint: 'tasks.filter_priority'.tr,
+                                          value:
+                                              controller
+                                                      .selectedPriority
+                                                      .value
+                                                      .isEmpty
+                                                  ? null
+                                                  : controller
+                                                      .selectedPriority
+                                                      .value,
+                                          items:
+                                              StorageKeys.priority
+                                                  .map(
+                                                    (e) => DropdownMenuItem(
+                                                      value: e,
+                                                      child: Text(e.tr),
                                                     ),
-                                                child: Text(
-                                                  'tasks.filter_priority'.tr,
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                    fontSize: 13,
-                                                    color:
-                                                        AppColors
-                                                            .primaryfontColor,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                              ),
-                                              value:
-                                                  controller
-                                                          .selectedPriority
-                                                          .value
-                                                          .isEmpty
-                                                      ? null
-                                                      : controller
-                                                          .selectedPriority
-                                                          .value,
-                                              items:
-                                                  StorageKeys.priority
-                                                      .map(
-                                                        (e) => DropdownMenuItem(
-                                                          value: e,
-                                                          child: Text(e.tr),
-                                                        ),
-                                                      )
-                                                      .toList(),
-                                              onChanged: (value) {
-                                                controller
-                                                    .selectedPriority
-                                                    .value = value ?? '';
-                                                controller.filterTasksHistory();
-                                              },
-                                            ),
-                                          ),
+                                                  )
+                                                  .toList(),
+                                          onChanged: (value) {
+                                            controller.selectedPriority.value =
+                                                value ?? '';
+                                            controller.filterTasksHistory();
+                                          },
                                         ),
                                         const SizedBox(width: 10),
 
-                                        // 🔹 الحالة (فقط الحالات المنتهية في سجل المهام)
                                         Builder(
                                           builder: (_) {
                                             final endedItems =
@@ -288,167 +251,90 @@ class _TasksHistoryState extends State<TasksHistory> {
                                                       selectedDepartmentIndex
                                                           .toString(),
                                                     );
-                                            return Container(
+                                            return AppFilterDropdown<String>(
+                                              hint: 'tasks.filter_status'.tr,
                                               width: 170,
-                                              height: 40,
-                                              decoration: BoxDecoration(
-                                                border: Border.all(
-                                                  color: Colors.grey.shade300,
-                                                ),
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                              ),
-                                              child: DropdownButtonHideUnderline(
-                                                child: DropdownButton<String>(
-                                                  isExpanded: true,
-                                                  hint: Padding(
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                          horizontal: 8,
-                                                        ),
-                                                    child: Text(
-                                                      'tasks.filter_status'.tr,
-                                                      maxLines: 1,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                      style: TextStyle(
-                                                        fontSize: 13,
-                                                        color:
-                                                            AppColors
-                                                                .primaryfontColor,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                      ),
+                                              value:
+                                                  controller
+                                                              .selectedStatus
+                                                              .value
+                                                              .isEmpty ||
+                                                          !endedItems.contains(
+                                                            controller
+                                                                .selectedStatus
+                                                                .value,
+                                                          )
+                                                      ? null
+                                                      : controller
+                                                          .selectedStatus
+                                                          .value,
+                                              items: [
+                                                DropdownMenuItem(
+                                                  value: '',
+                                                  child: Text(
+                                                    'filter_status_ended'.tr,
+                                                    style: const TextStyle(
+                                                      fontWeight:
+                                                          FontWeight.w600,
                                                     ),
                                                   ),
-                                                  value:
-                                                      controller
-                                                                  .selectedStatus
-                                                                  .value
-                                                                  .isEmpty ||
-                                                              !endedItems
-                                                                  .contains(
-                                                                    controller
-                                                                        .selectedStatus
-                                                                        .value,
-                                                                  )
-                                                          ? null
-                                                          : controller
-                                                              .selectedStatus
-                                                              .value,
-                                                  items: [
-                                                    DropdownMenuItem(
-                                                      value: '',
-                                                      child: Text(
-                                                        'filter_status_ended'
-                                                            .tr,
-                                                        style: TextStyle(
-                                                          fontWeight:
-                                                              FontWeight.w600,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    ...endedItems.map(
-                                                      (e) => DropdownMenuItem(
-                                                        value: e,
-                                                        child: Padding(
-                                                          padding:
-                                                              const EdgeInsets.only(
-                                                                right: 8,
-                                                              ),
-                                                          child: Text(e.tr),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                  onChanged: (value) {
-                                                    controller
-                                                        .selectedStatus
-                                                        .value = value ?? '';
-                                                    controller
-                                                        .filterTasksHistory();
-                                                  },
                                                 ),
-                                              ),
+                                                ...endedItems.map(
+                                                  (e) => DropdownMenuItem(
+                                                    value: e,
+                                                    child: Padding(
+                                                      padding:
+                                                          const EdgeInsets.only(
+                                                            right: 8,
+                                                          ),
+                                                      child: Text(e.tr),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                              onChanged: (value) {
+                                                controller
+                                                    .selectedStatus
+                                                    .value = value ?? '';
+                                                controller.filterTasksHistory();
+                                              },
                                             );
                                           },
                                         ),
                                         const SizedBox(width: 10),
-
-                                        // 🔹 الملف
-                                        SizedBox(
-                                          width: 150,
-                                          height: 40,
-
-                                          child: Container(
-                                            decoration: BoxDecoration(
-                                              border: Border.all(
-                                                color: Colors.grey.shade300,
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(8),
-                                            ),
-                                            child: DropdownButtonHideUnderline(
-                                              child: DropdownButton<String>(
-                                                isExpanded: true,
-                                                hint: Padding(
-                                                  padding:
-                                                      const EdgeInsets.symmetric(
-                                                        horizontal: 8,
-                                                      ),
-                                                  child: Text(
-                                                    'tasks.filter_assignee'.tr,
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: TextStyle(
-                                                      fontSize: 13,
-                                                      color:
-                                                          AppColors
-                                                              .primaryfontColor,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                ),
-                                                value:
-                                                    controller
-                                                            .selectedExecutor
-                                                            .value
-                                                            .isEmpty
-                                                        ? null
-                                                        : controller
-                                                            .selectedExecutor
-                                                            .value,
-                                                items:
-                                                    controller.employees
-                                                        .map(
-                                                          (
-                                                            e,
-                                                          ) => DropdownMenuItem(
-                                                            value:
-                                                                e.id ??
-                                                                e.name ??
-                                                                '',
-                                                            child: Text(
-                                                              (e.name ?? '')
-                                                                  .split(' ')
-                                                                  .take(2)
-                                                                  .join(' '),
-                                                            ),
-                                                          ),
-                                                        )
-                                                        .toList(),
-                                                onChanged: (value) {
-                                                  controller
+                                        AppFilterDropdown<String>(
+                                          hint: 'tasks.filter_assignee'.tr,
+                                          value:
+                                              controller
                                                       .selectedExecutor
-                                                      .value = value ?? '';
-                                                  controller
-                                                      .filterTasksHistory();
-                                                },
-                                              ),
-                                            ),
-                                          ),
+                                                      .value
+                                                      .isEmpty
+                                                  ? null
+                                                  : controller
+                                                      .selectedExecutor
+                                                      .value,
+                                          items:
+                                              controller.employees
+                                                  .map(
+                                                    (e) => DropdownMenuItem(
+                                                      value:
+                                                          e.id ??
+                                                          e.name ??
+                                                          '',
+                                                      child: Text(
+                                                        (e.name ?? '')
+                                                            .split(' ')
+                                                            .take(2)
+                                                            .join(' '),
+                                                      ),
+                                                    ),
+                                                  )
+                                                  .toList(),
+                                          onChanged: (value) {
+                                            controller.selectedExecutor.value =
+                                                value ?? '';
+                                            controller.filterTasksHistory();
+                                          },
                                         ),
                                         const SizedBox(width: 10),
                                       ],
@@ -460,7 +346,7 @@ class _TasksHistoryState extends State<TasksHistory> {
                               Text(
                                 'tasks.summary.sent_tasks'.tr,
                                 style: TextStyle(
-                                  color: AppColors.fontColorGrey,
+                                  color: context.appTheme.secondaryText,
                                   fontSize: 15,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -495,7 +381,7 @@ class _TasksHistoryState extends State<TasksHistory> {
     final boxWidth = isDesktop ? Get.width / 5 - 78 : Get.width / 5 - 30;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+              color: context.appTheme.cardSurface,
         borderRadius: BorderRadius.circular(10),
       ),
       width: boxWidth,
@@ -528,7 +414,7 @@ class _TasksHistoryState extends State<TasksHistory> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: Colors.grey,
+                  color: context.appTheme.secondaryText,
                   fontWeight: FontWeight.bold,
                   fontSize: 15,
                 ),

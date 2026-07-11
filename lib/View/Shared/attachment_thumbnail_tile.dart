@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:video_player/video_player.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 String _attachmentPathLower(String rawUrl) {
   try {
@@ -242,7 +243,7 @@ class _NetworkVideoAttachmentThumbState
       fit: StackFit.expand,
       children: [
         ColoredBox(
-          color: Colors.black,
+          color: context.appTheme.primaryText,
           child: FittedBox(
             fit: BoxFit.cover,
             child: SizedBox(width: w, height: h, child: VideoPlayer(c)),
@@ -267,8 +268,8 @@ class _NetworkVideoAttachmentThumbState
             Icons.play_circle_rounded,
             color: Colors.white.withValues(alpha: 0.92),
             size: playSize,
-            shadows: const [
-              Shadow(blurRadius: 6, color: Colors.black45),
+            shadows: [
+              Shadow(blurRadius: 6, color: context.appTheme.secondaryText),
             ],
           ),
         ),

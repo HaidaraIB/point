@@ -93,7 +93,7 @@ class _MediaPreviewDownloadButtonState extends State<MediaPreviewDownloadButton>
     return IconButton(
       onPressed: _busy ? null : () => unawaited(_onPressed()),
       style: IconButton.styleFrom(
-        backgroundColor: Colors.white.withValues(alpha: 0.14),
+        backgroundColor: Theme.of(context).colorScheme.surface.withValues(alpha: 0.14),
         foregroundColor: Colors.white,
         disabledBackgroundColor: Colors.white.withValues(alpha: 0.08),
         disabledForegroundColor: Colors.white.withValues(alpha: 0.45),

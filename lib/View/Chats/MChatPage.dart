@@ -44,6 +44,7 @@ import 'package:point/View/Chats/chat_private_typing.dart';
 import 'package:point/View/Chats/voice_recorder_scope.dart';
 import 'package:point/View/Chats/telegram_style_attachment_menu.dart';
 import 'package:point/Utils/chat_attachment_upload.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 // **********************************************
 // ********* الشاشة الجديدة 1: قائمة المحادثات *********
@@ -818,13 +819,18 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                     final displayName =
                                         _localizedGroupTitleFromChat(group);
                                     return ListTile(
-                                      leading: CircleAvatar(
-                                        backgroundColor:
-                                            Colors.blueGrey.shade100,
-                                        child: const Icon(
-                                          Icons.group,
-                                          color: Colors.black87,
-                                        ),
+                                      leading: chatLeadingAvatar(
+                                        radius: 20,
+                                        backgroundColor: Colors.blueGrey.shade100,
+                                        initial: _initialFromName(displayName),
+                                        groupIcon: Icons.group,
+                                        assetImagePath:
+                                            _departmentGroupAssetPathFromChat(
+                                              group,
+                                            ),
+                                        iconColor: context.appTheme.primaryText,
+                                        initialTextColor:
+                                            context.appTheme.primaryText,
                                       ),
                                       title: Text(displayName),
                                       subtitle: Text(
@@ -866,13 +872,21 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                     ),
                                   ),
                                   ..._filteredEmployees.map((emp) {
+                                    final name = (emp['name'] ?? '').toString();
+                                    final imageUrl = (emp['image'] ?? '')
+                                        .toString()
+                                        .trim();
                                     return ListTile(
-                                      leading: CircleAvatar(
-                                        backgroundColor: Colors.grey.shade200,
-                                        child: Text(
-                                          _initialFromName(emp['name']),
-                                          style: TextStyle(color: Colors.black),
-                                        ),
+                                      leading: chatLeadingAvatar(
+                                        radius: 20,
+                                        backgroundColor:
+                                            chatAvatarPlaceholder(context),
+                                        initial: _initialFromName(name),
+                                        imageUrl: imageUrl.isEmpty
+                                            ? null
+                                            : imageUrl,
+                                        initialTextColor:
+                                            context.appTheme.primaryText,
                                       ),
                                       title: Text(emp['name']),
                                       subtitle: Text(emp['email'] ?? ''),
@@ -1026,6 +1040,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
         return _wrapAndroidChatsListHardwareBack(
           context,
           Scaffold(
+            backgroundColor: chatShellBackground(context),
             appBar: PreferredSize(
               preferredSize: const Size.fromHeight(
                 60.0,
@@ -1035,20 +1050,21 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                 centerTitle: true,
                 actions: [
                   // IconButton(
-                  //   icon: const Icon(Icons.close, color: Colors.black),
+                  //   icon: const Icon(Icons.close, color: context.appTheme.primaryText),
                   //   onPressed: widget.onMinimize,
                   // ),
                 ],
               ),
             ),
             body: Container(
-              decoration: BoxDecoration(color: const Color(0xfff7f9fc)),
+              decoration: BoxDecoration(color: chatShellBackground(context)),
               // هنا كان الـ Row الذي يقسم الشاشة، الآن هو شاشة القائمة فقط
               child: Container(
                 margin: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(10),
-                  color: Colors.white,
+                  color: chatListPanelBackground(context),
+                  border: Border.all(color: context.appTheme.border),
                 ),
                 child: RefreshIndicator(
                   color: kChatUiAccent,
@@ -1076,7 +1092,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                           AppLocaleKeys.chatSearchInChats.tr,
                                       prefixIcon: const Icon(Icons.search),
                                       filled: true,
-                                      fillColor: Colors.grey.shade100,
+                                      fillColor: chatSearchFieldFill(context),
                                       border: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(12),
                                         borderSide: BorderSide.none,
@@ -1098,7 +1114,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                       width: 45,
                                       height: 45,
                                       decoration: BoxDecoration(
-                                        color: AppColors.primary,
+                                        color: kChatUiAccent,
                                         borderRadius: BorderRadius.circular(15),
                                       ),
                                       child: const Icon(
@@ -1130,7 +1146,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                               child: LinearProgressIndicator(
                                 minHeight: 4,
                                 color: kChatUiAccent,
-                                backgroundColor: Colors.grey.shade200,
+                                backgroundColor: context.appTheme.unselected,
                               ),
                             ),
                           ),
@@ -1220,10 +1236,10 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                         ? AppLocaleKeys.chatUnknownUser.tr
                                         : otherId);
                               initial = _initialFromName(displayName);
-                              avatarColor = Colors.grey.shade200;
+                              avatarColor = chatAvatarPlaceholder(context);
                               avatarIcon = null;
                               groupAssetPath = null;
-                              titleColor = Colors.black;
+                              titleColor = context.appTheme.primaryText;
                               if (other.isNotEmpty) {
                                 final im = (other['image'] ?? '')
                                     .toString()
@@ -2062,11 +2078,11 @@ class _MessageScreenState extends State<MessageScreen>
       context,
       Scaffold(
         appBar: AppBar(
-          backgroundColor: const Color(0xFFEAE5ED),
+          backgroundColor: context.appTheme.cardSurface,
           surfaceTintColor: Colors.transparent,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            icon: Icon(Icons.arrow_back, color: context.appTheme.primaryText),
             onPressed: () {
               // الرجوع إلى شاشة قائمة المحادثات
               Get.back();
@@ -2089,9 +2105,9 @@ class _MessageScreenState extends State<MessageScreen>
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => Text(
                           _initialFromName(_displayName),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
-                            color: Colors.black,
+                            color: context.appTheme.primaryText,
                           ),
                         ),
                       ),
@@ -2109,10 +2125,10 @@ class _MessageScreenState extends State<MessageScreen>
                       _displayName,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 18,
-                        color: Colors.black,
+                        color: context.appTheme.primaryText,
                       ),
                     ),
                     ChatActivitySubline(
@@ -2134,7 +2150,7 @@ class _MessageScreenState extends State<MessageScreen>
           ),
         ),
         body: Container(
-          decoration: const BoxDecoration(color: Color(0xFFE9EDEF)),
+          decoration: BoxDecoration(color: chatShellBackground(context)),
           child: Column(
             children: [
               // 1. عرض الرسائل
@@ -2211,7 +2227,7 @@ class _MessageScreenState extends State<MessageScreen>
                                 bubbleDecoration: BoxDecoration(
                                   color: isMe
                                       ? AppColors.primary
-                                      : Colors.white,
+                                      : chatIncomingBubbleColorBright(context),
                                   borderRadius: BorderRadius.only(
                                     topLeft: const Radius.circular(18),
                                     topRight: const Radius.circular(18),
@@ -2290,14 +2306,14 @@ class _MessageScreenState extends State<MessageScreen>
                       minHeight: _messageFocusNode.hasFocus ? 54 : 50,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+              color: context.appTheme.cardSurface,
                       borderRadius: BorderRadius.circular(
                         _messageFocusNode.hasFocus ? 26 : 24,
                       ),
                       border: Border.all(
                         color: _messageFocusNode.hasFocus
                             ? AppColors.primary.withValues(alpha: 0.35)
-                            : Colors.grey.shade200,
+                            : context.appTheme.border,
                       ),
                       boxShadow: [
                         BoxShadow(
@@ -2323,7 +2339,7 @@ class _MessageScreenState extends State<MessageScreen>
                               _isEmojiVisible
                                   ? Icons.keyboard
                                   : Icons.emoji_emotions,
-                              color: Colors.grey.shade700,
+                              color: context.appTheme.mutedText,
                               size: 26,
                             ),
                             onPressed: busy
@@ -2349,7 +2365,7 @@ class _MessageScreenState extends State<MessageScreen>
                                 tooltip: AppLocaleKeys.chatAttachSheetTitle.tr,
                                 icon: Icon(
                                   Icons.add_circle_outline,
-                                  color: Colors.grey.shade700,
+                                  color: context.appTheme.mutedText,
                                   size: 28,
                                 ),
                                 onPressed: busy
@@ -2425,7 +2441,7 @@ class _MessageScreenState extends State<MessageScreen>
                                   decoration: InputDecoration(
                                     hintText: AppLocaleKeys.chatWriteMessage.tr,
                                     hintStyle: TextStyle(
-                                      color: Colors.grey.shade500,
+                                      color: context.appTheme.mutedText,
                                       fontSize: 16,
                                     ),
                                     border: InputBorder.none,
@@ -2451,9 +2467,9 @@ class _MessageScreenState extends State<MessageScreen>
                               minWidth: 48,
                               minHeight: 48,
                             ),
-                            icon: const Icon(
+                            icon: Icon(
                               Icons.send_rounded,
-                              color: AppColors.primary,
+                              color: context.appTheme.accentText,
                               size: 28,
                             ),
                             onPressed: busy ? null : _sendMessage,

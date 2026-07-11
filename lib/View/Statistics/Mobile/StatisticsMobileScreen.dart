@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
-import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Statistics/StatistcsCard.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 class StatisticsMobileScreen extends StatelessWidget {
   const StatisticsMobileScreen({super.key});
@@ -31,7 +31,7 @@ class StatisticsMobileScreen extends StatelessWidget {
                 _MobileStatCard(
                   value: '${controller.clients.length}',
                   title: 'taskscount'.tr,
-                  color: AppColors.primary,
+                  color: context.appTheme.accentText,
                 ),
                 const SizedBox(height: 8),
                 const StatisticsCard(),
@@ -61,7 +61,7 @@ class _MobileStatCard extends StatelessWidget {
       width: double.infinity,
       height: 120,
       decoration: BoxDecoration(
-        color: Colors.white,
+              color: context.appTheme.cardSurface,
         borderRadius: BorderRadius.circular(8),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -80,8 +80,8 @@ class _MobileStatCard extends StatelessWidget {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.grey,
+            style: TextStyle(
+              color: context.appTheme.secondaryText,
               fontWeight: FontWeight.bold,
               fontSize: 15,
             ),

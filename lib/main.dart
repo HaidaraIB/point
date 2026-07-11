@@ -13,6 +13,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
 import 'package:point/Bindings/AppBindings.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Controller/ThemeController.dart';
 import 'package:point/Localization/LanguageController.dart';
 import 'package:point/Localization/AppTranslations.dart';
 import 'package:point/Routing/app_route_observer.dart';
@@ -23,10 +24,9 @@ import 'package:point/Services/FirebaseStorageService.dart';
 import 'package:point/Services/AutoLoginService.dart';
 import 'package:point/Services/mobile_version_gate.dart';
 import 'package:point/Services/StorageKeys.dart';
-import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_log.dart';
+import 'package:point/Utils/app_theme.dart';
 import 'package:point/config/app_config.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart' as intl;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -67,6 +67,8 @@ void main(List<String> args) async {
 
   final languageController = Get.put(LanguageController(), permanent: true);
   await languageController.initialize();
+  final themeController = Get.put(ThemeController(), permanent: true);
+  await themeController.initialize();
   // Keep numerals Latin (0-9) across all app languages.
   intl.Intl.defaultLocale = 'en_US';
   Get.put(ChatVoicePlaybackService(), permanent: true);
@@ -191,8 +193,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final lc = Get.find<LanguageController>();
-    final almaraiTextTheme =
-        GoogleFonts.almaraiTextTheme(ThemeData.light().textTheme);
+    final tc = Get.find<ThemeController>();
     return Obx(
       () => Listener(
         behavior: HitTestBehavior.translucent,
@@ -218,23 +219,9 @@ class _AppState extends State<App> with WidgetsBindingObserver {
             ),
           );
         },
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: AppColors.primary,
-            primary: AppColors.primary,
-            surface: Colors.white,
-          ),
-          scaffoldBackgroundColor: Colors.white,
-          progressIndicatorTheme: ProgressIndicatorThemeData(color: Colors.white),
-          textTheme: almaraiTextTheme.copyWith(
-            bodyLarge: almaraiTextTheme.bodyLarge
-                ?.copyWith(color: AppColors.primaryfontColor),
-            bodyMedium: almaraiTextTheme.bodyMedium
-                ?.copyWith(color: AppColors.primaryfontColor),
-            bodySmall: almaraiTextTheme.bodySmall
-                ?.copyWith(color: AppColors.primaryfontColor),
-          ),
-        ),
+        theme: AppTheme.light(),
+        darkTheme: AppTheme.dark(),
+        themeMode: tc.themeMode.value,
         initialRoute: AppRouting.initialPage,
         locale: lc.currentLocale.value,
         fallbackLocale: const Locale('ar'),

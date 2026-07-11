@@ -7,6 +7,7 @@ import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/final_deliverable_upload_names.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// Admin/supervisor: request changes while task is under review.
 Future<void> showRequestTaskModificationDialog({
@@ -96,7 +97,7 @@ Future<void> showRequestTaskModificationDialog({
                         'tasks.request_modification_subtitle'.tr,
                         style: TextStyle(
                           fontSize: 13,
-                          color: Colors.grey.shade700,
+                          color: context.appTheme.mutedText,
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -132,7 +133,7 @@ Future<void> showRequestTaskModificationDialog({
                               .trParams({'count': '${urls.length}'}),
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey.shade800,
+                            color: context.appTheme.mutedText,
                           ),
                         ),
                       ],

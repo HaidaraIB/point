@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:point/Utils/AppColors.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 class StatisticsCard extends StatefulWidget {
   const StatisticsCard({super.key});
@@ -43,7 +43,7 @@ class _StatisticsCardState extends State<StatisticsCard> {
         return Card(
           margin: const EdgeInsets.all(16),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          color: Colors.white,
+          color: context.appTheme.cardSurface,
           elevation: 0,
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -53,7 +53,7 @@ class _StatisticsCardState extends State<StatisticsCard> {
                 if (isNarrow) ...[
                   Text(
                     'statistics.title'.tr,
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 10),
                   SingleChildScrollView(
@@ -73,7 +73,7 @@ class _StatisticsCardState extends State<StatisticsCard> {
                                         isActive ? FontWeight.bold : FontWeight.normal,
                                     color:
                                         isActive
-                                            ? AppColors.fontColorGrey
+                                            ? context.appTheme.secondaryText
                                             : Colors.grey,
                                     decoration:
                                         isActive ? TextDecoration.underline : null,
@@ -89,7 +89,7 @@ class _StatisticsCardState extends State<StatisticsCard> {
                     children: [
                       Text(
                         'statistics.title'.tr,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
@@ -114,7 +114,7 @@ class _StatisticsCardState extends State<StatisticsCard> {
                                               : FontWeight.normal,
                                       color:
                                           isActive
-                                              ? AppColors.fontColorGrey
+                                              ? context.appTheme.secondaryText
                                               : Colors.grey,
                                       decoration:
                                           isActive ? TextDecoration.underline : null,
@@ -129,9 +129,20 @@ class _StatisticsCardState extends State<StatisticsCard> {
                 ],
                 const SizedBox(height: 12),
                 SfCartesianChart(
-              primaryYAxis: NumericAxis(isVisible: false),
-              primaryXAxis: CategoryAxis(),
-              legend: Legend(isVisible: true, position: LegendPosition.bottom),
+              backgroundColor: Colors.transparent,
+              primaryYAxis: NumericAxis(
+                isVisible: false,
+                axisLine: const AxisLine(width: 0),
+              ),
+              primaryXAxis: CategoryAxis(
+                labelStyle: TextStyle(color: context.appTheme.primaryText),
+                axisLine: AxisLine(color: context.appTheme.border),
+              ),
+              legend: Legend(
+                isVisible: true,
+                position: LegendPosition.bottom,
+                textStyle: TextStyle(color: context.appTheme.primaryText),
+              ),
               tooltipBehavior: TooltipBehavior(enable: true),
               series: [
                 SplineAreaSeries<_ChartData, String>(

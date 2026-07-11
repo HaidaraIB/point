@@ -8,6 +8,7 @@ import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/ContentPermissions.dart';
 import 'package:point/View/Shared/ContentStatusPromotionDropdownChip.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 class ContentStatusCard extends StatelessWidget {
   final ContentModel? model;
@@ -23,6 +24,7 @@ class ContentStatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appTheme = context.appTheme;
     final emp = Get.find<HomeController>().currentEmployee.value;
     final showPubDate = ContentPermissions.showContentPublishDateUi(emp);
     final showStatus = ContentPermissions.showContentStatusUi(emp);
@@ -37,8 +39,9 @@ class ContentStatusCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
         decoration: BoxDecoration(
-          color: index.isOdd ? Colors.white : Colors.grey.shade100,
+          color: index.isOdd ? appTheme.elevatedSurface : appTheme.cardSurface,
           borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: appTheme.border),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -56,10 +59,10 @@ class ContentStatusCard extends StatelessWidget {
                       children: [
                         Text(
                           model?.title.tr ?? '',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: Colors.black87,
+                            color: appTheme.primaryText,
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -72,7 +75,7 @@ class ContentStatusCard extends StatelessWidget {
                             const SizedBox(width: 4),
                             Text(
                               '|',
-                              style: TextStyle(color: Colors.grey.shade400),
+                              style: TextStyle(color: appTheme.mutedText),
                             ),
                             const SizedBox(width: 4),
                             Flexible(
@@ -81,9 +84,9 @@ class ContentStatusCard extends StatelessWidget {
                                   model!.contentType,
                                   kind: StoredValueKind.contentType,
                                 ),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.black54,
+                                  color: appTheme.secondaryText,
                                 ),
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -95,10 +98,10 @@ class ContentStatusCard extends StatelessWidget {
                           const SizedBox(height: 2),
                           Text(
                             FunHelper.formatdate(model?.publishDate) ?? '',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black87,
+                              color: appTheme.primaryText,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -111,17 +114,17 @@ class ContentStatusCard extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (showStatus) ...[
-                        _buildstatusTag(model!.status),
+                        _buildstatusTag(context, model!.status),
                         const SizedBox(width: 6),
                       ],
                       if (!showStatus && showPromo) ...[
-                        _buildPromotionTag(model!.promotion),
+                        _buildPromotionTag(context, model!.promotion),
                         const SizedBox(width: 6),
                       ],
-                      const Icon(
+                      Icon(
                         Icons.arrow_forward_ios,
                         size: 16,
-                        color: Colors.grey,
+                        color: appTheme.mutedText,
                       ),
                     ],
                   ),
@@ -152,20 +155,21 @@ Color _buildplatformColor(String platform) {
 }
 
 // ignore: unused_element
-Widget _buildcontenttypeIcon(String type) {
+Widget _buildcontenttypeIcon(BuildContext context, String type) {
+  final appTheme = context.appTheme;
   switch (type) {
     case 'content_video':
-      return Icon(CupertinoIcons.play_arrow, size: 24, color: Colors.grey);
+      return Icon(CupertinoIcons.play_arrow, size: 24, color: appTheme.secondaryText);
     case 'content_image':
-      return Icon(Icons.image_outlined, size: 24, color: Colors.grey);
+      return Icon(Icons.image_outlined, size: 24, color: appTheme.secondaryText);
     case 'content_text':
       return Icon(
         Icons.format_align_center_outlined,
         size: 24,
-        color: Colors.grey,
+        color: appTheme.secondaryText,
       );
     default:
-      return const Icon(Icons.device_unknown, size: 24, color: Colors.grey);
+      return Icon(Icons.device_unknown, size: 24, color: appTheme.secondaryText);
   }
 }
 
@@ -226,7 +230,7 @@ Widget _buildIcon(String? url) {
   }
 }
 
-Widget _buildPromotionTag(String? promotion) {
+Widget _buildPromotionTag(BuildContext context, String? promotion) {
   final key = FunHelper.canonicalStoredPromotion(promotion);
   final label =
       promotion == null || promotion.trim().isEmpty
@@ -235,16 +239,17 @@ Widget _buildPromotionTag(String? promotion) {
             promotion,
             kind: StoredValueKind.promotion,
           );
+  final fg = getContentPromotionColor(key);
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
     decoration: BoxDecoration(
-      color: getContentPromotionBgColor(key),
+      color: context.statusChipBackground(fg, getContentPromotionBgColor(key)),
       borderRadius: BorderRadius.circular(8),
     ),
     child: Text(
       label,
       style: TextStyle(
-        color: getContentPromotionColor(key),
+        color: fg,
         fontSize: 11,
         fontWeight: FontWeight.bold,
       ),
@@ -252,12 +257,14 @@ Widget _buildPromotionTag(String? promotion) {
   );
 }
 
-Widget _buildstatusTag(String text) {
+Widget _buildstatusTag(BuildContext context, String text) {
   final key = FunHelper.canonicalStoredStatus(text);
+  final fg = _getStatusColor(key);
+  final bg = context.statusChipBackground(fg, _getStatusbgColor(key));
   return TaskStatusVisuals.statusChip(
     rawStatus: text,
-    fg: _getStatusColor(key),
-    bg: _getStatusbgColor(key),
+    fg: fg,
+    bg: bg,
   );
 }
 

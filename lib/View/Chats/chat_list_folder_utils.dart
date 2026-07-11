@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// Chat list chips, add button, and loading indicators (matches composer accent).
 const Color kChatUiAccent = AppColors.primary;
@@ -63,7 +64,7 @@ Widget chatListLeadingWithPinBadge({
         end: -4,
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: Colors.white,
+              color: resolveAppTheme().cardSurface,
             shape: BoxShape.circle,
             boxShadow: [
               BoxShadow(
@@ -98,6 +99,7 @@ class ChatListFolderTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     Widget chip(ChatListFolder f, String label) {
       final sel = selected == f;
       return Padding(
@@ -112,10 +114,14 @@ class ChatListFolderTabs extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: sel ? kChatUiAccent : Colors.white,
+                color: sel
+                    ? kChatUiAccent
+                    : (Theme.of(context).brightness == Brightness.dark
+                        ? theme.inputFill
+                        : theme.cardSurface),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: sel ? kChatUiAccent : Colors.grey.shade300,
+                  color: sel ? kChatUiAccent : theme.border,
                 ),
               ),
               child: Text(
@@ -123,7 +129,7 @@ class ChatListFolderTabs extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: sel ? FontWeight.w600 : FontWeight.w500,
-                  color: sel ? Colors.white : Colors.black87,
+                  color: sel ? Colors.white : theme.primaryText,
                 ),
               ),
             ),
@@ -192,7 +198,7 @@ Future<void> showChatListPinContextMenu({
             isPinned
                 ? AppLocaleKeys.chatListUnpinChat.tr
                 : AppLocaleKeys.chatListPinChat.tr,
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
               fontSize: 15,
               fontWeight: FontWeight.w500,

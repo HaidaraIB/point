@@ -14,6 +14,7 @@ import 'package:point/View/Shared/CustomHeader.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/Utils/ContentPermissions.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// Content management for employees (Promotion/Publishing): same shell as [EmployeeDashboard],
 /// responsive mobile vs desktop/web — no [ResponsiveScaffold] drawer.
@@ -28,7 +29,7 @@ class EmployeeContentDashboard extends StatelessWidget {
       builder: (controller) {
         final isMobile = Responsive.isMobile(context);
         return Scaffold(
-          backgroundColor: Colors.grey.shade100,
+          backgroundColor: context.appTheme.pageBackground,
           appBar: isMobile ? EmployeeMobileAppBar(controller: controller) : null,
           body: Responsive(
             mobile: _buildMobileBody(context, controller),
@@ -49,7 +50,7 @@ class EmployeeContentDashboard extends StatelessWidget {
           Text(
             'managecontent'.tr,
             style: TextStyle(
-              color: AppColors.fontColorGrey,
+              color: context.appTheme.secondaryText,
               fontSize: 17,
               fontWeight: FontWeight.bold,
             ),
@@ -78,7 +79,7 @@ class EmployeeContentDashboard extends StatelessWidget {
                     children: [
                       Text(
                         'addnewcontent'.tr,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
@@ -106,7 +107,7 @@ class EmployeeContentDashboard extends StatelessWidget {
                   children: [
                     Text(
                       'tasks'.tr,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
@@ -132,7 +133,7 @@ class EmployeeContentDashboard extends StatelessWidget {
             textStyle: TextStyle(
               fontSize: 12,
               height: 1.25,
-              color: Colors.grey.shade600,
+              color: context.appTheme.mutedText,
             ),
           ),
         ],
@@ -168,7 +169,7 @@ class EmployeeContentDashboard extends StatelessWidget {
                     child: Text(
                       'managecontent'.tr,
                       style: TextStyle(
-                        color: AppColors.fontColorGrey,
+                        color: context.appTheme.secondaryText,
                         fontSize: 17,
                         fontWeight: FontWeight.bold,
                       ),
@@ -194,7 +195,7 @@ class EmployeeContentDashboard extends StatelessWidget {
                             children: [
                               Text(
                                 'addnewcontent'.tr,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 13,
@@ -224,7 +225,7 @@ class EmployeeContentDashboard extends StatelessWidget {
                       children: [
                         Text(
                           'tasks'.tr,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
@@ -258,7 +259,7 @@ class EmployeeContentDashboard extends StatelessWidget {
                 textStyle: TextStyle(
                   fontSize: 12,
                   height: 1.25,
-                  color: Colors.grey.shade600,
+                  color: context.appTheme.mutedText,
                 ),
               ),
             ],
@@ -321,9 +322,7 @@ class EmployeeContentDashboard extends StatelessWidget {
                 ),
         label: 'chooseclient'.tr,
         borderRadius: 5,
-        borderColor: Colors.grey.shade300,
         height: 42,
-        fillColor: Colors.white,
         onChanged: (value) {
           if (value != null) {
             controller.clientController.text = (value).id ?? '';
@@ -351,7 +350,7 @@ class EmployeeContentDashboard extends StatelessWidget {
                 'history.pick_client_content'.tr,
                 style: TextStyle(
                   fontSize: 15,
-                  color: AppColors.fontColorGrey,
+                  color: context.appTheme.secondaryText,
                 ),
               ),
             ),
@@ -365,7 +364,7 @@ class EmployeeContentDashboard extends StatelessWidget {
                 'history.empty_data'.tr,
                 style: TextStyle(
                   fontSize: 15,
-                  color: AppColors.fontColorGrey,
+                  color: context.appTheme.secondaryText,
                 ),
               ),
             ),

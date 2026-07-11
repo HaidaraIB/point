@@ -9,6 +9,7 @@ import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Tasks/DetailsDialogs/GenericTaskDetailsDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 import 'package:point/View/Tasks/Mobile/TaskDetailsMobile.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 void showAdministrativeTaskDetailsDialog(
   BuildContext context, {
@@ -56,7 +57,7 @@ class AdministrationDetailsSection extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
               decoration: BoxDecoration(
-                color: Colors.white,
+              color: context.appTheme.cardSurface,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Wrap(
@@ -101,7 +102,7 @@ class AdministrationDetailsSection extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+              color: context.appTheme.cardSurface,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Column(
@@ -109,7 +110,7 @@ class AdministrationDetailsSection extends StatelessWidget {
                   children: [
                     Text(
                       'task_details.about_task'.tr,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 13,
                       ),
@@ -119,7 +120,7 @@ class AdministrationDetailsSection extends StatelessWidget {
                       aboutText,
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey.shade800,
+                        color: context.appTheme.mutedText,
                         height: 1.35,
                       ),
                     ),
@@ -132,7 +133,7 @@ class AdministrationDetailsSection extends StatelessWidget {
               constraints: const BoxConstraints(minHeight: 110),
               padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
               decoration: BoxDecoration(
-                color: Colors.white,
+              color: context.appTheme.cardSurface,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Wrap(

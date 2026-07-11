@@ -11,6 +11,7 @@ import 'package:point/View/Shared/app_date_time_picker.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/ReadOnlyAccountEmailField.dart';
 import 'package:point/Utils/PasswordValidator.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 import 'package:uuid/uuid.dart';
 
 /// Mobile-only full-screen add/edit client form.
@@ -224,17 +225,18 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final appTheme = context.appTheme;
     final bottomPadding = MediaQuery.of(context).padding.bottom + 24;
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
+      backgroundColor: appTheme.pageBackground,
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
         title: Text(
           widget.model == null ? 'addclient'.tr : 'editclient'.tr,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
@@ -263,7 +265,7 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
                       },
                       child: Obx(
                         () => CircleAvatar(
-                          backgroundColor: Colors.grey.shade200,
+                          backgroundColor: appTheme.unselected,
                           radius: 50,
                           child: controller.uploadedFilesPaths.isNotEmpty
                               ? ClipRRect(
@@ -275,7 +277,11 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
                                     fit: BoxFit.cover,
                                   ),
                                 )
-                              : Icon(Icons.camera_alt, size: 50, color: Colors.grey.shade600),
+                              : Icon(
+                                  Icons.camera_alt,
+                                  size: 50,
+                                  color: appTheme.mutedText,
+                                ),
                         ),
                       ),
                     ),
@@ -285,11 +291,9 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
                     labelText: 'name'.tr,
                     hintText: 'entername'.tr,
                     height: 48,
-                    fillColor: Colors.white,
                     controller: nameController,
                     validator: (v) => (v == null || v.isEmpty) ? ' ' : null,
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                   ),
                   const SizedBox(height: 16),
                   if (widget.model == null || _canEditCredentials) ...[
@@ -297,7 +301,6 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
                       labelText: 'email'.tr,
                       hintText: 'example@example.com'.tr,
                       height: 48,
-                      fillColor: Colors.white,
                       textInputType: TextInputType.emailAddress,
                       controller: emailController,
                       validator: (v) {
@@ -307,7 +310,6 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
                         return null;
                       },
                       borderRadius: 8,
-                      borderColor: Colors.grey.shade300,
                     ),
                     const SizedBox(height: 16),
                     InputText(
@@ -319,13 +321,12 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
                       obscureText: obscurePassword,
                       controller: passwordController,
                       height: 48,
-                      fillColor: Colors.white,
                       suffixIcon: IconButton(
                         icon: Icon(
                           obscurePassword
                               ? Icons.visibility_off
                               : Icons.visibility,
-                          color: Colors.grey.shade600,
+                          color: appTheme.mutedText,
                         ),
                         onPressed:
                             () => setState(() => obscurePassword = !obscurePassword),
@@ -335,7 +336,6 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
                         return validatePasswordStrong(v);
                       },
                       borderRadius: 8,
-                      borderColor: Colors.grey.shade300,
                     ),
                     const SizedBox(height: 16),
                   ] else ...[
@@ -343,8 +343,6 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
                       email: widget.model?.email ?? '',
                       height: 48,
                       borderRadius: 8,
-                      borderColor: Colors.grey.shade300,
-                      fillColor: Colors.white,
                     ),
                     const SizedBox(height: 16),
                   ],
@@ -353,12 +351,10 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
                     hintText: '',
                     expanded: true,
                     height: 80,
-                    fillColor: Colors.white,
                     textInputType: TextInputType.multiline,
                     controller: descController,
                     validator: (v) => (v == null || v.isEmpty) ? ' ' : null,
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                   ),
                   const SizedBox(height: 16),
                   Align(
@@ -368,7 +364,7 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: Colors.grey.shade800,
+                        color: appTheme.primaryText,
                       ),
                     ),
                   ),
@@ -392,40 +388,68 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
                         ),
                       );
                     }
-                    return DropdownButtonFormField<String>(
-                      initialValue: _selectedMetaAssetValue.value,
-                      decoration: InputDecoration(
-                        isDense: true,
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
+                    return SizedBox(
+                      height: 48,
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _selectedMetaAssetValue.value,
+                        isExpanded: true,
+                        dropdownColor: appTheme.cardSurface,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: appTheme.primaryText,
                         ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        icon: Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          color: appTheme.mutedText,
                         ),
-                      ),
-                      items: [
-                        const DropdownMenuItem<String>(
-                          value: _unlinkMetaAssetValue,
-                          child: Text('Unlink'),
-                        ),
-                        ..._metaAssets.map(
-                          (asset) => DropdownMenuItem<String>(
-                            value: asset.pageId,
-                            child: Text(
-                              asset.label,
-                              overflow: TextOverflow.ellipsis,
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: appTheme.inputFill,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: appTheme.border),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: appTheme.border),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(
+                              color: appTheme.accentText,
+                              width: 1.5,
                             ),
                           ),
                         ),
-                      ],
-                      onChanged: (value) {
-                        if (value == null) return;
-                        _selectedMetaAssetValue.value = value;
-                      },
+                        items: [
+                          const DropdownMenuItem<String>(
+                            value: _unlinkMetaAssetValue,
+                            child: Text(
+                              'Unlink',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          ..._metaAssets.map(
+                            (asset) => DropdownMenuItem<String>(
+                              value: asset.pageId,
+                              child: Text(
+                                asset.label,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          if (value == null) return;
+                          _selectedMetaAssetValue.value = value;
+                        },
+                      ),
                     );
                   }),
                   const SizedBox(height: 16),
@@ -434,13 +458,14 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
                     labelText: 'startat'.tr,
                     hintText: '1/10/2025'.tr,
                     height: 48,
-                    fillColor: Colors.white,
                     controller: startDateController,
                     readOnly: true,
                     validator: (v) => (v == null || v.isEmpty) ? ' ' : null,
-                    suffixIcon: Icon(CupertinoIcons.calendar, color: Colors.grey.shade600),
+                    suffixIcon: Icon(
+                      CupertinoIcons.calendar,
+                      color: appTheme.mutedText,
+                    ),
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                   ),
                   const SizedBox(height: 16),
                   InputText(
@@ -448,13 +473,14 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
                     labelText: 'endat'.tr,
                     hintText: '1/10/2026'.tr,
                     height: 48,
-                    fillColor: Colors.white,
                     controller: endDateController,
                     readOnly: true,
                     validator: (v) => (v == null || v.isEmpty) ? ' ' : null,
-                    suffixIcon: Icon(CupertinoIcons.calendar, color: Colors.grey.shade600),
+                    suffixIcon: Icon(
+                      CupertinoIcons.calendar,
+                      color: appTheme.mutedText,
+                    ),
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                   ),
                   const SizedBox(height: 32),
                   Obx(
@@ -480,7 +506,7 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
                               )
                             : Text(
                                 'common.confirm'.tr,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,

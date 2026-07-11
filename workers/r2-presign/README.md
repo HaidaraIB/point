@@ -93,7 +93,7 @@ If R2 returns **`Credential access key has length 64, should be 32`**, the Worke
 
 If the app logs **XHR / status=0** when uploading, the presign step usually worked but the browser **blocked the PUT** to R2. Fix **R2 bucket CORS**:
 
-- Add the **exact** `Origin` you run the app from (DevTools → Network → failed request → **Request Headers** → `Origin`). Use **fixed** `--web-port` (e.g. `8080`) so `http://localhost:8080` stays stable.
+- Add the **exact** `Origin` you run the app from (DevTools → Network → failed request → **Request Headers** → `Origin`). Use a **fixed** `--web-port` so the origin stays stable (e.g. `8080`, or `5555` on Windows when Hyper-V/WSL excludes `8080` — then add `http://localhost:5555` to `AllowedOrigins`).
 - Allowed methods: **`GET`**, **`PUT`**, **`HEAD`** only (plus **`DELETE`** if you need it). **Never `OPTIONS`** — invalid in R2’s CORS JSON.
 - **`AllowedHeaders`**: use `["*"]` or list `Content-Type`, `Content-Disposition`, etc.
 

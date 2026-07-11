@@ -1,8 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/TaskModel.dart';
@@ -14,8 +12,8 @@ import 'package:point/View/EmployeeDashboard/attendance_check_in_card.dart';
 import 'package:point/View/EmployeeDashboard/employee_mobile_app_bar.dart';
 import 'package:point/View/EmployeeDashboard/Shared/EmployeeTaskCard.dart';
 import 'package:point/View/Shared/CustomHeader.dart';
-import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
+import 'package:point/View/Shared/app_filter_dropdown.dart';
 import 'package:point/View/Shared/app_version_label.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
@@ -27,8 +25,35 @@ import 'package:point/View/Tasks/DetailsDialogs/DAdministrativeDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DProgrammingDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPromotionDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPublishDialog.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
-Widget _employeeDashboardDepartmentChips(HomeController controller) {
+Widget _employeeDashboardDepartmentChip(
+  BuildContext context, {
+  required String label,
+  required bool selected,
+  required VoidCallback onSelected,
+}) {
+  final theme = context.appTheme;
+  return ChoiceChip(
+    label: Text(label),
+    selected: selected,
+    onSelected: (_) => onSelected(),
+    selectedColor: AppColors.primary,
+    backgroundColor: theme.inputFill,
+    side: BorderSide(color: selected ? AppColors.primary : theme.border),
+    labelStyle: TextStyle(
+      color: selected ? Colors.white : theme.primaryText,
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
+    ),
+    checkmarkColor: Colors.white,
+  );
+}
+
+Widget _employeeDashboardDepartmentChips(
+  BuildContext context,
+  HomeController controller,
+) {
   return Obx(() {
     final emp = controller.currentEmployee.value;
     if (emp == null ||
@@ -43,20 +68,22 @@ Widget _employeeDashboardDepartmentChips(HomeController controller) {
         spacing: 8,
         runSpacing: 8,
         children: [
-          ChoiceChip(
-            label: Text('employee.dashboard.all_departments'.tr),
+          _employeeDashboardDepartmentChip(
+            context,
+            label: 'employee.dashboard.all_departments'.tr,
             selected: controller.activeDepartmentFilter.value.isEmpty,
-            onSelected: (_) {
+            onSelected: () {
               controller.activeDepartmentFilter.value = '';
               controller.filterTasks();
               controller.schedulePersistEmployeeDashboardTaskFilters();
             },
           ),
           ...emp.departments.map(
-            (d) => ChoiceChip(
-              label: Text(StorageKeys.semanticDepartmentLabelKey(d).tr),
+            (d) => _employeeDashboardDepartmentChip(
+              context,
+              label: StorageKeys.semanticDepartmentLabelKey(d).tr,
               selected: controller.activeDepartmentFilter.value == d,
-              onSelected: (_) {
+              onSelected: () {
                 controller.activeDepartmentFilter.value = d;
                 controller.filterTasks();
                 controller.schedulePersistEmployeeDashboardTaskFilters();
@@ -79,7 +106,7 @@ Widget _employeeDashboardAttendanceSection(
     children: [
       const AttendanceCheckInCard(),
       const SizedBox(height: 24),
-      _employeeDashboardDepartmentChips(controller),
+      _employeeDashboardDepartmentChips(context, controller),
     ],
   );
 
@@ -157,7 +184,7 @@ class _EmployeeDashboardBody extends StatelessWidget {
       builder: (controller) {
         final isMobile = Responsive.isMobile(context);
         return Scaffold(
-          backgroundColor: Colors.grey.shade100,
+          backgroundColor: resolveAppTheme().pageBackground,
           appBar:
               isMobile ? EmployeeMobileAppBar(controller: controller) : null,
           body: Responsive(
@@ -206,7 +233,7 @@ class _EmployeeDashboardBody extends StatelessWidget {
                           Text(
                             'employee.dashboard.tasks_assigned_to_you'.tr,
                             style: TextStyle(
-                              color: AppColors.fontColorGrey,
+                              color: resolveAppTheme().secondaryText,
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
                             ),
@@ -255,160 +282,85 @@ class _EmployeeDashboardBody extends StatelessWidget {
                       SizedBox(height: 15),
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 10),
-                        child: Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Expanded(
-                              child: InputText(
-                                prefixIcon: Icon(
-                                  CupertinoIcons.search,
-                                  color: Colors.grey,
-                                ),
-                                hintText: 'employee.search_tasks_hint'.tr,
-                                height: 42,
-                                fillColor: Colors.white,
+                            MobileFilterSearchRow(
+                              searchBar: MobileFilterSearchBar(
                                 controller: controller.searchController,
-
-                                onchange: (value) {
-                                  controller.filterTasks();
-                                  return null;
-                                },
-
+                                hintText: 'employee.search_tasks_hint'.tr,
                                 borderRadius: 5,
-                                borderColor: Colors.grey.shade300,
+                                onChanged: controller.filterTasks,
                               ),
-                            ),
-                            SizedBox(width: 10),
-                            InkWell(
-                              onTap: () {
+                              onClearFilters: () {
                                 unawaited(
                                   controller.clearEmployeeDashboardTaskFilters(),
                                 );
                               },
-                              child: SvgPicture.asset(
-                                'assets/svgs/icon_menu.svg',
-                                height: 42,
-                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: [
+                                  AppFilterDropdown<String>(
+                              hint: 'tasks.filter_priority'.tr,
+                              value:
+                                  controller.selectedPriority.value.isEmpty
+                                      ? null
+                                      : controller.selectedPriority.value,
+                              items:
+                                  StorageKeys.priority
+                                      .map(
+                                        (e) => DropdownMenuItem(
+                                          value: e,
+                                          child: Text(
+                                            e.tr,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      )
+                                      .toList(),
+                              onChanged: (value) async {
+                                controller.selectedPriority.value = value ?? '';
+                                controller.filterTasks();
+                                await controller
+                                    .persistEmployeeDashboardTaskFilters();
+                              },
                             ),
                             const SizedBox(width: 10),
-                            SizedBox(
-                              width: 150,
-                              height: 40,
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color: Colors.grey.shade300,
-                                  ),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: DropdownButtonHideUnderline(
-                                  child: DropdownButton<String>(
-                                    isExpanded: true,
-                                    hint: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                      ),
-                                      child: Text(
-                                        'tasks.filter_priority'.tr,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: AppColors.primaryfontColor,
-                                          fontWeight: FontWeight.bold,
+                            AppFilterDropdown<String>(
+                              hint: 'tasks.filter_status'.tr,
+                              value:
+                                  controller.selectedStatus.value.isEmpty
+                                      ? null
+                                      : controller.selectedStatus.value,
+                              items:
+                                  StorageKeys
+                                      .employeeDashboardTaskStatusFilterDropdownValuesForDepartment(
+                                        controller
+                                            .employeeDashboardDepartmentFilterArg,
+                                      )
+                                      .map(
+                                        (e) => DropdownMenuItem(
+                                          value: e,
+                                          child: Text(
+                                            e.tr,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
                                         ),
-                                      ),
-                                    ),
-                                    value:
-                                        controller.selectedPriority.value.isEmpty
-                                            ? null
-                                            : controller.selectedPriority.value,
-                                    items:
-                                        StorageKeys.priority
-                                            .map(
-                                              (e) => DropdownMenuItem(
-                                                value: e,
-                                                child: Text(
-                                                  e.tr,
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                ),
-                                              ),
-                                            )
-                                            .toList(),
-                                    onChanged: (value) async {
-                                      controller.selectedPriority.value =
-                                          value ?? '';
-                                      controller.filterTasks();
-                                      await controller
-                                          .persistEmployeeDashboardTaskFilters();
-                                    },
-                                  ),
-                                ),
-                              ),
+                                      )
+                                      .toList(),
+                              onChanged: (value) async {
+                                controller.selectedStatus.value = value ?? '';
+                                controller.filterTasks();
+                                await controller
+                                    .persistEmployeeDashboardTaskFilters();
+                              },
                             ),
-                            const SizedBox(width: 10),
-
-                            // 🔹 الحالة
-                            SizedBox(
-                              width: 150,
-                              height: 40,
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color: Colors.grey.shade300,
-                                  ),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: DropdownButtonHideUnderline(
-                                  child: DropdownButton<String>(
-                                    isExpanded: true,
-                                    hint: Padding(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                      ),
-                                      child: Text(
-                                        'tasks.filter_status'.tr,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: AppColors.primaryfontColor,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ),
-                                    value:
-                                        controller.selectedStatus.value.isEmpty
-                                            ? null
-                                            : controller.selectedStatus.value,
-                                    items:
-                                        StorageKeys
-                                            .employeeDashboardTaskStatusFilterDropdownValuesForDepartment(
-                                              controller
-                                                  .employeeDashboardDepartmentFilterArg,
-                                            )
-                                            .map(
-                                              (e) => DropdownMenuItem(
-                                                value: e,
-                                                child: Text(
-                                                  e.tr,
-                                                  maxLines: 1,
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                ),
-                                              ),
-                                            )
-                                            .toList(),
-                                    onChanged: (value) async {
-                                      controller.selectedStatus.value =
-                                          value ?? '';
-                                      controller.filterTasks();
-                                      await controller
-                                          .persistEmployeeDashboardTaskFilters();
-                                    },
-                                  ),
-                                ),
+                                ],
                               ),
                             ),
                           ],
@@ -418,7 +370,7 @@ class _EmployeeDashboardBody extends StatelessWidget {
                       Text(
                         'tasks.summary.sent_tasks'.tr,
                         style: TextStyle(
-                          color: AppColors.fontColorGrey,
+                          color: resolveAppTheme().secondaryText,
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
                         ),
@@ -433,7 +385,7 @@ class _EmployeeDashboardBody extends StatelessWidget {
                         textStyle: TextStyle(
                           fontSize: 12,
                           height: 1.25,
-                          color: Colors.grey.shade600,
+                          color: resolveAppTheme().mutedText,
                         ),
                       ),
                     ],
@@ -475,7 +427,7 @@ class _EmployeeDashboardBody extends StatelessWidget {
                               Text(
                                 'employee.dashboard.tasks_assigned_to_you'.tr,
                                 style: TextStyle(
-                                  color: AppColors.fontColorGrey,
+                                  color: resolveAppTheme().secondaryText,
                                   fontSize: 15,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -525,175 +477,98 @@ class _EmployeeDashboardBody extends StatelessWidget {
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 10),
                             child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                Row(
-                                  children: [
-                                    SizedBox(
-                                      width: (Get.width * 0.7) - 25,
-                                      child: InputText(
-                                        prefixIcon: Icon(
-                                          CupertinoIcons.search,
-                                          color: Colors.grey,
-                                        ),
-                                        hintText: 'employee.search_tasks_hint'.tr,
-                                        height: 42,
-                                        fillColor: Colors.white,
-                                        controller: controller.searchController,
-
-                                        onchange: (value) {
-                                          controller.filterTasks();
-                                          return null;
-                                        },
-
-                                        borderRadius: 5,
-                                        borderColor: Colors.grey.shade300,
-                                      ),
-                                    ),
-                                    SizedBox(width: 10),
-                                    InkWell(
-                                      onTap: () {
-                                        unawaited(
-                                          controller
-                                              .clearEmployeeDashboardTaskFilters(),
-                                        );
-                                      },
-                                      child: SvgPicture.asset(
-                                        'assets/svgs/icon_menu.svg',
-                                        height: 42,
-                                      ),
-                                    ),
-                                  ],
+                                MobileFilterSearchRow(
+                                  searchBar: MobileFilterSearchBar(
+                                    controller: controller.searchController,
+                                    hintText: 'employee.search_tasks_hint'.tr,
+                                    borderRadius: 5,
+                                    onChanged: controller.filterTasks,
+                                  ),
+                                  onClearFilters: () {
+                                    unawaited(
+                                      controller
+                                          .clearEmployeeDashboardTaskFilters(),
+                                    );
+                                  },
                                 ),
-                                SizedBox(height: 10),
-                                // 🔹 الحالة
-                                Row(
-                                  children: [
-                                    Container(
-                                      width: 150,
-                                      height: 40,
-                                      decoration: BoxDecoration(
-                                        border: Border.all(
-                                          color: Colors.grey.shade300,
-                                        ),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: DropdownButtonHideUnderline(
-                                        child: DropdownButton<String>(
-                                          isExpanded: true,
-                                          hint: Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                            ),
-                                            child: Text(
-                                              'tasks.filter_priority'.tr,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(
-                                                fontSize: 13,
-                                                color: AppColors.primaryfontColor,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ),
-                                          value:
-                                              controller
-                                                      .selectedPriority
-                                                      .value
-                                                      .isEmpty
-                                                  ? null
-                                                  : controller
-                                                      .selectedPriority
-                                                      .value,
-                                          items:
-                                              StorageKeys.priority
-                                                  .map(
-                                                    (e) => DropdownMenuItem(
-                                                      value: e,
-                                                      child: Text(
-                                                        e.tr,
-                                                        maxLines: 1,
-                                                        overflow:
-                                                            TextOverflow.ellipsis,
-                                                      ),
-                                                    ),
-                                                  )
-                                                  .toList(),
-                                          onChanged: (value) async {
-                                            controller.selectedPriority.value =
-                                                value ?? '';
-                                            controller.filterTasks();
-                                            await controller
-                                                .persistEmployeeDashboardTaskFilters();
-                                          },
-                                        ),
-                                      ),
+                                const SizedBox(height: 10),
+                                SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  child: Row(
+                                    children: [
+                                      AppFilterDropdown<String>(
+                                      hint: 'tasks.filter_priority'.tr,
+                                      value:
+                                          controller
+                                                  .selectedPriority
+                                                  .value
+                                                  .isEmpty
+                                              ? null
+                                              : controller
+                                                  .selectedPriority
+                                                  .value,
+                                      items:
+                                          StorageKeys.priority
+                                              .map(
+                                                (e) => DropdownMenuItem(
+                                                  value: e,
+                                                  child: Text(
+                                                    e.tr,
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                              )
+                                              .toList(),
+                                      onChanged: (value) async {
+                                        controller.selectedPriority.value =
+                                            value ?? '';
+                                        controller.filterTasks();
+                                        await controller
+                                            .persistEmployeeDashboardTaskFilters();
+                                      },
                                     ),
                                     const SizedBox(width: 10),
-
-                                    Container(
-                                      width: 150,
-                                      height: 40,
-
-                                      decoration: BoxDecoration(
-                                        border: Border.all(
-                                          color: Colors.grey.shade300,
-                                        ),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: DropdownButtonHideUnderline(
-                                        child: DropdownButton<String>(
-                                          isExpanded: true,
-                                          hint: Padding(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                            ),
-                                            child: Text(
-                                              'tasks.filter_status'.tr,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: TextStyle(
-                                                fontSize: 13,
-                                                color: AppColors.primaryfontColor,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ),
-                                          value:
-                                              controller
-                                                      .selectedStatus
-                                                      .value
-                                                      .isEmpty
-                                                  ? null
-                                                  : controller.selectedStatus.value,
-                                          items:
-                                              StorageKeys
-                                                  .employeeDashboardTaskStatusFilterDropdownValuesForDepartment(
-                                                    controller
-                                                        .employeeDashboardDepartmentFilterArg,
-                                                  )
-                                                  .map(
-                                                    (e) => DropdownMenuItem(
-                                                      value: e,
-                                                      child: Text(
-                                                        e.tr,
-                                                        maxLines: 1,
-                                                        overflow:
-                                                            TextOverflow.ellipsis,
-                                                      ),
-                                                    ),
-                                                  )
-                                                  .toList(),
-                                          onChanged: (value) async {
-                                            controller.selectedStatus.value =
-                                                value ?? '';
-                                            controller.filterTasks();
-                                            await controller
-                                                .persistEmployeeDashboardTaskFilters();
-                                          },
-                                        ),
-                                      ),
+                                    AppFilterDropdown<String>(
+                                      hint: 'tasks.filter_status'.tr,
+                                      value:
+                                          controller
+                                                  .selectedStatus
+                                                  .value
+                                                  .isEmpty
+                                              ? null
+                                              : controller.selectedStatus.value,
+                                      items:
+                                          StorageKeys
+                                              .employeeDashboardTaskStatusFilterDropdownValuesForDepartment(
+                                                controller
+                                                    .employeeDashboardDepartmentFilterArg,
+                                              )
+                                              .map(
+                                                (e) => DropdownMenuItem(
+                                                  value: e,
+                                                  child: Text(
+                                                    e.tr,
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                              )
+                                              .toList(),
+                                      onChanged: (value) async {
+                                        controller.selectedStatus.value =
+                                            value ?? '';
+                                        controller.filterTasks();
+                                        await controller
+                                            .persistEmployeeDashboardTaskFilters();
+                                      },
                                     ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ],
                             ),
@@ -702,7 +577,7 @@ class _EmployeeDashboardBody extends StatelessWidget {
                           Text(
                             'tasks.summary.sent_tasks'.tr,
                             style: TextStyle(
-                              color: AppColors.fontColorGrey,
+                              color: resolveAppTheme().secondaryText,
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
                             ),
@@ -718,7 +593,7 @@ class _EmployeeDashboardBody extends StatelessWidget {
                             textStyle: TextStyle(
                               fontSize: 12,
                               height: 1.25,
-                              color: Colors.grey.shade600,
+                              color: resolveAppTheme().mutedText,
                             ),
                           ),
                         ],
@@ -790,7 +665,7 @@ class _EmployeeDashboardBody extends StatelessWidget {
         width ?? (isDesktop ? Get.width / 4 - 78 : Get.width / 4 - 30);
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+              color: resolveAppTheme().cardSurface,
         borderRadius: BorderRadius.circular(10),
       ),
       width: boxWidth,
@@ -823,7 +698,7 @@ class _EmployeeDashboardBody extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: Colors.grey,
+                  color: resolveAppTheme().secondaryText,
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
                   height: 1.2,
@@ -862,6 +737,7 @@ class TasksGridPage extends StatelessWidget {
               ),
               itemBuilder: (context, index) {
                 return EmployeeTaskCard(
+                  key: ValueKey(tasks[index].id ?? 'task-$index'),
                   task: tasks[index],
                   onTap: () {
                     switch (tasks[index].type) {
@@ -926,6 +802,7 @@ class TasksListPage extends StatelessWidget {
 
               itemBuilder: (context, index) {
                 return EmployeeTaskCard(
+                  key: ValueKey(tasks[index].id ?? 'task-$index'),
                   task: tasks[index],
                   onTap: () {
                     switch (tasks[index].type) {

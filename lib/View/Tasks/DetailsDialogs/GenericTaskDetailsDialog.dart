@@ -4,7 +4,6 @@ import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
-import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/attachment_download.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Shared/TaskTimelineWidget.dart';
@@ -18,6 +17,7 @@ import 'package:point/View/Tasks/Shared/request_task_modification_dialog.dart';
 import 'package:point/View/Tasks/Shared/task_attachment_gallery.dart';
 import 'package:point/View/Tasks/Shared/task_voice_details_tile.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// Generic web dialog for task details. Renders common shell (header, notes,
 /// attachments, timeline) and a type-specific middle section.
@@ -411,7 +411,7 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
                         assignedName.isEmpty ? '-' : assignedName,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
                         ),
@@ -586,7 +586,7 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
-                                color: AppColors.primary,
+                                color: context.appTheme.accentText,
                               ),
                             ),
                             const SizedBox(height: 5),
@@ -594,10 +594,10 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
                               latestNote.note,
                               maxLines: 3,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w700,
-                                color: AppColors.primaryfontColor,
+                                color: context.appTheme.primaryText,
                               ),
                             ),
                             const SizedBox(height: 2),
@@ -605,7 +605,7 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
                               _buildNoteMeta(latestNote.byWho, latestNote.timestamp),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 11,
                                 color: Colors.green,
                                 fontWeight: FontWeight.w600,
@@ -630,17 +630,17 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
                                   note.note,
                                   maxLines: 4,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
-                                    color: AppColors.primaryfontColor,
+                                    color: context.appTheme.primaryText,
                                   ),
                                 ),
                                 Text(
                                   note.byWho,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.green,
                                   ),
@@ -921,10 +921,10 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
             ),
             child: LinkifiedText(
               body,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: AppColors.primaryfontColor,
+                color: context.appTheme.primaryText,
               ),
             ),
           ),

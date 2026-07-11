@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 class InputText extends StatelessWidget {
   final String hintText;
@@ -67,8 +68,23 @@ class InputText extends StatelessWidget {
     this.minLines,
   });
 
+  /// Picks readable text color when [fill] differs from the page theme (e.g. white
+  /// inputs on a dark scaffold).
+  static Color textOnFill(Color fill, AppThemeExtension appTheme) {
+    return fill.computeLuminance() > 0.55
+        ? AppThemeExtension.light.primaryText
+        : appTheme.primaryText;
+  }
+
+  static Color hintOnFill(Color fill, AppThemeExtension appTheme) {
+    return fill.computeLuminance() > 0.55
+        ? AppThemeExtension.light.mutedText
+        : appTheme.mutedText;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final appTheme = context.appTheme;
     final bool isCompactHeight = (height ?? 0) > 0 && (height ?? 0) <= 44;
     final double fieldVerticalPadding =
         isCompactHeight ? (kIsWeb ? 8.0 : 5.0) : 12.0;
@@ -89,7 +105,10 @@ class InputText extends StatelessWidget {
             : const BoxConstraints();
 
     final borderRadiusValue = borderRadius ?? 15.0;
-    final outlineColor = borderColor ?? fillColor ?? const Color(0xffF1F5F9);
+    final resolvedFill = fillColor ?? appTheme.inputFill;
+    final outlineColor = borderColor ?? appTheme.border;
+    final fieldTextColor = textOnFill(resolvedFill, appTheme);
+    final fieldHintColor = hintOnFill(resolvedFill, appTheme);
 
     /// Custom content (e.g. notes log, drag-drop zone). Must not use
     /// [InputDecoration.label], which would stack all children as one floating label.
@@ -104,9 +123,10 @@ class InputText extends StatelessWidget {
                 Flexible(
                   child: Text(
                     labelText ?? '',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
+                      color: appTheme.primaryText,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -120,18 +140,12 @@ class InputText extends StatelessWidget {
             constraints: bodyBoxConstraints,
             width: double.infinity,
             decoration: BoxDecoration(
-              color: fillColor ?? const Color(0xffF1F5F9),
+              color: resolvedFill,
               borderRadius: BorderRadius.circular(borderRadiusValue),
               border: Border.all(color: outlineColor, width: 1.2),
             ),
             clipBehavior: Clip.antiAlias,
-            child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: fieldVerticalPadding,
-              ),
-              child: body,
-            ),
+            child: body,
           ),
         ],
       );
@@ -147,7 +161,11 @@ class InputText extends StatelessWidget {
               Flexible(
                 child: Text(
                   labelText ?? '',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: appTheme.primaryText,
+                  ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -156,10 +174,51 @@ class InputText extends StatelessWidget {
             ],
           ),
         if (labelText != null) SizedBox(height: 8),
-        Container(
-          constraints: boxConstraints,
-          width: double.infinity,
-          child: TextFormField(
+        if (height != null && expanded != true)
+          SizedBox(
+            height: height,
+            width: double.infinity,
+            child: _buildTextField(
+              appTheme: appTheme,
+              isCompactHeight: isCompactHeight,
+              fieldVerticalPadding: fieldVerticalPadding,
+              resolvedFill: resolvedFill,
+              outlineColor: outlineColor,
+              fieldTextColor: fieldTextColor,
+              fieldHintColor: fieldHintColor,
+              borderRadiusValue: borderRadiusValue,
+            ),
+          )
+        else
+          Container(
+            constraints: boxConstraints,
+            width: double.infinity,
+            child: _buildTextField(
+              appTheme: appTheme,
+              isCompactHeight: isCompactHeight,
+              fieldVerticalPadding: fieldVerticalPadding,
+              resolvedFill: resolvedFill,
+              outlineColor: outlineColor,
+              fieldTextColor: fieldTextColor,
+              fieldHintColor: fieldHintColor,
+              borderRadiusValue: borderRadiusValue,
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildTextField({
+    required AppThemeExtension appTheme,
+    required bool isCompactHeight,
+    required double fieldVerticalPadding,
+    required Color resolvedFill,
+    required Color outlineColor,
+    required Color fieldTextColor,
+    required Color fieldHintColor,
+    required double borderRadiusValue,
+  }) {
+    return TextFormField(
             controller: controller,
             focusNode: focusNode,
             autofillHints: autofillHints,
@@ -179,12 +238,12 @@ class InputText extends StatelessWidget {
                 expanded == true ? TextAlignVertical.top : TextAlignVertical.center,
             style:
                 textStyle ??
-                TextStyle(fontSize: 13, color: AppColors.primaryfontColor),
+                TextStyle(fontSize: 13, color: fieldTextColor),
             inputFormatters: inputFormatters,
 
             decoration: InputDecoration(
               filled: true,
-              fillColor: fillColor ?? const Color(0xffF1F5F9),
+              fillColor: resolvedFill,
               isDense: isCompactHeight,
               hintText: hintText,
               hintStyle:
@@ -192,7 +251,7 @@ class InputText extends StatelessWidget {
                   TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
-                    color: AppColors.primaryfontColor,
+                    color: fieldHintColor,
                   ),
               contentPadding: EdgeInsets.symmetric(
                 horizontal: 16,
@@ -202,21 +261,21 @@ class InputText extends StatelessWidget {
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(borderRadius ?? 15),
                 borderSide: BorderSide(
-                  color: borderColor ?? fillColor ?? Color(0xffF1F5F9),
+                  color: outlineColor,
                   width: 1.2,
                 ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(borderRadius ?? 15),
                 borderSide: BorderSide(
-                  color: borderColor ?? fillColor ?? Color(0xffF1F5F9),
+                  color: outlineColor,
                   width: 1.2,
                 ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(borderRadius ?? 15),
                 borderSide: BorderSide(
-                  color: borderColor ?? AppColors.primaryfontColor,
+                  color: borderColor ?? AppColors.primary,
                   width: 1.5,
                 ),
               ),
@@ -232,11 +291,8 @@ class InputText extends StatelessWidget {
               suffixIcon: suffixIcon,
               prefixIcon: prefixIcon,
               // Keep border style on validation failure without shrinking field height.
-              errorStyle: const TextStyle(fontSize: 0, height: 0),
+              errorStyle: TextStyle(fontSize: 0, height: 0),
             ),
-          ),
-        ),
-      ],
     );
   }
 }

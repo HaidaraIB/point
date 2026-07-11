@@ -32,7 +32,7 @@ class TaskFormDialogActions extends StatelessWidget {
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                shape: const RoundedRectangleBorder(borderRadius: buttonRadius),
+                shape: RoundedRectangleBorder(borderRadius: buttonRadius),
                 padding: const EdgeInsets.symmetric(vertical: 20),
               ),
               onPressed: isLoading ? null : onSave,
@@ -42,7 +42,7 @@ class TaskFormDialogActions extends StatelessWidget {
                     )
                   : Text(
                       saveLabel ?? 'common.save'.tr,
-                      style: const TextStyle(color: Colors.white),
+                      style: TextStyle(color: Colors.white),
                     ),
             ),
           ),
@@ -50,7 +50,7 @@ class TaskFormDialogActions extends StatelessWidget {
           Expanded(
             child: OutlinedButton(
               style: OutlinedButton.styleFrom(
-                shape: const RoundedRectangleBorder(borderRadius: buttonRadius),
+                shape: RoundedRectangleBorder(borderRadius: buttonRadius),
                 padding: const EdgeInsets.symmetric(vertical: 20),
               ),
               onPressed: onCancel ?? () => Navigator.pop(context),

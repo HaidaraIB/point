@@ -22,6 +22,7 @@ import 'package:point/View/Shared/table_actions_menu_row.dart';
 import 'package:point/Utils/PasswordValidator.dart';
 import 'package:point/Services/meta/meta_graph_client.dart';
 import 'package:uuid/uuid.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 bool _canEditClientCredentials(ClientModel? model) {
   if (model == null) return true;
@@ -37,6 +38,7 @@ bool _canEditClientCredentials(ClientModel? model) {
 class ClientsTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final appTheme = context.appTheme;
     return ResponsiveScaffold(
       selectedTab: 2,
 
@@ -93,7 +95,7 @@ class ClientsTable extends StatelessWidget {
                             Text(
                               'clients'.tr,
                               style: TextStyle(
-                                color: AppColors.fontColorGrey,
+                                color: appTheme.primaryText,
                                 fontSize: 17,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -140,9 +142,8 @@ class ClientsTable extends StatelessWidget {
                                 dataRowMinHeight: 60,
                                 dataRowMaxHeight: 60,
                                 // headingRowColor: WidgetStateProperty.all(Colors.blue.shade50),
-                                dataRowColor: WidgetStateProperty.all(
-                                  Colors.white,
-                                ),
+                                dataRowColor: context.tableDataRowColor,
+                                headingRowColor: context.tableHeadingRowColor,
                                 dividerThickness: 0.5,
                                 columns: [
                                   DataColumn(
@@ -153,7 +154,7 @@ class ClientsTable extends StatelessWidget {
                                       'name'.tr,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
+                                        color: appTheme.secondaryText,
                                       ),
                                     ),
                                   ),
@@ -165,7 +166,7 @@ class ClientsTable extends StatelessWidget {
                                       'desc'.tr,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
+                                        color: appTheme.secondaryText,
                                       ),
                                     ),
                                   ),
@@ -176,7 +177,7 @@ class ClientsTable extends StatelessWidget {
                                       'publish.page_label'.tr,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
+                                        color: appTheme.secondaryText,
                                       ),
                                     ),
                                   ),
@@ -188,7 +189,7 @@ class ClientsTable extends StatelessWidget {
                                       'startat'.tr,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
+                                        color: appTheme.secondaryText,
                                       ),
                                     ),
                                   ),
@@ -199,7 +200,7 @@ class ClientsTable extends StatelessWidget {
                                       'endat'.tr,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
+                                        color: appTheme.secondaryText,
                                       ),
                                     ),
                                   ),
@@ -210,7 +211,7 @@ class ClientsTable extends StatelessWidget {
                                       'actions'.tr,
                                       style: TextStyle(
                                         fontWeight: FontWeight.bold,
-                                        color: AppColors.fontColorGrey,
+                                        color: appTheme.secondaryText,
                                       ),
                                     ),
                                   ),
@@ -226,7 +227,7 @@ class ClientsTable extends StatelessWidget {
                                                 style: TextStyle(
                                                   fontWeight: FontWeight.bold,
                                                   color:
-                                                      AppColors.fontColorGrey,
+                                                      appTheme.secondaryText,
                                                 ),
                                               ),
                                             ),
@@ -245,7 +246,7 @@ class ClientsTable extends StatelessWidget {
                                                   style: TextStyle(
                                                     fontWeight: FontWeight.bold,
                                                     color:
-                                                        AppColors.fontColorGrey,
+                                                        appTheme.secondaryText,
                                                   ),
                                                 ),
                                               ),
@@ -266,7 +267,7 @@ class ClientsTable extends StatelessWidget {
                                                   style: TextStyle(
                                                     fontWeight: FontWeight.bold,
                                                     color:
-                                                        AppColors.fontColorGrey,
+                                                        appTheme.secondaryText,
                                                   ),
                                                 ),
                                               ),
@@ -282,7 +283,7 @@ class ClientsTable extends StatelessWidget {
                                                 style: TextStyle(
                                                   fontWeight: FontWeight.bold,
                                                   color:
-                                                      AppColors.fontColorGrey,
+                                                      appTheme.secondaryText,
                                                 ),
                                               ),
                                             ),
@@ -297,7 +298,7 @@ class ClientsTable extends StatelessWidget {
                                                 style: TextStyle(
                                                   fontWeight: FontWeight.bold,
                                                   color:
-                                                      AppColors.fontColorGrey,
+                                                      appTheme.secondaryText,
                                                 ),
                                               ),
                                             ),
@@ -312,7 +313,7 @@ class ClientsTable extends StatelessWidget {
                                                   borderRadius:
                                                       BorderRadius.circular(12),
                                                 ),
-                                                color: Colors.white,
+                                                color: Theme.of(context).colorScheme.surface,
                                                 elevation: 4,
                                                 itemBuilder: (context) {
                                                   final active =
@@ -489,8 +490,9 @@ Future<void> showAddEmployeeDialog(BuildContext context, {ClientModel? model}) a
     builder: (context) {
       return StatefulBuilder(
         builder: (context, setState) {
+          final appTheme = context.appTheme;
           return Dialog(
-            backgroundColor: Colors.white,
+            backgroundColor: Theme.of(context).colorScheme.surface,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -508,7 +510,7 @@ Future<void> showAddEmployeeDialog(BuildContext context, {ClientModel? model}) a
                           Container(
                             margin: EdgeInsets.all(15),
                             decoration: BoxDecoration(
-                              color: AppColors.primary,
+                              color: appTheme.accentText,
                               borderRadius: BorderRadius.vertical(
                                 top: Radius.circular(12),
                               ),
@@ -565,7 +567,7 @@ Future<void> showAddEmployeeDialog(BuildContext context, {ClientModel? model}) a
                                           });
                                         },
                                         child: CircleAvatar(
-                                          backgroundColor: Colors.grey.shade200,
+                                          backgroundColor: appTheme.unselected,
                                           radius: 50,
                                           child: Obx(
                                             () =>
@@ -589,6 +591,7 @@ Future<void> showAddEmployeeDialog(BuildContext context, {ClientModel? model}) a
                                                     : Icon(
                                                       Icons.camera_alt,
                                                       size: 50,
+                                                      color: appTheme.mutedText,
                                                     ),
                                           ),
                                         ),
@@ -598,7 +601,6 @@ Future<void> showAddEmployeeDialog(BuildContext context, {ClientModel? model}) a
                                   labelText: 'name'.tr,
                                   hintText: 'entername'.tr,
                                   height: 42,
-                                  fillColor: Colors.white,
                                   controller: nameController,
 
                                   validator: (v) {
@@ -609,14 +611,12 @@ Future<void> showAddEmployeeDialog(BuildContext context, {ClientModel? model}) a
                                   },
 
                                   borderRadius: 5,
-                                  borderColor: Colors.grey.shade300,
                                 ),
                                 if (model == null || canEditCredentials)
                                   InputText(
                                     labelText: 'email'.tr,
                                     hintText: 'example@example.com'.tr,
                                     height: 42,
-                                    fillColor: Colors.white,
                                     textInputType: TextInputType.emailAddress,
                                     controller: emailController,
                                     validator: (v) {
@@ -628,15 +628,12 @@ Future<void> showAddEmployeeDialog(BuildContext context, {ClientModel? model}) a
                                       return null;
                                     },
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
                                   )
                                 else
                                   ReadOnlyAccountEmailField(
                                     email: model.email ?? '',
                                     height: 42,
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
-                                    fillColor: Colors.white,
                                   ),
                                 if (model == null || canEditCredentials)
                                   InputText(
@@ -648,13 +645,12 @@ Future<void> showAddEmployeeDialog(BuildContext context, {ClientModel? model}) a
                                     obscureText: obscurePassword,
                                     controller: passwordController,
                                     height: 42,
-                                    fillColor: Colors.white,
                                     suffixIcon: IconButton(
                                       icon: Icon(
                                         obscurePassword
                                             ? Icons.visibility_off
                                             : Icons.visibility,
-                                        color: Colors.grey.shade600,
+                                        color: appTheme.mutedText,
                                       ),
                                       onPressed: () {
                                         obscurePassword = !obscurePassword;
@@ -668,14 +664,12 @@ Future<void> showAddEmployeeDialog(BuildContext context, {ClientModel? model}) a
                                       return validatePasswordStrong(v.trim());
                                     },
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
                                   ),
                                 InputText(
                                   labelText: 'desc'.tr,
                                   hintText: ''.tr,
                                   expanded: true,
                                   height: 42,
-                                  fillColor: Colors.white,
                                   textInputType: TextInputType.emailAddress,
                                   controller: desccontroller,
 
@@ -687,7 +681,6 @@ Future<void> showAddEmployeeDialog(BuildContext context, {ClientModel? model}) a
                                   },
 
                                   borderRadius: 5,
-                                  borderColor: Colors.grey.shade300,
                                 ),
                                 const SizedBox(height: 8),
                                 Align(
@@ -697,7 +690,7 @@ Future<void> showAddEmployeeDialog(BuildContext context, {ClientModel? model}) a
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
-                                      color: Colors.grey.shade800,
+                                      color: appTheme.primaryText,
                                     ),
                                   ),
                                 ),
@@ -717,20 +710,36 @@ Future<void> showAddEmployeeDialog(BuildContext context, {ClientModel? model}) a
                                   Obx(
                                     () => DropdownButtonFormField<String>(
                                       initialValue: selectedMetaAssetValue.value,
+                                      dropdownColor: appTheme.cardSurface,
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: appTheme.primaryText,
+                                      ),
+                                      icon: Icon(
+                                        Icons.keyboard_arrow_down_rounded,
+                                        color: appTheme.mutedText,
+                                      ),
                                       decoration: InputDecoration(
                                         isDense: true,
                                         filled: true,
-                                        fillColor: Colors.white,
+                                        fillColor: appTheme.inputFill,
                                         border: OutlineInputBorder(
                                           borderRadius: BorderRadius.circular(5),
                                           borderSide: BorderSide(
-                                            color: Colors.grey.shade300,
+                                            color: appTheme.border,
                                           ),
                                         ),
                                         enabledBorder: OutlineInputBorder(
                                           borderRadius: BorderRadius.circular(5),
                                           borderSide: BorderSide(
-                                            color: Colors.grey.shade300,
+                                            color: appTheme.border,
+                                          ),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(5),
+                                          borderSide: BorderSide(
+                                            color: appTheme.accentText,
+                                            width: 1.5,
                                           ),
                                         ),
                                       ),
@@ -777,7 +786,6 @@ Future<void> showAddEmployeeDialog(BuildContext context, {ClientModel? model}) a
                                         labelText: 'startat'.tr,
                                         hintText: '1/10/2025'.tr,
                                         height: 42,
-                                        fillColor: Colors.white,
                                         textInputType: TextInputType.datetime,
                                         controller: startatcontroller,
                                         readOnly: true,
@@ -790,11 +798,10 @@ Future<void> showAddEmployeeDialog(BuildContext context, {ClientModel? model}) a
                                         },
                                         suffixIcon: Icon(
                                           CupertinoIcons.calendar,
-                                          color: Colors.grey,
+                                          color: appTheme.mutedText,
                                         ),
 
                                         borderRadius: 5,
-                                        borderColor: Colors.grey.shade300,
                                       ),
                                     ),
                                     SizedBox(
@@ -818,8 +825,6 @@ Future<void> showAddEmployeeDialog(BuildContext context, {ClientModel? model}) a
                                           }
                                         },
                                         height: 42,
-
-                                        fillColor: Colors.white,
                                         textInputType: TextInputType.datetime,
                                         controller: endatcontroller,
                                         // enable: false,
@@ -831,10 +836,9 @@ Future<void> showAddEmployeeDialog(BuildContext context, {ClientModel? model}) a
                                         },
                                         suffixIcon: Icon(
                                           CupertinoIcons.calendar,
-                                          color: Colors.grey,
+                                          color: appTheme.mutedText,
                                         ),
                                         borderRadius: 5,
-                                        borderColor: Colors.grey.shade300,
                                       ),
                                     ),
                                   ],
@@ -1041,7 +1045,7 @@ Future<void> showAddEmployeeDialog(BuildContext context, {ClientModel? model}) a
 //     context: context,
 //     builder: (context) {
 //       return AlertDialog(
-//         backgroundColor: Colors.white,
+//         backgroundColor: Theme.of(context).colorScheme.surface,
 //         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
 //         // title: const Text("اختر التاريخ"),
 //         content: SizedBox(

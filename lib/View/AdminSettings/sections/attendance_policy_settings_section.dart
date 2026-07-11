@@ -7,6 +7,7 @@ import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/attendance_policy_settings.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 class AttendancePolicySettingsSection extends StatefulWidget {
   const AttendancePolicySettingsSection({super.key});
@@ -128,16 +129,17 @@ class _AttendancePolicySettingsSectionState
             children: [
               Text(
                 AppLocaleKeys.adminSettingsSectionAttendancePolicy.tr,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
+                  color: context.appTheme.primaryText,
                 ),
               ),
               const SizedBox(height: 16),
               Text(
                 AppLocaleKeys.adminSettingsAttendancePolicyHelp.tr,
                 style: TextStyle(
-                  color: Colors.grey.shade700,
+                  color: context.appTheme.secondaryText,
                   fontSize: 13,
                 ),
               ),
@@ -146,10 +148,8 @@ class _AttendancePolicySettingsSectionState
                 labelText: AppLocaleKeys.adminSettingsCheckInGraceMinutes.tr,
                 hintText: '${AttendancePolicySettings.defaultGraceMinutes}',
                 height: 42,
-                fillColor: Colors.white,
                 controller: _checkInGraceController,
                 borderRadius: 5,
-                borderColor: Colors.grey.shade300,
                 textInputType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 validator: _validateGrace,
@@ -157,17 +157,18 @@ class _AttendancePolicySettingsSectionState
               const SizedBox(height: 8),
               Text(
                 AppLocaleKeys.adminSettingsCheckInGraceHelp.tr,
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                style: TextStyle(
+                  color: context.appTheme.mutedText,
+                  fontSize: 12,
+                ),
               ),
               const SizedBox(height: 16),
               InputText(
                 labelText: AppLocaleKeys.adminSettingsCheckOutGraceMinutes.tr,
                 hintText: '${AttendancePolicySettings.defaultGraceMinutes}',
                 height: 42,
-                fillColor: Colors.white,
                 controller: _checkOutGraceController,
                 borderRadius: 5,
-                borderColor: Colors.grey.shade300,
                 textInputType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 validator: _validateGrace,
@@ -175,7 +176,10 @@ class _AttendancePolicySettingsSectionState
               const SizedBox(height: 8),
               Text(
                 AppLocaleKeys.adminSettingsCheckOutGraceHelp.tr,
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                style: TextStyle(
+                  color: context.appTheme.mutedText,
+                  fontSize: 12,
+                ),
               ),
               const SizedBox(height: 24),
               MainButton(

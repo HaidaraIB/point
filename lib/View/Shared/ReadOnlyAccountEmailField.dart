@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// يعرض البريد بنفس إيقاع حقول [InputText] مع قفل وتوضيح — للمسؤول عند تعديل حساب غيره.
 class ReadOnlyAccountEmailField extends StatelessWidget {
@@ -24,9 +25,10 @@ class ReadOnlyAccountEmailField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final border = borderColor ?? Colors.grey.shade300;
-    final fill = fillColor ?? Colors.white;
+    final border = borderColor ?? context.appTheme.border;
+    final fill = fillColor ?? context.appTheme.inputFill;
     final display = email.trim().isEmpty ? '—' : email.trim();
+    final fieldText = context.textOnFill(fill);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -37,9 +39,10 @@ class ReadOnlyAccountEmailField extends StatelessWidget {
             Flexible(
               child: Text(
                 'email'.tr,
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
+                  color: context.appTheme.primaryText,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -60,7 +63,7 @@ class ReadOnlyAccountEmailField extends StatelessWidget {
                   Icon(
                     Icons.lock_outline_rounded,
                     size: 14,
-                    color: AppColors.primary,
+                    color: context.appTheme.accentText,
                   ),
                   const SizedBox(width: 4),
                   Text(
@@ -68,7 +71,7 @@ class ReadOnlyAccountEmailField extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
+                      color: context.appTheme.accentText,
                     ),
                   ),
                 ],
@@ -93,7 +96,7 @@ class ReadOnlyAccountEmailField extends StatelessWidget {
                 Icon(
                   Icons.alternate_email_rounded,
                   size: 20,
-                  color: AppColors.fontColorGrey,
+                  color: context.hintOnFill(fill),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -104,7 +107,7 @@ class ReadOnlyAccountEmailField extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
-                      color: AppColors.primaryfontColor,
+                      color: fieldText,
                     ),
                   ),
                 ),
@@ -117,9 +120,9 @@ class ReadOnlyAccountEmailField extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           decoration: BoxDecoration(
-            color: Colors.blueGrey.shade50,
+            color: context.appTheme.panelTint,
             borderRadius: BorderRadius.circular(borderRadius + 2),
-            border: Border.all(color: Colors.blueGrey.shade100),
+            border: Border.all(color: context.appTheme.border),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,7 +132,7 @@ class ReadOnlyAccountEmailField extends StatelessWidget {
                 child: Icon(
                   Icons.info_outline_rounded,
                   size: 18,
-                  color: Colors.blueGrey.shade600,
+                  color: context.appTheme.mutedText,
                 ),
               ),
               const SizedBox(width: 10),
@@ -139,7 +142,7 @@ class ReadOnlyAccountEmailField extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     height: 1.35,
-                    color: Colors.blueGrey.shade800,
+                    color: context.appTheme.secondaryText,
                   ),
                 ),
               ),

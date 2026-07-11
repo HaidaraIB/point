@@ -48,6 +48,10 @@ class AppTranslations extends Translations {
       'app.language': 'Language',
       'app.language.arabic': 'العربية',
       'app.language.english': 'English',
+      'app.theme': 'Theme',
+      'app.theme.light': 'Light',
+      'app.theme.dark': 'Dark',
+      'app.theme.system': 'System',
       'app.version_line': 'v@version',
       'force_update.title': 'Update required',
       'force_update.body':
@@ -1540,6 +1544,10 @@ class AppTranslations extends Translations {
       "app.language": "اللغة",
       "app.language.arabic": "العربية",
       "app.language.english": "English",
+      "app.theme": "المظهر",
+      "app.theme.light": "فاتح",
+      "app.theme.dark": "داكن",
+      "app.theme.system": "النظام",
       "app.version_line": "الإصدار @version",
       'force_update.title': 'يلزم التحديث',
       'force_update.body':

@@ -7,10 +7,12 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Utils/chat_message_bidi.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Chats/chat_cached_attachment_image.dart';
+import 'package:point/View/Chats/chat_ui_helpers.dart';
 import 'package:point/Utils/chat_video_controller.dart';
 import 'package:point/View/Chats/chat_media_gallery.dart';
 import 'package:point/View/Shared/voice_message_row.dart';
 import 'package:video_player/video_player.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 export 'chat_media_gallery.dart' show openChatMediaFromUrl;
 
@@ -70,14 +72,16 @@ Widget chatMessageBubbleContent(
   String? messageId,
 }) {
   if (msg['deleted'] == true) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Text(
-        AppLocaleKeys.chatMessageDeletedBody.tr,
-        style: TextStyle(
-          fontSize: 14,
-          fontStyle: FontStyle.italic,
-          color: isMe ? Colors.white70 : Colors.black54,
+    return Builder(
+      builder: (context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Text(
+          AppLocaleKeys.chatMessageDeletedBody.tr,
+          style: TextStyle(
+            fontSize: 14,
+            fontStyle: FontStyle.italic,
+            color: chatBubbleMutedTextColor(context, isMe),
+          ),
         ),
       ),
     );
@@ -295,14 +299,14 @@ class _RetryableChatImageState extends State<_RetryableChatImage> {
               Icon(
                 Icons.refresh,
                 size: 24,
-                color: widget.isMe ? Colors.white70 : Colors.black54,
+                color: widget.isMe ? Colors.white70 : context.appTheme.secondaryText,
               ),
               const SizedBox(height: 4),
               Text(
                 'Retry',
                 style: TextStyle(
                   fontSize: 11,
-                  color: widget.isMe ? Colors.white70 : Colors.black54,
+                  color: widget.isMe ? Colors.white70 : context.appTheme.secondaryText,
                 ),
               ),
             ],
@@ -418,7 +422,7 @@ class _ChatVideoBubbleState extends State<_ChatVideoBubble> {
               Icon(
                 Icons.videocam_outlined,
                 size: 36,
-                color: widget.isMe ? Colors.white70 : Colors.black45,
+                color: widget.isMe ? Colors.white70 : context.appTheme.secondaryText,
               ),
               const SizedBox(height: 8),
               Icon(
@@ -449,7 +453,7 @@ class _ChatVideoBubbleState extends State<_ChatVideoBubble> {
                       fit: StackFit.expand,
                       children: [
                         ColoredBox(
-                          color: Colors.black,
+                          color: context.appTheme.primaryText,
                           child: VideoPlayer(_controller!),
                         ),
                         Material(
@@ -471,7 +475,7 @@ class _ChatVideoBubbleState extends State<_ChatVideoBubble> {
                                   ],
                                 ),
                               ),
-                              child: const Center(
+                              child: Center(
                                 child: Icon(
                                   Icons.play_circle_rounded,
                                   size: 58,
@@ -479,7 +483,7 @@ class _ChatVideoBubbleState extends State<_ChatVideoBubble> {
                                   shadows: [
                                     Shadow(
                                       blurRadius: 12,
-                                      color: Colors.black54,
+                                      color: context.appTheme.secondaryText,
                                     ),
                                   ],
                                 ),
@@ -502,7 +506,7 @@ class _ChatVideoBubbleState extends State<_ChatVideoBubble> {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 11.5,
-                color: widget.isMe ? Colors.white70 : Colors.black54,
+                color: widget.isMe ? Colors.white70 : context.appTheme.secondaryText,
               ),
             ),
           ),
@@ -644,7 +648,7 @@ Widget messageTextRich(
 
       final style = TextStyle(
         fontSize: 15,
-        color: isMe ? Colors.white : Colors.black,
+        color: chatBubbleTextColor(context, isMe),
       );
 
       final child = matches.isEmpty

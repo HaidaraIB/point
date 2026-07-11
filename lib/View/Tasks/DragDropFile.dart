@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dropzone/flutter_dropzone.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
-import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
+import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 class DragFilePicker extends StatefulWidget {
   final HomeController controller;
@@ -27,20 +28,20 @@ class _DragFilePickerState extends State<DragFilePicker> {
         hintText: 'enternotes'.tr,
         enable: false,
         height: 100,
-        fillColor: Colors.white,
         expanded: true,
         body: Stack(
           children: [
             Container(
               padding: const EdgeInsets.symmetric(vertical: 10),
               decoration: BoxDecoration(
-                color: highlighted ? Colors.blue.shade50 : Colors.grey.shade200,
+                color: highlighted
+                    ? AppColors.primary.withValues(alpha: 0.15)
+                    : context.appTheme.unselected,
                 borderRadius: BorderRadius.circular(5),
                 border: Border.all(
-                  color:
-                      highlighted
-                          ? AppColors.primaryfontColor
-                          : Colors.grey.shade300,
+                  color: highlighted
+                      ? AppColors.primary
+                      : context.appTheme.border,
                 ),
               ),
               child: InkWell(
@@ -60,9 +61,10 @@ class _DragFilePickerState extends State<DragFilePicker> {
                       margin: const EdgeInsets.symmetric(horizontal: 10),
                       child: Text(
                         'dragfile'.tr,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
+                          color: context.appTheme.secondaryText,
                         ),
                       ),
                     ),
@@ -81,8 +83,8 @@ class _DragFilePickerState extends State<DragFilePicker> {
                         }
                       },
                       title: 'uploadfile'.tr,
-                      backgroundColor: Colors.white,
-                      fontColor: AppColors.primaryfontColor,
+                      backgroundColor: context.appTheme.cardSurface,
+                      fontColor: context.appTheme.primaryText,
                     ),
                   ],
                 ),
@@ -107,7 +109,6 @@ class _DragFilePickerState extends State<DragFilePicker> {
           ],
         ),
         borderRadius: 5,
-        borderColor: Colors.grey.shade300,
       ),
     );
   }

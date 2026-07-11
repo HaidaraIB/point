@@ -3,7 +3,7 @@
     "short_name": "point",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#ffffff",
+    "background_color": "#0F0F14",
     "theme_color": "#514091",
     "description": "A new Flutter project.",
     "orientation": "portrait-primary",

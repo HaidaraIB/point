@@ -37,6 +37,7 @@ import 'package:point/View/Chats/telegram_style_attachment_menu.dart';
 import 'package:point/Utils/chat_attachment_upload.dart';
 import 'package:point/View/Shared/CustomHeader.dart';
 import 'package:point/View/Shared/SideMenu.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 class ResponsiveScaffold extends StatelessWidget {
   // final Widget sidebar;
@@ -63,7 +64,7 @@ class ResponsiveScaffold extends StatelessWidget {
             // استخدم 1100 ليتطابق مع Responsive.isDesktop وتجنب تكرار الهيدر في النطاق 1000–1100
             if (constraints.maxWidth >= 1100) {
               return Scaffold(
-                backgroundColor: Color(0xffF2F2F7),
+                backgroundColor: context.appTheme.pageBackground,
                 // bottomNavigationBar: ,
                 // appBar:
                 body: Stack(
@@ -132,7 +133,7 @@ class ResponsiveScaffold extends StatelessWidget {
                     child: Container(
                       height: 76,
                       decoration: BoxDecoration(
-                        color: AppColors.primary,
+                        color: context.appTheme.navSurface,
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.12),
@@ -178,7 +179,7 @@ class ResponsiveScaffold extends StatelessWidget {
                                 'app.dashboard_title'.tr,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 18,
                                   fontWeight: FontWeight.w700,
@@ -278,7 +279,7 @@ class _MobileHeaderIconButton extends StatelessWidget {
               ),
               child: Text(
                 count > 99 ? '99+' : '$count',
-                style: const TextStyle(
+                style: TextStyle(
                   color: Colors.white,
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
@@ -812,7 +813,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
         margin: const EdgeInsets.symmetric(horizontal: 6),
         transform: Matrix4.translationValues(offset.dx, offset.dy, 0),
         decoration: BoxDecoration(
-          color: Colors.white,
+              color: context.appTheme.cardSurface,
           borderRadius: BorderRadius.circular(10),
           boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 8)],
         ),
@@ -836,12 +837,12 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                 height: headerHeight,
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+              color: context.appTheme.cardSurface,
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(10),
                   ),
                   border: Border(
-                    bottom: BorderSide(color: Colors.grey.shade200),
+                    bottom: BorderSide(color: context.appTheme.border),
                   ),
                 ),
                 child: Row(
@@ -855,7 +856,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                               radius: 14,
                               backgroundColor: widget.chat.isGroup
                                   ? Colors.blueGrey.shade100
-                                  : Colors.grey.shade200,
+                                  : chatAvatarPlaceholder(context),
                               initial:
                                   chatInitialFromName(widget.chat.name),
                               groupIcon:
@@ -875,8 +876,8 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                               children: [
                                 Text(
                                   widget.chat.name,
-                                  style: const TextStyle(
-                                    color: Color(0xFF111827),
+                                  style: TextStyle(
+                                    color: context.appTheme.primaryText,
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -904,13 +905,13 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                         if (widget.chat.unreadCount > 0) ...[
                           Container(
                             padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
+                            decoration: BoxDecoration(
                               color: Colors.red,
                               shape: BoxShape.circle,
                             ),
                             child: Text(
                               widget.chat.unreadCount.toString(),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 10,
                                 color: Colors.white,
                               ),
@@ -924,7 +925,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                               : AppLocaleKeys.chatPrivateType.tr,
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey.shade600,
+                            color: context.appTheme.mutedText,
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -933,7 +934,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                           child: Icon(
                             Icons.close,
                             size: 18,
-                            color: Colors.grey.shade700,
+                            color: context.appTheme.secondaryText,
                           ),
                         ),
                       ],
@@ -1061,7 +1062,9 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                                     bubbleDecoration: BoxDecoration(
                                       color: isMe
                                           ? AppColors.primary
-                                          : Colors.white,
+                                          : chatIncomingBubbleColorBright(
+                                              context,
+                                            ),
                                       borderRadius: BorderRadius.only(
                                         topLeft: const Radius.circular(15),
                                         topRight: const Radius.circular(15),
@@ -1152,7 +1155,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                         minHeight: _messageFocusNode.hasFocus ? 50 : 46,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+              color: context.appTheme.cardSurface,
                         borderRadius: BorderRadius.circular(
                           _messageFocusNode.hasFocus ? 24 : 22,
                         ),
@@ -1186,7 +1189,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                                   tooltip: 'chat.attach_sheet_title'.tr,
                                   icon: Icon(
                                     Icons.add_circle_outline,
-                                    color: Colors.grey.shade700,
+                                    color: context.appTheme.mutedText,
                                     size: 24,
                                   ),
                                   onPressed: busy
@@ -1234,7 +1237,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                                     decoration: InputDecoration(
                                       hintText: 'chat.write_message'.tr,
                                       hintStyle: TextStyle(
-                                        color: Colors.grey.shade500,
+                                        color: context.appTheme.mutedText,
                                         fontSize: 14,
                                       ),
                                       border: InputBorder.none,
@@ -1255,9 +1258,9 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                                 minWidth: 40,
                                 minHeight: 44,
                               ),
-                              icon: const Icon(
+                              icon: Icon(
                                 Icons.send_rounded,
-                                color: AppColors.primary,
+                                color: context.appTheme.accentText,
                                 size: 24,
                               ),
                               onPressed: busy ? null : _sendMessage,

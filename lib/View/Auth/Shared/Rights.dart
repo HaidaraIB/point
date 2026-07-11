@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:point/Utils/AppColors.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Localization/LanguageController.dart';
+import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/View/Shared/app_theme_menu_button.dart';
 
-Widget buildRightsSection() {
+Widget buildRightsSection(BuildContext context) {
+  final appTheme = context.appTheme;
   return Container(
-    padding: EdgeInsets.symmetric(vertical: 20, horizontal: 15),
+    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 15),
     child: Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -16,14 +18,15 @@ Widget buildRightsSection() {
             AppLocaleKeys.authFooterCopyright.trParams({
               'year': '${DateTime.now().year}',
             }),
-            style: TextStyle(fontSize: 12, color: Colors.grey),
+            style: TextStyle(fontSize: 12, color: appTheme.secondaryText),
             textAlign: TextAlign.center,
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           Obx(() {
             final lc = Get.find<LanguageController>();
             final code = lc.currentLocale.value.languageCode;
-            const activeColor = AppColors.primaryDark;
+            final activeColor = appTheme.accentText;
+            final inactiveColor = appTheme.mutedText;
             return Wrap(
               alignment: WrapAlignment.center,
               crossAxisAlignment: WrapCrossAlignment.center,
@@ -31,11 +34,13 @@ Widget buildRightsSection() {
               children: [
                 TextButton(
                   style: TextButton.styleFrom(
-                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    foregroundColor:
-                        code == 'ar' ? activeColor : Colors.grey.shade600,
+                    foregroundColor: code == 'ar' ? activeColor : inactiveColor,
                     textStyle: TextStyle(
                       fontWeight:
                           code == 'ar' ? FontWeight.w600 : FontWeight.normal,
@@ -47,15 +52,17 @@ Widget buildRightsSection() {
                 ),
                 Text(
                   '|',
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade400),
+                  style: TextStyle(fontSize: 12, color: appTheme.border),
                 ),
                 TextButton(
                   style: TextButton.styleFrom(
-                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    foregroundColor:
-                        code == 'en' ? activeColor : Colors.grey.shade600,
+                    foregroundColor: code == 'en' ? activeColor : inactiveColor,
                     textStyle: TextStyle(
                       fontWeight:
                           code == 'en' ? FontWeight.w600 : FontWeight.normal,
@@ -68,6 +75,8 @@ Widget buildRightsSection() {
               ],
             );
           }),
+          const SizedBox(height: 8),
+          const AppThemeMenuButton(compact: true),
         ],
       ),
     ),

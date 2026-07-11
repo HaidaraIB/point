@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Chats/chat_ui_helpers.dart';
 
 /// Telegram-style pinned messages bar: cycles through multiple pins, opens list sheet.
@@ -64,9 +65,10 @@ class _ChatPinnedMessagesBarState extends State<ChatPinnedMessagesBar> {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
                 child: Text(
                   AppLocaleKeys.chatAllPinnedMessages.tr,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
+                    color: context.appTheme.primaryText,
                   ),
                 ),
               ),
@@ -85,13 +87,14 @@ class _ChatPinnedMessagesBarState extends State<ChatPinnedMessagesBar> {
                     return ListTile(
                       leading: Icon(
                         Icons.push_pin_rounded,
-                        color: AppColors.primary,
+                        color: context.appTheme.accentText,
                         size: 20,
                       ),
                       title: Text(
                         subtitle,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: context.appTheme.primaryText),
                       ),
                       onTap: () {
                         Navigator.pop(ctx);
@@ -138,7 +141,7 @@ class _ChatPinnedMessagesBarState extends State<ChatPinnedMessagesBar> {
           child: Ink(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFFF4F6FF),
+              color: chatPinnedBarBackground(context),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
@@ -188,10 +191,10 @@ class _ChatPinnedMessagesBarState extends State<ChatPinnedMessagesBar> {
                             : preview,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w400,
-                          color: Colors.black87,
+                          color: context.appTheme.secondaryText,
                           height: 1.2,
                         ),
                       ),

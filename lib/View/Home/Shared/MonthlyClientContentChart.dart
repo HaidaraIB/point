@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/ContentModel.dart';
 import 'package:point/Services/StorageKeys.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 
 bool _isPublishedThisCalendarMonth(ContentModel c, DateTime nowLocal) {
@@ -23,6 +24,8 @@ class MonthlyClientContentChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appTheme = context.appTheme;
+    final onSurface = appTheme.primaryText;
     return Obx(() {
       final hc = Get.find<HomeController>();
       final nowLocal = DateTime.now();
@@ -59,7 +62,7 @@ class MonthlyClientContentChart extends StatelessWidget {
       return Card(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         elevation: 1,
-        color: Colors.white,
+        color: context.appTheme.cardSurface,
         margin: const EdgeInsets.all(8),
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -69,10 +72,10 @@ class MonthlyClientContentChart extends StatelessWidget {
               Text(
                 'home.chart_monthly_published_title'.tr,
                 textDirection: TextDirection.rtl,
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
-                  color: Colors.black87,
+                  color: appTheme.primaryText,
                 ),
               ),
               const SizedBox(height: 20),
@@ -86,15 +89,19 @@ class MonthlyClientContentChart extends StatelessWidget {
                             textDirection: TextDirection.rtl,
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.grey.shade600,
+                              color: appTheme.mutedText,
                             ),
                           ),
                         )
                         : SfCartesianChart(
+                          backgroundColor: Colors.transparent,
                           plotAreaBorderWidth: 0,
                           primaryXAxis: CategoryAxis(
                             majorGridLines: const MajorGridLines(width: 0),
-                            labelStyle: GoogleFonts.almarai(fontSize: 12),
+                            labelStyle: GoogleFonts.almarai(
+                              fontSize: 12,
+                              color: onSurface,
+                            ),
                           ),
                           primaryYAxis: NumericAxis(
                             isVisible: false,
@@ -110,10 +117,10 @@ class MonthlyClientContentChart extends StatelessWidget {
                               sizeValueMapper: (ClientContent c, _) => c.value,
                               minimumRadius: 3,
                               maximumRadius: 10,
-                              dataLabelSettings: const DataLabelSettings(
+                              dataLabelSettings: DataLabelSettings(
                                 isVisible: true,
                                 textStyle: TextStyle(
-                                  color: Colors.black,
+                                  color: onSurface,
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
                                 ),

@@ -4,6 +4,7 @@ import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 class TaskTimelineWidget extends StatefulWidget {
   final List<TaskTimelineEvent> events;
@@ -44,7 +45,7 @@ class _TaskTimelineWidgetState extends State<TaskTimelineWidget> {
                 'tasks.timeline_title'.tr,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: AppColors.primaryfontColor,
+                      color: context.appTheme.primaryText,
                     ),
               ),
             ),
@@ -58,15 +59,15 @@ class _TaskTimelineWidgetState extends State<TaskTimelineWidget> {
           _oldestFirst
               ? 'tasks.timeline.order_oldest_first'.tr
               : 'tasks.timeline.order_newest_first'.tr,
-          style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
+          style: TextStyle(fontSize: 11, color: context.appTheme.mutedText),
         ),
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.white,
+              color: context.appTheme.cardSurface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade300),
+            border: Border.all(color: context.appTheme.border),
           ),
           child: Column(
             children: [
@@ -84,7 +85,7 @@ class _TaskTimelineWidgetState extends State<TaskTimelineWidget> {
                             color:
                                 i == 0
                                     ? Colors.transparent
-                                    : Colors.grey.shade300,
+                                    : context.appTheme.border,
                           ),
                           Text(
                             '${i + 1}',
@@ -92,7 +93,7 @@ class _TaskTimelineWidgetState extends State<TaskTimelineWidget> {
                             style: TextStyle(
                               fontSize: 10,
                               fontWeight: FontWeight.w800,
-                              color: Colors.grey.shade600,
+                              color: context.appTheme.mutedText,
                             ),
                           ),
                           Container(
@@ -101,7 +102,7 @@ class _TaskTimelineWidgetState extends State<TaskTimelineWidget> {
                             color:
                                 i == sorted.length - 1
                                     ? Colors.transparent
-                                    : Colors.grey.shade300,
+                                    : context.appTheme.border,
                           ),
                         ],
                       ),
@@ -203,7 +204,7 @@ class _TimelineRow extends StatelessWidget {
         CircleAvatar(
           radius: 14,
           backgroundColor: AppColors.primary.withValues(alpha: 0.15),
-          child: Icon(_iconForType(event.type), size: 18, color: AppColors.primary),
+          child: Icon(_iconForType(event.type), size: 18, color: context.appTheme.accentText),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -212,10 +213,10 @@ class _TimelineRow extends StatelessWidget {
             children: [
               Text(
                 event.label.tr,
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
-                  color: AppColors.primaryfontColor,
+                  color: context.appTheme.primaryText,
                 ),
               ),
               if (event.oldValue != null || event.newValue != null) ...[
@@ -224,7 +225,10 @@ class _TimelineRow extends StatelessWidget {
                   LinkifiedText(
                     'timeline.value_from'
                         .trParams({'value': _formatValue(event.oldValue!)}),
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: context.appTheme.secondaryText,
+                    ),
                   ),
                 if ((event.type == 'attachment_added' ||
                         event.type == 'final_deliverable_attachment_added') &&
@@ -237,7 +241,10 @@ class _TimelineRow extends StatelessWidget {
                   LinkifiedText(
                     'timeline.value_to'
                         .trParams({'value': _formatValue(event.newValue!)}),
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: context.appTheme.secondaryText,
+                    ),
                   ),
               ],
               const SizedBox(height: 4),
@@ -262,7 +269,10 @@ class _TimelineRow extends StatelessWidget {
                     maxLines: 1,
                     softWrap: false,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: context.appTheme.mutedText,
+                    ),
                   ),
                 ],
               ),
@@ -282,6 +292,7 @@ class _AttachmentTimelineValue extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     final fileName = _TimelineRow._attachmentFileName(rawValue);
     final isImage = _TimelineRow._isLikelyImage(rawValue);
     return Padding(
@@ -292,9 +303,9 @@ class _AttachmentTimelineValue extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.grey.shade100,
+            color: theme.panelTint,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey.shade300),
+            border: Border.all(color: theme.border),
           ),
           child: Row(
             children: [
@@ -310,13 +321,19 @@ class _AttachmentTimelineValue extends StatelessWidget {
                             fit: BoxFit.cover,
                             errorBuilder:
                                 (_, __, ___) => Container(
-                                  color: Colors.grey.shade200,
-                                  child: const Icon(Icons.image_not_supported),
+                                  color: theme.unselected,
+                                  child: Icon(
+                                    Icons.image_not_supported,
+                                    color: theme.mutedText,
+                                  ),
                                 ),
                           )
                           : Container(
-                            color: Colors.grey.shade200,
-                            child: const Icon(Icons.insert_drive_file_outlined),
+                            color: theme.unselected,
+                            child: Icon(
+                              Icons.insert_drive_file_outlined,
+                              color: theme.mutedText,
+                            ),
                           ),
                 ),
               ),
@@ -326,14 +343,14 @@ class _AttachmentTimelineValue extends StatelessWidget {
                   fileName,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.primaryfontColor,
+                    color: theme.primaryText,
                   ),
                 ),
               ),
               const SizedBox(width: 8),
-              Icon(Icons.open_in_new, size: 16, color: Colors.grey.shade600),
+              Icon(Icons.open_in_new, size: 16, color: theme.mutedText),
             ],
           ),
         ),

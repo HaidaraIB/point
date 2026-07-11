@@ -23,6 +23,7 @@ import 'package:point/View/Tasks/Shared/task_form_dialog_actions.dart';
 import 'package:point/View/Tasks/Shared/task_voice_form_helpers.dart';
 import 'package:point/View/Tasks/Shared/task_voice_record_field.dart';
 import 'package:point/Models/VoiceRecordEntry.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 void publishDialog(BuildContext context, {TaskModel? model}) {
   const otherClientValue = kTaskOtherClientSentinel;
@@ -73,7 +74,7 @@ void publishDialog(BuildContext context, {TaskModel? model}) {
     context: context,
     builder: (context) {
       return Dialog(
-        backgroundColor: Colors.white,
+        backgroundColor: context.appTheme.cardSurface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: GetBuilder<HomeController>(
           builder: (controller) {
@@ -90,7 +91,7 @@ void publishDialog(BuildContext context, {TaskModel? model}) {
                       Container(
                         margin: EdgeInsets.all(15),
                         decoration: BoxDecoration(
-                          color: AppColors.primary,
+                          color: context.appTheme.navSurface,
                           borderRadius: BorderRadius.vertical(
                             top: Radius.circular(12),
                           ),
@@ -137,14 +138,12 @@ void publishDialog(BuildContext context, {TaskModel? model}) {
                                     labelText: 'tasks.form.post_title_label'.tr,
                                     hintText: 'tasks.form.write_title_hint'.tr,
                                     height: 42,
-                                    fillColor: Colors.white,
                                     controller: titleController,
                                     validator: (v) {
                                       if (v == null || v.isEmpty) return ' ';
                                       return null;
                                     },
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
                                   ),
                                 ),
 
@@ -183,9 +182,7 @@ void publishDialog(BuildContext context, {TaskModel? model}) {
                                             ),
                                     label: 'tasks.form.select_executor'.tr,
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
                                     height: 42,
-                                    fillColor: Colors.white,
                                     onChanged: (value) {
                                       if (value != null) {
                                         executorController.text =
@@ -231,9 +228,7 @@ void publishDialog(BuildContext context, {TaskModel? model}) {
                                                     )),
                                           label: 'chooseclient'.tr,
                                           borderRadius: 5,
-                                          borderColor: Colors.grey.shade300,
                                           height: 42,
-                                          fillColor: Colors.white,
                                           onChanged: (value) {
                                             if (value == otherClientValue) {
                                               isCustomClient.value = true;
@@ -253,12 +248,10 @@ void publishDialog(BuildContext context, {TaskModel? model}) {
                                             labelText: 'tasks.form.client_name_label'.tr,
                                             hintText: 'tasks.form.client_name_hint'.tr,
                                             height: 42,
-                                            fillColor: Colors.white,
                                             controller: customClientController,
                                             validator: (v) =>
                                                 (v == null || v.trim().isEmpty) ? ' ' : null,
                                             borderRadius: 5,
-                                            borderColor: Colors.grey.shade300,
                                           ),
                                       ],
                                     ),
@@ -277,9 +270,7 @@ void publishDialog(BuildContext context, {TaskModel? model}) {
                                       selectedValues: platforms.toList(),
                                       label: 'platform'.tr,
                                       borderRadius: 5,
-                                      borderColor: Colors.grey.shade300,
                                       height: 42,
-                                      fillColor: Colors.white,
 
                                       validator: (v) {
                                         if (v == null || v.isEmpty) {
@@ -304,11 +295,9 @@ void publishDialog(BuildContext context, {TaskModel? model}) {
                                     labelText: 'task_details.content_link'.tr,
                                     hintText: 'task_details.content_link'.tr,
                                     height: 42,
-                                    fillColor: Colors.white,
                                     controller: contenturl,
 
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
                                   ),
                                 ),
                                 SizedBox(
@@ -317,11 +306,9 @@ void publishDialog(BuildContext context, {TaskModel? model}) {
                                     labelText: 'task_details.files_link'.tr,
                                     hintText: 'task_details.files_link_hint'.tr,
                                     height: 42,
-                                    fillColor: Colors.white,
                                     controller: filesurl,
 
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
                                   ),
                                 ),
                               ],
@@ -348,9 +335,7 @@ void publishDialog(BuildContext context, {TaskModel? model}) {
                                             : priorityController.text,
                                     label: 'priortity'.tr,
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
                                     height: 42,
-                                    fillColor: Colors.white,
                                     onChanged: (value) {
                                       if (value != null) {
                                         priorityController.text =
@@ -368,13 +353,11 @@ void publishDialog(BuildContext context, {TaskModel? model}) {
                                     labelText: 'task_details.category'.tr,
                                     hintText: ''.tr,
                                     height: 42,
-                                    fillColor: Colors.white,
                                     controller: category,
                                     validator:
                                         (v) =>
                                             v == null || v.isEmpty ? ' ' : null,
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
                                   ),
                                 ),
                               ],
@@ -403,7 +386,6 @@ void publishDialog(BuildContext context, {TaskModel? model}) {
                                     labelText: 'startat'.tr,
                                     hintText: '1/10/2025'.tr,
                                     height: 42,
-                                    fillColor: Colors.white,
                                     textInputType: TextInputType.datetime,
                                     controller: startDateController,
                                     readOnly: true,
@@ -413,10 +395,9 @@ void publishDialog(BuildContext context, {TaskModel? model}) {
                                     },
                                     suffixIcon: Icon(
                                       CupertinoIcons.calendar,
-                                      color: Colors.grey,
+                                      color: context.appTheme.secondaryText,
                                     ),
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
                                   ),
                                 ),
 
@@ -439,7 +420,6 @@ void publishDialog(BuildContext context, {TaskModel? model}) {
                                     labelText: 'endat'.tr,
                                     hintText: '1/10/2026'.tr,
                                     height: 42,
-                                    fillColor: Colors.white,
                                     textInputType: TextInputType.datetime,
                                     controller: endDateController,
                                     readOnly: true,
@@ -449,10 +429,9 @@ void publishDialog(BuildContext context, {TaskModel? model}) {
                                     },
                                     suffixIcon: Icon(
                                       CupertinoIcons.calendar,
-                                      color: Colors.grey,
+                                      color: context.appTheme.secondaryText,
                                     ),
                                     borderRadius: 5,
-                                    borderColor: Colors.grey.shade300,
                                   ),
                                 ),
                               ],
@@ -472,7 +451,6 @@ void publishDialog(BuildContext context, {TaskModel? model}) {
                                           labelText: 'tasks.form.notes_log'.tr,
                                           hintText: ''.tr,
                                           height: 250,
-                                          fillColor: Colors.white,
                                           enable: false,
                                           // controller: notesController,
                                           body: SingleChildScrollView(
@@ -512,7 +490,6 @@ void publishDialog(BuildContext context, {TaskModel? model}) {
                                           ),
                                           expanded: true,
                                           borderRadius: 5,
-                                          borderColor: Colors.grey.shade300,
                                         ),
                                       ),
                                     SizedBox(
@@ -521,11 +498,9 @@ void publishDialog(BuildContext context, {TaskModel? model}) {
                                         labelText: 'notes'.tr,
                                         hintText: 'enternotes'.tr,
                                         height: 30,
-                                        fillColor: Colors.white,
                                         controller: notesController,
                                         // expanded: true,
                                         borderRadius: 5,
-                                        borderColor: Colors.grey.shade300,
                                       ),
                                     ),
                                   ],
@@ -547,14 +522,13 @@ void publishDialog(BuildContext context, {TaskModel? model}) {
                                       hintText: 'enternotes'.tr,
                                       enable: false,
                                       height: 100,
-                                      fillColor: Colors.white,
                                       expanded: true,
                                       body: Container(
                                         padding: EdgeInsets.symmetric(
                                           vertical: 10,
                                         ),
                                         decoration: BoxDecoration(
-                                          color: Colors.grey.shade200,
+                                          color: context.appTheme.unselected,
                                         ),
                                         child: Row(
                                           mainAxisAlignment:
@@ -579,15 +553,14 @@ void publishDialog(BuildContext context, {TaskModel? model}) {
                                               fontSize: 12,
                                               load: controller.isUploading.value,
                                               title: 'uploadfile'.tr,
-                                              backgroundColor: Colors.white,
+                                              backgroundColor: context.appTheme.cardSurface,
                                               fontColor:
-                                                  AppColors.primaryfontColor,
+                                                  context.appTheme.primaryText,
                                             ),
                                           ],
                                         ),
                                       ),
                                       borderRadius: 5,
-                                      borderColor: Colors.grey.shade300,
                                     ),
                                   ),
                                 ),

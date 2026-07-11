@@ -14,6 +14,7 @@ import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// How to resolve a stored/raw value to a translation key (legacy DB text vs keys).
 enum StoredValueKind {
@@ -503,7 +504,7 @@ class FunHelper {
             return PopScope(
               canPop: !loading,
               child: AlertDialog(
-                backgroundColor: Colors.white,
+                backgroundColor: Theme.of(context).colorScheme.surface,
                 insetPadding:
                     const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
                 contentPadding:
@@ -520,13 +521,13 @@ class FunHelper {
                     children: [
                       Icon(
                         Icons.info_outline_rounded,
-                        color: AppColors.primary,
+                        color: context.appTheme.accentText,
                         size: 40,
                       ),
                       const SizedBox(height: 10),
                       Text(
                         resolvedTitle,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 28,
                         ),
@@ -535,7 +536,7 @@ class FunHelper {
                       Text(
                         resolvedMessage,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 16),
+                        style: TextStyle(fontSize: 16),
                       ),
                       if (loading) ...[
                         const SizedBox(height: 16),
@@ -548,7 +549,7 @@ class FunHelper {
                               backgroundColor: AppColors.primary.withValues(
                                 alpha: 0.12,
                               ),
-                              color: AppColors.primary,
+                              color: context.appTheme.accentText,
                             ),
                           ),
                         ),
@@ -857,7 +858,7 @@ class TopToast {
                 Expanded(
                   child: Text(
                     '$title\n$subtitle',
-                    style: const TextStyle(color: Colors.white),
+                    style: TextStyle(color: Colors.white),
                   ),
                 ),
               ],

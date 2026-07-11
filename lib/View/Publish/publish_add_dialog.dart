@@ -9,7 +9,6 @@ import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Services/meta/meta_graph_client.dart';
 import 'package:point/Services/meta/meta_errors.dart';
 import 'package:point/Services/meta/meta_media_util.dart';
-import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/ContentPermissions.dart';
 import 'package:point/View/Contents/Shared/content_attachment_source_input.dart';
 import 'package:point/View/Contents/Shared/content_library_attachment_picker.dart';
@@ -20,12 +19,36 @@ import 'package:point/View/Publish/publish_meta_settings_dialog.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/t.dart';
+import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// Only Facebook + Instagram keys from [StorageKeys.platformList].
 List<String> get _publishPlatformChoiceKeys => [
   StorageKeys.platformList[0],
   StorageKeys.platformList[1],
 ];
+
+Widget _publishChoiceChip(
+  BuildContext context, {
+  required String label,
+  required bool selected,
+  required VoidCallback onSelected,
+}) {
+  final theme = context.appTheme;
+  return ChoiceChip(
+    label: Text(label),
+    selected: selected,
+    onSelected: (_) => onSelected(),
+    selectedColor: AppColors.primary,
+    backgroundColor: theme.inputFill,
+    side: BorderSide(color: selected ? AppColors.primary : theme.border),
+    labelStyle: TextStyle(
+      color: selected ? Colors.white : theme.primaryText,
+      fontSize: 13,
+    ),
+    checkmarkColor: Colors.white,
+  );
+}
 
 Future<void> _pickAndUploadSinglePublishMedia({
   required HomeController controller,
@@ -308,7 +331,7 @@ Future<void> showAddPublishDialog({
 
   await Get.dialog<void>(
     Dialog(
-      backgroundColor: Colors.white,
+      backgroundColor: resolveAppTheme().cardSurface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: GetBuilder<HomeController>(
         builder: (controller) {
@@ -325,10 +348,10 @@ Future<void> showAddPublishDialog({
                         existing == null
                             ? 'publish.add_title'.tr
                             : '${'edit'.tr} - ${'publish.add_title'.tr}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.primaryfontColor,
+                          color: resolveAppTheme().primaryText,
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -336,10 +359,8 @@ Future<void> showAddPublishDialog({
                         labelText: 'title'.tr,
                         hintText: 'entertitle'.tr,
                         height: 42,
-                        fillColor: Colors.white,
                         controller: titleController,
                         borderRadius: 5,
-                        borderColor: Colors.grey.shade300,
                       ),
                       const SizedBox(height: 12),
                       Obx(
@@ -358,9 +379,7 @@ Future<void> showAddPublishDialog({
                           value: selectedAsset.value,
                           label: 'publish.page_label'.tr,
                           borderRadius: 5,
-                          borderColor: Colors.grey.shade300,
                           height: 42,
-                          fillColor: Colors.white,
                           onChanged: (v) {
                             selectedAsset.value = v;
                             controller.update();
@@ -373,20 +392,23 @@ Future<void> showAddPublishDialog({
                           spacing: 8,
                           runSpacing: 8,
                           children: [
-                            ChoiceChip(
-                              label: Text('publish.post_type_feed'.tr),
+                            _publishChoiceChip(
+                              dialogContext,
+                              label: 'publish.post_type_feed'.tr,
                               selected: postType.value == 'feed',
-                              onSelected: (_) => postType.value = 'feed',
+                              onSelected: () => postType.value = 'feed',
                             ),
-                            ChoiceChip(
-                              label: Text('publish.post_type_story'.tr),
+                            _publishChoiceChip(
+                              dialogContext,
+                              label: 'publish.post_type_story'.tr,
                               selected: postType.value == 'story',
-                              onSelected: (_) => postType.value = 'story',
+                              onSelected: () => postType.value = 'story',
                             ),
-                            ChoiceChip(
-                              label: Text('publish.post_type_reel'.tr),
+                            _publishChoiceChip(
+                              dialogContext,
+                              label: 'publish.post_type_reel'.tr,
                               selected: postType.value == 'reel',
-                              onSelected: (_) => postType.value = 'reel',
+                              onSelected: () => postType.value = 'reel',
                             ),
                           ],
                         ),
@@ -394,7 +416,10 @@ Future<void> showAddPublishDialog({
                       const SizedBox(height: 12),
                       Text(
                         'publish.schedule_mode'.tr,
-                        style: const TextStyle(fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: dialogContext.appTheme.primaryText,
+                        ),
                       ),
                       const SizedBox(height: 6),
                       Obx(
@@ -402,16 +427,17 @@ Future<void> showAddPublishDialog({
                           spacing: 8,
                           runSpacing: 8,
                           children: [
-                            ChoiceChip(
-                              label: Text('publish.mode_now'.tr),
+                            _publishChoiceChip(
+                              dialogContext,
+                              label: 'publish.mode_now'.tr,
                               selected: scheduleMode.value == 'now',
-                              onSelected: (_) => scheduleMode.value = 'now',
+                              onSelected: () => scheduleMode.value = 'now',
                             ),
-                            ChoiceChip(
-                              label: Text('publish.mode_schedule'.tr),
+                            _publishChoiceChip(
+                              dialogContext,
+                              label: 'publish.mode_schedule'.tr,
                               selected: scheduleMode.value == 'schedule',
-                              onSelected: (_) =>
-                                  scheduleMode.value = 'schedule',
+                              onSelected: () => scheduleMode.value = 'schedule',
                             ),
                           ],
                         ),
@@ -432,7 +458,7 @@ Future<void> showAddPublishDialog({
                             style: OutlinedButton.styleFrom(
                               alignment: Alignment.centerLeft,
                               minimumSize: const Size.fromHeight(42),
-                              side: BorderSide(color: Colors.grey.shade400),
+                              side: BorderSide(color: dialogContext.appTheme.border),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -477,7 +503,7 @@ Future<void> showAddPublishDialog({
                           'publish.media_single_file_note'.tr,
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey.shade700,
+                            color: dialogContext.appTheme.mutedText,
                             height: 1.35,
                           ),
                         ),
@@ -566,7 +592,7 @@ Future<void> showAddPublishDialog({
                                             width: 20,
                                             height: 20,
                                             decoration: BoxDecoration(
-                                              color: Colors.black54,
+                                              color: resolveAppTheme().secondaryText,
                                               borderRadius:
                                                   BorderRadius.circular(10),
                                             ),
@@ -591,11 +617,9 @@ Future<void> showAddPublishDialog({
                         labelText: 'publish.caption'.tr,
                         hintText: 'content.caption_hint'.tr,
                         height: 80,
-                        fillColor: Colors.white,
                         controller: captionController,
                         expanded: true,
                         borderRadius: 5,
-                        borderColor: Colors.grey.shade300,
                       ),
                       const SizedBox(height: 12),
                       Obx(
@@ -606,20 +630,36 @@ Future<void> showAddPublishDialog({
                           itemLabel: (k) => k.tr,
                           label: 'publish.platforms'.tr,
                           borderRadius: 5,
-                          borderColor: Colors.grey.shade300,
                           height: 42,
-                          fillColor: Colors.white,
                           onChanged: (v) => platforms.assignAll(v),
                         ),
                       ),
                       const SizedBox(height: 12),
-                      Text('publish.client_optional'.tr),
+                      Text(
+                        'publish.client_optional'.tr,
+                        style: TextStyle(color: dialogContext.appTheme.primaryText),
+                      ),
                       const SizedBox(height: 6),
                       Obx(
-                        () => DropdownButton<String>(
-                          isExpanded: true,
-                          value: clientId.value,
-                          items: [
+                        () => Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: dialogContext.appTheme.inputFill,
+                            borderRadius: BorderRadius.circular(5),
+                            border: Border.all(
+                              color: dialogContext.appTheme.border,
+                            ),
+                          ),
+                          child: DropdownButton<String>(
+                            isExpanded: true,
+                            value: clientId.value,
+                            dropdownColor: dialogContext.appTheme.cardSurface,
+                            style: TextStyle(
+                              color: dialogContext.appTheme.primaryText,
+                            ),
+                            iconEnabledColor: dialogContext.appTheme.mutedText,
+                            underline: const SizedBox.shrink(),
+                            items: [
                             DropdownMenuItem<String>(
                               value: noneClient,
                               child: Text('publish.client_none'.tr),
@@ -649,6 +689,7 @@ Future<void> showAddPublishDialog({
                               selectedAsset.value = linkedAsset;
                             }
                           },
+                          ),
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -664,7 +705,7 @@ Future<void> showAddPublishDialog({
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(20),
                               ),
-                              side: BorderSide(color: Colors.grey.shade400),
+                              side: BorderSide(color: dialogContext.appTheme.border),
                             ),
                             onPressed: controller.isLoading.value
                                 ? null
@@ -675,7 +716,7 @@ Future<void> showAddPublishDialog({
                             child: Text(
                               'common.cancel'.tr,
                               style: TextStyle(
-                                color: AppColors.primaryfontColor,
+                                color: resolveAppTheme().primaryText,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),

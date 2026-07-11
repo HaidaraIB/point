@@ -25,7 +25,7 @@ Widget _buildMobileContent(
                     child: Text(
                       'managecontent'.tr,
                       style: TextStyle(
-                        color: AppColors.fontColorGrey,
+                        color: context.appTheme.secondaryText,
                         fontSize: 17,
                         fontWeight: FontWeight.bold,
                       ),
@@ -144,9 +144,7 @@ Widget _buildMobileContent(
                             ),
                     label: 'chooseclient'.tr,
                     borderRadius: 5,
-                    borderColor: Colors.grey.shade300,
                     height: 42,
-                    fillColor: Colors.white,
                     onChanged: (value) {
                       if (value != null) {
                         controller.clientController.text = (value).id ?? '';
@@ -162,41 +160,34 @@ Widget _buildMobileContent(
               GetBuilder<HomeController>(
                 id: 'employeeWebContent',
                 builder: (c) {
-                  return Row(
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Expanded(
-                        child: InputText(
-                          hintText: 'employee.search_content_hint'.tr,
-                          height: 42,
-                          fillColor: Colors.white,
+                      MobileFilterSearchRow(
+                        searchBar: MobileFilterSearchBar(
                           controller: c.employeeWebContentSearchController,
-                          onchange: (_) {
-                            c.update(['employeeWebContent']);
-                            return null;
-                          },
-                          borderRadius: 8,
-                          borderColor: Colors.grey.shade300,
+                          hintText: 'employee.search_content_hint'.tr,
+                          onChanged: () => c.update(['employeeWebContent']),
                         ),
+                        onClearFilters: () {
+                          c.clearEmployeeWebContentFilters();
+                          c.update(['employeeWebContent']);
+                        },
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Obx(
-                          () => Container(
-                            height: 42,
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.grey.shade300),
-                            ),
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<String>(
+                      const SizedBox(height: 8),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: Obx(
+                              () => AppFilterDropdown<String>(
+                                hint: 'tasks.filter_status'.tr,
+                                height: 42,
+                                expandWidth: true,
                                 value:
                                     c.employeeWebContentStatusFilter.value.isEmpty
                                         ? null
                                         : c.employeeWebContentStatusFilter.value,
-                                hint: Text('tasks.filter_status'.tr),
-                                isExpanded: true,
                                 items:
                                     StorageKeys.statusList
                                         .map(
@@ -213,24 +204,29 @@ Widget _buildMobileContent(
                               ),
                             ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      IconButton(
-                        onPressed: () async {
-                          final picked = await pickAppDateTime(
-                            context,
-                            initialDateTime:
-                                c.employeeWebContentDateFilter.value ??
-                                DateTime.now(),
-                            firstDate: DateTime(2020),
-                            lastDate: DateTime(2100),
-                          );
-                          if (picked == null) return;
-                          c.employeeWebContentDateFilter.value = picked;
-                          c.update(['employeeWebContent']);
-                        },
-                        icon: const Icon(Icons.calendar_month_outlined),
+                          const SizedBox(width: 8),
+                          SizedBox(
+                            height: 42,
+                            width: 42,
+                            child: IconButton(
+                              padding: EdgeInsets.zero,
+                              onPressed: () async {
+                                final picked = await pickAppDateTime(
+                                  context,
+                                  initialDateTime:
+                                      c.employeeWebContentDateFilter.value ??
+                                      DateTime.now(),
+                                  firstDate: DateTime(2020),
+                                  lastDate: DateTime(2100),
+                                );
+                                if (picked == null) return;
+                                c.employeeWebContentDateFilter.value = picked;
+                                c.update(['employeeWebContent']);
+                              },
+                              icon: const Icon(Icons.calendar_month_outlined),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   );
@@ -249,7 +245,7 @@ Widget _buildMobileContent(
                           'history.pick_client_content'.tr,
                           style: TextStyle(
                             fontSize: 15,
-                            color: AppColors.fontColorGrey,
+                            color: context.appTheme.secondaryText,
                           ),
                         ),
                       ),
@@ -263,7 +259,7 @@ Widget _buildMobileContent(
                           'history.empty_data'.tr,
                           style: TextStyle(
                             fontSize: 15,
-                            color: AppColors.fontColorGrey,
+                            color: context.appTheme.secondaryText,
                           ),
                         ),
                       ),
@@ -311,7 +307,7 @@ Widget _buildMobileContent(
                                         'notifications.action.select_all'.tr,
                                         style: TextStyle(
                                           fontSize: 14,
-                                          color: AppColors.fontColorGrey,
+                                          color: context.appTheme.secondaryText,
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
@@ -349,7 +345,7 @@ Widget _buildMobileContent(
                                           ? Theme.of(
                                             context,
                                           ).colorScheme.primary
-                                          : Colors.grey.shade600,
+                                          : context.appTheme.mutedText,
                                   size: 26,
                                 ),
                                 tooltip:

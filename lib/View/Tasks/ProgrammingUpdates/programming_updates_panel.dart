@@ -9,6 +9,7 @@ import 'package:point/View/Tasks/DetailsDialogs/DProgrammingDialog.dart';
 import 'package:point/View/Tasks/Dialogs/ProgrammingDialog.dart';
 import 'package:point/View/Tasks/ProgrammingUpdates/add_programming_update_dialog.dart';
 import 'package:point/View/Tasks/ProgrammingUpdates/programming_update_details.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// Pending updates list with multi-select and create-task action.
 class ProgrammingPendingUpdatesPanel extends StatefulWidget {
@@ -130,7 +131,7 @@ class _ProgrammingPendingUpdatesPanelState
               child: Material(
                 elevation: 4,
                 borderRadius: BorderRadius.circular(28),
-                color: AppColors.primary,
+                color: context.appTheme.navSurface,
                 child: InkWell(
                   onTap: () => _createTaskFromSelection(pending),
                   borderRadius: BorderRadius.circular(28),
@@ -147,7 +148,7 @@ class _ProgrammingPendingUpdatesPanelState
                         Text(
                           'programming.updates.create_task'
                               .trParams({'count': '${_selectedIds.length}'}),
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
                           ),
@@ -206,7 +207,7 @@ class ProgrammingConvertedUpdatesPanel extends StatelessWidget {
         return Center(
           child: Text(
             'programming.updates.empty_converted'.tr,
-            style: TextStyle(color: Colors.grey.shade600),
+            style: TextStyle(color: context.appTheme.mutedText),
           ),
         );
       }
@@ -334,9 +335,9 @@ class _ConvertedTaskGroupCardState extends State<_ConvertedTaskGroupCard> {
                         color: AppColors.primary.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.task_alt_outlined,
-                        color: AppColors.primary,
+                        color: context.appTheme.accentText,
                         size: 22,
                       ),
                     ),
@@ -349,10 +350,10 @@ class _ConvertedTaskGroupCardState extends State<_ConvertedTaskGroupCard> {
                             _taskTitle(),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
-                              color: AppColors.primaryfontColor,
+                              color: context.appTheme.primaryText,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -360,7 +361,7 @@ class _ConvertedTaskGroupCardState extends State<_ConvertedTaskGroupCard> {
                             _updatesCountLabel(),
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey.shade700,
+                              color: context.appTheme.mutedText,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -370,7 +371,7 @@ class _ConvertedTaskGroupCardState extends State<_ConvertedTaskGroupCard> {
                               '${'programming.updates.converted_at'.tr}: $convertedLabel',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Colors.grey.shade500,
+                                color: context.appTheme.mutedText,
                               ),
                             ),
                           ],
@@ -382,7 +383,7 @@ class _ConvertedTaskGroupCardState extends State<_ConvertedTaskGroupCard> {
                         onPressed: () => setState(() => _expanded = !_expanded),
                         icon: Icon(
                           _expanded ? Icons.expand_less : Icons.expand_more,
-                          color: AppColors.primary,
+                          color: context.appTheme.accentText,
                         ),
                       ),
                     if (group.taskId != null && group.taskId!.isNotEmpty)
@@ -393,7 +394,7 @@ class _ConvertedTaskGroupCardState extends State<_ConvertedTaskGroupCard> {
                           icon: const Icon(Icons.open_in_new, size: 16),
                           label: Text('programming.updates.open_task'.tr),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.primary,
+                            foregroundColor: context.appTheme.accentText,
                             padding: const EdgeInsets.symmetric(
                               horizontal: 10,
                               vertical: 8,
@@ -467,7 +468,7 @@ class _ConvertedUpdateRow extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: Colors.grey.shade700,
+                      color: context.appTheme.mutedText,
                     ),
                   ),
                 ),
@@ -480,7 +481,7 @@ class _ConvertedUpdateRow extends StatelessWidget {
                         title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
                         ),
@@ -493,7 +494,7 @@ class _ConvertedUpdateRow extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 12,
-                            color: Colors.grey.shade600,
+                            color: context.appTheme.mutedText,
                             height: 1.3,
                           ),
                         ),
@@ -503,7 +504,7 @@ class _ConvertedUpdateRow extends StatelessWidget {
                         FunHelper.formatdate(update.createdAt) ?? '',
                         style: TextStyle(
                           fontSize: 11,
-                          color: Colors.grey.shade500,
+                          color: context.appTheme.mutedText,
                         ),
                       ),
                       if (update.files.isNotEmpty ||
@@ -586,7 +587,7 @@ class ProgrammingUpdatesList extends StatelessWidget {
       return Center(
         child: Text(
           emptyMessage,
-          style: TextStyle(color: Colors.grey.shade600),
+          style: TextStyle(color: context.appTheme.mutedText),
         ),
       );
     }
@@ -624,7 +625,7 @@ class ProgrammingUpdatesList extends StatelessWidget {
                         children: [
                           Text(
                             title,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
                             ),
@@ -637,7 +638,7 @@ class ProgrammingUpdatesList extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 fontSize: 13,
-                                color: Colors.grey.shade700,
+                                color: context.appTheme.mutedText,
                               ),
                             ),
                           ],
@@ -646,7 +647,7 @@ class ProgrammingUpdatesList extends StatelessWidget {
                             FunHelper.formatdate(item.createdAt) ?? '',
                             style: TextStyle(
                               fontSize: 11,
-                              color: Colors.grey.shade500,
+                              color: context.appTheme.mutedText,
                             ),
                           ),
                           Wrap(

@@ -18,6 +18,7 @@ import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/app_version_label.dart';
 import 'package:point/View/Shared/responsive.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 class LoginView extends StatelessWidget {
   @override
@@ -25,29 +26,30 @@ class LoginView extends StatelessWidget {
     final showBackButton = !kIsWeb;
     return Responsive(
       mobile: Scaffold(
-        appBar: showBackButton ? _buildEmployeeLoginAppBar() : null,
+        appBar: showBackButton ? _buildEmployeeLoginAppBar(context) : null,
         body: _buildDesktopLayout(),
       ),
       tablet: Scaffold(
-        appBar: showBackButton ? _buildEmployeeLoginAppBar() : null,
+        appBar: showBackButton ? _buildEmployeeLoginAppBar(context) : null,
         body: _buildDesktopLayout(),
       ),
       desktop: Scaffold(body: _buildDesktopLayout()),
     );
   }
 
-  static PreferredSizeWidget _buildEmployeeLoginAppBar() {
+  static PreferredSizeWidget _buildEmployeeLoginAppBar(BuildContext context) {
+    final appTheme = context.appTheme;
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: appTheme.cardSurface,
       elevation: 0,
       leading: IconButton(
-        icon: Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+        icon: Icon(Icons.arrow_back_ios_new, color: appTheme.primaryText),
         onPressed: () => Get.back(),
       ),
       title: Text(
         'login_employee_title'.tr,
         style: TextStyle(
-          color: Colors.black87,
+          color: appTheme.primaryText,
           fontSize: 18,
           fontWeight: FontWeight.w600,
         ),
@@ -174,6 +176,7 @@ class _EmployeeLoginDesktopLayoutState
 
   @override
   Widget build(BuildContext context) {
+    final appTheme = context.appTheme;
     final controller = widget.controller;
     return Form(
       key: _formKey,
@@ -196,12 +199,13 @@ class _EmployeeLoginDesktopLayoutState
                     fontWeight: FontWeight.w600,
                     wordSpacing: 1.2,
                     letterSpacing: 0.5,
+                    color: appTheme.primaryText,
                   ),
                 ),
                 SizedBox(height: 10),
                 Text(
                   'enteremailandpassword'.tr,
-                  style: TextStyle(color: Colors.grey, fontSize: 13),
+                  style: TextStyle(color: appTheme.secondaryText, fontSize: 13),
                 ),
                 InputText(
                   hintText: 'email'.tr,
@@ -213,7 +217,6 @@ class _EmployeeLoginDesktopLayoutState
                   textInputAction: TextInputAction.next,
                   onFieldSubmitted: (_) => _passwordFocus.requestFocus(),
                   height: 42,
-                  fillColor: Colors.white,
                   validator: (v) {
                     if (v == null || v.isEmpty) {
                       return ' ';
@@ -221,7 +224,6 @@ class _EmployeeLoginDesktopLayoutState
                     return null;
                   },
                   borderRadius: 5,
-                  borderColor: Colors.grey.shade300,
                 ),
                 InputText(
                   hintText: 'password'.tr,
@@ -233,7 +235,6 @@ class _EmployeeLoginDesktopLayoutState
                   textInputAction: TextInputAction.go,
                   onFieldSubmitted: (_) => _submitEmployeeLogin(),
                   height: 42,
-                  fillColor: Colors.white,
                   textInputType: TextInputType.visiblePassword,
                   suffixIcon: InkWell(
                     onTap: () {
@@ -243,7 +244,7 @@ class _EmployeeLoginDesktopLayoutState
                       controller.obSecure
                           ? Icons.visibility_off
                           : Icons.visibility,
-                      color: Colors.grey,
+                      color: appTheme.secondaryText,
                       size: 12,
                     ),
                   ),
@@ -254,7 +255,6 @@ class _EmployeeLoginDesktopLayoutState
                     return null;
                   },
                   borderRadius: 5,
-                  borderColor: Colors.grey.shade300,
                 ),
                 SizedBox(height: 10),
                 InkWell(
@@ -263,7 +263,7 @@ class _EmployeeLoginDesktopLayoutState
                   },
                   child: Text(
                     'forgotpassword'.tr,
-                    style: TextStyle(color: Colors.grey, fontSize: 13),
+                    style: TextStyle(color: appTheme.secondaryText, fontSize: 13),
                   ),
                 ),
                 SizedBox(height: 25),
@@ -285,11 +285,11 @@ class _EmployeeLoginDesktopLayoutState
                   child: Center(
                     child: Text(
                       'are_you_client'.tr,
-                      style: TextStyle(color: Colors.grey, fontSize: 13),
+                      style: TextStyle(color: appTheme.secondaryText, fontSize: 13),
                     ),
                   ),
                 ),
-                buildRightsSection(),
+                buildRightsSection(context),
               ],
             ),
           );

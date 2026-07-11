@@ -5,6 +5,7 @@ import 'package:point/View/Chats/chat_cached_attachment_image.dart';
 import 'package:point/View/Chats/chat_ui_helpers.dart';
 import 'package:point/Utils/chat_video_controller.dart';
 import 'package:video_player/video_player.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// Caption line for the composer when a media thumbnail is shown (no 📷/🎬 emoji).
 String chatReplyComposerCaption(ChatReplyDraft d) {
@@ -47,7 +48,7 @@ class ChatReplyMediaThumb extends StatelessWidget {
           height: size,
           fit: BoxFit.cover,
           errorBuilder:
-              (_, __) => _thumbPlaceholder(size, Icons.broken_image_outlined),
+              (_, __) => _thumbPlaceholder(context, size, Icons.broken_image_outlined),
         ),
       );
     }
@@ -58,7 +59,7 @@ class ChatReplyMediaThumb extends StatelessWidget {
     return const SizedBox.shrink();
   }
 
-  static Widget _thumbPlaceholder(double size, IconData icon) {
+  static Widget _thumbPlaceholder(BuildContext context, double size, IconData icon) {
     return Container(
       width: size,
       height: size,
@@ -67,7 +68,7 @@ class ChatReplyMediaThumb extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
       ),
       alignment: Alignment.center,
-      child: Icon(icon, size: size * 0.45, color: Colors.black45),
+      child: Icon(icon, size: size * 0.45, color: context.appTheme.secondaryText),
     );
   }
 }
@@ -135,6 +136,7 @@ class _ChatReplyVideoThumbState extends State<_ChatReplyVideoThumb> {
   Widget build(BuildContext context) {
     if (_failed || _controller == null) {
       return ChatReplyMediaThumb._thumbPlaceholder(
+        context,
         widget.size,
         Icons.videocam_outlined,
       );

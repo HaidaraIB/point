@@ -41,6 +41,7 @@ import 'package:point/Utils/chat_attachment_upload.dart';
 import 'package:point/View/Chats/voice_recorder_scope.dart';
 
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 class ChatScreen extends StatefulWidget {
   final VoidCallback onMinimize;
@@ -1638,13 +1639,18 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                     final displayName =
                                         _localizedGroupTitleFromChat(group);
                                     return ListTile(
-                                      leading: CircleAvatar(
-                                        backgroundColor:
-                                            Colors.blueGrey.shade100,
-                                        child: const Icon(
-                                          Icons.group,
-                                          color: Colors.black87,
-                                        ),
+                                      leading: chatLeadingAvatar(
+                                        radius: 20,
+                                        backgroundColor: Colors.blueGrey.shade100,
+                                        initial: _initialFromName(displayName),
+                                        groupIcon: Icons.group,
+                                        assetImagePath:
+                                            _departmentGroupAssetPathFromChat(
+                                              group,
+                                            ),
+                                        iconColor: context.appTheme.primaryText,
+                                        initialTextColor:
+                                            context.appTheme.primaryText,
                                       ),
                                       title: Text(displayName),
                                       subtitle: Text(
@@ -1682,13 +1688,21 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                     ),
                                   ),
                                   ..._filteredEmployees.map((emp) {
+                                    final name = (emp['name'] ?? '').toString();
+                                    final imageUrl = (emp['image'] ?? '')
+                                        .toString()
+                                        .trim();
                                     return ListTile(
-                                      leading: CircleAvatar(
-                                        backgroundColor: Colors.grey.shade200,
-                                        child: Text(
-                                          _initialFromName(emp['name']),
-                                          style: TextStyle(color: Colors.black),
-                                        ),
+                                      leading: chatLeadingAvatar(
+                                        radius: 20,
+                                        backgroundColor:
+                                            chatAvatarPlaceholder(context),
+                                        initial: _initialFromName(name),
+                                        imageUrl: imageUrl.isEmpty
+                                            ? null
+                                            : imageUrl,
+                                        initialTextColor:
+                                            context.appTheme.primaryText,
                                       ),
                                       title: Text(emp['name']),
                                       subtitle: Text(emp['email'] ?? ''),
@@ -1720,30 +1734,16 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       builder: (controller) {
         final visibleChats = _visibleChatsOrderedForSidebar();
         return Scaffold(
-          // key: widget.key,
-          appBar: PreferredSize(
-            preferredSize: Size(Get.width, Get.height),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                IconButton(
-                  icon: Icon(Icons.close, color: Colors.black),
-                  onPressed: () async {
-                    await _persistCurrentChatScrollIfAny();
-                    if (!mounted) return;
-                    _clearStoredChatSelectionOnHome();
-                    widget.onMinimize();
-                  },
+          backgroundColor: chatShellBackground(context),
+          body: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  color: chatShellBackground(context),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-              ],
-            ),
-          ),
-          body: Container(
-            decoration: BoxDecoration(
-              color: const Color(0xfff7f9fc),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
+                child: Row(
               children: [
                 // ===== RIGHT: chats history (design has this on the right originally) =====
                 Expanded(
@@ -1752,7 +1752,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     margin: EdgeInsets.only(top: 30, right: 10),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
-                      color: Colors.white,
+                      color: chatListPanelBackground(context),
+                      border: Border.all(color: context.appTheme.border),
                     ),
                     child: Column(
                       children: [
@@ -1772,7 +1773,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                       hintText: AppLocaleKeys.chatSearch.tr,
                                       prefixIcon: Icon(Icons.search),
                                       filled: true,
-                                      fillColor: Colors.grey.shade100,
+                                      fillColor: chatSearchFieldFill(context),
                                       border: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(12),
                                         borderSide: BorderSide.none,
@@ -1794,7 +1795,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                       width: 45,
                                       height: 45,
                                       decoration: BoxDecoration(
-                                        color: AppColors.primary,
+                                        color: kChatUiAccent,
                                         borderRadius: BorderRadius.circular(15),
                                       ),
                                       child: Icon(
@@ -1822,7 +1823,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                               child: LinearProgressIndicator(
                                 minHeight: 4,
                                 color: kChatUiAccent,
-                                backgroundColor: Colors.grey.shade200,
+                                backgroundColor: context.appTheme.unselected,
                               ),
                             ),
                           ),
@@ -1906,10 +1907,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                 : otherId);
                                       initial = _initialFromName(displayName);
                                       employImage = other['image'];
-                                      avatarColor = Colors.grey.shade200;
+                                      avatarColor = chatAvatarPlaceholder(context);
                                       avatarIcon = null;
                                       groupAssetPath = null;
-                                      titleColor = Colors.black;
+                                      titleColor = context.appTheme.primaryText;
                                       showPrivateOnlineDot = _isOnlinePresence(
                                         _presenceOf(otherIdForPresence),
                                       );
@@ -1936,7 +1937,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                         tileColor:
                                             _selectedChat != null &&
                                                 _selectedChat!['id'] == chatId
-                                            ? Colors.grey.shade100
+                                            ? chatListSelectedTile(context)
                                             : null,
                                         onTap: () async {
                                           final prevId =
@@ -2083,7 +2084,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                             child: Text(
                               AppLocaleKeys.chatSelectFromList.tr,
                               style: TextStyle(
-                                color: Colors.grey,
+                                color: context.appTheme.mutedText,
                                 fontSize: 18,
                               ),
                             ),
@@ -2096,7 +2097,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                 margin: EdgeInsets.only(top: 30, left: 10),
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+              color: context.appTheme.cardSurface,
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Row(
@@ -2159,9 +2160,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                     ) =>
                                                         Text(
                                                       _initialFromName(name),
-                                                      style: const TextStyle(
+                                                      style: TextStyle(
                                                         fontSize: 16,
-                                                        color: Colors.black,
+                                                        color: context.appTheme.primaryText,
                                                       ),
                                                     ),
                                                   ),
@@ -2215,7 +2216,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                       overflow:
                                                           TextOverflow
                                                               .ellipsis,
-                                                      style: const TextStyle(
+                                                      style: TextStyle(
                                                         fontSize: 18,
                                                         fontWeight:
                                                             FontWeight.bold,
@@ -2255,7 +2256,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                           ? AppLocaleKeys.chatGroupType.tr
                                           : AppLocaleKeys.chatPrivateType.tr,
                                       style: TextStyle(
-                                        color: Colors.grey.shade600,
+                                        color: context.appTheme.mutedText,
                                       ),
                                     ),
                                   ],
@@ -2267,7 +2268,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                               Expanded(
                                 child: Container(
                                   decoration: BoxDecoration(
-                                    color: Colors.white,
+              color: context.appTheme.cardSurface,
                                     borderRadius: BorderRadius.circular(15),
                                   ),
                                   margin: const EdgeInsets.symmetric(
@@ -2400,9 +2401,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                         BoxDecoration(
                                                       color: isMe
                                                           ? AppColors.primary
-                                                          : Colors
-                                                              .grey
-                                                              .shade100,
+                                                          : chatIncomingBubbleColor(
+                                                              context,
+                                                            ),
                                                       borderRadius:
                                                           BorderRadius.only(
                                                         topLeft:
@@ -2738,9 +2739,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                             .chatWriteMessage
                                                             .tr,
                                                         filled: true,
-                                                        fillColor: Colors
-                                                            .grey
-                                                            .shade100,
+                                                        fillColor:
+                                                            chatSearchFieldFill(
+                                                          context,
+                                                        ),
                                                         border: OutlineInputBorder(
                                                           borderRadius:
                                                               BorderRadius.circular(
@@ -2780,7 +2782,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                     width: 45,
                                                     height: 45,
                                                     decoration: BoxDecoration(
-                                                      color: AppColors.primary,
+                                                      color: kChatUiAccent,
                                                       borderRadius:
                                                           BorderRadius.circular(
                                                             15,
@@ -2822,6 +2824,27 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 ),
               ],
             ),
+          ),
+              PositionedDirectional(
+                top: 4,
+                start: 4,
+                child: Material(
+                  color: Colors.transparent,
+                  child: IconButton(
+                    icon: Icon(
+                      Icons.close,
+                      color: context.appTheme.primaryText,
+                    ),
+                    onPressed: () async {
+                      await _persistCurrentChatScrollIfAny();
+                      if (!mounted) return;
+                      _clearStoredChatSelectionOnHome();
+                      widget.onMinimize();
+                    },
+                  ),
+                ),
+              ),
+            ],
           ),
         );
       },

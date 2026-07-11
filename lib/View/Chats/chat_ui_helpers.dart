@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
@@ -101,6 +101,55 @@ class ChatScrollInteraction {
     _dragDepth = 0;
   }
 }
+
+/// Chat list / message canvas background.
+Color chatShellBackground(BuildContext context) =>
+    context.appTheme.pageBackground;
+
+/// Sidebar and list panel surface.
+Color chatListPanelBackground(BuildContext context) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+  return isDark
+      ? context.appTheme.elevatedSurface
+      : context.appTheme.cardSurface;
+}
+
+Color chatSearchFieldFill(BuildContext context) => context.appTheme.inputFill;
+
+/// Incoming message bubble on desktop/web chat.
+Color chatIncomingBubbleColor(BuildContext context) =>
+    Theme.of(context).brightness == Brightness.dark
+    ? context.appTheme.elevatedSurface
+    : Colors.grey.shade100;
+
+/// Incoming bubble where light mode uses solid white (mobile / popup).
+Color chatIncomingBubbleColorBright(BuildContext context) =>
+    Theme.of(context).brightness == Brightness.dark
+    ? context.appTheme.elevatedSurface
+    : Colors.white;
+
+Color chatPinnedBarBackground(BuildContext context) =>
+    context.appTheme.panelTint;
+
+Color chatAvatarPlaceholder(BuildContext context) =>
+    context.appTheme.unselected;
+
+Color chatListSelectedTile(BuildContext context) =>
+    Theme.of(context).brightness == Brightness.dark
+    ? context.appTheme.panelTint
+    : Colors.grey.shade100;
+
+Color chatBubbleTextColor(BuildContext context, bool isMe) => isMe
+    ? Colors.white
+    : (Theme.of(context).brightness == Brightness.dark
+        ? context.appTheme.primaryText
+        : Colors.black);
+
+Color chatBubbleMutedTextColor(BuildContext context, bool isMe) => isMe
+    ? Colors.white70
+    : (Theme.of(context).brightness == Brightness.dark
+        ? context.appTheme.mutedText
+        : Colors.black54);
 
 /// Android/iOS camera capture for chat attachments (not web/desktop).
 bool chatMobileCameraSupported() {
@@ -332,7 +381,7 @@ class ChatUploadProgressBanner extends StatelessWidget {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey.shade700,
+                color: context.appTheme.mutedText,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -342,8 +391,8 @@ class ChatUploadProgressBanner extends StatelessWidget {
               child: LinearProgressIndicator(
                 value: p,
                 minHeight: 4,
-                backgroundColor: Colors.grey.shade200,
-                color: AppColors.primary,
+                backgroundColor: context.appTheme.unselected,
+                color: context.appTheme.accentText,
               ),
             ),
             const SizedBox(height: 2),
@@ -358,7 +407,7 @@ class ChatUploadProgressBanner extends StatelessWidget {
                 AppLocaleKeys.commonCancel.tr,
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey.shade700,
+                  color: context.appTheme.mutedText,
                 ),
               ),
             ),
@@ -420,6 +469,7 @@ class ChatPresenceSubline extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!Get.isRegistered<HomeController>()) {
       return _buildText(
+        context,
         isGroup
             ? AppLocaleKeys.chatConnectedCount.trParams({'count': '0'})
             : AppLocaleKeys.employeesLastSeenUnknown.tr,
@@ -437,6 +487,7 @@ class ChatPresenceSubline extends StatelessWidget {
           selfUserId,
         );
         return _buildText(
+          context,
           AppLocaleKeys.chatConnectedCount.trParams({'count': '$count'}),
           isOnline: false,
         );
@@ -449,11 +500,11 @@ class ChatPresenceSubline extends StatelessWidget {
       if (allowEmpty && label.isEmpty) {
         return const SizedBox.shrink();
       }
-      return _buildText(label, isOnline: online);
+      return _buildText(context, label, isOnline: online);
     });
   }
 
-  Widget _buildText(String label, {required bool isOnline}) {
+  Widget _buildText(BuildContext context, String label, {required bool isOnline}) {
     return Text(
       label,
       maxLines: 1,
@@ -462,7 +513,7 @@ class ChatPresenceSubline extends StatelessWidget {
         fontSize: 11,
         color: !isGroup && isOnline
             ? const Color(0xFF16A34A)
-            : Colors.grey.shade700,
+            : context.appTheme.mutedText,
         fontWeight: FontWeight.w500,
       ),
     );

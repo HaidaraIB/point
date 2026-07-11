@@ -14,6 +14,7 @@ import 'package:point/View/Shared/CustomDropDown.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/t.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 class PublishAddMobilePage extends StatefulWidget {
   const PublishAddMobilePage({
@@ -353,10 +354,8 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
                   labelText: 'title'.tr,
                   hintText: 'entertitle'.tr,
                   height: 44,
-                  fillColor: Colors.white,
                   controller: _titleController,
                   borderRadius: 8,
-                  borderColor: Colors.grey.shade300,
                 ),
                 const SizedBox(height: 12),
                 Obx(
@@ -375,9 +374,7 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
                     value: _selectedAsset.value,
                     label: 'publish.page_label'.tr,
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                     height: 44,
-                    fillColor: Colors.white,
                     onChanged: (v) {
                       _selectedAsset.value = v;
                     },
@@ -410,7 +407,7 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
                 const SizedBox(height: 12),
                 Text(
                   'publish.schedule_mode'.tr,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+                  style: TextStyle(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 6),
                 Obx(
@@ -466,7 +463,7 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
                     'publish.media_single_file_note'.tr,
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey.shade700,
+                      color: context.appTheme.mutedText,
                       height: 1.35,
                     ),
                   ),
@@ -543,7 +540,7 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
                                       width: 20,
                                       height: 20,
                                       decoration: BoxDecoration(
-                                        color: Colors.black54,
+                                        color: context.appTheme.secondaryText,
                                         borderRadius: BorderRadius.circular(10),
                                       ),
                                       child: const Icon(
@@ -567,11 +564,9 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
                   labelText: 'publish.caption'.tr,
                   hintText: 'content.caption_hint'.tr,
                   height: 100,
-                  fillColor: Colors.white,
                   controller: _captionController,
                   expanded: true,
                   borderRadius: 8,
-                  borderColor: Colors.grey.shade300,
                 ),
                 const SizedBox(height: 12),
                 Obx(
@@ -585,9 +580,7 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
                     itemLabel: (k) => k.tr,
                     label: 'publish.platforms'.tr,
                     borderRadius: 8,
-                    borderColor: Colors.grey.shade300,
                     height: 44,
-                    fillColor: Colors.white,
                     onChanged: (v) => _platforms.assignAll(v),
                   ),
                 ),

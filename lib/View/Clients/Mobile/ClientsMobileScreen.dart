@@ -6,6 +6,7 @@ import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/table_actions_menu_row.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 class ClientsMobileScreen extends StatelessWidget {
   final List<ClientModel> clients;
@@ -28,6 +29,7 @@ class ClientsMobileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appTheme = context.appTheme;
     return RefreshIndicator(
       onRefresh: () async {
         Get.find<HomeController>().fetchClients();
@@ -46,7 +48,7 @@ class ClientsMobileScreen extends StatelessWidget {
                 child: Text(
                   'clients'.tr,
                   style: TextStyle(
-                    color: AppColors.fontColorGrey,
+                    color: appTheme.secondaryText,
                     fontSize: 17,
                     fontWeight: FontWeight.bold,
                   ),
@@ -68,7 +70,7 @@ class ClientsMobileScreen extends StatelessWidget {
                       children: [
                         Text(
                           'addnewclient'.tr,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
@@ -97,7 +99,7 @@ class ClientsMobileScreen extends StatelessWidget {
                   'history.empty_data'.tr,
                   style: TextStyle(
                     fontSize: 14,
-                    color: AppColors.fontColorGrey,
+                    color: appTheme.secondaryText,
                   ),
                 ),
               ),
@@ -113,9 +115,9 @@ class ClientsMobileScreen extends StatelessWidget {
                 final active = client.status == 'active';
                 return Container(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: appTheme.cardSurface,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey.shade200),
+                    border: Border.all(color: appTheme.border),
                   ),
                   padding: const EdgeInsets.symmetric(
                     horizontal: 12,
@@ -133,7 +135,7 @@ class ClientsMobileScreen extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
-                                color: AppColors.fontColorGrey,
+                                color: appTheme.primaryText,
                               ),
                             ),
                           ),
@@ -143,7 +145,7 @@ class ClientsMobileScreen extends StatelessWidget {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            color: Colors.white,
+                            color: appTheme.cardSurface,
                             elevation: 4,
                             itemBuilder: (context) {
                               final toggleVal = canDelete ? 2 : 1;
@@ -197,12 +199,12 @@ class ClientsMobileScreen extends StatelessWidget {
                               width: 36,
                               height: 36,
                               decoration: BoxDecoration(
-                                color: Colors.grey.shade100,
+                                color: appTheme.unselected,
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Icon(
                                 Icons.more_vert,
-                                color: AppColors.primaryfontColor,
+                                color: appTheme.primaryText,
                                 size: 20,
                               ),
                             ),
@@ -216,7 +218,7 @@ class ClientsMobileScreen extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontSize: 13,
-                          color: AppColors.fontColorGrey,
+                          color: appTheme.secondaryText,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -226,24 +228,28 @@ class ClientsMobileScreen extends StatelessWidget {
                         runSpacing: 8,
                         children: [
                           _mobileInfoChip(
+                            context,
                             '${'startat'.tr}: ${FunHelper.formatdate(client.startAt) ?? ''}',
                           ),
                           _mobileInfoChip(
+                            context,
                             '${'endat'.tr}: ${FunHelper.formatdate(client.endAt) ?? ''}',
                           ),
                           _mobileInfoChip(
+                            context,
                             '${'publish.page_label'.tr}: ${((client.metaPageName ?? '').trim().isEmpty) ? '--' : client.metaPageName!.trim()}',
                           ),
                           _mobileInfoChip(
+                            context,
                             active ? 'common.enable'.tr : 'common.disable'.tr,
-                            backgroundColor:
-                                active
-                                    ? Colors.green.shade50
-                                    : Colors.orange.shade50,
+                            backgroundColor: context.statusChipBackground(
+                              active ? AppColors.success : AppColors.caution,
+                              active
+                                  ? Colors.green.shade50
+                                  : Colors.orange.shade50,
+                            ),
                             textColor:
-                                active
-                                    ? Colors.green.shade700
-                                    : Colors.orange.shade700,
+                                active ? AppColors.success : AppColors.caution,
                           ),
                         ],
                       ),
@@ -259,21 +265,23 @@ class ClientsMobileScreen extends StatelessWidget {
   }
 
   Widget _mobileInfoChip(
+    BuildContext context,
     String text, {
     Color? backgroundColor,
     Color? textColor,
   }) {
+    final appTheme = context.appTheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: backgroundColor ?? Colors.grey.shade100,
+        color: backgroundColor ?? appTheme.unselected,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
         text,
         style: TextStyle(
           fontSize: 12,
-          color: textColor ?? AppColors.fontColorGrey,
+          color: textColor ?? appTheme.secondaryText,
           fontWeight: FontWeight.w600,
         ),
       ),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 Widget TopAppBar(BuildContext context, String title) {
   final backIcon =
@@ -24,7 +24,7 @@ Widget TopAppBar(BuildContext context, String title) {
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 16,
-            color: AppColors.primary,
+            color: context.appTheme.accentText,
           ),
         ),
         Spacer(),

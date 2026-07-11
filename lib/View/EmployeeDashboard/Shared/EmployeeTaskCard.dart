@@ -16,6 +16,7 @@ import 'package:point/View/Tasks/Shared/task_client_display_name.dart';
 import 'package:point/View/Tasks/Shared/deadline_extension_request_dialog.dart';
 import 'package:point/View/Tasks/Shared/open_task_final_work.dart';
 import 'package:point/View/Tasks/Shared/task_details_feedback_widgets.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// صورة المكلَّف في البطاقة: الحقل المخزّن في المهمة قد يكون فارغاً لمهام قديمة،
 /// فيُستكمل من بيانات الموظف الحالية كما في الهيدر.
@@ -78,12 +79,14 @@ class EmployeeTaskCard extends StatelessWidget {
         return Container(
           margin: const EdgeInsets.all(8),
           padding: const EdgeInsets.all(12),
+          width: double.infinity,
+          height: double.infinity,
           decoration: BoxDecoration(
-            color: Colors.white,
+              color: resolveAppTheme().cardSurface,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.grey.shade200,
+                color: resolveAppTheme().shadowColor,
                 blurRadius: 8,
                 offset: const Offset(0, 4),
               ),
@@ -107,7 +110,7 @@ class EmployeeTaskCard extends StatelessWidget {
                           Expanded(
                             child: Text(
                               task.title,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -115,20 +118,27 @@ class EmployeeTaskCard extends StatelessWidget {
                           ),
                           if (!_employeeHideQuickStatusChangeMenu(task))
                           SizedBox(
-                            child: PopupMenuButton<int>(
+                            child: Theme(
+                              data: Theme.of(context).copyWith(
+                                textTheme: Theme.of(context).textTheme.apply(
+                                  bodyColor: resolveAppTheme().primaryText,
+                                  displayColor: resolveAppTheme().primaryText,
+                                ),
+                              ),
+                              child: PopupMenuButton<int>(
                               tooltip: 'tasks.options_tooltip'.tr,
                               padding: EdgeInsets.zero,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              color: Colors.white,
+                              color: resolveAppTheme().cardSurface,
                               elevation: 4,
                               itemBuilder: (context) {
                                 if (task.type == '0') {
                                   return [
                                     PopupMenuItem(
                                       value: 10,
-                                      child: TaskStatusVisuals.popupMenuRow(
+                                      child: TaskStatusVisuals.popupMenuRow(context: context,
                                         label: StorageKeys
                                             .status_promotion_in_progress
                                             .tr,
@@ -138,7 +148,7 @@ class EmployeeTaskCard extends StatelessWidget {
                                     ),
                                     PopupMenuItem(
                                       value: 11,
-                                      child: TaskStatusVisuals.popupMenuRow(
+                                      child: TaskStatusVisuals.popupMenuRow(context: context,
                                         label: StorageKeys
                                             .status_promotion_ad_platform_review
                                             .tr,
@@ -148,7 +158,7 @@ class EmployeeTaskCard extends StatelessWidget {
                                     ),
                                     PopupMenuItem(
                                       value: 12,
-                                      child: TaskStatusVisuals.popupMenuRow(
+                                      child: TaskStatusVisuals.popupMenuRow(context: context,
                                         label: StorageKeys.status_promotion_running
                                             .tr,
                                         rawOrCanonicalForIcon:
@@ -157,7 +167,7 @@ class EmployeeTaskCard extends StatelessWidget {
                                     ),
                                     PopupMenuItem(
                                       value: 13,
-                                      child: TaskStatusVisuals.popupMenuRow(
+                                      child: TaskStatusVisuals.popupMenuRow(context: context,
                                         label: StorageKeys.status_promotion_finished
                                             .tr,
                                         rawOrCanonicalForIcon:
@@ -169,7 +179,7 @@ class EmployeeTaskCard extends StatelessWidget {
                                 return [
                                   PopupMenuItem(
                                     value: 0,
-                                    child: TaskStatusVisuals.popupMenuRow(
+                                    child: TaskStatusVisuals.popupMenuRow(context: context,
                                       label: StorageKeys.status_processing.tr,
                                       rawOrCanonicalForIcon:
                                           StorageKeys.status_processing,
@@ -177,7 +187,7 @@ class EmployeeTaskCard extends StatelessWidget {
                                   ),
                                   PopupMenuItem(
                                     value: 1,
-                                    child: TaskStatusVisuals.popupMenuRow(
+                                    child: TaskStatusVisuals.popupMenuRow(context: context,
                                       label: StorageKeys.status_under_revision.tr,
                                       rawOrCanonicalForIcon:
                                           StorageKeys.status_under_revision,
@@ -235,7 +245,9 @@ class EmployeeTaskCard extends StatelessWidget {
                                 ),
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(25),
-                                  border: Border.all(color: Colors.grey),
+                                  border: Border.all(
+                                    color: resolveAppTheme().border,
+                                  ),
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
@@ -257,6 +269,7 @@ class EmployeeTaskCard extends StatelessWidget {
                                 ),
                               ),
                             ),
+                            ),
                           ),
                         ],
                       ),
@@ -271,9 +284,9 @@ class EmployeeTaskCard extends StatelessWidget {
                           crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
                             if (_showTaskDepartmentBadge(controller))
-                              _buildTaskDepartmentBadge(task),
-                            _buildStatusTag(task.status),
-                            _buildPriorityTag(task.priority),
+                              _buildTaskDepartmentBadge(context, task),
+                            _buildStatusTag(context, task.status),
+                            _buildPriorityTag(context, task.priority),
                           ],
                         );
                       }),
@@ -296,7 +309,7 @@ class EmployeeTaskCard extends StatelessWidget {
                         task.description,
                         maxLines: 3,
                         style: TextStyle(
-                          color: Colors.grey.shade700,
+                          color: resolveAppTheme().secondaryText,
                           fontSize: 13,
                         ),
                       ),
@@ -305,38 +318,46 @@ class EmployeeTaskCard extends StatelessWidget {
                       // --- التقدم ---
                       Text(
                         'tasks.progress_label'.tr,
-                        style: TextStyle(color: Colors.grey.shade600),
+                        style: TextStyle(color: resolveAppTheme().mutedText),
                       ),
                       const SizedBox(height: 4),
-                      SizedBox(
-                        width: constraints.maxWidth,
-                        height: 56,
-                        child:
-                            _employeeRejectedReadOnlyView(task)
-                                ? Center(
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(20),
-                                    child: LinearProgressIndicator(
-                                      value: task.progress ?? 0,
-                                      minHeight: 10,
-                                      backgroundColor: Colors.grey.shade200,
-                                      color: Colors.blue,
+                      Obx(() {
+                        final live =
+                            controller.tasks.firstWhereOrNull(
+                              (x) => x.id == task.id,
+                            ) ??
+                            task;
+                        return SizedBox(
+                          width: constraints.maxWidth,
+                          height: 56,
+                          child:
+                              _employeeRejectedReadOnlyView(live)
+                                  ? Center(
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(20),
+                                      child: LinearProgressIndicator(
+                                        value: live.progress ?? 0,
+                                        minHeight: 10,
+                                        backgroundColor: resolveAppTheme().unselected,
+                                        color: Colors.blue,
+                                      ),
                                     ),
+                                  )
+                                  : DraggableProgressBar(
+                                    key: ValueKey('progress-${live.id}'),
+                                    initialValue: live.progress ?? 0,
+                                    color: Colors.blue,
+                                    backgroundColor: resolveAppTheme().unselected,
+                                    height: 10,
+                                    borderRadius: BorderRadius.circular(20),
+                                    onChanged: (value) {
+                                      controller.updateTask(
+                                        live.copyWith(progress: value),
+                                      );
+                                    },
                                   ),
-                                )
-                                : DraggableProgressBar(
-                                  initialValue: task.progress ?? 0,
-                                  color: Colors.blue,
-                                  backgroundColor: Colors.grey.shade200,
-                                  height: 10,
-                                  borderRadius: BorderRadius.circular(20),
-                                  onChanged: (value) {
-                                    controller.updateTask(
-                                      task.copyWith(progress: value),
-                                    );
-                                  },
-                                ),
-                      ),
+                        );
+                      }),
 
                       const SizedBox(height: 12),
 
@@ -362,7 +383,7 @@ class EmployeeTaskCard extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
-                                  color: AppColors.primary,
+                                  color: resolveAppTheme().accentText,
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -370,7 +391,7 @@ class EmployeeTaskCard extends StatelessWidget {
                                 latestNote.note,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -385,7 +406,7 @@ class EmployeeTaskCard extends StatelessWidget {
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: Colors.grey.shade700,
+                                  color: resolveAppTheme().mutedText,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -412,7 +433,7 @@ class EmployeeTaskCard extends StatelessWidget {
                                         ? 10
                                         : (assignee?.name ?? '').length,
                                   ),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
                               ),
@@ -429,6 +450,8 @@ class EmployeeTaskCard extends StatelessWidget {
                           );
                           final expired =
                               remaining == 'tasks.deadline_expired'.tr;
+                          final isDark =
+                              Theme.of(ctx).brightness == Brightness.dark;
                           return Container(
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(
@@ -436,13 +459,26 @@ class EmployeeTaskCard extends StatelessWidget {
                               vertical: 10,
                             ),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFEFF6FF),
+                              color:
+                                  expired
+                                      ? Colors.red.withValues(
+                                        alpha: isDark ? 0.14 : 0.08,
+                                      )
+                                      : (isDark
+                                          ? AppColors.primary.withValues(
+                                            alpha: 0.12,
+                                          )
+                                          : const Color(0xFFEFF6FF)),
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(
                                 color:
                                     expired
-                                        ? Colors.red.shade200
-                                        : const Color(0xFFBFDBFE),
+                                        ? Colors.red.withValues(alpha: 0.35)
+                                        : (isDark
+                                            ? AppColors.primary.withValues(
+                                              alpha: 0.3,
+                                            )
+                                            : const Color(0xFFBFDBFE)),
                               ),
                             ),
                             child: Column(
@@ -455,7 +491,7 @@ class EmployeeTaskCard extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w800,
-                                    color: Colors.blueGrey.shade800,
+                                    color: ctx.appTheme.mutedText,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -496,6 +532,11 @@ class EmployeeTaskCard extends StatelessWidget {
                                 width: rowW,
                                 child: OutlinedButton(
                                   style: OutlinedButton.styleFrom(
+                                    foregroundColor:
+                                        resolveAppTheme().primaryText,
+                                    side: BorderSide(
+                                      color: resolveAppTheme().border,
+                                    ),
                                     minimumSize: Size(rowW, 48),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(24),
@@ -510,7 +551,7 @@ class EmployeeTaskCard extends StatelessWidget {
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     textAlign: TextAlign.center,
-                                    style: const TextStyle(fontSize: 13),
+                                    style: TextStyle(fontSize: 13),
                                   ),
                                 ),
                               );
@@ -528,6 +569,11 @@ class EmployeeTaskCard extends StatelessWidget {
                                   cells: [
                                     OutlinedButton(
                                       style: OutlinedButton.styleFrom(
+                                        foregroundColor:
+                                            resolveAppTheme().primaryText,
+                                        side: BorderSide(
+                                          color: resolveAppTheme().border,
+                                        ),
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(
                                             24,
@@ -552,6 +598,11 @@ class EmployeeTaskCard extends StatelessWidget {
                                     ),
                                     OutlinedButton(
                                       style: OutlinedButton.styleFrom(
+                                        foregroundColor:
+                                            resolveAppTheme().primaryText,
+                                        side: BorderSide(
+                                          color: resolveAppTheme().border,
+                                        ),
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(
                                             24,
@@ -590,7 +641,7 @@ class EmployeeTaskCard extends StatelessWidget {
                                         'tasks.view_task_details'.tr,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           color: Colors.white,
                                           fontSize: 12,
                                         ),
@@ -607,6 +658,11 @@ class EmployeeTaskCard extends StatelessWidget {
                                     width: double.infinity,
                                     child: OutlinedButton(
                                       style: OutlinedButton.styleFrom(
+                                        foregroundColor:
+                                            resolveAppTheme().primaryText,
+                                        side: BorderSide(
+                                          color: resolveAppTheme().border,
+                                        ),
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(
                                             24,
@@ -626,7 +682,7 @@ class EmployeeTaskCard extends StatelessWidget {
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
                                         textAlign: TextAlign.center,
-                                        style: const TextStyle(fontSize: 12),
+                                        style: TextStyle(fontSize: 12),
                                       ),
                                     ),
                                   ),
@@ -658,7 +714,7 @@ class EmployeeTaskCard extends StatelessWidget {
                                         'tasks.final_deliverable_section'.tr,
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(fontSize: 12),
+                                        style: TextStyle(fontSize: 12),
                                       ),
                                     ),
                                   ),
@@ -706,12 +762,12 @@ class EmployeeTaskCard extends StatelessWidget {
     return 'time.ago_years'.trParams({'count': '$years'});
   }
 
-  Widget _buildPriorityTag(String raw) {
+  Widget _buildPriorityTag(BuildContext context, String raw) {
     final key = FunHelper.canonicalStoredPriority(raw);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: _getPriorityBgColor(key),
+        color: _getPriorityBgColor(context, key),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
@@ -763,11 +819,11 @@ Widget employeeTaskCardActionRows({
   );
 }
 
-Widget _buildTaskDepartmentBadge(TaskModel task) {
+Widget _buildTaskDepartmentBadge(BuildContext context, TaskModel task) {
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
     decoration: BoxDecoration(
-      color: const Color(0xFFF4F0FF),
+      color: resolveAppTheme().panelTint,
       borderRadius: BorderRadius.circular(8),
       border: Border.all(
         color: AppColors.primary.withValues(alpha: 0.35),
@@ -777,21 +833,21 @@ Widget _buildTaskDepartmentBadge(TaskModel task) {
       NotificationService.departmentNameFromTaskType(task.type),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 11,
         fontWeight: FontWeight.w700,
-        color: AppColors.primary,
+        color: resolveAppTheme().accentText,
       ),
     ),
   );
 }
 
-Widget _buildStatusTag(String raw) {
+Widget _buildStatusTag(BuildContext context, String raw) {
   final key = FunHelper.canonicalStoredStatus(raw);
   return TaskStatusVisuals.statusChip(
     rawStatus: raw,
     fg: _getStatusColor(key),
-    bg: _getStatusBgColor(key),
+    bg: _getStatusBgColor(context, key),
   );
 }
 
@@ -849,7 +905,9 @@ Color _getStatusColor(String status) {
   }
 }
 
-Color _getStatusBgColor(String status) {
+Color _getStatusBgColor(BuildContext context, String status) {
+  final fg = _getStatusColor(status);
+  if (Theme.of(context).brightness == Brightness.dark) return fg.withValues(alpha: 0.18);
   switch (status) {
     case StorageKeys.status_under_revision:
       return Colors.blue.shade50;
@@ -888,7 +946,9 @@ Color _getStatusBgColor(String status) {
   }
 }
 
-Color _getPriorityBgColor(String priority) {
+Color _getPriorityBgColor(BuildContext context, String priority) {
+  final fg = _getPriorityColor(priority);
+  if (Theme.of(context).brightness == Brightness.dark) return fg.withValues(alpha: 0.18);
   switch (priority) {
     case 'normal':
       return Colors.blue.shade50;
@@ -915,7 +975,7 @@ class OptionsMenu extends StatelessWidget {
     return Container(
       width: 150,
       decoration: BoxDecoration(
-        color: Colors.white,
+              color: resolveAppTheme().cardSurface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -975,7 +1035,7 @@ class OptionsMenu extends StatelessWidget {
             Text(
               text,
               style: TextStyle(
-                color: Colors.black87,
+                color: resolveAppTheme().primaryText,
                 fontWeight: FontWeight.w500,
                 fontSize: 14,
               ),
@@ -1020,6 +1080,14 @@ class _DraggableProgressBarState extends State<DraggableProgressBar> {
     progress = _snapToStep(widget.initialValue.clamp(0.0, 1.0));
   }
 
+  @override
+  void didUpdateWidget(covariant DraggableProgressBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialValue != widget.initialValue) {
+      progress = _snapToStep(widget.initialValue.clamp(0.0, 1.0));
+    }
+  }
+
   double _snapToStep(double value) {
     final segments = (widget.stepsCount - 1).clamp(1, 100);
     final stepSize = 1 / segments;
@@ -1029,6 +1097,12 @@ class _DraggableProgressBarState extends State<DraggableProgressBar> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final inactiveMarkerColor =
+        isDark ? theme.elevatedSurface : Colors.white;
+    final inactiveBorderColor =
+        isDark ? theme.border : Colors.grey.shade400;
     return LayoutBuilder(
       builder: (context, constraints) {
         final boxWidth = constraints.maxWidth;
@@ -1087,12 +1161,12 @@ class _DraggableProgressBarState extends State<DraggableProgressBar> {
                             height: markerSize,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: isActive ? widget.color : Colors.white,
+                              color: isActive ? widget.color : inactiveMarkerColor,
                               border: Border.all(
                                 color:
                                     isActive
                                         ? widget.color
-                                        : Colors.grey.shade400,
+                                        : inactiveBorderColor,
                                 width: 1.2,
                               ),
                             ),
@@ -1107,10 +1181,10 @@ class _DraggableProgressBarState extends State<DraggableProgressBar> {
             const SizedBox(height: 4),
             Text(
               '${(progress * 100).toStringAsFixed(0)}%',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
-                color: Colors.black54,
+                color: theme.secondaryText,
               ),
             ),
           ],

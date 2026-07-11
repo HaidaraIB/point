@@ -14,6 +14,7 @@ import 'package:point/View/Contents/Mobile/ContentFormMobilePage.dart';
 import 'package:point/View/Publish/publish_add_dialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// تفاصيل المحتوى على الجوال: نفس صلاحيات الويب ([ContentPermissions] + قواعد Firestore).
 class ContentDetailsMobilePage extends StatefulWidget {
@@ -127,7 +128,7 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (ctx) {
@@ -141,7 +142,7 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                   child: Text(
                     AppLocaleKeys.status.tr,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
                     ),
@@ -172,7 +173,7 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
     if (!ContentPermissions.canChangePromotionField(emp)) return;
     showModalBottomSheet<void>(
       context: context,
-      shape: const RoundedRectangleBorder(
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (ctx) {
@@ -185,7 +186,7 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
                 child: Text(
                   AppLocaleKeys.promotion.tr,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
                   ),
@@ -257,11 +258,13 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
       kind: StoredValueKind.taskStatus,
     );
 
+    final appTheme = context.appTheme;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F2FA),
+      backgroundColor: appTheme.pageBackground,
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        surfaceTintColor: Colors.transparent,
         elevation: 0.3,
         title: Text(
           _task.title.isNotEmpty ? _task.title : 'content.details_title'.tr,
@@ -276,8 +279,8 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              itemBuilder: (context) {
-                const primaryPurple = AppColors.primary;
+              itemBuilder: (menuContext) {
+                final accent = menuContext.appTheme.accentText;
                 final items = <PopupMenuEntry<int>>[];
                 if (canEdit) {
                   items.add(
@@ -312,9 +315,9 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
                       child: Row(
                         children: [
                           Expanded(child: Text('content.publish_now'.tr)),
-                          const Icon(
+                          Icon(
                             Icons.publish_rounded,
-                            color: primaryPurple,
+                            color: accent,
                             size: 22,
                           ),
                         ],
@@ -327,9 +330,9 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
                       child: Row(
                         children: [
                           Expanded(child: Text('content.schedule'.tr)),
-                          const Icon(
+                          Icon(
                             Icons.schedule_rounded,
-                            color: primaryPurple,
+                            color: accent,
                             size: 22,
                           ),
                         ],
@@ -492,6 +495,7 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
     final isRtl =
         Directionality.of(context) == TextDirection.rtl ||
         Get.locale?.languageCode == 'ar';
+    final appTheme = context.appTheme;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
@@ -500,9 +504,9 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: appTheme.cardSurface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE7E0F0)),
+          border: Border.all(color: appTheme.border),
         ),
         child: Column(
           children: [
@@ -513,7 +517,7 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
                     title,
                     textAlign: isRtl ? TextAlign.right : TextAlign.left,
                     style: TextStyle(
-                      color: Colors.grey.shade700,
+                      color: appTheme.mutedText,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                     ),
@@ -522,8 +526,8 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
                 const SizedBox(width: 8),
                 CircleAvatar(
                   radius: 14,
-                  backgroundColor: const Color(0xFFEDE2FF),
-                  child: Icon(icon, size: 16, color: AppColors.primary),
+                  backgroundColor: appTheme.panelTint,
+                  child: Icon(icon, size: 16, color: appTheme.accentText),
                 ),
               ],
             ),
@@ -534,15 +538,16 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
                   child: Text(
                     value,
                     textAlign: isRtl ? TextAlign.right : TextAlign.left,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
+                      color: appTheme.primaryText,
                     ),
                   ),
                 ),
                 Icon(
                   Icons.keyboard_arrow_down_rounded,
-                  color: Colors.grey.shade600,
+                  color: appTheme.mutedText,
                 ),
               ],
             ),
@@ -553,7 +558,7 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
                 hint,
                 style: TextStyle(
                   fontSize: 12,
-                  color: Colors.grey.shade600,
+                  color: appTheme.mutedText,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -573,14 +578,15 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
   }) {
     final isAr = Get.locale?.languageCode == 'ar';
     final isRtl = Directionality.of(context) == TextDirection.rtl || isAr;
+    final appTheme = context.appTheme;
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: appTheme.cardSurface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE7E0F0)),
+        border: Border.all(color: appTheme.border),
       ),
       child: Column(
         children: [
@@ -591,7 +597,7 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
                   title,
                   textAlign: isRtl ? TextAlign.right : TextAlign.left,
                   style: TextStyle(
-                    color: Colors.grey.shade700,
+                    color: appTheme.mutedText,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
@@ -600,8 +606,8 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
               const SizedBox(width: 8),
               CircleAvatar(
                 radius: 14,
-                backgroundColor: const Color(0xFFEDE2FF),
-                child: Icon(icon, size: 16, color: AppColors.primary),
+                backgroundColor: appTheme.panelTint,
+                child: Icon(icon, size: 16, color: appTheme.accentText),
               ),
             ],
           ),
@@ -620,7 +626,9 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
                   style: TextStyle(
                     fontSize: centerValue ? 16 : 20,
                     fontWeight: centerValue ? FontWeight.w500 : FontWeight.w700,
-                    color: centerValue ? Colors.grey.shade600 : null,
+                    color: centerValue
+                        ? appTheme.mutedText
+                        : appTheme.primaryText,
                   ),
                 ),
               ),
@@ -643,15 +651,23 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
     final isRtl =
         Directionality.of(context) == TextDirection.rtl ||
         Get.locale?.languageCode == 'ar';
+    final appTheme = context.appTheme;
     final files = _clientRevisionAttachmentUrls();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFF8E1),
+        color: isDark
+            ? AppColors.caution.withValues(alpha: 0.12)
+            : const Color(0xFFFFF8E1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFFFC107)),
+        border: Border.all(
+          color: isDark
+              ? AppColors.caution.withValues(alpha: 0.45)
+              : const Color(0xFFFFC107),
+        ),
       ),
       child: Column(
         crossAxisAlignment: isRtl
@@ -662,7 +678,7 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
             children: [
               Icon(
                 Icons.edit_note_outlined,
-                color: Colors.amber.shade900,
+                color: isDark ? AppColors.caution : Colors.amber.shade900,
                 size: 22,
               ),
               const SizedBox(width: 8),
@@ -671,7 +687,7 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
                   'client_revisions'.tr,
                   textAlign: isRtl ? TextAlign.right : TextAlign.left,
                   style: TextStyle(
-                    color: Colors.grey.shade900,
+                    color: appTheme.primaryText,
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
                   ),
@@ -707,6 +723,7 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
     final isRtl =
         Directionality.of(context) == TextDirection.rtl ||
         Get.locale?.languageCode == 'ar';
+    final appTheme = context.appTheme;
     final files = (_task.files ?? [])
         .whereType<String>()
         .where((e) => e.trim().isNotEmpty)
@@ -716,9 +733,9 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: appTheme.cardSurface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE7E0F0)),
+        border: Border.all(color: appTheme.border),
       ),
       child: Column(
         crossAxisAlignment: isRtl
@@ -732,20 +749,20 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
                   AppLocaleKeys.contentDialogAttachments.tr,
                   textAlign: isRtl ? TextAlign.right : TextAlign.left,
                   style: TextStyle(
-                    color: Colors.grey.shade700,
+                    color: appTheme.mutedText,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
               const SizedBox(width: 8),
-              const CircleAvatar(
+              CircleAvatar(
                 radius: 14,
-                backgroundColor: Color(0xFFEDE2FF),
+                backgroundColor: appTheme.panelTint,
                 child: Icon(
                   Icons.attach_file_outlined,
                   size: 16,
-                  color: AppColors.primary,
+                  color: appTheme.accentText,
                 ),
               ),
             ],
@@ -756,7 +773,7 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
               child: Text(
                 AppLocaleKeys.contentDialogNoAttachments.tr,
                 style: TextStyle(
-                  color: Colors.grey.shade600,
+                  color: appTheme.mutedText,
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                 ),

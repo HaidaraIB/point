@@ -4,6 +4,7 @@ import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/LibraryFileModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/View/Library/library_folder_browser.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 Future<void> showLibraryUploadDialog({
   required BuildContext context,
@@ -108,12 +109,12 @@ class _LibraryUploadDialogState extends State<_LibraryUploadDialog> {
           children: [
             Text(
               _folderContextLine(),
-              style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
+              style: TextStyle(fontSize: 13, color: context.appTheme.mutedText),
             ),
             const SizedBox(height: 12),
             Text(
               'library.upload_hint'.tr,
-              style: const TextStyle(fontSize: 14, height: 1.35),
+              style: TextStyle(fontSize: 14, height: 1.35),
             ),
             if (_uploading) ...[
               const SizedBox(height: 16),
@@ -122,7 +123,7 @@ class _LibraryUploadDialogState extends State<_LibraryUploadDialog> {
               Text(
                 'library.uploading'.tr,
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                style: TextStyle(fontSize: 12, color: context.appTheme.mutedText),
               ),
             ],
           ],

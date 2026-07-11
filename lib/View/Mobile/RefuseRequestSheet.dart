@@ -20,7 +20,7 @@ class RefuseRequestSheet extends StatelessWidget {
       builder: (controller) {
         return Container(
           padding: const EdgeInsets.all(16),
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
@@ -32,7 +32,7 @@ class RefuseRequestSheet extends StatelessWidget {
                 Center(
                   child: Text(
                     'requests.sheet_refuse_heading'.tr,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
@@ -114,7 +114,7 @@ class RefuseRequestSheet extends StatelessWidget {
                                   )
                                   : Text(
                                     'confirm'.tr,
-                                    style: const TextStyle(color: Colors.white),
+                                    style: TextStyle(color: Colors.white),
                                   ),
                         ),
                       ),
@@ -132,7 +132,7 @@ class RefuseRequestSheet extends StatelessWidget {
                         ),
                         child: Text(
                           'common.cancel'.tr,
-                          style: const TextStyle(color: Colors.teal),
+                          style: TextStyle(color: Colors.teal),
                         ),
                       ),
                     ),

@@ -220,7 +220,7 @@ class _ChatMediaGalleryPageState extends State<ChatMediaGalleryPage> {
         foregroundColor: Colors.white,
         title: Text(
           '${_index + 1} / ${items.length}',
-          style: const TextStyle(fontWeight: FontWeight.w600),
+          style: TextStyle(fontWeight: FontWeight.w600),
         ),
         actions: [
           MediaPreviewDownloadButton(url: items[_index].url),
@@ -430,7 +430,7 @@ class _ChatGalleryVideoPageState extends State<_ChatGalleryVideoPage> {
       return Center(
         child: Text(
           AppLocaleKeys.chatPreviewVideoFailed.tr,
-          style: const TextStyle(color: Colors.white70),
+          style: TextStyle(color: Colors.white70),
         ),
       );
     }

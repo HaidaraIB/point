@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Tasks/ProgrammingUpdates/programming_updates_panel.dart';
 
 /// Reads optional `updatesTab` / `tab` route param (0=tasks, 1=pending, 2=converted).
@@ -50,14 +51,14 @@ class _ProgrammingDepartmentTabsState extends State<ProgrammingDepartmentTabs>
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Material(
-          color: Colors.white,
+          color: context.appTheme.cardSurface,
           child: Obx(() {
             final pendingCount =
                 Get.find<HomeController>().pendingProgrammingUpdatesCount;
             return TabBar(
               controller: _tabController,
               labelColor: AppColors.primary,
-              unselectedLabelColor: Colors.grey.shade600,
+              unselectedLabelColor: context.appTheme.mutedText,
               indicatorColor: AppColors.primary,
               indicatorWeight: 3,
               tabs: [
@@ -79,7 +80,7 @@ class _ProgrammingDepartmentTabsState extends State<ProgrammingDepartmentTabs>
                           backgroundColor: AppColors.primary,
                           child: Text(
                             pendingCount > 99 ? '99+' : '$pendingCount',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: Colors.white,
                               fontSize: 9,
                               fontWeight: FontWeight.bold,

@@ -9,6 +9,7 @@ import 'package:point/Services/chat_voice_playback_service.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Chats/voice_recorder_scope.dart';
 import 'package:point/View/Shared/voice_message_row.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// Task/update form voice field — multiple notes, full chat-style playback.
 class TaskVoiceRecordField extends StatefulWidget {
@@ -81,7 +82,7 @@ class _TaskVoiceRecordFieldState extends State<TaskVoiceRecordField> {
             'tasks.form.voice_record'.tr,
             style: theme.textTheme.labelLarge?.copyWith(
               fontWeight: FontWeight.w600,
-              color: AppColors.primaryfontColor,
+              color: context.appTheme.primaryText,
             ),
           ),
           const SizedBox(height: 8),
@@ -126,7 +127,7 @@ class _VoiceRecordListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Material(
-      color: Colors.grey.shade100,
+      color: context.appTheme.panelTint,
       borderRadius: BorderRadius.circular(10),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 10, 4, 8),
@@ -140,7 +141,7 @@ class _VoiceRecordListTile extends StatelessWidget {
                     '${AppLocaleKeys.chatAttachVoice.tr} ${index + 1}',
                     style: theme.textTheme.bodySmall?.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: Colors.grey.shade700,
+                      color: context.appTheme.secondaryText,
                     ),
                   ),
                 ),
@@ -200,12 +201,12 @@ class _AddVoiceNoteButton extends StatelessWidget {
                         color: AppColors.primary.withValues(alpha: 0.7),
                       ),
                     )
-                  : const Icon(Icons.add, color: AppColors.primary),
+                  : Icon(Icons.add, color: context.appTheme.accentText),
               label: Text(
                 'tasks.form.voice_record_add'.tr,
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
+                  color: context.appTheme.accentText,
                 ),
               ),
             ),

@@ -1,6 +1,6 @@
-﻿part of 'package:point/View/Home/Home.dart';
+part of 'package:point/View/Home/Home.dart';
 
-Widget _userTypeButton(String label, String type, String selected) {
+Widget _userTypeButton(BuildContext context, String label, String type, String selected) {
   final controller = Get.find<HomeController>();
   final isSelected = selected == type;
 
@@ -27,7 +27,7 @@ Widget _userTypeButton(String label, String type, String selected) {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                // color: isSelected ? Colors.deepPurple : Colors.black,
+                // color: isSelected ? Colors.deepPurple : context.appTheme.primaryText,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -37,7 +37,7 @@ Widget _userTypeButton(String label, String type, String selected) {
             isSelected
                 ? Icons.radio_button_checked
                 : Icons.radio_button_unchecked,
-            color: isSelected ? Colors.deepPurple : Colors.grey,
+            color: isSelected ? Colors.deepPurple : context.appTheme.secondaryText,
             size: 22,
           ),
         ],

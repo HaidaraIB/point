@@ -28,7 +28,7 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                   'history.pick_client_content'.tr,
                   style: TextStyle(
                     fontSize: 15,
-                    color: AppColors.fontColorGrey,
+                    color: context.appTheme.secondaryText,
                   ),
                 ),
               ),
@@ -42,7 +42,7 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                   'history.empty_data'.tr,
                   style: TextStyle(
                     fontSize: 15,
-                    color: AppColors.fontColorGrey,
+                    color: context.appTheme.secondaryText,
                   ),
                 ),
               ),
@@ -57,7 +57,8 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                   dataRowMinHeight: 72,
                   dataRowMaxHeight: double.infinity,
                   // headingRowColor: WidgetStateProperty.all(Colors.blue.shade50),
-                  dataRowColor: WidgetStateProperty.all(Colors.white),
+                  dataRowColor: context.tableDataRowColor,
+                  headingRowColor: context.tableHeadingRowColor,
                   dividerThickness: 0.5,
                   columns: [
                     DataColumn(
@@ -87,7 +88,7 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 13,
-                          color: AppColors.fontColorGrey,
+                          color: context.appTheme.secondaryText,
                         ),
                       ),
                     ),
@@ -101,7 +102,7 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                           fontSize: 13,
 
                           fontWeight: FontWeight.bold,
-                          color: AppColors.fontColorGrey,
+                          color: context.appTheme.secondaryText,
                         ),
                       ),
                     ),
@@ -115,7 +116,7 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                           fontSize: 13,
 
                           fontWeight: FontWeight.bold,
-                          color: AppColors.fontColorGrey,
+                          color: context.appTheme.secondaryText,
                         ),
                       ),
                     ),
@@ -129,7 +130,7 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                           fontSize: 13,
 
                           fontWeight: FontWeight.bold,
-                          color: AppColors.fontColorGrey,
+                          color: context.appTheme.secondaryText,
                         ),
                       ),
                     ),
@@ -143,7 +144,7 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                             fontSize: 13,
 
                             fontWeight: FontWeight.bold,
-                            color: AppColors.fontColorGrey,
+                            color: context.appTheme.secondaryText,
                           ),
                         ),
                       ),
@@ -157,7 +158,7 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                             fontSize: 13,
 
                             fontWeight: FontWeight.bold,
-                            color: AppColors.fontColorGrey,
+                            color: context.appTheme.secondaryText,
                           ),
                         ),
                       ),
@@ -170,7 +171,7 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                           fontSize: 13,
 
                           fontWeight: FontWeight.bold,
-                          color: AppColors.fontColorGrey,
+                          color: context.appTheme.secondaryText,
                         ),
                       ),
                     ),
@@ -183,7 +184,7 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                           fontSize: 13,
 
                           fontWeight: FontWeight.bold,
-                          color: AppColors.fontColorGrey,
+                          color: context.appTheme.secondaryText,
                         ),
                       ),
                     ),
@@ -197,7 +198,7 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                             fontSize: 13,
 
                             fontWeight: FontWeight.bold,
-                            color: AppColors.fontColorGrey,
+                            color: context.appTheme.secondaryText,
                           ),
                         ),
                       ),
@@ -210,7 +211,7 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                           fontSize: 13,
 
                           fontWeight: FontWeight.bold,
-                          color: AppColors.fontColorGrey,
+                          color: context.appTheme.secondaryText,
                         ),
                       ),
                     ),
@@ -222,7 +223,7 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.fontColorGrey,
+                          color: context.appTheme.secondaryText,
                         ),
                       ),
                     ),
@@ -260,7 +261,7 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                                 maxLines: 2,
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: AppColors.fontColorGrey,
+                                  color: context.appTheme.secondaryText,
                                 ),
                               ),
                             ),
@@ -277,7 +278,7 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
-                                  color: AppColors.fontColorGrey,
+                                  color: context.appTheme.secondaryText,
                                 ),
                               ),
                             ),
@@ -651,7 +652,7 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: AppColors.fontColorGrey,
+                                    color: context.appTheme.secondaryText,
                                   ),
                                 ),
                               ),

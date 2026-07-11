@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/meta/meta_graph_client.dart';
 import 'package:point/Services/meta/meta_errors.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
 
@@ -56,8 +57,13 @@ Future<void> showPublishMetaSettingsDialog() async {
   }
 
   await Get.dialog<void>(
-    AlertDialog(
-        title: Text('publish.meta_settings'.tr),
+    Builder(
+      builder: (ctx) => AlertDialog(
+        backgroundColor: ctx.appTheme.cardSurface,
+        title: Text(
+          'publish.meta_settings'.tr,
+          style: TextStyle(color: ctx.appTheme.primaryText),
+        ),
         content: SizedBox(
           width: 420,
           child: SingleChildScrollView(
@@ -69,20 +75,16 @@ Future<void> showPublishMetaSettingsDialog() async {
                   labelText: 'publish.access_token_label'.tr,
                   hintText: '',
                   height: 42,
-                  fillColor: Colors.white,
                   controller: tokenController,
                   borderRadius: 5,
-                  borderColor: Colors.grey.shade300,
                 ),
                 const SizedBox(height: 12),
                 InputText(
                   labelText: 'publish.graph_version'.tr,
                   hintText: 'v25.0',
                   height: 42,
-                  fillColor: Colors.white,
                   controller: versionController,
                   borderRadius: 5,
-                  borderColor: Colors.grey.shade300,
                 ),
                 const SizedBox(height: 12),
                 ValueListenableBuilder<String>(
@@ -157,6 +159,7 @@ Future<void> showPublishMetaSettingsDialog() async {
           ),
         ],
       ),
+    ),
     barrierDismissible: false,
   );
 }

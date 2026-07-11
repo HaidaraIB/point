@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 Widget tableActionsMenuRow({
   required String label,
   required IconData icon,
   required Color iconColor,
+  BuildContext? context,
 }) {
+  final theme = context?.appTheme ?? resolveAppTheme(context);
   return Padding(
     padding: const EdgeInsets.symmetric(vertical: 4),
     child: Row(
@@ -14,10 +16,10 @@ Widget tableActionsMenuRow({
         Flexible(
           child: Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.w500,
               fontSize: 14,
-              color: AppColors.primaryfontColor,
+              color: theme.primaryText,
             ),
             overflow: TextOverflow.ellipsis,
           ),

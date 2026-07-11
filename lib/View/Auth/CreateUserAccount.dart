@@ -18,20 +18,21 @@ import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:uuid/uuid.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 class CreateUserAccount extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Responsive(
-      mobile: Scaffold(body: _buildDesktopLayout()),
-      tablet: Scaffold(body: _buildDesktopLayout()),
-      desktop: Scaffold(body: _buildDesktopLayout()),
+      mobile: Scaffold(body: _buildDesktopLayout(context)),
+      tablet: Scaffold(body: _buildDesktopLayout(context)),
+      desktop: Scaffold(body: _buildDesktopLayout(context)),
     );
   }
 }
 
 // --- IGNORE ---
-Widget _buildDesktopLayout() {
+Widget _buildDesktopLayout(BuildContext context) {
   final _key = GlobalKey<FormState>();
   var nameController = TextEditingController();
   var emailController = TextEditingController();
@@ -72,7 +73,7 @@ Widget _buildDesktopLayout() {
 
                     Text(
                       'enteremailandpassword'.tr,
-                      style: TextStyle(color: Colors.grey, fontSize: 13),
+                      style: TextStyle(color: context.appTheme.secondaryText, fontSize: 13),
                     ),
                     InputText(
                       labelText: 'companyname'.tr,
@@ -119,7 +120,7 @@ Widget _buildDesktopLayout() {
                           controller.obSecure
                               ? Icons.visibility_off
                               : Icons.visibility,
-                          color: Colors.grey,
+                          color: context.appTheme.secondaryText,
                           size: 12,
                         ),
                       ),
@@ -136,7 +137,7 @@ Widget _buildDesktopLayout() {
                     // SizedBox(height: 10),
                     // Text(
                     //   'forgotpassword'.tr,
-                    //   style: TextStyle(color: Colors.grey, fontSize: 13),
+                    //   style: TextStyle(color: context.appTheme.secondaryText, fontSize: 13),
                     // ),
                     SizedBox(height: 25),
                     Obx(
@@ -182,7 +183,7 @@ Widget _buildDesktopLayout() {
                         },
                       ),
                     ),
-                    buildRightsSection(),
+                    buildRightsSection(context),
                   ],
                 ),
               ),

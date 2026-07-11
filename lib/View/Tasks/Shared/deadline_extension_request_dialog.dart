@@ -6,6 +6,7 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/View/Shared/app_date_time_picker.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// Assignee asks to move [toDate] to a later value (pending manager approval).
 Future<void> showDeadlineExtensionRequestDialog({
@@ -74,7 +75,7 @@ Future<void> showDeadlineExtensionRequestDialog({
                           .trParams({'date': FunHelper.formatdate(task.toDate) ?? ''}),
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey.shade700,
+                        color: context.appTheme.mutedText,
                       ),
                     ),
                     const SizedBox(height: 12),

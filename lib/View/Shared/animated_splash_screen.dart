@@ -4,8 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:get/get.dart';
-import 'package:point/Utils/AppColors.dart';
-import 'package:point/Utils/AppImages.dart';
+import 'package:point/View/Shared/brand_logo.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// Branded splash with entrance animation, used after the native launch screen.
 class AnimatedSplashScreen extends StatefulWidget {
@@ -83,9 +83,11 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    final logoWidth =
-        kIsWeb ? min(Get.width * 0.35, 280.0) : min(Get.width * 0.45, 320.0);
-    final logoHeight = kIsWeb ? 64.0 : 72.0;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final logoWidth = isDark
+        ? (kIsWeb ? 80.0 : 88.0)
+        : (kIsWeb ? min(Get.width * 0.35, 280.0) : min(Get.width * 0.45, 320.0));
+    final logoHeight = isDark ? logoWidth : (kIsWeb ? 64.0 : 72.0);
 
     final content = Center(
       child: Padding(
@@ -93,11 +95,9 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset(
-              AppImages.images.logocolored,
+            BrandLogo(
               width: logoWidth,
               height: logoHeight,
-              fit: BoxFit.contain,
             ),
             const SizedBox(height: 28),
             FadeTransition(
@@ -117,8 +117,8 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
                             child: Container(
                               width: 7,
                               height: 7,
-                              decoration: const BoxDecoration(
-                                color: AppColors.primary,
+                              decoration: BoxDecoration(
+                                color: context.appTheme.accentText,
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -136,7 +136,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
     );
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: widget.useSafeArea ? SafeArea(child: content) : content,
     );
   }

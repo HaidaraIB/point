@@ -7,14 +7,15 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Localization/LanguageController.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
-import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Mobile/ClientContentDetails.dart';
 import 'package:point/View/Mobile/ContentStatusCard.dart';
 import 'package:point/Utils/AppConstants.dart';
 import 'package:point/View/ClientDashboard/client_profile_form.dart';
 import 'package:point/View/Shared/CustomHeader.dart';
+import 'package:point/View/Shared/app_theme_menu_button.dart';
 import 'package:point/View/Shared/app_version_label.dart';
 import 'package:point/Utils/AppNotificationInbox.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 class TabsController extends GetxController {
   RxInt selectedIndex =
@@ -32,7 +33,7 @@ class ClientHome extends StatelessWidget {
       builder: (controller) {
         return Obx(
           () => Scaffold(
-            backgroundColor: Colors.white,
+            backgroundColor: resolveAppTheme().cardSurface,
             appBar: _buildClientAppBar(controller),
             body: RefreshIndicator(
               onRefresh: () async {
@@ -304,7 +305,7 @@ class ClientHome extends StatelessWidget {
                       }),
                   AppVersionLabel(
                     padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
-                    textStyle: const TextStyle(
+                    textStyle: TextStyle(
                       fontSize: 12,
                       height: 1.25,
                       color: Color(0xFF888888),
@@ -322,8 +323,8 @@ class ClientHome extends StatelessWidget {
 
   PreferredSizeWidget _buildClientAppBar(ClientController controller) {
     return AppBar(
-      backgroundColor: Colors.white,
-      surfaceTintColor: Colors.white,
+      backgroundColor: resolveAppTheme().cardSurface,
+      surfaceTintColor: Colors.transparent,
       elevation: 0.5,
       titleSpacing: 10,
       title: Row(
@@ -344,7 +345,7 @@ class ClientHome extends StatelessWidget {
                     child: PopupMenuButton<String>(
                       tooltip: AppLocaleKeys.appLanguage.tr,
                       padding: EdgeInsets.zero,
-                      icon: const Icon(Icons.language, color: AppColors.primary),
+                      icon: Icon(Icons.language, color: resolveAppTheme().accentText),
                       onSelected: (value) => _languageController.changeLanguage(value),
                       itemBuilder:
                           (context) => [
@@ -359,6 +360,7 @@ class ClientHome extends StatelessWidget {
                           ],
                     ),
                   ),
+                  const AppThemeMenuButton(compact: true),
                   const SizedBox(width: 4),
                   MouseRegion(
                     cursor: SystemMouseCursors.click,
@@ -373,9 +375,9 @@ class ClientHome extends StatelessWidget {
                             minWidth: 40,
                             minHeight: 40,
                           ),
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.notifications_outlined,
-                            color: AppColors.primary,
+                            color: resolveAppTheme().accentText,
                           ),
                           onPressed: () {
                             final ctx = Get.context;
@@ -404,10 +406,10 @@ class ClientHome extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             textAlign: TextAlign.end,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: 13,
-                              color: Color(0xFF1A1A1A),
+                              color: resolveAppTheme().primaryText,
                             ),
                           ),
                           Text(
@@ -415,7 +417,7 @@ class ClientHome extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             textAlign: TextAlign.end,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.w500,
                               fontSize: 11,
                               color: Color(0xFF6E6E6E),
@@ -461,14 +463,14 @@ class ClientHome extends StatelessWidget {
                                 children: [
                                   Text(
                                     'client.profile.menu'.tr,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  const Icon(
+                                  Icon(
                                     Icons.person_outline,
-                                    color: AppColors.primary,
+                                    color: resolveAppTheme().accentText,
                                   ),
                                 ],
                               ),
@@ -479,14 +481,14 @@ class ClientHome extends StatelessWidget {
                                 children: [
                                   Text(
                                     'resetpassword'.tr,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  const Icon(
+                                  Icon(
                                     Icons.lock_reset,
-                                    color: AppColors.primary,
+                                    color: resolveAppTheme().accentText,
                                   ),
                                 ],
                               ),
@@ -497,7 +499,7 @@ class ClientHome extends StatelessWidget {
                                 children: [
                                   Text(
                                     'logout'.tr,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
@@ -518,7 +520,7 @@ class ClientHome extends StatelessWidget {
                           Icon(
                             Icons.expand_more,
                             size: 22,
-                            color: const Color(0xFF1A1A1A),
+                            color: resolveAppTheme().primaryText,
                           ),
                         ],
                       ),
@@ -557,7 +559,7 @@ Future<bool> _confirmClientLogoutDialog(BuildContext context) async {
               onPressed: () => Navigator.of(ctx).pop(true),
               child: Text(
                 'logout'.tr,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: Colors.white),
               ),
             ),
           ],

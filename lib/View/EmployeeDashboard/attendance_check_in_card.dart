@@ -18,6 +18,7 @@ import 'package:point/Services/location_helper.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_log.dart';
 import 'package:point/View/Shared/responsive.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 enum _ActionPhase { beforeWindow, active, submitted, approved, failed, closed }
 
@@ -342,6 +343,13 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
     unawaited(_onAction(AttendanceRecordModel.actionLeft));
   }
 
+  Color _softAccentFill(Color accent, Color lightTint) {
+    if (Theme.of(context).brightness == Brightness.dark) {
+      return accent.withValues(alpha: 0.12);
+    }
+    return lightTint;
+  }
+
   _ActionVisual _presentVisual({
     required AttendanceDayState dayState,
     required String? workHoursFrom,
@@ -349,7 +357,8 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
     required bool flexibleHours,
   }) {
     const accent = Color(0xFF2E7D32);
-    const accentSoft = Color(0xFFEAF8F1);
+    const presentLightSoft = Color(0xFFEAF8F1);
+    final accentSoft = _softAccentFill(AppColors.success, presentLightSoft);
     final record = dayState.presentRecord;
     final allDayLabel = AppLocaleKeys.attendanceActionAvailableAllDay.tr;
     final windowLabel = flexibleHours
@@ -388,7 +397,7 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
             : AppLocaleKeys.attendanceAbsent.tr,
         enabled: false,
         accent: Colors.red.shade700,
-        accentSoft: Colors.red.shade50,
+        accentSoft: _softAccentFill(Colors.red, Colors.red.shade50),
       );
     }
 
@@ -411,8 +420,8 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
         windowLabel: windowLabel,
         statusLabel: AppLocaleKeys.attendanceActionWindowClosed.tr,
         enabled: false,
-        accent: AppColors.fontColorGrey,
-        accentSoft: AppColors.greyBackground,
+        accent: context.appTheme.secondaryText,
+        accentSoft: context.appTheme.pageBackground,
       );
     }
 
@@ -423,8 +432,8 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
         windowLabel: AppLocaleKeys.attendanceWorkHoursNotConfigured.tr,
         statusLabel: AppLocaleKeys.attendanceActionWindowClosed.tr,
         enabled: false,
-        accent: AppColors.fontColorGrey,
-        accentSoft: AppColors.greyBackground,
+        accent: context.appTheme.secondaryText,
+        accentSoft: context.appTheme.pageBackground,
       );
     }
     if (AttendanceDayState.isBeforePresentWindow(
@@ -439,8 +448,8 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
           'time': _formatMinutes(fromMinutes),
         }),
         enabled: false,
-        accent: AppColors.fontColorGrey,
-        accentSoft: AppColors.greyBackground,
+        accent: context.appTheme.secondaryText,
+        accentSoft: context.appTheme.pageBackground,
       );
     }
     return _ActionVisual(
@@ -448,8 +457,8 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
       windowLabel: windowLabel,
       statusLabel: AppLocaleKeys.attendanceActionWindowClosed.tr,
       enabled: false,
-      accent: AppColors.fontColorGrey,
-      accentSoft: AppColors.greyBackground,
+      accent: context.appTheme.secondaryText,
+      accentSoft: context.appTheme.pageBackground,
     );
   }
 
@@ -460,7 +469,8 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
     required bool flexibleHours,
   }) {
     const accent = AppColors.primary;
-    const accentSoft = Color(0xFFF3F0FA);
+    const leftLightSoft = Color(0xFFF3F0FA);
+    final accentSoft = _softAccentFill(AppColors.primary, leftLightSoft);
     final record = dayState.leftRecord;
     final allDayLabel = AppLocaleKeys.attendanceActionAvailableAllDay.tr;
     final windowLabel = flexibleHours
@@ -499,7 +509,7 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
             : AppLocaleKeys.attendanceAbsent.tr,
         enabled: false,
         accent: Colors.red.shade700,
-        accentSoft: Colors.red.shade50,
+        accentSoft: _softAccentFill(Colors.red, Colors.red.shade50),
       );
     }
 
@@ -509,8 +519,8 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
         windowLabel: windowLabel,
         statusLabel: AppLocaleKeys.attendanceMustPresentFirst.tr,
         enabled: false,
-        accent: AppColors.fontColorGrey,
-        accentSoft: AppColors.greyBackground,
+        accent: context.appTheme.secondaryText,
+        accentSoft: context.appTheme.pageBackground,
       );
     }
 
@@ -533,8 +543,8 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
         windowLabel: windowLabel,
         statusLabel: AppLocaleKeys.attendanceActionWindowClosed.tr,
         enabled: false,
-        accent: AppColors.fontColorGrey,
-        accentSoft: AppColors.greyBackground,
+        accent: context.appTheme.secondaryText,
+        accentSoft: context.appTheme.pageBackground,
       );
     }
 
@@ -545,8 +555,8 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
         windowLabel: AppLocaleKeys.attendanceWorkHoursNotConfigured.tr,
         statusLabel: AppLocaleKeys.attendanceActionWindowClosed.tr,
         enabled: false,
-        accent: AppColors.fontColorGrey,
-        accentSoft: AppColors.greyBackground,
+        accent: context.appTheme.secondaryText,
+        accentSoft: context.appTheme.pageBackground,
       );
     }
     if (AttendanceDayState.isBeforeLeftWindow(
@@ -561,8 +571,8 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
           'time': _formatMinutes(toMinutes),
         }),
         enabled: false,
-        accent: AppColors.fontColorGrey,
-        accentSoft: AppColors.greyBackground,
+        accent: context.appTheme.secondaryText,
+        accentSoft: context.appTheme.pageBackground,
       );
     }
     return _ActionVisual(
@@ -570,8 +580,8 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
       windowLabel: windowLabel,
       statusLabel: AppLocaleKeys.attendanceActionWindowClosed.tr,
       enabled: false,
-      accent: AppColors.fontColorGrey,
-      accentSoft: AppColors.greyBackground,
+      accent: context.appTheme.secondaryText,
+      accentSoft: context.appTheme.pageBackground,
     );
   }
 
@@ -615,9 +625,9 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
         );
       case AttendanceDailyOutcome.none:
         return (
-          bg: AppColors.greyBackground,
-          border: Colors.grey.shade300,
-          fg: AppColors.fontColorGrey,
+          bg: context.appTheme.panelTint,
+          border: context.appTheme.border,
+          fg: context.appTheme.secondaryText,
           icon: Icons.schedule_rounded,
         );
     }
@@ -648,10 +658,10 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
             children: [
               Text(
                 AppLocaleKeys.attendanceTitle.tr,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.primaryfontColor,
+                  color: context.appTheme.primaryText,
                 ),
               ),
               const SizedBox(height: 2),
@@ -659,7 +669,7 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
                 AppLocaleKeys.attendanceCardToday.trParams({'date': today}),
                 style: TextStyle(
                   fontSize: 13,
-                  color: Colors.grey.shade600,
+                  color: context.appTheme.mutedText,
                 ),
               ),
             ],
@@ -704,7 +714,7 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
                   Text(
                     detail,
                     style: TextStyle(
-                      color: AppColors.primaryfontColor,
+                      color: context.appTheme.primaryText,
                       fontSize: 13,
                     ),
                   ),
@@ -758,7 +768,7 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.primaryfontColor,
+                  color: context.appTheme.primaryText,
                 ),
               ),
             ],
@@ -817,6 +827,8 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
   }) {
     final isActive = visual.phase == _ActionPhase.active;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Material(
       color: visual.accentSoft,
       borderRadius: BorderRadius.circular(12),
@@ -830,7 +842,7 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
             border: Border.all(
               color: isActive
                   ? visual.accent.withValues(alpha: 0.55)
-                  : Colors.grey.shade300,
+                  : context.appTheme.border,
               width: isActive ? 1.5 : 1,
             ),
           ),
@@ -852,10 +864,10 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
                   Expanded(
                     child: Text(
                       title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.primaryfontColor,
+                        color: context.appTheme.primaryText,
                       ),
                     ),
                   ),
@@ -876,7 +888,7 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
                   visual.windowLabel,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey.shade600,
+                    color: context.appTheme.mutedText,
                     fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
@@ -884,7 +896,10 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.85),
+                  color:
+                      isDark
+                          ? context.appTheme.elevatedSurface
+                          : Colors.white.withValues(alpha: 0.85),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -936,9 +951,9 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+              color: context.appTheme.cardSurface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: context.appTheme.border),
         boxShadow: [
           BoxShadow(
             color: AppColors.primary.withValues(alpha: 0.06),
@@ -985,7 +1000,7 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
           Text(
             AppLocaleKeys.attendanceHelp.tr,
             style: TextStyle(
-              color: Colors.grey.shade600,
+              color: context.appTheme.mutedText,
               fontSize: 12,
               height: 1.45,
             ),

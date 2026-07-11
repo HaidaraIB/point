@@ -8,6 +8,7 @@ import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Tasks/DetailsDialogs/GenericTaskDetailsDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 import 'package:point/View/Tasks/Mobile/TaskDetailsMobile.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 void showContentWriteDialog(BuildContext context, {required TaskModel task}) {
   Responsive.isMobile(context)
@@ -48,7 +49,7 @@ class ContentWriteDetailsSection extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
               decoration: BoxDecoration(
-                color: Colors.white,
+              color: context.appTheme.cardSurface,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Wrap(
@@ -112,7 +113,7 @@ class ContentWriteDetailsSection extends StatelessWidget {
               constraints: const BoxConstraints(minHeight: 110),
               padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
               decoration: BoxDecoration(
-                color: Colors.white,
+              color: context.appTheme.cardSurface,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Wrap(
