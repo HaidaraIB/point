@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/View/AdminSettings/sections/app_version_settings_section.dart';
 import 'package:point/View/AdminSettings/sections/attendance_policy_settings_section.dart';
+import 'package:point/View/AdminSettings/sections/library_permissions_settings_section.dart';
 import 'package:point/View/AdminSettings/settings_section_nav.dart';
 import 'package:point/View/AdminSettings/settings_sections.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
@@ -23,6 +24,8 @@ class _AdminSettingsPageState extends State<AdminSettingsPage> {
         return const AppVersionSettingsSection();
       case SettingsSection.attendancePolicy:
         return const AttendancePolicySettingsSection();
+      case SettingsSection.libraryPermissions:
+        return const LibraryPermissionsSettingsSection();
     }
   }
 

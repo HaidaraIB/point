@@ -33,6 +33,15 @@ service cloud.firestore {
       return isAdmin() || isSupervisor();
     }
 
+    function hasLibraryAccess() {
+      return authRoleData().keys().hasAny(['libraryAccess'])
+        && authRoleData().libraryAccess == true;
+    }
+
+    function canAccessLibrary() {
+      return isManager() || (isEmployeeRole() && hasLibraryAccess());
+    }
+
     function isEmployeeRole() {
       return hasAuthRole() && authRoleData().role == 'employee';
     }
@@ -105,7 +114,18 @@ service cloud.firestore {
         && (!('workHoursFrom' in data) || validWorkHoursTime(data.workHoursFrom))
         && (!('workHoursTo' in data) || validWorkHoursTime(data.workHoursTo))
         && (!('attendanceRemote' in data) || data.attendanceRemote is bool)
-        && (!('attendanceFlexibleHours' in data) || data.attendanceFlexibleHours is bool);
+        && (!('attendanceFlexibleHours' in data) || data.attendanceFlexibleHours is bool)
+        && (!('libraryAccess' in data) || data.libraryAccess is bool);
+    }
+
+    function employeeLibraryAccessFromDoc(emp) {
+      return emp.keys().hasAny(['libraryAccess']) && emp.libraryAccess == true;
+    }
+
+    function authRoleLibraryAccessMatchesEmployee(emp, d) {
+      let empLib = employeeLibraryAccessFromDoc(emp);
+      let authLib = d.keys().hasAny(['libraryAccess']) && d.libraryAccess == true;
+      return empLib == authLib;
     }
 
     function remoteAttendanceBypassRecord(data) {
@@ -262,7 +282,8 @@ service cloud.firestore {
         && authRoleDeptMatchesEmployee(
           get(empPath).data,
           requestedAuthRoleDepartments(d),
-        );
+        )
+        && authRoleLibraryAccessMatchesEmployee(get(empPath).data, d);
     }
 
     function clientAuthUidLooksUnset(cl) {
@@ -296,8 +317,24 @@ service cloud.firestore {
         'clientId',
         'departments',
         'department',
+        'libraryAccess',
         'updatedAt',
       ]);
+    }
+
+    function authRolesLibraryAccessMigrationByAdmin(uid) {
+      return exists(/databases/$(database)/documents/authRoles/$(uid))
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['libraryAccess', 'updatedAt'])
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.employeeId == resource.data.employeeId
+        && request.resource.data.clientId == resource.data.clientId
+        && resource.data.employeeId is string
+        && exists(/databases/$(database)/documents/employees/$(resource.data.employeeId))
+        && authRoleLibraryAccessMatchesEmployee(
+          get(/databases/$(database)/documents/employees/$(resource.data.employeeId)).data,
+          request.resource.data,
+        );
     }
 
     function authRolesDepartmentsMigrationByAdmin(uid) {
@@ -329,10 +366,40 @@ service cloud.firestore {
 
     function canReadTaskDoc() {
       return isManager()
+        || (isEmployeeRole() && hasLibraryAccess() && isLibraryEligibleTask(resource.data))
         || (isEmployeeRole() && (
           taskMatchesAnyEmployeeDepartment(resource.data.type, myDepartmentsList())
           || resource.data.assignedTo == myEmployeeId()
         ));
+    }
+
+    function taskHasArchivablePayload(data) {
+      return (data.keys().hasAny(['finalDeliverableText'])
+          && data.finalDeliverableText is string
+          && data.finalDeliverableText.size() > 0)
+        || (data.keys().hasAny(['finalDeliverableFileUrls'])
+          && data.finalDeliverableFileUrls is list
+          && data.finalDeliverableFileUrls.size() > 0)
+        || (data.keys().hasAny(['finalDeliverableType'])
+          && data.finalDeliverableType is string
+          && data.finalDeliverableType.size() > 0);
+    }
+
+    function taskEligibleForLibraryBrowse(data) {
+      return (data.type == '0' && data.status == 'status_promotion_finished')
+        || data.status == 'status_task_completed'
+        || data.status == 'status_published';
+    }
+
+    function finalDeliverableTypeExcludedFromLibrary(data) {
+      return data.keys().hasAny(['finalDeliverableType'])
+        && data.finalDeliverableType == 'final_work_other';
+    }
+
+    function isLibraryEligibleTask(data) {
+      return taskHasArchivablePayload(data)
+        && taskEligibleForLibraryBrowse(data)
+        && !finalDeliverableTypeExcludedFromLibrary(data);
     }
 
     // موظف: لا يضع حالة موافقة/رفض بنفسه؛ ولا يعيد المهمة من «موافق» إلى قيد التنفيذ/مراجعة
@@ -725,7 +792,8 @@ service cloud.firestore {
         );
       allow create: if isSignedIn() && request.auth.uid == uid && validateAuthRoleWrite();
       allow update: if (isSignedIn() && request.auth.uid == uid && validateAuthRoleWrite())
-        || (isSignedIn() && hasAuthRole() && isManager() && authRolesDepartmentsMigrationByAdmin(uid));
+        || (isSignedIn() && hasAuthRole() && isManager() && authRolesDepartmentsMigrationByAdmin(uid))
+        || (isSignedIn() && hasAuthRole() && isAdmin() && authRolesLibraryAccessMigrationByAdmin(uid));
       allow delete: if false;
     }
 
@@ -1162,12 +1230,12 @@ service cloud.firestore {
     }
 
     match /library_files/{fileId} {
-      allow read: if isSignedIn() && hasAuthRole() && isManager();
+      allow read: if isSignedIn() && hasAuthRole() && canAccessLibrary();
 
-      allow create: if isSignedIn() && hasAuthRole() && isManager()
+      allow create: if isSignedIn() && hasAuthRole() && canAccessLibrary()
         && validLibraryFile(request.resource.data);
 
-      allow delete: if isSignedIn() && hasAuthRole() && isManager();
+      allow delete: if isSignedIn() && hasAuthRole() && canAccessLibrary();
 
       allow update: if false;
     }

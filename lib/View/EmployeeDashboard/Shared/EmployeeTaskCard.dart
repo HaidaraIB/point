@@ -9,6 +9,7 @@ import 'package:point/Services/NotificationService.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppConstants.dart';
 import 'package:point/View/EmployeeDashboard/Shared/AddContentEmployeeDialog.dart';
+import 'package:point/View/Shared/app_user_avatar.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
 import 'package:point/View/Tasks/Shared/add_task_comment_dialog.dart';
@@ -71,6 +72,7 @@ class EmployeeTaskCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GetBuilder<HomeController>(
       builder: (controller) {
+        final theme = context.appTheme;
         final latestNote = task.notes.isNotEmpty ? task.notes.last : null;
         final assignee = controller.employees.firstWhereOrNull(
           (emp) => emp.id == task.assignedTo,
@@ -81,11 +83,11 @@ class EmployeeTaskCard extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           width: double.infinity,
           decoration: BoxDecoration(
-              color: resolveAppTheme().cardSurface,
+              color: theme.cardSurface,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: resolveAppTheme().shadowColor,
+                color: theme.shadowColor,
                 blurRadius: 8,
                 offset: const Offset(0, 4),
               ),
@@ -120,8 +122,8 @@ class EmployeeTaskCard extends StatelessWidget {
                             child: Theme(
                               data: Theme.of(context).copyWith(
                                 textTheme: Theme.of(context).textTheme.apply(
-                                  bodyColor: resolveAppTheme().primaryText,
-                                  displayColor: resolveAppTheme().primaryText,
+                                  bodyColor: theme.primaryText,
+                                  displayColor: theme.primaryText,
                                 ),
                               ),
                               child: PopupMenuButton<int>(
@@ -130,7 +132,7 @@ class EmployeeTaskCard extends StatelessWidget {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              color: resolveAppTheme().cardSurface,
+                              color: theme.cardSurface,
                               elevation: 4,
                               itemBuilder: (context) {
                                 if (task.type == '0') {
@@ -245,7 +247,7 @@ class EmployeeTaskCard extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(25),
                                   border: Border.all(
-                                    color: resolveAppTheme().border,
+                                    color: theme.border,
                                   ),
                                 ),
                                 child: Row(
@@ -308,7 +310,7 @@ class EmployeeTaskCard extends StatelessWidget {
                         task.description,
                         maxLines: 3,
                         style: TextStyle(
-                          color: resolveAppTheme().secondaryText,
+                          color: theme.secondaryText,
                           fontSize: 13,
                         ),
                       ),
@@ -317,7 +319,7 @@ class EmployeeTaskCard extends StatelessWidget {
                       // --- التقدم ---
                       Text(
                         'tasks.progress_label'.tr,
-                        style: TextStyle(color: resolveAppTheme().mutedText),
+                        style: TextStyle(color: theme.mutedText),
                       ),
                       const SizedBox(height: 4),
                       Obx(() {
@@ -337,7 +339,7 @@ class EmployeeTaskCard extends StatelessWidget {
                                       child: LinearProgressIndicator(
                                         value: live.progress ?? 0,
                                         minHeight: 10,
-                                        backgroundColor: resolveAppTheme().unselected,
+                                        backgroundColor: theme.unselected,
                                         color: Colors.blue,
                                       ),
                                     ),
@@ -346,7 +348,7 @@ class EmployeeTaskCard extends StatelessWidget {
                                     key: ValueKey('progress-${live.id}'),
                                     initialValue: live.progress ?? 0,
                                     color: Colors.blue,
-                                    backgroundColor: resolveAppTheme().unselected,
+                                    backgroundColor: theme.unselected,
                                     height: 10,
                                     borderRadius: BorderRadius.circular(20),
                                     onChanged: (value) {
@@ -368,7 +370,7 @@ class EmployeeTaskCard extends StatelessWidget {
                             vertical: 8,
                           ),
                           decoration: BoxDecoration(
-                            color: resolveAppTheme().panelTint,
+                            color: theme.panelTint,
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
                               color: AppColors.primary.withValues(alpha: 0.35),
@@ -384,7 +386,7 @@ class EmployeeTaskCard extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
-                                  color: resolveAppTheme().accentText,
+                                  color: theme.accentText,
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -395,7 +397,7 @@ class EmployeeTaskCard extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: resolveAppTheme().primaryText,
+                                  color: theme.primaryText,
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -408,7 +410,7 @@ class EmployeeTaskCard extends StatelessWidget {
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: resolveAppTheme().mutedText,
+                                  color: theme.mutedText,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -421,9 +423,10 @@ class EmployeeTaskCard extends StatelessWidget {
                       // --- المكلَّف ---
                       Row(
                         children: [
-                          CircleAvatar(
+                          AppUserAvatar(
+                            url: assignedAvatarUrl,
                             radius: 14,
-                            backgroundImage: NetworkImage(assignedAvatarUrl),
+                            displayName: assignee?.name,
                           ),
                           const SizedBox(width: 6),
                           Expanded(
@@ -535,9 +538,9 @@ class EmployeeTaskCard extends StatelessWidget {
                                 child: OutlinedButton(
                                   style: OutlinedButton.styleFrom(
                                     foregroundColor:
-                                        resolveAppTheme().primaryText,
+                                        theme.primaryText,
                                     side: BorderSide(
-                                      color: resolveAppTheme().border,
+                                      color: theme.border,
                                     ),
                                     minimumSize: Size(rowW, 48),
                                     shape: RoundedRectangleBorder(
@@ -572,9 +575,9 @@ class EmployeeTaskCard extends StatelessWidget {
                                     OutlinedButton(
                                       style: OutlinedButton.styleFrom(
                                         foregroundColor:
-                                            resolveAppTheme().primaryText,
+                                            theme.primaryText,
                                         side: BorderSide(
-                                          color: resolveAppTheme().border,
+                                          color: theme.border,
                                         ),
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(
@@ -601,9 +604,9 @@ class EmployeeTaskCard extends StatelessWidget {
                                     OutlinedButton(
                                       style: OutlinedButton.styleFrom(
                                         foregroundColor:
-                                            resolveAppTheme().primaryText,
+                                            theme.primaryText,
                                         side: BorderSide(
-                                          color: resolveAppTheme().border,
+                                          color: theme.border,
                                         ),
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(
@@ -661,9 +664,9 @@ class EmployeeTaskCard extends StatelessWidget {
                                     child: OutlinedButton(
                                       style: OutlinedButton.styleFrom(
                                         foregroundColor:
-                                            resolveAppTheme().primaryText,
+                                            theme.primaryText,
                                         side: BorderSide(
-                                          color: resolveAppTheme().border,
+                                          color: theme.border,
                                         ),
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(
@@ -831,10 +834,11 @@ Widget employeeTaskCardActionRows({
 }
 
 Widget _buildTaskDepartmentBadge(BuildContext context, TaskModel task) {
+  final theme = context.appTheme;
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
     decoration: BoxDecoration(
-      color: resolveAppTheme().panelTint,
+      color: theme.panelTint,
       borderRadius: BorderRadius.circular(8),
       border: Border.all(
         color: AppColors.primary.withValues(alpha: 0.35),
@@ -847,7 +851,7 @@ Widget _buildTaskDepartmentBadge(BuildContext context, TaskModel task) {
       style: TextStyle(
         fontSize: 11,
         fontWeight: FontWeight.w700,
-        color: resolveAppTheme().accentText,
+        color: theme.accentText,
       ),
     ),
   );
@@ -983,10 +987,11 @@ class OptionsMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     return Container(
       width: 150,
       decoration: BoxDecoration(
-              color: resolveAppTheme().cardSurface,
+              color: theme.cardSurface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -1000,18 +1005,21 @@ class OptionsMenu extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildOption(
+            context,
             icon: Icons.remove_red_eye_outlined,
             text: 'tasks.view'.tr,
             color: Colors.green,
             onTap: onView,
           ),
           _buildOption(
+            context,
             icon: Icons.edit_outlined,
             text: 'edit'.tr,
             color: Colors.blueAccent,
             onTap: onEdit,
           ),
           _buildOption(
+            context,
             icon: Icons.delete_outline,
             text: 'delete'.tr,
             color: Colors.red,
@@ -1022,12 +1030,14 @@ class OptionsMenu extends StatelessWidget {
     );
   }
 
-  Widget _buildOption({
+  Widget _buildOption(
+    BuildContext context, {
     required IconData icon,
     required String text,
     required Color color,
     VoidCallback? onTap,
   }) {
+    final theme = context.appTheme;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
@@ -1046,7 +1056,7 @@ class OptionsMenu extends StatelessWidget {
             Text(
               text,
               style: TextStyle(
-                color: resolveAppTheme().primaryText,
+                color: theme.primaryText,
                 fontWeight: FontWeight.w500,
                 fontSize: 14,
               ),

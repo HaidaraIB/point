@@ -14,6 +14,7 @@ import 'package:point/View/Shared/CustomHeader.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/Utils/ContentPermissions.dart';
+import 'package:point/Utils/LibraryPermissions.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 
 /// Content management for employees (Promotion/Publishing): same shell as [EmployeeDashboard],
@@ -122,6 +123,40 @@ class EmployeeContentDashboard extends StatelessWidget {
                 ),
                 onPressed: () => Get.toNamed('/employeeDashboard'),
               ),
+              Obx(() {
+                if (!LibraryPermissions.canAccessLibrary(
+                  controller.effectiveEmployee,
+                )) {
+                  return const SizedBox.shrink();
+                }
+                return MainButton(
+                  width: 160,
+                  height: 45,
+                  borderSize: 35,
+                  fontColor: Colors.white,
+                  backgroundColor: AppColors.primary,
+                  widget: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'library.sidebar'.tr,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                      const Icon(
+                        Icons.folder_copy_outlined,
+                        color: Colors.white,
+                      ),
+                    ],
+                  ),
+                  onPressed: () => Get.toNamed('/library'),
+                );
+              }),
             ],
           ),
           const SizedBox(height: 12),
@@ -240,6 +275,45 @@ class EmployeeContentDashboard extends StatelessWidget {
                     ),
                     onPressed: () => Get.toNamed('/employeeDashboard'),
                   ),
+                  Obx(() {
+                    if (!LibraryPermissions.canAccessLibrary(
+                      controller.effectiveEmployee,
+                    )) {
+                      return const SizedBox.shrink();
+                    }
+                    return Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(width: 10),
+                        MainButton(
+                          width: 180,
+                          height: 45,
+                          borderSize: 35,
+                          fontColor: Colors.white,
+                          backgroundColor: AppColors.primary,
+                          widget: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'library.sidebar'.tr,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              const SizedBox(width: 5),
+                              const Icon(
+                                Icons.folder_copy_outlined,
+                                color: Colors.white,
+                              ),
+                            ],
+                          ),
+                          onPressed: () => Get.toNamed('/library'),
+                        ),
+                      ],
+                    );
+                  }),
                 ],
               ),
               const SizedBox(height: 16),

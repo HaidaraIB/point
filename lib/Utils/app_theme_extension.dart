@@ -1,15 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'package:get/get.dart';
 import 'package:point/Utils/AppColors.dart';
 
-AppThemeExtension resolveAppTheme([BuildContext? context]) {
-  if (context != null) {
-    return Theme.of(context).extension<AppThemeExtension>() ??
-        AppThemeExtension.light;
-  }
-  return Get.theme.extension<AppThemeExtension>() ?? AppThemeExtension.light;
-}
+export 'package:point/Utils/app_theme_resolver.dart' show resolveAppTheme;
 
 @immutable
 class AppThemeExtension extends ThemeExtension<AppThemeExtension> {

@@ -11,8 +11,13 @@ import 'package:point/View/Library/library_leaf_list.dart';
 import 'package:point/View/Library/library_upload_dialog.dart';
 import 'package:point/View/Tasks/Shared/task_attachment_gallery.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
+import 'package:point/View/EmployeeDashboard/employee_mobile_app_bar.dart';
+import 'package:point/View/Shared/CustomHeader.dart';
+import 'package:point/View/Shared/responsive.dart';
+import 'package:point/Utils/AppConstants.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/Utils/LibraryPermissions.dart';
 
 /// Drive-style library: completed tasks → client → month → posts/stories/videos/documents → files.
 class LibraryPage extends StatefulWidget {
@@ -31,103 +36,154 @@ class _LibraryPageState extends State<LibraryPage> {
     if (mounted) setState(() {});
   }
 
+  Widget _buildLibraryBody(HomeController hc, {bool showEmployeeBack = false}) {
+    return Obx(() {
+      final all = hc.tasksForLibraryBrowse
+          .where(LibraryPathUtils.libraryEntryDesired)
+          .toList(growable: false);
+      final libraryFiles = hc.libraryFiles.toList(growable: false);
+      return Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (showEmployeeBack)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: TextButton.icon(
+                    onPressed: () => Get.offNamed('/employeeDashboard'),
+                    icon: const Icon(Icons.arrow_back),
+                    label: Text('library.back_to_tasks'.tr),
+                  ),
+                ),
+              ),
+            Row(
+              children: [
+                if (_nav.level > 0)
+                  IconButton(
+                    onPressed: () => setState(() => _nav = _nav.goUp()),
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                  ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'library.title'.tr,
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: context.appTheme.primaryText,
+                        ),
+                      ),
+                      Text(
+                        'library.subtitle'.tr,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: context.appTheme.mutedText,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (_nav.level == 4)
+                  FilledButton.icon(
+                    onPressed: _openUploadDialog,
+                    icon: const Icon(Icons.upload_file_outlined, size: 20),
+                    label: Text('library.upload_files'.tr),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: context.appTheme.cardSurface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.shade300),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                  child: LibraryFolderBrowser(
+                    nav: _nav,
+                    onNavChanged: (n) => setState(() => _nav = n),
+                    tasks: all,
+                    libraryFiles: libraryFiles,
+                    clients: hc.clients.toList(),
+                    buildLeaf: (context, nav, files, directFiles) {
+                      return LibraryLeafList(
+                        tasks: files,
+                        directFiles: directFiles,
+                        onChanged: () => setState(() {}),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final hc = Get.find<HomeController>();
     final emp = hc.effectiveEmployee;
-    if (emp?.role != 'admin' && emp?.role != 'supervisor') {
+    if (!LibraryPermissions.canAccessLibrary(emp)) {
       return Scaffold(body: Center(child: Text('library.forbidden'.tr)));
+    }
+
+    final isEmployee = emp?.role.trim().toLowerCase() == 'employee';
+    if (isEmployee) {
+      final isMobile = Responsive.isMobile(context);
+      return Scaffold(
+        backgroundColor: context.appTheme.pageBackground,
+        appBar: isMobile
+            ? EmployeeMobileAppBar(
+                controller: hc,
+                onBackToDashboard: () => Get.offNamed('/employeeDashboard'),
+              )
+            : null,
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (!isMobile)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                child: Obx(
+                  () => HeaderWidget(
+                    employee: true,
+                    name: hc.currentEmployee.value?.name ?? '',
+                    role: hc.currentEmployee.value?.role ?? '',
+                    departments:
+                        hc.currentEmployee.value?.departments ?? const [],
+                    avatarUrl:
+                        hc.currentEmployee.value?.image ?? kDefaultAvatarUrl,
+                  ),
+                ),
+              ),
+            Expanded(child: _buildLibraryBody(hc, showEmployeeBack: true)),
+          ],
+        ),
+      );
     }
 
     return ResponsiveScaffold(
       selectedTab: 9,
       sideMenu: true,
-      body: Obx(() {
-        final all = hc.tasks
-            .where(LibraryPathUtils.libraryEntryDesired)
-            .toList(growable: false);
-        final libraryFiles = hc.libraryFiles.toList(growable: false);
-        return Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  if (_nav.level > 0)
-                    IconButton(
-                      onPressed: () => setState(() => _nav = _nav.goUp()),
-                      icon: const Icon(Icons.arrow_back_ios_new_rounded),
-                    ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'library.title'.tr,
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            color: context.appTheme.primaryText,
-                          ),
-                        ),
-                        Text(
-                          'library.subtitle'.tr,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: context.appTheme.mutedText,
-                            height: 1.3,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (_nav.level == 4)
-                    FilledButton.icon(
-                      onPressed: _openUploadDialog,
-                      icon: const Icon(Icons.upload_file_outlined, size: 20),
-                      label: Text('library.upload_files'.tr),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Expanded(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-              color: context.appTheme.cardSurface,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: Colors.grey.shade300),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-                    child: LibraryFolderBrowser(
-                      nav: _nav,
-                      onNavChanged: (n) => setState(() => _nav = n),
-                      tasks: all,
-                      libraryFiles: libraryFiles,
-                      clients: hc.clients.toList(),
-                      buildLeaf: (context, nav, files, directFiles) {
-                        return LibraryLeafList(
-                          tasks: files,
-                          directFiles: directFiles,
-                          onChanged: () => setState(() {}),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      }),
+      body: _buildLibraryBody(hc),
     );
   }
 }

@@ -8,7 +8,7 @@ const Set<String> _kGlobalRolesWithoutDepartment = {
 mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
   EmployeeModel _normalizeEmployeeDepartmentByRole(EmployeeModel employee) {
     if (_kGlobalRolesWithoutDepartment.contains(employee.role)) {
-      return employee.copyWith(departments: const []);
+      return employee.copyWith(departments: const [], libraryAccess: false);
     }
     return employee;
   }
@@ -268,6 +268,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
       json['workHoursTo'] = FieldValue.delete();
       json['attendanceRemote'] = FieldValue.delete();
       json['attendanceFlexibleHours'] = FieldValue.delete();
+      json['libraryAccess'] = FieldValue.delete();
     } else {
       if (!employee.attendanceRemote) {
         json['attendanceFlexibleHours'] = FieldValue.delete();
@@ -296,6 +297,35 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
     } catch (e, s) {
       appLog("❌ خطأ أثناء تحديث الموظف: $e");
       appLog("StackTrace: $s");
+      return false;
+    }
+  }
+
+  Future<bool> setEmployeeLibraryAccess({
+    required String employeeId,
+    required bool enabled,
+  }) async {
+    final id = employeeId.trim();
+    if (id.isEmpty) return false;
+    try {
+      await _employeeCollection.doc(id).update({
+        'libraryAccess': enabled,
+      });
+      final snap = await _employeeCollection.doc(id).get();
+      if (!snap.exists) return false;
+      final employee = EmployeeModel.fromFirestoreMap(snap.data(), id: id);
+      try {
+        await FirestoreAuthApi.syncAuthRoleLibraryAccessForEmployee(employee);
+      } catch (e, s) {
+        appLog('⚠️ setEmployeeLibraryAccess authRoles sync failed: $e');
+        appLog('$s');
+        return false;
+      }
+      appLog('✅ setEmployeeLibraryAccess: $id → $enabled');
+      return true;
+    } catch (e, s) {
+      appLog('❌ setEmployeeLibraryAccess error: $e');
+      appLog('StackTrace: $s');
       return false;
     }
   }

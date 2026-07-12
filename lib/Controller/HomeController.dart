@@ -319,6 +319,7 @@ class HomeController extends GetxController {
       clients.bindStream(Stream<List<ClientModel>>.value([]));
       tasks.bindStream(Stream<List<TaskModel>>.value([]));
       libraryFiles.bindStream(Stream<List<LibraryFileModel>>.value([]));
+      libraryBrowseTasks.bindStream(Stream<List<TaskModel>>.value([]));
       update();
       return;
     }
@@ -404,6 +405,26 @@ class HomeController extends GetxController {
     }
     isLoading.value = false;
     return result;
+  }
+
+  Future<bool> setEmployeeLibraryAccess({
+    required String employeeId,
+    required bool enabled,
+  }) async {
+    final result = await _service.setEmployeeLibraryAccess(
+      employeeId: employeeId,
+      enabled: enabled,
+    );
+    if (result && effectiveEmployee?.id == employeeId) {
+      _rebindClientsAndTasksStreams();
+    }
+    return result;
+  }
+
+  /// Tasks stream for Library page and attachment picker (full archive when granted).
+  List<TaskModel> get tasksForLibraryBrowse {
+    if (libraryBrowseTasks.isNotEmpty) return libraryBrowseTasks;
+    return tasks;
   }
 
   /// تحديث الاسم/الصورة للمستخدم الحالي (لوحة الموظف) دون الاعتماد على قائمة [employees].
@@ -862,23 +883,29 @@ class HomeController extends GetxController {
 
   Future<bool> addMetaPost(MetaPostModel post) async {
     isLoading.value = true;
-    final result = await _service.addMetaPost(post);
-    isLoading.value = false;
-    return result;
+    try {
+      return await _service.addMetaPost(post);
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   Future<bool> updateMetaPost(MetaPostModel post) async {
     isLoading.value = true;
-    final result = await _service.updateMetaPost(post);
-    isLoading.value = false;
-    return result;
+    try {
+      return await _service.updateMetaPost(post);
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   Future<bool> deleteMetaPost(String id) async {
     isLoading.value = true;
-    final result = await _service.deleteMetaPost(id);
-    isLoading.value = false;
-    return result;
+    try {
+      return await _service.deleteMetaPost(id);
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   /// Queue a saved [MetaPostModel] row for bot-worker publishing.
@@ -901,6 +928,14 @@ class HomeController extends GetxController {
         'publish.queued_now'.tr,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+    } else {
+      FunHelper.showSnackbar(
+        'error'.tr,
+        'publish.queue_failed'.tr,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
         colorText: Colors.white,
       );
     }
@@ -2707,6 +2742,8 @@ class HomeController extends GetxController {
   var employees = <EmployeeModel>[].obs;
   var clients = <ClientModel>[].obs;
   var libraryFiles = <LibraryFileModel>[].obs;
+  /// Full archive tasks for Library browse / picker (employees with libraryAccess).
+  var libraryBrowseTasks = <TaskModel>[].obs;
   var contents = <ContentModel>[].obs;
   var metaPosts = <MetaPostModel>[].obs;
   var searchedContents = <ContentModel>[].obs;

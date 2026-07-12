@@ -30,6 +30,7 @@ import 'package:point/View/Tasks/Shared/open_task_final_work.dart';
 import 'package:point/View/Tasks/Shared/reject_task_dialog.dart';
 import 'package:point/View/Tasks/Shared/request_task_modification_dialog.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
+import 'package:point/View/Shared/app_user_avatar.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 
 bool _taskInManagementReviewMobile(TaskModel task) {
@@ -196,14 +197,12 @@ class TaskDetailsMobilePage extends StatelessWidget {
                 context,
                 child: Row(
                   children: [
-                    CircleAvatar(
+                    AppUserAvatar(
+                      url: task.assignedImageUrl.isEmpty
+                          ? '${StorageKeys.supabaseStorageBaseUrl}/Avatar.png'
+                          : task.assignedImageUrl,
                       radius: 22,
-                      backgroundColor: context.appTheme.elevatedSurface,
-                      backgroundImage: NetworkImage(
-                        task.assignedImageUrl.isEmpty
-                            ? '${StorageKeys.supabaseStorageBaseUrl}/Avatar.png'
-                            : task.assignedImageUrl,
-                      ),
+                      displayName: _assigneeName(context),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -375,6 +374,9 @@ class TaskDetailsMobilePage extends StatelessWidget {
     String label,
     String value,
   ) {
+    final displayValue = TaskDetailsDialogHelpers.displayOrDash(value);
+    final isPlaceholder = displayValue == '-';
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Column(
@@ -390,10 +392,12 @@ class TaskDetailsMobilePage extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           LinkifiedText(
-            value,
+            displayValue,
             style: TextStyle(
               fontSize: 13,
-              color: context.appTheme.primaryText,
+              color: isPlaceholder
+                  ? context.appTheme.mutedText
+                  : context.appTheme.primaryText,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -511,7 +515,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
               value,
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.blue,
+                color: context.appTheme.accentText,
                 fontWeight: FontWeight.w600,
                 decoration: TextDecoration.underline,
               ),

@@ -66,6 +66,18 @@ class AppLocaleKeys {
       'admin_settings.attendance_grace_range';
   static const adminSettingsAttendancePolicySaveSuccess =
       'admin_settings.attendance_policy_save_success';
+  static const adminSettingsSectionLibraryPermissions =
+      'admin_settings.section_library_permissions';
+  static const adminSettingsLibraryPermissionsHelp =
+      'admin_settings.library_permissions_help';
+  static const adminSettingsLibraryPermissionsSearch =
+      'admin_settings.library_permissions_search';
+  static const adminSettingsLibraryPermissionsEmpty =
+      'admin_settings.library_permissions_empty';
+  static const adminSettingsLibraryAccessSaveSuccess =
+      'admin_settings.library_access_save_success';
+  static const adminSettingsLibraryAccessSaveFailed =
+      'admin_settings.library_access_save_failed';
 
   static const attendanceTitle = 'attendance.title';
   static const attendanceHelp = 'attendance.help';

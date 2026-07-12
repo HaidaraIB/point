@@ -114,8 +114,6 @@ void addContentEmployeeDialog(
                                         hintText: ''.tr,
                                         enable: false,
                                         height: 100,
-                                        fillColor: Colors.white,
-                                        // controller: notesController,
                                         expanded: true,
 
                                         body: Container(
@@ -123,7 +121,7 @@ void addContentEmployeeDialog(
                                             vertical: 10,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: Colors.grey.shade200,
+                                            color: context.appTheme.unselected,
                                           ),
                                           child: Row(
                                             mainAxisAlignment:
@@ -138,6 +136,9 @@ void addContentEmployeeDialog(
                                                   style: TextStyle(
                                                     fontSize: 12,
                                                     fontWeight: FontWeight.bold,
+                                                    color: context
+                                                        .appTheme
+                                                        .secondaryText,
                                                   ),
                                                 ),
                                               ),
@@ -151,7 +152,8 @@ void addContentEmployeeDialog(
                                                         .isUploading
                                                         .value,
                                                 title: 'uploadfile'.tr,
-                                                backgroundColor: Theme.of(context).colorScheme.surface,
+                                                backgroundColor:
+                                                    context.appTheme.cardSurface,
                                                 fontColor:
                                                     context.appTheme.primaryText,
                                               ),
@@ -159,7 +161,6 @@ void addContentEmployeeDialog(
                                           ),
                                         ),
                                         borderRadius: 5,
-                                        borderColor: Colors.grey.shade300,
                                       ),
                                     ),
                                   ),
@@ -172,7 +173,6 @@ void addContentEmployeeDialog(
                                       labelText: 'content.form.insert_link'.tr,
                                       hintText: 'googledrivelink .com'.tr,
                                       height: 40,
-                                      fillColor: Colors.white,
 
                                       controller: filecontroller,
                                       suffixIcon: Container(
@@ -181,7 +181,7 @@ void addContentEmployeeDialog(
                                           borderRadius: BorderRadius.circular(
                                             5,
                                           ),
-                                          color: Colors.grey.shade200,
+                                          color: context.appTheme.unselected,
                                         ),
                                         child: Row(
                                           mainAxisAlignment:
@@ -191,7 +191,7 @@ void addContentEmployeeDialog(
                                               'Copy',
                                               style: TextStyle(
                                                 fontSize: 13,
-                                                color: context.appTheme.secondaryText,
+                                                color: context.appTheme.mutedText,
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
@@ -200,13 +200,12 @@ void addContentEmployeeDialog(
                                               Icons.copy_rounded,
                                               weight: 1,
                                               size: 16,
-                                              color: context.appTheme.secondaryText,
+                                              color: context.appTheme.mutedText,
                                             ),
                                           ],
                                         ),
                                       ),
                                       borderRadius: 5,
-                                      borderColor: Colors.grey.shade300,
                                     ),
                                   ),
                                   SizedBox(
@@ -317,12 +316,10 @@ void addContentEmployeeDialog(
                                 labelText: 'notes'.tr,
                                 hintText: 'enternotes'.tr,
                                 height: 100,
-                                fillColor: Colors.white,
                                 controller: notesController,
                                 expanded: true,
 
                                 borderRadius: 5,
-                                borderColor: Colors.grey.shade300,
                               ),
                             ),
                           ],

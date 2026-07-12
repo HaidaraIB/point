@@ -1,9 +1,13 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:point/Services/meta/meta_errors.dart';
 import 'package:point/Utils/app_log.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Global Meta app credentials in Firestore: `app_settings/meta`.
 class MetaAppSettings {
@@ -98,6 +102,9 @@ class MetaGraphClient {
   final MetaAppSettings settings;
   static final Map<String, _MetaCachedResponse> _responseCache = {};
   static const Duration _defaultCacheTtl = Duration(minutes: 5);
+  /// Matches upload_to_meta_bot graph_client list timeout (30s).
+  static const Duration httpTimeout = Duration(seconds: 30);
+  static final http.Client _httpClient = http.Client();
 
   String get _base => 'https://graph.facebook.com/${settings.graphVersion}';
 
@@ -161,16 +168,18 @@ class MetaGraphClient {
     required String accessToken,
   }) async {
     final uri = Uri.parse(url);
-    final resp = await http.post(
-      uri,
-      headers: {
-        'Authorization': 'OAuth $accessToken',
-        'offset': '0',
-        'file_size': '${bytes.length}',
-        'Content-Type': 'application/octet-stream',
-      },
-      body: bytes,
-    );
+    final resp = await _httpClient
+        .post(
+          uri,
+          headers: {
+            'Authorization': 'OAuth $accessToken',
+            'offset': '0',
+            'file_size': '${bytes.length}',
+            'Content-Type': 'application/octet-stream',
+          },
+          body: bytes,
+        )
+        .timeout(httpTimeout);
     if (resp.statusCode >= 400) {
       final d = resp.body.length > 400 ? resp.body.substring(0, 400) : resp.body;
       throw MetaPublishUserError(
@@ -209,9 +218,168 @@ class MetaGraphClient {
       }
       _responseCache.remove(cacheKey);
     }
+
+    // Browsers block direct graph.facebook.com calls (CORS). Route through Supabase.
+    if (kIsWeb && method == 'GET') {
+      return _requestViaEdgeProxy(
+        path: path.startsWith('/') ? path : '/$path',
+        query: q,
+        accessToken: token,
+        cacheKey: shouldUseCache ? cacheKey : null,
+        cacheTtl: cacheTtl,
+      );
+    }
+
+    return _requestDirect(
+      method: method,
+      uri: uri,
+      q: q,
+      cacheKey: shouldUseCache ? cacheKey : null,
+      cacheTtl: cacheTtl,
+    );
+  }
+
+  Future<Map<String, dynamic>> _requestViaEdgeProxy({
+    required String path,
+    required Map<String, String> query,
+    required String accessToken,
+    String? cacheKey,
+    Duration cacheTtl = _defaultCacheTtl,
+  }) async {
+    appLog('MetaGraph proxy GET $path');
+    final firebaseIdToken = await FirebaseAuth.instance.currentUser?.getIdToken();
+    if (firebaseIdToken == null || firebaseIdToken.isEmpty) {
+      throw MetaPublishUserError('meta_err_auth');
+    }
+
+    final proxyQuery = Map<String, String>.from(query)..remove('access_token');
+    final started = DateTime.now();
+    try {
+      final res = await Supabase.instance.client.functions
+          .invoke(
+            'meta-graph',
+            headers: <String, String>{
+              'x-firebase-id-token': 'Bearer $firebaseIdToken',
+            },
+            body: <String, dynamic>{
+              'graphVersion': settings.graphVersion,
+              'path': path,
+              'query': proxyQuery,
+              'accessToken': accessToken,
+            },
+          )
+          .timeout(httpTimeout);
+
+      final data = res.data;
+      if (res.status == 504 ||
+          (data is Map && data['errorCode'] == 'ERR_GRAPH_TIMEOUT')) {
+        throw MetaPublishUserError('meta_err_timeout');
+      }
+      if (res.status == 401 ||
+          (data is Map && data['errorCode'] == 'ERR_MISSING_TOKEN')) {
+        throw MetaPublishUserError('meta_err_auth');
+      }
+      if (res.status == 403 ||
+          (data is Map &&
+              (data['errorCode'] == 'ERR_FORBIDDEN' ||
+                  data['errorCode'] == 'ERR_PATH_NOT_ALLOWED'))) {
+        throw MetaPublishUserError('errors.forbidden');
+      }
+      if (data is! Map) {
+        throw MetaPublishUserError('meta_err_graph', {'detail': '$data'});
+      }
+
+      final ok = data['ok'] == true;
+      final status = data['status'];
+      final body = data['body'];
+      appLog(
+        'MetaGraph proxy ${ok ? 'ok' : 'fail'} status=$status '
+        'in ${DateTime.now().difference(started).inMilliseconds}ms',
+      );
+
+      if (!ok) {
+        final detail = graphErrorDetail(body);
+        throw MetaPublishUserError(
+          graphErrorMessageKey(detail),
+          {'detail': detail, 'status': status},
+        );
+      }
+      if (body is! Map) {
+        throw MetaPublishUserError('meta_err_graph', {'detail': '$body'});
+      }
+      final jsonBody = Map<String, dynamic>.from(body);
+      if (cacheKey != null) {
+        _responseCache[cacheKey] = _MetaCachedResponse(
+          body: Map<String, dynamic>.from(jsonBody),
+          expiresAt: DateTime.now().add(cacheTtl),
+        );
+      }
+      return jsonBody;
+    } on TimeoutException {
+      appLog(
+        'MetaGraph proxy timeout after ${DateTime.now().difference(started).inMilliseconds}ms path=$path',
+      );
+      throw MetaPublishUserError('meta_err_timeout');
+    } on FunctionException catch (e) {
+      appLog(
+        'MetaGraph proxy FunctionException status=${e.status} details=${e.details}',
+      );
+      final parsed = _metaErrorFromProxyDetails(e.details, e.status);
+      if (parsed != null) throw parsed;
+      if (e.status == 504) {
+        throw MetaPublishUserError('meta_err_timeout');
+      }
+      throw MetaPublishUserError(
+        'meta_err_graph',
+        {'detail': e.details?.toString() ?? e.toString(), 'status': e.status},
+      );
+    }
+  }
+
+  MetaPublishUserError? _metaErrorFromProxyDetails(Object? details, int? status) {
+    if (details is! Map) return null;
+    if (details['errorCode'] == 'ERR_GRAPH_TIMEOUT') {
+      return MetaPublishUserError('meta_err_timeout');
+    }
+    if (details['errorCode'] == 'ERR_FORBIDDEN' ||
+        details['errorCode'] == 'ERR_PATH_NOT_ALLOWED') {
+      return MetaPublishUserError('errors.forbidden');
+    }
+    final body = details['body'];
+    if (details['ok'] == false || (status != null && status >= 400)) {
+      final detail = graphErrorDetail(body ?? details);
+      return MetaPublishUserError(
+        graphErrorMessageKey(detail),
+        {'detail': detail, 'status': details['status'] ?? status},
+      );
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>> _requestDirect({
+    required String method,
+    required Uri uri,
+    required Map<String, String> q,
+    String? cacheKey,
+    Duration cacheTtl = _defaultCacheTtl,
+  }) async {
     appLog('MetaGraph $method ${uri.replace(queryParameters: {...q, 'access_token': '<redacted>'})}');
-    // Graph accepts POST params on query string (matches python-telegram-bot aiohttp usage).
-    final resp = method == 'GET' ? await http.get(uri) : await http.post(uri);
+    final started = DateTime.now();
+    late final http.Response resp;
+    try {
+      resp = method == 'GET'
+          ? await _httpClient.get(uri).timeout(httpTimeout)
+          : await _httpClient.post(uri).timeout(httpTimeout);
+    } on TimeoutException {
+      appLog(
+        'MetaGraph timeout after ${DateTime.now().difference(started).inMilliseconds}ms '
+        '$method ${uri.replace(queryParameters: {...q, 'access_token': '<redacted>'})}',
+      );
+      throw MetaPublishUserError('meta_err_timeout');
+    }
+    appLog(
+      'MetaGraph $method ${resp.statusCode} in ${DateTime.now().difference(started).inMilliseconds}ms',
+    );
     Map<String, dynamic>? jsonBody;
     try {
       jsonBody = jsonDecode(resp.body) as Map<String, dynamic>?;
@@ -228,7 +396,7 @@ class MetaGraphClient {
     if (jsonBody == null) {
       throw MetaPublishUserError('meta_err_graph', {'detail': resp.body});
     }
-    if (shouldUseCache && cacheKey != null) {
+    if (cacheKey != null) {
       _responseCache[cacheKey] = _MetaCachedResponse(
         body: Map<String, dynamic>.from(jsonBody),
         expiresAt: DateTime.now().add(cacheTtl),

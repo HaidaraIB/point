@@ -113,11 +113,12 @@ class AttachmentThumbnailTile extends StatelessWidget {
                       fit: BoxFit.cover,
                       errorBuilder:
                           (_, __, ___) => _filePlaceholder(
+                            context,
                             url,
                             iconSize,
                           ),
                     )
-                    : _filePlaceholder(url, iconSize),
+                    : _filePlaceholder(context, url, iconSize),
           ),
         ),
       );
@@ -145,12 +146,14 @@ class AttachmentThumbnailTile extends StatelessWidget {
   }
 }
 
-Widget _filePlaceholder(String url, double iconSize) {
+Widget _filePlaceholder(BuildContext context, String url, double iconSize) {
+  final theme = context.appTheme;
+  final isDark = context.isDarkMode;
   return Container(
-    color: Colors.blueGrey.shade100,
+    color: isDark ? theme.elevatedSurface : Colors.blueGrey.shade100,
     child: Icon(
       iconForAttachmentUrl(url),
-      color: Colors.blueGrey.shade700,
+      color: isDark ? theme.secondaryText : Colors.blueGrey.shade700,
       size: iconSize,
     ),
   );
@@ -216,12 +219,14 @@ class _NetworkVideoAttachmentThumbState
   @override
   Widget build(BuildContext context) {
     if (_failed) {
-      return _filePlaceholder(widget.url, widget.iconFallbackSize);
+      return _filePlaceholder(context, widget.url, widget.iconFallbackSize);
     }
     final c = _controller;
     if (c == null || !c.value.isInitialized) {
       return Container(
-        color: Colors.blueGrey.shade100,
+        color: context.isDarkMode
+            ? context.appTheme.elevatedSurface
+            : Colors.blueGrey.shade100,
         alignment: Alignment.center,
         child: SizedBox(
           width: (widget.iconFallbackSize * 0.65).clamp(18.0, 28.0),
@@ -234,7 +239,7 @@ class _NetworkVideoAttachmentThumbState
     final w = c.value.size.width;
     final h = c.value.size.height;
     if (w <= 0 || h <= 0) {
-      return _filePlaceholder(widget.url, widget.iconFallbackSize);
+      return _filePlaceholder(context, widget.url, widget.iconFallbackSize);
     }
 
     final playSize = (widget.iconFallbackSize * 1.15).clamp(28.0, 44.0);

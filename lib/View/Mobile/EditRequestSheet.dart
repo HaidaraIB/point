@@ -27,8 +27,8 @@ class EditRequestSheet extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              color: context.appTheme.cardSurface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             ),
             child: SingleChildScrollView(
               child: Column(
@@ -41,6 +41,7 @@ class EditRequestSheet extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
+                        color: context.appTheme.primaryText,
                       ),
                     ),
                   ),
@@ -52,11 +53,9 @@ class EditRequestSheet extends StatelessWidget {
                       labelText: 'requests.edit_title'.tr,
                       hintText: 'requests.details_hint'.tr,
                       height: 130,
-                      fillColor: Colors.grey.shade100,
                       controller: controller.notesController,
                       expanded: true,
                       borderRadius: 12,
-                      borderColor: Colors.grey.shade100,
                     ),
                   ),
                   const SizedBox(height: 16),

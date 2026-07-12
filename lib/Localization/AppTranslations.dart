@@ -103,6 +103,13 @@ class AppTranslations extends Translations {
       'admin_settings.attendance_grace_invalid': 'Enter a valid number of minutes',
       'admin_settings.attendance_grace_range': 'Enter a value between @min and @max minutes',
       'admin_settings.attendance_policy_save_success': 'Attendance policy saved',
+      'admin_settings.section_library_permissions': 'Library permissions',
+      'admin_settings.library_permissions_help':
+          'Grant employees access to the full library archive, direct uploads, and the library vs device choice when attaching files in Content and Publish.',
+      'admin_settings.library_permissions_search': 'Search employees by name or email',
+      'admin_settings.library_permissions_empty': 'No employees match your search.',
+      'admin_settings.library_access_save_success': 'Library access updated',
+      'admin_settings.library_access_save_failed': 'Could not update library access',
       'attendance.title': 'Attendance',
       'attendance.help':
           'Record when you arrive and leave. You must be within your branch location radius, take a photo each time, and wait for admin approval.',
@@ -743,6 +750,7 @@ class AppTranslations extends Translations {
       'publish.failed': 'Failed',
       'publish.queued': 'Queued',
       'publish.queued_now': 'Queued.',
+      'publish.queue_failed': 'Could not queue the post. Check connection and try again.',
       'publish.scheduled': 'Scheduled',
       'publish.cancelled': 'Cancelled',
       'publish.cancel_schedule': 'Cancel schedule',
@@ -793,6 +801,13 @@ class AppTranslations extends Translations {
       'meta_err_fb_unsupported_story_media': 'Unsupported story media type.',
       'meta_err_unsupported_post_type': 'Unsupported post type: @post_type',
       'meta_err_settings_missing': 'Meta access token is not configured. Open Meta settings.',
+      'meta_err_timeout':
+          'Meta Graph request timed out. Check network/firewall or try again.',
+      'meta_err_auth': 'Sign in again to load Meta pages.',
+      'meta_err_token_checkpoint':
+          'Meta token blocked: log in at facebook.com, complete security steps, then generate a new token.',
+      'meta_err_token_expired':
+          'Meta access token expired. Open Meta settings and paste a new token.',
       'errors.no_permission': 'You do not have permission',
       'employees.department': 'Department',
       'employees.departments': 'Departments',
@@ -1097,6 +1112,7 @@ class AppTranslations extends Translations {
       'content': 'Content',
       'library.sidebar': 'Library',
       'library.title': 'Library',
+      'library.back_to_tasks': 'Back to tasks',
       'library.subtitle':
           'Final work from completed tasks, organized by client, month, and format.',
       'library.completed_tasks_folder': 'Completed tasks',
@@ -1344,6 +1360,7 @@ class AppTranslations extends Translations {
       'content': "المحتوى",
       'library.sidebar': 'المكتبة',
       'library.title': 'المكتبة',
+      'library.back_to_tasks': 'العودة إلى المهام',
       'library.subtitle':
           'الأعمال النهائية للمهام المكتملة، مرتّبة حسب العميل والشهر ونوع التسليم.',
       'library.completed_tasks_folder': 'المهام المكتملة',
@@ -1598,6 +1615,13 @@ class AppTranslations extends Translations {
       'admin_settings.attendance_grace_invalid': 'أدخل عدداً صحيحاً من الدقائق',
       'admin_settings.attendance_grace_range': 'أدخل قيمة بين @min و @max دقيقة',
       'admin_settings.attendance_policy_save_success': 'تم حفظ سياسة الحضور',
+      'admin_settings.section_library_permissions': 'صلاحيات المكتبة',
+      'admin_settings.library_permissions_help':
+          'منح الموظفين الوصول إلى أرشيف المكتبة الكامل والرفع المباشر واختيار المكتبة أو الجهاز عند إرفاق الملفات في المحتوى والنشر.',
+      'admin_settings.library_permissions_search': 'ابحث عن الموظفين بالاسم أو البريد',
+      'admin_settings.library_permissions_empty': 'لا يوجد موظفون يطابقون البحث.',
+      'admin_settings.library_access_save_success': 'تم تحديث صلاحية المكتبة',
+      'admin_settings.library_access_save_failed': 'تعذّر تحديث صلاحية المكتبة',
       'attendance.title': 'الحضور',
       'attendance.help':
           'سجّل وقت حضورك وانصرافك. يجب أن تكون داخل نطاق فرعك، والتقاط صورة، وانتظار موافقة الإدارة.',
@@ -2228,6 +2252,7 @@ class AppTranslations extends Translations {
       "publish.failed": "فشل",
       "publish.queued": "في قائمة الانتظار",
       "publish.queued_now": "تمت الإضافة لقائمة الانتظار.",
+      "publish.queue_failed": "تعذرت إضافة المنشور للقائمة. تحقق من الاتصال وأعد المحاولة.",
       "publish.scheduled": "مجدول",
       "publish.cancelled": "ملغي",
       "publish.cancel_schedule": "إلغاء الجدولة",
@@ -2277,6 +2302,13 @@ class AppTranslations extends Translations {
       "meta_err_fb_unsupported_story_media": "نوع وسائط القصة غير مدعوم.",
       "meta_err_unsupported_post_type": "نوع المنشور غير مدعوم: @post_type",
       "meta_err_settings_missing": "لم يُضبط رمز Meta. افتح إعدادات Meta.",
+      "meta_err_timeout":
+          "انتهت مهلة طلب Meta Graph. تحقق من الشبكة/الجدار الناري أو أعد المحاولة.",
+      "meta_err_auth": "سجّل الدخول مجدداً لتحميل صفحات Meta.",
+      "meta_err_token_checkpoint":
+          "رمز Meta محظور: سجّل الدخول إلى facebook.com وأكمل خطوات الأمان ثم أنشئ رمزاً جديداً.",
+      "meta_err_token_expired":
+          "انتهت صلاحية رمز Meta. افتح إعدادات Meta والصق رمزاً جديداً.",
       "errors.no_permission": "ليس لديك الصلاحية",
       "employees.department": "القسم",
       "employees.departments": "الأقسام",

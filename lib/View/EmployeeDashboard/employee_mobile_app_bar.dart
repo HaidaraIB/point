@@ -13,12 +13,18 @@ import 'package:point/View/Shared/CustomHeader.dart';
 import 'package:point/View/Shared/app_theme_menu_button.dart';
 import 'package:point/View/Shared/internet_status_badge.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/Utils/LibraryPermissions.dart';
 
 /// Shared white app bar for employee flows (dashboard, content management).
 class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const EmployeeMobileAppBar({super.key, required this.controller});
+  const EmployeeMobileAppBar({
+    super.key,
+    required this.controller,
+    this.onBackToDashboard,
+  });
 
   final HomeController controller;
+  final VoidCallback? onBackToDashboard;
 
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
@@ -33,7 +39,14 @@ class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidge
       backgroundColor: appTheme.surface,
       surfaceTintColor: Colors.transparent,
       elevation: 0.5,
-      titleSpacing: 10,
+      titleSpacing: onBackToDashboard != null ? 0 : 10,
+      leading: onBackToDashboard == null
+          ? null
+          : IconButton(
+              tooltip: 'library.back_to_tasks'.tr,
+              icon: Icon(Icons.arrow_back, color: context.appTheme.accentText),
+              onPressed: onBackToDashboard,
+            ),
       title: Row(
         children: [
           IconButton(
@@ -94,6 +107,21 @@ class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidge
             ),
             onPressed: () => Get.to(() => ChatsListScreen(onMinimize: () {})),
           ),
+          Obx(() {
+            if (!LibraryPermissions.canAccessLibrary(
+              controller.effectiveEmployee,
+            )) {
+              return const SizedBox.shrink();
+            }
+            return IconButton(
+              tooltip: 'library.sidebar'.tr,
+              icon: Icon(
+                Icons.folder_copy_outlined,
+                color: context.appTheme.accentText,
+              ),
+              onPressed: () => Get.toNamed('/library'),
+            );
+          }),
           if (kIsWeb) ...[
             const InternetStatusBadge(),
             const SizedBox(width: 6),
@@ -164,10 +192,34 @@ class EmployeeMobileAppBar extends StatelessWidget implements PreferredSizeWidge
                         Get.toNamed('/auth/resetPassword');
                       } else if (value == 2) {
                         Get.toNamed('/employeeProfile');
+                      } else if (value == 3) {
+                        Get.toNamed('/library');
                       }
                     },
                     itemBuilder:
                         (context) => [
+                          if (LibraryPermissions.canAccessLibrary(
+                            controller.effectiveEmployee,
+                          ))
+                            PopupMenuItem(
+                              value: 3,
+                              child: Row(
+                                children: [
+                                  Text(
+                                    'library.sidebar'.tr,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w500,
+                                      color: context.appTheme.primaryText,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Icon(
+                                    Icons.folder_copy_outlined,
+                                    color: context.appTheme.accentText,
+                                  ),
+                                ],
+                              ),
+                            ),
                           PopupMenuItem(
                             value: 2,
                             child: Row(

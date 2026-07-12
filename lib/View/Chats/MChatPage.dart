@@ -36,6 +36,7 @@ import 'package:point/View/Chats/chat_pinned_messages_bar.dart';
 import 'package:point/View/Chats/chat_message_list_panel.dart';
 import 'package:point/View/Chats/pending_chat_attachment.dart';
 import 'package:point/View/Chats/chat_ui_helpers.dart';
+import 'package:point/View/Shared/app_user_avatar.dart';
 import 'package:point/View/Chats/chat_list_tile_media_subtitle.dart';
 import 'package:point/View/Chats/chat_reply_draft_banner.dart';
 import 'package:point/View/Chats/chat_list_row_trailing.dart';
@@ -911,11 +912,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
   }
 
   // ---------------- Helpers ----------------
-  String _initialFromName(String name) {
-    if (name.trim().isEmpty) return '?';
-    final parts = name.trim().split(' ');
-    return parts.first[0].toUpperCase();
-  }
+  String _initialFromName(String name) => avatarInitialsFromName(name);
 
   String _localizedGroupTitleFromChat(Map<String, dynamic> chat) {
     final rawTitle = (chat['title'] ?? '').toString().trim();
@@ -1417,11 +1414,7 @@ class _MessageScreenState extends State<MessageScreen>
     );
   }
 
-  String _initialFromName(String name) {
-    if (name.trim().isEmpty) return '?';
-    final parts = name.trim().split(' ');
-    return parts.first[0].toUpperCase();
-  }
+  String _initialFromName(String name) => avatarInitialsFromName(name);
 
   String _conversationTitleForFcm() {
     final fromMap = chatConversationTitleForPushDisplay(widget.chat);

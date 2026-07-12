@@ -26,6 +26,7 @@ import 'package:point/View/Tasks/DetailsDialogs/DProgrammingDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPromotionDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPublishDialog.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/Utils/LibraryPermissions.dart';
 
 void _openEmployeeDashboardTaskDetails(BuildContext context, TaskModel task) {
   switch (task.type) {
@@ -202,6 +203,101 @@ List<MapEntry<String, int>> employeeDashboardAssignedTaskStatEntriesOrdered({
   return out;
 }
 
+Widget _employeeLibraryNavButton({double width = 160}) {
+  return Obx(() {
+    final emp = Get.find<HomeController>().effectiveEmployee;
+    if (!LibraryPermissions.canAccessLibrary(emp)) {
+      return const SizedBox.shrink();
+    }
+    return MainButton(
+      width: width,
+      height: 45,
+      borderSize: 35,
+      fontColor: Colors.white,
+      backgroundColor: AppColors.primary,
+      widget: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'library.sidebar'.tr,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
+          ),
+          const SizedBox(width: 5),
+          const Icon(Icons.folder_copy_outlined, color: Colors.white),
+        ],
+      ),
+      onPressed: () => Get.toNamed('/library'),
+    );
+  });
+}
+
+Widget _buildAssignedTasksSectionTitle(BuildContext context) {
+  return Text(
+    'employee.dashboard.tasks_assigned_to_you'.tr,
+    style: TextStyle(
+      color: context.appTheme.secondaryText,
+      fontSize: 15,
+      fontWeight: FontWeight.bold,
+    ),
+  );
+}
+
+Widget _buildAssignedTasksSectionActions(HomeController controller) {
+  final emp = controller.currentEmployee.value;
+  final showContent = emp != null &&
+      (emp.hasDepartment(StorageKeys.departmentPromotion) ||
+          emp.hasDepartment(StorageKeys.departmentPublishing));
+
+  return Obx(() {
+    final showLibrary = LibraryPermissions.canAccessLibrary(
+      controller.effectiveEmployee,
+    );
+    if (!showContent && !showLibrary) {
+      return const SizedBox.shrink();
+    }
+
+    return Align(
+      alignment: AlignmentDirectional.centerEnd,
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        alignment: WrapAlignment.end,
+        children: [
+          if (showContent)
+            MainButton(
+              width: 180,
+              height: 45,
+              borderSize: 35,
+              fontColor: Colors.white,
+              backgroundColor: AppColors.primary,
+              widget: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'managecontent'.tr,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  const Icon(Icons.navigate_next, color: Colors.white),
+                ],
+              ),
+              onPressed: () => Get.toNamed('/employeeContent'),
+            ),
+          _employeeLibraryNavButton(width: 160),
+        ],
+      ),
+    );
+  });
+}
+
 class EmployeeDashboard extends StatefulWidget {
   const EmployeeDashboard({super.key});
 
@@ -233,7 +329,7 @@ class _EmployeeDashboardBody extends StatelessWidget {
       builder: (controller) {
         final isMobile = Responsive.isMobile(context);
         return Scaffold(
-          backgroundColor: resolveAppTheme().pageBackground,
+          backgroundColor: context.appTheme.pageBackground,
           appBar:
               isMobile ? EmployeeMobileAppBar(controller: controller) : null,
           body: Responsive(
@@ -275,57 +371,14 @@ class _EmployeeDashboardBody extends StatelessWidget {
                         ),
                       ),
                       SizedBox(height: 20),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _buildAssignedTasksSectionActions(controller),
+                      ),
                       _employeeDashboardAttendanceSection(context, controller),
 
-                      Row(
-                        children: [
-                          Text(
-                            'employee.dashboard.tasks_assigned_to_you'.tr,
-                            style: TextStyle(
-                              color: resolveAppTheme().secondaryText,
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Spacer(),
-                          if (controller.currentEmployee.value != null &&
-                              (controller.currentEmployee.value!.hasDepartment(
-                                    StorageKeys.departmentPromotion,
-                                  ) ||
-                                  controller.currentEmployee.value!.hasDepartment(
-                                    StorageKeys.departmentPublishing,
-                                  )))
-                            MainButton(
-                              width: 180,
-                              height: 45,
-                              borderSize: 35,
-                              fontColor: Colors.white,
-                              backgroundColor: AppColors.primary,
-                              widget: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    'managecontent'.tr,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                  SizedBox(width: 5),
-                                  Icon(
-                                    Icons.navigate_next,
-                                    color: Colors.white,
-                                  ),
-                                ],
-                              ),
-                              onPressed: () {
-                                Get.toNamed('/employeeContent');
-                              },
-                            ),
-                        ],
-                      ),
-                      SizedBox(height: 10),
+                      _buildAssignedTasksSectionTitle(context),
+                      const SizedBox(height: 10),
                       _buildAssignedTaskPerStatusStats(controller),
 
                       SizedBox(height: 15),
@@ -419,7 +472,7 @@ class _EmployeeDashboardBody extends StatelessWidget {
                       Text(
                         'tasks.summary.sent_tasks'.tr,
                         style: TextStyle(
-                          color: resolveAppTheme().secondaryText,
+                          color: context.appTheme.secondaryText,
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
                         ),
@@ -430,7 +483,7 @@ class _EmployeeDashboardBody extends StatelessWidget {
                         textStyle: TextStyle(
                           fontSize: 12,
                           height: 1.25,
-                          color: resolveAppTheme().mutedText,
+                          color: context.appTheme.mutedText,
                         ),
                       ),
                     ],
@@ -465,57 +518,14 @@ class _EmployeeDashboardBody extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const SizedBox(height: 8),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _buildAssignedTasksSectionActions(controller),
+                          ),
                           _employeeDashboardAttendanceSection(context, controller),
 
-                          Row(
-                            children: [
-                              Text(
-                                'employee.dashboard.tasks_assigned_to_you'.tr,
-                                style: TextStyle(
-                                  color: resolveAppTheme().secondaryText,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              Spacer(),
-                              if (controller.currentEmployee.value != null &&
-                                  (controller.currentEmployee.value!.hasDepartment(
-                                        StorageKeys.departmentPromotion,
-                                      ) ||
-                                      controller.currentEmployee.value!.hasDepartment(
-                                        StorageKeys.departmentPublishing,
-                                      )))
-                                MainButton(
-                                  width: 180,
-                                  height: 45,
-                                  borderSize: 35,
-                                  fontColor: Colors.white,
-                                  backgroundColor: AppColors.primary,
-                                  widget: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        'managecontent'.tr,
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 13,
-                                        ),
-                                      ),
-                                      SizedBox(width: 5),
-                                      Icon(
-                                        Icons.navigate_next,
-                                        color: Colors.white,
-                                      ),
-                                    ],
-                                  ),
-                                  onPressed: () {
-                                    Get.toNamed('/employeeContent');
-                                  },
-                                ),
-                            ],
-                          ),
-                          SizedBox(height: 10),
+                          _buildAssignedTasksSectionTitle(context),
+                          const SizedBox(height: 10),
                           _buildAssignedTaskPerStatusStats(controller),
 
                           SizedBox(height: 15),
@@ -622,7 +632,7 @@ class _EmployeeDashboardBody extends StatelessWidget {
                           Text(
                             'tasks.summary.sent_tasks'.tr,
                             style: TextStyle(
-                              color: resolveAppTheme().secondaryText,
+                              color: context.appTheme.secondaryText,
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
                             ),
@@ -638,7 +648,7 @@ class _EmployeeDashboardBody extends StatelessWidget {
                             textStyle: TextStyle(
                               fontSize: 12,
                               height: 1.25,
-                              color: resolveAppTheme().mutedText,
+                              color: context.appTheme.mutedText,
                             ),
                           ),
                         ],
@@ -685,6 +695,7 @@ class _EmployeeDashboardBody extends StatelessWidget {
           children: [
             for (final e in entries)
               _buildStatBox(
+                ctx,
                 e.value.toString(),
                 FunHelper.trStored(
                   e.key,
@@ -700,17 +711,19 @@ class _EmployeeDashboardBody extends StatelessWidget {
   }
 
   Widget _buildStatBox(
+    BuildContext context,
     String value,
     String label,
     Color color, {
     double? width,
   }) {
-    final isDesktop = Responsive.isDesktop(Get.context!);
+    final theme = context.appTheme;
+    final isDesktop = Responsive.isDesktop(context);
     final boxWidth =
         width ?? (isDesktop ? Get.width / 4 - 78 : Get.width / 4 - 30);
     return Container(
       decoration: BoxDecoration(
-              color: resolveAppTheme().cardSurface,
+        color: theme.cardSurface,
         borderRadius: BorderRadius.circular(10),
       ),
       width: boxWidth,
@@ -743,7 +756,7 @@ class _EmployeeDashboardBody extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: resolveAppTheme().secondaryText,
+                  color: theme.secondaryText,
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
                   height: 1.2,

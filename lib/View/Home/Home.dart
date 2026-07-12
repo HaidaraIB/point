@@ -31,11 +31,22 @@ import 'package:point/View/Tasks/DetailsDialogs/DProgrammingDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPromotionDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DPublishDialog.dart';
 import 'package:point/firebase_app_options.dart';
+import 'package:point/Utils/AppConstants.dart';
+import 'package:point/View/Shared/app_user_avatar.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 
 part 'home_dashboard_sections_part.dart';
 part 'home_notification_dialogs_part.dart';
 part 'home_widgets_part.dart';
+
+Widget _dashboardClientAvatar(HomeController controller, String clientId) {
+  final client = controller.clients.firstWhereOrNull((a) => a.id == clientId);
+  return AppUserAvatar(
+    url: client?.image ?? kDefaultAvatarUrl,
+    radius: 24,
+    displayName: client?.name,
+  );
+}
 
 // Design tokens for mobile dashboard (clean, no overflow)
 const double _kMobileCardRadius = 20.0;

@@ -3,6 +3,7 @@ import 'dart:async' show unawaited;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:point/Controller/ThemeController.dart';
 import 'package:intl/intl.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
@@ -1014,6 +1015,7 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
   Widget build(BuildContext context) {
     final controller = Get.find<HomeController>();
     return Obx(() {
+      Get.find<ThemeController>().themeMode.value;
       final emp = controller.currentEmployee.value;
       if (emp == null || emp.role.trim().toLowerCase() != 'employee') {
         return const SizedBox.shrink();

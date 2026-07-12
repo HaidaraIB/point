@@ -18,6 +18,7 @@ import 'package:point/View/Tasks/Shared/task_attachment_gallery.dart';
 import 'package:point/View/Tasks/Shared/task_voice_details_tile.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/View/Shared/app_user_avatar.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 
 /// Generic web dialog for task details. Renders common shell (header, notes,
@@ -386,13 +387,12 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                CircleAvatar(
+                AppUserAvatar(
+                  url: widget.task.assignedImageUrl.isEmpty
+                      ? '${StorageKeys.supabaseStorageBaseUrl}/Avatar.png'
+                      : widget.task.assignedImageUrl,
                   radius: 12,
-                  backgroundImage: NetworkImage(
-                    widget.task.assignedImageUrl.isEmpty
-                        ? '${StorageKeys.supabaseStorageBaseUrl}/Avatar.png'
-                        : widget.task.assignedImageUrl,
-                  ),
+                  displayName: assignedName.isEmpty ? null : assignedName,
                 ),
                 const SizedBox(width: 8),
                 Flexible(

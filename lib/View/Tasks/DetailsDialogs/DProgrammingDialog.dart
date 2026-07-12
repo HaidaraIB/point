@@ -84,6 +84,7 @@ class ProgrammingDetailsSection extends StatelessWidget {
                     width: cellWidth,
                     height: 110,
                     child: TaskDetailsDialogHelpers.buildTag(
+                      context,
                       FunHelper.canonicalStoredPriority(task.priority),
                       tr: true,
                     ),
@@ -126,6 +127,7 @@ class ProgrammingDetailsSection extends StatelessWidget {
                       style: TextStyle(
                         fontWeight: FontWeight.w700,
                         fontSize: 13,
+                        color: context.appTheme.primaryText,
                       ),
                     ),
                     const SizedBox(height: 8),

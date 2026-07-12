@@ -6,6 +6,7 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 enum SettingsSection {
   appVersion,
   attendancePolicy,
+  libraryPermissions,
 }
 
 extension SettingsSectionX on SettingsSection {
@@ -15,6 +16,8 @@ extension SettingsSectionX on SettingsSection {
         return AppLocaleKeys.adminSettingsSectionAppVersion;
       case SettingsSection.attendancePolicy:
         return AppLocaleKeys.adminSettingsSectionAttendancePolicy;
+      case SettingsSection.libraryPermissions:
+        return AppLocaleKeys.adminSettingsSectionLibraryPermissions;
     }
   }
 
@@ -26,6 +29,8 @@ extension SettingsSectionX on SettingsSection {
         return Icons.system_update_alt_outlined;
       case SettingsSection.attendancePolicy:
         return Icons.schedule_outlined;
+      case SettingsSection.libraryPermissions:
+        return Icons.folder_copy_outlined;
     }
   }
 }

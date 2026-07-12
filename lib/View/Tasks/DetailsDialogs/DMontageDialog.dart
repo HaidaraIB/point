@@ -105,6 +105,7 @@ class MontageDetailsSection extends StatelessWidget {
                     width: cellWidth,
                     height: 110,
                     child: TaskDetailsDialogHelpers.buildTag(
+                      context,
                       FunHelper.canonicalStoredPriority(task.priority),
                       tr: true,
                     ),

@@ -160,15 +160,27 @@ class AppTheme {
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return AppColors.primary;
+            return brightness == Brightness.dark
+                ? Colors.white
+                : AppColors.primary;
           }
-          return ext.mutedText;
+          return brightness == Brightness.dark
+              ? ext.secondaryText
+              : ext.mutedText;
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return AppColors.primary.withValues(alpha: 0.4);
+            return brightness == Brightness.dark
+                ? ext.accentText
+                : AppColors.primary.withValues(alpha: 0.45);
           }
           return ext.unselected;
+        }),
+        trackOutlineColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return Colors.transparent;
+          }
+          return ext.border;
         }),
       ),
       chipTheme: ChipThemeData(

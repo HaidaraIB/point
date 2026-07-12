@@ -135,63 +135,7 @@ Widget contentScheduletoday(BuildContext context) {
                         ),
                         child: Row(
                           children: [
-                            CircleAvatar(
-                              radius: 24,
-                              backgroundColor: Colors.teal.shade100,
-                              child:
-                                  controller.clients
-                                              .firstWhereOrNull(
-                                                (a) => a.id == content.clientId,
-                                              )
-                                              ?.image !=
-                                          null
-                                      ? ClipRRect(
-                                        borderRadius: BorderRadius.circular(25),
-                                        child: Image.network(
-                                          controller.clients
-                                                  .firstWhereOrNull(
-                                                    (a) =>
-                                                        a.id ==
-                                                        content.clientId,
-                                                  )
-                                                  ?.image ??
-                                              '',
-                                          fit: BoxFit.cover,
-                                          height: 50,
-                                          width: 50,
-                                          errorBuilder:
-                                              (_, __, ___) => Text(
-                                                controller.clients
-                                                        .firstWhereOrNull(
-                                                          (a) =>
-                                                              a.id ==
-                                                              content.clientId,
-                                                        )
-                                                        ?.name
-                                                        .toString()[0] ??
-                                                    '',
-                                                style: TextStyle(
-                                                  color: Colors.teal,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                        ),
-                                      )
-                                      : Text(
-                                        controller.clients
-                                                .firstWhereOrNull(
-                                                  (a) =>
-                                                      a.id == content.clientId,
-                                                )
-                                                ?.name
-                                                .toString()[0] ??
-                                            '',
-                                        style: TextStyle(
-                                          color: Colors.teal,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                            ),
+                            _dashboardClientAvatar(controller, content.clientId),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -410,63 +354,7 @@ Widget contentUnderPromotion(BuildContext context) {
                         ),
                         child: Row(
                           children: [
-                            CircleAvatar(
-                              radius: 24,
-                              backgroundColor: Colors.teal.shade100,
-                              child:
-                                  controller.clients
-                                              .firstWhereOrNull(
-                                                (a) => a.id == content.clientId,
-                                              )
-                                              ?.image !=
-                                          null
-                                      ? ClipRRect(
-                                        borderRadius: BorderRadius.circular(25),
-                                        child: Image.network(
-                                          controller.clients
-                                                  .firstWhereOrNull(
-                                                    (a) =>
-                                                        a.id ==
-                                                        content.clientId,
-                                                  )
-                                                  ?.image ??
-                                              '',
-                                          fit: BoxFit.cover,
-                                          height: 50,
-                                          width: 50,
-                                          errorBuilder:
-                                              (_, __, ___) => Text(
-                                                controller.clients
-                                                        .firstWhereOrNull(
-                                                          (a) =>
-                                                              a.id ==
-                                                              content.clientId,
-                                                        )
-                                                        ?.name
-                                                        .toString()[0] ??
-                                                    '',
-                                                style: TextStyle(
-                                                  color: Colors.teal,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                        ),
-                                      )
-                                      : Text(
-                                        controller.clients
-                                                .firstWhereOrNull(
-                                                  (a) =>
-                                                      a.id == content.clientId,
-                                                )
-                                                ?.name
-                                                .toString()[0] ??
-                                            '',
-                                        style: TextStyle(
-                                          color: Colors.teal,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                            ),
+                            _dashboardClientAvatar(controller, content.clientId),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -676,66 +564,7 @@ Widget tasksUnderProcessing(BuildContext context) {
                         ),
                         child: Row(
                           children: [
-                            CircleAvatar(
-                              radius: 24,
-                              backgroundColor: Colors.teal.shade100,
-                              child:
-                                  controller.clients
-                                              .firstWhereOrNull(
-                                                (a) =>
-                                                    a.id == content.clientName,
-                                              )
-                                              ?.image !=
-                                          null
-                                      ? ClipRRect(
-                                        borderRadius: BorderRadius.circular(25),
-                                        child: Image.network(
-                                          controller.clients
-                                                  .firstWhereOrNull(
-                                                    (a) =>
-                                                        a.id ==
-                                                        content.clientName,
-                                                  )
-                                                  ?.image ??
-                                              '',
-                                          fit: BoxFit.cover,
-                                          height: 50,
-                                          width: 50,
-                                          errorBuilder:
-                                              (_, __, ___) => Text(
-                                                controller.clients
-                                                        .firstWhereOrNull(
-                                                          (a) =>
-                                                              a.id ==
-                                                              content
-                                                                  .clientName,
-                                                        )
-                                                        ?.name
-                                                        .toString()[0] ??
-                                                    '',
-                                                style: TextStyle(
-                                                  color: Colors.teal,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                        ),
-                                      )
-                                      : Text(
-                                        controller.clients
-                                                .firstWhereOrNull(
-                                                  (a) =>
-                                                      a.id ==
-                                                      content.clientName,
-                                                )
-                                                ?.name
-                                                .toString()[0] ??
-                                            '',
-                                        style: TextStyle(
-                                          color: Colors.teal,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                            ),
+                            _dashboardClientAvatar(controller, content.clientName),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,

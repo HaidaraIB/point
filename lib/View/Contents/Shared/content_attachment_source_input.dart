@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:point/Controller/HomeController.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/Utils/LibraryPermissions.dart';
 
 /// Drag / tap zone + "add from source" (library vs local) — same layout as the
 /// add/edit Content desktop dialog (`ContentsTable` attachment rows).
@@ -22,6 +24,10 @@ class ContentAttachmentSourceInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hc = Get.find<HomeController>();
+    final buttonTitle = LibraryPermissions.canAccessLibrary(hc.effectiveEmployee)
+        ? 'content.attachment_add_from_source'.tr
+        : 'content.attachment_source_local'.tr;
     return GestureDetector(
       onTap: onTap,
       child: InputText(
@@ -59,7 +65,7 @@ class ContentAttachmentSourceInput extends StatelessWidget {
                 fontSize: 11,
                 margin: EdgeInsets.zero,
                 load: loading,
-                title: 'content.attachment_add_from_source'.tr,
+                title: buttonTitle,
                 backgroundColor: context.appTheme.cardSurface,
                 fontColor: context.appTheme.primaryText,
               ),

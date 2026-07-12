@@ -9,6 +9,7 @@ import 'package:point/Services/meta/meta_graph_client.dart';
 import 'package:point/Services/meta/meta_media_util.dart';
 import 'package:point/View/Contents/Shared/content_attachment_source_input.dart';
 import 'package:point/View/Contents/Shared/content_library_attachment_picker.dart';
+import 'package:point/View/Shared/app_choice_chip.dart';
 import 'package:point/View/Shared/app_date_time_picker.dart';
 import 'package:point/View/Shared/CustomDropDown.dart';
 import 'package:point/View/Shared/InputText.dart';
@@ -145,7 +146,7 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
 
   Future<void> _pickPublishMediaWithSource() async {
     if (_controller.isUploading.value) return;
-    final source = await showContentAttachmentSourceDialog(context);
+    final source = await resolveAttachmentSource(context);
     if (!mounted) return;
     if (source == null) return;
     if (source == ContentAttachmentSource.local) {
@@ -386,20 +387,20 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      ChoiceChip(
-                        label: Text('publish.post_type_feed'.tr),
+                      AppChoiceChip(
+                        label: 'publish.post_type_feed'.tr,
                         selected: _postType.value == 'feed',
-                        onSelected: (_) => _postType.value = 'feed',
+                        onSelected: () => _postType.value = 'feed',
                       ),
-                      ChoiceChip(
-                        label: Text('publish.post_type_story'.tr),
+                      AppChoiceChip(
+                        label: 'publish.post_type_story'.tr,
                         selected: _postType.value == 'story',
-                        onSelected: (_) => _postType.value = 'story',
+                        onSelected: () => _postType.value = 'story',
                       ),
-                      ChoiceChip(
-                        label: Text('publish.post_type_reel'.tr),
+                      AppChoiceChip(
+                        label: 'publish.post_type_reel'.tr,
                         selected: _postType.value == 'reel',
-                        onSelected: (_) => _postType.value = 'reel',
+                        onSelected: () => _postType.value = 'reel',
                       ),
                     ],
                   ),
@@ -415,15 +416,15 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      ChoiceChip(
-                        label: Text('publish.mode_now'.tr),
+                      AppChoiceChip(
+                        label: 'publish.mode_now'.tr,
                         selected: _scheduleMode.value == 'now',
-                        onSelected: (_) => _scheduleMode.value = 'now',
+                        onSelected: () => _scheduleMode.value = 'now',
                       ),
-                      ChoiceChip(
-                        label: Text('publish.mode_schedule'.tr),
+                      AppChoiceChip(
+                        label: 'publish.mode_schedule'.tr,
                         selected: _scheduleMode.value == 'schedule',
-                        onSelected: (_) => _scheduleMode.value = 'schedule',
+                        onSelected: () => _scheduleMode.value = 'schedule',
                       ),
                     ],
                   ),

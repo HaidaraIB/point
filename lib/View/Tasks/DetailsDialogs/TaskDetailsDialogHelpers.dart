@@ -23,6 +23,11 @@ class TaskDetailsDialogHelpers {
     return raw.clamp(min, max);
   }
 
+  static String displayOrDash(String? value) {
+    final v = value?.trim() ?? '';
+    return v.isEmpty ? '-' : v;
+  }
+
   static Color getPriorityColor(String priority) {
     switch (priority) {
       case 'normal':
@@ -38,7 +43,11 @@ class TaskDetailsDialogHelpers {
     }
   }
 
-  static Color getPriorityBgColor(String priority) {
+  static Color getPriorityBgColor(BuildContext context, String priority) {
+    final fg = getPriorityColor(priority);
+    if (Theme.of(context).brightness == Brightness.dark) {
+      return fg.withValues(alpha: 0.18);
+    }
     switch (priority) {
       case 'normal':
         return Colors.blue.shade50;
@@ -54,17 +63,18 @@ class TaskDetailsDialogHelpers {
   }
 
   /// Priority tag widget using standard priority colors.
-  static Widget buildTag(String text, {bool tr = false}) {
+  static Widget buildTag(BuildContext context, String text, {bool tr = false}) {
+    final canonical = text;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: getPriorityBgColor(text),
+        color: getPriorityBgColor(context, canonical),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
         tr ? FunHelper.translateAppKey(text) : text,
         style: TextStyle(
-          color: getPriorityColor(text),
+          color: getPriorityColor(canonical),
           fontSize: 11,
           fontWeight: FontWeight.bold,
         ),
@@ -80,6 +90,10 @@ class TaskDetailsDialogHelpers {
     double? width,
     double? height,
   }) {
+    final theme = resolveAppTheme();
+    final displayValue = displayOrDash(value);
+    final isPlaceholder = displayValue == '-';
+
     return Container(
       width: width,
       constraints: BoxConstraints(minHeight: height ?? 0),
@@ -92,21 +106,21 @@ class TaskDetailsDialogHelpers {
           Text(
             title,
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, color: resolveAppTheme().secondaryText),
+            style: TextStyle(fontSize: 12, color: theme.secondaryText),
           ),
           const SizedBox(height: 10),
           child ??
               Tooltip(
-                message: value,
+                message: isPlaceholder ? '' : displayValue,
                 child: LinkifiedText(
-                  value,
+                  displayValue,
                   textAlign: TextAlign.center,
                   maxLines: 4,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontWeight: FontWeight.bold,
+                    fontWeight: isPlaceholder ? FontWeight.w600 : FontWeight.bold,
                     fontSize: 12,
-                    color: resolveAppTheme().primaryText,
+                    color: isPlaceholder ? theme.mutedText : theme.primaryText,
                   ),
                 ),
               ),
@@ -117,13 +131,16 @@ class TaskDetailsDialogHelpers {
 
   /// Date info box with icon (for web details dialog).
   static Widget infoBoxDates(String title, String? value, IconData icon) {
+    final theme = resolveAppTheme();
+    final displayValue = displayOrDash(value);
+
     return Container(
       width: 170,
       margin: const EdgeInsets.all(5),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: theme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -131,7 +148,7 @@ class TaskDetailsDialogHelpers {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: resolveAppTheme().secondaryText),
+              Icon(icon, color: theme.secondaryText),
               const SizedBox(width: 5),
               Expanded(
                 child: Text(
@@ -139,21 +156,21 @@ class TaskDetailsDialogHelpers {
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 14, color: resolveAppTheme().secondaryText),
+                  style: TextStyle(fontSize: 14, color: theme.secondaryText),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 10),
           Text(
-            value ?? '',
+            displayValue,
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontWeight: FontWeight.bold,
+              fontWeight: displayValue == '-' ? FontWeight.w600 : FontWeight.bold,
               fontSize: 12,
-              color: resolveAppTheme().primaryText,
+              color: displayValue == '-' ? theme.mutedText : theme.primaryText,
             ),
           ),
         ],
@@ -167,14 +184,16 @@ class TaskDetailsDialogHelpers {
     String size, {
     required VoidCallback onDownload,
   }) {
+    final theme = resolveAppTheme();
+
     return Container(
       width: 200,
       constraints: const BoxConstraints(minHeight: 140),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        color: Colors.white,
-        border: Border.all(color: Colors.grey.shade300),
+        color: theme.cardSurface,
+        border: Border.all(color: theme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -210,7 +229,7 @@ class TaskDetailsDialogHelpers {
               ),
             ],
           ),
-          Text(size, style: TextStyle(color: resolveAppTheme().secondaryText)),
+          Text(size, style: TextStyle(color: theme.secondaryText)),
           const SizedBox(height: 10),
           ElevatedButton.icon(
             onPressed: onDownload,
@@ -220,8 +239,8 @@ class TaskDetailsDialogHelpers {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
-              backgroundColor: const Color(0xffF9F5FF),
-              foregroundColor: Colors.blue,
+              backgroundColor: theme.panelTint,
+              foregroundColor: theme.accentText,
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 20),
             ),

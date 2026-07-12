@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/View/Home/Shared/ClientUnderReviewListPage.dart';
+import 'package:point/Utils/AppConstants.dart';
+import 'package:point/View/Shared/app_user_avatar.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 
 const double _kScrollStep = 220.0;
@@ -145,35 +147,10 @@ class _ReviewContentWidgetState extends State<ReviewContentWidget> {
   }
 
   Widget _buildClientAvatar({required String? imageUrl, required String? name}) {
-    const radius = 24.0;
-    final url = (imageUrl ?? '').trim();
-    final initial =
-        (name ?? '').isNotEmpty ? (name ?? '')[0] : '';
-    final initialStyle = TextStyle(
-      color: Colors.teal,
-      fontWeight: FontWeight.bold,
-    );
-
-    if (url.isEmpty) {
-      return CircleAvatar(
-        radius: radius,
-        backgroundColor: Colors.teal.shade100,
-        child: Text(initial, style: initialStyle),
-      );
-    }
-
-    return CircleAvatar(
-      radius: radius,
-      backgroundColor: Colors.teal.shade100,
-      child: ClipOval(
-        child: Image.network(
-          url,
-          fit: BoxFit.cover,
-          width: radius * 2,
-          height: radius * 2,
-          errorBuilder: (_, __, ___) => Text(initial, style: initialStyle),
-        ),
-      ),
+    return AppUserAvatar(
+      url: imageUrl ?? kDefaultAvatarUrl,
+      radius: 24,
+      displayName: name,
     );
   }
 

@@ -4,12 +4,13 @@ import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/ContentModel.dart';
 import 'package:point/Services/FunHelper.dart';
-import 'package:point/Services/StorageKeys.dart';
 import 'package:point/View/Contents/Mobile/ContentDetailsMobilePage.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/Utils/ContentPermissions.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
+import 'package:point/Utils/AppConstants.dart';
+import 'package:point/View/Shared/app_user_avatar.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
 
 void showContentDialogDetails(
@@ -128,11 +129,11 @@ class _ContentDialogDetailsState extends State<ContentDialogDetails> {
 
   Widget _buildHeader(BuildContext context, double dialogWidth) {
     final colorScheme = Theme.of(context).colorScheme;
-    final executorName =
-        Get.find<HomeController>().employees
-            .firstWhereOrNull((emp) => emp.id == widget.task.executor)
-            ?.name ??
-        AppLocaleKeys.contentDialogUnknown.tr;
+    final executorEmployee =
+        Get.find<HomeController>().employees.firstWhereOrNull(
+          (emp) => emp.id == widget.task.executor,
+        );
+    final executorName = executorEmployee?.name ?? AppLocaleKeys.contentDialogUnknown.tr;
     final subtitle =
         '${AppLocaleKeys.contentType.tr}: ${FunHelper.trStored(widget.task.contentType, kind: StoredValueKind.contentType)}';
 
@@ -186,11 +187,10 @@ class _ContentDialogDetailsState extends State<ContentDialogDetails> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                CircleAvatar(
+                AppUserAvatar(
+                  url: executorEmployee?.image ?? kDefaultAvatarUrl,
                   radius: 12,
-                  backgroundImage: NetworkImage(
-                    '${StorageKeys.supabaseStorageBaseUrl}/Avatar.png',
-                  ),
+                  displayName: executorName,
                 ),
                 const SizedBox(width: 8),
                 Flexible(

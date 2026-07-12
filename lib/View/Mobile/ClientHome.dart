@@ -512,9 +512,10 @@ class ClientHome extends StatelessWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          CircleAvatar(
+                          AppUserAvatar(
+                            url: avatarUrl,
                             radius: 16,
-                            backgroundImage: NetworkImage(avatarUrl),
+                            displayName: displayName,
                           ),
                           const SizedBox(width: 2),
                           Icon(

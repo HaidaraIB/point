@@ -31,6 +31,7 @@ class FirestoreAuthApi {
           // Temporary compatibility for old clients still using singular key.
           'department':
               normalizedDepartments.isEmpty ? '' : normalizedDepartments.first,
+          'libraryAccess': employee.libraryAccess,
           'updatedAt': FieldValue.serverTimestamp(),
         },
         SetOptions(merge: true),
@@ -60,6 +61,30 @@ class FirestoreAuthApi {
     } catch (e, s) {
       appLog('⚠️ syncAuthRoleForClient failed: $e');
       appLog('$s');
+    }
+  }
+
+  /// Admin path: sync [libraryAccess] on target employee's authRoles doc.
+  static Future<void> syncAuthRoleLibraryAccessForEmployee(
+    EmployeeModel employee,
+  ) async {
+    final authUid = employee.authUid?.trim();
+    if (authUid == null || authUid.isEmpty) return;
+    try {
+      await FirebaseFirestore.instance
+          .collection(authRolesCollection)
+          .doc(authUid)
+          .set(
+            {
+              'libraryAccess': employee.libraryAccess,
+              'updatedAt': FieldValue.serverTimestamp(),
+            },
+            SetOptions(merge: true),
+          );
+    } catch (e, s) {
+      appLog('⚠️ syncAuthRoleLibraryAccessForEmployee failed: $e');
+      appLog('$s');
+      rethrow;
     }
   }
 }

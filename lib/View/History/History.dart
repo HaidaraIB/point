@@ -1294,7 +1294,7 @@ void showAddContentDialog(
                                             decoration: BoxDecoration(
                                               borderRadius:
                                                   BorderRadius.circular(5),
-                                              color: Colors.grey.shade200,
+                                              color: context.appTheme.unselected,
                                             ),
                                             child: Row(
                                               mainAxisAlignment:
@@ -1356,7 +1356,7 @@ void showAddContentDialog(
                                                 vertical: 10,
                                               ),
                                               decoration: BoxDecoration(
-                                                color: Colors.grey.shade200,
+                                                color: context.appTheme.unselected,
                                               ),
                                               child: Row(
                                                 mainAxisAlignment:
@@ -1374,6 +1374,9 @@ void showAddContentDialog(
                                                         fontSize: 12,
                                                         fontWeight:
                                                             FontWeight.bold,
+                                                        color: context
+                                                            .appTheme
+                                                            .secondaryText,
                                                       ),
                                                     ),
                                                   ),
@@ -1387,10 +1390,10 @@ void showAddContentDialog(
                                                             .isUploading
                                                             .value,
                                                     title: 'uploadfile'.tr,
-                                                    backgroundColor: Theme.of(context).colorScheme.surface,
+                                                    backgroundColor:
+                                                        context.appTheme.cardSurface,
                                                     fontColor:
-                                                        AppColors
-                                                            .primaryfontColor,
+                                                        context.appTheme.primaryText,
                                                   ),
                                                 ],
                                               ),

@@ -13,13 +13,14 @@ import 'package:point/Utils/ContentPermissions.dart';
 import 'package:point/View/Contents/Shared/content_attachment_source_input.dart';
 import 'package:point/View/Contents/Shared/content_library_attachment_picker.dart';
 import 'package:point/View/Publish/publish_add_mobile_page.dart';
+import 'package:point/View/Shared/app_choice_chip.dart';
 import 'package:point/View/Shared/app_date_time_picker.dart';
 import 'package:point/View/Shared/CustomDropDown.dart';
+import 'package:point/View/Publish/meta_loading_overlay.dart';
 import 'package:point/View/Publish/publish_meta_settings_dialog.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/t.dart';
-import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 
 /// Only Facebook + Instagram keys from [StorageKeys.platformList].
@@ -34,19 +35,10 @@ Widget _publishChoiceChip(
   required bool selected,
   required VoidCallback onSelected,
 }) {
-  final theme = context.appTheme;
-  return ChoiceChip(
-    label: Text(label),
+  return AppChoiceChip(
+    label: label,
     selected: selected,
-    onSelected: (_) => onSelected(),
-    selectedColor: AppColors.primary,
-    backgroundColor: theme.inputFill,
-    side: BorderSide(color: selected ? AppColors.primary : theme.border),
-    labelStyle: TextStyle(
-      color: selected ? Colors.white : theme.primaryText,
-      fontSize: 13,
-    ),
-    checkmarkColor: Colors.white,
+    onSelected: onSelected,
   );
 }
 
@@ -105,7 +97,7 @@ Future<void> _pickPublishMediaWithSource({
   required Rxn<String> mediaType,
 }) async {
   if (controller.isUploading.value) return;
-  final source = await showContentAttachmentSourceDialog(context);
+  final source = await resolveAttachmentSource(context);
   if (!context.mounted) return;
   if (source == null) return;
   if (source == ContentAttachmentSource.local) {
@@ -133,18 +125,6 @@ Future<void> _pickPublishMediaWithSource({
   mediaUrl.value = url;
   mediaType.value = publishMediaTypeFromUrl(url) ?? 'photo';
   controller.update();
-}
-
-void _showPublishMetaLoadingDialog() {
-  if (Get.isDialogOpen == true) return;
-  Get.dialog(
-    const Center(child: CircularProgressIndicator()),
-    barrierDismissible: false,
-  );
-}
-
-void _dismissPublishMetaLoadingDialog() {
-  if (Get.isDialogOpen == true) Get.back();
 }
 
 /// Loads Meta token settings and Facebook/Instagram business pages.
@@ -242,15 +222,11 @@ Future<void> showAddPublishDialog({
   // This keeps behavior aligned with the table responsive breakpoint.
   final bool useMobilePage = !kIsWeb || Get.width <= 850;
 
-  _showPublishMetaLoadingDialog();
-  List<MetaBusinessAsset>? assets;
-  try {
-    assets = await loadPublishMetaBusinessAssets(
+  final assets = await runWithMetaGraphLoadingOverlay(
+    () => loadPublishMetaBusinessAssets(
       retryAfterSettingsDialog: useMobilePage,
-    );
-  } finally {
-    _dismissPublishMetaLoadingDialog();
-  }
+    ),
+  );
   if (assets == null) return;
   final businessAssets = assets;
 

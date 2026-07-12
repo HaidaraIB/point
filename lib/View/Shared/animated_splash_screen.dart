@@ -96,7 +96,6 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
             BrandLogo(
               width: logoWidth,
               height: logoHeight,
-              iconOnlyInDark: false,
             ),
             const SizedBox(height: 28),
             FadeTransition(

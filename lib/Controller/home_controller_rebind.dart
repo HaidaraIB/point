@@ -1,11 +1,32 @@
 part of 'package:point/Controller/HomeController.dart';
 
-void homeBindLibraryFilesStream(HomeController c, bool isManager) {
-  if (isManager) {
+void homeBindLibraryFilesStream(HomeController c, bool canAccessLibrary) {
+  if (canAccessLibrary) {
     c.libraryFiles.bindStream(c._service.getLibraryFiles());
   } else {
     c.libraryFiles.bindStream(Stream<List<LibraryFileModel>>.value([]));
   }
+}
+
+void homeBindLibraryBrowseTasksStream(HomeController c, bool canAccessLibrary) {
+  if (canAccessLibrary) {
+    c.libraryBrowseTasks.bindStream(c._service.getTasks());
+  } else {
+    c.libraryBrowseTasks.bindStream(Stream<List<TaskModel>>.value([]));
+  }
+}
+
+bool _libraryAccessFromAuthRole(Map<String, dynamic>? m) {
+  return m?['libraryAccess'] == true;
+}
+
+bool _canAccessLibraryFromRoleAndAuth({
+  required String? role,
+  required Map<String, dynamic>? authData,
+}) {
+  if (role == 'admin' || role == 'supervisor') return true;
+  if (role == 'employee') return _libraryAccessFromAuthRole(authData);
+  return false;
 }
 
 List<String> _departmentsFromFirestoreMap(Map<String, dynamic>? m) {
@@ -44,6 +65,7 @@ Future<void> homeRebindClientsAndTasksStreamsAsync(
       c.clients.bindStream(c._service.getClientsStreamForCurrentAuthEmail());
       c.tasks.bindStream(Stream<List<TaskModel>>.value([]));
       homeBindLibraryFilesStream(c, false);
+      homeBindLibraryBrowseTasksStream(c, false);
       c.update();
       return;
     }
@@ -52,6 +74,7 @@ Future<void> homeRebindClientsAndTasksStreamsAsync(
       c.clients.bindStream(c._service.getClientsStream());
       c.tasks.bindStream(c._service.getTasks());
       homeBindLibraryFilesStream(c, true);
+      homeBindLibraryBrowseTasksStream(c, true);
       c.update();
       return;
     }
@@ -60,6 +83,7 @@ Future<void> homeRebindClientsAndTasksStreamsAsync(
       final employeeId =
           roleSnap.data()?['employeeId']?.toString().trim() ?? '';
       final departments = _departmentsFromFirestoreMap(roleSnap.data());
+      final canAccessLibrary = _libraryAccessFromAuthRole(roleSnap.data());
       c.clients.bindStream(c._service.getClientsStream());
       if (employeeId.isNotEmpty) {
         c.tasks.bindStream(
@@ -71,7 +95,8 @@ Future<void> homeRebindClientsAndTasksStreamsAsync(
       } else {
         c.tasks.bindStream(Stream<List<TaskModel>>.value([]));
       }
-      homeBindLibraryFilesStream(c, false);
+      homeBindLibraryFilesStream(c, canAccessLibrary);
+      homeBindLibraryBrowseTasksStream(c, canAccessLibrary);
       c.update();
       return;
     }
@@ -79,7 +104,12 @@ Future<void> homeRebindClientsAndTasksStreamsAsync(
     if (role != null) {
       c.clients.bindStream(c._service.getClientsStream());
       c.tasks.bindStream(c._service.getTasks());
-      homeBindLibraryFilesStream(c, role == 'admin' || role == 'supervisor');
+      final canAccessLibrary = _canAccessLibraryFromRoleAndAuth(
+        role: role,
+        authData: roleSnap.data(),
+      );
+      homeBindLibraryFilesStream(c, canAccessLibrary);
+      homeBindLibraryBrowseTasksStream(c, canAccessLibrary);
       c.update();
       return;
     }
@@ -89,6 +119,7 @@ Future<void> homeRebindClientsAndTasksStreamsAsync(
       c.clients.bindStream(Stream<List<ClientModel>>.value([]));
       c.tasks.bindStream(Stream<List<TaskModel>>.value([]));
       homeBindLibraryFilesStream(c, false);
+      homeBindLibraryBrowseTasksStream(c, false);
       c.update();
       return;
     }
@@ -107,6 +138,10 @@ Future<void> homeRebindClientsAndTasksStreamsAsync(
       final empRole = empData['role']?.toString().trim() ?? '';
       final empId = empDoc.id;
       final departments = _departmentsFromFirestoreMap(empData);
+      final canAccessLibrary = _canAccessLibraryFromRoleAndAuth(
+        role: empRole,
+        authData: empData,
+      );
       c.clients.bindStream(c._service.getClientsStream());
       if (empRole == 'admin' || empRole == 'supervisor') {
         c.tasks.bindStream(c._service.getTasks());
@@ -120,14 +155,13 @@ Future<void> homeRebindClientsAndTasksStreamsAsync(
       } else {
         c.tasks.bindStream(c._service.getTasks());
       }
-      homeBindLibraryFilesStream(
-        c,
-        empRole == 'admin' || empRole == 'supervisor',
-      );
+      homeBindLibraryFilesStream(c, canAccessLibrary);
+      homeBindLibraryBrowseTasksStream(c, canAccessLibrary);
     } else {
       c.clients.bindStream(c._service.getClientsStreamForCurrentAuthEmail());
       c.tasks.bindStream(Stream<List<TaskModel>>.value([]));
       homeBindLibraryFilesStream(c, false);
+      homeBindLibraryBrowseTasksStream(c, false);
     }
     c.update();
   } catch (e, s) {
@@ -137,6 +171,7 @@ Future<void> homeRebindClientsAndTasksStreamsAsync(
     c.clients.bindStream(c._service.getClientsStreamForCurrentAuthEmail());
     c.tasks.bindStream(Stream<List<TaskModel>>.value([]));
     homeBindLibraryFilesStream(c, false);
+    homeBindLibraryBrowseTasksStream(c, false);
     c.update();
   }
 }

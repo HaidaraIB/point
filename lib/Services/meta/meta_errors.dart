@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:get/get.dart';
 
 /// User-facing Meta / Graph API errors (message keys in [AppTranslations]).
@@ -32,6 +34,16 @@ String graphErrorDetail(dynamic body, {int maxLen = 400}) {
 String graphErrorMessageKey(String detail) {
   if (detail.isEmpty) return 'meta_err_graph';
   final dl = detail.toLowerCase();
+  if (dl.contains('log in to www.facebook.com') ||
+      dl.contains('checkpoint') ||
+      dl.contains('follow the instructions given')) {
+    return 'meta_err_token_checkpoint';
+  }
+  if (dl.contains('session has expired') ||
+      dl.contains('error validating access token') ||
+      dl.contains('invalid oauth')) {
+    return 'meta_err_token_expired';
+  }
   if (dl.contains('pages_manage_posts') &&
       (dl.contains('not available') ||
           dl.contains('app review') ||
@@ -46,6 +58,13 @@ String graphErrorMessageKey(String detail) {
 
 /// Uses GetX [tr] / [trParams] for the current app locale.
 String formatMetaPublishFailure(Object exc, [String _unusedLang = 'ar']) {
+  if (exc is TimeoutException) {
+    try {
+      return 'meta_err_timeout'.tr;
+    } catch (_) {
+      return 'Meta Graph request timed out.';
+    }
+  }
   if (exc is MetaPublishUserError) {
     final args = {
       for (final e in exc.formatArgs.entries)

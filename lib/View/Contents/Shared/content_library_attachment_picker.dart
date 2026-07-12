@@ -9,6 +9,7 @@ import 'package:point/View/Library/library_folder_browser.dart';
 import 'package:point/View/Shared/attachment_thumbnail_tile.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/Utils/LibraryPermissions.dart';
 
 enum ContentAttachmentSource { library, local }
 
@@ -62,6 +63,17 @@ Future<ContentAttachmentSource?> showContentAttachmentSourceDialog(
     ),
     builder: (ctx) => SafeArea(child: sourceBody(ctx)),
   );
+}
+
+/// Library vs device when user has library access; otherwise local only.
+Future<ContentAttachmentSource?> resolveAttachmentSource(
+  BuildContext context,
+) async {
+  final hc = Get.find<HomeController>();
+  if (!LibraryPermissions.canAccessLibrary(hc.effectiveEmployee)) {
+    return ContentAttachmentSource.local;
+  }
+  return showContentAttachmentSourceDialog(context);
 }
 
 Future<List<String>> showLibraryAttachmentPickerDialog(
@@ -244,7 +256,7 @@ class _LibraryAttachmentPickerDialogState
   @override
   Widget build(BuildContext context) {
     final hc = widget.homeController;
-    final tasksSnapshot = hc.tasks
+    final tasksSnapshot = hc.tasksForLibraryBrowse
         .where(LibraryPathUtils.libraryEntryDesired)
         .toList(growable: false);
     final libraryFilesSnapshot = hc.libraryFiles.toList(growable: false);

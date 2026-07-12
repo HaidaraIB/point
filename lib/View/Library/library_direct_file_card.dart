@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/LibraryFileModel.dart';
+import 'package:point/Utils/LibraryPermissions.dart';
 import 'package:point/Utils/attachment_download.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
@@ -68,6 +69,10 @@ class LibraryDirectFileCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final hc = Get.find<HomeController>();
+    final canDelete = LibraryPermissions.canDeleteLibraryFile(
+      hc.effectiveEmployee,
+    );
     final u = file.url.trim();
     final name = file.fileName.trim().isEmpty
         ? TaskDetailsDialogHelpers.attachmentFileNameFromUrl(u)
@@ -176,11 +181,12 @@ class LibraryDirectFileCard extends StatelessWidget {
                                       initialIndex: 0,
                                     ),
                                   ),
-                                _compactActionIcon(
-                                  tooltip: 'library.delete_file'.tr,
-                                  icon: Icons.delete_outline,
-                                  onPressed: () => _confirmDelete(context),
-                                ),
+                                if (canDelete)
+                                  _compactActionIcon(
+                                    tooltip: 'library.delete_file'.tr,
+                                    icon: Icons.delete_outline,
+                                    onPressed: () => _confirmDelete(context),
+                                  ),
                               ],
                             ),
                             const SizedBox(height: 6),

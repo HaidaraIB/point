@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/AppConstants.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/View/Shared/app_user_avatar.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
@@ -372,11 +374,7 @@ String replyQuotePreviewLine(Map<String, dynamic> m) {
   return preview;
 }
 
-String chatInitialFromName(String name) {
-  if (name.trim().isEmpty) return '?';
-  final parts = name.trim().split(' ');
-  return parts.first[0].toUpperCase();
-}
+String chatInitialFromName(String name) => avatarInitialsFromName(name);
 
 bool isChatImageHttpUrl(String? raw) {
   if (raw == null) return false;
@@ -551,32 +549,16 @@ Widget chatLeadingAvatar(
   required double radius,
   Color? backgroundColor,
   required String initial,
+  String? displayName,
   IconData? groupIcon,
   String? assetImagePath,
   String? imageUrl,
   Color? iconColor,
   Color? initialTextColor,
 }) {
-  final bg = backgroundColor ?? chatAvatarPlaceholder(context);
-  final resolvedIconColor = iconColor ?? chatAvatarIconColor(context);
-  final resolvedInitialTextColor =
-      initialTextColor ?? chatAvatarInitialTextColor(context);
-
-  Widget fallbackChild() {
-    if (groupIcon != null) {
-      return Icon(groupIcon, color: resolvedIconColor);
-    }
-    return Text(
-      initial,
-      style: TextStyle(
-        color: resolvedInitialTextColor,
-        fontWeight: FontWeight.w700,
-      ),
-    );
-  }
-
   final localAsset = assetImagePath?.trim() ?? '';
   if (localAsset.isNotEmpty) {
+    final bg = backgroundColor ?? chatGroupAvatarBackground(context);
     final dim = radius * 2;
     return CircleAvatar(
       radius: radius,
@@ -587,46 +569,31 @@ Widget chatLeadingAvatar(
           width: dim,
           height: dim,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => fallbackChild(),
-        ),
-      ),
-    );
-  }
-  if (groupIcon != null) {
-    return CircleAvatar(
-      radius: radius,
-      backgroundColor: bg,
-      child: fallbackChild(),
-    );
-  }
-  if (isChatImageHttpUrl(imageUrl)) {
-    final u = imageUrl!.trim();
-    final dim = radius * 2;
-    return CircleAvatar(
-      radius: radius,
-      backgroundColor: bg,
-      child: ClipOval(
-        child: Image.network(
-          u,
-          width: dim,
-          height: dim,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Text(
-            initial,
-            style: TextStyle(
-              color: resolvedInitialTextColor,
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-            ),
+          errorBuilder: (_, __, ___) => Icon(
+            groupIcon ?? Icons.group,
+            color: iconColor ?? chatAvatarIconColor(context),
           ),
         ),
       ),
     );
   }
-  return CircleAvatar(
+
+  if (groupIcon != null) {
+    final bg = backgroundColor ?? chatGroupAvatarBackground(context);
+    return CircleAvatar(
+      radius: radius,
+      backgroundColor: bg,
+      child: Icon(
+        groupIcon,
+        color: iconColor ?? chatAvatarIconColor(context),
+      ),
+    );
+  }
+
+  return AppUserAvatar(
+    url: imageUrl ?? kDefaultAvatarUrl,
     radius: radius,
-    backgroundColor: bg,
-    child: fallbackChild(),
+    displayName: displayName ?? initial,
   );
 }
 

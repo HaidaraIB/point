@@ -13,6 +13,7 @@ import 'package:point/View/Shared/voice_message_row.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DProgrammingDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 import 'package:point/View/Tasks/Shared/task_voice_form_helpers.dart';
+import 'package:point/View/Shared/app_user_avatar.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 
 void showProgrammingUpdateDetails(
@@ -291,13 +292,12 @@ class ProgrammingUpdateDetailsBody extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                CircleAvatar(
+                AppUserAvatar(
+                  url: assigneeImage.isEmpty
+                      ? '${StorageKeys.supabaseStorageBaseUrl}/Avatar.png'
+                      : assigneeImage,
                   radius: 12,
-                  backgroundImage: NetworkImage(
-                    assigneeImage.isEmpty
-                        ? '${StorageKeys.supabaseStorageBaseUrl}/Avatar.png'
-                        : assigneeImage,
-                  ),
+                  displayName: assignee.isEmpty ? null : assignee,
                 ),
                 const SizedBox(width: 8),
                 Flexible(
@@ -484,6 +484,7 @@ class ProgrammingUpdateDetailsBody extends StatelessWidget {
                 child: priority.isEmpty
                     ? null
                     : TaskDetailsDialogHelpers.buildTag(
+                        context,
                         FunHelper.canonicalStoredPriority(priority),
                         tr: true,
                       ),

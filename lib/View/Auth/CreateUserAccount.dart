@@ -79,7 +79,6 @@ Widget _buildDesktopLayout(BuildContext context) {
                       labelText: 'companyname'.tr,
                       hintText: 'entername'.tr,
                       height: 42,
-                      fillColor: Colors.white,
                       controller: nameController,
                       validator: (v) {
                         if (v == null || v.isEmpty) {
@@ -89,13 +88,11 @@ Widget _buildDesktopLayout(BuildContext context) {
                       },
 
                       borderRadius: 5,
-                      borderColor: Colors.grey.shade300,
                     ),
                     InputText(
                       labelText: 'email'.tr,
                       hintText: 'example@example.com'.tr,
                       height: 42,
-                      fillColor: Colors.white,
                       controller: emailController,
                       validator: (v) {
                         if (v == null || v.isEmpty) {
@@ -105,14 +102,12 @@ Widget _buildDesktopLayout(BuildContext context) {
                       },
 
                       borderRadius: 5,
-                      borderColor: Colors.grey.shade300,
                     ),
                     InputText(
                       hintText: ''.tr,
                       labelText: 'password'.tr,
                       obscureText: controller.obSecure,
                       height: 42,
-                      fillColor: Colors.white,
                       controller: passwordController,
                       suffixIcon: InkWell(
                         onTap: () => controller.changeObsecure(),
@@ -132,7 +127,6 @@ Widget _buildDesktopLayout(BuildContext context) {
                         return validatePasswordStrong(v);
                       },
                       borderRadius: 5,
-                      borderColor: Colors.grey.shade300,
                     ),
                     // SizedBox(height: 10),
                     // Text(

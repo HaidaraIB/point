@@ -10,6 +10,8 @@ import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppConstants.dart';
 import 'package:point/Utils/AppImages.dart';
 import 'package:point/Utils/ContentPermissions.dart';
+import 'package:point/Utils/LibraryPermissions.dart';
+import 'package:point/View/Shared/app_user_avatar.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 
 class CustomSidebar extends StatefulWidget {
@@ -189,10 +191,6 @@ class _CustomSidebarState extends State<CustomSidebar> {
                   final displayName = employee?.name ?? '';
                   final displayRole = employee?.role ?? '';
                   final displayImage = employee?.image ?? kDefaultAvatarUrl;
-                  final firstLetter =
-                      displayName.trim().isNotEmpty
-                          ? displayName.trim()[0].toUpperCase()
-                          : 'U';
                   return Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
@@ -207,23 +205,10 @@ class _CustomSidebarState extends State<CustomSidebar> {
                     ),
                     child: Row(
                       children: [
-                        CircleAvatar(
+                        AppUserAvatar(
+                          url: displayImage,
                           radius: 20,
-                          backgroundColor: Colors.white24,
-                          backgroundImage:
-                              displayImage.isNotEmpty
-                                  ? NetworkImage(displayImage)
-                                  : null,
-                          child:
-                              displayImage.isEmpty
-                                  ? Text(
-                                    firstLetter,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  )
-                                  : null,
+                          displayName: displayName,
                         ),
                         const SizedBox(width: 10),
                         Expanded(
@@ -903,209 +888,55 @@ class _CustomSidebarState extends State<CustomSidebar> {
                           : ListView(
                             children: [
                               _buildTile(
-                                selectedTab: 3,
-                                icon: 'assets/images/nav_content.png',
-                                text: "content".tr,
+                                selectedTab: 0,
+                                icon: 'assets/images/nav_tasks.png',
+                                text: 'tasks'.tr,
                                 onTap: () {
-                                  setState(() {
-                                    _selectedTab = 3;
-                                  });
+                                  setState(() => _selectedTab = 0);
                                   WidgetsBinding.instance.addPostFrameCallback((
                                     _,
                                   ) {
-                                    Get.toNamed('/content');
+                                    Get.toNamed('/employeeDashboard');
                                   });
                                 },
-                                // onTap: () => Get.toNamed('/users'),
                               ),
-                              if (ContentPermissions.canAccessPublishSection(
-                                controller.effectiveEmployee,
-                              ))
+                              if (controller.effectiveEmployee != null &&
+                                  (controller.effectiveEmployee!.hasDepartment(
+                                        StorageKeys.departmentPromotion,
+                                      ) ||
+                                      controller.effectiveEmployee!.hasDepartment(
+                                        StorageKeys.departmentPublishing,
+                                      )))
                                 _buildTile(
-                                  selectedTab: 10,
+                                  selectedTab: 3,
                                   icon: 'assets/images/nav_content.png',
-                                  text: 'publish.sidebar'.tr,
-                                  iconData: Icons.send_rounded,
+                                  text: 'managecontent'.tr,
                                   onTap: () {
-                                    setState(() {
-                                      _selectedTab = 10;
-                                    });
+                                    setState(() => _selectedTab = 3);
                                     WidgetsBinding.instance.addPostFrameCallback((
                                       _,
                                     ) {
-                                      Get.toNamed('/publish');
+                                      Get.toNamed('/employeeContent');
                                     });
                                   },
                                 ),
-
-                              _buildExpansion(
-                                id: 'tasks',
-                                selectedTab: 4,
-
-                                icon: 'assets/images/nav_tasks.png',
-                                text: "tasks".tr,
-
-                                children: [
-                                  _buildSubTile(
-                                    selectedTab: 0,
-                                    text: _departmentText(
-                                      StorageKeys.departmentPromotion,
-                                    ),
-                                    onTap: () {
-                                      setState(() {
-                                        _selectedSubTab = 0;
-                                      });
-                                      WidgetsBinding.instance
-                                          .addPostFrameCallback((_) {
-                                            Get.toNamed(
-                                              '/tasks?department=promotion&id=0',
-                                              arguments: 0,
-                                              preventDuplicates: false,
-                                            );
-                                          });
-                                    },
-                                  ),
-                                  _buildSubTile(
-                                    selectedTab: 1,
-
-                                    text: _departmentText(
-                                      StorageKeys.departmentDesign,
-                                    ),
-                                    onTap: () {
-                                      setState(() {
-                                        _selectedSubTab = 1;
-                                      });
-                                      WidgetsBinding.instance
-                                          .addPostFrameCallback((_) {
-                                            Get.toNamed(
-                                              '/tasks?department=design&id=1',
-                                              arguments: 1,
-                                              preventDuplicates: false,
-                                            );
-                                          });
-                                    },
-                                  ),
-                                  _buildSubTile(
-                                    selectedTab: 2,
-
-                                    text: _departmentText(
-                                      StorageKeys.departmentPhotography,
-                                    ),
-                                    onTap: () {
-                                      setState(() {
-                                        _selectedSubTab = 2;
-                                      });
-                                      WidgetsBinding.instance
-                                          .addPostFrameCallback((_) {
-                                            Get.toNamed(
-                                              '/tasks?department=photography&id=2',
-                                              arguments: 2,
-                                              preventDuplicates: false,
-                                            );
-                                          });
-                                    },
-                                  ),
-                                  _buildSubTile(
-                                    selectedTab: 3,
-
-                                    text: _departmentText(
-                                      StorageKeys.departmentContentWriting,
-                                    ),
-                                    onTap: () {
-                                      setState(() {
-                                        _selectedSubTab = 3;
-                                      });
-                                      WidgetsBinding.instance
-                                          .addPostFrameCallback((_) {
-                                            Get.toNamed(
-                                              '/tasks?department=content-writing&id=3',
-                                              arguments: 2,
-                                              preventDuplicates: false,
-                                            );
-                                          });
-                                    },
-                                  ),
-                                  _buildSubTile(
-                                    selectedTab: 4,
-
-                                    text: _departmentText(
-                                      StorageKeys.departmentMontage,
-                                    ),
-                                    onTap: () {
-                                      setState(() {
-                                        _selectedSubTab = 4;
-                                      });
-                                      WidgetsBinding.instance
-                                          .addPostFrameCallback((_) {
-                                            Get.toNamed(
-                                              '/tasks?department=montage&id=4',
-                                              arguments: 2,
-                                              preventDuplicates: false,
-                                            );
-                                          });
-                                    },
-                                  ),
-                                  _buildSubTile(
-                                    selectedTab: 5,
-
-                                    text: _departmentText(
-                                      StorageKeys.departmentPublishing,
-                                    ),
-                                    onTap: () {
-                                      setState(() {
-                                        _selectedSubTab = 5;
-                                      });
-                                      WidgetsBinding.instance
-                                          .addPostFrameCallback((_) {
-                                            Get.toNamed(
-                                              '/tasks?department=publishing&id=5',
-                                              arguments: 2,
-                                              preventDuplicates: false,
-                                            );
-                                          });
-                                    },
-                                  ),
-                                  _buildSubTile(
-                                    selectedTab: 6,
-
-                                    text: _departmentText(
-                                      StorageKeys.departmentProgramming,
-                                    ),
-                                    onTap: () {
-                                      setState(() {
-                                        _selectedSubTab = 6;
-                                      });
-                                      WidgetsBinding.instance
-                                          .addPostFrameCallback((_) {
-                                            Get.toNamed(
-                                              '/tasks?department=programming&id=6',
-                                              arguments: 2,
-                                              preventDuplicates: false,
-                                            );
-                                          });
-                                    },
-                                  ),
-                                  _buildSubTile(
-                                    selectedTab: 7,
-                                    text: _departmentText(
-                                      StorageKeys.departmentAdministration,
-                                    ),
-                                    onTap: () {
-                                      setState(() {
-                                        _selectedSubTab = 7;
-                                      });
-                                      WidgetsBinding.instance
-                                          .addPostFrameCallback((_) {
-                                            Get.toNamed(
-                                              '/tasks?department=administration&id=7',
-                                              arguments: 7,
-                                              preventDuplicates: false,
-                                            );
-                                          });
-                                    },
-                                  ),
-                                ],
-                              ),
+                              if (LibraryPermissions.canAccessLibrary(
+                                controller.effectiveEmployee,
+                              ))
+                                _buildTile(
+                                  selectedTab: 9,
+                                  icon: 'assets/images/nav_content.png',
+                                  text: 'library.sidebar'.tr,
+                                  iconData: Icons.folder_copy_outlined,
+                                  onTap: () {
+                                    setState(() => _selectedTab = 9);
+                                    WidgetsBinding.instance.addPostFrameCallback((
+                                      _,
+                                    ) {
+                                      Get.toNamed('/library');
+                                    });
+                                  },
+                                ),
                             ],
                           ),
                 );

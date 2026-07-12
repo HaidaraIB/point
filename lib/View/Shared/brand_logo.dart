@@ -2,19 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:point/Utils/AppImages.dart';
 
 /// Branded logo for centered layouts (splash, session setup, auth chooser).
-/// Dark mode uses the white icon-only asset; light mode uses the full wordmark.
+/// Dark mode uses the white wordmark; light mode uses the colored wordmark.
 class BrandLogo extends StatelessWidget {
   const BrandLogo({
     super.key,
     this.width,
     this.height,
-    this.iconOnlyInDark = true,
+    this.iconOnlyInDark = false,
   });
 
   final double? width;
   final double? height;
 
-  /// When true (default), dark mode shows only the white "P" icon.
+  /// When true, dark mode shows only the white "P" icon instead of the wordmark.
   final bool iconOnlyInDark;
 
   @override

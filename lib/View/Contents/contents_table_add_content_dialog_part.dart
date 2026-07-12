@@ -73,7 +73,7 @@ void showAddContentDialog(
   }
 
   Future<void> pickMainAttachmentWithSource(BuildContext context) async {
-    final source = await showContentAttachmentSourceDialog(context);
+    final source = await resolveAttachmentSource(context);
     if (source == null) return;
     if (source == ContentAttachmentSource.local) {
       await pickMainAttachmentFromLocal();
@@ -112,7 +112,7 @@ void showAddContentDialog(
     BuildContext context,
     TextEditingController targetController,
   ) async {
-    final source = await showContentAttachmentSourceDialog(context);
+    final source = await resolveAttachmentSource(context);
     if (source == null) return;
     if (source == ContentAttachmentSource.local) {
       await pickAttachmentFieldFromLocal(targetController);

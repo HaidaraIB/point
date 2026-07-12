@@ -37,6 +37,7 @@ import 'package:point/View/Chats/chat_list_tile_media_subtitle.dart';
 import 'package:point/View/Chats/chat_private_typing.dart';
 import 'package:point/View/Chats/chat_reply_draft_banner.dart';
 import 'package:point/View/Chats/chat_ui_helpers.dart';
+import 'package:point/View/Shared/app_user_avatar.dart';
 import 'package:point/Utils/chat_attachment_upload.dart';
 import 'package:point/View/Chats/voice_recorder_scope.dart';
 
@@ -1460,11 +1461,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   }
 
   // ---------------- Helpers ----------------
-  String _initialFromName(String name) {
-    if (name.trim().isEmpty) return '?';
-    final parts = name.trim().split(' ');
-    return parts.first[0].toUpperCase();
-  }
+  String _initialFromName(String name) => avatarInitialsFromName(name);
 
   String _formatTimestamp(Timestamp? ts) {
     if (ts == null) return '';
@@ -1726,6 +1723,45 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     );
   }
 
+  Widget _buildWebDialogHeader(BuildContext context) {
+    final theme = context.appTheme;
+    return Padding(
+      padding: EdgeInsetsDirectional.fromSTEB(12, 8, 12, 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'header.chat'.tr,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: theme.primaryText,
+              ),
+            ),
+          ),
+          IconButton(
+            tooltip: AppLocaleKeys.appClose.tr,
+            style: IconButton.styleFrom(
+              backgroundColor: theme.elevatedSurface,
+              foregroundColor: theme.primaryText,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+                side: BorderSide(color: theme.border),
+              ),
+            ),
+            onPressed: () async {
+              await _persistCurrentChatScrollIfAny();
+              if (!mounted) return;
+              _clearStoredChatSelectionOnHome();
+              widget.onMinimize();
+            },
+            icon: const Icon(Icons.close, size: 20),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ---------------- build ----------------
   @override
   Widget build(BuildContext context) {
@@ -1735,10 +1771,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         final visibleChats = _visibleChatsOrderedForSidebar();
         return Scaffold(
           backgroundColor: chatShellBackground(context),
-          body: Stack(
-            clipBehavior: Clip.none,
+          body: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Container(
+              if (widget.isFloatingPopUp) _buildWebDialogHeader(context),
+              Expanded(
+                child: Container(
                 decoration: BoxDecoration(
                   color: chatShellBackground(context),
                   borderRadius: BorderRadius.circular(20),
@@ -1749,7 +1787,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 Expanded(
                   flex: 2,
                   child: Container(
-                    margin: EdgeInsets.only(top: 30, right: 10),
+                    margin: EdgeInsetsDirectional.only(top: 8, end: 10),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
                       color: chatListPanelBackground(context),
@@ -2094,7 +2132,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                             children: [
                               // header
                               Container(
-                                margin: EdgeInsets.only(top: 30, left: 10),
+                                margin: EdgeInsetsDirectional.only(top: 8, start: 10),
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
               color: context.appTheme.cardSurface,
@@ -2138,68 +2176,32 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                 _presenceOf(otherParticipantId),
                                               );
 
-                                          Widget avatar;
-                                          if (!isGroup &&
-                                              isChatImageHttpUrl(rawOtherImg)) {
-                                            avatar = _avatarWithOnlineDot(
-                                              showOnlineDot: privateOnlineDot,
-                                              avatar: CircleAvatar(
-                                                radius: 28,
-                                                backgroundColor:
-                                                    Colors.grey.shade200,
-                                                child: ClipOval(
-                                                  child: Image.network(
-                                                    otherUrlTrim,
-                                                    width: 56,
-                                                    height: 56,
-                                                    fit: BoxFit.cover,
-                                                    errorBuilder: (
-                                                      _,
-                                                      __,
-                                                      ___,
-                                                    ) =>
-                                                        Text(
-                                                      _initialFromName(name),
-                                                      style: TextStyle(
-                                                        fontSize: 16,
-                                                        color: context.appTheme.primaryText,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            );
-                                          } else {
-                                            avatar = _avatarWithOnlineDot(
-                                              showOnlineDot:
-                                                  privateOnlineDot && !isGroup,
-                                              avatar: chatLeadingAvatar(context,
-                                                radius: 28,
-                                                backgroundColor: isGroup
-                                                    ? chatGroupAvatarBackground(
-                                                        context,
-                                                      )
-                                                    : chatAvatarPlaceholder(
-                                                        context,
-                                                      ),
-                                                initial:
-                                                    _initialFromName(name),
-                                                groupIcon: isGroup
-                                                    ? Icons.group
-                                                    : null,
-                                                assetImagePath: isGroup
-                                                    ? _departmentGroupAssetPathFromChat(
-                                                        _selectedChat!,
-                                                      )
-                                                    : null,
-                                                imageUrl: isGroup
-                                                    ? null
-                                                    : (otherUrlTrim.isEmpty
-                                                          ? null
-                                                          : rawOtherImg),
-                                              ),
-                                            );
-                                          }
+                                          final avatar = _avatarWithOnlineDot(
+                                            showOnlineDot: privateOnlineDot,
+                                            avatar: chatLeadingAvatar(context,
+                                              radius: 28,
+                                              displayName: name,
+                                              initial: _initialFromName(name),
+                                              groupIcon: isGroup
+                                                  ? Icons.group
+                                                  : null,
+                                              backgroundColor: isGroup
+                                                  ? chatGroupAvatarBackground(
+                                                      context,
+                                                    )
+                                                  : null,
+                                              assetImagePath: isGroup
+                                                  ? _departmentGroupAssetPathFromChat(
+                                                      _selectedChat!,
+                                                    )
+                                                  : null,
+                                              imageUrl: isGroup
+                                                  ? null
+                                                  : (otherUrlTrim.isEmpty
+                                                        ? null
+                                                        : rawOtherImg),
+                                            ),
+                                          );
 
                                           return Row(
                                             crossAxisAlignment:
@@ -2827,24 +2829,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               ],
             ),
           ),
-              PositionedDirectional(
-                top: 4,
-                start: 4,
-                child: Material(
-                  color: Colors.transparent,
-                  child: IconButton(
-                    icon: Icon(
-                      Icons.close,
-                      color: context.appTheme.primaryText,
-                    ),
-                    onPressed: () async {
-                      await _persistCurrentChatScrollIfAny();
-                      if (!mounted) return;
-                      _clearStoredChatSelectionOnHome();
-                      widget.onMinimize();
-                    },
-                  ),
-                ),
               ),
             ],
           ),

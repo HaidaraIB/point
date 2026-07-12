@@ -854,9 +854,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                           _avatarWithOnlineDot(
                             avatar: chatLeadingAvatar(context,
                               radius: 14,
-                              backgroundColor: widget.chat.isGroup
-                                  ? chatGroupAvatarBackground(context)
-                                  : chatAvatarPlaceholder(context),
+                              displayName: widget.chat.name,
                               initial:
                                   chatInitialFromName(widget.chat.name),
                               groupIcon:

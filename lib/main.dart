@@ -212,10 +212,14 @@ class _AppState extends State<App> with WidgetsBindingObserver {
           final code = lc.currentLocale.value.languageCode;
           final textDirections = TextDirection.values;
           final dir = code == 'ar' ? textDirections.first : textDirections.last;
+          final themeKey = tc.themeMode.value;
           return Directionality(
             textDirection: dir,
             child: InternetOfflineGuard(
-              child: child ?? const SizedBox.shrink(),
+              child: KeyedSubtree(
+                key: ValueKey(themeKey),
+                child: child ?? const SizedBox.shrink(),
+              ),
             ),
           );
         },

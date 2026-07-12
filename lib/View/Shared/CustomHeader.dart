@@ -18,105 +18,13 @@ import 'package:point/View/Shared/app_theme_menu_button.dart';
 import 'package:point/View/Shared/in_app_notifications_panel.dart';
 import 'package:point/View/Shared/internet_status_badge.dart';
 import 'package:point/View/Shared/InputText.dart';
+import 'package:point/View/Shared/app_user_avatar.dart';
 import 'package:point/View/EmployeeDashboard/employee_profile_form.dart';
 import 'package:point/View/Shared/responsive.dart';
-import 'package:point/Utils/AppConstants.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/Utils/LibraryPermissions.dart';
 
-bool _usesLocalAvatarPlaceholder(String url) {
-  final trimmed = url.trim();
-  return trimmed.isEmpty ||
-      trimmed == kDefaultAvatarUrl ||
-      trimmed.contains('ui-avatars.com');
-}
-
-String avatarInitialsFromName(String raw) {
-  final name = raw.trim();
-  if (name.isEmpty) return 'U';
-
-  final parts = name.split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
-  if (parts.length >= 2) {
-    final first = parts.first.characters.first;
-    final last = parts.last.characters.first;
-    final initials = '$first$last';
-    if (RegExp(r'^[A-Za-z]+$').hasMatch(initials)) {
-      return initials.toUpperCase();
-    }
-    return initials;
-  }
-
-  return name.characters.take(2).join();
-}
-
-/// Profile avatar that respects light/dark theme for placeholders and fallbacks.
-class AppUserAvatar extends StatelessWidget {
-  final String url;
-  final double radius;
-  final String? displayName;
-
-  const AppUserAvatar({
-    super.key,
-    required this.url,
-    required this.radius,
-    this.displayName,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.appTheme;
-    final trimmedUrl = url.trim();
-
-    if (_usesLocalAvatarPlaceholder(trimmedUrl)) {
-      final initials = avatarInitialsFromName(displayName ?? '');
-      return CircleAvatar(
-        radius: radius,
-        backgroundColor: theme.unselected,
-        child: Text(
-          initials,
-          style: TextStyle(
-            color: theme.primaryText,
-            fontWeight: FontWeight.w700,
-            fontSize: radius * 0.9,
-            height: 1,
-          ),
-        ),
-      );
-    }
-
-    return CircleAvatar(
-      radius: radius,
-      backgroundColor: theme.unselected,
-      child: ClipOval(
-        child: Image.network(
-          trimmedUrl,
-          fit: BoxFit.cover,
-          width: radius * 2,
-          height: radius * 2,
-          errorBuilder: (_, __, ___) {
-            final initials = avatarInitialsFromName(displayName ?? '');
-            if (initials != 'U') {
-              return ColoredBox(
-                color: theme.unselected,
-                child: Center(
-                  child: Text(
-                    initials,
-                    style: TextStyle(
-                      color: theme.primaryText,
-                      fontWeight: FontWeight.w700,
-                      fontSize: radius * 0.9,
-                      height: 1,
-                    ),
-                  ),
-                ),
-              );
-            }
-            return Icon(Icons.person, color: theme.mutedText, size: radius);
-          },
-        ),
-      ),
-    );
-  }
-}
+export 'package:point/View/Shared/app_user_avatar.dart';
 
 /// Firestore role slug (e.g. employee, admin) shown in headers.
 String _localizedStoredRole(String raw) {
@@ -557,6 +465,19 @@ class HeaderWidget extends StatelessWidget {
       children: [
         if (!isMobile && client != true) NotificationDropdown(),
         if (!isMobile && employee == true && client != true) _chats(),
+        if (!isMobile && employee == true && client != true)
+          Obx(() {
+            if (!LibraryPermissions.canAccessLibrary(
+              Get.find<HomeController>().effectiveEmployee,
+            )) {
+              return const SizedBox.shrink();
+            }
+            return IconButton(
+              tooltip: 'library.sidebar'.tr,
+              icon: Icon(Icons.folder_copy_outlined, color: appTheme.accentText),
+              onPressed: () => Get.toNamed('/library'),
+            );
+          }),
         if (!isMobile && employee == true && client != true && kIsWeb)
           Obx(() {
             final r =
@@ -922,6 +843,7 @@ class _chats extends StatelessWidget {
                                 width: MediaQuery.of(context).size.width * 0.7,
                                 height: MediaQuery.of(context).size.height * 0.9,
                                 child: ChatScreen(
+                                  isFloatingPopUp: true,
                                   onMinimize: () {
                                     Get.back();
                                   },

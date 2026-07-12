@@ -10,6 +10,7 @@ import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/ContentPermissions.dart';
+import 'package:point/Utils/LibraryPermissions.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Clients/ClientsTable.dart' show customDatePicker;
 import 'package:point/View/Contents/Shared/content_attachment_source_input.dart';
@@ -154,7 +155,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
   Future<void> _pickAttachmentFieldWithSource(
     TextEditingController targetController,
   ) async {
-    final source = await showContentAttachmentSourceDialog(context);
+    final source = await resolveAttachmentSource(context);
     if (source == null || !mounted) return;
     if (source == ContentAttachmentSource.local) {
       await _pickAttachmentFieldFromLocal(targetController);
@@ -178,7 +179,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
 
   Future<void> _pickMainAttachmentWithSource() async {
     final hc = Get.find<HomeController>();
-    final source = await showContentAttachmentSourceDialog(context);
+    final source = await resolveAttachmentSource(context);
     if (source == null || !mounted) return;
     if (source == ContentAttachmentSource.local) {
       await _pickMainAttachmentFromLocal();
@@ -521,7 +522,14 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                             ),
                           ),
                           Obx(
-                            () => controller.isUploading.value
+                            () {
+                              final attachmentButtonTitle =
+                                  LibraryPermissions.canAccessLibrary(
+                                    controller.effectiveEmployee,
+                                  )
+                                  ? 'content.attachment_add_from_source'.tr
+                                  : 'content.attachment_source_local'.tr;
+                              return controller.isUploading.value
                                 ? const SizedBox(
                                     width: 24,
                                     height: 24,
@@ -534,11 +542,11 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                                     borderSize: 5,
                                     height: 36,
                                     fontSize: 12,
-                                    title:
-                                        'content.attachment_add_from_source'.tr,
+                                    title: attachmentButtonTitle,
                                     backgroundColor: appTheme.cardSurface,
                                     fontColor: appTheme.primaryText,
-                                  ),
+                                  );
+                            },
                           ),
                         ],
                       ),

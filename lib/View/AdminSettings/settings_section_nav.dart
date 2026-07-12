@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
-import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/AdminSettings/settings_sections.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 
@@ -69,8 +68,10 @@ class _SettingsSectionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selected ? AppColors.primary : resolveAppTheme().primaryText;
-    final bg = selected ? AppColors.primary.withValues(alpha: 0.08) : null;
+    final theme = context.appTheme;
+    final color = selected ? theme.accentText : theme.primaryText;
+    final bg = selected ? theme.panelTint : null;
+    final borderColor = selected ? theme.accentText : Colors.transparent;
 
     return Material(
       color: bg ?? Colors.transparent,
@@ -83,7 +84,7 @@ class _SettingsSectionTile extends StatelessWidget {
               ? BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
                   border: BorderDirectional(
-                    start: BorderSide(color: AppColors.primary, width: 3),
+                    start: BorderSide(color: borderColor, width: 3),
                   ),
                 )
               : null,
@@ -167,7 +168,7 @@ class SettingsSectionLayout extends StatelessWidget {
     ],
   );
 
-  Widget _buildPageTitle({required bool compact}) {
+  Widget _buildPageTitle(BuildContext context, {required bool compact}) {
     return Padding(
       padding: EdgeInsetsDirectional.fromSTEB(
         compact ? 4 : 16,
@@ -180,7 +181,7 @@ class SettingsSectionLayout extends StatelessWidget {
         style: TextStyle(
           fontSize: compact ? 16 : 17,
           fontWeight: FontWeight.w700,
-          color: resolveAppTheme().primaryText,
+          color: context.appTheme.primaryText,
           height: 1.2,
         ),
       ),
@@ -209,7 +210,7 @@ class SettingsSectionLayout extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _buildPageTitle(compact: true),
+                _buildPageTitle(context, compact: true),
                 SettingsSectionNav(
                   selected: selected,
                   onSelected: onSelected,
@@ -239,7 +240,7 @@ class SettingsSectionLayout extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          _buildPageTitle(compact: false),
+                          _buildPageTitle(context, compact: false),
                           SettingsSectionNav(
                             selected: selected,
                             onSelected: onSelected,

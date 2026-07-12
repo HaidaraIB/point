@@ -318,7 +318,7 @@ class _EditFinalDeliverableDialogState extends State<_EditFinalDeliverableDialog
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: Colors.grey.shade300,
+                                      color: context.appTheme.border,
                                     ),
                                   ),
                                   child: TaskDetailsDialogHelpers
@@ -333,7 +333,7 @@ class _EditFinalDeliverableDialogState extends State<_EditFinalDeliverableDialog
                                 top: -6,
                                 end: -6,
                                 child: Material(
-                                  color: Colors.white,
+                                  color: context.appTheme.cardSurface,
                                   elevation: 1,
                                   shape: const CircleBorder(),
                                   child: InkWell(

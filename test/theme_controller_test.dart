@@ -31,6 +31,17 @@ void main() {
     expect(prefs.getString(ThemeController.prefsThemeModeKey), 'dark');
   });
 
+  test('resolveAppTheme without context follows ThemeController', () async {
+    final controller = Get.find<ThemeController>();
+    await controller.initialize();
+    await controller.setThemeMode(ThemeMode.light, persist: false);
+
+    expect(resolveAppTheme().cardSurface, AppThemeExtension.light.cardSurface);
+
+    await controller.setThemeMode(ThemeMode.dark, persist: false);
+    expect(resolveAppTheme().cardSurface, AppThemeExtension.dark.cardSurface);
+  });
+
   test('AppTheme exposes light and dark extensions', () {
     final light = AppTheme.light().extension<AppThemeExtension>();
     final dark = AppTheme.dark().extension<AppThemeExtension>();

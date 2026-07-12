@@ -7,6 +7,7 @@ import 'package:point/Models/ClientModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Services/meta/meta_graph_client.dart';
+import 'package:point/Services/meta/meta_errors.dart';
 import 'package:point/View/Shared/app_date_time_picker.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/ReadOnlyAccountEmailField.dart';
@@ -106,10 +107,11 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
       } else {
         _selectedMetaAssetValue.value = _unlinkMetaAssetValue;
       }
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       _metaAssets.clear();
-      _metaLoadError.value = 'Set Meta token in Publish settings';
+      _metaLoadError.value =
+          formatMetaPublishFailure(e, Get.locale?.languageCode ?? 'ar');
       _selectedMetaAssetValue.value = _unlinkMetaAssetValue;
     } finally {
       _metaLoading.value = false;

@@ -20,6 +20,7 @@ import 'package:point/View/Tasks/Shared/request_task_modification_dialog.dart';
 import 'package:point/View/Tasks/Shared/task_client_display_name.dart';
 import 'package:point/View/Tasks/Shared/task_details_feedback_widgets.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
+import 'package:point/View/Shared/app_user_avatar.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 
 bool _taskInManagementReview(TaskModel task) {
@@ -750,13 +751,17 @@ class TaskCard extends StatelessWidget {
                       Expanded(
                         child: Row(
                           children: [
-                            CircleAvatar(
+                            AppUserAvatar(
+                              url: task.assignedImageUrl.isEmpty
+                                  ? '${StorageKeys.supabaseStorageBaseUrl}/Avatar.png'
+                                  : task.assignedImageUrl,
                               radius: 14,
-                              backgroundImage: NetworkImage(
-                                task.assignedImageUrl.isEmpty
-                                    ? '${StorageKeys.supabaseStorageBaseUrl}/Avatar.png'
-                                    : task.assignedImageUrl,
-                              ),
+                              displayName:
+                                  Get.find<HomeController>().employees
+                                      .firstWhereOrNull(
+                                        (emp) => emp.id == task.assignedTo,
+                                      )
+                                      ?.name,
                             ),
                             const SizedBox(width: 6),
                             Expanded(

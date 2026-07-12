@@ -10,6 +10,7 @@ import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/ReadOnlyAccountEmailField.dart';
+import 'package:point/View/Publish/meta_loading_overlay.dart';
 import 'package:point/View/Clients/ClientFormMobilePage.dart';
 import 'package:point/View/Clients/Mobile/ClientsMobileScreen.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
@@ -21,6 +22,7 @@ import 'package:point/View/Shared/app_date_time_picker.dart';
 import 'package:point/View/Shared/table_actions_menu_row.dart';
 import 'package:point/Utils/PasswordValidator.dart';
 import 'package:point/Services/meta/meta_graph_client.dart';
+import 'package:point/Services/meta/meta_errors.dart';
 import 'package:uuid/uuid.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 
@@ -33,6 +35,14 @@ bool _canEditClientCredentials(ClientModel? model) {
       au != null &&
       au.isNotEmpty &&
       uid == au;
+}
+
+String _clientMetaPageTableLabel(ClientModel client) {
+  final name = client.metaPageName?.trim() ?? '';
+  if (name.isEmpty) return '--';
+  final ig = client.metaInstagramUserName?.trim() ?? '';
+  if (ig.isNotEmpty) return '$name / IG: $ig';
+  return name;
 }
 
 class ClientsTable extends StatelessWidget {
@@ -140,7 +150,6 @@ class ClientsTable extends StatelessWidget {
                             child: Obx(
                               () => DataTable(
                                 dataRowMinHeight: 60,
-                                dataRowMaxHeight: 60,
                                 // headingRowColor: WidgetStateProperty.all(Colors.blue.shade50),
                                 dataRowColor: context.tableDataRowColor,
                                 headingRowColor: context.tableHeadingRowColor,
@@ -254,21 +263,14 @@ class ClientsTable extends StatelessWidget {
                                           ),
                                           DataCell(
                                             TableCellCenter(
-                                              child: Container(
-                                                constraints: BoxConstraints(
-                                                  maxWidth: 170,
-                                                ),
-                                                child: Text(
-                                                  (emp.metaPageName?.trim().isNotEmpty ?? false)
-                                                      ? emp.metaPageName!
-                                                      : '--',
-                                                  overflow: TextOverflow.ellipsis,
-                                                  textAlign: TextAlign.center,
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    color:
-                                                        appTheme.secondaryText,
-                                                  ),
+                                              child: Text(
+                                                _clientMetaPageTableLabel(emp),
+                                                textAlign: TextAlign.center,
+                                                softWrap: true,
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  color:
+                                                      appTheme.secondaryText,
                                                 ),
                                               ),
                                             ),
@@ -408,8 +410,7 @@ class ClientsTable extends StatelessWidget {
                                                       const EdgeInsets.all(8),
                                                   child: Icon(
                                                     Icons.more_vert,
-                                                    color: AppColors
-                                                        .primaryfontColor,
+                                                    color: appTheme.primaryText,
                                                   ),
                                                 ),
                                               ),
@@ -463,20 +464,16 @@ Future<void> showAddEmployeeDialog(BuildContext context, {ClientModel? model}) a
   const unlinkMetaAssetValue = '__unlink_meta_asset__';
   final metaAssets = <MetaBusinessAsset>[];
   String? metaLoadError;
-  Get.dialog(
-    const Center(child: CircularProgressIndicator()),
-    barrierDismissible: false,
-  );
-  try {
-    final settings = await MetaAppSettings.load();
-    if (settings != null) {
-      metaAssets.addAll(await MetaGraphClient.listBusinessAssets(settings));
+  await runWithMetaGraphLoadingOverlay(() async {
+    try {
+      final settings = await MetaAppSettings.load();
+      if (settings != null) {
+        metaAssets.addAll(await MetaGraphClient.listBusinessAssets(settings));
+      }
+    } catch (e) {
+      metaLoadError = formatMetaPublishFailure(e, Get.locale?.languageCode ?? 'ar');
     }
-  } catch (_) {
-    metaLoadError = 'Set Meta token in Publish settings';
-  } finally {
-    if (Get.isDialogOpen == true) Get.back();
-  }
+  });
   final selectedMetaAssetValue = (() {
     final linkedPageId = (model?.metaPageId ?? '').trim();
     if (linkedPageId.isEmpty) return unlinkMetaAssetValue;
@@ -699,7 +696,7 @@ Future<void> showAddEmployeeDialog(BuildContext context, {ClientModel? model}) a
                                   Align(
                                     alignment: AlignmentDirectional.centerStart,
                                     child: Text(
-                                      metaLoadError,
+                                      metaLoadError!,
                                       style: TextStyle(
                                         color: Colors.orange.shade800,
                                         fontSize: 12,

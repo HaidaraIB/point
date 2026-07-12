@@ -29,6 +29,8 @@ class EmployeeModel {
   final bool attendanceRemote;
   /// When true (with [attendanceRemote]), check-in/out buttons are available all day.
   final bool attendanceFlexibleHours;
+  /// Admin-granted access to the Library (browse, direct upload, pick from library).
+  final bool libraryAccess;
 
   EmployeeModel({
     this.id,
@@ -51,6 +53,7 @@ class EmployeeModel {
     this.workHoursTo,
     this.attendanceRemote = false,
     this.attendanceFlexibleHours = false,
+    this.libraryAccess = false,
   });
 
   /// First department slug, if any (e.g. notifications / legacy single-field UX).
@@ -94,6 +97,7 @@ class EmployeeModel {
     String? workHoursTo,
     bool? attendanceRemote,
     bool? attendanceFlexibleHours,
+    bool? libraryAccess,
     bool clearAttendanceLocation = false,
     bool clearWorkHours = false,
   }) {
@@ -121,6 +125,7 @@ class EmployeeModel {
       attendanceRemote: attendanceRemote ?? this.attendanceRemote,
       attendanceFlexibleHours:
           attendanceFlexibleHours ?? this.attendanceFlexibleHours,
+      libraryAccess: libraryAccess ?? this.libraryAccess,
     );
   }
 
@@ -192,6 +197,7 @@ class EmployeeModel {
       workHoursTo: json['workHoursTo']?.toString(),
       attendanceRemote: json['attendanceRemote'] == true,
       attendanceFlexibleHours: json['attendanceFlexibleHours'] == true,
+      libraryAccess: json['libraryAccess'] == true,
     );
   }
 
@@ -235,6 +241,7 @@ class EmployeeModel {
         "workHoursTo": workHoursTo!.trim(),
       "attendanceRemote": attendanceRemote,
       "attendanceFlexibleHours": attendanceFlexibleHours,
+      "libraryAccess": libraryAccess,
     };
   }
 }
