@@ -36,9 +36,12 @@ class VoiceRecorderController extends ChangeNotifier {
   final AudioRecorder _recorder = AudioRecorder();
   VoiceRecorderPhase _phase = VoiceRecorderPhase.idle;
   bool _finishing = false;
-  final Stopwatch _activeSw = Stopwatch();
+  /// Completed recording segments (pause ends a segment).
+  int _accumulatedMs = 0;
+  final Stopwatch _segmentSw = Stopwatch();
   Timer? _uiTimer;
   String? _recordPath;
+  String _uploadFileName = 'voice.m4a';
 
   VoiceRecorderPhase get phase => _phase;
   bool get isActive =>
@@ -46,14 +49,62 @@ class VoiceRecorderController extends ChangeNotifier {
       _phase == VoiceRecorderPhase.paused ||
       _phase == VoiceRecorderPhase.uploading;
 
-  RecordConfig get _recordConfig => kIsWeb
-      ? const RecordConfig(encoder: AudioEncoder.wav)
-      : const RecordConfig(encoder: AudioEncoder.aacLc);
+  int get _elapsedMs =>
+      _accumulatedMs +
+      (_segmentSw.isRunning ? _segmentSw.elapsedMilliseconds : 0);
 
-  String get _uploadFileName => kIsWeb ? 'voice.wav' : 'voice.m4a';
+  void _beginSegment() {
+    _segmentSw
+      ..reset()
+      ..start();
+  }
+
+  void _endSegment() {
+    if (!_segmentSw.isRunning) return;
+    _accumulatedMs += _segmentSw.elapsedMilliseconds;
+    _segmentSw
+      ..stop()
+      ..reset();
+  }
+
+  void _resetElapsed() {
+    _segmentSw.stop();
+    _segmentSw.reset();
+    _accumulatedMs = 0;
+  }
+
+  Future<RecordConfig> _resolveRecordConfig() async {
+    if (!kIsWeb) {
+      _uploadFileName = 'voice.m4a';
+      return const RecordConfig(
+        encoder: AudioEncoder.aacLc,
+        numChannels: 1,
+        bitRate: 64000,
+      );
+    }
+
+    // Opus/webm on web: MediaRecorder + duration fix, better for long notes
+    // than in-memory WAV accumulation.
+    if (await _recorder.isEncoderSupported(AudioEncoder.opus)) {
+      _uploadFileName = 'voice.webm';
+      return const RecordConfig(
+        encoder: AudioEncoder.opus,
+        numChannels: 1,
+        bitRate: 64000,
+        sampleRate: 48000,
+      );
+    }
+
+    _uploadFileName = 'voice.wav';
+    return const RecordConfig(
+      encoder: AudioEncoder.wav,
+      numChannels: 1,
+      sampleRate: 48000,
+    );
+  }
 
   String formatDuration() {
-    final totalSec = _activeSw.elapsed.inSeconds;
+    final totalSec = _elapsedMs ~/ 1000;
     final m = totalSec ~/ 60;
     final s = totalSec % 60;
     return '$m:${s.toString().padLeft(2, '0')}';
@@ -88,17 +139,17 @@ class VoiceRecorderController extends ChangeNotifier {
     }
 
     try {
+      final config = await _resolveRecordConfig();
       if (kIsWeb) {
-        await _recorder.start(_recordConfig, path: '');
+        await _recorder.start(config, path: '');
       } else {
         final dir = await getTemporaryDirectory();
         _recordPath =
             '${dir.path}/voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
-        await _recorder.start(_recordConfig, path: _recordPath!);
+        await _recorder.start(config, path: _recordPath!);
       }
-      _activeSw
-        ..reset()
-        ..start();
+      _resetElapsed();
+      _beginSegment();
       _phase = VoiceRecorderPhase.recording;
       _startUiTimer();
       activityWriter?.setRecording(true);
@@ -119,7 +170,7 @@ class VoiceRecorderController extends ChangeNotifier {
     if (_phase != VoiceRecorderPhase.recording) return;
     try {
       await _recorder.pause();
-      _activeSw.stop();
+      _endSegment();
       _phase = VoiceRecorderPhase.paused;
       notifyListeners();
     } catch (_) {}
@@ -129,7 +180,7 @@ class VoiceRecorderController extends ChangeNotifier {
     if (_phase != VoiceRecorderPhase.paused) return;
     try {
       await _recorder.resume();
-      _activeSw.start();
+      _beginSegment();
       _phase = VoiceRecorderPhase.recording;
       notifyListeners();
     } catch (_) {}
@@ -149,8 +200,7 @@ class VoiceRecorderController extends ChangeNotifier {
 
   void _resetSession() {
     _stopUiTimer();
-    _activeSw.stop();
-    _activeSw.reset();
+    _resetElapsed();
     _recordPath = null;
     _phase = VoiceRecorderPhase.idle;
     _finishing = false;
@@ -190,23 +240,23 @@ class VoiceRecorderController extends ChangeNotifier {
       return;
     }
     if (_finishing) return;
+    // Snapshot duration as soon as the user saves — before async stop/encode.
+    _endSegment();
+    final sec = (_elapsedMs / 1000).round().clamp(1, 3600);
     _finishing = true;
     _phase = VoiceRecorderPhase.uploading;
+    _stopUiTimer();
+    activityWriter?.setRecording(false);
     notifyListeners();
 
     final savedPath = _recordPath;
+    final uploadName = _uploadFileName;
     String? pathFromStop;
     try {
       pathFromStop = await _recorder.stop();
     } catch (_) {
       pathFromStop = null;
     }
-
-    _stopUiTimer();
-    _activeSw.stop();
-    final sec = _activeSw.elapsed.inSeconds.clamp(1, 3600);
-    _activeSw.reset();
-    activityWriter?.setRecording(false);
 
     Uint8List? bytes;
     try {
@@ -218,6 +268,7 @@ class VoiceRecorderController extends ChangeNotifier {
     if (bytes == null || bytes.isEmpty) {
       _finishing = false;
       _recordPath = null;
+      _resetElapsed();
       _phase = VoiceRecorderPhase.idle;
       notifyListeners();
       FunHelper.showSnackbar(
@@ -236,7 +287,7 @@ class VoiceRecorderController extends ChangeNotifier {
       activityWriter?.setUploading(ChatUploadKind.file);
       final url = await c.uploadFiles(
         filePathOrBytes: bytes,
-        fileName: _uploadFileName,
+        fileName: uploadName,
         useBlockingUploadDialog: false,
         chatScopeId: scopeId,
       );
@@ -248,6 +299,7 @@ class VoiceRecorderController extends ChangeNotifier {
       activityWriter?.setUploading(null);
       _finishing = false;
       _recordPath = null;
+      _resetElapsed();
       _phase = VoiceRecorderPhase.idle;
       notifyListeners();
     }
@@ -347,9 +399,9 @@ class _FormTrigger extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: Colors.grey.shade50,
+            color: context.appTheme.inputFill,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: Colors.grey.shade300),
+            border: Border.all(color: context.appTheme.border),
           ),
           child: Row(
             children: [
@@ -404,14 +456,18 @@ class VoiceRecorderActiveStrip extends StatelessWidget {
         if (!ctrl.isActive) return const SizedBox.shrink();
 
         final theme = Theme.of(context);
+        final appTheme = context.appTheme;
         final recording = ctrl.phase == VoiceRecorderPhase.recording;
         final paused = ctrl.phase == VoiceRecorderPhase.paused;
         final uploading = ctrl.phase == VoiceRecorderPhase.uploading;
+        final stripColor = recording
+            ? context.statusChipBackground(Colors.red, Colors.red.shade50)
+            : appTheme.panelTint;
 
         return Padding(
           padding: padding,
           child: Material(
-            color: recording ? Colors.red.shade50 : Colors.grey.shade200,
+            color: stripColor,
             borderRadius: BorderRadius.circular(8),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -431,10 +487,13 @@ class VoiceRecorderActiveStrip extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
                   if (uploading)
-                    const SizedBox(
+                    SizedBox(
                       width: 18,
                       height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: appTheme.accentText,
+                      ),
                     )
                   else
                     Text(
@@ -442,6 +501,7 @@ class VoiceRecorderActiveStrip extends StatelessWidget {
                       style: theme.textTheme.titleSmall?.copyWith(
                         fontFeatures: const [FontFeature.tabularFigures()],
                         fontWeight: FontWeight.w700,
+                        color: appTheme.primaryText,
                       ),
                     ),
                   const SizedBox(width: 8),
@@ -456,7 +516,7 @@ class VoiceRecorderActiveStrip extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 13,
-                        color: context.appTheme.mutedText,
+                        color: appTheme.secondaryText,
                       ),
                     ),
                   ),
@@ -476,7 +536,7 @@ class VoiceRecorderActiveStrip extends StatelessWidget {
                           : AppLocaleKeys.chatVoicePause.tr,
                       icon: Icon(
                         paused ? Icons.play_arrow_rounded : Icons.pause_rounded,
-                        color: context.appTheme.accentText,
+                        color: appTheme.accentText,
                         size: 24,
                       ),
                       onPressed: paused
@@ -487,7 +547,7 @@ class VoiceRecorderActiveStrip extends StatelessWidget {
                       tooltip: 'common.save'.tr,
                       icon: Icon(
                         Icons.check_circle,
-                        color: context.appTheme.accentText,
+                        color: appTheme.accentText,
                         size: 24,
                       ),
                       onPressed: ctrl.saveRecording,
@@ -525,10 +585,12 @@ class VoiceRecorderSavedPreview extends StatelessWidget {
     final url = voiceUrl.trim();
     if (url.isEmpty) return const SizedBox.shrink();
 
+    final appTheme = context.appTheme;
+
     return Padding(
       padding: padding,
       child: Material(
-        color: Colors.grey.shade200,
+        color: appTheme.panelTint,
         borderRadius: BorderRadius.circular(8),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -544,6 +606,7 @@ class VoiceRecorderSavedPreview extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
+                        color: appTheme.primaryText,
                       ),
                     ),
                   ),
@@ -574,7 +637,7 @@ class VoiceRecorderSavedPreview extends StatelessWidget {
                 child: Text(
                   captionHint!,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: context.appTheme.mutedText,
+                    color: appTheme.mutedText,
                     fontStyle: FontStyle.italic,
                   ),
                 ),

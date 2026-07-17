@@ -1126,7 +1126,10 @@ class HomeController extends GetxController {
   String? _latestNoteText(TaskModel task) {
     if (task.notes.isEmpty) return null;
     final last = task.notes.last;
-    return last.note.trim().isEmpty ? null : last.note;
+    final t = last.note.trim();
+    if (t.isNotEmpty) return t;
+    if (last.hasVoice) return 'tasks.form.voice_record'.tr;
+    return null;
   }
 
   Future<void> _triggerTaskNotifications(
@@ -1547,15 +1550,22 @@ class HomeController extends GetxController {
       );
     }
     if (newTask.notes.length > oldTask.notes.length) {
-      final newNote = newTask.notes.isNotEmpty ? newTask.notes.last.note : '';
-      final snippet = newNote.length > _timelineValueMaxLength
-          ? '${newNote.substring(0, _timelineValueMaxLength)}...'
-          : newNote;
+      final addedNote = newTask.notes.isNotEmpty ? newTask.notes.last : null;
+      final noteText = addedNote?.note.trim() ?? '';
+      final snippet = noteText.length > _timelineValueMaxLength
+          ? '${noteText.substring(0, _timelineValueMaxLength)}...'
+          : noteText;
+      final voices = addedNote?.voiceRecords
+              .where((e) => e.url.trim().isNotEmpty)
+              .toList() ??
+          const [];
       events.add(
         TaskTimelineEvent(
           type: 'note_added',
           label: 'timeline.comment_added',
+          // Keep text snippet only; voice is rendered via [voiceRecords].
           newValue: snippet.isEmpty ? null : snippet,
+          voiceRecords: voices,
           byUserId: userId,
           byUserName: userName,
           timestamp: ts(),

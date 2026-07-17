@@ -11,6 +11,7 @@ class ChatVoiceCache {
     final u = url.toLowerCase();
     if (u.contains('.mp3')) return 'audio/mpeg';
     if (u.contains('.m4a')) return 'audio/mp4';
+    if (u.contains('.webm')) return 'audio/webm';
     if (u.contains('.wav')) return 'audio/wav';
     if (u.contains('.aac')) return 'audio/aac';
     if (u.contains('.ogg')) return 'audio/ogg';

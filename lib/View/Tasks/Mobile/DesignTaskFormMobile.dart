@@ -16,6 +16,7 @@ import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/t.dart';
 import 'package:point/View/Tasks/Dialogs/task_dialog_constants.dart';
 import 'package:point/View/Tasks/Shared/task_voice_form_helpers.dart';
+import 'package:point/View/Tasks/Shared/task_note_body.dart';
 import 'package:point/View/Tasks/Shared/task_voice_record_field.dart';
 import 'package:point/Models/VoiceRecordEntry.dart';
 import 'package:point/Utils/app_theme_extension.dart';
@@ -440,14 +441,7 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                note.note,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: context.appTheme.primaryText,
-                                ),
-                              ),
+                              TaskNoteBody(note: note),
                               const SizedBox(height: 4),
                               Text(
                                 note.byWho,

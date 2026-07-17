@@ -8,7 +8,6 @@ import 'package:point/Models/ProgrammingModel.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
-import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Shared/form_attachment_thumbnails_grid.dart';
 import 'package:point/View/Clients/ClientsTable.dart';
@@ -21,6 +20,7 @@ import 'package:point/View/Tasks/Dialogs/task_dialog_constants.dart';
 import 'package:point/Models/ProgrammingUpdateModel.dart';
 import 'package:point/View/Tasks/ProgrammingUpdates/updates_source_banner.dart';
 import 'package:point/View/Tasks/Shared/task_form_dialog_actions.dart';
+import 'package:point/View/Tasks/Shared/task_note_body.dart';
 import 'package:point/View/Tasks/Shared/task_voice_form_helpers.dart';
 import 'package:point/View/Tasks/Shared/task_voice_record_field.dart';
 import 'package:point/Models/VoiceRecordEntry.dart';
@@ -469,17 +469,7 @@ void programmingDialog(
                                                         CrossAxisAlignment
                                                             .start,
                                                     children: [
-                                                      Text(
-                                                        note.note,
-                                                        style: TextStyle(
-                                                          fontSize: 12,
-                                                          fontWeight:
-                                                              FontWeight.bold,
-                                                          color:
-                                                              AppColors
-                                                                  .primaryfontColor,
-                                                        ),
-                                                      ),
+                                                      TaskNoteBody(note: note),
                                                       Text(
                                                         note.byWho,
                                                         style: TextStyle(

@@ -1,6 +1,7 @@
 import 'package:point/Utils/app_log.dart';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:point/config/app_config.dart';
 import 'package:point/Utils/EdgeFunctionRateLimiter.dart';
 
 /// إرسال إشعارات البريد عبر Supabase Edge Function (يتجنب CORS على الويب).
@@ -43,7 +44,9 @@ class EmailNotificationService {
   static const String _systemName = 'Point Agency';
 
   /// لم يعد مستخدماً؛ المفتاح يُضبط في Supabase Secrets (RESEND_API_KEY).
-  @Deprecated('Use Supabase Edge Function; set RESEND_API_KEY in Supabase secrets')
+  @Deprecated(
+    'Use Supabase Edge Function; set RESEND_API_KEY in Supabase secrets',
+  )
   static String? apiKey;
 
   /// Sends one email via Supabase Edge Function.
@@ -57,15 +60,27 @@ class EmailNotificationService {
     bool isHtml = false,
     String? languageCode,
   }) async {
-    if (toEmail.trim().isEmpty) return;
+    final trimmedEmail = toEmail.trim();
+    if (trimmedEmail.isEmpty) return;
 
     try {
+      if (AppConfig.isMockEmailMode) {
+        _logMockEmail(
+          toEmail: trimmedEmail,
+          subject: subject,
+          body: body,
+          isHtml: isHtml,
+          languageCode: languageCode,
+        );
+        return;
+      }
+
       final client = Supabase.instance.client;
       final res = await EdgeFunctionRateLimiter.instance.run(() {
         return client.functions.invoke(
           _functionName,
           body: {
-            'toEmail': toEmail.trim(),
+            'toEmail': trimmedEmail,
             'subject': subject,
             'body': body,
             'isHtml': isHtml,
@@ -77,15 +92,15 @@ class EmailNotificationService {
       if (res.status == 200 && res.data != null) {
         final data = res.data as Map<String, dynamic>?;
         if (data?['ok'] == true) {
-          appLog("✅ Email sent to $toEmail");
+          appLog("✅ Email sent to $trimmedEmail");
           return;
         }
       }
       appLog(
-        "❌ Email edge invoke failed for $toEmail. status=${res.status}, data=${res.data}",
+        "❌ Email edge invoke failed for $trimmedEmail. status=${res.status}, data=${res.data}",
       );
     } catch (e, st) {
-      appLog("❌ EmailNotificationService error for $toEmail: $e");
+      appLog("❌ EmailNotificationService error for $trimmedEmail: $e");
       appLog("StackTrace: $st");
     }
   }
@@ -97,12 +112,7 @@ class EmailNotificationService {
     required String body,
   }) async {
     try {
-      await send(
-        toEmail: toEmail,
-        subject: title,
-        body: body,
-        isHtml: false,
-      );
+      await send(toEmail: toEmail, subject: title, body: body, isHtml: false);
     } catch (e, st) {
       appLog("❌ EmailNotificationService sendNotification error: $e");
       appLog("$st");
@@ -180,10 +190,22 @@ class EmailNotificationService {
   /// Sends many distinct emails in one/few Edge invocations (`messages[]`, max 40 each).
   /// Default is wrapper-first when `useSupabaseTemplateWrapper` is true.
   static Future<void> sendDetailedNotificationBatch(
-    List<DetailedEmailBatchItem> items,
-    {bool useSupabaseTemplateWrapper = false}
-  ) async {
+    List<DetailedEmailBatchItem> items, {
+    bool useSupabaseTemplateWrapper = false,
+  }) async {
     if (items.isEmpty) return;
+    if (AppConfig.isMockEmailMode) {
+      _logMockBatch(
+        kind: 'detailed',
+        count: items.length,
+        firstToEmail: items.first.toEmail.trim(),
+        firstSubject: items.first.title,
+        isHtml: !useSupabaseTemplateWrapper,
+        languageCode: items.first.languageCode,
+      );
+      return;
+    }
+
     const maxChunk = 40;
     for (var i = 0; i < items.length; i += maxChunk) {
       final end = (i + maxChunk > items.length) ? items.length : i + maxChunk;
@@ -257,13 +279,29 @@ class EmailNotificationService {
     required String body,
     String? languageCode,
   }) async {
-    final trimmed =
-        toEmails.map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    final trimmed = toEmails
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
     if (trimmed.isEmpty) return;
     final locale = _resolveLocale(body, preferredLanguageCode: languageCode);
+    if (AppConfig.isMockEmailMode) {
+      _logMockBatch(
+        kind: 'plain',
+        count: trimmed.length,
+        firstToEmail: trimmed.first,
+        firstSubject: subject,
+        isHtml: false,
+        languageCode: locale,
+      );
+      return;
+    }
+
     const maxChunk = 40;
     for (var i = 0; i < trimmed.length; i += maxChunk) {
-      final end = (i + maxChunk > trimmed.length) ? trimmed.length : i + maxChunk;
+      final end = (i + maxChunk > trimmed.length)
+          ? trimmed.length
+          : i + maxChunk;
       final chunk = trimmed.sublist(i, end);
       final messages = chunk
           .map(
@@ -298,6 +336,36 @@ class EmailNotificationService {
     }
   }
 
+  static void _logMockEmail({
+    required String toEmail,
+    required String subject,
+    required String body,
+    required bool isHtml,
+    String? languageCode,
+  }) {
+    final language = languageCode ?? 'auto';
+    appLog(
+      'Mock email skipped Edge Function. to=$toEmail, subject="$subject", '
+      'isHtml=$isHtml, language=$language, bodyLength=${body.length}',
+    );
+  }
+
+  static void _logMockBatch({
+    required String kind,
+    required int count,
+    required String firstToEmail,
+    required String firstSubject,
+    required bool isHtml,
+    String? languageCode,
+  }) {
+    final language = languageCode ?? 'auto';
+    appLog(
+      'Mock $kind email batch skipped Edge Function. count=$count, '
+      'firstTo=$firstToEmail, firstSubject="$firstSubject", '
+      'isHtml=$isHtml, language=$language',
+    );
+  }
+
   static String _buildHtmlTemplate({
     required String title,
     required String body,
@@ -307,10 +375,11 @@ class EmailNotificationService {
     Map<String, String>? details,
     String? localeCode,
   }) {
-    final locale = localeCode ??
+    final locale =
+        localeCode ??
         _resolveLocale(
-      '$title\n$body\n${(details ?? const <String, String>{}).keys.join(' ')}',
-    );
+          '$title\n$body\n${(details ?? const <String, String>{}).keys.join(' ')}',
+        );
     final isArabic = locale == 'ar';
     final align = isArabic ? 'right' : 'left';
     final dir = isArabic ? 'rtl' : 'ltr';
@@ -323,8 +392,8 @@ class EmailNotificationService {
     final safeAction = _escapeHtml(
       actionText == null || actionText.trim().isEmpty
           ? (isArabic
-              ? 'افتح التطبيق للاطلاع على التفاصيل الكاملة.'
-              : 'Open the app for full details.')
+                ? 'افتح التطبيق للاطلاع على التفاصيل الكاملة.'
+                : 'Open the app for full details.')
           : actionText.trim(),
     );
     final sentAtText = _escapeHtml(_formatDateTime(sentAt));
@@ -337,19 +406,17 @@ class EmailNotificationService {
       body: body,
       details: details,
     );
-    final detailRows =
-        dedupedDetails.entries
-            .where((e) => e.key.trim().isNotEmpty && e.value.trim().isNotEmpty)
-            .map(
-              (e) =>
-                  '<tr><td style="padding:9px 12px;border:1px solid #E6E8EC;background:#FAFAFC;font-weight:600;color:#4b5563;">${_escapeHtml(e.key)}</td><td style="padding:9px 12px;border:1px solid #E6E8EC;color:#111827;">${_escapeHtml(e.value)}</td></tr>',
-            )
-            .join();
+    final detailRows = dedupedDetails.entries
+        .where((e) => e.key.trim().isNotEmpty && e.value.trim().isNotEmpty)
+        .map(
+          (e) =>
+              '<tr><td style="padding:9px 12px;border:1px solid #E6E8EC;background:#FAFAFC;font-weight:600;color:#4b5563;">${_escapeHtml(e.key)}</td><td style="padding:9px 12px;border:1px solid #E6E8EC;color:#111827;">${_escapeHtml(e.value)}</td></tr>',
+        )
+        .join();
 
-    final detailsSection =
-        detailRows.isEmpty
-            ? ''
-            : '''
+    final detailsSection = detailRows.isEmpty
+        ? ''
+        : '''
       <h3 style="margin:20px 0 10px;color:#111827;font-size:15px;">${isArabic ? 'تفاصيل سريعة' : 'Quick details'}</h3>
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;font-size:14px;color:#1f2937;">
         $detailRows
@@ -464,10 +531,7 @@ class EmailNotificationService {
     Map<String, String>? details,
   }) {
     if (details == null || details.isEmpty) return const {};
-    final seenValues = <String>{
-      _normCompareKey(title),
-      _normCompareKey(body),
-    };
+    final seenValues = <String>{_normCompareKey(title), _normCompareKey(body)};
     final out = <String, String>{};
     for (final e in details.entries) {
       final key = e.key.trim();
@@ -486,7 +550,10 @@ class EmailNotificationService {
   static bool _normCompare(String a, String b) =>
       _normCompareKey(a) == _normCompareKey(b);
 
-  static String? _findDetailValue(Map<String, String> details, List<String> keys) {
+  static String? _findDetailValue(
+    Map<String, String> details,
+    List<String> keys,
+  ) {
     for (final key in keys) {
       final value = details[key];
       if (value != null && value.trim().isNotEmpty) {
@@ -496,10 +563,7 @@ class EmailNotificationService {
     return null;
   }
 
-  static String _resolveLocale(
-    String text, {
-    String? preferredLanguageCode,
-  }) {
+  static String _resolveLocale(String text, {String? preferredLanguageCode}) {
     final normalized = _normalizeLanguageCode(preferredLanguageCode);
     if (normalized != null) return normalized;
     return RegExp(r'[\u0600-\u06FF]').hasMatch(text) ? 'ar' : 'en';
@@ -522,7 +586,9 @@ class EmailNotificationService {
     final isArabic = locale == 'ar';
     final lines = <String>[];
     lines.add(
-      isArabic ? 'لديك إشعار جديد من النظام.' : 'You have a new notification from the system.',
+      isArabic
+          ? 'لديك إشعار جديد من النظام.'
+          : 'You have a new notification from the system.',
     );
     final cleanBody = body.trim();
     if (cleanBody.isNotEmpty) {
@@ -545,9 +611,7 @@ class EmailNotificationService {
     );
     final cleanAction = actionText?.trim() ?? '';
     if (cleanAction.isNotEmpty) {
-      lines.add(
-        isArabic ? 'الإجراء: $cleanAction' : 'Action: $cleanAction',
-      );
+      lines.add(isArabic ? 'الإجراء: $cleanAction' : 'Action: $cleanAction');
     }
     return lines.join('\n').trim();
   }

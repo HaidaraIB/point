@@ -38,6 +38,19 @@ class ChatVoicePlaybackService extends GetxController {
     });
     _durSub = _player.onDurationChanged.listen((d) {
       if (d <= Duration.zero) return;
+      // Recorded voice notes pass a stopwatch hint; player metadata is often
+      // wrong for fresh blobs (web WAV/webm, some AAC containers) and would
+      // replace a correct 1m+ duration with a few seconds after first play.
+      final hint = _hintSec;
+      if (hint != null && hint > 0) {
+        final hintMs = hint * 1000;
+        final reportedMs = d.inMilliseconds;
+        // Only adopt player duration when it roughly agrees with the hint.
+        if (reportedMs < (hintMs * 0.75).round() ||
+            reportedMs > (hintMs * 1.35).round()) {
+          return;
+        }
+      }
       duration.value = d;
     });
     _stateSub = _player.onPlayerStateChanged.listen((s) {
@@ -60,9 +73,9 @@ class ChatVoicePlaybackService extends GetxController {
   }
 
   Duration effectiveDuration(int? hintSec) {
-    if (duration.value > Duration.zero) return duration.value;
     final h = hintSec ?? _hintSec;
     if (h != null && h > 0) return Duration(seconds: h);
+    if (duration.value > Duration.zero) return duration.value;
     return Duration.zero;
   }
 

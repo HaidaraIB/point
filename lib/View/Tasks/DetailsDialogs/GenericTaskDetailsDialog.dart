@@ -15,6 +15,7 @@ import 'package:point/View/Tasks/Shared/open_task_final_work.dart';
 import 'package:point/View/Tasks/Shared/reject_task_dialog.dart';
 import 'package:point/View/Tasks/Shared/request_task_modification_dialog.dart';
 import 'package:point/View/Tasks/Shared/task_attachment_gallery.dart';
+import 'package:point/View/Tasks/Shared/task_note_body.dart';
 import 'package:point/View/Tasks/Shared/task_voice_details_tile.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
 import 'package:point/Utils/AppColors.dart';
@@ -54,7 +55,9 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
   TaskModel _liveTask() {
     final id = widget.task.id;
     if (id == null || id.isEmpty) return widget.task;
-    return Get.find<HomeController>().tasks.firstWhereOrNull((t) => t.id == id) ??
+    return Get.find<HomeController>().tasks.firstWhereOrNull(
+          (t) => t.id == id,
+        ) ??
         widget.task;
   }
 
@@ -221,31 +224,30 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
                                   _employeeMayEditFinalDeliverableInDetails(
                                     live,
                                   ))
-                                  ? [
-                                    IconButton(
-                                      tooltip: 'tasks.final_deliverable_edit'
-                                          .tr,
-                                      icon: const Icon(
-                                        Icons.edit_outlined,
-                                        size: 22,
-                                      ),
-                                      onPressed: () {
-                                        final t = _liveTask();
-                                        if (_canManageFinalDeliverable()) {
-                                          showEditFinalDeliverableDialog(
-                                            context: context,
-                                            task: t,
-                                          );
-                                        } else {
-                                          openTaskFinalWorkDialog(
-                                            context: context,
-                                            task: t,
-                                          );
-                                        }
-                                      },
+                              ? [
+                                  IconButton(
+                                    tooltip: 'tasks.final_deliverable_edit'.tr,
+                                    icon: const Icon(
+                                      Icons.edit_outlined,
+                                      size: 22,
                                     ),
-                                  ]
-                                  : null,
+                                    onPressed: () {
+                                      final t = _liveTask();
+                                      if (_canManageFinalDeliverable()) {
+                                        showEditFinalDeliverableDialog(
+                                          context: context,
+                                          task: t,
+                                        );
+                                      } else {
+                                        openTaskFinalWorkDialog(
+                                          context: context,
+                                          task: t,
+                                        );
+                                      }
+                                    },
+                                  ),
+                                ]
+                              : null,
                           child: _buildFinalDeliverableSection(
                             context,
                             textTheme,
@@ -271,7 +273,9 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
                               context,
                               _liveTask(),
                             ),
-                            if (_employeeMayRequestDeadlineExtension(_liveTask()))
+                            if (_employeeMayRequestDeadlineExtension(
+                              _liveTask(),
+                            ))
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 12),
                                 child: OutlinedButton.icon(
@@ -302,6 +306,7 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
                         context: context,
                         child: TaskTimelineWidget(
                           events: _liveTask().timelineEvents,
+                          notes: _liveTask().notes,
                         ),
                       ),
                     ),
@@ -430,19 +435,20 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
 
   Widget _buildGeneralMetaRow(double dialogWidth, ColorScheme colorScheme) {
     final progressPercent = '${(((widget.task.progress ?? 0) * 100).toInt())}%';
-    final actionTextValue =
-        widget.task.actionText.isNotEmpty ? widget.task.actionText : '-';
-    final statusValue =
-        widget.task.status.isNotEmpty
-            ? FunHelper.trStored(
-              widget.task.status,
-              kind: StoredValueKind.taskStatus,
-            )
-            : '-';
+    final actionTextValue = widget.task.actionText.isNotEmpty
+        ? widget.task.actionText
+        : '-';
+    final statusValue = widget.task.status.isNotEmpty
+        ? FunHelper.trStored(
+            widget.task.status,
+            kind: StoredValueKind.taskStatus,
+          )
+        : '-';
     final bool compact = dialogWidth < 720;
     final infoWidth = compact ? (dialogWidth - 80).clamp(180.0, 240.0) : 220.0;
-    final actionWidth =
-        compact ? (dialogWidth - 80).clamp(220.0, 500.0) : dialogWidth * 0.35;
+    final actionWidth = compact
+        ? (dialogWidth - 80).clamp(220.0, 500.0)
+        : dialogWidth * 0.35;
 
     return Wrap(
       spacing: 12,
@@ -512,9 +518,9 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
                 onPressed: () => openTaskAttachmentGallery(
                   imageUrls: imageUrls,
                   initialIndex: () {
-                  final i = imageUrls.indexOf(att);
-                  return i >= 0 ? i : 0;
-                }(),
+                    final i = imageUrls.indexOf(att);
+                    return i >= 0 ? i : 0;
+                  }(),
                 ),
                 icon: const Icon(Icons.collections_outlined),
               ),
@@ -539,7 +545,6 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
         : ((dialogWidth - horizontalInset - rowGap) / 2).clamp(260.0, 700.0);
     final boxWidth = stacked ? contentWidth : double.infinity;
 
-    final latestNote = task.notes.isNotEmpty ? task.notes.last : null;
     final notesSection = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -570,82 +575,64 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (latestNote != null) ...[
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: context.appTheme.panelTint,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: AppColors.primary.withValues(alpha: 0.35),
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'tasks.latest_comment'.tr,
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: context.appTheme.accentText,
-                              ),
-                            ),
-                            const SizedBox(height: 5),
-                            LinkifiedText(
-                              latestNote.note,
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: context.appTheme.primaryText,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              _buildNoteMeta(latestNote.byWho, latestNote.timestamp),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: Colors.green,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                    ],
                     ListView(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       children: [
-                        for (var note in task.notes)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
+                        for (var i = 0; i < task.notes.length; i++)
+                          Container(
+                            width: double.infinity,
+                            margin: const EdgeInsets.only(bottom: 8),
+                            padding: i == task.notes.length - 1
+                                ? const EdgeInsets.all(10)
+                                : EdgeInsets.zero,
+                            decoration: i == task.notes.length - 1
+                                ? BoxDecoration(
+                                    color: context.appTheme.panelTint,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.35,
+                                      ),
+                                    ),
+                                  )
+                                : null,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                LinkifiedText(
-                                  note.note,
-                                  maxLines: 4,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: context.appTheme.primaryText,
+                                if (i == task.notes.length - 1) ...[
+                                  Text(
+                                    'tasks.latest_comment'.tr,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: context.appTheme.accentText,
+                                    ),
                                   ),
+                                  const SizedBox(height: 5),
+                                ],
+                                TaskNoteBody(
+                                  note: task.notes[i],
+                                  maxLines: 4,
+                                  compactVoice: false,
                                 ),
                                 Text(
-                                  note.byWho,
+                                  i == task.notes.length - 1
+                                      ? _buildNoteMeta(
+                                          task.notes[i].byWho,
+                                          task.notes[i].timestamp,
+                                        )
+                                      : task.notes[i].byWho,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
-                                    fontSize: 12,
+                                    fontSize: i == task.notes.length - 1
+                                        ? 11
+                                        : 12,
                                     color: Colors.green,
+                                    fontWeight: i == task.notes.length - 1
+                                        ? FontWeight.w600
+                                        : null,
                                   ),
                                 ),
                               ],
@@ -675,45 +662,42 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
             ),
           ),
           padding: const EdgeInsets.all(10),
-          child:
-              task.files.isEmpty
-                  ? Center(
-                    child: Text(
-                      'content.dialog.no_attachments'.tr,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w500,
-                      ),
+          child: task.files.isEmpty
+              ? Center(
+                  child: Text(
+                    'content.dialog.no_attachments'.tr,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w500,
                     ),
-                  )
-                  : Builder(
-                    builder: (ctx) {
-                      final urls =
-                          task.files
-                              .map((e) => e.toString())
-                              .where((u) => isImageMediaUrl(u))
-                              .toList();
-                      return GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: task.files.length,
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount:
-                              contentWidth < 340
-                                  ? 1
-                                  : (contentWidth < 560 ? 2 : 3),
-                          crossAxisSpacing: 10,
-                          mainAxisSpacing: 10,
-                          mainAxisExtent: 118,
-                        ),
-                        itemBuilder: (context, index) {
-                          final att = task.files[index].toString();
-                          return _attachmentGridTile(ctx, att, urls);
-                        },
-                      );
-                    },
                   ),
+                )
+              : Builder(
+                  builder: (ctx) {
+                    final urls = task.files
+                        .map((e) => e.toString())
+                        .where((u) => isImageMediaUrl(u))
+                        .toList();
+                    return GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: task.files.length,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: contentWidth < 340
+                            ? 1
+                            : (contentWidth < 560 ? 2 : 3),
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                        mainAxisExtent: 118,
+                      ),
+                      itemBuilder: (context, index) {
+                        final att = task.files[index].toString();
+                        return _attachmentGridTile(ctx, att, urls);
+                      },
+                    );
+                  },
+                ),
         ),
       ],
     );
@@ -863,12 +847,9 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
     final finalType = t.finalDeliverableType.trim();
     final colorScheme = Theme.of(context).colorScheme;
     final maxW = (dialogWidth - 80).clamp(240.0, 760.0);
-    final crossCount =
-        maxW < 340 ? 1 : (maxW < 560 ? 2 : 3);
+    final crossCount = maxW < 340 ? 1 : (maxW < 560 ? 2 : 3);
 
-    if (body.isEmpty &&
-        urls.isEmpty &&
-        _canManageFinalDeliverable()) {
+    if (body.isEmpty && urls.isEmpty && _canManageFinalDeliverable()) {
       return Text(
         'tasks.final_deliverable_empty_manager'.tr,
         style: TextStyle(
@@ -950,8 +931,7 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
             padding: const EdgeInsets.all(10),
             child: Builder(
               builder: (ctx) {
-                final imgUrls =
-                    urls.where((u) => isImageMediaUrl(u)).toList();
+                final imgUrls = urls.where((u) => isImageMediaUrl(u)).toList();
                 return GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -992,8 +972,9 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
   }
 
   String _buildNoteMeta(String author, DateTime timestamp) {
-    final safeAuthor =
-        author.trim().isEmpty ? 'content.dialog.unknown'.tr : author.trim();
+    final safeAuthor = author.trim().isEmpty
+        ? 'content.dialog.unknown'.tr
+        : author.trim();
     return '$safeAuthor • ${_formatRelativeTime(timestamp)}';
   }
 

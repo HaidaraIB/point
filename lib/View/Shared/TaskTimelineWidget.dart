@@ -1,15 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Models/TaskModel.dart';
+import 'package:point/Models/VoiceRecordEntry.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/View/Shared/voice_message_row.dart';
 
 class TaskTimelineWidget extends StatefulWidget {
   final List<TaskTimelineEvent> events;
+  /// Used to recover voice players for older comment events that only stored
+  /// a text placeholder (no [TaskTimelineEvent.voiceRecords]).
+  final List<NoteModel> notes;
 
-  const TaskTimelineWidget({super.key, required this.events});
+  const TaskTimelineWidget({
+    super.key,
+    required this.events,
+    this.notes = const [],
+  });
 
   @override
   State<TaskTimelineWidget> createState() => _TaskTimelineWidgetState();
@@ -108,7 +117,12 @@ class _TaskTimelineWidgetState extends State<TaskTimelineWidget> {
                       ),
                     ),
                     const SizedBox(width: 6),
-                    Expanded(child: _TimelineRow(event: sorted[i])),
+                    Expanded(
+                      child: _TimelineRow(
+                        event: sorted[i],
+                        notes: widget.notes,
+                      ),
+                    ),
                   ],
                 ),
                 if (i < sorted.length - 1) const SizedBox(height: 12),
@@ -123,14 +137,42 @@ class _TaskTimelineWidgetState extends State<TaskTimelineWidget> {
 
 class _TimelineRow extends StatelessWidget {
   final TaskTimelineEvent event;
+  final List<NoteModel> notes;
 
-  const _TimelineRow({required this.event});
+  const _TimelineRow({required this.event, this.notes = const []});
 
   static String _formatValue(String v) {
     final d = DateTime.tryParse(v);
     if (d != null) return FunHelper.formatdate(d) ?? v;
     // ترجمة الحالة والأولوية وغيرها لعرضها بشكل مقروء
     return v.tr;
+  }
+
+  /// Older voice-comment events stored only an emoji label in [newValue].
+  static bool _isLegacyVoicePlaceholder(String value) {
+    final v = value.trim();
+    return v.contains('🎤') ||
+        v == 'tasks.form.voice_record'.tr ||
+        v.endsWith('tasks.form.voice_record'.tr);
+  }
+
+  List<VoiceRecordEntry> _resolvedVoiceRecords() {
+    if (event.hasVoice) return event.voiceRecords;
+    if (event.type != 'note_added' || notes.isEmpty) return const [];
+
+    // Match older timeline comments to notes by author + nearby timestamp.
+    NoteModel? best;
+    var bestDiff = const Duration(minutes: 3);
+    for (final note in notes) {
+      if (!note.hasVoice) continue;
+      if (note.byWho.trim() != event.byUserName.trim()) continue;
+      final diff = note.timestamp.difference(event.timestamp).abs();
+      if (diff <= bestDiff) {
+        best = note;
+        bestDiff = diff;
+      }
+    }
+    return best?.voiceRecords ?? const [];
   }
 
   static String _attachmentFileName(String raw) {
@@ -198,6 +240,10 @@ class _TimelineRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final voices = _resolvedVoiceRecords()
+        .where((e) => e.url.trim().isNotEmpty)
+        .toList();
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -219,7 +265,9 @@ class _TimelineRow extends StatelessWidget {
                   color: context.appTheme.primaryText,
                 ),
               ),
-              if (event.oldValue != null || event.newValue != null) ...[
+              if (event.oldValue != null ||
+                  event.newValue != null ||
+                  voices.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 if (event.oldValue != null)
                   LinkifiedText(
@@ -237,7 +285,8 @@ class _TimelineRow extends StatelessWidget {
                     rawValue: event.newValue!,
                     onOpen: () => _openAttachment(context, event.newValue!),
                   )
-                else if (event.newValue != null)
+                else if (event.newValue != null &&
+                    !_isLegacyVoicePlaceholder(event.newValue!))
                   LinkifiedText(
                     'timeline.value_to'
                         .trParams({'value': _formatValue(event.newValue!)}),
@@ -246,6 +295,22 @@ class _TimelineRow extends StatelessWidget {
                       color: context.appTheme.secondaryText,
                     ),
                   ),
+                if (voices.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  ...voices.map(
+                    (record) => Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: VoiceMessageRow(
+                        url: record.url,
+                        durationSec: record.durationSec > 0
+                            ? record.durationSec
+                            : null,
+                        isMe: false,
+                        compact: true,
+                      ),
+                    ),
+                  ),
+                ],
               ],
               const SizedBox(height: 4),
               Row(

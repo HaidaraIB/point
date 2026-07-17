@@ -16,6 +16,7 @@ import 'package:point/View/Tasks/Dialogs/TaskFormDialogDelegate.dart';
 import 'package:point/View/Tasks/Dialogs/task_dialog_constants.dart';
 import 'package:point/View/Tasks/Dialogs/TaskFormDialogHeader.dart';
 import 'package:point/View/Tasks/Shared/task_form_dialog_actions.dart';
+import 'package:point/View/Tasks/Shared/task_note_body.dart';
 import 'package:point/View/Tasks/Shared/task_voice_form_helpers.dart';
 import 'package:point/View/Tasks/Shared/task_voice_record_field.dart';
 import 'package:point/Models/VoiceRecordEntry.dart';
@@ -380,14 +381,7 @@ class _GenericTaskFormDialogState extends State<GenericTaskFormDialog> {
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  note.note,
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: context.appTheme.primaryText,
-                                  ),
-                                ),
+                                TaskNoteBody(note: note),
                                 Text(
                                   note.byWho,
                                   style: TextStyle(fontSize: 12, color: Colors.green),

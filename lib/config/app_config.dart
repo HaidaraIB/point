@@ -48,6 +48,29 @@ class AppConfig {
     defaultValue: '',
   );
 
+  /// Controls app-triggered email delivery.
+  ///
+  /// `EMAIL_DELIVERY_MODE=mock` logs emails locally and skips the Supabase
+  /// Edge Function. `EMAIL_DELIVERY_MODE=send` invokes the Edge Function as
+  /// usual. Without an explicit value, test Firebase builds mock email while
+  /// production Firebase builds send real email.
+  static const String emailDeliveryMode = String.fromEnvironment(
+    'EMAIL_DELIVERY_MODE',
+    defaultValue: '',
+  );
+
+  static bool get isMockEmailMode {
+    final mode = emailDeliveryMode.trim().toLowerCase();
+    if (mode == 'mock') return true;
+    if (mode == 'send') return false;
+    if (mode.isNotEmpty) {
+      throw StateError('EMAIL_DELIVERY_MODE must be either "mock" or "send".');
+    }
+    return FirebaseAppOptions.isUsingTestFirebaseProject;
+  }
+
+  static bool get shouldSendRealEmails => !isMockEmailMode;
+
   /// Firebase project for this build (from [FirebaseAppOptions]: debug/legacy vs
   /// prod per `USE_FIREBASE_PROD` / `USE_FIREBASE_TEST` / `kDebugMode`).
   ///
@@ -61,6 +84,8 @@ class AppConfig {
       FirebaseAppOptions.currentPlatform.projectId;
 
   /// Public VAPID keys for Web Push Notifications (safe to be public)
-  static const String fcmVapidKeyTest = 'BE5qo7OjlOYrCm57Bhw3eIOGB10llXhD1kJ8jCWQqBHfdYvfOYl7Wck6ugC1cj4BLPccwAU7AGTp35yCpiSddss';
-  static const String fcmVapidKeyProd = 'BBR3nvqnyEKzmgmV5jj8-S-nuoMiJk9osiBt5Mv4ExNfZIa5aD-T6wklMXGBRmv2jGguAmhmJ1K13r0UVgm2OQc';
+  static const String fcmVapidKeyTest =
+      'BE5qo7OjlOYrCm57Bhw3eIOGB10llXhD1kJ8jCWQqBHfdYvfOYl7Wck6ugC1cj4BLPccwAU7AGTp35yCpiSddss';
+  static const String fcmVapidKeyProd =
+      'BBR3nvqnyEKzmgmV5jj8-S-nuoMiJk9osiBt5Mv4ExNfZIa5aD-T6wklMXGBRmv2jGguAmhmJ1K13r0UVgm2OQc';
 }

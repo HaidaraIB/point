@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Chats/chat_cached_attachment_image.dart';
 import 'package:point/View/Chats/chat_reply_draft_banner.dart';
 import 'package:point/View/Chats/voice_recorder_scope.dart';
@@ -77,7 +78,7 @@ class PendingAttachmentStrip extends StatelessWidget {
     return Padding(
       padding: padding,
       child: Material(
-        color: Colors.grey.shade200,
+        color: context.appTheme.panelTint,
         borderRadius: BorderRadius.circular(8),
         child: ListTile(
           dense: true,
@@ -86,10 +87,17 @@ class PendingAttachmentStrip extends StatelessWidget {
             label,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: titleFontSize),
+            style: TextStyle(
+              fontSize: titleFontSize,
+              color: context.appTheme.primaryText,
+            ),
           ),
           trailing: IconButton(
-            icon: const Icon(Icons.close, size: 20),
+            icon: Icon(
+              Icons.close,
+              size: 20,
+              color: context.appTheme.secondaryText,
+            ),
             onPressed: onCancel,
           ),
         ),

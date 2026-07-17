@@ -589,6 +589,8 @@ class TaskTimelineEvent {
   final DateTime timestamp;
   /// مفتاح الحقل للتصفية أو التحليلات (مثل: title, designDetails.designType)
   final String? fieldKey;
+  /// Voice notes attached to a comment timeline event.
+  final List<VoiceRecordEntry> voiceRecords;
 
   TaskTimelineEvent({
     required this.type,
@@ -599,7 +601,11 @@ class TaskTimelineEvent {
     required this.byUserName,
     required this.timestamp,
     this.fieldKey,
+    this.voiceRecords = const [],
   });
+
+  bool get hasVoice =>
+      voiceRecords.any((e) => e.url.trim().isNotEmpty);
 
   factory TaskTimelineEvent.fromJson(Map<String, dynamic> json) {
     return TaskTimelineEvent(
@@ -612,6 +618,7 @@ class TaskTimelineEvent {
       timestamp:
           DateTime.tryParse(json['timestamp']?.toString() ?? '') ?? DateTime.now(),
       fieldKey: json['fieldKey'] as String?,
+      voiceRecords: VoiceRecordEntry.listFromJson(json),
     );
   }
 
@@ -625,6 +632,8 @@ class TaskTimelineEvent {
       'byUserName': byUserName,
       'timestamp': timestamp.toIso8601String(),
       if (fieldKey != null) 'fieldKey': fieldKey,
+      if (voiceRecords.isNotEmpty)
+        'voiceRecords': VoiceRecordEntry.listToJson(voiceRecords),
     };
   }
 }
@@ -633,14 +642,26 @@ class NoteModel {
   final String note;
   final String byWho;
   final DateTime timestamp;
+  final List<VoiceRecordEntry> voiceRecords;
 
-  NoteModel({required this.note, required this.byWho, required this.timestamp});
+  NoteModel({
+    required this.note,
+    required this.byWho,
+    required this.timestamp,
+    this.voiceRecords = const [],
+  });
+
+  bool get hasVoice =>
+      voiceRecords.any((e) => e.url.trim().isNotEmpty);
+
+  bool get hasContent => note.trim().isNotEmpty || hasVoice;
 
   factory NoteModel.fromJson(Map<String, dynamic> json) {
     return NoteModel(
       note: json['note'] ?? '',
       byWho: json['byWho'] ?? '',
       timestamp: DateTime.tryParse(json['timestamp'] ?? '') ?? DateTime.now(),
+      voiceRecords: VoiceRecordEntry.listFromJson(json),
     );
   }
 
@@ -649,6 +670,8 @@ class NoteModel {
       'note': note,
       'byWho': byWho,
       'timestamp': timestamp.toIso8601String(),
+      if (voiceRecords.isNotEmpty)
+        'voiceRecords': VoiceRecordEntry.listToJson(voiceRecords),
     };
   }
 }

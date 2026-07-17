@@ -391,7 +391,11 @@ class EmployeeTaskCard extends StatelessWidget {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                latestNote.note,
+                                latestNote.note.trim().isNotEmpty
+                                    ? latestNote.note
+                                    : (latestNote.hasVoice
+                                        ? 'tasks.form.voice_record'.tr
+                                        : ''),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
