@@ -36,6 +36,14 @@
   <link rel="manifest" href="manifest.json">
   <style>
     body { margin: 0; }
+    /* Match AnimatedSplashScreen web logo size; outside splash-screen-style so
+       flutter_native_splash:create does not overwrite it. */
+    #splash img.center {
+      max-width: min(35vw, 280px);
+      max-height: 64px;
+      width: auto;
+      height: auto;
+    }
   </style>
   
   

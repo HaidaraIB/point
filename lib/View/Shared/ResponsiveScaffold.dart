@@ -1160,7 +1160,7 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                         border: Border.all(
                           color: _messageFocusNode.hasFocus
                               ? AppColors.primary.withValues(alpha: 0.35)
-                              : Colors.grey.shade200,
+                              : context.appTheme.border,
                         ),
                         boxShadow: [
                           BoxShadow(

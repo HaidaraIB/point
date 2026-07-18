@@ -690,6 +690,8 @@ class HomeController extends GetxController {
   MetaPostModel? buildMetaDraftFromContent(
     ContentModel content, {
     required bool schedule,
+    bool asPendingDraft = false,
+    bool silent = false,
   }) {
     final linkedClient = clients.firstWhereOrNull(
       (c) => c.id == content.clientId,
@@ -697,13 +699,15 @@ class HomeController extends GetxController {
     final pageId = (linkedClient?.metaPageId ?? '').trim();
     final pageAccessToken = (linkedClient?.metaPageAccessToken ?? '').trim();
     if (pageId.isEmpty || pageAccessToken.isEmpty) {
-      FunHelper.showSnackbar(
-        'error'.tr,
-        AppLocaleKeys.publishClientMetaPageRequired.tr,
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
+      if (!silent) {
+        FunHelper.showSnackbar(
+          'error'.tr,
+          AppLocaleKeys.publishClientMetaPageRequired.tr,
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+      }
       return null;
     }
     final contentType = content.contentType.toLowerCase();
@@ -719,6 +723,18 @@ class HomeController extends GetxController {
       mediaUrl = trimmed;
       break;
     }
+    final String status;
+    final DateTime? scheduledAt;
+    if (asPendingDraft) {
+      status = 'created';
+      scheduledAt = content.publishDate?.toUtc();
+    } else if (schedule) {
+      status = 'scheduled';
+      scheduledAt = content.publishDate?.toUtc();
+    } else {
+      status = 'queued_now';
+      scheduledAt = DateTime.now().toUtc();
+    }
     return MetaPostModel(
       title: content.title,
       pageId: pageId,
@@ -731,13 +747,12 @@ class HomeController extends GetxController {
       mediaUrl: mediaUrl,
       caption: content.caption,
       platforms: normalizeMetaPlatformsForFirestore(content.platform),
-      status: schedule ? 'scheduled' : 'queued_now',
+      status: status,
       clientId: content.clientId,
+      contentId: content.id,
       createdBy: currentEmployee.value?.id,
       lang: Get.locale?.languageCode ?? 'ar',
-      scheduledAt: schedule
-          ? content.publishDate?.toUtc()
-          : DateTime.now().toUtc(),
+      scheduledAt: scheduledAt,
       createdAt: DateTime.now(),
     );
   }
@@ -756,6 +771,94 @@ class HomeController extends GetxController {
       return null;
     }
     return buildMetaDraftFromContent(content, schedule: true);
+  }
+
+  static bool _sameUtcMoment(DateTime? a, DateTime? b) {
+    if (a == null && b == null) return true;
+    if (a == null || b == null) return false;
+    return a.toUtc().millisecondsSinceEpoch == b.toUtc().millisecondsSinceEpoch;
+  }
+
+  /// When Content gets a publish date, ensure a Draft Meta publish row exists
+  /// so the Publish section can decide queue / schedule / edit next.
+  Future<void> ensurePendingMetaPostForContent(ContentModel content) async {
+    final contentId = content.id?.trim();
+    if (contentId == null || contentId.isEmpty) return;
+    if (content.publishDate == null) return;
+
+    const openStatuses = {'created', 'scheduled'};
+    final existing = metaPosts.firstWhereOrNull(
+      (p) =>
+          (p.contentId?.trim() ?? '') == contentId &&
+          openStatuses.contains(p.status),
+    );
+
+    final draft = buildMetaDraftFromContent(
+      content,
+      schedule: false,
+      asPendingDraft: true,
+      silent: true,
+    );
+    if (draft == null) {
+      if (existing == null) {
+        FunHelper.showSnackbar(
+          'error'.tr,
+          AppLocaleKeys.publishClientMetaPageRequired.tr,
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+      }
+      return;
+    }
+
+    if (existing != null) {
+      await _service.updateMetaPost(
+        existing.copyWith(
+          title: draft.title,
+          pageId: draft.pageId,
+          pageAccessToken: draft.pageAccessToken,
+          pageName: draft.pageName,
+          instagramUserId: draft.instagramUserId,
+          instagramUserName: draft.instagramUserName,
+          postType: draft.postType,
+          mediaType: draft.mediaType,
+          mediaUrl: draft.mediaUrl,
+          caption: draft.caption,
+          platforms: draft.platforms,
+          clientId: draft.clientId,
+          contentId: contentId,
+          lang: draft.lang,
+          scheduledAt: draft.scheduledAt,
+        ),
+      );
+      return;
+    }
+
+    await _service.addMetaPost(draft.copyWith(contentId: contentId));
+  }
+
+  Future<bool> addContent(ContentModel content) async {
+    isLoading.value = true;
+    final id = await _service.addContent(content);
+    isLoading.value = false;
+    if (id != null && content.publishDate != null) {
+      await ensurePendingMetaPostForContent(content.copyWith(id: id));
+    }
+    return id != null;
+  }
+
+  Future<bool> updateContent(ContentModel content) async {
+    final previous = contents.firstWhereOrNull((c) => c.id == content.id);
+    isLoading.value = true;
+    final result = await _service.updateContent(content);
+    isLoading.value = false;
+    if (result &&
+        content.publishDate != null &&
+        !_sameUtcMoment(previous?.publishDate, content.publishDate)) {
+      await ensurePendingMetaPostForContent(content);
+    }
+    return result;
   }
 
   Future<bool> deleteSelectedContents() async {
@@ -840,20 +943,6 @@ class HomeController extends GetxController {
         appLog('⚠️ notifications stream: $e');
       }),
     );
-  }
-
-  Future<bool> addContent(ContentModel content) async {
-    isLoading.value = true;
-    final result = await _service.addContent(content);
-    isLoading.value = false;
-    return result;
-  }
-
-  Future<bool> updateContent(ContentModel content) async {
-    isLoading.value = true;
-    final result = await _service.updateContent(content);
-    isLoading.value = false;
-    return result;
   }
 
   Future<bool> updateContentPromotionField(

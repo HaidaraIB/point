@@ -795,8 +795,11 @@ class _ChatMessageTileState extends State<ChatMessageTile>
     final thumb = (widget.message['replyImageUrl'] as String?)?.trim() ?? '';
     final videoThumb =
         (widget.message['replyVideoUrl'] as String?)?.trim() ?? '';
-    final border = widget.isMe ? Colors.white24 : Colors.black26;
-    final fg = widget.isMe ? Colors.white70 : Colors.black54;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final border = widget.isMe
+        ? Colors.white24
+        : (isDark ? Colors.white24 : Colors.black26);
+    final fg = chatBubbleMutedTextColor(context, widget.isMe);
     final mq = MediaQuery.sizeOf(context);
     final bubbleMaxWidth = _effectiveBubbleMaxWidth(mq.width);
     final maxBar = (bubbleMaxWidth - 24).clamp(120.0, bubbleMaxWidth);
@@ -808,7 +811,9 @@ class _ChatMessageTileState extends State<ChatMessageTile>
         border: Border(left: BorderSide(color: border, width: 3)),
         color: widget.isMe
             ? Colors.white.withValues(alpha: 0.12)
-            : Colors.black.withValues(alpha: 0.05),
+            : (isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : Colors.black.withValues(alpha: 0.05)),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(

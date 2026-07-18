@@ -150,6 +150,7 @@ class ClientsTable extends StatelessWidget {
                             child: Obx(
                               () => DataTable(
                                 dataRowMinHeight: 60,
+                                dataRowMaxHeight: 60,
                                 // headingRowColor: WidgetStateProperty.all(Colors.blue.shade50),
                                 dataRowColor: context.tableDataRowColor,
                                 headingRowColor: context.tableHeadingRowColor,

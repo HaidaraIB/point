@@ -209,7 +209,7 @@ class ChatReplyDraftBanner extends StatelessWidget {
     return Padding(
       padding: padding,
       child: Material(
-        color: Colors.grey.shade200,
+        color: context.appTheme.panelTint,
         borderRadius: BorderRadius.circular(8),
         child: ListTile(
           dense: true,
@@ -225,10 +225,17 @@ class ChatReplyDraftBanner extends StatelessWidget {
             '${AppLocaleKeys.chatReplyingTo.tr}: $cap',
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: fontSize),
+            style: TextStyle(
+              fontSize: fontSize,
+              color: context.appTheme.primaryText,
+            ),
           ),
           trailing: IconButton(
-            icon: Icon(Icons.close, size: fontSize >= 13 ? 20 : 18),
+            icon: Icon(
+              Icons.close,
+              size: fontSize >= 13 ? 20 : 18,
+              color: context.appTheme.secondaryText,
+            ),
             onPressed: onCancel,
           ),
         ),

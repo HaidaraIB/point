@@ -17,6 +17,7 @@ class MetaPostModel {
     this.metaResponse,
     this.lastError,
     this.clientId,
+    this.contentId,
     this.createdBy,
     this.lang,
     this.scheduledAt,
@@ -43,6 +44,8 @@ class MetaPostModel {
   final String? metaResponse;
   final String? lastError;
   final String? clientId;
+  /// Source Content doc id when this row was auto-created / drafted from Content.
+  final String? contentId;
   final String? createdBy;
   /// UI/content language used by external scheduler worker notifications (`ar`/`en`).
   final String? lang;
@@ -67,6 +70,7 @@ class MetaPostModel {
     String? metaResponse,
     String? lastError,
     String? clientId,
+    String? contentId,
     String? createdBy,
     String? lang,
     DateTime? scheduledAt,
@@ -89,6 +93,7 @@ class MetaPostModel {
       metaResponse: metaResponse ?? this.metaResponse,
       lastError: lastError ?? this.lastError,
       clientId: clientId ?? this.clientId,
+      contentId: contentId ?? this.contentId,
       createdBy: createdBy ?? this.createdBy,
       lang: lang ?? this.lang,
       scheduledAt: scheduledAt ?? this.scheduledAt,
@@ -114,6 +119,7 @@ class MetaPostModel {
       metaResponse: json['metaResponse']?.toString(),
       lastError: json['lastError']?.toString(),
       clientId: json['clientId']?.toString(),
+      contentId: json['contentId']?.toString(),
       createdBy: json['createdBy']?.toString(),
       lang: json['lang']?.toString(),
       scheduledAt: _parseDate(json['scheduledAt'] ?? json['scheduled_at']),
@@ -144,6 +150,7 @@ class MetaPostModel {
       'metaResponse': metaResponse,
       'lastError': lastError,
       'clientId': clientId,
+      'contentId': contentId,
       'createdBy': createdBy,
       'lang': lang,
       'scheduledAt': scheduledAt?.toIso8601String(),

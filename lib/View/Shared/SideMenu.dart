@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Localization/LanguageController.dart';
-import 'package:point/Services/FunHelper.dart';
 import 'package:point/View/Shared/app_version_label.dart';
 import 'package:point/View/Shared/app_theme_menu_button.dart';
 import 'package:point/Services/StorageKeys.dart';
@@ -31,37 +30,6 @@ class _CustomSidebarState extends State<CustomSidebar> {
 
   String _departmentText(String slug) =>
       StorageKeys.semanticDepartmentLabelKey(slug).tr;
-
-  Future<bool> _confirmLogout() async {
-    final isArabic = Get.locale?.languageCode == 'ar';
-    final result = await showDialog<bool>(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: Text('logout'.tr),
-            content: Text(
-              isArabic
-                  ? 'هل أنت متأكد أنك تريد تسجيل الخروج؟'
-                  : 'Are you sure you want to log out?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: Text('cancel'.tr),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                onPressed: () => Navigator.of(ctx).pop(true),
-                child: Text(
-                  'logout'.tr,
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ],
-          ),
-    );
-    return result ?? false;
-  }
 
   @override
   void initState() {
@@ -942,21 +910,6 @@ class _CustomSidebarState extends State<CustomSidebar> {
                 );
               },
             ),
-          ),
-          _buildTile(
-            selectedTab: 999,
-            icon: '',
-            text: 'logout'.tr,
-            iconData: Icons.logout,
-            customColor: Colors.red.shade400,
-            onTap: () async {
-              final controller = Get.find<HomeController>();
-              final shouldLogout = await _confirmLogout();
-              if (!shouldLogout) return;
-              controller.clearEmployeeSession();
-              Get.offAllNamed('/auth/login');
-              FunHelper.scheduleFirebaseSignOutAndClearPrefs();
-            },
           ),
           _buildLanguageSelector(),
           const AppThemeMenuButton(onDarkSurface: true),

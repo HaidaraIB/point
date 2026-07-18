@@ -1027,14 +1027,15 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
     );
   }
 
-  Future<bool> addContent(ContentModel content) async {
+  Future<String?> addContent(ContentModel content) async {
     try {
       final docRef = _db.doc(); // auto id
-      await docRef.set(content.copyWith(id: docRef.id).toJson());
-      return true;
+      final id = docRef.id;
+      await docRef.set(content.copyWith(id: id).toJson());
+      return id;
     } catch (e) {
       appLog("❌ Error addContent: $e");
-      return false;
+      return null;
     }
   }
 
