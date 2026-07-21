@@ -128,14 +128,11 @@ class _AddProgrammingUpdateMobilePageState
   }
 
   List<EmployeeModel> _programmingExecutors(HomeController controller) {
-    final role = controller.currentEmployee.value?.role;
-    final currentId = controller.currentEmployee.value?.id;
-    final isManager = role == 'admin' || role == 'supervisor';
     return controller.employees
         .where(
-          (a) =>
-              a.hasDepartment(StorageKeys.departmentProgramming) ||
-              (isManager && a.id == currentId),
+          (a) => a.canBeAssignedAsExecutorFor(
+            StorageKeys.departmentProgramming,
+          ),
         )
         .toList();
   }

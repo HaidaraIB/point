@@ -264,15 +264,9 @@ class _DesignTaskFormMobilePageState extends State<DesignTaskFormMobilePage> {
                   DynamicDropdown<EmployeeModel>(
                     items: safeEmployees
                         .where(
-                          (a) => a.hasDepartment(
+                          (a) => a.canBeAssignedAsExecutorFor(
                             StorageKeys.departmentDesign,
-                          ) ||
-                          (((controller.currentEmployee.value?.role ==
-                                      'admin') ||
-                                  (controller.currentEmployee.value?.role ==
-                                      'supervisor')) &&
-                              a.id ==
-                                  controller.currentEmployee.value?.id),
+                          ),
                         )
                         .map(
                           (v) => DropdownMenuItem(

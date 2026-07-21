@@ -76,6 +76,17 @@ class EmployeeModel {
         (d) => StorageKeys.matchesDepartment(d, semanticDepartment),
       );
 
+  /// Admin and supervisor are global roles (no department membership).
+  bool get isManagerRole {
+    final r = role.trim().toLowerCase();
+    return r == 'admin' || r == 'supervisor';
+  }
+
+  /// Whether this person can appear as a task assignee for [semanticDepartment].
+  /// Managers (admin/supervisor) are always assignable; staff need the department.
+  bool canBeAssignedAsExecutorFor(String semanticDepartment) =>
+      isManagerRole || hasDepartment(semanticDepartment);
+
   EmployeeModel copyWith({
     String? id,
     String? name,

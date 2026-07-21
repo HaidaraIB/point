@@ -737,14 +737,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
           }
           final department = _departmentForType(taskType);
           final filteredEmployees = safeEmployees
-              .where(
-                (a) =>
-                    a.hasDepartment(department) ||
-                    (((controller.currentEmployee.value?.role == 'admin') ||
-                            (controller.currentEmployee.value?.role ==
-                                'supervisor')) &&
-                        a.id == controller.currentEmployee.value?.id),
-              )
+              .where((a) => a.canBeAssignedAsExecutorFor(department))
               .toList();
 
           return Form(

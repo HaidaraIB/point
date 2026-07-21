@@ -123,24 +123,9 @@ void showAddProgrammingUpdateDialog(
                                     child: DynamicDropdown(
                                       items: controller.employees
                                           .where(
-                                            (a) =>
-                                                a.hasDepartment(
-                                                  StorageKeys
-                                                      .departmentProgramming,
-                                                ) ||
-                                                (((controller.currentEmployee
-                                                                .value?.role ==
-                                                            'admin') ||
-                                                        (controller
-                                                                .currentEmployee
-                                                                .value
-                                                                ?.role ==
-                                                            'supervisor')) &&
-                                                    a.id ==
-                                                        controller
-                                                            .currentEmployee
-                                                            .value
-                                                            ?.id),
+                                            (a) => a.canBeAssignedAsExecutorFor(
+                                              StorageKeys.departmentProgramming,
+                                            ),
                                           )
                                           .map(
                                             (v) => DropdownMenuItem(

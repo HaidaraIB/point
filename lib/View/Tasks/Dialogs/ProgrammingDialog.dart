@@ -167,15 +167,9 @@ void programmingDialog(
                                     items:
                                         controller.employees
                                             .where(
-                                              (a) => a.hasDepartment(
+                                              (a) => a.canBeAssignedAsExecutorFor(
                                                 StorageKeys.departmentProgramming,
-                                              ) ||
-                                              (((controller.currentEmployee.value?.role ==
-                                                          'admin') ||
-                                                      (controller.currentEmployee.value?.role ==
-                                                          'supervisor')) &&
-                                                  a.id ==
-                                                      controller.currentEmployee.value?.id),
+                                              ),
                                             )
                                             .map(
                                               (v) => DropdownMenuItem(

@@ -167,15 +167,9 @@ void montageDialog(BuildContext context, {TaskModel? model}) {
                                     items:
                                         controller.employees
                                             .where(
-                                              (a) => a.hasDepartment(
+                                              (a) => a.canBeAssignedAsExecutorFor(
                                                 StorageKeys.departmentMontage,
-                                              ) ||
-                                              (((controller.currentEmployee.value?.role ==
-                                                          'admin') ||
-                                                      (controller.currentEmployee.value?.role ==
-                                                          'supervisor')) &&
-                                                  a.id ==
-                                                      controller.currentEmployee.value?.id),
+                                              ),
                                             )
                                             .map(
                                               (v) => DropdownMenuItem(
