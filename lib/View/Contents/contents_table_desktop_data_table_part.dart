@@ -864,6 +864,7 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                                           initialScheduleMode: 'now',
                                           forceSingleMediaSelection:
                                               dedicated.length > 1,
+                                          queueOnNowSave: true,
                                         );
                                       }
                                     } else if (value == 3) {

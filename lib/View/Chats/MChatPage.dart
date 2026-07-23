@@ -256,11 +256,18 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
     if (mounted) setState(() {});
   }
 
+  Future<void> _markChatAsRead(String chatId) async {
+    final uid = _currentUserId?.trim() ?? '';
+    if (uid.isEmpty || uid == 'temp_current_user') return;
+    await FirestoreServices.markIncomingMessagesReadInChat(chatId, uid);
+  }
+
   void _showChatListPinMenu(
     BuildContext menuContext,
     Offset globalPosition,
-    String chatId,
-  ) {
+    String chatId, {
+    int unreadIncoming = 0,
+  }) {
     if (!mounted) return;
     final pinned = _pinnedChatIds.contains(chatId);
     unawaited(
@@ -270,6 +277,8 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
         chatId: chatId,
         isPinned: pinned,
         onTogglePin: _togglePinChat,
+        showMarkAsRead: unreadIncoming > 0,
+        onMarkAsRead: _markChatAsRead,
       ),
     );
   }
@@ -1252,12 +1261,16 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                               );
                             }
 
+                            final unreadIncoming =
+                                (ch['unreadIncoming'] as int?) ?? 0;
+
                             return GestureDetector(
                               onLongPressStart: (details) {
                                 _showChatListPinMenu(
                                   context,
                                   details.globalPosition,
                                   chatId,
+                                  unreadIncoming: unreadIncoming,
                                 );
                               },
                               child: ListTile(

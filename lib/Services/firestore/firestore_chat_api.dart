@@ -182,10 +182,19 @@ class FirestoreChatApi {
     if (uid.isEmpty) return;
     final chatRef = FirebaseFirestore.instance.collection('chats').doc(chatId);
     try {
-      await chatRef.update({
-        unreadCountField(uid): 0,
-        lastReadAtField(uid): FieldValue.serverTimestamp(),
-      });
+      final chatSnap = await chatRef.get();
+      final currentUnread = chatSnap.exists
+          ? unreadCountFromChatData(
+              chatSnap.data() ?? const <String, dynamic>{},
+              uid,
+            )
+          : 0;
+      if (currentUnread > 0) {
+        await chatRef.update({
+          unreadCountField(uid): 0,
+          lastReadAtField(uid): FieldValue.serverTimestamp(),
+        });
+      }
     } catch (e) {
       appLog('markIncomingMessagesReadInChat chat doc: $e');
     }

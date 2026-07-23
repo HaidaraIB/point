@@ -243,6 +243,7 @@ class AppLocaleKeys {
   static const chatFolderEmpty = 'chat.folder_empty';
   static const chatListPinChat = 'chat.list_pin_chat';
   static const chatListUnpinChat = 'chat.list_unpin_chat';
+  static const chatListMarkAsRead = 'chat.list_mark_as_read';
   static const chatSearch = 'chat.search';
   static const chatSearchEmployee = 'chat.search_employee';
   static const chatNoEmployees = 'chat.no_employees';

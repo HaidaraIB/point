@@ -25,6 +25,7 @@ class PublishAddMobilePage extends StatefulWidget {
     this.initialDraft,
     this.initialScheduleMode,
     this.forceSingleMediaSelection = false,
+    this.queueOnNowSave = false,
   });
 
   final List<MetaBusinessAsset> assets;
@@ -32,6 +33,10 @@ class PublishAddMobilePage extends StatefulWidget {
   final MetaPostModel? initialDraft;
   final String? initialScheduleMode;
   final bool forceSingleMediaSelection;
+
+  /// When true and schedule mode is "now", save as `queued_now` instead of
+  /// a `created` draft (Content → Publish now).
+  final bool queueOnNowSave;
 
   @override
   State<PublishAddMobilePage> createState() => _PublishAddMobilePageState();
@@ -255,9 +260,13 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
     }
 
     final emp = _controller.currentEmployee.value;
+    final queueNow =
+        widget.queueOnNowSave && _scheduleMode.value == 'now';
     final nextStatus = _scheduleMode.value == 'schedule'
         ? 'scheduled'
-        : 'created';
+        : (queueNow ? 'queued_now' : 'created');
+    final nowUtc = DateTime.now().toUtc();
+    final seed = widget.initialPost ?? widget.initialDraft;
     final post = MetaPostModel(
       title: title,
       pageId: asset.pageId,
@@ -272,11 +281,12 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
       platforms: fs,
       status: nextStatus,
       clientId: _clientId.value == _noneClient ? null : _clientId.value.trim(),
+      contentId: seed?.contentId,
       createdBy: widget.initialPost?.createdBy ?? emp?.id,
       lang: Get.locale?.languageCode ?? 'ar',
       scheduledAt: _scheduleMode.value == 'schedule'
           ? _scheduledAt.value
-          : null,
+          : (queueNow ? nowUtc : null),
       createdAt: widget.initialPost?.createdAt ?? DateTime.now(),
     );
     final ok = widget.initialPost == null
@@ -296,9 +306,12 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
               platforms: post.platforms,
               status: post.status,
               clientId: post.clientId,
+              contentId: post.contentId,
               createdBy: post.createdBy,
               lang: post.lang,
               scheduledAt: post.scheduledAt,
+              lastError: queueNow ? null : widget.initialPost!.lastError,
+              metaResponse: queueNow ? null : widget.initialPost!.metaResponse,
             ),
           );
     _controller.uploadedFilesPaths.clear();
@@ -308,6 +321,15 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
         'common.save'.tr,
         'publish.schedule_saved'.tr,
         dedupeKey: 'publish_schedule_saved',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+    } else if (ok && queueNow) {
+      FunHelper.showSnackbarDeduped(
+        'common.save'.tr,
+        'publish.queued_now'.tr,
+        dedupeKey: 'publish_queued_now',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green,
         colorText: Colors.white,
@@ -626,7 +648,12 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
                 ),
                 const SizedBox(height: 20),
                 MainButton(
-                  title: 'publish.save_draft'.tr,
+                  title: widget.initialPost != null
+                      ? 'common.save'.tr
+                      : (widget.queueOnNowSave &&
+                            _scheduleMode.value == 'now')
+                      ? 'content.publish_now'.tr
+                      : 'publish.save_draft'.tr,
                   height: 44,
                   borderSize: 12,
                   margin: EdgeInsets.zero,

@@ -362,6 +362,7 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
                       initialDraft: draft,
                       initialScheduleMode: 'now',
                       forceSingleMediaSelection: dedicated.length > 1,
+                      queueOnNowSave: true,
                     );
                   }
                 }

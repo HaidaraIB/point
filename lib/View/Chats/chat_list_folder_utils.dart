@@ -160,19 +160,28 @@ class ChatListFolderTabs extends StatelessWidget {
   }
 }
 
-/// Floating context menu for pin / unpin chat (list row), anchored at [globalPosition].
+/// Floating context menu for pin / unpin / mark-as-read (list row),
+/// anchored at [globalPosition].
 Future<void> showChatListPinContextMenu({
   required BuildContext context,
   required Offset globalPosition,
   required String chatId,
   required bool isPinned,
   required Future<void> Function(String id) onTogglePin,
+  bool showMarkAsRead = false,
+  Future<void> Function(String id)? onMarkAsRead,
 }) async {
   final overlay = Overlay.of(context).context.findRenderObject()! as RenderBox;
   final size = overlay.size;
   final position = RelativeRect.fromRect(
     Rect.fromCenter(center: globalPosition, width: 1, height: 1),
     Offset.zero & size,
+  );
+
+  const itemTextStyle = TextStyle(
+    color: Colors.white,
+    fontSize: 15,
+    fontWeight: FontWeight.w500,
   );
 
   await showMenu<void>(
@@ -198,17 +207,34 @@ Future<void> showChatListPinContextMenu({
             isPinned
                 ? AppLocaleKeys.chatListUnpinChat.tr
                 : AppLocaleKeys.chatListPinChat.tr,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
-            ),
+            style: itemTextStyle,
           ),
         ),
         onTap: () {
           unawaited(onTogglePin(chatId));
         },
       ),
+      if (showMarkAsRead && onMarkAsRead != null)
+        PopupMenuItem<void>(
+          padding: EdgeInsets.zero,
+          child: ListTile(
+            dense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+            minVerticalPadding: 10,
+            leading: const Icon(
+              Icons.mark_chat_read_outlined,
+              color: Color(0xFFE8ECFF),
+              size: 22,
+            ),
+            title: Text(
+              AppLocaleKeys.chatListMarkAsRead.tr,
+              style: itemTextStyle,
+            ),
+          ),
+          onTap: () {
+            unawaited(onMarkAsRead(chatId));
+          },
+        ),
     ],
   );
 }

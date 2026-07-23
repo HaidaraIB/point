@@ -217,6 +217,9 @@ Future<void> showAddPublishDialog({
   MetaPostModel? initialDraft,
   String? initialScheduleMode,
   bool forceSingleMediaSelection = false,
+  /// When true and schedule mode is "now", save as `queued_now` (same as
+  /// Publish table → Publish now) instead of a `created` draft.
+  bool queueOnNowSave = false,
 }) async {
   // Open full-screen add page on native OR compact web widths.
   // This keeps behavior aligned with the table responsive breakpoint.
@@ -238,6 +241,7 @@ Future<void> showAddPublishDialog({
         initialDraft: initialDraft,
         initialScheduleMode: initialScheduleMode,
         forceSingleMediaSelection: forceSingleMediaSelection,
+        queueOnNowSave: queueOnNowSave,
       ),
     );
     return;
@@ -698,10 +702,14 @@ Future<void> showAddPublishDialog({
                             ),
                           ),
                           const SizedBox(width: 12),
-                          MainButton(
-                            title: existing == null
-                                ? 'publish.save_draft'.tr
-                                : 'common.save'.tr,
+                          Obx(
+                            () => MainButton(
+                            title: existing != null
+                                ? 'common.save'.tr
+                                : (queueOnNowSave &&
+                                      scheduleMode.value == 'now')
+                                ? 'content.publish_now'.tr
+                                : 'publish.save_draft'.tr,
                             height: 40,
                             borderSize: 20,
                             width: 140,
@@ -769,10 +777,14 @@ Future<void> showAddPublishDialog({
                                 return;
                               }
                               final emp = controller.currentEmployee.value;
+                              final queueNow =
+                                  queueOnNowSave &&
+                                  scheduleMode.value == 'now';
                               final nextStatus =
                                   scheduleMode.value == 'schedule'
                                   ? 'scheduled'
-                                  : 'created';
+                                  : (queueNow ? 'queued_now' : 'created');
+                              final nowUtc = DateTime.now().toUtc();
                               final post = MetaPostModel(
                                 title: title,
                                 pageId: asset.pageId,
@@ -789,11 +801,12 @@ Future<void> showAddPublishDialog({
                                 clientId: clientId.value == noneClient
                                     ? null
                                     : clientId.value.trim(),
+                                contentId: seed?.contentId,
                                 createdBy: existing?.createdBy ?? emp?.id,
                                 lang: Get.locale?.languageCode ?? 'ar',
                                 scheduledAt: scheduleMode.value == 'schedule'
                                     ? scheduledAt.value
-                                    : null,
+                                    : (queueNow ? nowUtc : null),
                                 createdAt:
                                     existing?.createdAt ?? DateTime.now(),
                               );
@@ -815,9 +828,16 @@ Future<void> showAddPublishDialog({
                                         platforms: post.platforms,
                                         status: post.status,
                                         clientId: post.clientId,
+                                        contentId: post.contentId,
                                         createdBy: post.createdBy,
                                         lang: post.lang,
                                         scheduledAt: post.scheduledAt,
+                                        lastError: queueNow
+                                            ? null
+                                            : existing.lastError,
+                                        metaResponse: queueNow
+                                            ? null
+                                            : existing.metaResponse,
                                       ),
                                     );
                               controller.uploadedFilesPaths.clear();
@@ -830,9 +850,19 @@ Future<void> showAddPublishDialog({
                                   backgroundColor: Colors.green,
                                   colorText: Colors.white,
                                 );
+                              } else if (ok && queueNow) {
+                                FunHelper.showSnackbarDeduped(
+                                  'common.save'.tr,
+                                  'publish.queued_now'.tr,
+                                  dedupeKey: 'publish_queued_now',
+                                  snackPosition: SnackPosition.BOTTOM,
+                                  backgroundColor: Colors.green,
+                                  colorText: Colors.white,
+                                );
                               }
                               if (ok) Get.back();
                             },
+                          ),
                           ),
                         ],
                       ),
