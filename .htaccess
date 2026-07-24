@@ -1,6 +1,6 @@
 <IfModule mod_headers.c>
   # Never cache these — they control update detection
-  <FilesMatch "^(index\.html|flutter_service_worker\.js|version\.json|manifest\.json)$">
+  <FilesMatch "^(index\.html|flutter_service_worker\.js|flutter_bootstrap\.js|version\.json|manifest\.json)$">
     Header set Cache-Control "no-cache, no-store, must-revalidate"
     Header set Pragma "no-cache"
     Header set Expires "0"

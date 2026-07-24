@@ -306,72 +306,84 @@ class PublishTable extends StatelessWidget {
 
   Widget _buildStatusControl(HomeController controller, MetaPostModel p) {
     final options = _statusChangeOptions(controller, p);
+    final Widget statusWidget;
     if (options.isEmpty) {
-      return _statusChip(p.status);
+      statusWidget = _statusChip(p.status);
+    } else {
+      statusWidget = Builder(
+        builder: (context) {
+          final chipKey = GlobalKey();
+          return GestureDetector(
+            key: chipKey,
+            onTap: () async {
+              final renderBox =
+                  chipKey.currentContext!.findRenderObject()! as RenderBox;
+              final offset = renderBox.localToGlobal(Offset.zero);
+              final size = renderBox.size;
+              final overlayBox =
+                  Overlay.of(context).context.findRenderObject()! as RenderBox;
+              final overlaySize = overlayBox.size;
+              const menuWidth = 196.0;
+              final centerX = offset.dx + size.width / 2;
+              final left = (centerX - menuWidth / 2)
+                  .clamp(8.0, overlaySize.width - menuWidth - 8);
+
+              final selected = await showMenu<String>(
+                context: context,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                color: resolveAppTheme().cardSurface,
+                elevation: 4,
+                position: RelativeRect.fromLTRB(
+                  left,
+                  offset.dy + size.height + 4,
+                  overlaySize.width - left - menuWidth,
+                  0,
+                ),
+                items: options
+                    .map((option) {
+                      final visuals =
+                          _statusVisuals(_statusForAction(option.action));
+                      return PopupMenuItem<String>(
+                        value: option.action,
+                        child: SizedBox(
+                          width: menuWidth - 32,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(option.label),
+                              Icon(
+                                visuals.icon,
+                                size: 18,
+                                color: visuals.fg,
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    })
+                    .toList(),
+              );
+              if (selected != null) {
+                await _handlePostAction(controller, p, selected);
+              }
+            },
+            child: _statusChip(p.status, showDropdownCaret: true),
+          );
+        },
+      );
     }
 
-    return Builder(
-      builder: (context) {
-        final chipKey = GlobalKey();
-        return GestureDetector(
-          key: chipKey,
-          onTap: () async {
-            final renderBox =
-                chipKey.currentContext!.findRenderObject()! as RenderBox;
-            final offset = renderBox.localToGlobal(Offset.zero);
-            final size = renderBox.size;
-            final overlayBox =
-                Overlay.of(context).context.findRenderObject()! as RenderBox;
-            final overlaySize = overlayBox.size;
-            const menuWidth = 196.0;
-            final centerX = offset.dx + size.width / 2;
-            final left = (centerX - menuWidth / 2)
-                .clamp(8.0, overlaySize.width - menuWidth - 8);
-
-            final selected = await showMenu<String>(
-              context: context,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              color: resolveAppTheme().cardSurface,
-              elevation: 4,
-              position: RelativeRect.fromLTRB(
-                left,
-                offset.dy + size.height + 4,
-                overlaySize.width - left - menuWidth,
-                0,
-              ),
-              items: options
-                  .map((option) {
-                    final visuals =
-                        _statusVisuals(_statusForAction(option.action));
-                    return PopupMenuItem<String>(
-                      value: option.action,
-                      child: SizedBox(
-                        width: menuWidth - 32,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(option.label),
-                            Icon(
-                              visuals.icon,
-                              size: 18,
-                              color: visuals.fg,
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  })
-                  .toList(),
-            );
-            if (selected != null) {
-              await _handlePostAction(controller, p, selected);
-            }
-          },
-          child: _statusChip(p.status, showDropdownCaret: true),
-        );
-      },
+    // Kebab next to status so row actions stay visible even when the
+    // dedicated actions column is off-screen / clipped on narrow viewports.
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        statusWidget,
+        const SizedBox(width: 4),
+        _buildActionsMenu(controller, p, compact: true),
+      ],
     );
   }
 
@@ -788,14 +800,14 @@ class PublishTable extends StatelessWidget {
     // columns (actions in RTL) get crushed with no usable scrollbar.
     const colSpacing = 12.0;
     const hMargin = 12.0;
+    // Actions live beside status (always visible); no separate actions column.
     const colWidths = <double>[
-      72, // actions (first → rightmost in RTL, always on-screen)
       180, // title
       170, // facebook page
       140, // instagram
       110, // post type
       140, // platforms
-      150, // status
+      210, // status + kebab
       140, // date
     ];
     final tableWidth = colWidths.fold<double>(0, (a, b) => a + b) +
@@ -840,42 +852,37 @@ class PublishTable extends StatelessWidget {
                                 DataColumn(
                                   columnWidth: FixedColumnWidth(colWidths[0]),
                                   headingRowAlignment: MainAxisAlignment.center,
-                                  label: _headerText('publish.actions'),
+                                  label: _headerText('title'),
                                 ),
                                 DataColumn(
                                   columnWidth: FixedColumnWidth(colWidths[1]),
                                   headingRowAlignment: MainAxisAlignment.center,
-                                  label: _headerText('title'),
-                                ),
-                                DataColumn(
-                                  columnWidth: FixedColumnWidth(colWidths[2]),
-                                  headingRowAlignment: MainAxisAlignment.center,
                                   label: _headerText('publish.page_label'),
                                 ),
                                 DataColumn(
-                                  columnWidth: FixedColumnWidth(colWidths[3]),
+                                  columnWidth: FixedColumnWidth(colWidths[2]),
                                   headingRowAlignment: MainAxisAlignment.center,
                                   label: _headerText(
                                     'publish.instagram_account',
                                   ),
                                 ),
                                 DataColumn(
-                                  columnWidth: FixedColumnWidth(colWidths[4]),
+                                  columnWidth: FixedColumnWidth(colWidths[3]),
                                   headingRowAlignment: MainAxisAlignment.center,
                                   label: _headerText('publish.post_type'),
                                 ),
                                 DataColumn(
-                                  columnWidth: FixedColumnWidth(colWidths[5]),
+                                  columnWidth: FixedColumnWidth(colWidths[4]),
                                   headingRowAlignment: MainAxisAlignment.center,
                                   label: _headerText('publish.platforms'),
                                 ),
                                 DataColumn(
-                                  columnWidth: FixedColumnWidth(colWidths[6]),
+                                  columnWidth: FixedColumnWidth(colWidths[5]),
                                   headingRowAlignment: MainAxisAlignment.center,
                                   label: _headerText('publish.status'),
                                 ),
                                 DataColumn(
-                                  columnWidth: FixedColumnWidth(colWidths[7]),
+                                  columnWidth: FixedColumnWidth(colWidths[6]),
                                   headingRowAlignment: MainAxisAlignment.center,
                                   label: _headerText('publish_date'),
                                 ),
@@ -883,14 +890,6 @@ class PublishTable extends StatelessWidget {
                               rows: list.map((p) {
                                 return DataRow(
                                   cells: [
-                                    DataCell(
-                                      TableCellCenter(
-                                        child: _buildActionsMenu(
-                                          controller,
-                                          p,
-                                        ),
-                                      ),
-                                    ),
                                     DataCell(
                                       TableCellCenter(
                                         child: Text(

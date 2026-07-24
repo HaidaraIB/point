@@ -62,7 +62,7 @@ class FirestoreServices extends FirestoreServicesBase
 
   static const String authRolesCollection = FirestoreAuthApi.authRolesCollection;
 
-  static Future<void> syncAuthRoleForEmployee(EmployeeModel employee) =>
+  static Future<bool> syncAuthRoleForEmployee(EmployeeModel employee) =>
       FirestoreAuthApi.syncAuthRoleForEmployee(employee);
 
   static Future<void> syncAuthRoleForClient(ClientModel client) =>

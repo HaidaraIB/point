@@ -313,6 +313,64 @@ class HomeController extends GetxController {
     _rebindClientsAndTasksStreams();
   }
 
+  /// Awaitable rebind used after login so navigation does not race an empty
+  /// clients list from a too-early permission-denied listener.
+  Future<void> rebindClientsAndTasksStreamsAndWait() async {
+    if (FirebaseAuth.instance.currentUser == null) {
+      clients.bindStream(Stream<List<ClientModel>>.value([]));
+      tasks.bindStream(Stream<List<TaskModel>>.value([]));
+      libraryFiles.bindStream(Stream<List<LibraryFileModel>>.value([]));
+      libraryBrowseTasks.bindStream(Stream<List<TaskModel>>.value([]));
+      update();
+      return;
+    }
+    final gen = ++_clientsTasksRebindGeneration;
+    await homeRebindClientsAndTasksStreamsAsync(this, gen);
+  }
+
+  /// Sync [authRoles], confirm it is readable from the server, then rebind
+  /// clients/tasks/contents/meta. Retries when the first bind still yields [].
+  Future<void> syncAuthRoleAndRefreshDataStreams(EmployeeModel employee) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    var synced = false;
+    for (var attempt = 0; attempt < 3; attempt++) {
+      synced = await FirestoreServices.syncAuthRoleForEmployee(employee);
+      if (!synced) {
+        await Future<void>.delayed(Duration(milliseconds: 200 * (attempt + 1)));
+        continue;
+      }
+      if (uid == null || uid.isEmpty) break;
+      try {
+        final snap = await FirebaseFirestore.instance
+            .collection('authRoles')
+            .doc(uid)
+            .get(const GetOptions(source: Source.server));
+        if (snap.exists) break;
+      } catch (e) {
+        appLog('syncAuthRoleAndRefreshDataStreams authRoles get: $e');
+      }
+      await Future<void>.delayed(Duration(milliseconds: 250 * (attempt + 1)));
+    }
+
+    await rebindClientsAndTasksStreamsAndWait();
+    fetchContents();
+    final role = employee.role.trim().toLowerCase();
+    if (role == 'admin' || role == 'supervisor') {
+      fetchMetaPosts();
+    }
+
+    final needsClients = role == 'admin' ||
+        role == 'supervisor' ||
+        role == 'employee';
+    if (!needsClients) return;
+
+    // First snapshot after bind can still be empty if rules briefly denied.
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+    if (clients.isNotEmpty) return;
+    await FirestoreServices.syncAuthRoleForEmployee(employee);
+    await rebindClientsAndTasksStreamsAndWait();
+  }
+
   /// يربط تيار العملاء والمهام حسب الدور: العميل لا يستطيع استعلامات المجموعة الكاملة.
   void _rebindClientsAndTasksStreams() {
     if (FirebaseAuth.instance.currentUser == null) {
@@ -2722,16 +2780,7 @@ class HomeController extends GetxController {
     currentEmployee.value = employee;
     lastKnownEmployee.value = employee;
     syncActiveDepartmentFilterFromEmployee(employee);
-    // Ensure authRoles exists before binding manager/employee collection streams.
-    try {
-      await FirestoreServices.syncAuthRoleForEmployee(employee);
-    } catch (e, s) {
-      appLog(
-        'applyEmployeeSessionAfterAuthRestore syncAuthRole failed: $e',
-        error: e,
-        stackTrace: s,
-      );
-    }
+    await syncAuthRoleAndRefreshDataStreams(employee);
     final role = employee.role.trim().toLowerCase();
     if (role == 'admin' || role == 'supervisor') {
       unawaited(BackfillEmployeeDepartments.runIfNeeded(isManager: true));
@@ -2741,12 +2790,8 @@ class HomeController extends GetxController {
     } else {
       employees.bindStream(Stream<List<EmployeeModel>>.value([]));
     }
-    _rebindClientsAndTasksStreams();
     fetchProgrammingUpdates();
-    fetchContents();
-    if (role == 'admin' || role == 'supervisor') {
-      fetchMetaPosts();
-    } else {
+    if (role != 'admin' && role != 'supervisor') {
       metaPosts.bindStream(Stream<List<MetaPostModel>>.value([]));
     }
     _startEmployeePresenceStream();
@@ -2844,7 +2889,7 @@ class HomeController extends GetxController {
                     stackTrace: s,
                   );
                 }
-                _rebindClientsAndTasksStreams();
+                await rebindClientsAndTasksStreamsAndWait();
                 fetchContents();
                 fetchMetaPosts();
                 _startTotalUnreadStream(empid);

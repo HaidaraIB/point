@@ -14,10 +14,11 @@ class FirestoreAuthApi {
 
   /// يزامن مستند [authRoles] لـ Firebase Auth uid مع بيانات الموظف في Firestore.
   /// تُستخدم قواعد الأمان للتحقق من أن الحقول تطابق `employees/{employeeId}`.
-  static Future<void> syncAuthRoleForEmployee(EmployeeModel employee) async {
+  /// Returns `true` when the write succeeded.
+  static Future<bool> syncAuthRoleForEmployee(EmployeeModel employee) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     final eid = employee.id?.trim();
-    if (uid == null || uid.isEmpty || eid == null || eid.isEmpty) return;
+    if (uid == null || uid.isEmpty || eid == null || eid.isEmpty) return false;
     try {
       final normalizedDepartments = StorageKeys.normalizeDepartments(
         employee.departments,
@@ -36,9 +37,11 @@ class FirestoreAuthApi {
         },
         SetOptions(merge: true),
       );
+      return true;
     } catch (e, s) {
       appLog('⚠️ syncAuthRoleForEmployee failed: $e');
       appLog('$s');
+      return false;
     }
   }
 

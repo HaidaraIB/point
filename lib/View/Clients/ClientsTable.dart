@@ -45,7 +45,29 @@ String _clientMetaPageTableLabel(ClientModel client) {
   return name;
 }
 
-class ClientsTable extends StatelessWidget {
+class ClientsTable extends StatefulWidget {
+  @override
+  State<ClientsTable> createState() => _ClientsTableState();
+}
+
+class _ClientsTableState extends State<ClientsTable> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final hc = Get.find<HomeController>();
+      final emp = hc.effectiveEmployee;
+      if (emp == null) return;
+      if (hc.clients.isNotEmpty) return;
+      final role = emp.role.trim().toLowerCase();
+      if (role != 'admin' && role != 'supervisor' && role != 'employee') {
+        return;
+      }
+      await hc.syncAuthRoleAndRefreshDataStreams(emp);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final appTheme = context.appTheme;

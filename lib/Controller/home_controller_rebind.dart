@@ -49,16 +49,35 @@ Future<void> homeRebindClientsAndTasksStreamsAsync(
   if (u == null) return;
 
   try {
-    final roleSnap =
-        await FirebaseFirestore.instance
-            .collection('authRoles')
-            .doc(u.uid)
-            .get();
+    DocumentSnapshot roleSnap;
+    try {
+      roleSnap = await FirebaseFirestore.instance
+          .collection('authRoles')
+          .doc(u.uid)
+          .get(const GetOptions(source: Source.server));
+    } catch (_) {
+      roleSnap = await FirebaseFirestore.instance
+          .collection('authRoles')
+          .doc(u.uid)
+          .get();
+    }
     if (gen != c._clientsTasksRebindGeneration) return;
 
     String? role;
-    if (roleSnap.exists) {
-      role = roleSnap.data()?['role']?.toString();
+    final roleData = roleSnap.data() as Map<String, dynamic>?;
+    if (roleSnap.exists && roleData != null) {
+      role = roleData['role']?.toString();
+    }
+
+    // Session employee role is known before authRoles is readable — still bind
+    // the full stream so a follow-up sync+rebind can recover without email fallback.
+    if (role == null || role.isEmpty) {
+      final sessionRole = c.effectiveEmployee?.role.trim().toLowerCase() ?? '';
+      if (sessionRole == 'admin' ||
+          sessionRole == 'supervisor' ||
+          sessionRole == 'employee') {
+        role = sessionRole;
+      }
     }
 
     if (role == 'client') {
@@ -81,9 +100,9 @@ Future<void> homeRebindClientsAndTasksStreamsAsync(
 
     if (role == 'employee') {
       final employeeId =
-          roleSnap.data()?['employeeId']?.toString().trim() ?? '';
-      final departments = _departmentsFromFirestoreMap(roleSnap.data());
-      final canAccessLibrary = _libraryAccessFromAuthRole(roleSnap.data());
+          roleData?['employeeId']?.toString().trim() ?? '';
+      final departments = _departmentsFromFirestoreMap(roleData);
+      final canAccessLibrary = _libraryAccessFromAuthRole(roleData);
       c.clients.bindStream(c._service.getClientsStream());
       if (employeeId.isNotEmpty) {
         c.tasks.bindStream(
@@ -106,7 +125,7 @@ Future<void> homeRebindClientsAndTasksStreamsAsync(
       c.tasks.bindStream(c._service.getTasks());
       final canAccessLibrary = _canAccessLibraryFromRoleAndAuth(
         role: role,
-        authData: roleSnap.data(),
+        authData: roleData,
       );
       homeBindLibraryFilesStream(c, canAccessLibrary);
       homeBindLibraryBrowseTasksStream(c, canAccessLibrary);
