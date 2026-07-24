@@ -1,5 +1,8 @@
-# Root copy for Hostinger manual upload if needed.
-# Prefer web/.htaccess (ships with FTP deploy of build/web).
+# Flutter web on Hostinger — cache policy for update detection.
+# Deployed with build/web via FTP (copied from web/).
+#
+# Entrypoints are NOT content-hashed; long-cache on them forces hard refreshes.
+# CI builds with --pwa-strategy none (no flutter_service_worker.js).
 
 <IfModule mod_headers.c>
   # Never cache entrypoints / update signals
@@ -9,7 +12,7 @@
     Header set Expires "0"
   </FilesMatch>
 
-  # Long-cache for hashed / static media
+  # Long-cache for hashed / static media under assets and CanvasKit-style trees
   <FilesMatch "\.(png|jpg|jpeg|gif|svg|webp|woff2?|ttf|otf|wasm)$">
     Header set Cache-Control "public, max-age=31536000, immutable"
   </FilesMatch>

@@ -33,6 +33,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:point/firebase_app_options.dart';
 import 'package:point/fcm_background_handler.dart';
 import 'package:point/View/Shared/internet_offline_guard.dart';
+import 'package:point/View/Shared/web_update_banner.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -216,9 +217,11 @@ class _AppState extends State<App> with WidgetsBindingObserver {
           return Directionality(
             textDirection: dir,
             child: InternetOfflineGuard(
-              child: KeyedSubtree(
-                key: ValueKey(themeKey),
-                child: child ?? const SizedBox.shrink(),
+              child: WebUpdateBanner(
+                child: KeyedSubtree(
+                  key: ValueKey(themeKey),
+                  child: child ?? const SizedBox.shrink(),
+                ),
               ),
             ),
           );

@@ -306,84 +306,72 @@ class PublishTable extends StatelessWidget {
 
   Widget _buildStatusControl(HomeController controller, MetaPostModel p) {
     final options = _statusChangeOptions(controller, p);
-    final Widget statusWidget;
     if (options.isEmpty) {
-      statusWidget = _statusChip(p.status);
-    } else {
-      statusWidget = Builder(
-        builder: (context) {
-          final chipKey = GlobalKey();
-          return GestureDetector(
-            key: chipKey,
-            onTap: () async {
-              final renderBox =
-                  chipKey.currentContext!.findRenderObject()! as RenderBox;
-              final offset = renderBox.localToGlobal(Offset.zero);
-              final size = renderBox.size;
-              final overlayBox =
-                  Overlay.of(context).context.findRenderObject()! as RenderBox;
-              final overlaySize = overlayBox.size;
-              const menuWidth = 196.0;
-              final centerX = offset.dx + size.width / 2;
-              final left = (centerX - menuWidth / 2)
-                  .clamp(8.0, overlaySize.width - menuWidth - 8);
-
-              final selected = await showMenu<String>(
-                context: context,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                color: resolveAppTheme().cardSurface,
-                elevation: 4,
-                position: RelativeRect.fromLTRB(
-                  left,
-                  offset.dy + size.height + 4,
-                  overlaySize.width - left - menuWidth,
-                  0,
-                ),
-                items: options
-                    .map((option) {
-                      final visuals =
-                          _statusVisuals(_statusForAction(option.action));
-                      return PopupMenuItem<String>(
-                        value: option.action,
-                        child: SizedBox(
-                          width: menuWidth - 32,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(option.label),
-                              Icon(
-                                visuals.icon,
-                                size: 18,
-                                color: visuals.fg,
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    })
-                    .toList(),
-              );
-              if (selected != null) {
-                await _handlePostAction(controller, p, selected);
-              }
-            },
-            child: _statusChip(p.status, showDropdownCaret: true),
-          );
-        },
-      );
+      return _statusChip(p.status);
     }
 
-    // Kebab next to status so row actions stay visible even when the
-    // dedicated actions column is off-screen / clipped on narrow viewports.
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        statusWidget,
-        const SizedBox(width: 4),
-        _buildActionsMenu(controller, p, compact: true),
-      ],
+    return Builder(
+      builder: (context) {
+        final chipKey = GlobalKey();
+        return GestureDetector(
+          key: chipKey,
+          onTap: () async {
+            final renderBox =
+                chipKey.currentContext!.findRenderObject()! as RenderBox;
+            final offset = renderBox.localToGlobal(Offset.zero);
+            final size = renderBox.size;
+            final overlayBox =
+                Overlay.of(context).context.findRenderObject()! as RenderBox;
+            final overlaySize = overlayBox.size;
+            const menuWidth = 196.0;
+            final centerX = offset.dx + size.width / 2;
+            final left = (centerX - menuWidth / 2)
+                .clamp(8.0, overlaySize.width - menuWidth - 8);
+
+            final selected = await showMenu<String>(
+              context: context,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              color: resolveAppTheme().cardSurface,
+              elevation: 4,
+              position: RelativeRect.fromLTRB(
+                left,
+                offset.dy + size.height + 4,
+                overlaySize.width - left - menuWidth,
+                0,
+              ),
+              items: options
+                  .map((option) {
+                    final visuals =
+                        _statusVisuals(_statusForAction(option.action));
+                    return PopupMenuItem<String>(
+                      value: option.action,
+                      child: SizedBox(
+                        width: menuWidth - 32,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(option.label),
+                            Icon(
+                              visuals.icon,
+                              size: 18,
+                              color: visuals.fg,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  })
+                  .toList(),
+            );
+            if (selected != null) {
+              await _handlePostAction(controller, p, selected);
+            }
+          },
+          child: _statusChip(p.status, showDropdownCaret: true),
+        );
+      },
     );
   }
 
@@ -800,15 +788,17 @@ class PublishTable extends StatelessWidget {
     // columns (actions in RTL) get crushed with no usable scrollbar.
     const colSpacing = 12.0;
     const hMargin = 12.0;
-    // Actions live beside status (always visible); no separate actions column.
+    // Include columnSpacing + horizontalMargin in scroll width so the
+    // dedicated actions column is not crushed.
     const colWidths = <double>[
       180, // title
       170, // facebook page
       140, // instagram
       110, // post type
       140, // platforms
-      210, // status + kebab
+      150, // status
       140, // date
+      88, // actions
     ];
     final tableWidth = colWidths.fold<double>(0, (a, b) => a + b) +
         colSpacing * (colWidths.length - 1) +
@@ -885,6 +875,11 @@ class PublishTable extends StatelessWidget {
                                   columnWidth: FixedColumnWidth(colWidths[6]),
                                   headingRowAlignment: MainAxisAlignment.center,
                                   label: _headerText('publish_date'),
+                                ),
+                                DataColumn(
+                                  columnWidth: FixedColumnWidth(colWidths[7]),
+                                  headingRowAlignment: MainAxisAlignment.center,
+                                  label: _headerText('publish.actions'),
                                 ),
                               ],
                               rows: list.map((p) {
@@ -1001,6 +996,14 @@ class PublishTable extends StatelessWidget {
                                                 .toLocal(),
                                           )}\u2069',
                                           textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                    ),
+                                    DataCell(
+                                      TableCellCenter(
+                                        child: _buildActionsMenu(
+                                          controller,
+                                          p,
                                         ),
                                       ),
                                     ),

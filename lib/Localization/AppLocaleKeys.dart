@@ -345,6 +345,10 @@ class AppLocaleKeys {
   static const internetOfflineBody = 'internet.offline.body';
   static const internetRetry = 'internet.retry';
 
+  static const webUpdateAvailable = 'web_update.available';
+  static const webUpdateReload = 'web_update.reload';
+  static const webUpdateDismiss = 'web_update.dismiss';
+
   static const funConfirmTitle = 'fun.confirm_title';
   static const funConfirmMessage = 'fun.confirm_message';
 

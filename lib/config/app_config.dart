@@ -1,6 +1,18 @@
+import 'package:point/Utils/AppConstants.dart';
 import 'package:point/firebase_app_options.dart';
 
 class AppConfig {
+  /// Compile-time app version / build from `--dart-define` (CI parses pubspec).
+  /// Used on web to detect a newer deployed `version.json` than this bundle.
+  static const String appVersion = String.fromEnvironment(
+    'APP_VERSION',
+    defaultValue: kAppVersionFallback,
+  );
+  static const String appBuildNumber = String.fromEnvironment(
+    'APP_BUILD_NUMBER',
+    defaultValue: kAppBuildFallback,
+  );
+
   /// Public (safe to ship in client builds)
   static const String supabaseUrl = String.fromEnvironment(
     'SUPABASE_URL',

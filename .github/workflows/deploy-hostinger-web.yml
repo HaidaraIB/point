@@ -51,18 +51,25 @@ jobs:
 
       # نطاق فرعي agency.point-iq.app → base-href = / (جذر النطاق)
       # --pwa-strategy none يقلّل تخزين نسخة قديمة من التطبيق عبر service worker الافتراضي (offline-first)
+      # APP_VERSION / APP_BUILD_NUMBER bake pubspec into the JS bundle for the in-app update banner.
       - name: Build web (release, production Firebase)
-        run: >
-          flutter build web --release
-          --base-href /
-          --pwa-strategy none
-          --dart-define=USE_FIREBASE_PROD=true
-          --dart-define=EMAIL_DELIVERY_MODE=send
-          --dart-define=SUPABASE_URL="${{ secrets.SUPABASE_URL }}"
-          --dart-define=SUPABASE_ANON_KEY="${{ secrets.SUPABASE_ANON_KEY }}"
-          --dart-define=SUPABASE_STORAGE_BASE_URL="${{ secrets.SUPABASE_STORAGE_BASE_URL }}"
-          --dart-define=R2_SIGNER_URL="${{ secrets.R2_SIGNER_URL }}"
-          --dart-define=R2_PUBLIC_BASE_URL="${{ secrets.R2_PUBLIC_BASE_URL }}"
+        run: |
+          VERSION_LINE=$(grep -E '^version:' pubspec.yaml | head -1 | sed 's/version:[[:space:]]*//')
+          APP_VERSION="${VERSION_LINE%%+*}"
+          APP_BUILD_NUMBER="${VERSION_LINE##*+}"
+          echo "Baking APP_VERSION=$APP_VERSION APP_BUILD_NUMBER=$APP_BUILD_NUMBER"
+          flutter build web --release \
+            --base-href / \
+            --pwa-strategy none \
+            --dart-define=USE_FIREBASE_PROD=true \
+            --dart-define=EMAIL_DELIVERY_MODE=send \
+            --dart-define=APP_VERSION="$APP_VERSION" \
+            --dart-define=APP_BUILD_NUMBER="$APP_BUILD_NUMBER" \
+            --dart-define=SUPABASE_URL="${{ secrets.SUPABASE_URL }}" \
+            --dart-define=SUPABASE_ANON_KEY="${{ secrets.SUPABASE_ANON_KEY }}" \
+            --dart-define=SUPABASE_STORAGE_BASE_URL="${{ secrets.SUPABASE_STORAGE_BASE_URL }}" \
+            --dart-define=R2_SIGNER_URL="${{ secrets.R2_SIGNER_URL }}" \
+            --dart-define=R2_PUBLIC_BASE_URL="${{ secrets.R2_PUBLIC_BASE_URL }}"
 
       - name: Deploy to Hostinger via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6

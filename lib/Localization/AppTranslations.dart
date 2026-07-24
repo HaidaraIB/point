@@ -377,6 +377,9 @@ class AppTranslations extends Translations {
       'internet.snackbar.offline':
           'No internet connection. Changes may not be saved.',
       'internet.snackbar.online': 'Internet connection restored.',
+      'web_update.available': 'A new version is available.',
+      'web_update.reload': 'Reload',
+      'web_update.dismiss': 'Dismiss',
       'internet.offline.title': 'No internet connection',
       'internet.offline.body':
           'You are currently offline. Check your connection and try again.',
@@ -1891,6 +1894,9 @@ class AppTranslations extends Translations {
       "internet.snackbar.offline":
           "لا يوجد اتصال بالإنترنت. قد لا يتم حفظ التغييرات.",
       "internet.snackbar.online": "تمت استعادة اتصال الإنترنت.",
+      "web_update.available": "يتوفر إصدار جديد.",
+      "web_update.reload": "إعادة التحميل",
+      "web_update.dismiss": "إخفاء",
       "internet.offline.title": "لا يوجد اتصال بالإنترنت",
       "internet.offline.body":
           "أنت الآن غير متصل. تحقق من الشبكة ثم حاول مرة أخرى.",
