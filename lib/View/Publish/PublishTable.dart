@@ -783,6 +783,25 @@ class PublishTable extends StatelessWidget {
   }
 
   Widget _buildDesktop(BuildContext context, HomeController controller) {
+    // DataTable adds [columnSpacing] between columns and [horizontalMargin] on
+    // both sides — those must be included in the scroll child width or the last
+    // columns (actions in RTL) get crushed with no usable scrollbar.
+    const colSpacing = 12.0;
+    const hMargin = 12.0;
+    const colWidths = <double>[
+      72, // actions (first → rightmost in RTL, always on-screen)
+      180, // title
+      170, // facebook page
+      140, // instagram
+      110, // post type
+      140, // platforms
+      150, // status
+      140, // date
+    ];
+    final tableWidth = colWidths.fold<double>(0, (a, b) => a + b) +
+        colSpacing * (colWidths.length - 1) +
+        hMargin * 2;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 50, 16, 16),
       child: Column(
@@ -790,178 +809,215 @@ class PublishTable extends StatelessWidget {
         children: [
           _buildHeader(context, controller),
           const SizedBox(height: 16),
-          Obx(() {
-            final list = controller.metaPosts.toList();
-            if (list.isEmpty) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                child: Center(child: Text('history.empty_data'.tr)),
+          Expanded(
+            child: Obx(() {
+              final list = controller.metaPosts.toList();
+              if (list.isEmpty) {
+                return Center(child: Text('history.empty_data'.tr));
+              }
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  final width = tableWidth > constraints.maxWidth
+                      ? tableWidth
+                      : constraints.maxWidth;
+                  return Scrollbar(
+                    thumbVisibility: true,
+                    child: SingleChildScrollView(
+                      child: HorizontalScrollbarTable(
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 6, bottom: 14),
+                          child: SizedBox(
+                            width: width,
+                            child: DataTable(
+                              columnSpacing: colSpacing,
+                              horizontalMargin: hMargin,
+                              dataRowMinHeight: 64,
+                              dataRowMaxHeight: double.infinity,
+                              dataRowColor: context.tableDataRowColor,
+                              headingRowColor: context.tableHeadingRowColor,
+                              dividerThickness: 0.5,
+                              columns: [
+                                DataColumn(
+                                  columnWidth: FixedColumnWidth(colWidths[0]),
+                                  headingRowAlignment: MainAxisAlignment.center,
+                                  label: _headerText('publish.actions'),
+                                ),
+                                DataColumn(
+                                  columnWidth: FixedColumnWidth(colWidths[1]),
+                                  headingRowAlignment: MainAxisAlignment.center,
+                                  label: _headerText('title'),
+                                ),
+                                DataColumn(
+                                  columnWidth: FixedColumnWidth(colWidths[2]),
+                                  headingRowAlignment: MainAxisAlignment.center,
+                                  label: _headerText('publish.page_label'),
+                                ),
+                                DataColumn(
+                                  columnWidth: FixedColumnWidth(colWidths[3]),
+                                  headingRowAlignment: MainAxisAlignment.center,
+                                  label: _headerText(
+                                    'publish.instagram_account',
+                                  ),
+                                ),
+                                DataColumn(
+                                  columnWidth: FixedColumnWidth(colWidths[4]),
+                                  headingRowAlignment: MainAxisAlignment.center,
+                                  label: _headerText('publish.post_type'),
+                                ),
+                                DataColumn(
+                                  columnWidth: FixedColumnWidth(colWidths[5]),
+                                  headingRowAlignment: MainAxisAlignment.center,
+                                  label: _headerText('publish.platforms'),
+                                ),
+                                DataColumn(
+                                  columnWidth: FixedColumnWidth(colWidths[6]),
+                                  headingRowAlignment: MainAxisAlignment.center,
+                                  label: _headerText('publish.status'),
+                                ),
+                                DataColumn(
+                                  columnWidth: FixedColumnWidth(colWidths[7]),
+                                  headingRowAlignment: MainAxisAlignment.center,
+                                  label: _headerText('publish_date'),
+                                ),
+                              ],
+                              rows: list.map((p) {
+                                return DataRow(
+                                  cells: [
+                                    DataCell(
+                                      TableCellCenter(
+                                        child: _buildActionsMenu(
+                                          controller,
+                                          p,
+                                        ),
+                                      ),
+                                    ),
+                                    DataCell(
+                                      TableCellCenter(
+                                        child: Text(
+                                          p.title,
+                                          textAlign: TextAlign.center,
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ),
+                                    DataCell(
+                                      TableCellCenter(
+                                        child: Builder(
+                                          builder: (_) {
+                                            final fbUrl = _facebookPageUrl(p);
+                                            final label =
+                                                p.pageName ?? p.pageId;
+                                            if (fbUrl == null) {
+                                              return Text(
+                                                label,
+                                                textAlign: TextAlign.center,
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                              );
+                                            }
+                                            return InkWell(
+                                              onTap: () =>
+                                                  openUrlPreferInAppMedia(
+                                                fbUrl,
+                                              ),
+                                              child: Text(
+                                                label,
+                                                textAlign: TextAlign.center,
+                                                maxLines: 2,
+                                                overflow:
+                                                    TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                  color: resolveAppTheme()
+                                                      .accentText,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                    DataCell(
+                                      TableCellCenter(
+                                        child: Builder(
+                                          builder: (_) {
+                                            final igUrl =
+                                                _instagramAccountUrl(p);
+                                            final label =
+                                                _instagramAccountText(p);
+                                            if (igUrl == null ||
+                                                label == '-') {
+                                              return Text(
+                                                label,
+                                                textAlign: TextAlign.center,
+                                                maxLines: 2,
+                                                overflow:
+                                                    TextOverflow.ellipsis,
+                                              );
+                                            }
+                                            return InkWell(
+                                              onTap: () =>
+                                                  openUrlPreferInAppMedia(
+                                                igUrl,
+                                              ),
+                                              child: Text(
+                                                label,
+                                                textAlign: TextAlign.center,
+                                                maxLines: 2,
+                                                overflow:
+                                                    TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                  color: resolveAppTheme()
+                                                      .accentText,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                    DataCell(
+                                      TableCellCenter(
+                                        child: _postTypeChip(p.postType),
+                                      ),
+                                    ),
+                                    DataCell(
+                                      TableCellCenter(
+                                        child: _platformsWrap(p.platforms),
+                                      ),
+                                    ),
+                                    DataCell(
+                                      TableCellCenter(
+                                        child: _buildStatusControl(
+                                          controller,
+                                          p,
+                                        ),
+                                      ),
+                                    ),
+                                    DataCell(
+                                      TableCellCenter(
+                                        child: Text(
+                                          '\u2066${DateFormat('yyyy-MM-dd HH:mm').format(
+                                            (p.scheduledAt ?? p.createdAt)
+                                                .toLocal(),
+                                          )}\u2069',
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               );
-            }
-            return HorizontalScrollbarTable(
-              child: Padding(
-                padding: const EdgeInsets.only(top: 6, bottom: 14),
-                child: SizedBox(
-                  width: 1430,
-                  child: DataTable(
-                      dataRowMinHeight: 64,
-                      dataRowMaxHeight: double.infinity,
-                      dataRowColor: context.tableDataRowColor,
-                      headingRowColor: context.tableHeadingRowColor,
-                      dividerThickness: 0.5,
-                      columns: [
-                        DataColumn(
-                          columnWidth: const FixedColumnWidth(220),
-                          headingRowAlignment: MainAxisAlignment.center,
-                          label: _headerText('title'),
-                        ),
-                        DataColumn(
-                          columnWidth: const FixedColumnWidth(210),
-                          headingRowAlignment: MainAxisAlignment.center,
-                          label: _headerText('publish.page_label'),
-                        ),
-                        DataColumn(
-                          columnWidth: const FixedColumnWidth(180),
-                          headingRowAlignment: MainAxisAlignment.center,
-                          label: _headerText('publish.instagram_account'),
-                        ),
-                        DataColumn(
-                          columnWidth: const FixedColumnWidth(150),
-                          headingRowAlignment: MainAxisAlignment.center,
-                          label: _headerText('publish.post_type'),
-                        ),
-                        DataColumn(
-                          columnWidth: const FixedColumnWidth(170),
-                          headingRowAlignment: MainAxisAlignment.center,
-                          label: _headerText('publish.platforms'),
-                        ),
-                        DataColumn(
-                          columnWidth: const FixedColumnWidth(200),
-                          headingRowAlignment: MainAxisAlignment.center,
-                          label: _headerText('publish.status'),
-                        ),
-                        DataColumn(
-                          columnWidth: const FixedColumnWidth(180),
-                          headingRowAlignment: MainAxisAlignment.center,
-                          label: _headerText('publish_date'),
-                        ),
-                        DataColumn(
-                          columnWidth: const FixedColumnWidth(120),
-                          headingRowAlignment: MainAxisAlignment.center,
-                          label: _headerText('publish.actions'),
-                        ),
-                      ],
-                    rows: list.map((p) {
-                      return DataRow(
-                        cells: [
-                          DataCell(
-                            TableCellCenter(
-                              child: Text(
-                                p.title,
-                                textAlign: TextAlign.center,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ),
-                          DataCell(
-                            TableCellCenter(
-                              child: Builder(
-                                builder: (_) {
-                                  final fbUrl = _facebookPageUrl(p);
-                                  final label = p.pageName ?? p.pageId;
-                                  if (fbUrl == null) {
-                                    return Text(
-                                      label,
-                                      textAlign: TextAlign.center,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    );
-                                  }
-                                  return InkWell(
-                                    onTap: () => openUrlPreferInAppMedia(fbUrl),
-                                    child: Text(
-                                      label,
-                                      textAlign: TextAlign.center,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        color: resolveAppTheme().accentText,
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                          DataCell(
-                            TableCellCenter(
-                              child: Builder(
-                                builder: (_) {
-                                  final igUrl = _instagramAccountUrl(p);
-                                  final label = _instagramAccountText(p);
-                                  if (igUrl == null || label == '-') {
-                                    return Text(
-                                      label,
-                                      textAlign: TextAlign.center,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                    );
-                                  }
-                                  return InkWell(
-                                    onTap: () => openUrlPreferInAppMedia(igUrl),
-                                    child: Text(
-                                      label,
-                                      textAlign: TextAlign.center,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        color: resolveAppTheme().accentText,
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                          DataCell(
-                            TableCellCenter(
-                              child: _postTypeChip(p.postType),
-                            ),
-                          ),
-                          DataCell(
-                            TableCellCenter(
-                              child: _platformsWrap(p.platforms),
-                            ),
-                          ),
-                          DataCell(
-                            TableCellCenter(
-                              child: _buildStatusControl(controller, p),
-                            ),
-                          ),
-                          DataCell(
-                            TableCellCenter(
-                              child: Text(
-                                '\u2066${DateFormat('yyyy-MM-dd HH:mm').format(
-                                  (p.scheduledAt ?? p.createdAt).toLocal(),
-                                )}\u2069',
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ),
-                          DataCell(
-                            TableCellCenter(
-                              child: _buildActionsMenu(controller, p),
-                            ),
-                          ),
-                        ],
-                      );
-                    }).toList(),
-                  ),
-                ),
-              ),
-            );
-          }),
+            }),
+          ),
         ],
       ),
     );
