@@ -328,13 +328,12 @@ class HomeController extends GetxController {
     await homeRebindClientsAndTasksStreamsAsync(this, gen);
   }
 
-  /// Sync [authRoles], confirm it is readable from the server, then rebind
-  /// clients/tasks/contents/meta. Retries when the first bind still yields [].
+  /// Sync [authRoles], confirm it is readable from the server, seed clients
+  /// with a one-shot get, then bind live streams.
   Future<void> syncAuthRoleAndRefreshDataStreams(EmployeeModel employee) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
-    var synced = false;
-    for (var attempt = 0; attempt < 3; attempt++) {
-      synced = await FirestoreServices.syncAuthRoleForEmployee(employee);
+    for (var attempt = 0; attempt < 4; attempt++) {
+      final synced = await FirestoreServices.syncAuthRoleForEmployee(employee);
       if (!synced) {
         await Future<void>.delayed(Duration(milliseconds: 200 * (attempt + 1)));
         continue;
@@ -352,23 +351,34 @@ class HomeController extends GetxController {
       await Future<void>.delayed(Duration(milliseconds: 250 * (attempt + 1)));
     }
 
-    await rebindClientsAndTasksStreamsAndWait();
-    fetchContents();
     final role = employee.role.trim().toLowerCase();
-    if (role == 'admin' || role == 'supervisor') {
-      fetchMetaPosts();
-    }
-
     final needsClients = role == 'admin' ||
         role == 'supervisor' ||
         role == 'employee';
-    if (!needsClients) return;
 
-    // First snapshot after bind can still be empty if rules briefly denied.
-    await Future<void>.delayed(const Duration(milliseconds: 500));
-    if (clients.isNotEmpty) return;
-    await FirestoreServices.syncAuthRoleForEmployee(employee);
+    if (needsClients) {
+      // Seed immediately so navigating to Clients is not empty while the
+      // snapshot listener attaches (and survives a later bindStream cancel).
+      for (var attempt = 0; attempt < 4; attempt++) {
+        try {
+          final list = await _service.getClientsOnce();
+          clients.assignAll(list);
+          if (list.isNotEmpty || attempt == 3) break;
+        } catch (e) {
+          appLog('syncAuthRoleAndRefreshDataStreams getClientsOnce: $e');
+          await FirestoreServices.syncAuthRoleForEmployee(employee);
+          await Future<void>.delayed(
+            Duration(milliseconds: 300 * (attempt + 1)),
+          );
+        }
+      }
+    }
+
     await rebindClientsAndTasksStreamsAndWait();
+    fetchContents();
+    if (role == 'admin' || role == 'supervisor') {
+      fetchMetaPosts();
+    }
   }
 
   /// يربط تيار العملاء والمهام حسب الدور: العميل لا يستطيع استعلامات المجموعة الكاملة.
@@ -2876,23 +2886,26 @@ class HomeController extends GetxController {
                 previous,
                 employee,
               );
-              if (profileChanged) {
-                currentEmployee.value = employee;
-                lastKnownEmployee.value = employee;
-                syncActiveDepartmentFilterFromEmployee(employee);
-                try {
-                  await FirestoreServices.syncAuthRoleForEmployee(employee);
-                } catch (e, s) {
-                  appLog(
-                    'listenToClient syncAuthRole failed: $e',
-                    error: e,
-                    stackTrace: s,
+              if (!profileChanged) return;
+
+              currentEmployee.value = employee;
+              lastKnownEmployee.value = employee;
+              syncActiveDepartmentFilterFromEmployee(employee);
+              unawaited(FirestoreServices.syncAuthRoleForEmployee(employee));
+              _startTotalUnreadStream(empid);
+
+              // Only rebind data streams when role/departments change.
+              // Rebinding on every profile field (image, authUid, …) cancels an
+              // in-flight clients listener right after login and leaves [].
+              final roleOrDeptsChanged = previous == null ||
+                  previous.role.trim().toLowerCase() !=
+                      employee.role.trim().toLowerCase() ||
+                  previous.departments.length != employee.departments.length ||
+                  previous.departments.asMap().entries.any(
+                    (e) => employee.departments[e.key] != e.value,
                   );
-                }
-                await rebindClientsAndTasksStreamsAndWait();
-                fetchContents();
-                fetchMetaPosts();
-                _startTotalUnreadStream(empid);
+              if (roleOrDeptsChanged) {
+                await syncAuthRoleAndRefreshDataStreams(employee);
               }
             }
           },

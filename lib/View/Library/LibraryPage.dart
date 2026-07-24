@@ -103,7 +103,7 @@ class _LibraryPageState extends State<LibraryPage> {
                 decoration: BoxDecoration(
                   color: context.appTheme.cardSurface,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.shade300),
+                  border: Border.all(color: context.appTheme.border),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.04),

@@ -19,9 +19,10 @@ Stream<List<T>> safeFirestoreListStream<T>(
         if (msg.contains('permission-denied')) {
           appLog(
             '⚠️ Firestore stream [$label]: permission-denied '
-            '(often authRoles missing/stale — expect empty until streams rebind)',
+            '(keeping last list until authRoles sync + rebind)',
           );
-          sink.add(<T>[]);
+          // Do not emit [] — that wiped seeded post-login data when a listener
+          // attached a moment too early and never recovered.
           return;
         }
         appLog('⚠️ Firestore stream [$label]: $error');

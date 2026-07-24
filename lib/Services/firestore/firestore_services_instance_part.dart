@@ -997,6 +997,25 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
     );
   }
 
+  /// One-shot clients fetch (used after login so the UI is not stuck empty
+  /// waiting on a snapshot listener that may have been denied earlier).
+  Future<List<ClientModel>> getClientsOnce({
+    Source source = Source.server,
+  }) async {
+    final snapshot = await _clientCollection
+        .orderBy('createdAt', descending: true)
+        .limit(FirestoreQueryLimits.clients)
+        .get(GetOptions(source: source));
+    return snapshot.docs
+        .map(
+          (doc) => ClientModel.fromJson(
+            doc.data()! as Map<String, dynamic>,
+            doc.id,
+          ),
+        )
+        .toList();
+  }
+
   /// للعميل بعد تسجيل الدخول: لا يقرأ إلا مستنده (استعلام بالبريد يتوافق مع canReadClientsDoc + JWT).
   Stream<List<ClientModel>> getClientsStreamForCurrentAuthEmail() {
     final user = FirebaseAuth.instance.currentUser;

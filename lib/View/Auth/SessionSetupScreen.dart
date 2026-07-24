@@ -120,10 +120,15 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
       return;
     }
 
-    // ربط Firestore بـ JWT + authRoles قبل أي استعلام/تحديث يحتاج hasAuthRole().
+    // Skip redundant full refresh when SessionSetup runs right after login —
+    // clients were already seeded; only re-sync if still empty.
     try {
       await FirebaseAuth.instance.currentUser?.getIdToken(true);
-      await hc.syncAuthRoleAndRefreshDataStreams(v);
+      if (hc.clients.isEmpty) {
+        await hc.syncAuthRoleAndRefreshDataStreams(v);
+      } else {
+        await FirestoreServices.syncAuthRoleForEmployee(v);
+      }
     } catch (e, st) {
       appLog('SessionSetup: auth sync before FCM: $e', stackTrace: st);
     }
