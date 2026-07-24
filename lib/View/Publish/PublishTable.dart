@@ -802,7 +802,7 @@ class PublishTable extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.only(top: 6, bottom: 14),
                 child: SizedBox(
-                  width: 1510,
+                  width: 1430,
                   child: DataTable(
                       dataRowMinHeight: 64,
                       dataRowMaxHeight: double.infinity,
@@ -846,7 +846,7 @@ class PublishTable extends StatelessWidget {
                           label: _headerText('publish_date'),
                         ),
                         DataColumn(
-                          columnWidth: const FixedColumnWidth(290),
+                          columnWidth: const FixedColumnWidth(120),
                           headingRowAlignment: MainAxisAlignment.center,
                           label: _headerText('publish.actions'),
                         ),
@@ -942,9 +942,9 @@ class PublishTable extends StatelessWidget {
                           DataCell(
                             TableCellCenter(
                               child: Text(
-                                DateFormat('yyyy-MM-dd HH:mm').format(
+                                '\u2066${DateFormat('yyyy-MM-dd HH:mm').format(
                                   (p.scheduledAt ?? p.createdAt).toLocal(),
-                                ),
+                                )}\u2069',
                                 textAlign: TextAlign.center,
                               ),
                             ),

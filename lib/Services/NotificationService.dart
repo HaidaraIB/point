@@ -244,7 +244,7 @@ class NotificationService {
     required String action,
   }) async {
     final ids = await FirestoreServices.getEmployeeIdsByRole(
-      ['admin', 'supervisor'],
+      ['admin'],
     );
     if (ids.isEmpty) return;
     final actionLabel = action == AttendanceRecordModel.actionPresent

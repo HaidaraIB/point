@@ -168,10 +168,27 @@ Future<void> homeRebindClientsAndTasksStreamsAsync(
     appLog('_rebindClientsAndTasksStreamsAsync: $e');
     appLog('$s');
     if (gen != c._clientsTasksRebindGeneration) return;
-    c.clients.bindStream(c._service.getClientsStreamForCurrentAuthEmail());
-    c.tasks.bindStream(Stream<List<TaskModel>>.value([]));
-    homeBindLibraryFilesStream(c, false);
-    homeBindLibraryBrowseTasksStream(c, false);
+    // Staff must not fall back to email-scoped clients (matches no client docs).
+    final staffRole = c.effectiveEmployee?.role.trim().toLowerCase() ?? '';
+    if (staffRole == 'admin' ||
+        staffRole == 'supervisor' ||
+        staffRole == 'employee') {
+      c.clients.bindStream(c._service.getClientsStream());
+      if (staffRole == 'admin' || staffRole == 'supervisor') {
+        c.tasks.bindStream(c._service.getTasks());
+        homeBindLibraryFilesStream(c, true);
+        homeBindLibraryBrowseTasksStream(c, true);
+      } else {
+        c.tasks.bindStream(Stream<List<TaskModel>>.value([]));
+        homeBindLibraryFilesStream(c, false);
+        homeBindLibraryBrowseTasksStream(c, false);
+      }
+    } else {
+      c.clients.bindStream(c._service.getClientsStreamForCurrentAuthEmail());
+      c.tasks.bindStream(Stream<List<TaskModel>>.value([]));
+      homeBindLibraryFilesStream(c, false);
+      homeBindLibraryBrowseTasksStream(c, false);
+    }
     c.update();
   }
 }

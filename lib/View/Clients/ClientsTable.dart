@@ -141,14 +141,28 @@ class ClientsTable extends StatelessWidget {
                           ],
                         ),
                         SizedBox(height: 10),
-                        HorizontalScrollbarTable(
+                        Obx(() {
+                          if (controller.clients.isEmpty) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 48),
+                              child: Center(
+                                child: Text(
+                                  'history.empty_data'.tr,
+                                  style: TextStyle(
+                                    color: appTheme.secondaryText,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }
+                          return HorizontalScrollbarTable(
                           child: SizedBox(
                             width: (Get.width - 270).clamp(
                               1100.0,
                               double.infinity,
                             ),
-                            child: Obx(
-                              () => DataTable(
+                            child: DataTable(
                                 dataRowMinHeight: 60,
                                 dataRowMaxHeight: 60,
                                 // headingRowColor: WidgetStateProperty.all(Colors.blue.shade50),
@@ -421,9 +435,9 @@ class ClientsTable extends StatelessWidget {
                                       );
                                     }).toList(),
                               ),
-                            ),
                           ),
-                        ),
+                        );
+                        }),
                       ],
                     ),
                   ),

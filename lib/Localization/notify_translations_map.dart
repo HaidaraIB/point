@@ -410,7 +410,7 @@ const Map<String, String> notifyTranslationsAr = {
   'notify.mgr.overdue.body': 'تجاوزت موعد التسليم: @title — الموظف: @name',
   'notify.mgr.overdue.action':
       'يرجى متابعة سبب التأخير وتحديث الخطة الزمنية.',
-  'notify.mgr.new_task_dept.title': 'تم إنشاء مهمة جديدة في قسم @dept',
+  'notify.mgr.new_task_dept.title': 'تم إنشاء مهمة جديدة في @dept',
   'notify.mgr.new_task_dept.action': 'يرجى توزيع المهمة ومتابعة التنفيذ.',
   'notify.mgr.client_notes.title': 'استلام ملاحظات من العميل',
   'notify.mgr.client_notes.body': 'العميل: @name — المحتوى: @title',

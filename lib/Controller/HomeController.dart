@@ -2722,6 +2722,16 @@ class HomeController extends GetxController {
     currentEmployee.value = employee;
     lastKnownEmployee.value = employee;
     syncActiveDepartmentFilterFromEmployee(employee);
+    // Ensure authRoles exists before binding manager/employee collection streams.
+    try {
+      await FirestoreServices.syncAuthRoleForEmployee(employee);
+    } catch (e, s) {
+      appLog(
+        'applyEmployeeSessionAfterAuthRestore syncAuthRole failed: $e',
+        error: e,
+        stackTrace: s,
+      );
+    }
     final role = employee.role.trim().toLowerCase();
     if (role == 'admin' || role == 'supervisor') {
       unawaited(BackfillEmployeeDepartments.runIfNeeded(isManager: true));
@@ -2825,7 +2835,18 @@ class HomeController extends GetxController {
                 currentEmployee.value = employee;
                 lastKnownEmployee.value = employee;
                 syncActiveDepartmentFilterFromEmployee(employee);
-                unawaited(FirestoreServices.syncAuthRoleForEmployee(employee));
+                try {
+                  await FirestoreServices.syncAuthRoleForEmployee(employee);
+                } catch (e, s) {
+                  appLog(
+                    'listenToClient syncAuthRole failed: $e',
+                    error: e,
+                    stackTrace: s,
+                  );
+                }
+                _rebindClientsAndTasksStreams();
+                fetchContents();
+                fetchMetaPosts();
                 _startTotalUnreadStream(empid);
               }
             }

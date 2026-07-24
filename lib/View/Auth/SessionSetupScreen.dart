@@ -124,6 +124,11 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
     try {
       await FirebaseAuth.instance.currentUser?.getIdToken(true);
       await FirestoreServices.syncAuthRoleForEmployee(v);
+      // Rebind after authRoles exists — onInit/login often bound too early and
+      // permission-denied left clients/tasks as a permanent empty list.
+      hc.fetchClients();
+      hc.fetchContents();
+      hc.fetchMetaPosts();
     } catch (e, st) {
       appLog('SessionSetup: auth sync before FCM: $e', stackTrace: st);
     }
