@@ -717,9 +717,29 @@ Future<void> showAddPublishDialog({
                             load: controller.isLoading.value,
                             onPressed: () async {
                               final asset = selectedAsset.value;
-                              if (asset == null) return;
+                              if (asset == null) {
+                                FunHelper.showSnackbarDeduped(
+                                  'error'.tr,
+                                  'publish.no_pages'.tr,
+                                  dedupeKey: 'publish_no_page_selected',
+                                  snackPosition: SnackPosition.TOP,
+                                  backgroundColor: Colors.red,
+                                  colorText: Colors.white,
+                                );
+                                return;
+                              }
                               final title = titleController.text.trim();
-                              if (title.isEmpty) return;
+                              if (title.isEmpty) {
+                                FunHelper.showSnackbarDeduped(
+                                  'error'.tr,
+                                  'entertitle'.tr,
+                                  dedupeKey: 'publish_title_required',
+                                  snackPosition: SnackPosition.TOP,
+                                  backgroundColor: Colors.red,
+                                  colorText: Colors.white,
+                                );
+                                return;
+                              }
                               if (forceSingleMediaSelection &&
                                   (mediaUrl.value == null ||
                                       mediaUrl.value!.trim().isEmpty)) {
@@ -841,7 +861,11 @@ Future<void> showAddPublishDialog({
                                       ),
                                     );
                               controller.uploadedFilesPaths.clear();
-                              if (ok && scheduleMode.value == 'schedule') {
+                              if (!ok) return;
+                              // Close dialog before snackbar. GetX Get.back()
+                              // dismisses an open snackbar instead of the route.
+                              Get.back();
+                              if (scheduleMode.value == 'schedule') {
                                 FunHelper.showSnackbarDeduped(
                                   'common.save'.tr,
                                   'publish.schedule_saved'.tr,
@@ -850,7 +874,7 @@ Future<void> showAddPublishDialog({
                                   backgroundColor: Colors.green,
                                   colorText: Colors.white,
                                 );
-                              } else if (ok && queueNow) {
+                              } else if (queueNow) {
                                 FunHelper.showSnackbarDeduped(
                                   'common.save'.tr,
                                   'publish.queued_now'.tr,
@@ -860,7 +884,6 @@ Future<void> showAddPublishDialog({
                                   colorText: Colors.white,
                                 );
                               }
-                              if (ok) Get.back();
                             },
                           ),
                           ),

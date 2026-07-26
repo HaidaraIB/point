@@ -48,6 +48,22 @@ class _DynamicMultiSelectState<T> extends State<DynamicMultiSelect<T>> {
     _selectedItems = List.from(widget.selectedValues);
   }
 
+  @override
+  void didUpdateWidget(covariant DynamicMultiSelect<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_sameSelection(_selectedItems, widget.selectedValues)) {
+      _selectedItems = List.from(widget.selectedValues);
+    }
+  }
+
+  bool _sameSelection(List<T> a, List<T> b) {
+    if (a.length != b.length) return false;
+    for (final item in a) {
+      if (!b.contains(item)) return false;
+    }
+    return true;
+  }
+
   void _showMultiSelectDialog() async {
     final List<T> tempList = List.from(_selectedItems);
 

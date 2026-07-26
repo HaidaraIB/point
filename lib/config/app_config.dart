@@ -4,6 +4,7 @@ import 'package:point/firebase_app_options.dart';
 class AppConfig {
   /// Compile-time app version / build from `--dart-define` (CI parses pubspec).
   /// Used on web to detect a newer deployed `version.json` than this bundle.
+  /// Defaults are placeholders only — never bump them; bump `pubspec.yaml`.
   static const String appVersion = String.fromEnvironment(
     'APP_VERSION',
     defaultValue: kAppVersionFallback,

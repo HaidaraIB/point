@@ -87,6 +87,7 @@ class HomeController extends GetxController {
   var searchController = TextEditingController();
 
   Timer? _employeeDashFilterSaveDebounce;
+  Timer? _publishFilterSaveDebounce;
   Timer? _presenceHeartbeatTimer;
   String? _presenceHeartbeatEmployeeId;
   static const Duration _presenceHeartbeatInterval =
@@ -255,6 +256,534 @@ class HomeController extends GetxController {
     selectedStatus.value = '';
     filterTasks();
     await persistEmployeeDashboardTaskFilters();
+  }
+
+  // --- Publish section multi-select filters (persisted) ---
+
+  final RxList<String> selectedPublishStatuses =
+      <String>[...StorageKeys.defaultPublishStatusFilters].obs;
+  final RxList<String> selectedPublishPlatforms = <String>[].obs;
+  final RxList<String> selectedPublishPostTypes = <String>[].obs;
+  final RxList<String> selectedPublishMediaTypes = <String>[].obs;
+  final RxList<String> selectedPublishPageIds = <String>[].obs;
+  final RxList<String> selectedPublishInstagramKeys = <String>[].obs;
+  final RxList<String> selectedPublishClientIds = <String>[].obs;
+  final RxList<String> selectedPublishCreatedByIds = <String>[].obs;
+  final RxList<String> selectedPublishLangs = <String>[].obs;
+  final TextEditingController publishSearchController = TextEditingController();
+  final RxString publishSearchQuery = ''.obs;
+  final Rxn<DateTime> publishDateFrom = Rxn<DateTime>();
+  final Rxn<DateTime> publishDateTo = Rxn<DateTime>();
+  /// Bumped on restore/clear so filter multi-select widgets rebuild selection.
+  final RxInt publishFiltersRevision = 0.obs;
+
+  String? _publishFiltersPrefsEmployeeId() {
+    final a = currentEmployee.value?.id?.trim() ?? '';
+    if (a.isNotEmpty) return a;
+    final b = lastKnownEmployee.value?.id?.trim() ?? '';
+    if (b.isNotEmpty) return b;
+    return null;
+  }
+
+  static String? publishInstagramFilterKey(MetaPostModel p) {
+    final id = (p.instagramUserId ?? '').trim();
+    if (id.isNotEmpty) return id;
+    final name = (p.instagramUserName ?? '').trim();
+    if (name.isNotEmpty) return name;
+    return null;
+  }
+
+  static String publishClientFilterKey(MetaPostModel p) {
+    final id = (p.clientId ?? '').trim();
+    if (id.isEmpty) return StorageKeys.publishClientFilterNone;
+    return id;
+  }
+
+  static DateTime publishEffectiveDate(MetaPostModel p) =>
+      (p.scheduledAt ?? p.createdAt).toLocal();
+
+  static bool _publishStatusMatches(String rawStatus, List<String> selected) {
+    if (selected.isEmpty) return true;
+    final s = rawStatus.trim().toLowerCase();
+    final normalized = s.isEmpty ? 'created' : s;
+    for (final sel in selected) {
+      if (sel == 'queued') {
+        if (normalized == 'queued' || normalized == 'queued_now') return true;
+      } else if (normalized == sel) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  List<String> publishPageFilterOptions() {
+    final seen = <String>{};
+    final out = <String>[];
+    for (final p in metaPosts) {
+      final id = p.pageId.trim();
+      if (id.isEmpty || !seen.add(id)) continue;
+      out.add(id);
+    }
+    out.sort((a, b) {
+      final la = publishPageFilterLabel(a).toLowerCase();
+      final lb = publishPageFilterLabel(b).toLowerCase();
+      return la.compareTo(lb);
+    });
+    return out;
+  }
+
+  String publishPageFilterLabel(String pageId) {
+    final match = metaPosts.firstWhereOrNull((p) => p.pageId.trim() == pageId);
+    final name = (match?.pageName ?? '').trim();
+    if (name.isNotEmpty) return name;
+    return pageId;
+  }
+
+  List<String> publishInstagramFilterOptions() {
+    final seen = <String>{};
+    final out = <String>[];
+    for (final p in metaPosts) {
+      final key = publishInstagramFilterKey(p);
+      if (key == null || !seen.add(key)) continue;
+      out.add(key);
+    }
+    out.sort((a, b) =>
+        publishInstagramFilterLabel(a).toLowerCase().compareTo(
+              publishInstagramFilterLabel(b).toLowerCase(),
+            ));
+    return out;
+  }
+
+  String publishInstagramFilterLabel(String key) {
+    final match = metaPosts.firstWhereOrNull(
+      (p) => publishInstagramFilterKey(p) == key,
+    );
+    final name = (match?.instagramUserName ?? '').trim();
+    if (name.isNotEmpty) return name;
+    return key;
+  }
+
+  List<String> publishClientFilterOptions() {
+    final seen = <String>{StorageKeys.publishClientFilterNone};
+    final out = <String>[StorageKeys.publishClientFilterNone];
+    for (final p in metaPosts) {
+      final id = (p.clientId ?? '').trim();
+      if (id.isEmpty || !seen.add(id)) continue;
+      out.add(id);
+    }
+    out.sort((a, b) {
+      if (a == StorageKeys.publishClientFilterNone) return -1;
+      if (b == StorageKeys.publishClientFilterNone) return 1;
+      return publishClientFilterLabel(a)
+          .toLowerCase()
+          .compareTo(publishClientFilterLabel(b).toLowerCase());
+    });
+    return out;
+  }
+
+  String publishClientFilterLabel(String clientId) {
+    if (clientId == StorageKeys.publishClientFilterNone) {
+      return 'publish.client_none'.tr;
+    }
+    final c = clients.firstWhereOrNull((e) => e.id == clientId);
+    final name = (c?.name ?? '').trim();
+    if (name.isNotEmpty) return name;
+    return clientId;
+  }
+
+  List<String> publishCreatedByFilterOptions() {
+    final seen = <String>{};
+    final out = <String>[];
+    for (final p in metaPosts) {
+      final id = (p.createdBy ?? '').trim();
+      if (id.isEmpty || !seen.add(id)) continue;
+      out.add(id);
+    }
+    out.sort((a, b) =>
+        publishCreatedByFilterLabel(a).toLowerCase().compareTo(
+              publishCreatedByFilterLabel(b).toLowerCase(),
+            ));
+    return out;
+  }
+
+  String publishCreatedByFilterLabel(String employeeId) {
+    final e = employees.firstWhereOrNull((x) => x.id == employeeId);
+    final name = (e?.name ?? '').trim();
+    if (name.isNotEmpty) return name;
+    return employeeId;
+  }
+
+  List<String> publishLangFilterOptions() {
+    final seen = <String>{};
+    final out = <String>[];
+    for (final p in metaPosts) {
+      final lang = (p.lang ?? '').trim().toLowerCase();
+      if (lang.isEmpty || !seen.add(lang)) continue;
+      out.add(lang);
+    }
+    out.sort();
+    return out;
+  }
+
+  String publishLangFilterLabel(String lang) {
+    switch (lang.trim().toLowerCase()) {
+      case 'ar':
+        return 'publish.filter_lang_ar'.tr;
+      case 'en':
+        return 'publish.filter_lang_en'.tr;
+      default:
+        return lang;
+    }
+  }
+
+  String publishStatusFilterLabel(String status) {
+    switch (status) {
+      case 'queued':
+        return 'publish.queued'.tr;
+      case 'scheduled':
+        return 'publish.scheduled'.tr;
+      case 'published':
+        return 'publish.published'.tr;
+      case 'failed':
+        return 'publish.failed'.tr;
+      case 'publishing':
+        return 'publish.publishing'.tr;
+      case 'cancelled':
+        return 'publish.cancelled'.tr;
+      case 'created':
+      default:
+        return 'publish.created'.tr;
+    }
+  }
+
+  String publishPlatformFilterLabel(String platform) {
+    switch (platform.trim().toLowerCase()) {
+      case 'facebook':
+        return 'platform_facebook'.tr;
+      case 'instagram':
+        return 'platform_instagram'.tr;
+      default:
+        return platform;
+    }
+  }
+
+  String publishPostTypeFilterLabel(String postType) {
+    switch (postType.trim().toLowerCase()) {
+      case 'reel':
+        return 'publish.post_type_reel'.tr;
+      case 'story':
+        return 'publish.post_type_story'.tr;
+      default:
+        return 'publish.post_type_feed'.tr;
+    }
+  }
+
+  String publishMediaTypeFilterLabel(String mediaType) {
+    switch (mediaType.trim().toLowerCase()) {
+      case 'video':
+        return 'publish.filter_media_video'.tr;
+      case 'photo':
+      default:
+        return 'publish.filter_media_photo'.tr;
+    }
+  }
+
+  List<MetaPostModel> get filteredMetaPosts {
+    final statuses = selectedPublishStatuses.toList();
+    final platforms = selectedPublishPlatforms
+        .map((e) => e.trim().toLowerCase())
+        .where((e) => e.isNotEmpty)
+        .toSet();
+    final postTypes = selectedPublishPostTypes
+        .map((e) => e.trim().toLowerCase())
+        .where((e) => e.isNotEmpty)
+        .toSet();
+    final mediaTypes = selectedPublishMediaTypes
+        .map((e) => e.trim().toLowerCase())
+        .where((e) => e.isNotEmpty)
+        .toSet();
+    final pageIds = selectedPublishPageIds
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet();
+    final igKeys = selectedPublishInstagramKeys
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet();
+    final clientIds = selectedPublishClientIds
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet();
+    final createdByIds = selectedPublishCreatedByIds
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet();
+    final langs = selectedPublishLangs
+        .map((e) => e.trim().toLowerCase())
+        .where((e) => e.isNotEmpty)
+        .toSet();
+    final search = publishSearchQuery.value.trim().toLowerCase();
+    final from = publishDateFrom.value;
+    final to = publishDateTo.value;
+    DateTime? fromDay;
+    DateTime? toDay;
+    if (from != null) {
+      fromDay = DateTime(from.year, from.month, from.day);
+    }
+    if (to != null) {
+      toDay = DateTime(to.year, to.month, to.day);
+    }
+
+    return metaPosts.where((p) {
+      if (!_publishStatusMatches(p.status, statuses)) return false;
+
+      if (platforms.isNotEmpty) {
+        final postPlatforms = p.platforms
+            .map((e) => e.toString().trim().toLowerCase())
+            .where((e) => e.isNotEmpty)
+            .toSet();
+        if (postPlatforms.intersection(platforms).isEmpty) return false;
+      }
+
+      if (postTypes.isNotEmpty) {
+        final t = p.postType.trim().toLowerCase();
+        final normalized = t.isEmpty ? 'feed' : t;
+        if (!postTypes.contains(normalized)) return false;
+      }
+
+      if (mediaTypes.isNotEmpty) {
+        final m = (p.mediaType ?? '').trim().toLowerCase();
+        if (m.isEmpty || !mediaTypes.contains(m)) return false;
+      }
+
+      if (pageIds.isNotEmpty && !pageIds.contains(p.pageId.trim())) {
+        return false;
+      }
+
+      if (igKeys.isNotEmpty) {
+        final key = publishInstagramFilterKey(p);
+        if (key == null || !igKeys.contains(key)) return false;
+      }
+
+      if (clientIds.isNotEmpty &&
+          !clientIds.contains(publishClientFilterKey(p))) {
+        return false;
+      }
+
+      if (createdByIds.isNotEmpty) {
+        final id = (p.createdBy ?? '').trim();
+        if (id.isEmpty || !createdByIds.contains(id)) return false;
+      }
+
+      if (langs.isNotEmpty) {
+        final lang = (p.lang ?? '').trim().toLowerCase();
+        if (lang.isEmpty || !langs.contains(lang)) return false;
+      }
+
+      if (search.isNotEmpty) {
+        final title = p.title.toLowerCase();
+        final caption = (p.caption ?? '').toLowerCase();
+        if (!title.contains(search) && !caption.contains(search)) {
+          return false;
+        }
+      }
+
+      if (fromDay != null || toDay != null) {
+        final d = publishEffectiveDate(p);
+        final day = DateTime(d.year, d.month, d.day);
+        if (fromDay != null && day.isBefore(fromDay)) return false;
+        if (toDay != null && day.isAfter(toDay)) return false;
+      }
+
+      return true;
+    }).toList();
+  }
+
+  Map<String, dynamic> _publishFiltersToJson() {
+    return {
+      'statuses': selectedPublishStatuses.toList(),
+      'platforms': selectedPublishPlatforms.toList(),
+      'postTypes': selectedPublishPostTypes.toList(),
+      'mediaTypes': selectedPublishMediaTypes.toList(),
+      'pageIds': selectedPublishPageIds.toList(),
+      'instagramKeys': selectedPublishInstagramKeys.toList(),
+      'clientIds': selectedPublishClientIds.toList(),
+      'createdByIds': selectedPublishCreatedByIds.toList(),
+      'langs': selectedPublishLangs.toList(),
+      'search': publishSearchQuery.value,
+      'dateFrom': publishDateFrom.value?.toIso8601String(),
+      'dateTo': publishDateTo.value?.toIso8601String(),
+    };
+  }
+
+  List<String> _sanitizePublishFilterList(
+    dynamic raw,
+    Set<String> allowed, {
+    bool allowAny = false,
+  }) {
+    if (raw is! List) return <String>[];
+    final out = <String>[];
+    final seen = <String>{};
+    for (final item in raw) {
+      final s = item?.toString().trim() ?? '';
+      if (s.isEmpty || !seen.add(s)) continue;
+      if (!allowAny && allowed.isNotEmpty && !allowed.contains(s)) continue;
+      out.add(s);
+    }
+    return out;
+  }
+
+  Future<void> persistPublishFilters() async {
+    final id = _publishFiltersPrefsEmployeeId();
+    if (id == null || id.isEmpty) return;
+    try {
+      final pref = await SharedPreferences.getInstance();
+      await pref.setString(
+        StorageKeys.prefsPublishFiltersKey(id),
+        jsonEncode(_publishFiltersToJson()),
+      );
+    } catch (_) {}
+  }
+
+  void schedulePersistPublishFilters() {
+    _publishFilterSaveDebounce?.cancel();
+    _publishFilterSaveDebounce = Timer(
+      const Duration(milliseconds: 450),
+      () => unawaited(persistPublishFilters()),
+    );
+  }
+
+  void onPublishSearchChanged(String value) {
+    publishSearchQuery.value = value;
+    schedulePersistPublishFilters();
+  }
+
+  void setPublishFilterList(RxList<String> target, List<String> next) {
+    target.assignAll(next);
+    unawaited(persistPublishFilters());
+  }
+
+  void setPublishDateFrom(DateTime? value) {
+    publishDateFrom.value = value;
+    unawaited(persistPublishFilters());
+  }
+
+  void setPublishDateTo(DateTime? value) {
+    publishDateTo.value = value;
+    unawaited(persistPublishFilters());
+  }
+
+  void _applyDefaultPublishFilters({bool bumpRevision = true}) {
+    selectedPublishStatuses.assignAll(StorageKeys.defaultPublishStatusFilters);
+    selectedPublishPlatforms.clear();
+    selectedPublishPostTypes.clear();
+    selectedPublishMediaTypes.clear();
+    selectedPublishPageIds.clear();
+    selectedPublishInstagramKeys.clear();
+    selectedPublishClientIds.clear();
+    selectedPublishCreatedByIds.clear();
+    selectedPublishLangs.clear();
+    publishSearchController.clear();
+    publishSearchQuery.value = '';
+    publishDateFrom.value = null;
+    publishDateTo.value = null;
+    if (bumpRevision) {
+      publishFiltersRevision.value++;
+    }
+  }
+
+  Future<void> restorePublishFiltersFromPrefs() async {
+    final id = _publishFiltersPrefsEmployeeId();
+    if (id == null || id.isEmpty) {
+      _applyDefaultPublishFilters();
+      return;
+    }
+    try {
+      final pref = await SharedPreferences.getInstance();
+      final raw = pref.getString(StorageKeys.prefsPublishFiltersKey(id));
+      if (raw == null || raw.isEmpty) {
+        _applyDefaultPublishFilters();
+        return;
+      }
+      final map = jsonDecode(raw);
+      if (map is! Map) {
+        _applyDefaultPublishFilters();
+        return;
+      }
+      final m = Map<String, dynamic>.from(map);
+
+      final statuses = _sanitizePublishFilterList(
+        m['statuses'],
+        StorageKeys.publishStatusFilterOptions.toSet(),
+      );
+      selectedPublishStatuses.assignAll(
+        statuses.isEmpty ? StorageKeys.defaultPublishStatusFilters : statuses,
+      );
+      selectedPublishPlatforms.assignAll(
+        _sanitizePublishFilterList(
+          m['platforms'],
+          StorageKeys.publishPlatformFilterOptions.toSet(),
+        ),
+      );
+      selectedPublishPostTypes.assignAll(
+        _sanitizePublishFilterList(
+          m['postTypes'],
+          StorageKeys.publishPostTypeFilterOptions.toSet(),
+        ),
+      );
+      selectedPublishMediaTypes.assignAll(
+        _sanitizePublishFilterList(
+          m['mediaTypes'],
+          StorageKeys.publishMediaTypeFilterOptions.toSet(),
+        ),
+      );
+      // Dynamic ids: keep any non-empty string (stale ids ignored at filter time).
+      selectedPublishPageIds.assignAll(
+        _sanitizePublishFilterList(m['pageIds'], const {}, allowAny: true),
+      );
+      selectedPublishInstagramKeys.assignAll(
+        _sanitizePublishFilterList(
+          m['instagramKeys'],
+          const {},
+          allowAny: true,
+        ),
+      );
+      selectedPublishClientIds.assignAll(
+        _sanitizePublishFilterList(m['clientIds'], const {}, allowAny: true),
+      );
+      selectedPublishCreatedByIds.assignAll(
+        _sanitizePublishFilterList(
+          m['createdByIds'],
+          const {},
+          allowAny: true,
+        ),
+      );
+      selectedPublishLangs.assignAll(
+        _sanitizePublishFilterList(m['langs'], const {}, allowAny: true),
+      );
+
+      final search = (m['search'] as String?)?.toString() ?? '';
+      publishSearchController.text = search;
+      publishSearchQuery.value = search;
+
+      DateTime? parseDate(dynamic v) {
+        if (v == null) return null;
+        final s = v.toString().trim();
+        if (s.isEmpty) return null;
+        return DateTime.tryParse(s);
+      }
+
+      publishDateFrom.value = parseDate(m['dateFrom']);
+      publishDateTo.value = parseDate(m['dateTo']);
+      publishFiltersRevision.value++;
+    } catch (_) {
+      _applyDefaultPublishFilters();
+    }
+  }
+
+  Future<void> clearPublishFilters() async {
+    _applyDefaultPublishFilters();
+    await persistPublishFilters();
   }
 
   void filterTasksHistory() {
@@ -3459,6 +3988,9 @@ class HomeController extends GetxController {
   void onClose() {
     _employeeDashFilterSaveDebounce?.cancel();
     _employeeDashFilterSaveDebounce = null;
+    _publishFilterSaveDebounce?.cancel();
+    _publishFilterSaveDebounce = null;
+    publishSearchController.dispose();
     employeeWebContentSearchController.dispose();
     _employeeDocSub?.cancel();
     _employeeDocSub = null;

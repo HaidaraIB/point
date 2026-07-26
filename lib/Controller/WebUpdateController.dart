@@ -23,13 +23,20 @@ class WebUpdateController extends GetxController with WidgetsBindingObserver {
   bool _dismissed = false;
   bool _checking = false;
 
+  /// Only CI / release web builds pass `--dart-define=APP_BUILD_NUMBER`.
+  /// Without it, comparing [AppConfig.appBuildNumber] fallbacks to served
+  /// `version.json` false-triggers the banner on every local `flutter run`.
+  static const bool _hasBakedBuildNumber = bool.hasEnvironment(
+    'APP_BUILD_NUMBER',
+  );
+
   int get _runningBuild =>
       int.tryParse(AppConfig.appBuildNumber.trim()) ?? 0;
 
   @override
   void onInit() {
     super.onInit();
-    if (!kIsWeb) return;
+    if (!kIsWeb || !_hasBakedBuildNumber) return;
     WidgetsBinding.instance.addObserver(this);
     unawaited(checkForUpdate());
     _pollTimer = Timer.periodic(pollInterval, (_) {
@@ -39,14 +46,14 @@ class WebUpdateController extends GetxController with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (!kIsWeb) return;
+    if (!kIsWeb || !_hasBakedBuildNumber) return;
     if (state == AppLifecycleState.resumed) {
       unawaited(checkForUpdate());
     }
   }
 
   Future<void> checkForUpdate() async {
-    if (!kIsWeb || _dismissed || _checking) return;
+    if (!kIsWeb || !_hasBakedBuildNumber || _dismissed || _checking) return;
     _checking = true;
     try {
       final uri = Uri.base.resolve('version.json').replace(
@@ -85,7 +92,7 @@ class WebUpdateController extends GetxController with WidgetsBindingObserver {
   void onClose() {
     _pollTimer?.cancel();
     _pollTimer = null;
-    if (kIsWeb) {
+    if (kIsWeb && _hasBakedBuildNumber) {
       WidgetsBinding.instance.removeObserver(this);
     }
     super.onClose();

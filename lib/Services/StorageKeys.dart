@@ -321,6 +321,43 @@ class StorageKeys {
   static String prefsEmployeeDashboardTaskFiltersKey(String employeeId) =>
       'point_employee_dash_task_filters_v1_${employeeId.trim()}';
 
+  static String prefsPublishFiltersKey(String employeeId) =>
+      'point_publish_filters_v1_${employeeId.trim()}';
+
+  /// Meta publish queue statuses used by the Publish filters UI.
+  static const List<String> publishStatusFilterOptions = [
+    'created',
+    'queued',
+    'scheduled',
+    'publishing',
+    'published',
+    'failed',
+    'cancelled',
+  ];
+
+  static const List<String> publishPlatformFilterOptions = [
+    'facebook',
+    'instagram',
+  ];
+
+  static const List<String> publishPostTypeFilterOptions = [
+    'feed',
+    'story',
+    'reel',
+  ];
+
+  static const List<String> publishMediaTypeFilterOptions = [
+    'photo',
+    'video',
+  ];
+
+  /// Sentinel for posts with no linked client in the Publish client filter.
+  static const String publishClientFilterNone = '__none__';
+
+  /// Default status filter: every status except successful `published`.
+  static List<String> get defaultPublishStatusFilters =>
+      publishStatusFilterOptions.where((s) => s != 'published').toList();
+
   static List<String> endedStatusFilterKeysForTaskType(String taskType) {
     if (taskType == '0') {
       return ['', status_promotion_finished, ...statusListEnded];

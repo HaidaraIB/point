@@ -49,6 +49,10 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      # Single source of truth: pubspec.yaml → version.json + dart-defines.
+      - name: Sync web/version.json from pubspec
+        run: dart run scripts/sync_web_version.dart
+
       # نطاق فرعي agency.point-iq.app → base-href = / (جذر النطاق)
       # --pwa-strategy none يقلّل تخزين نسخة قديمة من التطبيق عبر service worker الافتراضي (offline-first)
       # APP_VERSION / APP_BUILD_NUMBER bake pubspec into the JS bundle for the in-app update banner.

@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/MetaPostModel.dart';
 import 'package:point/Services/FunHelper.dart';
+import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/ContentPermissions.dart';
 import 'package:point/View/Publish/publish_add_dialog.dart';
@@ -11,13 +14,38 @@ import 'package:point/View/Publish/publish_meta_settings_dialog.dart';
 import 'package:point/View/Shared/HorizontalScroll.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 import 'package:point/View/Shared/TableCellCenter.dart';
+import 'package:point/View/Shared/app_filter_dropdown.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/Utils/app_theme_extension.dart';
-class PublishTable extends StatelessWidget {
+
+class PublishTable extends StatefulWidget {
   const PublishTable({super.key});
+
+  @override
+  State<PublishTable> createState() => _PublishTableState();
+}
+
+class _PublishTableState extends State<PublishTable> {
+  final ScrollController _desktopTableScrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (!Get.isRegistered<HomeController>()) return;
+      unawaited(Get.find<HomeController>().restorePublishFiltersFromPrefs());
+    });
+  }
+
+  @override
+  void dispose() {
+    _desktopTableScrollController.dispose();
+    super.dispose();
+  }
 
   String _instagramAccountText(MetaPostModel p) {
     final name = (p.instagramUserName ?? '').trim();
@@ -696,6 +724,687 @@ class PublishTable extends StatelessWidget {
     );
   }
 
+  Future<void> _openPublishFilterPicker({
+    required String title,
+    required List<String> items,
+    required List<String> selected,
+    required String Function(String) itemLabel,
+    required void Function(List<String>) onChanged,
+  }) async {
+    final temp = List<String>.from(selected);
+    final result = await showModalBottomSheet<List<String>>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final theme = context.appTheme;
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: SizedBox(
+                  height: MediaQuery.sizeOf(context).height * 0.65,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              title,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: theme.primaryText,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ],
+                      ),
+                      Expanded(
+                        child: items.isEmpty
+                            ? Center(
+                                child: Text(
+                                  'history.empty_data'.tr,
+                                  style: TextStyle(color: theme.mutedText),
+                                ),
+                              )
+                            : ListView.builder(
+                                itemCount: items.length,
+                                itemBuilder: (context, index) {
+                                  final item = items[index];
+                                  final isSelected = temp.contains(item);
+                                  return InkWell(
+                                    onTap: () {
+                                      setModalState(() {
+                                        if (isSelected) {
+                                          temp.remove(item);
+                                        } else {
+                                          temp.add(item);
+                                        }
+                                      });
+                                    },
+                                    child: Container(
+                                      margin: const EdgeInsets.all(5),
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(10),
+                                        color: isSelected
+                                            ? theme.unselected
+                                            : null,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(
+                                              itemLabel(item),
+                                              style: TextStyle(
+                                                color: theme.secondaryText,
+                                              ),
+                                            ),
+                                          ),
+                                          if (isSelected)
+                                            const Icon(
+                                              Icons.check,
+                                              color: Colors.green,
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                      ),
+                      const SizedBox(height: 8),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 16,
+                          ),
+                        ),
+                        onPressed: () =>
+                            Navigator.pop(context, List<String>.from(temp)),
+                        child: Text(
+                          'common.save'.tr,
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+    if (result != null) {
+      onChanged(result);
+    }
+  }
+
+  Widget _buildFilterTrigger({
+    required String hint,
+    required List<String> items,
+    required List<String> selected,
+    required String Function(String) itemLabel,
+    required void Function(List<String>) onChanged,
+  }) {
+    final theme = resolveAppTheme();
+    final active = selected.isNotEmpty;
+    return Material(
+      color: theme.inputFill,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(
+          color: active ? AppColors.primary.withValues(alpha: 0.55) : theme.border,
+        ),
+      ),
+      child: InkWell(
+        onTap: () => unawaited(
+          _openPublishFilterPicker(
+            title: hint,
+            items: items,
+            selected: selected,
+            itemLabel: itemLabel,
+            onChanged: onChanged,
+          ),
+        ),
+        borderRadius: BorderRadius.circular(8),
+        child: SizedBox(
+          height: 40,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  hint,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: theme.primaryText,
+                  ),
+                ),
+                  if (active) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      constraints: const BoxConstraints(minWidth: 20),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        '${selected.length}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          height: 1.1,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                const SizedBox(width: 2),
+                Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: theme.mutedText,
+                  size: 20,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDateFilterChip({
+    required String hint,
+    required DateTime? value,
+    required Future<void> Function() onPick,
+    required VoidCallback onClear,
+  }) {
+    final theme = resolveAppTheme();
+    final hasValue = value != null;
+    final label = hasValue ? DateFormat('yyyy-MM-dd').format(value) : hint;
+    return Material(
+      color: theme.inputFill,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(
+          color: hasValue
+              ? AppColors.primary.withValues(alpha: 0.55)
+              : theme.border,
+        ),
+      ),
+      child: InkWell(
+        onTap: () => unawaited(onPick()),
+        borderRadius: BorderRadius.circular(8),
+        child: SizedBox(
+          height: 40,
+          child: Padding(
+            padding: const EdgeInsetsDirectional.only(start: 10, end: 4),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.calendar_today_outlined,
+                  size: 15,
+                  color: theme.mutedText,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: hasValue ? theme.primaryText : theme.mutedText,
+                  ),
+                ),
+                if (hasValue)
+                  InkWell(
+                    onTap: onClear,
+                    borderRadius: BorderRadius.circular(999),
+                    child: Padding(
+                      padding: const EdgeInsets.all(6),
+                      child: Icon(
+                        Icons.close_rounded,
+                        size: 16,
+                        color: theme.mutedText,
+                      ),
+                    ),
+                  )
+                else
+                  const SizedBox(width: 8),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActiveFilterTag({
+    required String dimension,
+    required String label,
+    required VoidCallback onRemove,
+  }) {
+    final theme = resolveAppTheme();
+    return Material(
+      color: theme.cardSurface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(999),
+        side: BorderSide(color: theme.border),
+      ),
+      child: Padding(
+        padding: const EdgeInsetsDirectional.only(start: 10, end: 2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '$dimension: ',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: theme.mutedText,
+              ),
+            ),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: theme.primaryText,
+              ),
+            ),
+            InkWell(
+              onTap: onRemove,
+              borderRadius: BorderRadius.circular(999),
+              child: Padding(
+                padding: const EdgeInsets.all(6),
+                child: Icon(
+                  Icons.close_rounded,
+                  size: 15,
+                  color: theme.mutedText,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _appendActiveTags({
+    required List<Widget> out,
+    required String dimension,
+    required List<String> selected,
+    required String Function(String) itemLabel,
+    required void Function(String value) onRemove,
+  }) {
+    for (final value in selected) {
+      out.add(
+        _buildActiveFilterTag(
+          dimension: dimension,
+          label: itemLabel(value),
+          onRemove: () => onRemove(value),
+        ),
+      );
+    }
+  }
+
+  Future<void> _pickPublishDate({
+    required HomeController controller,
+    required bool isFrom,
+  }) async {
+    final current = isFrom
+        ? controller.publishDateFrom.value
+        : controller.publishDateTo.value;
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: current ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+    );
+    if (picked == null) return;
+    if (isFrom) {
+      controller.setPublishDateFrom(picked);
+      final to = controller.publishDateTo.value;
+      if (to != null && to.isBefore(picked)) {
+        controller.setPublishDateTo(picked);
+      }
+    } else {
+      controller.setPublishDateTo(picked);
+      final from = controller.publishDateFrom.value;
+      if (from != null && from.isAfter(picked)) {
+        controller.setPublishDateFrom(picked);
+      }
+    }
+  }
+
+  Widget _buildFilters(HomeController controller) {
+    return Obx(() {
+      // Ensure rebuild when filter revision or option sources change.
+      final _ = controller.publishFiltersRevision.value;
+      controller.metaPosts.length;
+      controller.clients.length;
+      controller.employees.length;
+
+      final statuses = controller.selectedPublishStatuses.toList();
+      final platforms = controller.selectedPublishPlatforms.toList();
+      final postTypes = controller.selectedPublishPostTypes.toList();
+      final mediaTypes = controller.selectedPublishMediaTypes.toList();
+      final pageIds = controller.selectedPublishPageIds.toList();
+      final igKeys = controller.selectedPublishInstagramKeys.toList();
+      final clientIds = controller.selectedPublishClientIds.toList();
+      final createdByIds = controller.selectedPublishCreatedByIds.toList();
+      final langs = controller.selectedPublishLangs.toList();
+      final dateFrom = controller.publishDateFrom.value;
+      final dateTo = controller.publishDateTo.value;
+
+      final activeTags = <Widget>[];
+      _appendActiveTags(
+        out: activeTags,
+        dimension: 'publish.filter_status'.tr,
+        selected: statuses,
+        itemLabel: controller.publishStatusFilterLabel,
+        onRemove: (value) {
+          final next = List<String>.from(statuses)..remove(value);
+          controller.setPublishFilterList(
+            controller.selectedPublishStatuses,
+            next,
+          );
+        },
+      );
+      _appendActiveTags(
+        out: activeTags,
+        dimension: 'publish.filter_platforms'.tr,
+        selected: platforms,
+        itemLabel: controller.publishPlatformFilterLabel,
+        onRemove: (value) {
+          final next = List<String>.from(platforms)..remove(value);
+          controller.setPublishFilterList(
+            controller.selectedPublishPlatforms,
+            next,
+          );
+        },
+      );
+      _appendActiveTags(
+        out: activeTags,
+        dimension: 'publish.filter_post_type'.tr,
+        selected: postTypes,
+        itemLabel: controller.publishPostTypeFilterLabel,
+        onRemove: (value) {
+          final next = List<String>.from(postTypes)..remove(value);
+          controller.setPublishFilterList(
+            controller.selectedPublishPostTypes,
+            next,
+          );
+        },
+      );
+      _appendActiveTags(
+        out: activeTags,
+        dimension: 'publish.filter_media_type'.tr,
+        selected: mediaTypes,
+        itemLabel: controller.publishMediaTypeFilterLabel,
+        onRemove: (value) {
+          final next = List<String>.from(mediaTypes)..remove(value);
+          controller.setPublishFilterList(
+            controller.selectedPublishMediaTypes,
+            next,
+          );
+        },
+      );
+      _appendActiveTags(
+        out: activeTags,
+        dimension: 'publish.filter_page'.tr,
+        selected: pageIds,
+        itemLabel: controller.publishPageFilterLabel,
+        onRemove: (value) {
+          final next = List<String>.from(pageIds)..remove(value);
+          controller.setPublishFilterList(
+            controller.selectedPublishPageIds,
+            next,
+          );
+        },
+      );
+      _appendActiveTags(
+        out: activeTags,
+        dimension: 'publish.filter_instagram'.tr,
+        selected: igKeys,
+        itemLabel: controller.publishInstagramFilterLabel,
+        onRemove: (value) {
+          final next = List<String>.from(igKeys)..remove(value);
+          controller.setPublishFilterList(
+            controller.selectedPublishInstagramKeys,
+            next,
+          );
+        },
+      );
+      _appendActiveTags(
+        out: activeTags,
+        dimension: 'publish.filter_client'.tr,
+        selected: clientIds,
+        itemLabel: controller.publishClientFilterLabel,
+        onRemove: (value) {
+          final next = List<String>.from(clientIds)..remove(value);
+          controller.setPublishFilterList(
+            controller.selectedPublishClientIds,
+            next,
+          );
+        },
+      );
+      _appendActiveTags(
+        out: activeTags,
+        dimension: 'publish.filter_created_by'.tr,
+        selected: createdByIds,
+        itemLabel: controller.publishCreatedByFilterLabel,
+        onRemove: (value) {
+          final next = List<String>.from(createdByIds)..remove(value);
+          controller.setPublishFilterList(
+            controller.selectedPublishCreatedByIds,
+            next,
+          );
+        },
+      );
+      _appendActiveTags(
+        out: activeTags,
+        dimension: 'publish.filter_lang'.tr,
+        selected: langs,
+        itemLabel: controller.publishLangFilterLabel,
+        onRemove: (value) {
+          final next = List<String>.from(langs)..remove(value);
+          controller.setPublishFilterList(
+            controller.selectedPublishLangs,
+            next,
+          );
+        },
+      );
+      if (dateFrom != null) {
+        activeTags.add(
+          _buildActiveFilterTag(
+            dimension: 'publish.filter_date_from'.tr,
+            label: DateFormat('yyyy-MM-dd').format(dateFrom),
+            onRemove: () => controller.setPublishDateFrom(null),
+          ),
+        );
+      }
+      if (dateTo != null) {
+        activeTags.add(
+          _buildActiveFilterTag(
+            dimension: 'publish.filter_date_to'.tr,
+            label: DateFormat('yyyy-MM-dd').format(dateTo),
+            onRemove: () => controller.setPublishDateTo(null),
+          ),
+        );
+      }
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          MobileFilterSearchRow(
+            searchBar: MobileFilterSearchBar(
+              controller: controller.publishSearchController,
+              hintText: 'publish.filter_search_hint'.tr,
+              onChanged: () {
+                controller.onPublishSearchChanged(
+                  controller.publishSearchController.text,
+                );
+              },
+            ),
+            onClearFilters: () {
+              unawaited(controller.clearPublishFilters());
+            },
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              _buildFilterTrigger(
+                hint: 'publish.filter_status'.tr,
+                items: StorageKeys.publishStatusFilterOptions,
+                selected: statuses,
+                itemLabel: controller.publishStatusFilterLabel,
+                onChanged: (v) => controller.setPublishFilterList(
+                  controller.selectedPublishStatuses,
+                  v,
+                ),
+              ),
+              _buildFilterTrigger(
+                hint: 'publish.filter_platforms'.tr,
+                items: StorageKeys.publishPlatformFilterOptions,
+                selected: platforms,
+                itemLabel: controller.publishPlatformFilterLabel,
+                onChanged: (v) => controller.setPublishFilterList(
+                  controller.selectedPublishPlatforms,
+                  v,
+                ),
+              ),
+              _buildFilterTrigger(
+                hint: 'publish.filter_post_type'.tr,
+                items: StorageKeys.publishPostTypeFilterOptions,
+                selected: postTypes,
+                itemLabel: controller.publishPostTypeFilterLabel,
+                onChanged: (v) => controller.setPublishFilterList(
+                  controller.selectedPublishPostTypes,
+                  v,
+                ),
+              ),
+              _buildFilterTrigger(
+                hint: 'publish.filter_media_type'.tr,
+                items: StorageKeys.publishMediaTypeFilterOptions,
+                selected: mediaTypes,
+                itemLabel: controller.publishMediaTypeFilterLabel,
+                onChanged: (v) => controller.setPublishFilterList(
+                  controller.selectedPublishMediaTypes,
+                  v,
+                ),
+              ),
+              _buildFilterTrigger(
+                hint: 'publish.filter_page'.tr,
+                items: controller.publishPageFilterOptions(),
+                selected: pageIds,
+                itemLabel: controller.publishPageFilterLabel,
+                onChanged: (v) => controller.setPublishFilterList(
+                  controller.selectedPublishPageIds,
+                  v,
+                ),
+              ),
+              _buildFilterTrigger(
+                hint: 'publish.filter_instagram'.tr,
+                items: controller.publishInstagramFilterOptions(),
+                selected: igKeys,
+                itemLabel: controller.publishInstagramFilterLabel,
+                onChanged: (v) => controller.setPublishFilterList(
+                  controller.selectedPublishInstagramKeys,
+                  v,
+                ),
+              ),
+              _buildFilterTrigger(
+                hint: 'publish.filter_client'.tr,
+                items: controller.publishClientFilterOptions(),
+                selected: clientIds,
+                itemLabel: controller.publishClientFilterLabel,
+                onChanged: (v) => controller.setPublishFilterList(
+                  controller.selectedPublishClientIds,
+                  v,
+                ),
+              ),
+              _buildFilterTrigger(
+                hint: 'publish.filter_created_by'.tr,
+                items: controller.publishCreatedByFilterOptions(),
+                selected: createdByIds,
+                itemLabel: controller.publishCreatedByFilterLabel,
+                onChanged: (v) => controller.setPublishFilterList(
+                  controller.selectedPublishCreatedByIds,
+                  v,
+                ),
+              ),
+              _buildFilterTrigger(
+                hint: 'publish.filter_lang'.tr,
+                items: controller.publishLangFilterOptions(),
+                selected: langs,
+                itemLabel: controller.publishLangFilterLabel,
+                onChanged: (v) => controller.setPublishFilterList(
+                  controller.selectedPublishLangs,
+                  v,
+                ),
+              ),
+              _buildDateFilterChip(
+                hint: 'publish.filter_date_from'.tr,
+                value: dateFrom,
+                onPick: () => _pickPublishDate(
+                  controller: controller,
+                  isFrom: true,
+                ),
+                onClear: () => controller.setPublishDateFrom(null),
+              ),
+              _buildDateFilterChip(
+                hint: 'publish.filter_date_to'.tr,
+                value: dateTo,
+                onPick: () => _pickPublishDate(
+                  controller: controller,
+                  isFrom: false,
+                ),
+                onClear: () => controller.setPublishDateTo(null),
+              ),
+            ],
+          ),
+          if (activeTags.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: activeTags,
+            ),
+          ],
+        ],
+      );
+    });
+  }
+
   Widget _buildHeader(BuildContext context, HomeController controller) {
     final canAdd = ContentPermissions.canAccessPublishSection(
       controller.currentEmployee.value,
@@ -810,10 +1519,12 @@ class PublishTable extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _buildHeader(context, controller),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
+          _buildFilters(controller),
+          const SizedBox(height: 12),
           Expanded(
             child: Obx(() {
-              final list = controller.metaPosts.toList();
+              final list = controller.filteredMetaPosts;
               if (list.isEmpty) {
                 return Center(child: Text('history.empty_data'.tr));
               }
@@ -823,8 +1534,10 @@ class PublishTable extends StatelessWidget {
                       ? tableWidth
                       : constraints.maxWidth;
                   return Scrollbar(
+                    controller: _desktopTableScrollController,
                     thumbVisibility: true,
                     child: SingleChildScrollView(
+                      controller: _desktopTableScrollController,
                       child: HorizontalScrollbarTable(
                         child: Padding(
                           padding: const EdgeInsets.only(top: 6, bottom: 14),
@@ -1033,9 +1746,11 @@ class PublishTable extends StatelessWidget {
         children: [
           _buildHeader(context, controller),
           const SizedBox(height: 12),
+          _buildFilters(controller),
+          const SizedBox(height: 12),
           Expanded(
             child: Obx(() {
-              final list = controller.metaPosts.toList();
+              final list = controller.filteredMetaPosts;
               if (list.isEmpty) {
                 return Center(child: Text('history.empty_data'.tr));
               }

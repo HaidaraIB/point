@@ -1,9 +1,10 @@
 /// ثوابت عامة للتطبيق.
 ///
-/// احتياطي لعرض الإصدار (خصوصاً على الويب) إذا تعذّر جلب `version.json` أو [PackageInfo].
-/// يُفضّل مطابقته لحقل `version` في `pubspec.yaml` (مثلاً `2.0.4+45` → إصدار `2.0.4` وبناء `45`).
-const String kAppVersionFallback = '2.0.4';
-const String kAppBuildFallback = '45';
+/// Last-resort display only when `version.json` / [PackageInfo] / dart-defines
+/// are unavailable. Do **not** bump these when releasing — bump `pubspec.yaml`
+/// (and run `dart run scripts/sync_web_version.dart`, or let CI do it).
+const String kAppVersionFallback = '0.0.0';
+const String kAppBuildFallback = '0';
 
 /// صورة افتراضية للملف الشخصي عند عدم وجود صورة للمستخدم.
 /// استخدام ui-avatars.com يقلل أخطاء CORS على الويب مقارنة بمصادر أخرى.
