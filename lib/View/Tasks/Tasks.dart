@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
@@ -6,11 +5,10 @@ import 'package:point/Controller/home_task_filters.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
-import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
-import 'package:point/View/Shared/app_filter_dropdown.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/responsive.dart';
+import 'package:point/View/Shared/task_list_filters_bar.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DContentWriteDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DDesignDialog.dart';
@@ -379,131 +377,9 @@ class Tasks extends StatelessWidget {
     HomeController controller,
     int selectedIndex,
   ) {
-    return SizedBox(
-      height: 62,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              SizedBox(
-                width: (Get.width * 0.7 / 3) - 25,
-                child: InputText(
-                  prefixIcon: Icon(
-                    CupertinoIcons.search,
-                    color: context.appTheme.mutedText,
-                  ),
-                  hintText: 'tasks.search_hint_extended'.tr,
-                  height: 42,
-                  controller: controller.searchController,
-                  onchange: (value) {
-                    controller.filterTasks();
-                    return null;
-                  },
-                  borderRadius: 5,
-                ),
-              ),
-              const SizedBox(width: 10),
-              FilterResetButton(
-                onPressed: () {
-                  controller.searchController.clear();
-                  controller.selectedPriority.value = '';
-                  controller.selectedStatus.value = '';
-                  controller.selectedExecutor.value = '';
-                  controller.filterTasks();
-                },
-              ),
-              const SizedBox(width: 24),
-              _desktopPriorityDropdown(controller),
-              const SizedBox(width: 10),
-              _desktopStatusDropdown(controller, selectedIndex),
-              const SizedBox(width: 10),
-              _desktopExecutorDropdown(controller),
-              const SizedBox(width: 10),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _desktopPriorityDropdown(HomeController controller) {
-    return AppFilterDropdown<String>(
-      hint: 'tasks.filter_priority'.tr,
-      value: controller.selectedPriority.value.isEmpty
-          ? null
-          : controller.selectedPriority.value,
-      items: StorageKeys.priority
-          .map((e) => DropdownMenuItem(value: e, child: Text(e.tr)))
-          .toList(),
-      onChanged: (value) {
-        controller.selectedPriority.value = value ?? '';
-        controller.filterTasks();
-      },
-    );
-  }
-
-  Widget _desktopStatusDropdown(
-    HomeController controller,
-    int selectedIndex,
-  ) {
-    final ongoingStatusItems = StorageKeys.ongoingStatusFilterDropdownValues(
-      selectedIndex.toString(),
-    );
-    return AppFilterDropdown<String>(
-      hint: 'tasks.filter_status'.tr,
-      width: 170,
-      value:
-          controller.selectedStatus.value.isEmpty ||
-                  !ongoingStatusItems.contains(controller.selectedStatus.value)
-              ? null
-              : controller.selectedStatus.value,
-      items: [
-        DropdownMenuItem(
-          value: '',
-          child: Text(
-            'filter_status_ongoing'.tr,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-        ),
-        ...ongoingStatusItems.map(
-          (e) => DropdownMenuItem(
-            value: e,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Text(e.tr),
-            ),
-          ),
-        ),
-      ],
-      onChanged: (value) {
-        controller.selectedStatus.value = value ?? '';
-        controller.filterTasks();
-      },
-    );
-  }
-
-  Widget _desktopExecutorDropdown(HomeController controller) {
-    return AppFilterDropdown<String>(
-      hint: 'tasks.filter_assignee'.tr,
-      value: controller.selectedExecutor.value.isEmpty
-          ? null
-          : controller.selectedExecutor.value,
-      items: controller.employees
-          .map(
-            (e) => DropdownMenuItem(
-              value: e.id ?? e.name ?? '',
-              child: Text(
-                (e.name ?? '').split(' ').take(2).join(' '),
-              ),
-            ),
-          )
-          .toList(),
-      onChanged: (value) {
-        controller.selectedExecutor.value = value ?? '';
-        controller.filterTasks();
-      },
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: TaskListFiltersBar(taskType: selectedIndex.toString()),
     );
   }
 

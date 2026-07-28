@@ -310,139 +310,123 @@ Widget _EmployeeWebContentFiltersRow(
   HomeController controller,
   BuildContext context,
 ) {
-  return Padding(
-    padding: const EdgeInsets.symmetric(vertical: 10),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Expanded(
-          child: InputText(
-            prefixIcon: Icon(
-              CupertinoIcons.search,
-              color: context.appTheme.secondaryText,
+  return Obx(() {
+    final _ = controller.employeeWebContentFiltersRevision.value;
+    final types = controller.employeeWebContentTypeFilters.toList();
+    final statuses = controller.employeeWebContentStatusFilters.toList();
+    final date = controller.employeeWebContentDateFilter.value;
+
+    final activeTags = <Widget>[];
+    appendAppActiveFilterTags(
+      out: activeTags,
+      dimension: 'employee.content.filter_type'.tr,
+      selected: types,
+      itemLabel: (s) => s.tr,
+      onRemove: (value) {
+        final next = List<String>.from(types)..remove(value);
+        controller.setEmployeeWebContentFilterList(
+          controller.employeeWebContentTypeFilters,
+          next,
+        );
+      },
+    );
+    appendAppActiveFilterTags(
+      out: activeTags,
+      dimension: 'tasks.filter_status'.tr,
+      selected: statuses,
+      itemLabel: (s) => s.tr,
+      onRemove: (value) {
+        final next = List<String>.from(statuses)..remove(value);
+        controller.setEmployeeWebContentFilterList(
+          controller.employeeWebContentStatusFilters,
+          next,
+        );
+      },
+    );
+    if (date != null) {
+      activeTags.add(
+        AppActiveFilterTag(
+          dimension: 'publish_date'.tr,
+          label: DateFormat('yyyy-MM-dd HH:mm').format(date),
+          onRemove: () {
+            controller.employeeWebContentDateFilter.value = null;
+            controller.employeeWebContentFiltersRevision.value++;
+            controller.update(['employeeWebContent']);
+          },
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          MobileFilterSearchRow(
+            searchBar: MobileFilterSearchBar(
+              controller: controller.employeeWebContentSearchController,
+              hintText: 'employee.search_content_hint'.tr,
+              onChanged: () => controller.update(['employeeWebContent']),
             ),
-            hintText: 'employee.search_content_hint'.tr,
-            height: 42,
-            controller: controller.employeeWebContentSearchController,
-            onchange: (value) {
-              controller.update(['employeeWebContent']);
-              return null;
-            },
-            borderRadius: 5,
+            onClearFilters: () => controller.clearEmployeeWebContentFilters(),
           ),
-        ),
-        const SizedBox(width: 10),
-        FilterResetButton(
-          onPressed: () => controller.clearEmployeeWebContentFilters(),
-        ),
-        const SizedBox(width: 10),
-        Flexible(
-          flex: 2,
-          child: Obx(
-            () => AppFilterDropdown<String>(
-              hint: 'employee.content.filter_type'.tr,
-              fontSize: 12,
-              expandWidth: true,
-              value:
-                  controller.employeeWebContentTypeFilter.value.isEmpty
-                      ? null
-                      : controller.employeeWebContentTypeFilter.value,
-              items:
-                  StorageKeys.contentTypes
-                      .map(
-                        (e) => DropdownMenuItem(
-                          value: e,
-                          child: Text(e.tr),
-                        ),
-                      )
-                      .toList(),
-              onChanged: (value) {
-                controller.employeeWebContentTypeFilter.value = value ?? '';
-                controller.update(['employeeWebContent']);
-              },
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Flexible(
-          flex: 2,
-          child: Obx(
-            () {
-              final theme = context.appTheme;
-              return InkWell(
-                onTap: () async {
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              AppMultiFilterTrigger(
+                hint: 'employee.content.filter_type'.tr,
+                items: StorageKeys.contentTypes,
+                selected: types,
+                itemLabel: (s) => s.tr,
+                onChanged: (v) => controller.setEmployeeWebContentFilterList(
+                  controller.employeeWebContentTypeFilters,
+                  v,
+                ),
+              ),
+              AppMultiFilterTrigger(
+                hint: 'tasks.filter_status'.tr,
+                items: StorageKeys.statusList,
+                selected: statuses,
+                itemLabel: (s) => s.tr,
+                onChanged: (v) => controller.setEmployeeWebContentFilterList(
+                  controller.employeeWebContentStatusFilters,
+                  v,
+                ),
+              ),
+              AppDateFilterChip(
+                hint: 'publish_date'.tr,
+                value: date,
+                onPick: () async {
                   final picked = await pickAppDateTime(
                     context,
-                    initialDateTime:
-                        controller.employeeWebContentDateFilter.value ??
-                        DateTime.now(),
+                    initialDateTime: date ?? DateTime.now(),
                     firstDate: DateTime(2020),
                     lastDate: DateTime(2100),
                   );
                   if (picked == null) return;
                   controller.employeeWebContentDateFilter.value = picked;
+                  controller.employeeWebContentFiltersRevision.value++;
                   controller.update(['employeeWebContent']);
                 },
-                child: Container(
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: theme.inputFill,
-                    border: Border.all(color: theme.border),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    controller.employeeWebContentDateFilter.value == null
-                        ? 'publish_date'.tr
-                        : DateFormat('yyyy-MM-dd HH:mm').format(
-                          controller.employeeWebContentDateFilter.value!,
-                        ),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color:
-                          controller.employeeWebContentDateFilter.value == null
-                              ? theme.mutedText
-                              : theme.primaryText,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              );
-            },
+                onClear: () {
+                  controller.employeeWebContentDateFilter.value = null;
+                  controller.employeeWebContentFiltersRevision.value++;
+                  controller.update(['employeeWebContent']);
+                },
+              ),
+            ],
           ),
-        ),
-        const SizedBox(width: 8),
-        Flexible(
-          flex: 2,
-          child: Obx(
-            () => AppFilterDropdown<String>(
-              hint: 'tasks.filter_status'.tr,
-              fontSize: 12,
-              expandWidth: true,
-              value:
-                  controller.employeeWebContentStatusFilter.value.isEmpty
-                      ? null
-                      : controller.employeeWebContentStatusFilter.value,
-              items:
-                  StorageKeys.statusList
-                      .map(
-                        (e) => DropdownMenuItem(
-                          value: e,
-                          child: Text(e.tr),
-                        ),
-                      )
-                      .toList(),
-              onChanged: (value) {
-                controller.employeeWebContentStatusFilter.value = value ?? '';
-                controller.update(['employeeWebContent']);
-              },
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
+          if (activeTags.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(spacing: 8, runSpacing: 8, children: activeTags),
+          ],
+        ],
+      ),
+    );
+  });
 }
 
 class _EmployeeWebDesktopContentShell extends StatelessWidget {

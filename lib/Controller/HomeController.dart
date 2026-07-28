@@ -81,12 +81,33 @@ class HomeController extends GetxController {
     update();
   }
 
+  /// Legacy single-select fields kept only as unused aliases during migration —
+  /// prefer [selectedTaskStatuses] / [selectedHistoryStatuses].
   var selectedPriority = ''.obs;
   var selectedStatus = ''.obs;
   var selectedExecutor = ''.obs;
   var searchController = TextEditingController();
 
+  // Ongoing Tasks multi-select filters (approved hidden by default).
+  final RxList<String> selectedTaskStatuses = <String>[
+    ...StorageKeys.statusListOngoing.where(
+      (s) => s != StorageKeys.status_approved,
+    ),
+  ].obs;
+  final RxList<String> selectedTaskPriorities = <String>[].obs;
+  final RxList<String> selectedTaskExecutors = <String>[].obs;
+  final RxInt taskFiltersRevision = 0.obs;
+  String _taskFiltersAppliedType = '';
+
+  // Task History multi-select filters.
+  final RxList<String> selectedHistoryStatuses = <String>[].obs;
+  final RxList<String> selectedHistoryPriorities = <String>[].obs;
+  final RxList<String> selectedHistoryExecutors = <String>[].obs;
+  final RxInt historyFiltersRevision = 0.obs;
+
   Timer? _employeeDashFilterSaveDebounce;
+  Timer? _taskFilterSaveDebounce;
+  Timer? _historyFilterSaveDebounce;
   Timer? _publishFilterSaveDebounce;
   Timer? _presenceHeartbeatTimer;
   String? _presenceHeartbeatEmployeeId;
@@ -102,35 +123,47 @@ class HomeController extends GetxController {
 
   void filterTasks() {
     final searchText = searchController.text.trim().toLowerCase();
+    final isEmployeeDash =
+        currentEmployee.value?.role.trim().toLowerCase() == 'employee';
+    final statusOptions = isEmployeeDash
+        ? StorageKeys.employeeDashboardTaskStatusFilterDropdownValuesForDepartment(
+            employeeDashboardDepartmentFilterArg,
+          )
+        : StorageKeys.ongoingStatusFilterDropdownValues(
+            _taskFiltersAppliedType.isNotEmpty
+                ? _taskFiltersAppliedType
+                : selectedIndex.toString(),
+          );
+    final allowed = statusOptions.toSet();
 
-    // فلتر حالة حسب قسم الموظف (لا نخلط حالات الترويج مع بقية الأقسام)
-    if (selectedStatus.value.isNotEmpty &&
-        !StorageKeys.isEmployeeDashboardStatusFilterAllowedForDepartment(
-          selectedStatus.value,
-          employeeDashboardDepartmentFilterArg,
-        )) {
-      selectedStatus.value = '';
+    // Drop statuses that are invalid for the current department / role.
+    final pruned = selectedTaskStatuses
+        .where((s) => allowed.contains(s))
+        .toList();
+    if (pruned.length != selectedTaskStatuses.length) {
+      selectedTaskStatuses.assignAll(pruned);
     }
 
     final empDash = currentEmployee.value;
     final isEmployee =
         empDash != null && empDash.role.trim().toLowerCase() == 'employee';
     final empId = empDash?.id?.trim() ?? '';
-    final rejectedFilterActive =
-        isEmployee &&
-        empId.isNotEmpty &&
-        FunHelper.canonicalStoredStatus(selectedStatus.value) ==
-            StorageKeys.status_rejected;
+    final selectedStatuses = selectedTaskStatuses.toList();
+    final rejectedSelected = selectedStatuses.any(
+      (s) =>
+          FunHelper.canonicalStoredStatus(s) == StorageKeys.status_rejected,
+    );
 
-    // Employees: rejected tasks only when explicitly filtering by rejected;
-    // otherwise ongoing tasks only (same as admins/supervisors).
     late List<TaskModel> baseList;
-    if (rejectedFilterActive) {
-      baseList = tasks.where((t) {
+    if (isEmployee && rejectedSelected && empId.isNotEmpty) {
+      // Include ongoing (matching selected) + rejected assigned to me when opted in.
+      final ongoing = tasks.where((t) => StorageKeys.isTaskOngoing(t)).toList();
+      final rejected = tasks.where((t) {
         if (t.assignedTo.trim() != empId) return false;
         return FunHelper.canonicalStoredStatus(t.status) ==
             StorageKeys.status_rejected;
-      }).toList();
+      });
+      baseList = [...ongoing, ...rejected];
     } else {
       baseList = tasks.where((t) => StorageKeys.isTaskOngoing(t)).toList();
     }
@@ -141,28 +174,24 @@ class HomeController extends GetxController {
         final typeCode = taskTypeCodeForNormalizedDepartment(
           StorageKeys.normalizeDepartment(arg),
         );
-        // Dept chip = show only tasks for that department's type. Do not OR
-        // `assignedTo == me` here: the task stream already includes assigned
-        // tasks, and that OR would show e.g. programming tasks under photography.
         if (typeCode != null) {
           baseList = baseList.where((t) => t.type == typeCode).toList();
         }
       }
     }
 
-    // Status filter (skipped when list is already the rejected-only employee view).
-    if (selectedStatus.value.isNotEmpty && !rejectedFilterActive) {
+    // Empty status selection = all ongoing (incl. approved). Non-empty = match set.
+    if (selectedStatuses.isNotEmpty) {
+      final selectedLower =
+          selectedStatuses.map((s) => s.toLowerCase()).toSet();
       baseList = baseList
-          .where(
-            (t) => t.status.toLowerCase() == selectedStatus.value.toLowerCase(),
-          )
+          .where((t) => selectedLower.contains(t.status.toLowerCase()))
           .toList();
     }
 
-    // إن لم يُختر أي فلتر آخر نعرض النتيجة فوراً
     if (searchText.isEmpty &&
-        selectedPriority.value.isEmpty &&
-        selectedExecutor.value.isEmpty) {
+        selectedTaskPriorities.isEmpty &&
+        selectedTaskExecutors.isEmpty) {
       tasksSearched.assignAll(baseList);
       return;
     }
@@ -171,15 +200,45 @@ class HomeController extends GetxController {
       filterTasksBySearchPriorityExecutor(
         baseList: baseList,
         searchText: searchText,
-        selectedPriority: selectedPriority.value,
-        selectedExecutor: selectedExecutor.value,
+        selectedPriorities: selectedTaskPriorities.toList(),
+        selectedExecutors: selectedTaskExecutors.toList(),
         employees: employees,
       ),
     );
   }
 
-  /// Firestore employee docs may omit `id` in the payload; prefs must still use the doc id.
-  String? _employeeDashboardPrefsEmployeeId() {
+  /// Call when the Tasks department tab changes so status options stay valid.
+  void syncTaskFiltersForType(String taskType) {
+    if (_taskFiltersAppliedType == taskType &&
+        selectedTaskStatuses.isNotEmpty) {
+      final allowed =
+          StorageKeys.ongoingStatusFilterDropdownValues(taskType).toSet();
+      final pruned =
+          selectedTaskStatuses.where((s) => allowed.contains(s)).toList();
+      if (pruned.isNotEmpty) {
+        if (pruned.length != selectedTaskStatuses.length) {
+          selectedTaskStatuses.assignAll(pruned);
+        }
+        filterTasks();
+        return;
+      }
+    }
+    selectedTaskStatuses.assignAll(
+      StorageKeys.defaultTaskStatusFilters(taskType),
+    );
+    _taskFiltersAppliedType = taskType;
+    taskFiltersRevision.value++;
+    filterTasks();
+  }
+
+  void setTaskFilterList(RxList<String> target, List<String> next) {
+    target.assignAll(next);
+    taskFiltersRevision.value++;
+    filterTasks();
+    schedulePersistTaskFilters();
+  }
+
+  String? _taskFiltersPrefsEmployeeId() {
     final a = currentEmployee.value?.id?.trim() ?? '';
     if (a.isNotEmpty) return a;
     final b = lastKnownEmployee.value?.id?.trim() ?? '';
@@ -187,75 +246,146 @@ class HomeController extends GetxController {
     return null;
   }
 
-  Future<void> persistEmployeeDashboardTaskFilters() async {
-    final id = _employeeDashboardPrefsEmployeeId();
+  Future<void> persistTaskFilters() async {
+    final id = _taskFiltersPrefsEmployeeId();
     if (id == null || id.isEmpty) return;
     try {
       final pref = await SharedPreferences.getInstance();
       await pref.setString(
-        StorageKeys.prefsEmployeeDashboardTaskFiltersKey(id),
+        StorageKeys.prefsTaskFiltersKey(id),
         jsonEncode({
-          'priority': selectedPriority.value,
-          'status': selectedStatus.value,
+          'statuses': selectedTaskStatuses.toList(),
+          'priorities': selectedTaskPriorities.toList(),
+          'executors': selectedTaskExecutors.toList(),
+          'search': searchController.text,
+          'taskType': _taskFiltersAppliedType,
         }),
       );
     } catch (_) {}
   }
 
-  void schedulePersistEmployeeDashboardTaskFilters() {
-    _employeeDashFilterSaveDebounce?.cancel();
-    _employeeDashFilterSaveDebounce = Timer(
+  void schedulePersistTaskFilters() {
+    _taskFilterSaveDebounce?.cancel();
+    _taskFilterSaveDebounce = Timer(
       const Duration(milliseconds: 450),
-      () => unawaited(persistEmployeeDashboardTaskFilters()),
+      () => unawaited(persistTaskFilters()),
     );
   }
 
-  Future<void> restoreEmployeeDashboardTaskFiltersFromPrefs() async {
-    final id = _employeeDashboardPrefsEmployeeId();
-    if (id == null || id.isEmpty) return;
+  Future<void> restoreTaskFiltersFromPrefs({String? taskType}) async {
+    final isEmployee =
+        currentEmployee.value?.role.trim().toLowerCase() == 'employee';
+    final type = taskType ?? selectedIndex.toString();
+    List<String> defaults() => isEmployee
+        ? StorageKeys.defaultEmployeeDashboardTaskStatusFilters(
+            employeeDashboardDepartmentFilterArg,
+          )
+        : StorageKeys.defaultTaskStatusFilters(type);
+
+    final id = _taskFiltersPrefsEmployeeId();
+    if (id == null || id.isEmpty) {
+      selectedTaskStatuses.assignAll(defaults());
+      _taskFiltersAppliedType = type;
+      filterTasks();
+      taskFiltersRevision.value++;
+      return;
+    }
     try {
       final pref = await SharedPreferences.getInstance();
-      final raw = pref.getString(
-        StorageKeys.prefsEmployeeDashboardTaskFiltersKey(id),
-      );
+      final raw = pref.getString(StorageKeys.prefsTaskFiltersKey(id));
       if (raw == null || raw.isEmpty) {
+        selectedTaskStatuses.assignAll(defaults());
+        _taskFiltersAppliedType = type;
         filterTasks();
+        taskFiltersRevision.value++;
         return;
       }
       final map = jsonDecode(raw);
-      if (map is! Map<String, dynamic>) {
+      if (map is! Map) {
+        selectedTaskStatuses.assignAll(defaults());
+        _taskFiltersAppliedType = type;
         filterTasks();
         return;
       }
-      final p = (map['priority'] as String?)?.trim() ?? '';
-      final s = (map['status'] as String?)?.trim() ?? '';
-      if (p.isNotEmpty && StorageKeys.priority.contains(p)) {
-        selectedPriority.value = p;
-      } else {
-        selectedPriority.value = '';
-      }
-
-      if (s.isNotEmpty &&
-          StorageKeys.isEmployeeDashboardStatusFilterAllowedForDepartment(
-            s,
-            employeeDashboardDepartmentFilterArg,
-          )) {
-        selectedStatus.value = s;
-      } else {
-        selectedStatus.value = '';
-      }
+      final statuses = ((map['statuses'] as List?) ?? const [])
+          .map((e) => e.toString())
+          .toList();
+      final priorities = ((map['priorities'] as List?) ?? const [])
+          .map((e) => e.toString())
+          .where(StorageKeys.priority.contains)
+          .toList();
+      final executors = ((map['executors'] as List?) ?? const [])
+          .map((e) => e.toString())
+          .where((e) => e.isNotEmpty)
+          .toList();
+      final search = (map['search'] as String?) ?? '';
+      final allowed = isEmployee
+          ? StorageKeys
+              .employeeDashboardTaskStatusFilterDropdownValuesForDepartment(
+                employeeDashboardDepartmentFilterArg,
+              )
+              .toSet()
+          : StorageKeys.ongoingStatusFilterDropdownValues(type).toSet();
+      final restoredStatuses = statuses.where(allowed.contains).toList();
+      selectedTaskStatuses.assignAll(
+        restoredStatuses.isEmpty ? defaults() : restoredStatuses,
+      );
+      selectedTaskPriorities.assignAll(priorities);
+      selectedTaskExecutors.assignAll(executors);
+      if (search.isNotEmpty) searchController.text = search;
+      _taskFiltersAppliedType = type;
     } catch (_) {
-      // Keep current field values.
+      selectedTaskStatuses.assignAll(defaults());
+      _taskFiltersAppliedType = type;
     }
     filterTasks();
+    taskFiltersRevision.value++;
+  }
+
+  Future<void> clearTaskFilters({String? taskType}) async {
+    searchController.clear();
+    selectedTaskPriorities.clear();
+    selectedTaskExecutors.clear();
+    final type = taskType ?? selectedIndex.toString();
+    if (currentEmployee.value?.role.trim().toLowerCase() == 'employee') {
+      selectedTaskStatuses.assignAll(
+        StorageKeys.defaultEmployeeDashboardTaskStatusFilters(
+          employeeDashboardDepartmentFilterArg,
+        ),
+      );
+    } else {
+      selectedTaskStatuses.assignAll(
+        StorageKeys.defaultTaskStatusFilters(type),
+      );
+    }
+    _taskFiltersAppliedType = type;
+    taskFiltersRevision.value++;
+    filterTasks();
+    await persistTaskFilters();
+  }
+
+  /// Firestore employee docs may omit `id` in the payload; prefs must still use the doc id.
+  Future<void> persistEmployeeDashboardTaskFilters() async {
+    await persistTaskFilters();
+  }
+
+  void schedulePersistEmployeeDashboardTaskFilters() {
+    schedulePersistTaskFilters();
+  }
+
+  Future<void> restoreEmployeeDashboardTaskFiltersFromPrefs() async {
+    await restoreTaskFiltersFromPrefs(
+      taskType: taskTypeCodeForNormalizedDepartment(
+            StorageKeys.normalizeDepartment(
+              employeeDashboardDepartmentFilterArg ?? '',
+            ),
+          ) ??
+          selectedIndex.toString(),
+    );
   }
 
   Future<void> clearEmployeeDashboardTaskFilters() async {
-    searchController.clear();
-    selectedPriority.value = '';
-    selectedStatus.value = '';
-    filterTasks();
-    await persistEmployeeDashboardTaskFilters();
+    await clearTaskFilters();
   }
 
   // --- Publish section multi-select filters (persisted) ---
@@ -789,29 +919,31 @@ class HomeController extends GetxController {
   void filterTasksHistory() {
     final searchText = searchController.text.trim().toLowerCase();
 
-    if (selectedStatus.value.isNotEmpty &&
-        !StorageKeys.statusListEnded.contains(selectedStatus.value) &&
-        selectedStatus.value != StorageKeys.status_promotion_finished) {
-      selectedStatus.value = '';
+    final allowed = <String>{
+      ...StorageKeys.statusListEnded,
+      StorageKeys.status_promotion_finished,
+    };
+    final pruned = selectedHistoryStatuses
+        .where((s) => allowed.contains(s))
+        .toList();
+    if (pruned.length != selectedHistoryStatuses.length) {
+      selectedHistoryStatuses.assignAll(pruned);
     }
 
-    List<TaskModel> baseList = tasks
-        .where((t) => StorageKeys.isTaskEnded(t))
-        .toList();
+    List<TaskModel> baseList =
+        tasks.where((t) => StorageKeys.isTaskEnded(t)).toList();
 
-    if (selectedStatus.value.isNotEmpty &&
-        (StorageKeys.statusListEnded.contains(selectedStatus.value) ||
-            selectedStatus.value == StorageKeys.status_promotion_finished)) {
+    if (selectedHistoryStatuses.isNotEmpty) {
+      final selectedLower =
+          selectedHistoryStatuses.map((s) => s.toLowerCase()).toSet();
       baseList = baseList
-          .where(
-            (t) => t.status.toLowerCase() == selectedStatus.value.toLowerCase(),
-          )
+          .where((t) => selectedLower.contains(t.status.toLowerCase()))
           .toList();
     }
 
     if (searchText.isEmpty &&
-        selectedPriority.value.isEmpty &&
-        selectedExecutor.value.isEmpty) {
+        selectedHistoryPriorities.isEmpty &&
+        selectedHistoryExecutors.isEmpty) {
       tasksHistory.assignAll(baseList);
       return;
     }
@@ -820,11 +952,121 @@ class HomeController extends GetxController {
       filterTasksBySearchPriorityExecutor(
         baseList: baseList,
         searchText: searchText,
-        selectedPriority: selectedPriority.value,
-        selectedExecutor: selectedExecutor.value,
+        selectedPriorities: selectedHistoryPriorities.toList(),
+        selectedExecutors: selectedHistoryExecutors.toList(),
         employees: employees,
       ),
     );
+  }
+
+  void setHistoryFilterList(RxList<String> target, List<String> next) {
+    target.assignAll(next);
+    historyFiltersRevision.value++;
+    filterTasksHistory();
+    schedulePersistHistoryFilters();
+  }
+
+  Future<void> persistHistoryFilters() async {
+    final id = _taskFiltersPrefsEmployeeId();
+    if (id == null || id.isEmpty) return;
+    try {
+      final pref = await SharedPreferences.getInstance();
+      await pref.setString(
+        StorageKeys.prefsHistoryTaskFiltersKey(id),
+        jsonEncode({
+          'statuses': selectedHistoryStatuses.toList(),
+          'priorities': selectedHistoryPriorities.toList(),
+          'executors': selectedHistoryExecutors.toList(),
+          'search': searchController.text,
+        }),
+      );
+    } catch (_) {}
+  }
+
+  void schedulePersistHistoryFilters() {
+    _historyFilterSaveDebounce?.cancel();
+    _historyFilterSaveDebounce = Timer(
+      const Duration(milliseconds: 450),
+      () => unawaited(persistHistoryFilters()),
+    );
+  }
+
+  Future<void> restoreHistoryFiltersFromPrefs() async {
+    final id = _taskFiltersPrefsEmployeeId();
+    if (id == null || id.isEmpty) {
+      filterTasksHistory();
+      return;
+    }
+    try {
+      final pref = await SharedPreferences.getInstance();
+      final raw = pref.getString(StorageKeys.prefsHistoryTaskFiltersKey(id));
+      if (raw == null || raw.isEmpty) {
+        filterTasksHistory();
+        return;
+      }
+      final map = jsonDecode(raw);
+      if (map is! Map) {
+        filterTasksHistory();
+        return;
+      }
+      final allowed = <String>{
+        ...StorageKeys.statusListEnded,
+        StorageKeys.status_promotion_finished,
+      };
+      selectedHistoryStatuses.assignAll(
+        ((map['statuses'] as List?) ?? const [])
+            .map((e) => e.toString())
+            .where(allowed.contains),
+      );
+      selectedHistoryPriorities.assignAll(
+        ((map['priorities'] as List?) ?? const [])
+            .map((e) => e.toString())
+            .where(StorageKeys.priority.contains),
+      );
+      selectedHistoryExecutors.assignAll(
+        ((map['executors'] as List?) ?? const [])
+            .map((e) => e.toString())
+            .where((e) => e.isNotEmpty),
+      );
+      final search = (map['search'] as String?) ?? '';
+      if (search.isNotEmpty) searchController.text = search;
+    } catch (_) {}
+    filterTasksHistory();
+    historyFiltersRevision.value++;
+  }
+
+  Future<void> clearHistoryFilters() async {
+    searchController.clear();
+    selectedHistoryStatuses.clear();
+    selectedHistoryPriorities.clear();
+    selectedHistoryExecutors.clear();
+    historyFiltersRevision.value++;
+    filterTasksHistory();
+    await persistHistoryFilters();
+  }
+
+  String taskExecutorFilterLabel(String employeeId) {
+    final match = employees.firstWhereOrNull((e) => e.id == employeeId);
+    final name = (match?.name ?? '').trim();
+    if (name.isNotEmpty) {
+      return name.split(' ').take(2).join(' ');
+    }
+    return employeeId;
+  }
+
+  List<String> taskExecutorFilterOptions() {
+    final out = <String>[];
+    for (final e in employees) {
+      final id = (e.id ?? '').trim();
+      if (id.isEmpty) continue;
+      out.add(id);
+    }
+    out.sort(
+      (a, b) => taskExecutorFilterLabel(a)
+          .toLowerCase()
+          .compareTo(taskExecutorFilterLabel(b).toLowerCase()),
+    );
+    return out;
   }
 
   fetchEmployees() {
@@ -1220,9 +1462,16 @@ class HomeController extends GetxController {
 
   void clearEmployeeWebContentFilters() {
     employeeWebContentSearchController.clear();
-    employeeWebContentStatusFilter.value = '';
-    employeeWebContentTypeFilter.value = '';
+    employeeWebContentStatusFilters.clear();
+    employeeWebContentTypeFilters.clear();
     employeeWebContentDateFilter.value = null;
+    employeeWebContentFiltersRevision.value++;
+    update(['employeeWebContent']);
+  }
+
+  void setEmployeeWebContentFilterList(RxList<String> target, List<String> next) {
+    target.assignAll(next);
+    employeeWebContentFiltersRevision.value++;
     update(['employeeWebContent']);
   }
 
@@ -1480,13 +1729,15 @@ class HomeController extends GetxController {
     if (q.isNotEmpty) {
       list = list.where((c) => c.title.toLowerCase().contains(q)).toList();
     }
-    final ct = employeeWebContentTypeFilter.value;
+    final ct = employeeWebContentTypeFilters.toList();
     if (ct.isNotEmpty) {
-      list = list.where((c) => c.contentType == ct).toList();
+      final set = ct.toSet();
+      list = list.where((c) => set.contains(c.contentType)).toList();
     }
-    final st = employeeWebContentStatusFilter.value;
+    final st = employeeWebContentStatusFilters.toList();
     if (st.isNotEmpty) {
-      list = list.where((c) => c.status == st).toList();
+      final set = st.toSet();
+      list = list.where((c) => set.contains(c.status)).toList();
     }
     final filterDate = employeeWebContentDateFilter.value;
     if (filterDate != null) {
@@ -3458,9 +3709,10 @@ class HomeController extends GetxController {
   /// تصفية قائمة المحتوى في واجهة موظف الويب (مثل شاشة المهام).
   final TextEditingController employeeWebContentSearchController =
       TextEditingController();
-  final RxString employeeWebContentStatusFilter = ''.obs;
-  final RxString employeeWebContentTypeFilter = ''.obs;
+  final RxList<String> employeeWebContentStatusFilters = <String>[].obs;
+  final RxList<String> employeeWebContentTypeFilters = <String>[].obs;
   final Rxn<DateTime> employeeWebContentDateFilter = Rxn<DateTime>();
+  final RxInt employeeWebContentFiltersRevision = 0.obs;
   final RxSet<String> selectedContentIds = <String>{}.obs;
 
   RxString selectedDate = ''.obs;

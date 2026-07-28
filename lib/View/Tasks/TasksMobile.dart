@@ -27,7 +27,7 @@ import 'package:point/View/Tasks/Dialogs/PromotionDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PublishDialog.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
 import 'package:point/View/Tasks/TaskCard.dart';
-import 'package:point/View/Shared/app_filter_dropdown.dart';
+import 'package:point/View/Shared/task_list_filters_bar.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 
 /// Mobile-only tasks screen with a single scroll so the last item is fully visible.
@@ -398,144 +398,7 @@ class TasksMobile extends StatelessWidget {
   Widget _buildFilters(BuildContext context, HomeController controller) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: MobileFilterSearchBar(
-                  controller: controller.searchController,
-                  hintText: 'tasks.search_hint_extended'.tr,
-                  borderRadius: 5,
-                  onChanged: controller.filterTasks,
-                  onSubmitted: (_) => controller.filterTasks(),
-                ),
-              ),
-              const SizedBox(width: 10),
-              FilterResetButton(
-                onPressed: () {
-                  controller.searchController.clear();
-                  controller.selectedPriority.value = '';
-                  controller.selectedStatus.value = '';
-                  controller.selectedExecutor.value = '';
-                  controller.filterTasks();
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            height: 42,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _buildDropdown<String>(
-                    width: 150,
-                    hint: 'tasks.filter_priority'.tr,
-                    value:
-                        controller.selectedPriority.value.isEmpty
-                            ? null
-                            : controller.selectedPriority.value,
-                    items:
-                        StorageKeys.priority
-                            .map(
-                              (e) =>
-                                  DropdownMenuItem(value: e, child: Text(e.tr)),
-                            )
-                            .toList(),
-                    onChanged: (value) {
-                      controller.selectedPriority.value = value ?? '';
-                      controller.filterTasks();
-                    },
-                  ),
-                  const SizedBox(width: 10),
-                  _buildStatusDropdown(controller, selectedIndex),
-                  const SizedBox(width: 10),
-                  _buildDropdown<String>(
-                    width: 150,
-                    hint: 'tasks.filter_assignee'.tr,
-                    value:
-                        controller.selectedExecutor.value.isEmpty
-                            ? null
-                            : controller.selectedExecutor.value,
-                    items:
-                        controller.employees
-                            .map(
-                              (e) => DropdownMenuItem(
-                                value: e.id ?? e.name ?? '',
-                                child: Text(
-                                  (e.name ?? '').split(' ').take(2).join(' '),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                    onChanged: (value) {
-                      controller.selectedExecutor.value = value ?? '';
-                      controller.filterTasks();
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDropdown<T>({
-    required double width,
-    required String hint,
-    required T? value,
-    required List<DropdownMenuItem<T>> items,
-    required ValueChanged<T?> onChanged,
-  }) {
-    return AppFilterDropdown<T>(
-      width: width,
-      hint: hint,
-      value: value,
-      items: items,
-      onChanged: onChanged,
-    );
-  }
-
-  Widget _buildStatusDropdown(HomeController controller, int tabIndex) {
-    final ongoingItems =
-        StorageKeys.ongoingStatusFilterDropdownValues(tabIndex.toString());
-    return AppFilterDropdown<String>(
-      hint: 'tasks.filter_status'.tr,
-      width: 170,
-      value:
-          controller.selectedStatus.value.isEmpty ||
-                  !ongoingItems.contains(controller.selectedStatus.value)
-              ? null
-              : controller.selectedStatus.value,
-      items: [
-        DropdownMenuItem(
-          value: '',
-          child: Text(
-            'filter_status_ongoing'.tr,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-        ),
-        ...ongoingItems.map(
-          (e) => DropdownMenuItem(
-            value: e,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Text(e.tr),
-            ),
-          ),
-        ),
-      ],
-      onChanged: (value) {
-        controller.selectedStatus.value = value ?? '';
-        controller.filterTasks();
-      },
+      child: TaskListFiltersBar(taskType: selectedIndex.toString()),
     );
   }
 

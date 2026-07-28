@@ -4,7 +4,7 @@ import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/View/Shared/CustomDropDown.dart';
-import 'package:point/View/Shared/app_filter_dropdown.dart';
+import 'package:point/View/Shared/task_history_filters_bar.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DContentWriteDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DDesignDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DMontageDialog.dart';
@@ -239,137 +239,7 @@ class TasksHistoryMobile extends StatelessWidget {
   Widget _buildFilters(BuildContext context, HomeController controller) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          MobileFilterSearchRow(
-            searchBar: MobileFilterSearchBar(
-              controller: controller.searchController,
-              hintText: 'tasks.search_hint_extended'.tr,
-              borderRadius: 5,
-              onChanged: controller.filterTasksHistory,
-            ),
-            onClearFilters: () {
-              controller.searchController.clear();
-              controller.selectedPriority.value = '';
-              controller.selectedStatus.value = '';
-              controller.selectedExecutor.value = '';
-              controller.filterTasksHistory();
-            },
-          ),
-          const SizedBox(height: 10),
-          SizedBox(
-            height: 42,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _buildDropdown<String>(
-                width: 150,
-                hint: 'tasks.filter_priority'.tr,
-                value:
-                    controller.selectedPriority.value.isEmpty
-                        ? null
-                        : controller.selectedPriority.value,
-                items:
-                    StorageKeys.priority
-                        .map(
-                          (e) => DropdownMenuItem(value: e, child: Text(e.tr)),
-                        )
-                        .toList(),
-                onChanged: (value) {
-                  controller.selectedPriority.value = value ?? '';
-                  controller.filterTasksHistory();
-                },
-              ),
-              const SizedBox(width: 10),
-              _buildStatusEndedDropdown(controller, selectedIndex),
-              const SizedBox(width: 10),
-              _buildDropdown<String>(
-                width: 150,
-                hint: 'tasks.filter_assignee'.tr,
-                value:
-                    controller.selectedExecutor.value.isEmpty
-                        ? null
-                        : controller.selectedExecutor.value,
-                items:
-                    controller.employees
-                        .map(
-                          (e) => DropdownMenuItem(
-                            value: e.id ?? e.name ?? '',
-                            child: Text(
-                              (e.name ?? '').split(' ').take(2).join(' '),
-                            ),
-                          ),
-                        )
-                        .toList(),
-                onChanged: (value) {
-                  controller.selectedExecutor.value = value ?? '';
-                  controller.filterTasksHistory();
-                },
-              ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDropdown<T>({
-    required double width,
-    required String hint,
-    required T? value,
-    required List<DropdownMenuItem<T>> items,
-    required ValueChanged<T?> onChanged,
-  }) {
-    return AppFilterDropdown<T>(
-      width: width,
-      hint: hint,
-      value: value,
-      items: items,
-      onChanged: onChanged,
-    );
-  }
-
-  /// Status dropdown for history: ended statuses (plus promotion finished).
-  Widget _buildStatusEndedDropdown(
-    HomeController controller,
-    int tabIndex,
-  ) {
-    final endedItems =
-        StorageKeys.endedStatusFilterDropdownValues(tabIndex.toString());
-    return AppFilterDropdown<String>(
-      hint: 'tasks.filter_status'.tr,
-      width: 170,
-      value:
-          controller.selectedStatus.value.isEmpty ||
-                  !endedItems.contains(controller.selectedStatus.value)
-              ? null
-              : controller.selectedStatus.value,
-      items: [
-        DropdownMenuItem(
-          value: '',
-          child: Text(
-            'filter_status_ended'.tr,
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-        ),
-        ...endedItems.map(
-          (e) => DropdownMenuItem(
-            value: e,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Text(e.tr),
-            ),
-          ),
-        ),
-      ],
-      onChanged: (value) {
-        controller.selectedStatus.value = value ?? '';
-        controller.filterTasksHistory();
-      },
+      child: TaskHistoryFiltersBar(taskType: selectedIndex.toString()),
     );
   }
 

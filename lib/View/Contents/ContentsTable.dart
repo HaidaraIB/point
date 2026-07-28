@@ -32,6 +32,7 @@ import 'package:point/View/Shared/form_attachment_thumbnails_grid.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/app_filter_dropdown.dart';
+import 'package:point/View/Shared/app_multi_filter.dart';
 import 'package:point/View/Shared/ContentStatusPromotionDropdownChip.dart';
 import 'package:point/View/Shared/HorizontalScroll.dart';
 import 'package:point/View/Shared/TableCellCenter.dart';

@@ -6,6 +6,8 @@ import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
+import 'package:point/Services/firestore/firestore_task_utils.dart'
+    show taskTypeCodeForNormalizedDepartment;
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/AppConstants.dart';
 import 'package:point/View/EmployeeDashboard/attendance_check_in_card.dart';
@@ -13,9 +15,9 @@ import 'package:point/View/EmployeeDashboard/employee_mobile_app_bar.dart';
 import 'package:point/View/EmployeeDashboard/Shared/EmployeeTaskCard.dart';
 import 'package:point/View/Shared/CustomHeader.dart';
 import 'package:point/View/Shared/button.dart';
-import 'package:point/View/Shared/app_filter_dropdown.dart';
 import 'package:point/View/Shared/app_version_label.dart';
 import 'package:point/View/Shared/responsive.dart';
+import 'package:point/View/Shared/task_list_filters_bar.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DContentWriteDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DDesignDialog.dart';
@@ -384,88 +386,16 @@ class _EmployeeDashboardBody extends StatelessWidget {
                       SizedBox(height: 15),
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 10),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            MobileFilterSearchRow(
-                              searchBar: MobileFilterSearchBar(
-                                controller: controller.searchController,
-                                hintText: 'employee.search_tasks_hint'.tr,
-                                borderRadius: 5,
-                                onChanged: controller.filterTasks,
-                              ),
-                              onClearFilters: () {
-                                unawaited(
-                                  controller.clearEmployeeDashboardTaskFilters(),
-                                );
-                              },
-                            ),
-                            const SizedBox(height: 10),
-                            SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Row(
-                                children: [
-                                  AppFilterDropdown<String>(
-                              hint: 'tasks.filter_priority'.tr,
-                              value:
-                                  controller.selectedPriority.value.isEmpty
-                                      ? null
-                                      : controller.selectedPriority.value,
-                              items:
-                                  StorageKeys.priority
-                                      .map(
-                                        (e) => DropdownMenuItem(
-                                          value: e,
-                                          child: Text(
-                                            e.tr,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      )
-                                      .toList(),
-                              onChanged: (value) async {
-                                controller.selectedPriority.value = value ?? '';
-                                controller.filterTasks();
-                                await controller
-                                    .persistEmployeeDashboardTaskFilters();
-                              },
-                            ),
-                            const SizedBox(width: 10),
-                            AppFilterDropdown<String>(
-                              hint: 'tasks.filter_status'.tr,
-                              value:
-                                  controller.selectedStatus.value.isEmpty
-                                      ? null
-                                      : controller.selectedStatus.value,
-                              items:
-                                  StorageKeys
-                                      .employeeDashboardTaskStatusFilterDropdownValuesForDepartment(
-                                        controller
-                                            .employeeDashboardDepartmentFilterArg,
-                                      )
-                                      .map(
-                                        (e) => DropdownMenuItem(
-                                          value: e,
-                                          child: Text(
-                                            e.tr,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      )
-                                      .toList(),
-                              onChanged: (value) async {
-                                controller.selectedStatus.value = value ?? '';
-                                controller.filterTasks();
-                                await controller
-                                    .persistEmployeeDashboardTaskFilters();
-                              },
-                            ),
-                                ],
-                              ),
-                            ),
-                          ],
+                        child: TaskListFiltersBar(
+                          taskType: taskTypeCodeForNormalizedDepartment(
+                                StorageKeys.normalizeDepartment(
+                                  controller.employeeDashboardDepartmentFilterArg ??
+                                      '',
+                                ),
+                              ) ??
+                              '1',
+                          employeeDashboard: true,
+                          searchHint: 'employee.search_tasks_hint'.tr,
                         ),
                       ),
                       SizedBox(height: 15),
@@ -531,101 +461,16 @@ class _EmployeeDashboardBody extends StatelessWidget {
                           SizedBox(height: 15),
                           Padding(
                             padding: const EdgeInsets.symmetric(vertical: 10),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                MobileFilterSearchRow(
-                                  searchBar: MobileFilterSearchBar(
-                                    controller: controller.searchController,
-                                    hintText: 'employee.search_tasks_hint'.tr,
-                                    borderRadius: 5,
-                                    onChanged: controller.filterTasks,
-                                  ),
-                                  onClearFilters: () {
-                                    unawaited(
-                                      controller
-                                          .clearEmployeeDashboardTaskFilters(),
-                                    );
-                                  },
-                                ),
-                                const SizedBox(height: 10),
-                                SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: Row(
-                                    children: [
-                                      AppFilterDropdown<String>(
-                                      hint: 'tasks.filter_priority'.tr,
-                                      value:
-                                          controller
-                                                  .selectedPriority
-                                                  .value
-                                                  .isEmpty
-                                              ? null
-                                              : controller
-                                                  .selectedPriority
-                                                  .value,
-                                      items:
-                                          StorageKeys.priority
-                                              .map(
-                                                (e) => DropdownMenuItem(
-                                                  value: e,
-                                                  child: Text(
-                                                    e.tr,
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                  ),
-                                                ),
-                                              )
-                                              .toList(),
-                                      onChanged: (value) async {
-                                        controller.selectedPriority.value =
-                                            value ?? '';
-                                        controller.filterTasks();
-                                        await controller
-                                            .persistEmployeeDashboardTaskFilters();
-                                      },
+                            child: TaskListFiltersBar(
+                              taskType: taskTypeCodeForNormalizedDepartment(
+                                    StorageKeys.normalizeDepartment(
+                                      controller.employeeDashboardDepartmentFilterArg ??
+                                          '',
                                     ),
-                                    const SizedBox(width: 10),
-                                    AppFilterDropdown<String>(
-                                      hint: 'tasks.filter_status'.tr,
-                                      value:
-                                          controller
-                                                  .selectedStatus
-                                                  .value
-                                                  .isEmpty
-                                              ? null
-                                              : controller.selectedStatus.value,
-                                      items:
-                                          StorageKeys
-                                              .employeeDashboardTaskStatusFilterDropdownValuesForDepartment(
-                                                controller
-                                                    .employeeDashboardDepartmentFilterArg,
-                                              )
-                                              .map(
-                                                (e) => DropdownMenuItem(
-                                                  value: e,
-                                                  child: Text(
-                                                    e.tr,
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                  ),
-                                                ),
-                                              )
-                                              .toList(),
-                                      onChanged: (value) async {
-                                        controller.selectedStatus.value =
-                                            value ?? '';
-                                        controller.filterTasks();
-                                        await controller
-                                            .persistEmployeeDashboardTaskFilters();
-                                      },
-                                    ),
-                                    ],
-                                  ),
-                                ),
-                              ],
+                                  ) ??
+                                  '1',
+                              employeeDashboard: true,
+                              searchHint: 'employee.search_tasks_hint'.tr,
                             ),
                           ),
                           SizedBox(height: 15),

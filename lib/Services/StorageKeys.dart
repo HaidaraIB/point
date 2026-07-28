@@ -324,6 +324,12 @@ class StorageKeys {
   static String prefsPublishFiltersKey(String employeeId) =>
       'point_publish_filters_v1_${employeeId.trim()}';
 
+  static String prefsTaskFiltersKey(String employeeId) =>
+      'point_task_filters_v1_${employeeId.trim()}';
+
+  static String prefsHistoryTaskFiltersKey(String employeeId) =>
+      'point_history_task_filters_v1_${employeeId.trim()}';
+
   /// Meta publish queue statuses used by the Publish filters UI.
   static const List<String> publishStatusFilterOptions = [
     'created',
@@ -357,6 +363,20 @@ class StorageKeys {
   /// Default status filter: every status except successful `published`.
   static List<String> get defaultPublishStatusFilters =>
       publishStatusFilterOptions.where((s) => s != 'published').toList();
+
+  /// Default ongoing task status filter: every ongoing status except approved.
+  static List<String> defaultTaskStatusFilters(String taskType) =>
+      ongoingStatusFilterDropdownValues(taskType)
+          .where((s) => s != status_approved)
+          .toList();
+
+  /// Employee dashboard defaults: ongoing (minus approved); rejected stays opt-in.
+  static List<String> defaultEmployeeDashboardTaskStatusFilters(
+    String? departmentRaw,
+  ) =>
+      employeeDashboardTaskStatusFilterDropdownValuesForDepartment(
+        departmentRaw,
+      ).where((s) => s != status_approved && s != status_rejected).toList();
 
   static List<String> endedStatusFilterKeysForTaskType(String taskType) {
     if (taskType == '0') {

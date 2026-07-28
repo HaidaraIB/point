@@ -1,4 +1,3 @@
-import 'package:point/Utils/app_log.dart';
 import 'dart:math' as math;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -20,6 +19,7 @@ import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/HorizontalScroll.dart';
 import 'package:point/View/Shared/TableCellCenter.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
+import 'package:point/View/Shared/app_multi_filter.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/t.dart';
@@ -75,120 +75,129 @@ class History extends StatelessWidget {
                             Spacer(),
                           ],
                         ),
+                        const SizedBox(height: 16),
 
-                        Obx(
-                          () => SizedBox(
-                            width: (Get.width * 0.7 / 2) - 20,
-                            child: DynamicDropdown(
-                              items:
-                                  controller.clients
-                                      .map(
-                                        (v) => DropdownMenuItem(
-                                          value: v,
-                                          child: Text('${v.name}'),
-                                        ),
-                                      )
-                                      .toList(),
-                              value:
-                                  controller.clientController.text.isEmpty
-                                      ? null
-                                      : controller.clients.firstWhere(
-                                        (a) =>
-                                            a.id ==
-                                            controller.clientController.text,
-                                      ),
-                              label: 'chooseclient'.tr,
-                              borderRadius: 5,
-                              height: 42,
-                              onChanged: (value) {
-                                if (value != null) {
+                        Obx(() {
+                          final clientId = controller.clientController.text;
+                          final clientIds = controller.clients
+                              .map((c) => c.id?.trim() ?? '')
+                              .where((id) => id.isNotEmpty)
+                              .toList();
+                          String clientLabel(String id) =>
+                              controller.clients
+                                  .firstWhereOrNull((c) => c.id == id)
+                                  ?.name ??
+                              id;
+                          final selectedClients =
+                              clientId.isEmpty ? <String>[] : [clientId];
+                          final selectedMonths =
+                              controller.selectedDate.value.isEmpty
+                                  ? <String>[]
+                                  : [controller.selectedDate.value];
+
+                          void applyClient(String? id) {
+                            if (id == null || id.isEmpty) {
+                              controller.clientController.clear();
+                              controller.selectedDate.value = '';
+                              controller.searchedContents.clear();
+                            } else {
+                              controller.clientController.text = id;
+                              controller.selectedDate.value = '';
+                              controller.searchedContents.assignAll(
+                                controller.contents
+                                    .where((a) => a.clientId == id)
+                                    .toList(),
+                              );
+                            }
+                            controller.update();
+                          }
+
+                          void applyMonths(List<String> monthsSelected) {
+                            final id = controller.clientController.text;
+                            if (id.isEmpty) return;
+                            if (monthsSelected.isEmpty) {
+                              controller.selectedDate.value = '';
+                              controller.searchedContents.assignAll(
+                                controller.contents
+                                    .where((a) => a.clientId == id)
+                                    .toList(),
+                              );
+                            } else {
+                              controller.selectedDate.value = monthsSelected.last;
+                              final parts = controller.selectedDate.value.split('-');
+                              if (parts.length >= 2) {
+                                final year = int.tryParse(parts[0]);
+                                final month = int.tryParse(parts[1]);
+                                if (year != null && month != null) {
                                   controller.searchedContents.assignAll(
-                                    List.from(
-                                      controller.contents.where(
-                                        (a) => a.clientId == (value).id,
-                                      ),
-                                    ),
-                                  );
-                                  controller.selectedDate.value = '';
-
-                                  controller.clientController.text =
-                                      (value).id ?? '';
-                                  controller.update();
-                                }
-                                appLog(
-                                  "Selected client ID: ${controller.clientController.text}",
-                                );
-                              },
-                              validator: (v) {
-                                if (v == null) return ' ';
-                                return null;
-                              },
-                            ),
-                          ),
-                        ),
-                        if (controller.clientController.text.isNotEmpty)
-                          Obx(
-                            () => SizedBox(
-                              width: (Get.width * 0.7 / 2) - 20,
-                              child: DynamicDropdown(
-                                items:
-                                    months
-                                        .map(
-                                          (v) => DropdownMenuItem(
-                                            value: v,
-                                            child: Text('${v}'),
-                                          ),
+                                    controller.contents
+                                        .where(
+                                          (a) =>
+                                              a.clientId == id &&
+                                              a.publishDate?.month == month &&
+                                              a.publishDate?.year == year,
                                         )
                                         .toList(),
-                                value:
-                                    controller.selectedDate.value.isEmpty
-                                        ? null
-                                        : controller.selectedDate.value,
-                                label: 'common.select_date'.tr,
-                                borderRadius: 5,
-                                height: 42,
-                                onChanged: (value) {
-                                  if (value != null) {
-                                    final date = value;
-
-                                    final parts = date.split('-');
-                                    final year = int.parse(parts[0]);
-                                    final month = int.parse(parts[1]);
-
-                                    appLog('$year'); // 2024
-                                    appLog('$month'); // 1
-
-                                    controller.searchedContents.assignAll(
-                                      List.from(
-                                        controller.contents.where(
-                                          (a) =>
-                                              (a.clientId ==
-                                                      controller
-                                                          .clientController
-                                                          .text &&
-                                                  (a.publishDate?.month ==
-                                                          month &&
-                                                      a.publishDate?.year ==
-                                                          year)),
-                                        ),
-                                      ),
-                                    );
-
-                                    // controller.clientController.text =
-                                    //     (value as ClientModel).id ?? '';
-                                  }
-                                  appLog(
-                                    "Selected client ID: ${controller.clientController.text}",
                                   );
-                                },
-                                validator: (v) {
-                                  if (v == null) return ' ';
-                                  return null;
-                                },
+                                }
+                              }
+                            }
+                            controller.update();
+                          }
+
+                          final activeTags = <Widget>[];
+                          appendAppActiveFilterTags(
+                            out: activeTags,
+                            dimension: 'chooseclient'.tr,
+                            selected: selectedClients,
+                            itemLabel: clientLabel,
+                            onRemove: (_) => applyClient(null),
+                          );
+                          appendAppActiveFilterTags(
+                            out: activeTags,
+                            dimension: 'common.select_date'.tr,
+                            selected: selectedMonths,
+                            itemLabel: (m) => m,
+                            onRemove: (_) => applyMonths(const []),
+                          );
+
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  AppMultiFilterTrigger(
+                                    hint: 'chooseclient'.tr,
+                                    items: clientIds,
+                                    selected: selectedClients,
+                                    itemLabel: clientLabel,
+                                    onChanged: (v) =>
+                                        applyClient(v.isEmpty ? null : v.last),
+                                  ),
+                                  if (clientId.isNotEmpty)
+                                    AppMultiFilterTrigger(
+                                      hint: 'common.select_date'.tr,
+                                      items: months,
+                                      selected: selectedMonths,
+                                      itemLabel: (m) => m,
+                                      onChanged: applyMonths,
+                                    ),
+                                ],
                               ),
-                            ),
-                          ),
-                        SizedBox(height: 10),
+                              if (activeTags.isNotEmpty) ...[
+                                const SizedBox(height: 10),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: activeTags,
+                                ),
+                              ],
+                            ],
+                          );
+                        }),
+                        const SizedBox(height: 24),
                         HorizontalScrollbarTable(
                           child: Padding(
                             padding: const EdgeInsets.only(top: 6, bottom: 14),

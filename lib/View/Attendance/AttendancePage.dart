@@ -19,6 +19,8 @@ import 'package:point/View/Shared/HorizontalScroll.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 import 'package:point/View/Shared/TableCellCenter.dart';
+import 'package:point/View/Shared/app_filter_dropdown.dart';
+import 'package:point/View/Shared/app_multi_filter.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/table_area_loading.dart';
 import 'package:point/Utils/app_theme_extension.dart';
@@ -34,9 +36,9 @@ class _AttendancePageState extends State<AttendancePage> {
   DateTime _selectedDate = DateTime.now();
   final _filterController = TextEditingController();
   final _dateController = TextEditingController();
-  String _actionFilter = '';
-  String _approvalFilter = '';
-  String _dailyResultFilter = '';
+  List<String> _actionFilters = [];
+  List<String> _approvalFilters = [];
+  List<String> _dailyResultFilters = [];
   String? _reviewingRecordId;
   AttendancePolicySettings _policy = AttendancePolicySettings.defaults;
   List<AttendanceDayOutcomeModel> _dayOutcomes = const [];
@@ -50,25 +52,6 @@ class _AttendancePageState extends State<AttendancePage> {
 
   static const double _filterHeight = 42;
   static const double _filterRadius = 5;
-
-  TextStyle _filterTextStyle(BuildContext context) {
-    return Theme.of(context).textTheme.bodyMedium?.copyWith(
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-          color: context.appTheme.primaryText,
-        ) ??
-        TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-          color: context.appTheme.primaryText,
-        );
-  }
-
-  BoxDecoration _filterDecoration(BuildContext context) => BoxDecoration(
-        color: context.appTheme.inputFill,
-        border: Border.all(color: context.appTheme.border),
-        borderRadius: BorderRadius.circular(_filterRadius),
-      );
 
   @override
   void initState() {
@@ -144,14 +127,16 @@ class _AttendancePageState extends State<AttendancePage> {
           .where((r) => r.employeeName.toLowerCase().contains(query))
           .toList();
     }
-    if (_actionFilter.isNotEmpty) {
-      result = result.where((r) => r.action == _actionFilter).toList();
+    if (_actionFilters.isNotEmpty) {
+      final set = _actionFilters.toSet();
+      result = result.where((r) => set.contains(r.action)).toList();
     }
-    if (_approvalFilter.isNotEmpty) {
+    if (_approvalFilters.isNotEmpty) {
+      final set = _approvalFilters.toSet();
       result =
-          result.where((r) => r.approvalStatus == _approvalFilter).toList();
+          result.where((r) => set.contains(r.approvalStatus)).toList();
     }
-    if (_dailyResultFilter.isNotEmpty) {
+    if (_dailyResultFilters.isNotEmpty) {
       result = result.where((r) {
         final outcome = dailyStates[r.employeeId]?.outcome;
         return _matchesDailyResultFilter(outcome);
@@ -178,12 +163,18 @@ class _AttendancePageState extends State<AttendancePage> {
   }
 
   bool _matchesDailyResultFilter(AttendanceDailyOutcome? outcome) {
-    if (_dailyResultFilter.isEmpty) return true;
+    if (_dailyResultFilters.isEmpty) return true;
     final key = outcome == null ? 'none' : _outcomeFilterKey(outcome);
-    if (_dailyResultFilter == 'absent') {
-      return key == 'absent' || key == 'no_check_in' || key == 'no_checkout';
+    for (final filter in _dailyResultFilters) {
+      if (filter == 'absent') {
+        if (key == 'absent' || key == 'no_check_in' || key == 'no_checkout') {
+          return true;
+        }
+      } else if (key == filter) {
+        return true;
+      }
     }
-    return key == _dailyResultFilter;
+    return false;
   }
 
   String _dailyResultTableLabel(AttendanceDailyOutcome outcome) {
@@ -387,203 +378,179 @@ class _AttendancePageState extends State<AttendancePage> {
   }
 
   Widget _buildActionFilter(BuildContext context) {
-    final textStyle = _filterTextStyle(context);
-    return SizedBox(
-      height: _filterHeight,
-      child: DecoratedBox(
-        decoration: _filterDecoration(context),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<String>(
-            isExpanded: true,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            hint: Text(
-              AppLocaleKeys.attendanceFilterAction.tr,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: textStyle,
-            ),
-            value: _actionFilter.isEmpty ? null : _actionFilter,
-            icon: Icon(
-              Icons.keyboard_arrow_down_rounded,
-              color: context.appTheme.mutedText,
-            ),
-            dropdownColor: context.appTheme.cardSurface,
-            style: textStyle,
-            items: [
-              DropdownMenuItem(value: '', child: Text('all'.tr, style: textStyle)),
-              DropdownMenuItem(
-                value: AttendanceRecordModel.actionPresent,
-                child: Text(AppLocaleKeys.attendancePresent.tr, style: textStyle),
-              ),
-              DropdownMenuItem(
-                value: AttendanceRecordModel.actionLeft,
-                child: Text(AppLocaleKeys.attendanceLeft.tr, style: textStyle),
-              ),
-            ],
-            onChanged: (value) {
-              setState(() => _actionFilter = value ?? '');
-            },
-          ),
-        ),
-      ),
+    return AppMultiFilterTrigger(
+      hint: AppLocaleKeys.attendanceFilterAction.tr,
+      items: const [
+        AttendanceRecordModel.actionPresent,
+        AttendanceRecordModel.actionLeft,
+      ],
+      selected: _actionFilters,
+      itemLabel: (v) => v == AttendanceRecordModel.actionPresent
+          ? AppLocaleKeys.attendancePresent.tr
+          : AppLocaleKeys.attendanceLeft.tr,
+      onChanged: (v) => setState(() => _actionFilters = v),
     );
   }
 
   Widget _buildApprovalFilter(BuildContext context) {
-    final textStyle = _filterTextStyle(context);
-    return SizedBox(
-      height: _filterHeight,
-      child: DecoratedBox(
-        decoration: _filterDecoration(context),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<String>(
-            isExpanded: true,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            hint: Text(
-              AppLocaleKeys.attendanceFilterApproval.tr,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: textStyle,
-            ),
-            value: _approvalFilter.isEmpty ? null : _approvalFilter,
-            icon: Icon(
-              Icons.keyboard_arrow_down_rounded,
-              color: context.appTheme.mutedText,
-            ),
-            dropdownColor: context.appTheme.cardSurface,
-            style: textStyle,
-            items: [
-              DropdownMenuItem(value: '', child: Text('all'.tr, style: textStyle)),
-              DropdownMenuItem(
-                value: AttendanceRecordModel.statusPending,
-                child: Text(AppLocaleKeys.attendancePending.tr, style: textStyle),
-              ),
-              DropdownMenuItem(
-                value: AttendanceRecordModel.statusApproved,
-                child: Text(AppLocaleKeys.attendanceApproved.tr, style: textStyle),
-              ),
-              DropdownMenuItem(
-                value: AttendanceRecordModel.statusAbsent,
-                child: Text(AppLocaleKeys.attendanceAbsent.tr, style: textStyle),
-              ),
-              DropdownMenuItem(
-                value: AttendanceRecordModel.statusAutoRejectedLate,
-                child: Text(
-                  AppLocaleKeys.attendanceAutoRejectedLate.tr,
-                  style: textStyle,
-                ),
-              ),
-            ],
-            onChanged: (value) {
-              setState(() => _approvalFilter = value ?? '');
-            },
-          ),
-        ),
-      ),
+    return AppMultiFilterTrigger(
+      hint: AppLocaleKeys.attendanceFilterApproval.tr,
+      items: const [
+        AttendanceRecordModel.statusPending,
+        AttendanceRecordModel.statusApproved,
+        AttendanceRecordModel.statusAbsent,
+        AttendanceRecordModel.statusAutoRejectedLate,
+      ],
+      selected: _approvalFilters,
+      itemLabel: (v) {
+        switch (v) {
+          case AttendanceRecordModel.statusPending:
+            return AppLocaleKeys.attendancePending.tr;
+          case AttendanceRecordModel.statusApproved:
+            return AppLocaleKeys.attendanceApproved.tr;
+          case AttendanceRecordModel.statusAbsent:
+            return AppLocaleKeys.attendanceAbsent.tr;
+          case AttendanceRecordModel.statusAutoRejectedLate:
+            return AppLocaleKeys.attendanceAutoRejectedLate.tr;
+          default:
+            return v;
+        }
+      },
+      onChanged: (v) => setState(() => _approvalFilters = v),
     );
   }
 
   Widget _buildDailyResultFilter(BuildContext context) {
-    final textStyle = _filterTextStyle(context);
-    return SizedBox(
-      height: _filterHeight,
-      child: DecoratedBox(
-        decoration: _filterDecoration(context),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<String>(
-            isExpanded: true,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            hint: Text(
-              AppLocaleKeys.attendanceFilterDailyResult.tr,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: textStyle,
-            ),
-            value: _dailyResultFilter.isEmpty ? null : _dailyResultFilter,
-            icon: Icon(
-              Icons.keyboard_arrow_down_rounded,
-              color: context.appTheme.mutedText,
-            ),
-            dropdownColor: context.appTheme.cardSurface,
-            style: textStyle,
-            items: [
-              DropdownMenuItem(value: '', child: Text('all'.tr, style: textStyle)),
-              DropdownMenuItem(
-                value: 'showed_up',
-                child: Text(AppLocaleKeys.attendanceShowedUp.tr, style: textStyle),
-              ),
-              DropdownMenuItem(
-                value: 'absent',
-                child: Text(AppLocaleKeys.attendanceDayAbsent.tr, style: textStyle),
-              ),
-              DropdownMenuItem(
-                value: 'no_check_in',
-                child: Text(
-                  AppLocaleKeys.attendanceDailyResultNoCheckInShort.tr,
-                  style: textStyle,
-                ),
-              ),
-              DropdownMenuItem(
-                value: 'no_checkout',
-                child: Text(
-                  AppLocaleKeys.attendanceDailyResultNoCheckoutShort.tr,
-                  style: textStyle,
-                ),
-              ),
-              DropdownMenuItem(
-                value: 'pending',
-                child: Text(AppLocaleKeys.attendancePending.tr, style: textStyle),
-              ),
-              DropdownMenuItem(
-                value: 'none',
-                child: Text('-', style: textStyle),
-              ),
-            ],
-            onChanged: (value) {
-              setState(() => _dailyResultFilter = value ?? '');
-            },
-          ),
-        ),
-      ),
+    return AppMultiFilterTrigger(
+      hint: AppLocaleKeys.attendanceFilterDailyResult.tr,
+      items: const [
+        'showed_up',
+        'absent',
+        'no_check_in',
+        'no_checkout',
+        'pending',
+        'none',
+      ],
+      selected: _dailyResultFilters,
+      itemLabel: (v) {
+        switch (v) {
+          case 'showed_up':
+            return AppLocaleKeys.attendanceShowedUp.tr;
+          case 'absent':
+            return AppLocaleKeys.attendanceDayAbsent.tr;
+          case 'no_check_in':
+            return AppLocaleKeys.attendanceDailyResultNoCheckInShort.tr;
+          case 'no_checkout':
+            return AppLocaleKeys.attendanceDailyResultNoCheckoutShort.tr;
+          case 'pending':
+            return AppLocaleKeys.attendancePending.tr;
+          case 'none':
+            return '-';
+          default:
+            return v;
+        }
+      },
+      onChanged: (v) => setState(() => _dailyResultFilters = v),
     );
   }
 
   Widget _buildFilters(BuildContext context) {
     final isMobile = Responsive.isMobile(context);
+    final activeTags = <Widget>[];
+    appendAppActiveFilterTags(
+      out: activeTags,
+      dimension: AppLocaleKeys.attendanceFilterAction.tr,
+      selected: _actionFilters,
+      itemLabel: (v) => v == AttendanceRecordModel.actionPresent
+          ? AppLocaleKeys.attendancePresent.tr
+          : AppLocaleKeys.attendanceLeft.tr,
+      onRemove: (v) => setState(() => _actionFilters = List.of(_actionFilters)..remove(v)),
+    );
+    appendAppActiveFilterTags(
+      out: activeTags,
+      dimension: AppLocaleKeys.attendanceFilterApproval.tr,
+      selected: _approvalFilters,
+      itemLabel: (v) {
+        switch (v) {
+          case AttendanceRecordModel.statusPending:
+            return AppLocaleKeys.attendancePending.tr;
+          case AttendanceRecordModel.statusApproved:
+            return AppLocaleKeys.attendanceApproved.tr;
+          case AttendanceRecordModel.statusAbsent:
+            return AppLocaleKeys.attendanceAbsent.tr;
+          case AttendanceRecordModel.statusAutoRejectedLate:
+            return AppLocaleKeys.attendanceAutoRejectedLate.tr;
+          default:
+            return v;
+        }
+      },
+      onRemove: (v) =>
+          setState(() => _approvalFilters = List.of(_approvalFilters)..remove(v)),
+    );
+    appendAppActiveFilterTags(
+      out: activeTags,
+      dimension: AppLocaleKeys.attendanceFilterDailyResult.tr,
+      selected: _dailyResultFilters,
+      itemLabel: (v) {
+        switch (v) {
+          case 'showed_up':
+            return AppLocaleKeys.attendanceShowedUp.tr;
+          case 'absent':
+            return AppLocaleKeys.attendanceDayAbsent.tr;
+          case 'no_check_in':
+            return AppLocaleKeys.attendanceDailyResultNoCheckInShort.tr;
+          case 'no_checkout':
+            return AppLocaleKeys.attendanceDailyResultNoCheckoutShort.tr;
+          case 'pending':
+            return AppLocaleKeys.attendancePending.tr;
+          case 'none':
+            return '-';
+          default:
+            return v;
+        }
+      },
+      onRemove: (v) => setState(
+        () => _dailyResultFilters = List.of(_dailyResultFilters)..remove(v),
+      ),
+    );
 
-    if (isMobile) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildDateFilter(),
-          const SizedBox(height: 12),
-          _buildEmployeeFilter(context),
-          const SizedBox(height: 12),
-          _buildActionFilter(context),
-          const SizedBox(height: 12),
-          _buildApprovalFilter(context),
-          const SizedBox(height: 12),
-          _buildDailyResultFilter(context),
-        ],
-      );
-    }
+    final filterControls = Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        SizedBox(
+          width: isMobile ? double.infinity : 180,
+          child: _buildDateFilter(),
+        ),
+        SizedBox(
+          width: isMobile ? double.infinity : 220,
+          child: _buildEmployeeFilter(context),
+        ),
+        _buildActionFilter(context),
+        _buildApprovalFilter(context),
+        _buildDailyResultFilter(context),
+        FilterResetButton(
+          onPressed: () {
+            setState(() {
+              _filterController.clear();
+              _actionFilters = [];
+              _approvalFilters = [];
+              _dailyResultFilters = [];
+            });
+          },
+        ),
+      ],
+    );
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(flex: 4, child: _buildDateFilter()),
-            const SizedBox(width: 10),
-            Expanded(flex: 5, child: _buildEmployeeFilter(context)),
-            const SizedBox(width: 10),
-            Expanded(flex: 3, child: _buildActionFilter(context)),
-            const SizedBox(width: 10),
-            Expanded(flex: 3, child: _buildApprovalFilter(context)),
-            const SizedBox(width: 10),
-            Expanded(flex: 4, child: _buildDailyResultFilter(context)),
-          ],
-        ),
+        filterControls,
+        if (activeTags.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Wrap(spacing: 8, runSpacing: 8, children: activeTags),
+        ],
       ],
     );
   }

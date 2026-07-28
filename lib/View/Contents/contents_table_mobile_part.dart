@@ -160,76 +160,96 @@ Widget _buildMobileContent(
               GetBuilder<HomeController>(
                 id: 'employeeWebContent',
                 builder: (c) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      MobileFilterSearchRow(
-                        searchBar: MobileFilterSearchBar(
-                          controller: c.employeeWebContentSearchController,
-                          hintText: 'employee.search_content_hint'.tr,
-                          onChanged: () => c.update(['employeeWebContent']),
+                  return Obx(() {
+                    final _ = c.employeeWebContentFiltersRevision.value;
+                    final statuses = c.employeeWebContentStatusFilters.toList();
+                    final date = c.employeeWebContentDateFilter.value;
+                    final activeTags = <Widget>[];
+                    appendAppActiveFilterTags(
+                      out: activeTags,
+                      dimension: 'tasks.filter_status'.tr,
+                      selected: statuses,
+                      itemLabel: (s) => s.tr,
+                      onRemove: (value) {
+                        final next = List<String>.from(statuses)..remove(value);
+                        c.setEmployeeWebContentFilterList(
+                          c.employeeWebContentStatusFilters,
+                          next,
+                        );
+                      },
+                    );
+                    if (date != null) {
+                      activeTags.add(
+                        AppActiveFilterTag(
+                          dimension: 'publish_date'.tr,
+                          label: DateFormat('yyyy-MM-dd HH:mm').format(date),
+                          onRemove: () {
+                            c.employeeWebContentDateFilter.value = null;
+                            c.employeeWebContentFiltersRevision.value++;
+                            c.update(['employeeWebContent']);
+                          },
                         ),
-                        onClearFilters: () {
-                          c.clearEmployeeWebContentFilters();
-                          c.update(['employeeWebContent']);
-                        },
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Expanded(
-                            child: Obx(
-                              () => AppFilterDropdown<String>(
-                                hint: 'tasks.filter_status'.tr,
-                                height: 42,
-                                expandWidth: true,
-                                value:
-                                    c.employeeWebContentStatusFilter.value.isEmpty
-                                        ? null
-                                        : c.employeeWebContentStatusFilter.value,
-                                items:
-                                    StorageKeys.statusList
-                                        .map(
-                                          (e) => DropdownMenuItem<String>(
-                                            value: e,
-                                            child: Text(e.tr),
-                                          ),
-                                        )
-                                        .toList(),
-                                onChanged: (v) {
-                                  c.employeeWebContentStatusFilter.value = v ?? '';
-                                  c.update(['employeeWebContent']);
-                                },
+                      );
+                    }
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        MobileFilterSearchRow(
+                          searchBar: MobileFilterSearchBar(
+                            controller: c.employeeWebContentSearchController,
+                            hintText: 'employee.search_content_hint'.tr,
+                            onChanged: () => c.update(['employeeWebContent']),
+                          ),
+                          onClearFilters: () {
+                            c.clearEmployeeWebContentFilters();
+                          },
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            AppMultiFilterTrigger(
+                              hint: 'tasks.filter_status'.tr,
+                              items: StorageKeys.statusList,
+                              selected: statuses,
+                              itemLabel: (s) => s.tr,
+                              onChanged: (v) => c.setEmployeeWebContentFilterList(
+                                c.employeeWebContentStatusFilters,
+                                v,
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          SizedBox(
-                            height: 42,
-                            width: 42,
-                            child: IconButton(
-                              padding: EdgeInsets.zero,
-                              onPressed: () async {
+                            AppDateFilterChip(
+                              hint: 'publish_date'.tr,
+                              value: date,
+                              onPick: () async {
                                 final picked = await pickAppDateTime(
                                   context,
-                                  initialDateTime:
-                                      c.employeeWebContentDateFilter.value ??
-                                      DateTime.now(),
+                                  initialDateTime: date ?? DateTime.now(),
                                   firstDate: DateTime(2020),
                                   lastDate: DateTime(2100),
                                 );
                                 if (picked == null) return;
                                 c.employeeWebContentDateFilter.value = picked;
+                                c.employeeWebContentFiltersRevision.value++;
                                 c.update(['employeeWebContent']);
                               },
-                              icon: const Icon(Icons.calendar_month_outlined),
+                              onClear: () {
+                                c.employeeWebContentDateFilter.value = null;
+                                c.employeeWebContentFiltersRevision.value++;
+                                c.update(['employeeWebContent']);
+                              },
                             ),
-                          ),
+                          ],
+                        ),
+                        if (activeTags.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Wrap(spacing: 8, runSpacing: 8, children: activeTags),
                         ],
-                      ),
-                    ],
-                  );
+                      ],
+                    );
+                  });
                 },
               ),
               const SizedBox(height: 8),

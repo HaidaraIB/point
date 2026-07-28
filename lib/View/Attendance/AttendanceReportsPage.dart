@@ -14,6 +14,8 @@ import 'package:point/View/Shared/HorizontalScroll.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 import 'package:point/View/Shared/TableCellCenter.dart';
+import 'package:point/View/Shared/app_filter_dropdown.dart';
+import 'package:point/View/Shared/app_multi_filter.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/table_area_loading.dart';
@@ -33,7 +35,7 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
   DateTime _anchor = DateTime.now();
   final _filterController = TextEditingController();
   final _periodController = TextEditingController();
-  String _summaryFilter = '';
+  List<String> _summaryFilters = [];
   List<AttendanceReportRow> _rows = const [];
   bool _loading = true;
 
@@ -45,25 +47,6 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
 
   static const double _filterHeight = 42;
   static const double _filterRadius = 5;
-
-  TextStyle _filterTextStyle(BuildContext context) {
-    return Theme.of(context).textTheme.bodyMedium?.copyWith(
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-          color: context.appTheme.primaryText,
-        ) ??
-        TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-          color: context.appTheme.primaryText,
-        );
-  }
-
-  BoxDecoration _filterDecoration(BuildContext context) => BoxDecoration(
-        color: context.appTheme.inputFill,
-        border: Border.all(color: context.appTheme.border),
-        borderRadius: BorderRadius.circular(_filterRadius),
-      );
 
   @override
   void initState() {
@@ -165,13 +148,15 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
           .where((r) => r.employeeName.toLowerCase().contains(q))
           .toList();
     }
-    switch (_summaryFilter) {
-      case 'showed_up':
-        rows = rows.where((r) => r.showedUpDays > 0).toList();
-      case 'absent':
-        rows = rows.where((r) => r.absentDays > 0).toList();
-      case 'pending':
-        rows = rows.where((r) => r.pendingDays > 0).toList();
+    if (_summaryFilters.isNotEmpty) {
+      rows = rows.where((r) {
+        for (final f in _summaryFilters) {
+          if (f == 'showed_up' && r.showedUpDays > 0) return true;
+          if (f == 'absent' && r.absentDays > 0) return true;
+          if (f == 'pending' && r.pendingDays > 0) return true;
+        }
+        return false;
+      }).toList();
     }
     return rows;
   }
@@ -259,49 +244,22 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
   }
 
   Widget _buildPeriodTypeFilter(BuildContext context) {
-    final textStyle = _filterTextStyle(context);
-    return SizedBox(
-      height: _filterHeight,
-      child: DecoratedBox(
-        decoration: _filterDecoration(context),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<_ReportPeriod>(
-            isExpanded: true,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            value: _period,
-            icon: Icon(
-              Icons.keyboard_arrow_down_rounded,
-              color: context.appTheme.mutedText,
-            ),
-            dropdownColor: context.appTheme.cardSurface,
-            style: textStyle,
-            items: [
-              DropdownMenuItem(
-                value: _ReportPeriod.month,
-                child: Text(
-                  AppLocaleKeys.attendanceReportsPeriodMonth.tr,
-                  style: textStyle,
-                ),
-              ),
-              DropdownMenuItem(
-                value: _ReportPeriod.year,
-                child: Text(
-                  AppLocaleKeys.attendanceReportsPeriodYear.tr,
-                  style: textStyle,
-                ),
-              ),
-            ],
-            onChanged: (value) async {
-              if (value == null) return;
-              setState(() {
-                _period = value;
-                _syncPeriodLabel();
-              });
-              await _loadReport();
-            },
-          ),
-        ),
-      ),
+    return AppMultiFilterTrigger(
+      hint: AppLocaleKeys.attendanceReportsPeriodMonth.tr,
+      items: const ['month', 'year'],
+      selected: [_period == _ReportPeriod.month ? 'month' : 'year'],
+      itemLabel: (v) => v == 'month'
+          ? AppLocaleKeys.attendanceReportsPeriodMonth.tr
+          : AppLocaleKeys.attendanceReportsPeriodYear.tr,
+      onChanged: (v) async {
+        if (v.isEmpty) return;
+        final next = v.last == 'year' ? _ReportPeriod.year : _ReportPeriod.month;
+        setState(() {
+          _period = next;
+          _syncPeriodLabel();
+        });
+        await _loadReport();
+      },
     );
   }
 
@@ -339,79 +297,84 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
   }
 
   Widget _buildSummaryFilter(BuildContext context) {
-    final textStyle = _filterTextStyle(context);
-    return SizedBox(
-      height: _filterHeight,
-      child: DecoratedBox(
-        decoration: _filterDecoration(context),
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<String>(
-            isExpanded: true,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            hint: Text(
-              AppLocaleKeys.attendanceReportsFilterSummary.tr,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: textStyle,
-            ),
-            value: _summaryFilter.isEmpty ? null : _summaryFilter,
-            icon: Icon(
-              Icons.keyboard_arrow_down_rounded,
-              color: context.appTheme.mutedText,
-            ),
-            dropdownColor: context.appTheme.cardSurface,
-            style: textStyle,
-            items: [
-              DropdownMenuItem(value: '', child: Text('all'.tr, style: textStyle)),
-              DropdownMenuItem(
-                value: 'showed_up',
-                child: Text(AppLocaleKeys.attendanceShowedUp.tr, style: textStyle),
-              ),
-              DropdownMenuItem(
-                value: 'absent',
-                child: Text(AppLocaleKeys.attendanceAbsent.tr, style: textStyle),
-              ),
-              DropdownMenuItem(
-                value: 'pending',
-                child: Text(AppLocaleKeys.attendancePending.tr, style: textStyle),
-              ),
-            ],
-            onChanged: (value) {
-              setState(() => _summaryFilter = value ?? '');
-            },
-          ),
-        ),
-      ),
+    return AppMultiFilterTrigger(
+      hint: AppLocaleKeys.attendanceReportsFilterSummary.tr,
+      items: const ['showed_up', 'absent', 'pending'],
+      selected: _summaryFilters,
+      itemLabel: (v) {
+        switch (v) {
+          case 'showed_up':
+            return AppLocaleKeys.attendanceShowedUp.tr;
+          case 'absent':
+            return AppLocaleKeys.attendanceAbsent.tr;
+          case 'pending':
+            return AppLocaleKeys.attendancePending.tr;
+          default:
+            return v;
+        }
+      },
+      onChanged: (v) => setState(() => _summaryFilters = v),
     );
   }
 
   Widget _buildFilters(BuildContext context) {
     final isMobile = Responsive.isMobile(context);
-    if (isMobile) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildPeriodTypeFilter(context),
-          const SizedBox(height: 12),
-          _buildPeriodValueFilter(),
-          const SizedBox(height: 12),
-          _buildEmployeeFilter(context),
-          const SizedBox(height: 12),
-          _buildSummaryFilter(context),
-        ],
-      );
-    }
+    final activeTags = <Widget>[];
+    appendAppActiveFilterTags(
+      out: activeTags,
+      dimension: AppLocaleKeys.attendanceReportsFilterSummary.tr,
+      selected: _summaryFilters,
+      itemLabel: (v) {
+        switch (v) {
+          case 'showed_up':
+            return AppLocaleKeys.attendanceShowedUp.tr;
+          case 'absent':
+            return AppLocaleKeys.attendanceAbsent.tr;
+          case 'pending':
+            return AppLocaleKeys.attendancePending.tr;
+          default:
+            return v;
+        }
+      },
+      onRemove: (v) =>
+          setState(() => _summaryFilters = List.of(_summaryFilters)..remove(v)),
+    );
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(flex: 3, child: _buildPeriodTypeFilter(context)),
-        const SizedBox(width: 10),
-        Expanded(flex: 4, child: _buildPeriodValueFilter()),
-        const SizedBox(width: 10),
-        Expanded(flex: 5, child: _buildEmployeeFilter(context)),
-        const SizedBox(width: 10),
-        Expanded(flex: 4, child: _buildSummaryFilter(context)),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            SizedBox(
+              width: isMobile ? double.infinity : 160,
+              child: _buildPeriodTypeFilter(context),
+            ),
+            SizedBox(
+              width: isMobile ? double.infinity : 180,
+              child: _buildPeriodValueFilter(),
+            ),
+            SizedBox(
+              width: isMobile ? double.infinity : 220,
+              child: _buildEmployeeFilter(context),
+            ),
+            _buildSummaryFilter(context),
+            FilterResetButton(
+              onPressed: () {
+                setState(() {
+                  _filterController.clear();
+                  _summaryFilters = [];
+                });
+              },
+            ),
+          ],
+        ),
+        if (activeTags.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Wrap(spacing: 8, runSpacing: 8, children: activeTags),
+        ],
       ],
     );
   }

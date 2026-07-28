@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/View/Contents/ContentDialogDetails.dart';
 import 'package:point/View/Mobile/ContentStatusCard.dart';
-import 'package:point/View/Shared/CustomDropDown.dart';
+import 'package:point/View/Shared/app_multi_filter.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 
 Widget buildMobileHistory(
@@ -34,96 +34,124 @@ Widget buildMobileHistory(
               ),
             ),
             const SizedBox(height: 12),
-            Obx(
-              () => SizedBox(
-                width: double.infinity,
-                child: DynamicDropdown<dynamic>(
-                  items:
-                      controller.clients
-                          .map(
-                            (v) => DropdownMenuItem(
-                              value: v,
-                              child: Text('${v.name}'),
-                            ),
-                          )
-                          .toList(),
-                  value:
-                      controller.clientController.text.isEmpty
-                          ? null
-                          : controller.clients.cast<dynamic>().firstWhereOrNull(
-                            (a) => a.id == controller.clientController.text,
-                          ),
-                  label: 'chooseclient'.tr,
-                  borderRadius: 5,
-                  height: 42,
-                  onChanged: (value) {
-                    if (value != null) {
+            Obx(() {
+              final clientId = controller.clientController.text;
+              final clientIds = controller.clients
+                  .map((c) => c.id?.trim() ?? '')
+                  .where((id) => id.isNotEmpty)
+                  .toList();
+              String clientLabel(String id) =>
+                  controller.clients
+                      .firstWhereOrNull((c) => c.id == id)
+                      ?.name ??
+                  id;
+              final selectedClients =
+                  clientId.isEmpty ? <String>[] : [clientId];
+              final selectedMonths = controller.selectedDate.value.isEmpty
+                  ? <String>[]
+                  : [controller.selectedDate.value];
+
+              void applyClient(String? id) {
+                if (id == null || id.isEmpty) {
+                  controller.clientController.clear();
+                  controller.selectedDate.value = '';
+                  controller.searchedContents.clear();
+                } else {
+                  controller.clientController.text = id;
+                  controller.selectedDate.value = '';
+                  controller.searchedContents.assignAll(
+                    controller.contents
+                        .where((a) => a.clientId == id)
+                        .toList(),
+                  );
+                }
+                controller.update();
+              }
+
+              void applyMonths(List<String> monthsSelected) {
+                final id = controller.clientController.text;
+                if (id.isEmpty) return;
+                if (monthsSelected.isEmpty) {
+                  controller.selectedDate.value = '';
+                  controller.searchedContents.assignAll(
+                    controller.contents
+                        .where((a) => a.clientId == id)
+                        .toList(),
+                  );
+                } else {
+                  final value = monthsSelected.last;
+                  controller.selectedDate.value = value;
+                  final parts = value.split('-');
+                  if (parts.length >= 2) {
+                    final year = int.tryParse(parts[0]);
+                    final month = int.tryParse(parts[1]);
+                    if (year != null && month != null) {
                       controller.searchedContents.assignAll(
-                        List.from(
-                          controller.contents.where(
-                            (a) => a.clientId == (value as dynamic).id,
-                          ),
-                        ),
-                      );
-                      controller.selectedDate.value = '';
-                      controller.clientController.text =
-                          (value as dynamic).id ?? '';
-                      controller.update();
-                    }
-                  },
-                  validator: (v) => v == null ? ' ' : null,
-                ),
-              ),
-            ),
-            if (controller.clientController.text.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Obx(
-                () => SizedBox(
-                  width: double.infinity,
-                  child: DynamicDropdown<String>(
-                    items:
-                        months
-                            .map(
-                              (v) => DropdownMenuItem(
-                                value: v,
-                                child: Text(v),
-                              ),
-                            )
-                            .toList(),
-                    value:
-                        controller.selectedDate.value.isEmpty
-                            ? null
-                            : controller.selectedDate.value,
-                    label: 'common.select_date'.tr,
-                    borderRadius: 5,
-                    height: 42,
-                    onChanged: (value) {
-                      if (value != null) {
-                        final parts = value.split('-');
-                        final year = int.parse(parts[0]);
-                        final month = int.parse(parts[1]);
-                        controller.searchedContents.assignAll(
-                          List.from(
-                            controller.contents.where(
+                        controller.contents
+                            .where(
                               (a) =>
-                                  a.clientId ==
-                                      controller.clientController.text &&
+                                  a.clientId == id &&
                                   a.publishDate != null &&
                                   a.publishDate!.month == month &&
                                   a.publishDate!.year == year,
-                            ),
-                          ),
-                        );
-                        controller.selectedDate.value = value;
-                        controller.update();
-                      }
-                    },
-                    validator: (v) => v == null ? ' ' : null,
+                            )
+                            .toList(),
+                      );
+                    }
+                  }
+                }
+                controller.update();
+              }
+
+              final activeTags = <Widget>[];
+              appendAppActiveFilterTags(
+                out: activeTags,
+                dimension: 'chooseclient'.tr,
+                selected: selectedClients,
+                itemLabel: clientLabel,
+                onRemove: (_) => applyClient(null),
+              );
+              appendAppActiveFilterTags(
+                out: activeTags,
+                dimension: 'common.select_date'.tr,
+                selected: selectedMonths,
+                itemLabel: (m) => m,
+                onRemove: (_) => applyMonths(const []),
+              );
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      AppMultiFilterTrigger(
+                        hint: 'chooseclient'.tr,
+                        items: clientIds,
+                        selected: selectedClients,
+                        itemLabel: clientLabel,
+                        onChanged: (v) =>
+                            applyClient(v.isEmpty ? null : v.last),
+                      ),
+                      if (clientId.isNotEmpty)
+                        AppMultiFilterTrigger(
+                          hint: 'common.select_date'.tr,
+                          items: months,
+                          selected: selectedMonths,
+                          itemLabel: (m) => m,
+                          onChanged: applyMonths,
+                        ),
+                    ],
                   ),
-                ),
-              ),
-            ],
-            const SizedBox(height: 16),
+                  if (activeTags.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Wrap(spacing: 8, runSpacing: 8, children: activeTags),
+                  ],
+                ],
+              );
+            }),
+            const SizedBox(height: 24),
             GetX<HomeController>(
               builder: (c) {
                 final contents = c.searchedContents.toList();
@@ -163,11 +191,10 @@ Widget buildMobileHistory(
                     return ContentStatusCard(
                       index: i,
                       model: contents[i],
-                      onTap:
-                          () => showContentDialogDetails(
-                            context,
-                            task: contents[i],
-                          ),
+                      onTap: () => showContentDialogDetails(
+                        context,
+                        task: contents[i],
+                      ),
                     );
                   },
                   separatorBuilder: (_, __) => const SizedBox(height: 8),
