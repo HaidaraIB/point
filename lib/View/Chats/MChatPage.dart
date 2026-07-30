@@ -2269,9 +2269,9 @@ class _MessageScreenState extends State<MessageScreen>
                     onTapPreview:
                         (_pendingAttachment!.messageType == 'image' ||
                             _pendingAttachment!.messageType == 'video')
+                        // No chatId: open this pending item alone, not the chat gallery.
                         ? () => openChatMediaFromUrl(
                             _pendingAttachment!.attachmentUrl,
-                            chatId: _chatId,
                           )
                         : null,
                   ),

@@ -280,6 +280,8 @@ class FirestoreServices extends FirestoreServicesBase
     bool? sendEmail,
     Set<String>? batchSeenTokens,
     Set<String>? batchSeenEmails,
+    bool excludeCurrentActor = true,
+    Set<String>? excludeUserIds,
   }) =>
       FirestoreFcmApi.sendFcm(
         userId: userId,
@@ -295,6 +297,8 @@ class FirestoreServices extends FirestoreServicesBase
         sendEmail: sendEmail,
         batchSeenTokens: batchSeenTokens,
         batchSeenEmails: batchSeenEmails,
+        excludeCurrentActor: excludeCurrentActor,
+        excludeUserIds: excludeUserIds,
       );
 
   static Future<void> sendFcmForClient({
@@ -359,6 +363,12 @@ class FirestoreServices extends FirestoreServicesBase
   static Future<List<String>> getEmployeeIdsByDepartment(String department) =>
       FirestoreFcmApi.getEmployeeIdsByDepartment(department);
 
+  /// Tracks the signed-in employee so FCM can skip self-notifications.
+  static void setSessionEmployeeId(String? employeeId) {
+    final id = employeeId?.trim() ?? '';
+    FirestoreFcmApi.sessionEmployeeId = id.isEmpty ? null : id;
+  }
+
   static Future<void> sendFcmToEmployees({
     required List<String> userIds,
     required String title,
@@ -368,6 +378,8 @@ class FirestoreServices extends FirestoreServicesBase
     String? referenceId,
     Map<String, String>? emailDetails,
     Map<String, String>? fcmDataExtras,
+    bool excludeCurrentActor = true,
+    Set<String>? excludeUserIds,
   }) =>
       FirestoreFcmApi.sendFcmToEmployees(
         userIds: userIds,
@@ -378,5 +390,7 @@ class FirestoreServices extends FirestoreServicesBase
         referenceId: referenceId,
         emailDetails: emailDetails,
         fcmDataExtras: fcmDataExtras,
+        excludeCurrentActor: excludeCurrentActor,
+        excludeUserIds: excludeUserIds,
       );
 }

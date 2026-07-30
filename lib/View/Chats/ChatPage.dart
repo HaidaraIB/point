@@ -2503,11 +2503,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                     _pendingAttachment!
                                                             .messageType ==
                                                         'video')
+                                                // No chatId: open this pending item alone, not the chat gallery.
                                                 ? () => openChatMediaFromUrl(
                                                     _pendingAttachment!
                                                         .attachmentUrl,
-                                                    chatId: _selectedChat!['id']
-                                                        as String?,
                                                   )
                                                 : null,
                                           ),

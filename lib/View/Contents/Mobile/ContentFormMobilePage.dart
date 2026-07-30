@@ -10,14 +10,13 @@ import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/ContentPermissions.dart';
-import 'package:point/Utils/LibraryPermissions.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Clients/ClientsTable.dart' show customDatePicker;
 import 'package:point/View/Contents/Shared/content_attachment_source_input.dart';
 import 'package:point/View/Contents/Shared/content_library_attachment_picker.dart';
 import 'package:point/View/Shared/CustomDropDown.dart';
 import 'package:point/View/Shared/InputText.dart';
-import 'package:point/View/Shared/button.dart';
+import 'package:point/View/Shared/form_attachment_thumbnails_grid.dart';
 import 'package:point/View/Shared/t.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 import 'package:point/Utils/app_theme_extension.dart';
@@ -117,6 +116,11 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
         .map((e) => e.trim())
         .where((e) => e.isNotEmpty)
         .toList();
+  }
+
+  void _removeUrlFromAttachmentField(TextEditingController c, String url) {
+    final next = _splitAttachmentInput(c.text).where((e) => e != url).toList();
+    c.text = next.join('\n');
   }
 
   void _appendAttachmentLinks(
@@ -366,22 +370,20 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                     borderRadius: 8,
                   ),
                   const SizedBox(height: 16),
-                  GestureDetector(
+                  InputText(
+                    labelText: 'publish_date'.tr,
+                    hintText: '1/10/2025'.tr,
+                    height: 48,
+                    textInputType: TextInputType.datetime,
+                    controller: publishDateController,
+                    readOnly: true,
                     onTap: _pickPublishDate,
-                    child: InputText(
-                      labelText: 'publish_date'.tr,
-                      hintText: '1/10/2025'.tr,
-                      height: 48,
-                      textInputType: TextInputType.datetime,
-                      controller: publishDateController,
-                      readOnly: true,
-                      validator: (_) => null,
-                      suffixIcon: Icon(
-                        CupertinoIcons.calendar,
-                        color: appTheme.mutedText,
-                      ),
-                      borderRadius: 8,
+                    validator: (_) => null,
+                    suffixIcon: Icon(
+                      CupertinoIcons.calendar,
+                      color: appTheme.mutedText,
                     ),
+                    borderRadius: 8,
                   ),
                   const SizedBox(height: 16),
                   DynamicDropdown<EmployeeModel>(
@@ -477,6 +479,30 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                     onTap: () =>
                         _pickAttachmentFieldWithSource(postAttachmentController),
                   ),
+                  ListenableBuilder(
+                    listenable: postAttachmentController,
+                    builder: (context, _) {
+                      final urls = _splitAttachmentInput(
+                        postAttachmentController.text,
+                      );
+                      if (urls.isEmpty) return const SizedBox.shrink();
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: FormAttachmentThumbnailsGrid(
+                          urls: urls,
+                          onRemoveUrl: (u) => _removeUrlFromAttachmentField(
+                            postAttachmentController,
+                            u,
+                          ),
+                          onOpenUrl: _openUploadedFile,
+                          spacing: 4,
+                          tileExtent: 64,
+                          closeButtonSize: 20,
+                          closeIconSize: 12,
+                        ),
+                      );
+                    },
+                  ),
                   const SizedBox(height: 16),
                   ContentAttachmentSourceInput(
                     labelText: 'content.story_attachment'.tr,
@@ -484,6 +510,30 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                     onTap: () => _pickAttachmentFieldWithSource(
                       storyAttachmentController,
                     ),
+                  ),
+                  ListenableBuilder(
+                    listenable: storyAttachmentController,
+                    builder: (context, _) {
+                      final urls = _splitAttachmentInput(
+                        storyAttachmentController.text,
+                      );
+                      if (urls.isEmpty) return const SizedBox.shrink();
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: FormAttachmentThumbnailsGrid(
+                          urls: urls,
+                          onRemoveUrl: (u) => _removeUrlFromAttachmentField(
+                            storyAttachmentController,
+                            u,
+                          ),
+                          onOpenUrl: _openUploadedFile,
+                          spacing: 4,
+                          tileExtent: 64,
+                          closeButtonSize: 20,
+                          closeIconSize: 12,
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 16),
                   ContentAttachmentSourceInput(
@@ -493,63 +543,37 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                       reelAttachmentController,
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  GestureDetector(
-                    onTap: () async {
-                      await _pickMainAttachmentWithSource();
+                  ListenableBuilder(
+                    listenable: reelAttachmentController,
+                    builder: (context, _) {
+                      final urls = _splitAttachmentInput(
+                        reelAttachmentController.text,
+                      );
+                      if (urls.isEmpty) return const SizedBox.shrink();
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: FormAttachmentThumbnailsGrid(
+                          urls: urls,
+                          onRemoveUrl: (u) => _removeUrlFromAttachmentField(
+                            reelAttachmentController,
+                            u,
+                          ),
+                          onOpenUrl: _openUploadedFile,
+                          spacing: 4,
+                          tileExtent: 64,
+                          closeButtonSize: 20,
+                          closeIconSize: 12,
+                        ),
+                      );
                     },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                      decoration: BoxDecoration(
-                        color: appTheme.unselected,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: appTheme.border),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'dragfile'.tr,
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: appTheme.secondaryText,
-                              ),
-                            ),
-                          ),
-                          Obx(
-                            () {
-                              final attachmentButtonTitle =
-                                  LibraryPermissions.canAccessLibrary(
-                                    controller.effectiveEmployee,
-                                  )
-                                  ? 'content.attachment_add_from_source'.tr
-                                  : 'content.attachment_source_local'.tr;
-                              return controller.isUploading.value
-                                ? const SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                : MainButton(
-                                    width: 100,
-                                    borderSize: 5,
-                                    height: 36,
-                                    fontSize: 12,
-                                    title: attachmentButtonTitle,
-                                    backgroundColor: appTheme.cardSurface,
-                                    fontColor: appTheme.primaryText,
-                                  );
-                            },
-                          ),
-                        ],
-                      ),
+                  ),
+                  const SizedBox(height: 16),
+                  Obx(
+                    () => ContentAttachmentSourceInput(
+                      labelText: 'dragfile'.tr,
+                      bodyHintText: 'content.attachment_field_hint'.tr,
+                      onTap: () => _pickMainAttachmentWithSource(),
+                      loading: controller.isUploading.value,
                     ),
                   ),
                   ListenableBuilder(

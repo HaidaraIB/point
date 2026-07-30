@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Localization/LanguageController.dart';
+import 'package:point/Services/FunHelper.dart';
+import 'package:point/View/EmployeeDashboard/employee_dashboard_dialogs.dart';
 import 'package:point/View/Shared/app_version_label.dart';
 import 'package:point/View/Shared/app_theme_menu_button.dart';
 import 'package:point/Services/StorageKeys.dart';
@@ -64,6 +66,14 @@ class _CustomSidebarState extends State<CustomSidebar> {
         ),
       ),
     );
+  }
+
+  Future<void> _logoutFromDrawer(BuildContext context) async {
+    final shouldLogout = await confirmEmployeeLogoutDialog(context);
+    if (!shouldLogout) return;
+    Get.find<HomeController>().clearEmployeeSession();
+    Get.offAllNamed('/auth/login');
+    FunHelper.scheduleFirebaseSignOutAndClearPrefs();
   }
 
   Widget _buildLanguageSelector() {
@@ -152,7 +162,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
           _buildSidebarHeader(),
           if (Get.width < 800) ...[
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              padding: const EdgeInsets.fromLTRB(10, 6, 10, 4),
               child: GetBuilder<HomeController>(
                 builder: (controller) {
                   final employee = controller.effectiveEmployee;
@@ -162,7 +172,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
                   return Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 10,
-                      vertical: 10,
+                      vertical: 8,
                     ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.1),
@@ -207,6 +217,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
                         ),
                         IconButton(
                           tooltip: 'resetpassword'.tr,
+                          visualDensity: VisualDensity.compact,
                           icon: const Icon(
                             Icons.lock_reset_outlined,
                             color: Colors.white,
@@ -214,6 +225,15 @@ class _CustomSidebarState extends State<CustomSidebar> {
                           onPressed: () {
                             Get.toNamed('/auth/resetPassword');
                           },
+                        ),
+                        IconButton(
+                          tooltip: 'logout'.tr,
+                          visualDensity: VisualDensity.compact,
+                          icon: const Icon(
+                            Icons.logout,
+                            color: Colors.redAccent,
+                          ),
+                          onPressed: () => _logoutFromDrawer(context),
                         ),
                       ],
                     ),
@@ -229,6 +249,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
                 return Obx(
                   () => controller.effectiveEmployee?.role == 'admin'
                           ? ListView(
+                            padding: const EdgeInsets.only(top: 8),
                             children: [
                               _buildTile(
                                 selectedTab: 0,
@@ -595,6 +616,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
                           )
                           : controller.effectiveEmployee?.role == 'supervisor'
                           ? ListView(
+                            padding: const EdgeInsets.only(top: 8),
                             children: [
                               _buildTile(
                                 selectedTab: 0,
@@ -854,6 +876,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
                             ],
                           )
                           : ListView(
+                            padding: const EdgeInsets.only(top: 8),
                             children: [
                               _buildTile(
                                 selectedTab: 0,

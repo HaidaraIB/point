@@ -3569,6 +3569,7 @@ class HomeController extends GetxController {
     if (employee.id == null || employee.id!.isEmpty) return;
     currentEmployee.value = employee;
     lastKnownEmployee.value = employee;
+    FirestoreServices.setSessionEmployeeId(employee.id);
     syncActiveDepartmentFilterFromEmployee(employee);
     await syncAuthRoleAndRefreshDataStreams(employee);
     final role = employee.role.trim().toLowerCase();
@@ -3670,6 +3671,7 @@ class HomeController extends GetxController {
 
               currentEmployee.value = employee;
               lastKnownEmployee.value = employee;
+              FirestoreServices.setSessionEmployeeId(employee.id);
               syncActiveDepartmentFilterFromEmployee(employee);
               unawaited(FirestoreServices.syncAuthRoleForEmployee(employee));
               _startTotalUnreadStream(empid);
@@ -4283,6 +4285,7 @@ class HomeController extends GetxController {
   void clearEmployeeSession() {
     currentEmployee.value = null;
     lastKnownEmployee.value = null;
+    FirestoreServices.setSessionEmployeeId(null);
     _employeeDocSub?.cancel();
     _employeeDocSub = null;
     _stopPresenceHeartbeat();

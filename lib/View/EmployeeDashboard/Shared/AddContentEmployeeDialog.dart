@@ -169,50 +169,6 @@ void addContentEmployeeDialog(
                                         Responsive.isDesktop(context)
                                             ? (Get.width / 2) - 100
                                             : Get.width - 20,
-                                    child: InputText(
-                                      labelText: 'content.form.insert_link'.tr,
-                                      hintText: 'googledrivelink .com'.tr,
-                                      height: 40,
-
-                                      controller: filecontroller,
-                                      suffixIcon: Container(
-                                        width: 80,
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(
-                                            5,
-                                          ),
-                                          color: context.appTheme.unselected,
-                                        ),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Text(
-                                              'Copy',
-                                              style: TextStyle(
-                                                fontSize: 13,
-                                                color: context.appTheme.mutedText,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            SizedBox(width: 5),
-                                            Icon(
-                                              Icons.copy_rounded,
-                                              weight: 1,
-                                              size: 16,
-                                              color: context.appTheme.mutedText,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      borderRadius: 5,
-                                    ),
-                                  ),
-                                  SizedBox(
-                                    width:
-                                        Responsive.isDesktop(context)
-                                            ? (Get.width / 2) - 100
-                                            : Get.width - 20,
                                     child: Obx(
                                       () =>
                                           controller.uploadedFilesPaths.isEmpty
@@ -301,6 +257,50 @@ void addContentEmployeeDialog(
                                                   );
                                                 },
                                               ),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width:
+                                        Responsive.isDesktop(context)
+                                            ? (Get.width / 2) - 100
+                                            : Get.width - 20,
+                                    child: InputText(
+                                      labelText: 'content.form.insert_link'.tr,
+                                      hintText: 'googledrivelink .com'.tr,
+                                      height: 40,
+
+                                      controller: filecontroller,
+                                      suffixIcon: Container(
+                                        width: 80,
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(
+                                            5,
+                                          ),
+                                          color: context.appTheme.unselected,
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              'Copy',
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                color: context.appTheme.mutedText,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            SizedBox(width: 5),
+                                            Icon(
+                                              Icons.copy_rounded,
+                                              weight: 1,
+                                              size: 16,
+                                              color: context.appTheme.mutedText,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      borderRadius: 5,
                                     ),
                                   ),
                                 ],

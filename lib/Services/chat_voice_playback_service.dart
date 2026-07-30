@@ -1,11 +1,12 @@
 import 'dart:async';
 
-import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:get/get.dart';
-import 'package:point/Services/chat_voice_cache.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:point/Utils/app_log.dart';
 
-/// Single player for chat voice note bubbles. Survives when the message row
-/// is disposed after scrolling off-screen ([ListView] / [ScrollablePositionedList]).
+/// Shared voice player for chat bubbles and task/timeline notes.
+/// Uses [just_audio] (ExoPlayer on Android) so AAC/m4a notes play fully.
 class ChatVoicePlaybackService extends GetxController {
   static const List<double> playbackSpeeds = [0.5, 1.0, 1.5, 2.0];
 
@@ -23,29 +24,23 @@ class ChatVoicePlaybackService extends GetxController {
   int? _hintSec;
 
   StreamSubscription<Duration>? _posSub;
-  StreamSubscription<Duration>? _durSub;
+  StreamSubscription<Duration?>? _durSub;
   StreamSubscription<PlayerState>? _stateSub;
-  StreamSubscription<void>? _completeSub;
 
   @override
   void onInit() {
     super.onInit();
-    unawaited(_player.setReleaseMode(ReleaseMode.stop));
 
-    _posSub = _player.onPositionChanged.listen((d) {
+    _posSub = _player.positionStream.listen((d) {
       if (activeUrl.value == null) return;
       position.value = d;
     });
-    _durSub = _player.onDurationChanged.listen((d) {
-      if (d <= Duration.zero) return;
-      // Recorded voice notes pass a stopwatch hint; player metadata is often
-      // wrong for fresh blobs (web WAV/webm, some AAC containers) and would
-      // replace a correct 1m+ duration with a few seconds after first play.
+    _durSub = _player.durationStream.listen((d) {
+      if (d == null || d <= Duration.zero) return;
       final hint = _hintSec;
       if (hint != null && hint > 0) {
         final hintMs = hint * 1000;
         final reportedMs = d.inMilliseconds;
-        // Only adopt player duration when it roughly agrees with the hint.
         if (reportedMs < (hintMs * 0.75).round() ||
             reportedMs > (hintMs * 1.35).round()) {
           return;
@@ -53,12 +48,19 @@ class ChatVoicePlaybackService extends GetxController {
       }
       duration.value = d;
     });
-    _stateSub = _player.onPlayerStateChanged.listen((s) {
-      playing.value = s == PlayerState.playing;
-    });
-    _completeSub = _player.onPlayerComplete.listen((_) {
-      playing.value = false;
-      position.value = Duration.zero;
+    _stateSub = _player.playerStateStream.listen((s) {
+      if (activeUrl.value == null) return;
+      playing.value = s.playing;
+      if (s.processingState == ProcessingState.completed) {
+        playing.value = false;
+        position.value = Duration.zero;
+        unawaited(() async {
+          try {
+            await _player.seek(Duration.zero);
+            await _player.pause();
+          } catch (_) {}
+        }());
+      }
     });
   }
 
@@ -67,7 +69,6 @@ class ChatVoicePlaybackService extends GetxController {
     unawaited(_posSub?.cancel());
     unawaited(_durSub?.cancel());
     unawaited(_stateSub?.cancel());
-    unawaited(_completeSub?.cancel());
     unawaited(_player.dispose());
     super.onClose();
   }
@@ -93,7 +94,9 @@ class ChatVoicePlaybackService extends GetxController {
   }
 
   Future<void> _switchToUrl(String url, int? durationHintSec) async {
-    await _player.stop();
+    try {
+      await _player.stop();
+    } catch (_) {}
     activeUrl.value = url;
     _hintSec = durationHintSec;
     _loadedUrl = null;
@@ -121,26 +124,51 @@ class ChatVoicePlaybackService extends GetxController {
 
   Future<void> _applyPlaybackSpeed() async {
     try {
-      await _player.setPlaybackRate(playbackSpeed.value);
+      await _player.setSpeed(playbackSpeed.value);
     } catch (e) {
       playbackError.value = e;
     }
+  }
+
+  Future<void> _loadSource(String url) async {
+    final trimmed = url.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      await _player.setAudioSource(
+        AudioSource.uri(Uri.parse(trimmed)),
+        preload: true,
+      );
+      return;
+    }
+    if (!kIsWeb) {
+      await _player.setFilePath(trimmed);
+      return;
+    }
+    await _player.setUrl(trimmed);
   }
 
   Future<void> _ensurePlaying(String url, int? hintSec) async {
     loadCount.value++;
     try {
       if (_loadedUrl != url) {
-        final source = await ChatVoiceCache.sourceForUrl(url);
-        await _player.play(source);
+        await _loadSource(url);
         _loadedUrl = url;
         await _applyPlaybackSpeed();
-      } else {
-        await _player.resume();
-        await _applyPlaybackSpeed();
       }
-    } catch (e) {
+      // just_audio play() completes when playback ends — do not await it,
+      // or VoiceMessageRow keeps showing a spinner for the whole note.
+      unawaited(
+        _player.play().catchError((Object e, StackTrace st) {
+          appLog('Voice playback failed: $e', error: e, stackTrace: st);
+          playbackError.value = e;
+          playing.value = false;
+          _loadedUrl = null;
+        }),
+      );
+    } catch (e, st) {
+      appLog('Voice load failed: $e', error: e, stackTrace: st);
       playbackError.value = e;
+      playing.value = false;
+      _loadedUrl = null;
     } finally {
       if (loadCount.value > 0) {
         loadCount.value = loadCount.value - 1;
@@ -157,8 +185,7 @@ class ChatVoicePlaybackService extends GetxController {
     final target = Duration(milliseconds: (fraction * ms).round());
     try {
       if (_loadedUrl != url) {
-        final source = await ChatVoiceCache.sourceForUrl(url);
-        await _player.setSource(source);
+        await _loadSource(url);
         _loadedUrl = url;
       }
       await _player.seek(target);

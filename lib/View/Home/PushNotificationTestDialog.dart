@@ -170,6 +170,7 @@ class _PushNotificationTestDialogBodyState
           useSupabaseTemplateWrapper: _useSupabaseTemplateWrapper,
           batchSeenTokens: batchSeenTokens,
           batchSeenEmails: batchSeenEmails,
+          excludeCurrentActor: false,
         );
       }
       for (final id in _clientIds) {

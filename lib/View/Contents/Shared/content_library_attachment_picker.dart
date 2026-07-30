@@ -338,7 +338,7 @@ class _LibraryAttachmentPickerDialogState
                             );
                       final titleText = row.displayTitle();
                       return Material(
-                        color: Colors.grey.shade50,
+                        color: context.appTheme.elevatedSurface,
                         borderRadius: BorderRadius.circular(10),
                         child: InkWell(
                           borderRadius: BorderRadius.circular(10),

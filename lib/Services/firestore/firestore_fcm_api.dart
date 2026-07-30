@@ -503,6 +503,46 @@ class FirestoreFcmApi {
     return t != 'chat_message' && t != 'chat_unread_digest';
   }
 
+  static String? _signedInAuthUid() {
+    final uid = FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
+    return uid.isEmpty ? null : uid;
+  }
+
+  /// Signed-in employee document id (maintained by [HomeController]).
+  /// Used as a fallback when recipient `authUid` is missing.
+  static String? sessionEmployeeId;
+
+  /// Skips notifying the signed-in employee about their own action.
+  /// Prefer [excludeUserIds]; also matches session id / recipient `authUid`.
+  static bool _shouldExcludeEmployeeRecipient({
+    required String recipientId,
+    required Map<String, dynamic>? data,
+    required bool excludeCurrentActor,
+    Set<String>? excludeUserIds,
+  }) {
+    final trimmed = recipientId.trim();
+    if (trimmed.isEmpty) return true;
+    final excluded = _normalizedExcludeUserIds(excludeUserIds);
+    if (excluded.contains(trimmed)) return true;
+    if (!excludeCurrentActor) return false;
+    final sessionId = sessionEmployeeId?.trim() ?? '';
+    if (sessionId.isNotEmpty && sessionId == trimmed) return true;
+    final authUid = _signedInAuthUid();
+    if (authUid == null) return false;
+    final recipientAuth = data?['authUid']?.toString().trim() ?? '';
+    return recipientAuth.isNotEmpty && recipientAuth == authUid;
+  }
+
+  static Set<String> _normalizedExcludeUserIds(Set<String>? excludeUserIds) {
+    if (excludeUserIds == null || excludeUserIds.isEmpty) {
+      return const <String>{};
+    }
+    return {
+      for (final id in excludeUserIds)
+        if (id.trim().isNotEmpty) id.trim(),
+    };
+  }
+
   static Future<void> sendFcm({
     required String userId,
     required String title,
@@ -520,16 +560,20 @@ class FirestoreFcmApi {
     Set<String>? batchSeenTokens,
     /// يمنع إرسال أكثر من بريد لنفس العنوان ضمن دفعة واحدة (مثل [sendFcmToEmployees]).
     Set<String>? batchSeenEmails,
+    /// When true (default), do not notify the signed-in employee about their own action.
+    bool excludeCurrentActor = true,
+    Set<String>? excludeUserIds,
   }) async {
     try {
       final effectiveSendEmail =
           sendEmail ?? NotificationEmailPolicy.shouldSendEmail(notificationType);
 
       // 1. هات بيانات المستخدم من Firestore
+      final trimmedUserId = userId.trim();
       final doc =
           await FirebaseFirestore.instance
               .collection("employees")
-              .doc(userId.trim())
+              .doc(trimmedUserId)
               .get();
 
       if (!doc.exists) {
@@ -538,6 +582,19 @@ class FirestoreFcmApi {
       }
 
       final data = doc.data();
+      if (_shouldExcludeEmployeeRecipient(
+        recipientId: trimmedUserId,
+        data: data,
+        excludeCurrentActor: excludeCurrentActor,
+        excludeUserIds: excludeUserIds,
+      )) {
+        appLog(
+          '↩️ Skipping self-notification for employee $trimmedUserId '
+          '(type=${notificationType ?? "null"})',
+        );
+        return;
+      }
+
       final email = data?['email']?.toString().trim();
       final tokens = _extractFcmTokens(data);
       final rawRecipientName = data?['name']?.toString().trim();
@@ -550,7 +607,6 @@ class FirestoreFcmApi {
               ? rawRecipientName
               : 'الموظف';
 
-      final trimmedUserId = userId.trim();
       if (_shouldPersistFcmToNotificationInbox(notificationType)) {
         await FirestoreNotificationApi.addNotification(
           NotificationModel(
@@ -1050,13 +1106,18 @@ class FirestoreFcmApi {
     String? referenceId,
     Map<String, String>? emailDetails,
     Map<String, String>? fcmDataExtras,
+    /// When true (default), do not notify the signed-in employee about their own action.
+    bool excludeCurrentActor = true,
+    Set<String>? excludeUserIds,
   }) async {
     try {
+    final excludedIds = _normalizedExcludeUserIds(excludeUserIds);
     final seen = <String>{};
     final orderedIds = <String>[];
     for (final id in userIds) {
       final trimmed = id.trim();
       if (trimmed.isEmpty || seen.contains(trimmed)) continue;
+      if (excludedIds.contains(trimmed)) continue;
       seen.add(trimmed);
       orderedIds.add(trimmed);
     }
@@ -1087,6 +1148,19 @@ class FirestoreFcmApi {
       }
 
       final data = doc.data();
+      if (_shouldExcludeEmployeeRecipient(
+        recipientId: trimmedUserId,
+        data: data,
+        excludeCurrentActor: excludeCurrentActor,
+        excludeUserIds: null, // already filtered above
+      )) {
+        appLog(
+          '↩️ Skipping self-notification for employee $trimmedUserId '
+          '(type=${notificationType ?? "null"})',
+        );
+        continue;
+      }
+
       final email = data?['email']?.toString().trim();
       final tokens = _extractFcmTokens(data);
       final rawRecipientName = data?['name']?.toString().trim();

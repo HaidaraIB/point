@@ -511,6 +511,7 @@ void showAddNotifications(BuildContext context) {
                                                     body: body.text.trim(),
                                                     sendPush: sendPush,
                                                     sendEmail: sendEmail,
+                                                    excludeCurrentActor: false,
                                                   );
 
                                                   if (context.mounted) {
@@ -775,6 +776,7 @@ void showAddNotifications(BuildContext context) {
                                                     body: body.text.trim(),
                                                     sendPush: sendPush,
                                                     sendEmail: sendEmail,
+                                                    excludeCurrentActor: false,
                                                   );
 
                                                   if (context.mounted) {
