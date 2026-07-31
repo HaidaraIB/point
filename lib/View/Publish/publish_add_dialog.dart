@@ -16,12 +16,14 @@ import 'package:point/View/Publish/publish_add_mobile_page.dart';
 import 'package:point/View/Shared/app_choice_chip.dart';
 import 'package:point/View/Shared/app_date_time_picker.dart';
 import 'package:point/View/Shared/CustomDropDown.dart';
+import 'package:point/View/Shared/form_attachment_thumbnails_grid.dart';
 import 'package:point/View/Publish/meta_loading_overlay.dart';
 import 'package:point/View/Publish/publish_meta_settings_dialog.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/t.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/Utils/media_url_opener.dart';
 
 /// Only Facebook + Instagram keys from [StorageKeys.platformList].
 List<String> get _publishPlatformChoiceKeys => [
@@ -489,106 +491,31 @@ Future<void> showAddPublishDialog({
                         ),
                       ),
                       Obx(() {
-                        final files = controller.uploadedFilesPaths.toList();
+                        final files = controller.uploadedFilesPaths
+                            .map((e) => e.toString())
+                            .toList();
                         if (files.isEmpty) return const SizedBox.shrink();
                         return Padding(
                           padding: const EdgeInsets.only(top: 10),
-                          child: GridView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: files.length,
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  crossAxisSpacing: 10,
-                                  mainAxisSpacing: 10,
-                                  mainAxisExtent: 96,
-                                ),
-                            itemBuilder: (_, i) {
-                              final fileUrl = files[i].toString();
-                              final kind = publishFileKindFromUrl(fileUrl);
-                              return Center(
-                                child: SizedBox(
-                                  width: 88,
-                                  height: 88,
-                                  child: Stack(
-                                    children: [
-                                      Positioned.fill(
-                                        child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
-                                          child: kind == 'image'
-                                              ? Image.network(
-                                                  fileUrl,
-                                                  fit: BoxFit.cover,
-                                                  errorBuilder: (_, __, ___) =>
-                                                      Container(
-                                                        color: Colors
-                                                            .blueGrey
-                                                            .shade100,
-                                                        child: Icon(
-                                                          Icons
-                                                              .broken_image_outlined,
-                                                          color: Colors
-                                                              .blueGrey
-                                                              .shade700,
-                                                        ),
-                                                      ),
-                                                )
-                                              : Container(
-                                                  color:
-                                                      Colors.blueGrey.shade100,
-                                                  child: Icon(
-                                                    kind == 'video'
-                                                        ? Icons
-                                                              .play_circle_fill_rounded
-                                                        : Icons.link,
-                                                    color: Colors
-                                                        .blueGrey
-                                                        .shade700,
-                                                    size: kind == 'video'
-                                                        ? 40
-                                                        : 28,
-                                                  ),
-                                                ),
-                                        ),
-                                      ),
-                                      Positioned(
-                                        top: 4,
-                                        right: 4,
-                                        child: InkWell(
-                                          onTap: () {
-                                            controller.uploadedFilesPaths
-                                                .remove(fileUrl);
-                                            _syncMediaFromUploadedList(
-                                              controller,
-                                              mediaUrl,
-                                              mediaType,
-                                            );
-                                            controller.update();
-                                          },
-                                          child: Container(
-                                            width: 20,
-                                            height: 20,
-                                            decoration: BoxDecoration(
-                                              color: resolveAppTheme().secondaryText,
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
-                                            ),
-                                            child: const Icon(
-                                              Icons.close,
-                                              color: Colors.white,
-                                              size: 13,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
+                          child: FormAttachmentThumbnailsGrid(
+                            urls: files,
+                            onRemoveUrl: (u) {
+                              controller.uploadedFilesPaths.removeWhere(
+                                (e) => e.toString() == u,
                               );
+                              _syncMediaFromUploadedList(
+                                controller,
+                                mediaUrl,
+                                mediaType,
+                              );
+                              controller.update();
                             },
+                            onOpenUrl: (u) async =>
+                                await openUrlPreferInAppMedia(u),
+                            spacing: 10,
+                            tileExtent: 96,
+                            closeButtonSize: 20,
+                            closeIconSize: 13,
                           ),
                         );
                       }),
