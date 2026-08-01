@@ -23,8 +23,9 @@ import 'package:point/View/Shared/table_actions_menu_row.dart';
 import 'package:point/Utils/PasswordValidator.dart';
 import 'package:point/Services/meta/meta_graph_client.dart';
 import 'package:point/Services/meta/meta_errors.dart';
-import 'package:uuid/uuid.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/View/Shared/safe_network_image.dart';
+import 'package:uuid/uuid.dart';
 
 bool _canEditClientCredentials(ClientModel? model) {
   if (model == null) return true;
@@ -613,7 +614,7 @@ Future<void> showAddEmployeeDialog(BuildContext context, {ClientModel? model}) a
                                                           BorderRadius.circular(
                                                             50,
                                                           ),
-                                                      child: Image.network(
+                                                      child: SafeNetworkImage(
                                                         controller
                                                             .uploadedFilesPaths
                                                             .last,

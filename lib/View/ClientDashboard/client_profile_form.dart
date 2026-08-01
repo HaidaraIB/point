@@ -9,6 +9,7 @@ import 'package:point/View/Shared/ReadOnlyAccountEmailField.dart';
 import 'package:point/View/Shared/app_version_label.dart';
 import 'package:point/Models/ClientModel.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/View/Shared/safe_network_image.dart';
 
 class ClientProfileForm extends StatefulWidget {
   const ClientProfileForm({
@@ -146,7 +147,7 @@ class _ClientProfileFormState extends State<ClientProfileForm> {
                                 uploadController.uploadedFilesPaths.isNotEmpty
                                     ? ClipRRect(
                                       borderRadius: BorderRadius.circular(50),
-                                      child: Image.network(
+                                      child: SafeNetworkImage(
                                         uploadController.uploadedFilesPaths.last,
                                         width: 100,
                                         height: 100,
@@ -165,7 +166,7 @@ class _ClientProfileFormState extends State<ClientProfileForm> {
                                             borderRadius: BorderRadius.circular(
                                               50,
                                             ),
-                                            child: Image.network(
+                                            child: SafeNetworkImage(
                                               client.image!.trim(),
                                               width: 100,
                                               height: 100,

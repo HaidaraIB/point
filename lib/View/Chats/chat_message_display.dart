@@ -16,33 +16,10 @@ import 'package:point/Utils/app_theme_extension.dart';
 
 export 'chat_media_gallery.dart' show openChatMediaFromUrl;
 
-String _urlPathLower(String url) {
-  try {
-    return Uri.parse(url).path.toLowerCase();
-  } catch (_) {
-    return url.toLowerCase();
-  }
-}
-
 /// صورة وفق امتداد المسار (يدعم روابط تحتوي `?query`).
-bool isImageUrl(String url) {
-  final p = _urlPathLower(url);
-  return p.endsWith('.png') ||
-      p.endsWith('.jpg') ||
-      p.endsWith('.jpeg') ||
-      p.endsWith('.gif') ||
-      p.endsWith('.webp');
-}
+bool isImageUrl(String url) => isImageMediaUrl(url);
 
-bool isVideoUrl(String url) {
-  final p = _urlPathLower(url);
-  return p.endsWith('.mp4') ||
-      p.endsWith('.mov') ||
-      p.endsWith('.webm') ||
-      p.endsWith('.m4v') ||
-      p.endsWith('.avi') ||
-      p.endsWith('.mkv');
-}
+bool isVideoUrl(String url) => isVideoMediaUrl(url);
 
 /// اسم ملف مرفق (صورة/فيديو من المعرض).
 bool chatAttachmentIsVideo(String fileName) {

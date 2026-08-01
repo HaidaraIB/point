@@ -7,8 +7,11 @@ import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/ContentPermissions.dart';
 import 'package:point/View/Shared/ContentStatusPromotionDropdownChip.dart';
+import 'package:point/View/Shared/attachment_thumbnail_tile.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+
+export 'package:point/Utils/media_url_opener.dart' show getFileType;
 
 class ContentStatusCard extends StatelessWidget {
   final ContentModel? model;
@@ -31,7 +34,7 @@ class ContentStatusCard extends StatelessWidget {
     final showPromo = ContentPermissions.showContentPromotionUi(emp);
     final firstFile =
         (model?.files != null && model!.files!.isNotEmpty)
-            ? model!.files!.first
+            ? model!.files!.first?.toString()
             : null;
     return InkWell(
       onTap: onTap,
@@ -46,7 +49,7 @@ class ContentStatusCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildIcon(firstFile),
+            _buildIcon(firstFile?.trim()),
             const SizedBox(width: 10),
             Expanded(
               child: Row(
@@ -173,28 +176,10 @@ Widget _buildcontenttypeIcon(BuildContext context, String type) {
   }
 }
 
-String getFileType(String url) {
-  final lowerUrl = url.toLowerCase();
-  if (lowerUrl.endsWith('.jpg') ||
-      lowerUrl.endsWith('.jpeg') ||
-      lowerUrl.endsWith('.png') ||
-      lowerUrl.endsWith('.gif') ||
-      lowerUrl.endsWith('.webp')) {
-    return 'image';
-  } else if (lowerUrl.endsWith('.mp4') ||
-      lowerUrl.endsWith('.mov') ||
-      lowerUrl.endsWith('.avi') ||
-      lowerUrl.endsWith('.mkv')) {
-    return 'video';
-  } else if (lowerUrl.endsWith('.pdf')) {
-    return 'pdf';
-  } else {
-    return 'unknown';
-  }
-}
+// getFileType lives in media_url_opener.dart (path-based; query-safe).
 
 Widget _buildIcon(String? url) {
-  if (url == null || url.trim().isEmpty) {
+  if (url == null || url.isEmpty) {
     return Image.asset(
       'assets/images/content_type_placeholder.png',
       width: 65,
@@ -202,32 +187,13 @@ Widget _buildIcon(String? url) {
       fit: BoxFit.cover,
     );
   }
-  var type = getFileType(url);
-  switch (type) {
-    case 'image':
-      return Image.network(url, width: 65, height: 65, fit: BoxFit.cover);
-    case 'content_image':
-      return Image.asset(
-        'assets/images/content_type_image.png',
-        width: 65,
-        height: 65,
-        fit: BoxFit.cover,
-      );
-    case 'content_text':
-      return Image.asset(
-        'assets/images/content_type_placeholder.png',
-        width: 65,
-        height: 65,
-        fit: BoxFit.cover,
-      );
-    default:
-      return Image.asset(
-        'assets/images/content_type_placeholder.png',
-        width: 65,
-        height: 65,
-        fit: BoxFit.cover,
-      );
-  }
+  // Shared tile: path-based type detection, Image.network errorBuilder, and
+  // first-frame video thumbs (reels) — same path desktop contents table uses.
+  return SizedBox(
+    width: 65,
+    height: 65,
+    child: AttachmentThumbnailTile(url: url, borderRadius: 8),
+  );
 }
 
 Widget _buildPromotionTag(BuildContext context, String? promotion) {

@@ -6,6 +6,7 @@ import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/View/Shared/safe_network_image.dart';
 import 'package:point/View/Shared/voice_message_row.dart';
 
 class TaskTimelineWidget extends StatefulWidget {
@@ -185,14 +186,7 @@ class _TimelineRow extends StatelessWidget {
     return v;
   }
 
-  static bool _isLikelyImage(String raw) {
-    final v = raw.toLowerCase();
-    return v.contains('.jpg') ||
-        v.contains('.jpeg') ||
-        v.contains('.png') ||
-        v.contains('.webp') ||
-        v.contains('.gif');
-  }
+  static bool _isLikelyImage(String raw) => isImageMediaUrl(raw);
 
   Future<void> _openAttachment(BuildContext context, String rawUrl) async {
     await openUrlPreferInAppMedia(rawUrl);
@@ -381,7 +375,7 @@ class _AttachmentTimelineValue extends StatelessWidget {
                   height: 48,
                   child:
                       isImage
-                          ? Image.network(
+                          ? SafeNetworkImage(
                             rawValue,
                             fit: BoxFit.cover,
                             errorBuilder:

@@ -576,7 +576,7 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                                                     },
                                                   ),
                                                 ],
-                                                content: Image.network(
+                                                content: SafeNetworkImage(
                                                   file,
                                                   fit: BoxFit.contain,
                                                 ),

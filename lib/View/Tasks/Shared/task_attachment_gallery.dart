@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Utils/attachment_download.dart';
+import 'package:point/View/Shared/safe_network_image.dart';
 
 /// Full-screen gallery for image URLs: swipe between pages, pinch-zoom,
 /// keyboard ← / → (web & desktop), on-screen chevrons.
@@ -213,7 +214,7 @@ class _ZoomableNetworkImageState extends State<_ZoomableNetworkImage> {
       maxScale: 5,
       boundaryMargin: const EdgeInsets.all(48),
       child: Center(
-        child: Image.network(
+        child: SafeNetworkImage(
           widget.url,
           fit: BoxFit.contain,
           loadingBuilder: (context, child, progress) {

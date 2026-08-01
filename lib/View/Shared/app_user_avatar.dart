@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:point/Utils/AppConstants.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/View/Shared/safe_network_image.dart';
 
 final RegExp _avatarLetter = RegExp(r'[\p{L}]', unicode: true);
 
@@ -131,7 +132,7 @@ class AppUserAvatar extends StatelessWidget {
       radius: radius,
       backgroundColor: theme.unselected,
       child: ClipOval(
-        child: Image.network(
+        child: SafeNetworkImage(
           trimmedUrl,
           fit: BoxFit.cover,
           width: radius * 2,

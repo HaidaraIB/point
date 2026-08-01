@@ -8,7 +8,13 @@ List<String> normalizeMetaPlatformsForFirestore(List<dynamic> selectedKeys) {
   return out.toList();
 }
 
-String publishPathLower(String url) => url.split('?').first.toLowerCase();
+String publishPathLower(String url) {
+  try {
+    return Uri.parse(url).path.toLowerCase();
+  } catch (_) {
+    return url.split('?').first.toLowerCase();
+  }
+}
 
 String publishFileKindFromUrl(String url) {
   final p = publishPathLower(url);

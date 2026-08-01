@@ -38,6 +38,18 @@ bool isVideoMediaUrl(String rawUrl) {
       p.endsWith('.mkv');
 }
 
+/// Attachment kind from URL **path** extension (query strings ignored).
+///
+/// Use this instead of `url.toLowerCase().endsWith('.jpg')` — prod URLs often
+/// look like `file.jpg?alt=media&token=…` / `?download=…` and those fail naive checks.
+String getFileType(String url) {
+  if (isImageMediaUrl(url)) return 'image';
+  if (isVideoMediaUrl(url)) return 'video';
+  final path = _mediaPathLower(url);
+  if (path.endsWith('.pdf')) return 'pdf';
+  return 'unknown';
+}
+
 String normalizeUrlForLaunch(String rawUrl) {
   final trimmed = rawUrl.trim();
   final lower = trimmed.toLowerCase();

@@ -23,8 +23,9 @@ import 'package:point/View/Employees/Mobile/EmployeesMobileScreen.dart';
 import 'package:point/View/Shared/employee_attendance_config_fields.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/table_actions_menu_row.dart';
-import 'package:uuid/uuid.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/View/Shared/safe_network_image.dart';
+import 'package:uuid/uuid.dart';
 
 bool _canEditEmployeeCredentials(EmployeeModel? model) {
   if (model == null) return true;
@@ -640,7 +641,7 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                             ? ClipRRect(
                                                 borderRadius:
                                                     BorderRadius.circular(50),
-                                                child: Image.network(
+                                                child: SafeNetworkImage(
                                                   controller
                                                       .uploadedFilesPaths
                                                       .last,

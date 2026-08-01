@@ -13,6 +13,7 @@ import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/ReadOnlyAccountEmailField.dart';
 import 'package:point/Utils/PasswordValidator.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/View/Shared/safe_network_image.dart';
 import 'package:uuid/uuid.dart';
 
 /// Mobile-only full-screen add/edit client form.
@@ -272,7 +273,7 @@ class _ClientFormMobilePageState extends State<ClientFormMobilePage> {
                           child: controller.uploadedFilesPaths.isNotEmpty
                               ? ClipRRect(
                                   borderRadius: BorderRadius.circular(50),
-                                  child: Image.network(
+                                  child: SafeNetworkImage(
                                     controller.uploadedFilesPaths.last,
                                     width: 100,
                                     height: 100,

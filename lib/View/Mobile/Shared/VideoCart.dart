@@ -6,7 +6,9 @@ import 'package:point/Models/ContentModel.dart';
 import 'package:point/Utils/chat_video_controller.dart';
 import 'package:point/Utils/media_preview_cached_image.dart';
 import 'package:point/Utils/media_preview_download.dart';
+import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Mobile/Shared/PdfViewr.dart';
+import 'package:point/View/Shared/safe_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 import 'package:dots_indicator/dots_indicator.dart';
@@ -119,26 +121,6 @@ class VideoCard extends StatelessWidget {
   }
 }
 
-String getFileType(String url) {
-  final lowerUrl = url.toLowerCase();
-  if (lowerUrl.endsWith('.jpg') ||
-      lowerUrl.endsWith('.jpeg') ||
-      lowerUrl.endsWith('.png') ||
-      lowerUrl.endsWith('.gif') ||
-      lowerUrl.endsWith('.webp')) {
-    return 'image';
-  } else if (lowerUrl.endsWith('.mp4') ||
-      lowerUrl.endsWith('.mov') ||
-      lowerUrl.endsWith('.avi') ||
-      lowerUrl.endsWith('.mkv')) {
-    return 'video';
-  } else if (lowerUrl.endsWith('.pdf')) {
-    return 'pdf';
-  } else {
-    return 'unknown';
-  }
-}
-
 Widget buildFilePreview(String url) {
   final type = getFileType(url);
 
@@ -148,7 +130,7 @@ Widget buildFilePreview(String url) {
         onTap: () {
           Get.to(() => ImagePreviewPage(url: url));
         },
-        child: Image.network(url, fit: BoxFit.cover),
+        child: SafeNetworkImage(url, fit: BoxFit.cover),
       );
 
     case 'video':

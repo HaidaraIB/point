@@ -8,6 +8,7 @@ import 'package:point/View/Shared/app_version_label.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/ReadOnlyAccountEmailField.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/View/Shared/safe_network_image.dart';
 
 /// نموذج الملف الشخصي (اسم + صورة + حقوق قراءة فقط) — يُستخدم في شاشة الموبايل وفي حوار الويب.
 class EmployeeProfileForm extends StatefulWidget {
@@ -136,7 +137,7 @@ class _EmployeeProfileFormState extends State<EmployeeProfileForm> {
                               controller.uploadedFilesPaths.isNotEmpty
                                   ? ClipRRect(
                                     borderRadius: BorderRadius.circular(50),
-                                    child: Image.network(
+                                    child: SafeNetworkImage(
                                       controller.uploadedFilesPaths.last,
                                       width: 100,
                                       height: 100,
@@ -152,7 +153,7 @@ class _EmployeeProfileFormState extends State<EmployeeProfileForm> {
                                           emp!.image!.trim().isNotEmpty)
                                   ? ClipRRect(
                                     borderRadius: BorderRadius.circular(50),
-                                    child: Image.network(
+                                    child: SafeNetworkImage(
                                       emp.image!,
                                       width: 100,
                                       height: 100,

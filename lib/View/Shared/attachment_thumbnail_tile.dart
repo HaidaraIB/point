@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:point/Utils/media_url_opener.dart';
+import 'package:point/View/Shared/safe_network_image.dart';
 import 'package:video_player/video_player.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 
@@ -108,7 +109,7 @@ class AttachmentThumbnailTile extends StatelessWidget {
             borderRadius: radius,
             child:
                 isImage
-                    ? Image.network(
+                    ? SafeNetworkImage(
                       url,
                       fit: BoxFit.cover,
                       errorBuilder:
