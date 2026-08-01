@@ -147,7 +147,7 @@ class ClientUnderReviewListDialog extends StatelessWidget {
                             onItemTap: (task) {
                               Navigator.of(context).pop();
                               controller.uploadedFilesPaths.assignAll(
-                                task.files ?? [],
+                                task.attachmentUrls,
                               );
                               showContentDialogDetails(
                                 anchorContext,

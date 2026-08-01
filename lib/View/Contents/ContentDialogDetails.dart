@@ -331,7 +331,7 @@ class _ContentDialogDetailsState extends State<ContentDialogDetails> {
         stacked
             ? (dialogWidth - 92).clamp(240.0, 780.0)
             : ((dialogWidth - 92) / 2).clamp(260.0, 740.0);
-    final attachments = widget.task.files ?? <dynamic>[];
+    final attachments = widget.task.attachmentUrls;
 
     final notesCard = Column(
       crossAxisAlignment: CrossAxisAlignment.start,

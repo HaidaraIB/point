@@ -555,7 +555,7 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                                   spacing: 10,
                                   runSpacing: 10,
                                   children: [
-                                    for (var file in emp.files ?? [])
+                                    for (final file in emp.attachmentUrls)
                                       InkWell(
                                         onTap: () async {
                                           if (getFileType(file) == 'image') {
@@ -826,7 +826,7 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                                   onSelected: (value) {
                                     if (value == 0) {
                                       controller.uploadedFilesPaths.assignAll(
-                                        emp.files ?? [],
+                                        emp.attachmentUrls,
                                       );
                                       showAddContentDialog(
                                         context,

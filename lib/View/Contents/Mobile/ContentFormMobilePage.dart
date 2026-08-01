@@ -235,6 +235,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
       if (fileController.text.trim().isNotEmpty) fileController.text.trim(),
       ...postAttachments,
       ...storyAttachments,
+      ...reelAttachments,
     ].toSet().toList();
 
     final effectiveStatus =

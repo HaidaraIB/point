@@ -85,14 +85,14 @@ class ContentModel {
     return ContentModel(
       id: id,
       title: json['title'] ?? '',
-      files: json['files'],
+      files: _asDynamicList(json['files']),
       platform: json['platform'] ?? '',
       contentType: json['contentType'] ?? '',
       executor: json['executor'] ?? '',
       status: json['status'] ?? 'draft',
       promotion: json['promotion'],
       clientNotes: json['clientNotes'],
-      clientEdits: json['clientEdits'],
+      clientEdits: _asDynamicList(json['clientEdits']),
       clientId: json['clientId'] ?? '',
       publishDate:
           json['publishDate'] != null
@@ -101,10 +101,21 @@ class ContentModel {
       createdAt: DateTime.parse(json['createdAt']),
       notes: json['notes'], // 🔹 مضاف
       caption: json['caption'],
-      postAttachments: json['postAttachments'],
-      storyAttachments: json['storyAttachments'],
-      reelAttachments: json['reelAttachments'],
+      postAttachments: _asDynamicList(json['postAttachments']),
+      storyAttachments: _asDynamicList(json['storyAttachments']),
+      reelAttachments: _asDynamicList(json['reelAttachments']),
     );
+  }
+
+  /// Firestore sometimes stores a lone URL string instead of a list.
+  static List<dynamic>? _asDynamicList(dynamic value) {
+    if (value == null) return null;
+    if (value is List) return List<dynamic>.from(value);
+    if (value is String) {
+      final t = value.trim();
+      return t.isEmpty ? <dynamic>[] : <dynamic>[t];
+    }
+    return <dynamic>[value];
   }
 
   Map<String, dynamic> toJson() {
@@ -127,5 +138,36 @@ class ContentModel {
       "storyAttachments": storyAttachments,
       "reelAttachments": reelAttachments,
     };
+  }
+
+  /// All attachment URLs for UI (list thumbs, details, edit).
+  ///
+  /// Merges [files] with Meta publish fields ([postAttachments] /
+  /// [storyAttachments] / [reelAttachments]). Older / partial saves often put
+  /// media only in the type-specific lists, so reading [files] alone shows
+  /// "no attachments" while previews elsewhere look broken.
+  List<String> get attachmentUrls {
+    final out = <String>[];
+    final seen = <String>{};
+    void addAll(Iterable<dynamic>? raw) {
+      if (raw == null) return;
+      for (final e in raw) {
+        final s = e?.toString().trim() ?? '';
+        if (s.isEmpty) continue;
+        if (seen.add(s)) out.add(s);
+      }
+    }
+
+    addAll(files);
+    addAll(postAttachments);
+    addAll(storyAttachments);
+    addAll(reelAttachments);
+    return out;
+  }
+
+  /// Prefer a URL for list-card thumbnails (first available attachment).
+  String? get primaryAttachmentUrl {
+    final urls = attachmentUrls;
+    return urls.isEmpty ? null : urls.first;
   }
 }

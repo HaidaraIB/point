@@ -32,10 +32,7 @@ class ContentStatusCard extends StatelessWidget {
     final showPubDate = ContentPermissions.showContentPublishDateUi(emp);
     final showStatus = ContentPermissions.showContentStatusUi(emp);
     final showPromo = ContentPermissions.showContentPromotionUi(emp);
-    final firstFile =
-        (model?.files != null && model!.files!.isNotEmpty)
-            ? model!.files!.first?.toString()
-            : null;
+    final firstFile = model?.primaryAttachmentUrl;
     return InkWell(
       onTap: onTap,
       // borderRadius: BorderRadius.circular(0),
@@ -49,7 +46,7 @@ class ContentStatusCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildIcon(firstFile?.trim()),
+            _buildIcon(firstFile),
             const SizedBox(width: 10),
             Expanded(
               child: Row(

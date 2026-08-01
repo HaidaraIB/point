@@ -68,6 +68,8 @@ class ChatAttachmentCache {
   static Future<void> evictUrl(String url) async {
     final trimmed = url.trim();
     if (trimmed.isEmpty) return;
+    // Drop any in-flight download so retry does not reuse a failed/hung Future.
+    _inflightBytes.remove(trimmed);
     await _manager.removeFile(trimmed);
   }
 }

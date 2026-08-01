@@ -1,7 +1,7 @@
-import 'dart:typed_data';
-
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:point/Services/chat_attachment_cache.dart';
+import 'package:point/View/Shared/safe_network_image.dart';
 
 enum ChatAttachmentLoadPolicy {
   /// Cache then network as soon as the widget mounts.
@@ -12,6 +12,8 @@ enum ChatAttachmentLoadPolicy {
 }
 
 /// Chat attachment thumbnail / bubble image loaded from [ChatAttachmentCache].
+/// On web, renders via [SafeNetworkImage] so CORS-blocked byte fetches do not
+/// blank the bubble (same strategy as content thumbs / full image preview).
 class ChatCachedAttachmentImage extends StatefulWidget {
   final String url;
   final double? width;
@@ -53,12 +55,18 @@ class _ChatCachedAttachmentImageState extends State<ChatCachedAttachmentImage> {
   @override
   void initState() {
     super.initState();
-    _startLoad();
+    if (!kIsWeb) _startLoad();
   }
 
   @override
   void didUpdateWidget(ChatCachedAttachmentImage oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (kIsWeb) {
+      if (oldWidget.url != widget.url) {
+        _reportedLoaded = false;
+      }
+      return;
+    }
     if (oldWidget.url != widget.url) {
       _reportedLoaded = false;
       _startLoad();
@@ -92,12 +100,13 @@ class _ChatCachedAttachmentImageState extends State<ChatCachedAttachmentImage> {
     setState(() {
       _retrySeed++;
       _reportedLoaded = false;
-      _startLoad();
+      if (!kIsWeb) _startLoad();
     });
   }
 
-  void _maybeReportLoaded(Uint8List data) {
-    if (_reportedLoaded || data.isEmpty) return;
+  void _maybeReportLoaded([Uint8List? data]) {
+    if (_reportedLoaded) return;
+    if (data != null && data.isEmpty) return;
     _reportedLoaded = true;
     final callback = widget.onLoadComplete;
     if (callback == null) return;
@@ -133,8 +142,58 @@ class _ChatCachedAttachmentImageState extends State<ChatCachedAttachmentImage> {
     );
   }
 
+  Widget _webImage() {
+    if (widget.loadPolicy == ChatAttachmentLoadPolicy.onDemand &&
+        !widget.loadRequested) {
+      if (widget.placeholderBuilder != null) {
+        return widget.placeholderBuilder!(context);
+      }
+      return _defaultPlaceholder(context);
+    }
+    return SafeNetworkImage(
+      widget.url,
+      key: ValueKey('chat_web_${widget.url}#$_retrySeed'),
+      width: widget.width,
+      height: widget.height,
+      fit: widget.fit,
+      loadingBuilder: widget.loadingBuilder ??
+          (context, child, progress) {
+            if (progress == null) {
+              _maybeReportLoaded();
+              return child;
+            }
+            return SizedBox(
+              width: widget.width,
+              height: widget.height ?? 24,
+              child: const Center(
+                child: SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            );
+          },
+      errorBuilder: (context, error, stackTrace) {
+        if (widget.errorBuilder != null) {
+          return widget.errorBuilder!(context, error);
+        }
+        return InkWell(
+          onTap: _retry,
+          child: SizedBox(
+            width: widget.width,
+            height: widget.height ?? 40,
+            child: const Icon(Icons.refresh, size: 22),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (kIsWeb) return _webImage();
+
     return FutureBuilder<Uint8List?>(
       key: ValueKey('${widget.url}#$_retrySeed#${widget.loadRequested}'),
       future: _bytesFuture,

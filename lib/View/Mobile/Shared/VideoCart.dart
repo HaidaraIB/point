@@ -64,7 +64,7 @@ class VideoCard extends StatelessWidget {
             //     ],
             //   ),
             // ),
-            FilesPreviewWidget(files: model.files?.cast<String>() ?? []),
+            FilesPreviewWidget(files: model.attachmentUrls),
 
             const SizedBox(height: 12),
 

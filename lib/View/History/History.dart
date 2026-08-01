@@ -757,7 +757,7 @@ class History extends StatelessWidget {
                                                       ),
                                                   child:
                                                       _historyAttachmentFilesWrap(
-                                                        emp.files,
+                                                        emp.attachmentUrls,
                                                       ),
                                                 ),
                                               ),
@@ -938,7 +938,7 @@ class History extends StatelessWidget {
                                                       controller
                                                           .uploadedFilesPaths
                                                           .assignAll(
-                                                            emp.files ?? [],
+                                                            emp.attachmentUrls,
                                                           );
                                                       showAddContentDialog(
                                                         context,

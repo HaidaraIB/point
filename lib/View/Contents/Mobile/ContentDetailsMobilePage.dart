@@ -99,7 +99,7 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
 
   void _openEdit(HomeController hc, EmployeeModel? emp) {
     if (!ContentPermissions.canAddOrEditContent(emp)) return;
-    hc.uploadedFilesPaths.assignAll(_task.files ?? []);
+    hc.uploadedFilesPaths.assignAll(_task.attachmentUrls);
     Get.off(
       () => ContentFormMobilePage(clientId: _task.clientId, model: _task),
     );
@@ -725,10 +725,7 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
         Directionality.of(context) == TextDirection.rtl ||
         Get.locale?.languageCode == 'ar';
     final appTheme = context.appTheme;
-    final files = (_task.files ?? [])
-        .whereType<String>()
-        .where((e) => e.trim().isNotEmpty)
-        .toList();
+    final files = _task.attachmentUrls;
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 10),

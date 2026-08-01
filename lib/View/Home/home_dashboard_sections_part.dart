@@ -109,7 +109,7 @@ Widget contentScheduletoday(BuildContext context) {
                     return InkWell(
                       onTap: () {
                         controller.uploadedFilesPaths.assignAll(
-                          content.files ?? [],
+                          content.attachmentUrls,
                         );
                         showContentDialogDetails(context, task: content);
                       },
@@ -328,7 +328,7 @@ Widget contentUnderPromotion(BuildContext context) {
                     return InkWell(
                       onTap: () {
                         controller.uploadedFilesPaths.assignAll(
-                          content.files ?? [],
+                          content.attachmentUrls,
                         );
                         showContentDialogDetails(context, task: content);
                       },

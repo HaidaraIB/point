@@ -695,8 +695,11 @@ void showAddContentDialog(
                                                         : [
                                                           filecontroller.text
                                                               .trim(),
-                                                        ], // الملفات الجديدة
-                                                  ],
+                                                        ],
+                                                    ...mergedPost,
+                                                    ...mergedStory,
+                                                    ...mergedReel,
+                                                  ].toSet().toList(),
                                                   platform: platforms,
                                                   publishDate: publishDate,
 
@@ -763,8 +766,11 @@ void showAddContentDialog(
                                                         : [
                                                           filecontroller.text
                                                               .trim(),
-                                                        ], // الملفات الجديدة
-                                                  ],
+                                                        ],
+                                                    ...mergedPost,
+                                                    ...mergedStory,
+                                                    ...mergedReel,
+                                                  ].toSet().toList(),
                                                   platform: platforms,
                                                   publishDate: publishDate,
                                                   contentType:
