@@ -129,12 +129,16 @@ Widget buildTaskStatusDropdownChip({
   required String label,
 }) {
   final canon = FunHelper.canonicalStoredStatus(rawStatus);
-  final fg = getContentStatusColor(canon);
+  final accent = getContentStatusColor(canon);
+  final fg = context.statusChipForeground(accent);
   return buildContentDropdownChip(
     label: label,
     textColor: fg,
-    backgroundColor: context.statusChipBackground(fg, getContentStatusBgColor(canon)),
+    backgroundColor: context.statusChipBackground(
+      accent,
+      getContentStatusBgColor(canon),
+    ),
     leadingIcon: TaskStatusVisuals.iconFor(rawStatus),
-    leadingIconColor: TaskStatusVisuals.iconTintFor(rawStatus),
+    leadingIconColor: TaskStatusVisuals.iconTintFor(rawStatus, context: context),
   );
 }

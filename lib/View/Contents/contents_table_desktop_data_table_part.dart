@@ -307,7 +307,9 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                                   kind: StoredValueKind.contentType,
                                 ),
                                 style: TextStyle(
-                                  color: Colors.purple.shade700,
+                                  color: context.statusChipForeground(
+                                    Colors.purple.shade700,
+                                  ),
                                   fontWeight: FontWeight.bold,
                                   fontSize: 13,
                                 ),
@@ -340,7 +342,9 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                                 textAlign: TextAlign.center,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  color: Colors.blueGrey.shade700,
+                                  color: context.statusChipForeground(
+                                    Colors.blueGrey.shade700,
+                                  ),
                                   fontWeight: FontWeight.bold,
                                   fontSize: 13,
                                 ),
@@ -451,7 +455,10 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                                   final promoKey = FunHelper.canonicalStoredPromotion(
                                     emp.promotion,
                                   );
-                                  final promoFg = getContentPromotionColor(promoKey);
+                                  final promoAccent =
+                                      getContentPromotionColor(promoKey);
+                                  final promoFg =
+                                      context.statusChipForeground(promoAccent);
                                   final promotionChip = buildContentDropdownChip(
                                     label:
                                         emp.promotion == null ||
@@ -463,7 +470,7 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                                           ),
                                     textColor: promoFg,
                                     backgroundColor: context.statusChipBackground(
-                                      promoFg,
+                                      promoAccent,
                                       getContentPromotionBgColor(promoKey),
                                     ),
                                   );

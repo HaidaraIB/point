@@ -863,9 +863,10 @@ Widget _buildTaskDepartmentBadge(BuildContext context, TaskModel task) {
 
 Widget _buildStatusTag(BuildContext context, String raw) {
   final key = FunHelper.canonicalStoredStatus(raw);
+  final accent = _getStatusColor(key);
   return TaskStatusVisuals.statusChip(
     rawStatus: raw,
-    fg: _getStatusColor(key),
+    fg: context.statusChipForeground(accent),
     bg: _getStatusBgColor(context, key),
   );
 }

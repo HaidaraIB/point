@@ -1415,7 +1415,7 @@ class _PublishTableState extends State<PublishTable> {
                     decoration: BoxDecoration(
               color: resolveAppTheme().cardSurface,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.grey.shade200),
+                      border: Border.all(color: resolveAppTheme().border),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.04),

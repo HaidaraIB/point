@@ -172,6 +172,13 @@ extension AppThemeContext on BuildContext {
     return lightBackground;
   }
 
+  /// Chip/label accent: light-mode shades stay as-is; dark mode lightens for contrast
+  /// on [statusChipBackground] translucent fills.
+  Color statusChipForeground(Color accent) {
+    if (Theme.of(this).brightness != Brightness.dark) return accent;
+    return Color.lerp(accent, Colors.white, 0.45)!;
+  }
+
   WidgetStateProperty<Color?> get tableDataRowColor =>
       WidgetStateProperty.all(appTheme.cardSurface);
 

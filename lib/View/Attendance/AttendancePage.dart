@@ -282,7 +282,7 @@ class _AttendancePageState extends State<AttendancePage> {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: fg,
+              color: context.statusChipForeground(fg),
               fontWeight: FontWeight.bold,
               fontSize: 13,
             ),
@@ -583,7 +583,7 @@ class _AttendancePageState extends State<AttendancePage> {
         _approvalLabel(record.approvalStatus),
         textAlign: TextAlign.center,
         style: TextStyle(
-          color: fg,
+          color: context.statusChipForeground(fg),
           fontWeight: FontWeight.bold,
           fontSize: 13,
         ),
@@ -683,7 +683,7 @@ class _AttendancePageState extends State<AttendancePage> {
         _actionLabel(record.action),
         textAlign: TextAlign.center,
         style: TextStyle(
-          color: fg,
+          color: context.statusChipForeground(fg),
           fontWeight: FontWeight.bold,
           fontSize: 13,
         ),

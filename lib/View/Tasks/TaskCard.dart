@@ -937,9 +937,10 @@ class TaskCard extends StatelessWidget {
 
 Widget _buildstatusTag(BuildContext context, String raw) {
   final key = FunHelper.canonicalStoredStatus(raw);
+  final accent = _getStatusColor(key);
   return TaskStatusVisuals.statusChip(
     rawStatus: raw,
-    fg: _getStatusColor(key),
+    fg: context.statusChipForeground(accent),
     bg: _getStatusbgColor(context, key),
   );
 }

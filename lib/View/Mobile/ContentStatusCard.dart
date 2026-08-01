@@ -202,11 +202,15 @@ Widget _buildPromotionTag(BuildContext context, String? promotion) {
             promotion,
             kind: StoredValueKind.promotion,
           );
-  final fg = getContentPromotionColor(key);
+  final accent = getContentPromotionColor(key);
+  final fg = context.statusChipForeground(accent);
   return Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
     decoration: BoxDecoration(
-      color: context.statusChipBackground(fg, getContentPromotionBgColor(key)),
+      color: context.statusChipBackground(
+        accent,
+        getContentPromotionBgColor(key),
+      ),
       borderRadius: BorderRadius.circular(8),
     ),
     child: Text(
@@ -222,8 +226,9 @@ Widget _buildPromotionTag(BuildContext context, String? promotion) {
 
 Widget _buildstatusTag(BuildContext context, String text) {
   final key = FunHelper.canonicalStoredStatus(text);
-  final fg = _getStatusColor(key);
-  final bg = context.statusChipBackground(fg, _getStatusbgColor(key));
+  final accent = _getStatusColor(key);
+  final fg = context.statusChipForeground(accent);
+  final bg = context.statusChipBackground(accent, _getStatusbgColor(key));
   return TaskStatusVisuals.statusChip(
     rawStatus: text,
     fg: fg,

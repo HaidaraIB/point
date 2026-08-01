@@ -51,43 +51,46 @@ class TaskStatusVisuals {
     }
   }
 
-  static Color iconTintFor(String rawOrCanonical) {
+  static Color iconTintFor(String rawOrCanonical, {BuildContext? context}) {
     final k = _canon(rawOrCanonical);
+    late final Color accent;
     switch (k) {
       case StorageKeys.status_processing:
-        return Colors.amber.shade800;
+        accent = Colors.amber.shade800;
       case StorageKeys.status_under_revision:
-        return Colors.blue.shade700;
+        accent = Colors.blue.shade700;
       case StorageKeys.status_awaiting_manager:
-        return Colors.indigo.shade700;
+        accent = Colors.indigo.shade700;
       case StorageKeys.status_ready_to_publish:
-        return Colors.teal.shade700;
+        accent = Colors.teal.shade700;
       case StorageKeys.status_approved:
-        return Colors.green.shade700;
+        accent = Colors.green.shade700;
       case StorageKeys.status_scheduled:
-        return Colors.orange.shade800;
+        accent = Colors.orange.shade800;
       case StorageKeys.status_task_completed:
       case StorageKeys.status_published:
-        return Colors.lightGreen.shade800;
+        accent = Colors.lightGreen.shade800;
       case StorageKeys.status_rejected:
-        return Colors.red.shade700;
+        accent = Colors.red.shade700;
       case StorageKeys.status_in_edit:
-        return Colors.purple.shade700;
+        accent = Colors.purple.shade700;
       case StorageKeys.status_edit_requested:
-        return Colors.deepOrange.shade700;
+        accent = Colors.deepOrange.shade700;
       case StorageKeys.status_not_start_yet:
-        return Colors.grey.shade700;
+        accent = Colors.grey.shade700;
       case StorageKeys.status_promotion_in_progress:
-        return Colors.amber.shade900;
+        accent = Colors.amber.shade900;
       case StorageKeys.status_promotion_ad_platform_review:
-        return Colors.blue.shade800;
+        accent = Colors.blue.shade800;
       case StorageKeys.status_promotion_running:
-        return Colors.green.shade800;
+        accent = Colors.green.shade800;
       case StorageKeys.status_promotion_finished:
-        return Colors.blueGrey.shade700;
+        accent = Colors.blueGrey.shade700;
       default:
-        return Colors.blueGrey.shade600;
+        accent = Colors.blueGrey.shade600;
     }
+    if (context == null) return accent;
+    return context.statusChipForeground(accent);
   }
 
   /// Pill tag with leading status icon (task cards, content cards, mobile details).
@@ -155,7 +158,7 @@ class TaskStatusVisuals {
         const SizedBox(width: 8),
         Icon(
           iconFor(rawOrCanonicalForIcon),
-          color: iconTintFor(rawOrCanonicalForIcon),
+          color: iconTintFor(rawOrCanonicalForIcon, context: context),
           size: 20,
         ),
       ],

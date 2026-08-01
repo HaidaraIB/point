@@ -396,7 +396,7 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
       child: Text(
         '$value',
         style: TextStyle(
-          color: fg,
+          color: context.statusChipForeground(fg),
           fontWeight: FontWeight.bold,
           fontSize: 13,
         ),

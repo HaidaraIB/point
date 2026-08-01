@@ -265,7 +265,7 @@ class AppActiveFilterTag extends StatelessWidget {
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: theme.mutedText,
+                color: theme.secondaryText,
               ),
             ),
             Text(

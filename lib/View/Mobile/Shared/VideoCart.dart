@@ -28,7 +28,7 @@ class VideoCard extends StatelessWidget {
         decoration: BoxDecoration(
               color: context.appTheme.cardSurface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade100),
+          border: Border.all(color: context.appTheme.border),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -438,7 +438,10 @@ class History extends StatelessWidget {
                                                     kind: StoredValueKind.contentType,
                                                   ),
                                                   style: TextStyle(
-                                                    color: Colors.purple.shade700,
+                                                    color: context
+                                                        .statusChipForeground(
+                                                      Colors.purple.shade700,
+                                                    ),
                                                     fontWeight: FontWeight.bold,
                                                     fontSize: 13,
                                                   ),
@@ -476,7 +479,10 @@ class History extends StatelessWidget {
                                                   overflow:
                                                       TextOverflow.ellipsis,
                                                   style: TextStyle(
-                                                    color: Colors.blueGrey.shade700,
+                                                    color: context
+                                                        .statusChipForeground(
+                                                      Colors.blueGrey.shade700,
+                                                    ),
                                                     fontWeight: FontWeight.bold,
                                                     fontSize: 13,
                                                   ),
@@ -717,20 +723,26 @@ class History extends StatelessWidget {
                                                                     StoredValueKind
                                                                         .promotion,
                                                               ),
-                                                      textColor:
-                                                          getContentPromotionColor(
-                                                            FunHelper.canonicalStoredPromotion(
-                                                              emp.promotion,
-                                                            ),
-                                                          ),
-                                                      backgroundColor: context.statusChipBackground(
+                                                      textColor: context
+                                                          .statusChipForeground(
                                                         getContentPromotionColor(
-                                                          FunHelper.canonicalStoredPromotion(
+                                                          FunHelper
+                                                              .canonicalStoredPromotion(
+                                                            emp.promotion,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      backgroundColor: context
+                                                          .statusChipBackground(
+                                                        getContentPromotionColor(
+                                                          FunHelper
+                                                              .canonicalStoredPromotion(
                                                             emp.promotion,
                                                           ),
                                                         ),
                                                         getContentPromotionBgColor(
-                                                          FunHelper.canonicalStoredPromotion(
+                                                          FunHelper
+                                                              .canonicalStoredPromotion(
                                                             emp.promotion,
                                                           ),
                                                         ),

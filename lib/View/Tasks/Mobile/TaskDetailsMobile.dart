@@ -130,8 +130,10 @@ class TaskDetailsMobilePage extends StatelessWidget {
                   children: [
                     TaskStatusVisuals.statusChip(
                       rawStatus: task.status,
-                      fg: _statusColor(
-                        FunHelper.canonicalStoredStatus(task.status),
+                      fg: context.statusChipForeground(
+                        _statusColor(
+                          FunHelper.canonicalStoredStatus(task.status),
+                        ),
                       ),
                       bg: _statusBg(
                         context,
@@ -146,8 +148,10 @@ class TaskDetailsMobilePage extends StatelessWidget {
                         task.priority,
                         kind: StoredValueKind.priority,
                       ),
-                      _priorityColor(
-                        FunHelper.canonicalStoredPriority(task.priority),
+                      context.statusChipForeground(
+                        _priorityColor(
+                          FunHelper.canonicalStoredPriority(task.priority),
+                        ),
                       ),
                       _priorityBg(
                         context,
@@ -1471,6 +1475,17 @@ class TaskDetailsMobilePage extends StatelessWidget {
         isEmployee &&
         FunHelper.canonicalStoredStatus(task.status) ==
             StorageKeys.status_rejected;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final neutralOutlineSide = BorderSide(color: context.appTheme.border);
+    final dangerFg = isDark ? Colors.red.shade300 : Colors.red;
+    final dangerOutlineSide = BorderSide(
+      color: dangerFg.withValues(alpha: 0.75),
+    );
+    final indigoFg =
+        isDark ? Colors.indigo.shade300 : Colors.indigo.shade800;
+    final indigoOutlineSide = BorderSide(
+      color: indigoFg.withValues(alpha: 0.75),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1480,6 +1495,8 @@ class TaskDetailsMobilePage extends StatelessWidget {
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
           label: Text(AppLocaleKeys.appClose.tr),
           style: OutlinedButton.styleFrom(
+            foregroundColor: context.appTheme.primaryText,
+            side: neutralOutlineSide,
             padding: const EdgeInsets.symmetric(vertical: 14),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -1493,6 +1510,8 @@ class TaskDetailsMobilePage extends StatelessWidget {
             icon: const Icon(Icons.edit_outlined, size: 18),
             label: Text(canEditDirectly ? 'edit'.tr : 'tasks.request_edit'.tr),
             style: OutlinedButton.styleFrom(
+              foregroundColor: context.appTheme.primaryText,
+              side: neutralOutlineSide,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -1534,6 +1553,8 @@ class TaskDetailsMobilePage extends StatelessWidget {
             icon: const Icon(Icons.event_repeat_outlined, size: 18),
             label: Text('tasks.deadline_extension_button'.tr),
             style: OutlinedButton.styleFrom(
+              foregroundColor: context.appTheme.primaryText,
+              side: neutralOutlineSide,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -1558,7 +1579,8 @@ class TaskDetailsMobilePage extends StatelessWidget {
                     icon: const Icon(Icons.close_rounded, size: 18),
                     label: Text('tasks.reject'.tr),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
+                      foregroundColor: dangerFg,
+                      side: dangerOutlineSide,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -1622,7 +1644,8 @@ class TaskDetailsMobilePage extends StatelessWidget {
                   );
                 },
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.indigo.shade800,
+                  foregroundColor: indigoFg,
+                  side: indigoOutlineSide,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 14,
@@ -1637,7 +1660,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
                     Icon(
                       Icons.forward_to_inbox_rounded,
                       size: 18,
-                      color: Colors.indigo.shade800,
+                      color: indigoFg,
                     ),
                     const SizedBox(width: 10),
                     Flexible(
@@ -1664,7 +1687,8 @@ class TaskDetailsMobilePage extends StatelessWidget {
               icon: const Icon(Icons.close_rounded, size: 18),
               label: Text('tasks.reject'.tr),
               style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.red,
+                foregroundColor: dangerFg,
+                side: dangerOutlineSide,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -1686,7 +1710,8 @@ class TaskDetailsMobilePage extends StatelessWidget {
                     icon: const Icon(Icons.close_rounded, size: 18),
                     label: Text('tasks.reject'.tr),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
+                      foregroundColor: dangerFg,
+                      side: dangerOutlineSide,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -1749,7 +1774,8 @@ class TaskDetailsMobilePage extends StatelessWidget {
             icon: const Icon(Icons.delete_outline, size: 18),
             label: Text('delete'.tr),
             style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.red,
+              foregroundColor: dangerFg,
+              side: dangerOutlineSide,
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),

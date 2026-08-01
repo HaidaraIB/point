@@ -248,8 +248,9 @@ class ClientsMobileScreen extends StatelessWidget {
                                   ? Colors.green.shade50
                                   : Colors.orange.shade50,
                             ),
-                            textColor:
-                                active ? AppColors.success : AppColors.caution,
+                            textColor: context.statusChipForeground(
+                              active ? AppColors.success : AppColors.caution,
+                            ),
                           ),
                         ],
                       ),
