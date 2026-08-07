@@ -1390,168 +1390,185 @@ class _PublishTableState extends State<PublishTable> {
     );
   }
 
-  Widget _buildMobile(BuildContext context, HomeController controller) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 24, 12, 12),
+  Widget _buildMobilePublishCard(
+    HomeController controller,
+    MetaPostModel p,
+  ) {
+    return Container(
+      decoration: BoxDecoration(
+        color: resolveAppTheme().cardSurface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: resolveAppTheme().border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildHeader(context, controller),
-          const SizedBox(height: 12),
-          _buildFilters(controller),
-          const SizedBox(height: 12),
-          Expanded(
-            child: Obx(() {
-              final list = controller.filteredMetaPosts;
-              if (list.isEmpty) {
-                return Center(child: Text('history.empty_data'.tr));
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  p.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              _buildActionsMenu(controller, p, compact: true),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Builder(
+            builder: (_) {
+              final fbUrl = _facebookPageUrl(p);
+              final label = p.pageName ?? p.pageId;
+              if (fbUrl == null) {
+                return Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: resolveAppTheme().mutedText,
+                    fontSize: 14,
+                  ),
+                );
               }
-              return ListView.separated(
-                itemCount: list.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 10),
-                itemBuilder: (ctx, i) {
-                  final p = list[i];
-                  return Container(
-                    decoration: BoxDecoration(
-              color: resolveAppTheme().cardSurface,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: resolveAppTheme().border),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
-                          blurRadius: 10,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                p.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            _buildActionsMenu(controller, p, compact: true),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Builder(
-                          builder: (_) {
-                            final fbUrl = _facebookPageUrl(p);
-                            final label = p.pageName ?? p.pageId;
-                            if (fbUrl == null) {
-                              return Text(
-                                label,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: resolveAppTheme().mutedText,
-                                  fontSize: 14,
-                                ),
-                              );
-                            }
-                            return InkWell(
-                              onTap: () => openUrlPreferInAppMedia(fbUrl),
-                              child: Text(
-                                label,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: resolveAppTheme().accentText,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 2),
-                        Builder(
-                          builder: (_) {
-                            final igUrl = _instagramAccountUrl(p);
-                            final label = _instagramAccountText(p);
-                            if (igUrl == null || label == '-') {
-                              return Text(
-                                label,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: resolveAppTheme().mutedText,
-                                  fontSize: 12,
-                                ),
-                              );
-                            }
-                            return InkWell(
-                              onTap: () => openUrlPreferInAppMedia(igUrl),
-                              child: Text(
-                                label,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: resolveAppTheme().accentText,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
-                          children: [
-                            _postTypeChip(p.postType),
-                            _buildStatusControl(controller, p),
-                          ],
-                        ),
-                        if (p.platforms.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          _platformsWrap(
-                            p.platforms,
-                            alignment: WrapAlignment.start,
-                          ),
-                        ],
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.schedule_outlined,
-                              size: 15,
-                              color: resolveAppTheme().mutedText,
-                            ),
-                            const SizedBox(width: 5),
-                            Expanded(
-                              child: Text(
-                                DateFormat('yyyy-MM-dd HH:mm').format(
-                                  (p.scheduledAt ?? p.createdAt).toLocal(),
-                                ),
-                                style: TextStyle(
-                                  color: resolveAppTheme().mutedText,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  );
-                },
+              return InkWell(
+                onTap: () => openUrlPreferInAppMedia(fbUrl),
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: resolveAppTheme().accentText,
+                    fontSize: 14,
+                  ),
+                ),
               );
-            }),
+            },
+          ),
+          const SizedBox(height: 2),
+          Builder(
+            builder: (_) {
+              final igUrl = _instagramAccountUrl(p);
+              final label = _instagramAccountText(p);
+              if (igUrl == null || label == '-') {
+                return Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: resolveAppTheme().mutedText,
+                    fontSize: 12,
+                  ),
+                );
+              }
+              return InkWell(
+                onTap: () => openUrlPreferInAppMedia(igUrl),
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: resolveAppTheme().accentText,
+                    fontSize: 12,
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              _postTypeChip(p.postType),
+              _buildStatusControl(controller, p),
+            ],
+          ),
+          if (p.platforms.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            _platformsWrap(
+              p.platforms,
+              alignment: WrapAlignment.start,
+            ),
+          ],
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(
+                Icons.schedule_outlined,
+                size: 15,
+                color: resolveAppTheme().mutedText,
+              ),
+              const SizedBox(width: 5),
+              Expanded(
+                child: Text(
+                  DateFormat('yyyy-MM-dd HH:mm').format(
+                    (p.scheduledAt ?? p.createdAt).toLocal(),
+                  ),
+                  style: TextStyle(
+                    color: resolveAppTheme().mutedText,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildMobile(BuildContext context, HomeController controller) {
+    final bottomPadding = MediaQuery.of(context).padding.bottom + 16.0;
+    return Obx(() {
+      final list = controller.filteredMetaPosts;
+      return CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(12, 24, 12, 12),
+            sliver: SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildHeader(context, controller),
+                  const SizedBox(height: 12),
+                  _buildFilters(controller),
+                  const SizedBox(height: 12),
+                ],
+              ),
+            ),
+          ),
+          if (list.isEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(child: Text('history.empty_data'.tr)),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              sliver: SliverList.separated(
+                itemCount: list.length,
+                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                itemBuilder: (ctx, i) =>
+                    _buildMobilePublishCard(controller, list[i]),
+              ),
+            ),
+          SliverPadding(padding: EdgeInsets.only(bottom: bottomPadding)),
+        ],
+      );
+    });
   }
 }

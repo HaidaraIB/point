@@ -2,6 +2,29 @@ import 'dart:typed_data';
 
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
+/// Progress / completion event while loading attachment bytes from cache or network.
+class ChatAttachmentBytesEvent {
+  const ChatAttachmentBytesEvent({
+    this.downloaded = 0,
+    this.totalSize,
+    this.bytes,
+  });
+
+  final int downloaded;
+  final int? totalSize;
+  final Uint8List? bytes;
+
+  bool get hasBytes => bytes != null && bytes!.isNotEmpty;
+
+  /// 0..1 when total size is known; null when indeterminate.
+  double? get progress {
+    if (totalSize == null || totalSize! <= 0 || downloaded > totalSize!) {
+      return null;
+    }
+    return downloaded / totalSize!;
+  }
+}
+
 /// Persistent disk cache for chat attachment URLs (images, video, voice, files).
 class ChatAttachmentCache {
   ChatAttachmentCache._();
@@ -63,6 +86,52 @@ class ChatAttachmentCache {
       return Future<dynamic>.error(ArgumentError('empty url'));
     }
     return _manager.getSingleFile(trimmed);
+  }
+
+  /// Stream progress then file info for [url] (`withProgress: true`).
+  ///
+  /// Throws if no stream event arrives for [idleTimeout] (hung download).
+  static Stream<FileResponse> fileStreamForUrl(
+    String url, {
+    Duration idleTimeout = const Duration(seconds: 45),
+  }) {
+    final trimmed = url.trim();
+    if (trimmed.isEmpty) {
+      return Stream.error(ArgumentError('empty url'));
+    }
+    return _manager
+        .getFileStream(trimmed, withProgress: true)
+        .timeout(idleTimeout);
+  }
+
+  /// Stream download progress then decoded bytes for [url].
+  ///
+  /// Throws if no stream event arrives for [idleTimeout] (hung download).
+  static Stream<ChatAttachmentBytesEvent> bytesStreamForUrl(
+    String url, {
+    Duration idleTimeout = const Duration(seconds: 45),
+  }) async* {
+    final trimmed = url.trim();
+    if (trimmed.isEmpty) {
+      throw ArgumentError('empty url');
+    }
+    await for (final response in _manager
+        .getFileStream(trimmed, withProgress: true)
+        .timeout(idleTimeout)) {
+      if (response is DownloadProgress) {
+        yield ChatAttachmentBytesEvent(
+          downloaded: response.downloaded,
+          totalSize: response.totalSize,
+        );
+      } else if (response is FileInfo) {
+        final bytes = await response.file.readAsBytes();
+        yield ChatAttachmentBytesEvent(
+          downloaded: bytes.length,
+          totalSize: bytes.length,
+          bytes: bytes,
+        );
+      }
+    }
   }
 
   static Future<void> evictUrl(String url) async {

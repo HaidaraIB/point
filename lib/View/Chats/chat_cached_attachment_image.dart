@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:point/Services/chat_attachment_cache.dart';
+import 'package:point/View/Chats/chat_media_load_progress.dart';
 import 'package:point/View/Shared/safe_network_image.dart';
 
 enum ChatAttachmentLoadPolicy {
@@ -49,7 +50,8 @@ class ChatCachedAttachmentImage extends StatefulWidget {
 
 class _ChatCachedAttachmentImageState extends State<ChatCachedAttachmentImage> {
   int _retrySeed = 0;
-  Future<Uint8List?>? _bytesFuture;
+  Stream<ChatAttachmentBytesEvent>? _bytesStream;
+  bool _cacheOnly = false;
   bool _reportedLoaded = false;
 
   @override
@@ -80,18 +82,21 @@ class _ChatCachedAttachmentImageState extends State<ChatCachedAttachmentImage> {
   }
 
   void _startLoad() {
-    if (widget.loadPolicy == ChatAttachmentLoadPolicy.onDemand &&
-        !widget.loadRequested) {
-      _bytesFuture = ChatAttachmentCache.bytesFromCacheOnly(widget.url);
+    _cacheOnly = widget.loadPolicy == ChatAttachmentLoadPolicy.onDemand &&
+        !widget.loadRequested;
+    if (_cacheOnly) {
+      _bytesStream = Stream.fromFuture(
+        ChatAttachmentCache.bytesFromCacheOnly(widget.url),
+      ).map(
+        (bytes) => ChatAttachmentBytesEvent(
+          downloaded: bytes?.length ?? 0,
+          totalSize: bytes?.length,
+          bytes: bytes,
+        ),
+      );
       return;
     }
-    _bytesFuture = _loadBytes();
-  }
-
-  Future<Uint8List?> _loadBytes() async {
-    final cached = await ChatAttachmentCache.bytesFromCacheOnly(widget.url);
-    if (cached != null && cached.isNotEmpty) return cached;
-    return ChatAttachmentCache.bytesForUrl(widget.url);
+    _bytesStream = ChatAttachmentCache.bytesStreamForUrl(widget.url);
   }
 
   Future<void> _retry() async {
@@ -142,6 +147,27 @@ class _ChatCachedAttachmentImageState extends State<ChatCachedAttachmentImage> {
     );
   }
 
+  Widget _loadingWidget(BuildContext context, ImageChunkEvent? progress) {
+    if (widget.loadingBuilder != null) {
+      return widget.loadingBuilder!(
+        context,
+        const SizedBox.shrink(),
+        progress,
+      );
+    }
+    return SizedBox(
+      width: widget.width,
+      height: widget.height ?? 24,
+      child: Center(
+        child: ChatMediaCircularProgress(
+          value: chatMediaProgressValue(progress),
+          size: 20,
+          strokeWidth: 2,
+        ),
+      ),
+    );
+  }
+
   Widget _webImage() {
     if (widget.loadPolicy == ChatAttachmentLoadPolicy.onDemand &&
         !widget.loadRequested) {
@@ -156,20 +182,25 @@ class _ChatCachedAttachmentImageState extends State<ChatCachedAttachmentImage> {
       width: widget.width,
       height: widget.height,
       fit: widget.fit,
-      loadingBuilder: widget.loadingBuilder ??
-          (context, child, progress) {
+      loadingBuilder: (context, child, progress) {
+            // Flutter contract: progress == null means the frame is ready —
+            // callers must return [child]. Always report load here so custom
+            // loadingBuilder overrides cannot skip onLoadComplete.
             if (progress == null) {
               _maybeReportLoaded();
-              return child;
             }
+            if (widget.loadingBuilder != null) {
+              return widget.loadingBuilder!(context, child, progress);
+            }
+            if (progress == null) return child;
             return SizedBox(
               width: widget.width,
               height: widget.height ?? 24,
-              child: const Center(
-                child: SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+              child: Center(
+                child: ChatMediaCircularProgress(
+                  value: chatMediaProgressValue(progress),
+                  size: 20,
+                  strokeWidth: 2,
                 ),
               ),
             );
@@ -190,40 +221,24 @@ class _ChatCachedAttachmentImageState extends State<ChatCachedAttachmentImage> {
     );
   }
 
+  ImageChunkEvent? _chunkFromEvent(ChatAttachmentBytesEvent event) {
+    if (event.hasBytes) return null;
+    return ImageChunkEvent(
+      cumulativeBytesLoaded: event.downloaded,
+      expectedTotalBytes: event.totalSize,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (kIsWeb) return _webImage();
 
-    return FutureBuilder<Uint8List?>(
+    return StreamBuilder<ChatAttachmentBytesEvent>(
       key: ValueKey('${widget.url}#$_retrySeed#${widget.loadRequested}'),
-      future: _bytesFuture,
+      stream: _bytesStream,
       builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          if (widget.loadingBuilder != null) {
-            return widget.loadingBuilder!(
-              context,
-              const SizedBox.shrink(),
-              null,
-            );
-          }
-          return SizedBox(
-            width: widget.width,
-            height: widget.height ?? 24,
-            child: const Center(
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
-          );
-        }
-        if (snapshot.hasError ||
-            !snapshot.hasData ||
-            snapshot.data == null ||
-            snapshot.data!.isEmpty) {
-          if (widget.loadPolicy == ChatAttachmentLoadPolicy.onDemand &&
-              !widget.loadRequested) {
+        if (snapshot.hasError) {
+          if (_cacheOnly) {
             if (widget.placeholderBuilder != null) {
               return widget.placeholderBuilder!(context);
             }
@@ -241,13 +256,56 @@ class _ChatCachedAttachmentImageState extends State<ChatCachedAttachmentImage> {
             ),
           );
         }
-        _maybeReportLoaded(snapshot.data!);
-        return Image.memory(
-          snapshot.data!,
-          width: widget.width,
-          height: widget.height,
-          fit: widget.fit,
-          gaplessPlayback: true,
+
+        final event = snapshot.data;
+        if (event != null && event.hasBytes) {
+          _maybeReportLoaded(event.bytes);
+          return Image.memory(
+            event.bytes!,
+            width: widget.width,
+            height: widget.height,
+            fit: widget.fit,
+            gaplessPlayback: true,
+          );
+        }
+
+        if (_cacheOnly &&
+            snapshot.connectionState == ConnectionState.done &&
+            (event == null || !event.hasBytes)) {
+          if (widget.placeholderBuilder != null) {
+            return widget.placeholderBuilder!(context);
+          }
+          return _defaultPlaceholder(context);
+        }
+
+        if (snapshot.connectionState == ConnectionState.done &&
+            (event == null || !event.hasBytes) &&
+            !_cacheOnly) {
+          if (widget.errorBuilder != null) {
+            return widget.errorBuilder!(context, null);
+          }
+          return InkWell(
+            onTap: _retry,
+            child: SizedBox(
+              width: widget.width,
+              height: widget.height ?? 40,
+              child: const Icon(Icons.refresh, size: 22),
+            ),
+          );
+        }
+
+        return _loadingWidget(
+          context,
+          event == null
+              ? const ImageChunkEvent(
+                  cumulativeBytesLoaded: 0,
+                  expectedTotalBytes: null,
+                )
+              : (_chunkFromEvent(event) ??
+                  const ImageChunkEvent(
+                    cumulativeBytesLoaded: 0,
+                    expectedTotalBytes: null,
+                  )),
         );
       },
     );

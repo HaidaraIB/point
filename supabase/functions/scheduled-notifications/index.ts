@@ -1374,6 +1374,17 @@ function taskIsEndedForReminders(raw: string | undefined | null): boolean {
   return TASK_ENDED_STATUSES_LOWER.has(s.toLowerCase());
 }
 
+/** محتوى منشور مسبقاً — لا نرسل تذكير اقتراب موعد النشر. */
+const CONTENT_PUBLISHED_STATUSES = new Set(
+  ["status_published", "تم النشر", "Published", "published"].map((s) => s.toLowerCase()),
+);
+
+function contentIsAlreadyPublishedForReminders(raw: string | undefined | null): boolean {
+  const s = (raw ?? "").trim();
+  if (!s) return false;
+  return CONTENT_PUBLISHED_STATUSES.has(s.toLowerCase());
+}
+
 /** حالات جارية — للفحص عن جمود/تحديث (يتطابق مع التطبيق). */
 const TASK_ONGOING_STATUSES: string[] = [
   "status_not_start_yet",
@@ -1942,9 +1953,12 @@ async function handlePublishReminders({
     .map(([id]) => id);
 
   const nowIso = now.toISOString();
-  const in1hIso = new Date(now.getTime() + 60 * 60 * 1000).toISOString();
+  /** Lead time before publishDate. Keep cron for mode=publish ≤ this (e.g. every 5–10 min). */
+  const PUBLISH_REMINDER_LEAD_MS = 15 * 60 * 1000;
+  const inLeadIso = new Date(now.getTime() + PUBLISH_REMINDER_LEAD_MS).toISOString();
+  const notifyStamp = nowIso;
 
-  // خلال ساعة (محدود)
+  // خلال ١٥ دقيقة — يستبعد المنشور فعلاً عبر الحالة أدناه
   const nearPublish = await runQuery({
     accessToken,
     projectId,
@@ -1955,7 +1969,7 @@ async function handlePublishReminders({
           op: "AND",
           filters: [
             { fieldFilter: { field: { fieldPath: "publishDate" }, op: "GREATER_THAN_OR_EQUAL", value: { stringValue: nowIso } } },
-            { fieldFilter: { field: { fieldPath: "publishDate" }, op: "LESS_THAN_OR_EQUAL", value: { stringValue: in1hIso } } },
+            { fieldFilter: { field: { fieldPath: "publishDate" }, op: "LESS_THAN_OR_EQUAL", value: { stringValue: inLeadIso } } },
           ],
         },
       },
@@ -1965,12 +1979,16 @@ async function handlePublishReminders({
 
   for (const doc of nearPublish) {
     const f = doc.fields as any;
+    const status = getStringField(f, "status") ?? "";
+    if (contentIsAlreadyPublishedForReminders(status)) continue;
+    if (getStringField(f, "publishSoonNotifiedAt")) continue;
+
     const title = (f?.title?.stringValue as string) ?? "منشور";
     const executor = (f?.executor?.stringValue as string) ?? "";
     const targetId = executor || publishDept[0];
     const target = targetId ? byEmpId.get(targetId) : null;
     if (!targetId || !target) continue;
-    const msgTitle = "تذكير نشر خلال ساعة";
+    const msgTitle = "تذكير نشر خلال ١٥ دقيقة";
     await sendEmailIfPolicyAllows("publish_post_one_hour", target.email ?? null, msgTitle, title);
     await sendFcm({
       accessToken,
@@ -1983,6 +2001,7 @@ async function handlePublishReminders({
       recipientKind: "employee",
       projectId,
     });
+    await patchTaskStringFields(accessToken, doc.name, { publishSoonNotifiedAt: notifyStamp });
   }
 }
 

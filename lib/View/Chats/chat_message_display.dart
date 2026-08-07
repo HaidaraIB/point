@@ -6,7 +6,9 @@ import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Utils/chat_message_bidi.dart';
 import 'package:point/Utils/media_url_opener.dart';
+import 'package:point/Services/chat_attachment_cache.dart';
 import 'package:point/View/Chats/chat_cached_attachment_image.dart';
+import 'package:point/View/Chats/chat_media_load_progress.dart';
 import 'package:point/View/Chats/chat_ui_helpers.dart';
 import 'package:point/Utils/chat_video_controller.dart';
 import 'package:point/View/Chats/chat_media_gallery.dart';
@@ -28,6 +30,16 @@ bool chatAttachmentIsVideo(String fileName) {
   if (dot < 0 || dot >= base.length - 1) return false;
   const v = {'mp4', 'mov', 'webm', 'm4v', 'avi', 'mkv'};
   return v.contains(base.substring(dot + 1).toLowerCase());
+}
+
+bool _fileNameLooksLikeImage(String? fileName) {
+  if (fileName == null) return false;
+  final base = fileName.trim().split('/').last.split('?').first.toLowerCase();
+  return base.endsWith('.png') ||
+      base.endsWith('.jpg') ||
+      base.endsWith('.jpeg') ||
+      base.endsWith('.gif') ||
+      base.endsWith('.webp');
 }
 
 bool _messageShowsAsVideo(
@@ -97,9 +109,19 @@ Widget chatMessageBubbleContent(
       );
     }
   }
-  if (type == 'image' && attachmentUrl != null && attachmentUrl.isNotEmpty) {
+  final showsAsImage = attachmentUrl != null &&
+      attachmentUrl.isNotEmpty &&
+      (type == 'image' ||
+          ((type == 'file' || type == null || type.isEmpty) &&
+              (isImageMediaUrl(attachmentUrl) ||
+                  _fileNameLooksLikeImage(msg['fileName'] as String?))));
+  if (showsAsImage) {
     final caption = text.trim();
-    final hasCaption = caption.isNotEmpty && caption != '📷';
+    final fn = (msg['fileName'] as String?)?.trim() ?? '';
+    final hasCaption = caption.isNotEmpty &&
+        caption != '📷' &&
+        caption != fn &&
+        caption != '📎';
     if (!hasCaption) {
       return _ChatImageBubble(
         url: attachmentUrl,
@@ -230,12 +252,26 @@ class _RetryableChatImage extends StatefulWidget {
 class _RetryableChatImageState extends State<_RetryableChatImage> {
   bool _loadRequested = false;
   bool _loaded = false;
+  int _retrySeed = 0;
+
+  Future<void> _retryLoad() async {
+    await ChatAttachmentCache.evictUrl(widget.url);
+    if (!mounted) return;
+    setState(() {
+      _retrySeed++;
+      _loaded = false;
+      _loadRequested = true;
+    });
+  }
 
   void _onTap() {
     if (!_loaded) {
       if (!_loadRequested) {
         setState(() => _loadRequested = true);
+        return;
       }
+      // Stuck or failed after a load attempt — allow tap to retry.
+      unawaited(_retryLoad());
       return;
     }
     unawaited(
@@ -252,6 +288,7 @@ class _RetryableChatImageState extends State<_RetryableChatImage> {
     return InkWell(
       onTap: _onTap,
       child: ChatCachedAttachmentImage(
+        key: ValueKey('chat_img_${widget.url}#$_retrySeed'),
         url: widget.url,
         width: widget.width,
         fit: widget.fit,
@@ -262,11 +299,24 @@ class _RetryableChatImageState extends State<_RetryableChatImage> {
           if (!mounted) return;
           setState(() => _loaded = true);
         },
-        loadingBuilder: (c, w, p) => SizedBox(
-          height: widget.loadingHeight,
-          width: widget.width,
-          child: const Center(child: CircularProgressIndicator()),
-        ),
+        loadingBuilder: (c, child, p) {
+          // Must return [child] when progress is null (image frame ready).
+          if (p == null) return child;
+          return SizedBox(
+            height: widget.loadingHeight,
+            width: widget.width,
+            child: Center(
+              child: ChatMediaCircularProgress(
+                value: chatMediaProgressValue(p),
+                size: 28,
+                strokeWidth: 2.2,
+                color: widget.isMe
+                    ? Colors.white70
+                    : Theme.of(c).colorScheme.primary,
+              ),
+            ),
+          );
+        },
         errorBuilder: (_, __) => SizedBox(
           height: widget.loadingHeight,
           width: widget.width,
@@ -319,12 +369,19 @@ class _ChatVideoBubbleState extends State<_ChatVideoBubble> {
   bool _failed = false;
   bool _loadRequested = false;
   bool _booting = false;
+  double? _loadProgress;
 
   Future<void> _boot() async {
     if (_booting) return;
     _booting = true;
     try {
-      final c = await chatVideoControllerForUrl(widget.url)
+      final c = await chatVideoControllerForUrl(
+        widget.url,
+        onProgress: (p) {
+          if (!mounted) return;
+          setState(() => _loadProgress = p);
+        },
+      )
         ..setLooping(false)
         ..setVolume(0);
       if (!mounted) {
@@ -373,15 +430,13 @@ class _ChatVideoBubbleState extends State<_ChatVideoBubble> {
       color: widget.isMe
           ? Colors.black.withValues(alpha: 0.22)
           : Colors.black.withValues(alpha: 0.07),
-      child: SizedBox(
-        width: 30,
-        height: 30,
-        child: CircularProgressIndicator(
-          strokeWidth: 2.2,
-          color: widget.isMe
-              ? Colors.white70
-              : Theme.of(context).colorScheme.primary,
-        ),
+      child: ChatMediaCircularProgress(
+        value: _loadProgress,
+        size: 30,
+        strokeWidth: 2.2,
+        color: widget.isMe
+            ? Colors.white70
+            : Theme.of(context).colorScheme.primary,
       ),
     );
     final idlePlaceholder = Material(

@@ -210,7 +210,7 @@ const Map<String, String> notifyTranslationsEn = {
   'notify.publish.rejected.action':
       'Review the rejection and address the notes.',
   'notify.publish.one_hour.title':
-      'Reminder: scheduled post will be published within an hour',
+      'Reminder: scheduled post will be published within 15 minutes',
   'notify.publish.one_hour.action':
       'Ensure the post is ready before publishing.',
   'notify.publish.today_not_confirmed.title':
@@ -466,7 +466,7 @@ const Map<String, String> notifyTranslationsAr = {
   'notify.publish.rejected.body': 'المحتوى: @title — العميل: @name',
   'notify.publish.rejected.action': 'يرجى مراجعة الرفض ومعالجة الملاحظات.',
   'notify.publish.one_hour.title':
-      'تذكير: لديك منشور مجدول سيتم نشره خلال ساعة',
+      'تذكير: لديك منشور مجدول سيتم نشره خلال ١٥ دقيقة',
   'notify.publish.one_hour.action':
       'يرجى التأكد من جاهزية المنشور قبل النشر.',
   'notify.publish.today_not_confirmed.title':

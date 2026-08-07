@@ -49,6 +49,7 @@ Future<PendingChatAttachment?> stageChatMediaUpload({
 }
 
 /// Upload a generic file attachment (no image compression).
+/// Image/video extensions are staged as media so bubbles render previews.
 Future<PendingChatAttachment?> stageChatFileUpload({
   required Uint8List bytes,
   required String fileName,
@@ -56,8 +57,21 @@ Future<PendingChatAttachment?> stageChatFileUpload({
   required HomeController home,
   ChatActivityWriter? activityWriter,
 }) async {
+  final isVid = chatAttachmentIsVideo(fileName);
+  final looksLikeImage = !isVid &&
+      (fileName.toLowerCase().endsWith('.png') ||
+          fileName.toLowerCase().endsWith('.jpg') ||
+          fileName.toLowerCase().endsWith('.jpeg') ||
+          fileName.toLowerCase().endsWith('.gif') ||
+          fileName.toLowerCase().endsWith('.webp'));
   try {
-    activityWriter?.setUploading(ChatUploadKind.file);
+    activityWriter?.setUploading(
+      isVid
+          ? ChatUploadKind.video
+          : looksLikeImage
+              ? ChatUploadKind.image
+              : ChatUploadKind.file,
+    );
     final url = await home.uploadFiles(
       filePathOrBytes: bytes,
       fileName: fileName,
@@ -65,6 +79,20 @@ Future<PendingChatAttachment?> stageChatFileUpload({
       chatScopeId: chatId,
     );
     if (url == null) return null;
+    if (isVid) {
+      return PendingChatAttachment(
+        messageType: 'video',
+        attachmentUrl: url,
+        fileName: fileName,
+      );
+    }
+    if (looksLikeImage) {
+      return PendingChatAttachment(
+        messageType: 'image',
+        attachmentUrl: url,
+        fileName: fileName,
+      );
+    }
     return PendingChatAttachment(
       messageType: 'file',
       attachmentUrl: url,

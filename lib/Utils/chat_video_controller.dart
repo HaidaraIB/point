@@ -5,5 +5,8 @@ import 'chat_video_controller_io.dart'
     if (dart.library.html) 'chat_video_controller_stub.dart' as impl;
 
 /// Prefer cached file on mobile; network URL on web or when cache fails.
-Future<VideoPlayerController> chatVideoControllerForUrl(String url) =>
-    impl.createChatVideoController(url, kIsWeb);
+Future<VideoPlayerController> chatVideoControllerForUrl(
+  String url, {
+  void Function(double? progress)? onProgress,
+}) =>
+    impl.createChatVideoController(url, kIsWeb, onProgress: onProgress);

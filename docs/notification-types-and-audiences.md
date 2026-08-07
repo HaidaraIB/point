@@ -39,7 +39,7 @@
 | `publish_client_edit_request` | نفس اتحاد الإدارة + قسم النشر. | `EditRequestSheet.dart` (+ إشعار المديرين بالملاحظات). |
 | `publish_client_approved` | نفس الاتحاد. | `ClientContentDetails.dart`. |
 | `publish_client_rejected` | نفس الاتحاد. | `RefuseRequestSheet.dart`. |
-| `publish_post_one_hour` | **موظف واحد**: المنفّذ `executor` على المحتوى، أو أول موظف من مجموعة النشر إن لم يُحدَّد. | **Cron** فقط: `handlePublishReminders`. لا يوجد `NotificationService` لهذا النوع. |
+| `publish_post_one_hour` | **موظف واحد**: المنفّذ `executor` على المحتوى، أو أول موظف من مجموعة النشر إن لم يُحدَّد. | **Cron** فقط: `handlePublishReminders` (نافذة ١٥ دقيقة قبل `publishDate`؛ يتخطّى `status_published`؛ حقل `publishSoonNotifiedAt` لمنع التكرار). لا يوجد `NotificationService` لهذا النوع. |
 | `publish_post_not_confirmed_today` | **موظف واحد** (`employeeId`) — حسب من يستدعي الدالة. | الدالة في `NotificationService` — **لا يوجد استدعاء من `lib/`**. |
 | `publish_no_posts_tomorrow` | **كل** موظفي النشر + الإدارة المطابقين لفلتر الكرون (`department === cat6` أو `admin`/`supervisor`)، لكل عميل بلا منشور مجدول غداً. | **Cron** فقط: `handlePublishReminders`. لا يوجد `NotificationService` لهذا النوع. |
 | `publish_post_published` | **قائمة موظفين** `recipientIds` (يحددها المتصل). | `notifyPublishDeptPostPublished` — **لا يوجد استدعاء من `lib/`**. |
@@ -114,7 +114,7 @@
 | `handleTaskReminders` — مهام متأخرة | `manager_task_overdue` | كل `admin` و`supervisor`. |
 | `handleTaskReminders` — اقتراب التسليم | `employee_task_due_soon` | الموظف المكلَّف `assignedTo`. |
 | `handleContentPendingOver24h` | `client_pending_over_24h` | العميل صاحب المحتوى. |
-| `handlePublishReminders` — منشور خلال ساعة | `publish_post_one_hour` | المنفّذ أو بديل من مجموعة النشر (انظر الكود). |
+| `handlePublishReminders` — منشور خلال ١٥ دقيقة | `publish_post_one_hour` | المنفّذ أو بديل من مجموعة النشر (انظر الكود؛ يتخطّى المنشور مسبقاً). |
 | `handlePublishReminders` — لا منشورات غداً | `publish_no_posts_tomorrow` | موظفو النشر + الإدارة المطابقون، لكل عميل بلا منشور غداً. |
 
 ---
