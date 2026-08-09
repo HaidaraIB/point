@@ -592,6 +592,10 @@ void programmingDialog(
                       Obx(
                         () => TaskFormDialogActions(
                           isLoading: controller.isLoading.value,
+                          onCancel: () {
+                            Navigator.pop(context);
+                            controller.uploadedFilesPaths.clear();
+                          },
                           onSave: () {
                                     final fallbackDate = DateTime.now();
                                     final effectiveStartAt = startAt ?? fallbackDate;

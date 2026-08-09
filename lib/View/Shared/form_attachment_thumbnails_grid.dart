@@ -57,6 +57,7 @@ class FormAttachmentThumbnailsGrid extends StatelessWidget {
       itemBuilder: (context, index) {
         final url = urls[index];
         return Stack(
+          key: ValueKey(url),
           clipBehavior: Clip.none,
           children: [
             Positioned.fill(

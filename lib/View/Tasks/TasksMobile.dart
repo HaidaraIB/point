@@ -21,8 +21,8 @@ import 'package:point/View/Tasks/Dialogs/MontageDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PhotographyDialog.dart';
 import 'package:point/View/Tasks/Dialogs/AdministrativeDialog.dart';
 import 'package:point/View/Tasks/Dialogs/ProgrammingDialog.dart';
-import 'package:point/View/Tasks/ProgrammingUpdates/add_programming_update_dialog.dart';
 import 'package:point/View/Tasks/ProgrammingUpdates/programming_department_tabs.dart';
+import 'package:point/View/Tasks/ProgrammingUpdates/programming_suggestions_panel.dart';
 import 'package:point/View/Tasks/Dialogs/PromotionDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PublishDialog.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
@@ -55,10 +55,9 @@ class TasksMobile extends StatelessWidget {
     return GetBuilder<HomeController>(
       builder: (controller) {
         return Obx(() {
-          final List<TaskModel> tasks =
-              controller.tasksSearched
-                  .where((a) => a.type == selectedIndex.toString())
-                  .toList();
+          final List<TaskModel> tasks = controller.tasksSearched
+              .where((a) => a.type == selectedIndex.toString())
+              .toList();
           final bottomPadding = MediaQuery.of(context).padding.bottom + 32.0;
 
           return CustomScrollView(
@@ -143,6 +142,8 @@ class TasksMobile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 10),
+                const ProgrammingSuggestionsCard(),
+                const SizedBox(height: 20),
                 _buildStats(context, controller, tasks),
                 const SizedBox(height: 15),
                 _buildFilters(context, controller),
@@ -185,8 +186,8 @@ class TasksMobile extends StatelessWidget {
     final safeIndex = selectedIndex < 0
         ? 0
         : (selectedIndex >= _departmentRouteSlugs.length
-            ? _departmentRouteSlugs.length - 1
-            : selectedIndex);
+              ? _departmentRouteSlugs.length - 1
+              : selectedIndex);
     final labelKey = StorageKeys.semanticDepartmentLabelKey(
       _departmentRouteSlugs[safeIndex],
     );
@@ -205,101 +206,66 @@ class TasksMobile extends StatelessWidget {
             ),
           ],
         ),
-        if (safeIndex == 6) ...[
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: MainButton(
-                  margin: EdgeInsets.zero,
-                  height: 44,
-                  borderSize: 35,
-                  fontColor: Colors.white,
-                  backgroundColor: AppColors.primary,
-                  title: 'programming.updates.add'.tr,
-                  fontSize: 12,
-                  onPressed: () {
-                    controller.uploadedFilesPaths.clear();
-                    showAddProgrammingUpdateDialog(context);
-                  },
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: MainButton(
-                  margin: EdgeInsets.zero,
-                  height: 44,
-                  borderSize: 35,
-                  fontColor: Colors.white,
-                  backgroundColor: AppColors.primary,
-                  title: 'addnewtask'.tr,
-                  fontSize: 12,
-                  onPressed: () {
-                    controller.uploadedFilesPaths.clear();
-                    programmingDialog(context);
-                  },
-                ),
-              ),
-            ],
-          ),
-        ] else
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: MainButton(
-                width: 178,
-                height: 45,
-                borderSize: 35,
-                fontColor: Colors.white,
-                backgroundColor: AppColors.primary,
-                widget: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'addnewtask'.tr,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                    const Icon(
-                      Icons.add_circle_outline_rounded,
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: MainButton(
+              width: 178,
+              height: 45,
+              borderSize: 35,
+              fontColor: Colors.white,
+              backgroundColor: AppColors.primary,
+              widget: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'addnewtask'.tr,
+                    style: TextStyle(
                       color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
                     ),
-                  ],
-                ),
-                onPressed: () {
-                  controller.uploadedFilesPaths.clear();
-                  switch (selectedIndex) {
-                    case 0:
-                      showPromotionDialog(context);
-                      break;
-                    case 1:
-                      designDialog(context);
-                      break;
-                    case 2:
-                      photographyDialog(context);
-                      break;
-                    case 3:
-                      contentWriteDialog(context);
-                      break;
-                    case 4:
-                      montageDialog(context);
-                      break;
-                    case 5:
-                      publishDialog(context);
-                      break;
-                    case 7:
-                      administrationDialog(context);
-                      break;
-                    default:
-                  }
-                },
+                  ),
+                  const Icon(
+                    Icons.add_circle_outline_rounded,
+                    color: Colors.white,
+                  ),
+                ],
               ),
+              onPressed: () {
+                controller.uploadedFilesPaths.clear();
+                switch (selectedIndex) {
+                  case 0:
+                    showPromotionDialog(context);
+                    break;
+                  case 1:
+                    designDialog(context);
+                    break;
+                  case 2:
+                    photographyDialog(context);
+                    break;
+                  case 3:
+                    contentWriteDialog(context);
+                    break;
+                  case 4:
+                    montageDialog(context);
+                    break;
+                  case 5:
+                    publishDialog(context);
+                    break;
+                  case 6:
+                    programmingDialog(context);
+                    break;
+                  case 7:
+                    administrationDialog(context);
+                    break;
+                  default:
+                }
+              },
             ),
           ),
+        ),
       ],
     );
   }
@@ -326,10 +292,7 @@ class TasksMobile extends StatelessWidget {
         for (final e in perStatus)
           _buildStatBox(
             e.value.toString(),
-            FunHelper.trStored(
-              e.key,
-              kind: StoredValueKind.taskStatus,
-            ),
+            FunHelper.trStored(e.key, kind: StoredValueKind.taskStatus),
             TaskStatusVisuals.iconTintFor(e.key),
             width: boxWidth,
           ),
@@ -350,7 +313,7 @@ class TasksMobile extends StatelessWidget {
     final boxWidth = width ?? (Get.width / 5 - 30);
     return Container(
       decoration: BoxDecoration(
-              color: resolveAppTheme().cardSurface,
+        color: resolveAppTheme().cardSurface,
         borderRadius: BorderRadius.circular(10),
       ),
       width: boxWidth,

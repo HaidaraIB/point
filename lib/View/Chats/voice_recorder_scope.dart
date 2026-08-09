@@ -290,10 +290,12 @@ class VoiceRecorderController extends ChangeNotifier {
         fileName: uploadName,
         useBlockingUploadDialog: false,
         chatScopeId: scopeId,
+        // Voice notes are surfaced via [onSaved], not the shared attachments
+        // list — other staged uploads (e.g. images) must survive this call.
+        addToUploadedFilesPathsList: false,
       );
       if (url != null) {
         await onSaved?.call(url, sec);
-        c.uploadedFilesPaths.clear();
       }
     } finally {
       activityWriter?.setUploading(null);

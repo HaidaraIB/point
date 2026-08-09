@@ -24,8 +24,8 @@ import 'package:point/View/Tasks/Dialogs/MontageDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PhotographyDialog.dart';
 import 'package:point/View/Tasks/Dialogs/AdministrativeDialog.dart';
 import 'package:point/View/Tasks/Dialogs/ProgrammingDialog.dart';
-import 'package:point/View/Tasks/ProgrammingUpdates/add_programming_update_dialog.dart';
 import 'package:point/View/Tasks/ProgrammingUpdates/programming_department_tabs.dart';
+import 'package:point/View/Tasks/ProgrammingUpdates/programming_suggestions_panel.dart';
 import 'package:point/View/Tasks/Dialogs/PromotionDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PublishDialog.dart';
 import 'package:point/View/Tasks/TaskCard.dart';
@@ -84,10 +84,9 @@ class Tasks extends StatelessWidget {
                       SingleChildScrollView(
                         child: Container(
                           padding: EdgeInsets.all(10),
-                          width:
-                              Responsive.isDesktop(context)
-                                  ? Get.width - 270
-                                  : Get.width,
+                          width: Responsive.isDesktop(context)
+                              ? Get.width - 270
+                              : Get.width,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -104,39 +103,6 @@ class Tasks extends StatelessWidget {
                                     ),
                                   ),
                                   Spacer(),
-                                  if (selectedIndex == 6) ...[
-                                    MainButton(
-                                      width: 150,
-                                      height: 45,
-                                      borderSize: 35,
-                                      fontColor: Colors.white,
-                                      backgroundColor: AppColors.primary,
-                                      widget: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Text(
-                                            'programming.updates.add'.tr,
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                          const Icon(
-                                            Icons.update,
-                                            color: Colors.white,
-                                            size: 18,
-                                          ),
-                                        ],
-                                      ),
-                                      onPressed: () {
-                                        controller.uploadedFilesPaths.clear();
-                                        showAddProgrammingUpdateDialog(context);
-                                      },
-                                    ),
-                                    const SizedBox(width: 8),
-                                  ],
                                   MainButton(
                                     width: 178,
                                     height: 45,
@@ -197,99 +163,89 @@ class Tasks extends StatelessWidget {
                               ),
                               SizedBox(height: 10),
                               if (selectedIndex == 6)
-                                SizedBox(
-                                  height: MediaQuery.of(context).size.height -
-                                      180,
-                                  child: ProgrammingDepartmentTabs(
-                                    initialTabIndex:
-                                        programmingUpdatesTabFromRoute(),
-                                    tasksTab: SingleChildScrollView(
-                                      child: _buildProgrammingTasksDesktopBody(
-                                        context,
-                                        controller,
-                                        selectedIndex,
-                                      ),
-                                    ),
+                                ProgrammingDepartmentTabs(
+                                  initialTabIndex:
+                                      programmingUpdatesTabFromRoute(),
+                                  expandContent: false,
+                                  tasksTab: _buildProgrammingTasksDesktopBody(
+                                    context,
+                                    controller,
+                                    selectedIndex,
                                   ),
                                 )
                               else ...[
-                              Obx(() {
-                                final tasks =
-                                    controller.tasksSearched
-                                        .where(
-                                          (a) =>
-                                              a.type ==
-                                              selectedIndex.toString(),
-                                        )
-                                        .toList();
-                                final isDesktop = Responsive.isDesktop(
-                                  Get.context!,
-                                );
-                                final boxWidth =
-                                    isDesktop
-                                        ? null
-                                        : (Get.width / 5 - 30).clamp(
+                                Obx(() {
+                                  final tasks = controller.tasksSearched
+                                      .where(
+                                        (a) =>
+                                            a.type == selectedIndex.toString(),
+                                      )
+                                      .toList();
+                                  final isDesktop = Responsive.isDesktop(
+                                    Get.context!,
+                                  );
+                                  final boxWidth = isDesktop
+                                      ? null
+                                      : (Get.width / 5 - 30).clamp(
                                           88.0,
                                           double.infinity,
                                         );
-                                final perStatus =
-                                    taskManagementOngoingStatEntriesOrdered(
-                                      tasks: tasks,
-                                      taskType: selectedIndex.toString(),
-                                    );
-                                final statRow = Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    _buildStatBox(
-                                      tasks.length.toString(),
-                                      'employee.dashboard.total_tasks'.tr,
-                                      Colors.blue,
-                                      width: boxWidth,
-                                    ),
-                                    for (final e in perStatus)
+                                  final perStatus =
+                                      taskManagementOngoingStatEntriesOrdered(
+                                        tasks: tasks,
+                                        taskType: selectedIndex.toString(),
+                                      );
+                                  final statRow = Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
                                       _buildStatBox(
-                                        e.value.toString(),
-                                        FunHelper.trStored(
-                                          e.key,
-                                          kind: StoredValueKind.taskStatus,
-                                        ),
-                                        TaskStatusVisuals.iconTintFor(e.key),
+                                        tasks.length.toString(),
+                                        'employee.dashboard.total_tasks'.tr,
+                                        Colors.blue,
                                         width: boxWidth,
                                       ),
-                                  ],
-                                );
-                                // تمرير أفقي على كل الأحجام: صناديق الإحصاءات كثيرة وقد تتجاوز عرض الشاشة.
-                                return SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: statRow,
-                                );
-                              }),
+                                      for (final e in perStatus)
+                                        _buildStatBox(
+                                          e.value.toString(),
+                                          FunHelper.trStored(
+                                            e.key,
+                                            kind: StoredValueKind.taskStatus,
+                                          ),
+                                          TaskStatusVisuals.iconTintFor(e.key),
+                                          width: boxWidth,
+                                        ),
+                                    ],
+                                  );
+                                  // تمرير أفقي على كل الأحجام: صناديق الإحصاءات كثيرة وقد تتجاوز عرض الشاشة.
+                                  return SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    child: statRow,
+                                  );
+                                }),
 
-                              SizedBox(height: 15),
-                              _buildDesktopFilters(
-                                context,
-                                controller,
-                                selectedIndex,
-                              ),
-                              SizedBox(height: 15),
-                              Text(
-                                'tasks.summary.sent_tasks'.tr,
-                                style: TextStyle(
-                                  color: resolveAppTheme().secondaryText,
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
+                                SizedBox(height: 15),
+                                _buildDesktopFilters(
+                                  context,
+                                  controller,
+                                  selectedIndex,
                                 ),
-                              ),
-                              SizedBox(
-                                width:
-                                    Responsive.isDesktop(context)
-                                        ? Get.width - 300
-                                        : Get.width,
-                                height: 620,
-                                child: TasksGridPage(
-                                  selectedIndex: selectedIndex,
+                                SizedBox(height: 15),
+                                Text(
+                                  'tasks.summary.sent_tasks'.tr,
+                                  style: TextStyle(
+                                    color: resolveAppTheme().secondaryText,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
-                              ),
+                                SizedBox(
+                                  width: Responsive.isDesktop(context)
+                                      ? Get.width - 300
+                                      : Get.width,
+                                  child: TasksGridPage(
+                                    selectedIndex: selectedIndex,
+                                  ),
+                                ),
                               ],
                             ],
                           ),
@@ -314,6 +270,17 @@ class Tasks extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const ProgrammingSuggestionsCard(),
+        const SizedBox(height: 20),
+        Text(
+          'programming.tab.tasks'.tr,
+          style: TextStyle(
+            color: resolveAppTheme().secondaryText,
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 10),
         Obx(() {
           final tasks = controller.tasksSearched
               .where((a) => a.type == selectedIndex.toString())
@@ -338,10 +305,7 @@ class Tasks extends StatelessWidget {
               for (final e in perStatus)
                 _buildStatBox(
                   e.value.toString(),
-                  FunHelper.trStored(
-                    e.key,
-                    kind: StoredValueKind.taskStatus,
-                  ),
+                  FunHelper.trStored(e.key, kind: StoredValueKind.taskStatus),
                   TaskStatusVisuals.iconTintFor(e.key),
                   width: boxWidth,
                 ),
@@ -365,7 +329,6 @@ class Tasks extends StatelessWidget {
         ),
         SizedBox(
           width: Responsive.isDesktop(context) ? Get.width - 300 : Get.width,
-          height: 620,
           child: TasksGridPage(selectedIndex: selectedIndex),
         ),
       ],
@@ -394,7 +357,7 @@ class Tasks extends StatelessWidget {
         width ?? (isDesktop ? Get.width / 5 - 78 : Get.width / 5 - 30);
     return Container(
       decoration: BoxDecoration(
-              color: resolveAppTheme().cardSurface,
+        color: resolveAppTheme().cardSurface,
         borderRadius: BorderRadius.circular(10),
       ),
       width: boxWidth,
@@ -450,12 +413,13 @@ class TasksGridPage extends StatelessWidget {
       child: GetBuilder<HomeController>(
         builder: (controller) {
           return Obx(() {
-            final tasks =
-                controller.tasksSearched
-                    .where((a) => a.type == selectedIndex.toString())
-                    .toList();
+            final tasks = controller.tasksSearched
+                .where((a) => a.type == selectedIndex.toString())
+                .toList();
             return GridView.builder(
               itemCount: tasks.length,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: Responsive.isDesktop(Get.context!) ? 3 : 1,
 

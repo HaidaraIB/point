@@ -4,170 +4,18 @@ import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/ProgrammingUpdateModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppColors.dart';
-import 'package:point/Utils/merge_programming_updates.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DProgrammingDialog.dart';
-import 'package:point/View/Tasks/Dialogs/ProgrammingDialog.dart';
-import 'package:point/View/Tasks/ProgrammingUpdates/add_programming_update_dialog.dart';
 import 'package:point/View/Tasks/ProgrammingUpdates/programming_update_details.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 
-/// Pending updates list with multi-select and create-task action.
-class ProgrammingPendingUpdatesPanel extends StatefulWidget {
-  const ProgrammingPendingUpdatesPanel({super.key});
-
-  @override
-  State<ProgrammingPendingUpdatesPanel> createState() =>
-      _ProgrammingPendingUpdatesPanelState();
-}
-
-class _ProgrammingPendingUpdatesPanelState
-    extends State<ProgrammingPendingUpdatesPanel> {
-  final Set<String> _selectedIds = {};
-
-  void _toggleSelect(String id, List<ProgrammingUpdateModel> allPending) {
-    if (_selectedIds.contains(id)) {
-      setState(() => _selectedIds.remove(id));
-      return;
-    }
-
-    if (_selectedIds.isNotEmpty) {
-      final anchor = allPending.firstWhereOrNull(
-        (u) => u.id != null && _selectedIds.contains(u.id),
-      );
-      final candidate = allPending.firstWhereOrNull((u) => u.id == id);
-      if (anchor != null &&
-          candidate != null &&
-          !canMergeProgrammingUpdates(anchor, candidate)) {
-        FunHelper.showSnackbar(
-          'programming.updates.form_title'.tr,
-          'programming.updates.merge_selection_mismatch'.tr,
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.orange.shade800,
-          colorText: Colors.white,
-        );
-        return;
-      }
-    }
-
-    setState(() => _selectedIds.add(id));
-  }
-
-  Future<void> _deleteUpdate(ProgrammingUpdateModel update) async {
-    final id = update.id;
-    if (id == null || id.isEmpty) return;
-    final confirmed = await Get.dialog<bool>(
-      AlertDialog(
-        title: Text('common.confirm'.tr),
-        content: Text('programming.updates.delete_confirm'.tr),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(result: false),
-            child: Text('common.cancel'.tr),
-          ),
-          TextButton(
-            onPressed: () => Get.back(result: true),
-            child: Text('delete'.tr),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true) return;
-    await Get.find<HomeController>().deleteProgrammingUpdate(id);
-    if (mounted) setState(() => _selectedIds.remove(id));
-  }
-
-  void _createTaskFromSelection(List<ProgrammingUpdateModel> allPending) {
-    final selected = allPending
-        .where((u) => u.id != null && _selectedIds.contains(u.id))
-        .toList();
-    if (selected.isEmpty) return;
-
-    final mergeIssue = validateProgrammingUpdatesMerge(selected);
-    if (mergeIssue != null) {
-      FunHelper.showSnackbar(
-        'programming.updates.form_title'.tr,
-        mergeIssue.tr,
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.orange.shade800,
-        colorText: Colors.white,
-      );
-      return;
-    }
-
-    final draft = buildTaskDraftFromUpdates(selected);
-    programmingDialog(
-      context,
-      model: draft,
-      sourceUpdates: selected,
-    );
-    setState(() => _selectedIds.clear());
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Obx(() {
-      final pending = Get.find<HomeController>()
-          .programmingUpdates
-          .where((u) => u.isPending)
-          .toList();
-
-      return Stack(
-        children: [
-          ProgrammingUpdatesList(
-            items: pending,
-            selectable: true,
-            selectedIds: _selectedIds,
-            onToggle: (id) => _toggleSelect(id, pending),
-            onEdit: (u) => showAddProgrammingUpdateDialog(context, model: u),
-            onView: (u) => showProgrammingUpdateDetails(context, update: u),
-            onDelete: _deleteUpdate,
-            emptyMessage: 'programming.updates.empty_pending'.tr,
-          ),
-          if (_selectedIds.isNotEmpty)
-            Positioned(
-              left: 16,
-              right: 16,
-              bottom: 16 + MediaQuery.paddingOf(context).bottom,
-              child: Material(
-                elevation: 4,
-                borderRadius: BorderRadius.circular(28),
-                color: context.appTheme.navSurface,
-                child: InkWell(
-                  onTap: () => _createTaskFromSelection(pending),
-                  borderRadius: BorderRadius.circular(28),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 14,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.task_alt, color: Colors.white),
-                        const SizedBox(width: 8),
-                        Text(
-                          'programming.updates.create_task'
-                              .trParams({'count': '${_selectedIds.length}'}),
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      );
-    });
-  }
-}
-
 /// Read-only list of updates grouped by the task they were merged into.
 class ProgrammingConvertedUpdatesPanel extends StatelessWidget {
-  const ProgrammingConvertedUpdatesPanel({super.key});
+  /// When `true` (desktop, embedded in an outer unbounded scroll view) the
+  /// list sizes itself and doesn't scroll on its own. When `false` (mobile,
+  /// bounded by an [Expanded] ancestor) the list scrolls natively.
+  final bool shrinkWrap;
+
+  const ProgrammingConvertedUpdatesPanel({super.key, this.shrinkWrap = true});
 
   static List<_ConvertedTaskGroup> _groupUpdates(
     List<ProgrammingUpdateModel> converted,
@@ -215,6 +63,8 @@ class ProgrammingConvertedUpdatesPanel extends StatelessWidget {
       final groups = _groupUpdates(converted);
 
       return ListView.separated(
+        shrinkWrap: shrinkWrap,
+        physics: shrinkWrap ? const NeverScrollableScrollPhysics() : null,
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
         itemCount: groups.length,
         separatorBuilder: (_, __) => const SizedBox(height: 12),
@@ -311,9 +161,10 @@ class _ConvertedTaskGroupCardState extends State<_ConvertedTaskGroupCard> {
     return Card(
       clipBehavior: Clip.antiAlias,
       elevation: 0,
+      color: context.appTheme.cardSurface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade300),
+        side: BorderSide(color: context.appTheme.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -459,9 +310,9 @@ class _ConvertedUpdateRow extends StatelessWidget {
                   height: 28,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
+                    color: context.appTheme.panelTint,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey.shade300),
+                    border: Border.all(color: context.appTheme.border),
                   ),
                   child: Text(
                     '$index',
@@ -544,179 +395,16 @@ class _ConvertedUpdateRow extends StatelessWidget {
                 ),
                 Icon(
                   Icons.chevron_left,
-                  color: Colors.grey.shade400,
+                  color: context.appTheme.mutedText,
                   size: 20,
                 ),
               ],
             ),
           ),
         ),
-        if (showDivider) Divider(height: 1, color: Colors.grey.shade200),
+        if (showDivider)
+          Divider(height: 1, color: context.appTheme.border),
       ],
-    );
-  }
-}
-
-class ProgrammingUpdatesList extends StatelessWidget {
-  final List<ProgrammingUpdateModel> items;
-  final bool selectable;
-  final Set<String> selectedIds;
-  final ValueChanged<String> onToggle;
-  final void Function(ProgrammingUpdateModel)? onEdit;
-  final void Function(ProgrammingUpdateModel)? onView;
-  final Future<void> Function(ProgrammingUpdateModel)? onDelete;
-  final String emptyMessage;
-  final bool showTaskLink;
-
-  const ProgrammingUpdatesList({
-    super.key,
-    required this.items,
-    required this.selectable,
-    required this.selectedIds,
-    required this.onToggle,
-    required this.onEdit,
-    this.onView,
-    required this.onDelete,
-    required this.emptyMessage,
-    this.showTaskLink = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    if (items.isEmpty) {
-      return Center(
-        child: Text(
-          emptyMessage,
-          style: TextStyle(color: context.appTheme.mutedText),
-        ),
-      );
-    }
-
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
-      itemCount: items.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
-      itemBuilder: (context, index) {
-        final item = items[index];
-        final id = item.id ?? '';
-        final title = item.title.trim().isNotEmpty
-            ? item.title.trim()
-            : 'programming.updates.update_n'.trParams({'n': '${index + 1}'});
-
-        return Card(
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (selectable && id.isNotEmpty)
-                  Checkbox(
-                    value: selectedIds.contains(id),
-                    onChanged: (_) => onToggle(id),
-                  ),
-                Expanded(
-                  child: InkWell(
-                    onTap: () => onView?.call(item),
-                    borderRadius: BorderRadius.circular(8),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 2),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            title,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 15,
-                            ),
-                          ),
-                          if (item.description.trim().isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              item.description.trim(),
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: context.appTheme.mutedText,
-                              ),
-                            ),
-                          ],
-                          const SizedBox(height: 6),
-                          Text(
-                            FunHelper.formatdate(item.createdAt) ?? '',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: context.appTheme.mutedText,
-                            ),
-                          ),
-                          Wrap(
-                            spacing: 6,
-                            runSpacing: 4,
-                            children: [
-                              if (item.files.isNotEmpty)
-                                Chip(
-                                  label: Text(
-                                    'programming.updates.attachments_count'
-                                        .trParams({'count': '${item.files.length}'}),
-                                  ),
-                                  visualDensity: VisualDensity.compact,
-                                ),
-                              if (item.voiceRecords.isNotEmpty ||
-                                  item.voiceRecordUrl.trim().isNotEmpty)
-                                Chip(
-                                  label: Text('tasks.form.voice_record'.tr),
-                                  visualDensity: VisualDensity.compact,
-                                ),
-                            ],
-                          ),
-                          if (showTaskLink &&
-                              (item.convertedToTaskId ?? '').isNotEmpty)
-                            TextButton.icon(
-                              onPressed: () {
-                                final taskId = item.convertedToTaskId!;
-                                final task = Get.find<HomeController>()
-                                    .tasks
-                                    .firstWhereOrNull((t) => t.id == taskId);
-                                if (task != null) {
-                                  showProgrammingDialog(context, task: task);
-                                }
-                              },
-                              icon: const Icon(Icons.open_in_new, size: 16),
-                              label: Text('programming.updates.open_task'.tr),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                if (onEdit != null || onView != null || onDelete != null)
-                  PopupMenuButton<String>(
-                    onSelected: (v) async {
-                      if (v == 'view') onView?.call(item);
-                      if (v == 'edit') onEdit?.call(item);
-                      if (v == 'delete') await onDelete?.call(item);
-                    },
-                    itemBuilder: (_) => [
-                      if (onView != null)
-                        PopupMenuItem(
-                          value: 'view',
-                          child: Text('programming.updates.view_details'.tr),
-                        ),
-                      if (onEdit != null)
-                        PopupMenuItem(value: 'edit', child: Text('edit'.tr)),
-                      if (onDelete != null)
-                        PopupMenuItem(
-                          value: 'delete',
-                          child: Text('delete'.tr),
-                        ),
-                    ],
-                  ),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 }

@@ -1903,10 +1903,6 @@ class HomeController extends GetxController {
     }
   }
 
-  int get pendingProgrammingUpdatesCount => programmingUpdates
-      .where((u) => u.isPending)
-      .length;
-
   Future<bool> addProgrammingUpdate(ProgrammingUpdateModel update) async {
     isLoading.value = true;
     final emp = currentEmployee.value;
