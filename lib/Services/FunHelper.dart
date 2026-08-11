@@ -213,7 +213,14 @@ class FunHelper {
 
   /// حالات يظهر فيها للمشرف خيارا الموافقة المباشرة أو الإرسال للمدير.
   /// أي حالة **جارية** ما عدا [status_awaiting_manager] (المهمة عند المدير بالفعل).
-  static bool taskStatusAllowsSupervisorDirectOrEscalate(String status) {
+  ///
+  /// مهام الترويج (`taskType == '0'`) مستثناة كلياً لأن لها مسار حالات خاص —
+  /// يُمرَّر [taskType] لأن حالات مثل [status_not_start_yet] مشتركة بين الأقسام.
+  static bool taskStatusAllowsSupervisorDirectOrEscalate(
+    String status, {
+    String? taskType,
+  }) {
+    if (taskType == '0') return false;
     final k = canonicalStoredStatus(status);
     if (StorageKeys.promotionTaskStatusList.contains(k)) return false;
     if (k == StorageKeys.status_awaiting_manager) return false;

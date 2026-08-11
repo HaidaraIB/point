@@ -409,6 +409,7 @@ class TasksGridPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final defaultScrollBehavior = ScrollConfiguration.of(context);
     return Container(
       child: GetBuilder<HomeController>(
         builder: (controller) {
@@ -416,54 +417,68 @@ class TasksGridPage extends StatelessWidget {
             final tasks = controller.tasksSearched
                 .where((a) => a.type == selectedIndex.toString())
                 .toList();
-            return GridView.builder(
-              itemCount: tasks.length,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: Responsive.isDesktop(Get.context!) ? 3 : 1,
+            return ScrollConfiguration(
+              // الشبكة غير قابلة للتمرير، لذا لا داعي لشريط تمرير ثابت
+              behavior: defaultScrollBehavior.copyWith(scrollbars: false),
+              child: GridView.builder(
+                itemCount: tasks.length,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: Responsive.isDesktop(Get.context!) ? 3 : 1,
 
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 1.35,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 1.35,
+                ),
+                itemBuilder: (context, index) {
+                  return ScrollConfiguration(
+                    // إبقاء أشرطة التمرير الافتراضية داخل البطاقات
+                    behavior: defaultScrollBehavior,
+                    child: TaskCard(
+                      task: tasks[index],
+                      onTap: () {
+                        switch (selectedIndex) {
+                          case 0:
+                            showCampaignDetailsDialog(
+                              context,
+                              task: tasks[index],
+                            );
+                            break;
+                          case 1:
+                            showDesignDetailsDialog(
+                              context,
+                              task: tasks[index],
+                            );
+                            break;
+                          case 2:
+                            showDPhotographyDialog(context, task: tasks[index]);
+                            break;
+                          case 3:
+                            showContentWriteDialog(context, task: tasks[index]);
+                            break;
+                          case 4:
+                            showMontageDialog(context, task: tasks[index]);
+                            break;
+                          case 5:
+                            showPublishDialog(context, task: tasks[index]);
+                            break;
+                          case 6:
+                            showProgrammingDialog(context, task: tasks[index]);
+                            break;
+                          case 7:
+                            showAdministrativeTaskDetailsDialog(
+                              context,
+                              task: tasks[index],
+                            );
+                            break;
+                          default:
+                        }
+                      },
+                    ),
+                  );
+                },
               ),
-              itemBuilder: (context, index) {
-                return TaskCard(
-                  task: tasks[index],
-                  onTap: () {
-                    switch (selectedIndex) {
-                      case 0:
-                        showCampaignDetailsDialog(context, task: tasks[index]);
-                        break;
-                      case 1:
-                        showDesignDetailsDialog(context, task: tasks[index]);
-                        break;
-                      case 2:
-                        showDPhotographyDialog(context, task: tasks[index]);
-                        break;
-                      case 3:
-                        showContentWriteDialog(context, task: tasks[index]);
-                        break;
-                      case 4:
-                        showMontageDialog(context, task: tasks[index]);
-                        break;
-                      case 5:
-                        showPublishDialog(context, task: tasks[index]);
-                        break;
-                      case 6:
-                        showProgrammingDialog(context, task: tasks[index]);
-                        break;
-                      case 7:
-                        showAdministrativeTaskDetailsDialog(
-                          context,
-                          task: tasks[index],
-                        );
-                        break;
-                      default:
-                    }
-                  },
-                );
-              },
             );
           });
         },

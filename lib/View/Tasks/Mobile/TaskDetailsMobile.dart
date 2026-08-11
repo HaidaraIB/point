@@ -1466,7 +1466,10 @@ class TaskDetailsMobilePage extends StatelessWidget {
     final isEmployee = role == 'employee';
     final canEscalate =
         role == 'supervisor' &&
-        FunHelper.taskStatusAllowsSupervisorDirectOrEscalate(task.status);
+        FunHelper.taskStatusAllowsSupervisorDirectOrEscalate(
+          task.status,
+          taskType: task.type,
+        );
     final hideAccept = FunHelper.supervisorShouldHideTaskAccept(
       role,
       task.status,

@@ -846,8 +846,11 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                                 title: titleController.text,
                                                 description:
                                                     notesController.text,
+                                                // مهمة جديدة تبدأ «لم تبدأ بعد»؛
+                                                // الموظف المكلَّف هو من ينقلها
+                                                // إلى «قيد التنفيذ (ترويج)».
                                                 status: StorageKeys
-                                                    .status_promotion_in_progress,
+                                                    .status_not_start_yet,
                                                 notes: [
                                                   if (notesController
                                                       .text
@@ -928,7 +931,7 @@ void showPromotionDialog(BuildContext context, {TaskModel? model}) {
                                                   priority:
                                                       priorityController.text,
                                                   status: StorageKeys
-                                                      .status_promotion_in_progress,
+                                                      .status_not_start_yet,
                                                   platforms: platforms,
                                                   attachementurl:
                                                       attachmentController

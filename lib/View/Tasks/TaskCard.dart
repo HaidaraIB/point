@@ -54,7 +54,7 @@ class TaskCard extends StatelessWidget {
       margin: const EdgeInsets.all(8),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-              color: context.appTheme.cardSurface,
+        color: context.appTheme.cardSurface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -86,11 +86,13 @@ class TaskCard extends StatelessWidget {
                           role == 'supervisor' &&
                           FunHelper.taskStatusAllowsSupervisorDirectOrEscalate(
                             task.status,
+                            taskType: task.type,
                           );
-                      final hideAccept = FunHelper.supervisorShouldHideTaskAccept(
-                        role,
-                        task.status,
-                      );
+                      final hideAccept =
+                          FunHelper.supervisorShouldHideTaskAccept(
+                            role,
+                            task.status,
+                          );
                       return Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -112,398 +114,421 @@ class TaskCard extends StatelessWidget {
                                 ),
                               ),
                               child: PopupMenuButton<int>(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              color: context.appTheme.cardSurface,
-                              elevation: 4,
-                              itemBuilder: (context) {
-                                final items = <PopupMenuEntry<int>>[
-                                  PopupMenuItem(
-                                    value: 0,
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text('tasks.view'.tr),
-                                        Icon(
-                                          Icons.remove_red_eye_outlined,
-                                          color: Colors.green,
-                                          size: 20,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  PopupMenuItem(
-                                    value: 1,
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          canEditDirectly
-                                              ? 'edit'.tr
-                                              : 'tasks.request_edit'.tr,
-                                        ),
-                                        Icon(
-                                          Icons.edit_outlined,
-                                          color: Colors.blueAccent,
-                                          size: 20,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  PopupMenuItem(
-                                    value: 2,
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text('delete'.tr),
-                                        Icon(
-                                          Icons.delete_outline,
-                                          color: Colors.red,
-                                          size: 20,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  PopupMenuItem(
-                                    value: 3,
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text('tasks.reject'.tr),
-                                        Icon(
-                                          Icons.close_rounded,
-                                          color: Colors.red,
-                                          size: 20,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  if (canEditDirectly &&
-                                      _taskInManagementReview(task))
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                color: context.appTheme.cardSurface,
+                                elevation: 4,
+                                itemBuilder: (context) {
+                                  final items = <PopupMenuEntry<int>>[
                                     PopupMenuItem(
-                                      value: 70,
+                                      value: 0,
                                       child: Row(
                                         mainAxisAlignment:
                                             MainAxisAlignment.spaceBetween,
                                         children: [
-                                          Text(
-                                            'tasks.request_modification_menu'
-                                                .tr,
-                                          ),
+                                          Text('tasks.view'.tr),
                                           Icon(
-                                            Icons.edit_note_outlined,
-                                            color: Colors.deepOrange,
+                                            Icons.remove_red_eye_outlined,
+                                            color: Colors.green,
                                             size: 20,
                                           ),
                                         ],
                                       ),
                                     ),
-                                ];
-                                if (canEscalate && task.type != '0') {
-                                  items.add(
                                     PopupMenuItem(
-                                      value: 4,
+                                      value: 1,
                                       child: Row(
                                         mainAxisAlignment:
                                             MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text(
+                                            canEditDirectly
+                                                ? 'edit'.tr
+                                                : 'tasks.request_edit'.tr,
+                                          ),
+                                          Icon(
+                                            Icons.edit_outlined,
+                                            color: Colors.blueAccent,
+                                            size: 20,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 2,
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text('delete'.tr),
+                                          Icon(
+                                            Icons.delete_outline,
+                                            color: Colors.red,
+                                            size: 20,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 3,
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text('tasks.reject'.tr),
+                                          Icon(
+                                            Icons.close_rounded,
+                                            color: Colors.red,
+                                            size: 20,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    if (canEditDirectly &&
+                                        _taskInManagementReview(task))
+                                      PopupMenuItem(
+                                        value: 70,
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              'tasks.request_modification_menu'
+                                                  .tr,
+                                            ),
+                                            Icon(
+                                              Icons.edit_note_outlined,
+                                              color: Colors.deepOrange,
+                                              size: 20,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                  ];
+                                  if (canEscalate && task.type != '0') {
+                                    items.add(
+                                      PopupMenuItem(
+                                        value: 4,
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              'tasks.supervisor_approve_direct'
+                                                  .tr,
+                                            ),
+                                            Icon(
+                                              Icons.check,
+                                              color: Colors.green,
+                                              size: 20,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                    items.add(
+                                      PopupMenuItem(
+                                        value: 5,
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              'tasks.supervisor_send_to_manager'
+                                                  .tr,
+                                            ),
+                                            Icon(
+                                              Icons.forward_to_inbox_rounded,
+                                              color: Colors.indigo,
+                                              size: 20,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  } else if (!hideAccept) {
+                                    items.add(
+                                      PopupMenuItem(
+                                        value: 4,
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text('tasks.accept'.tr),
+                                            Icon(
+                                              Icons.check,
+                                              color: Colors.green,
+                                              size: 20,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                  if (task.type == '0' && canEditDirectly) {
+                                    items.add(
+                                      const PopupMenuDivider(height: 12),
+                                    );
+                                    items.add(
+                                      PopupMenuItem(
+                                        value: 20,
+                                        child: TaskStatusVisuals.popupMenuRow(
+                                          context: context,
+                                          label: StorageKeys
+                                              .status_promotion_in_progress
+                                              .tr,
+                                          rawOrCanonicalForIcon: StorageKeys
+                                              .status_promotion_in_progress,
+                                        ),
+                                      ),
+                                    );
+                                    items.add(
+                                      PopupMenuItem(
+                                        value: 21,
+                                        child: TaskStatusVisuals.popupMenuRow(
+                                          context: context,
+                                          label: StorageKeys
+                                              .status_promotion_ad_platform_review
+                                              .tr,
+                                          rawOrCanonicalForIcon: StorageKeys
+                                              .status_promotion_ad_platform_review,
+                                        ),
+                                      ),
+                                    );
+                                    items.add(
+                                      PopupMenuItem(
+                                        value: 22,
+                                        child: TaskStatusVisuals.popupMenuRow(
+                                          context: context,
+                                          label: StorageKeys
+                                              .status_promotion_running
+                                              .tr,
+                                          rawOrCanonicalForIcon: StorageKeys
+                                              .status_promotion_running,
+                                        ),
+                                      ),
+                                    );
+                                    items.add(
+                                      PopupMenuItem(
+                                        value: 23,
+                                        child: TaskStatusVisuals.popupMenuRow(
+                                          context: context,
+                                          label: StorageKeys
+                                              .status_promotion_finished
+                                              .tr,
+                                          rawOrCanonicalForIcon: StorageKeys
+                                              .status_promotion_finished,
+                                        ),
+                                      ),
+                                    );
+                                  } else if (task.type != '0' &&
+                                      canEditDirectly) {
+                                    // Same quick status paths as [EmployeeTaskCard]
+                                    // (non–promotion tasks; type encodes department workflow).
+                                    items.add(
+                                      const PopupMenuDivider(height: 12),
+                                    );
+                                    items.add(
+                                      PopupMenuItem(
+                                        value: 60,
+                                        child: TaskStatusVisuals.popupMenuRow(
+                                          context: context,
+                                          label:
+                                              StorageKeys.status_processing.tr,
+                                          rawOrCanonicalForIcon:
+                                              StorageKeys.status_processing,
+                                        ),
+                                      ),
+                                    );
+                                    items.add(
+                                      PopupMenuItem(
+                                        value: 61,
+                                        child: TaskStatusVisuals.popupMenuRow(
+                                          context: context,
+                                          label: StorageKeys
+                                              .status_under_revision
+                                              .tr,
+                                          rawOrCanonicalForIcon:
+                                              StorageKeys.status_under_revision,
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                  return items;
+                                },
+                                onSelected: (value) {
+                                  if (value == 0) {
+                                    onTap();
+                                  } else if (value == 1) {
+                                    switch (task.type) {
+                                      case '0':
+                                        showPromotionDialog(
+                                          context,
+                                          model: task,
+                                        );
+                                        break;
+                                      case '1':
+                                        designDialog(context, model: task);
+                                        break;
+                                      case '2':
+                                        photographyDialog(context, model: task);
+                                        break;
+                                      case '3':
+                                        contentWriteDialog(
+                                          context,
+                                          model: task,
+                                        );
+                                        break;
+                                      case '4':
+                                        montageDialog(context, model: task);
+                                        break;
+                                      case '5':
+                                        publishDialog(context, model: task);
+                                        break;
+                                      case '6':
+                                        programmingDialog(context, model: task);
+                                        break;
+                                      case '7':
+                                        administrationDialog(
+                                          context,
+                                          model: task,
+                                        );
+                                        break;
+                                      default:
+                                    }
+                                  } else if (value == 2) {
+                                    FunHelper.showConfirmDailog(
+                                      context,
+                                      title: 'tasks.confirm_delete_title'.tr,
+                                      message:
+                                          'tasks.confirm_delete_message'.tr,
+                                      confirmText: 'delete'.tr,
+                                      confirmColor: Colors.red,
+                                      onTap: () async {
+                                        await Get.find<HomeController>()
+                                            .deleteTask(task.id!);
+                                      },
+                                    );
+                                  } else if (value == 3) {
+                                    showRejectTaskDialog(
+                                      context: context,
+                                      task: task,
+                                    );
+                                  } else if (value == 70) {
+                                    showRequestTaskModificationDialog(
+                                      context: context,
+                                      task: task,
+                                    );
+                                  } else if (value >= 20 &&
+                                      value <= 23 &&
+                                      task.type == '0') {
+                                    final st = [
+                                      StorageKeys.status_promotion_in_progress,
+                                      StorageKeys
+                                          .status_promotion_ad_platform_review,
+                                      StorageKeys.status_promotion_running,
+                                      StorageKeys.status_promotion_finished,
+                                    ][value - 20];
+                                    Get.find<HomeController>().updateTask(
+                                      task.copyWithPromotionStatusAligned(st),
+                                    );
+                                  } else if (value == 4) {
+                                    if (canEscalate) {
+                                      FunHelper.showConfirmDailog(
+                                        context,
+                                        title:
+                                            'tasks.confirm_supervisor_approve_direct_title'
+                                                .tr,
+                                        message:
+                                            'tasks.confirm_supervisor_approve_direct_message'
+                                                .tr,
+                                        confirmText:
                                             'tasks.supervisor_approve_direct'
                                                 .tr,
-                                          ),
-                                          Icon(
-                                            Icons.check,
-                                            color: Colors.green,
-                                            size: 20,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                  items.add(
-                                    PopupMenuItem(
-                                      value: 5,
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            'tasks.supervisor_send_to_manager'
-                                                .tr,
-                                          ),
-                                          Icon(
-                                            Icons.forward_to_inbox_rounded,
-                                            color: Colors.indigo,
-                                            size: 20,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                } else if (!hideAccept) {
-                                  items.add(
-                                    PopupMenuItem(
-                                      value: 4,
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text('tasks.accept'.tr),
-                                          Icon(
-                                            Icons.check,
-                                            color: Colors.green,
-                                            size: 20,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                }
-                                if (task.type == '0' && canEditDirectly) {
-                                  items.add(const PopupMenuDivider(height: 12));
-                                  items.add(
-                                    PopupMenuItem(
-                                      value: 20,
-                                      child: TaskStatusVisuals.popupMenuRow(context: context,
-                                        label: StorageKeys
-                                            .status_promotion_in_progress
-                                            .tr,
-                                        rawOrCanonicalForIcon:
-                                            StorageKeys.status_promotion_in_progress,
-                                      ),
-                                    ),
-                                  );
-                                  items.add(
-                                    PopupMenuItem(
-                                      value: 21,
-                                      child: TaskStatusVisuals.popupMenuRow(context: context,
-                                        label: StorageKeys
-                                            .status_promotion_ad_platform_review
-                                            .tr,
-                                        rawOrCanonicalForIcon: StorageKeys
-                                            .status_promotion_ad_platform_review,
-                                      ),
-                                    ),
-                                  );
-                                  items.add(
-                                    PopupMenuItem(
-                                      value: 22,
-                                      child: TaskStatusVisuals.popupMenuRow(context: context,
-                                        label: StorageKeys.status_promotion_running
-                                            .tr,
-                                        rawOrCanonicalForIcon:
-                                            StorageKeys.status_promotion_running,
-                                      ),
-                                    ),
-                                  );
-                                  items.add(
-                                    PopupMenuItem(
-                                      value: 23,
-                                      child: TaskStatusVisuals.popupMenuRow(context: context,
-                                        label: StorageKeys.status_promotion_finished
-                                            .tr,
-                                        rawOrCanonicalForIcon:
-                                            StorageKeys.status_promotion_finished,
-                                      ),
-                                    ),
-                                  );
-                                } else if (task.type != '0' && canEditDirectly) {
-                                  // Same quick status paths as [EmployeeTaskCard]
-                                  // (non–promotion tasks; type encodes department workflow).
-                                  items.add(const PopupMenuDivider(height: 12));
-                                  items.add(
-                                    PopupMenuItem(
-                                      value: 60,
-                                      child: TaskStatusVisuals.popupMenuRow(context: context,
-                                        label: StorageKeys.status_processing.tr,
-                                        rawOrCanonicalForIcon:
-                                            StorageKeys.status_processing,
-                                      ),
-                                    ),
-                                  );
-                                  items.add(
-                                    PopupMenuItem(
-                                      value: 61,
-                                      child: TaskStatusVisuals.popupMenuRow(context: context,
-                                        label: StorageKeys.status_under_revision.tr,
-                                        rawOrCanonicalForIcon:
-                                            StorageKeys.status_under_revision,
-                                      ),
-                                    ),
-                                  );
-                                }
-                                return items;
-                              },
-                              onSelected: (value) {
-                                if (value == 0) {
-                                  onTap();
-                                } else if (value == 1) {
-                                  switch (task.type) {
-                                    case '0':
-                                      showPromotionDialog(context, model: task);
-                                      break;
-                                    case '1':
-                                      designDialog(context, model: task);
-                                      break;
-                                    case '2':
-                                      photographyDialog(
-                                        context,
-                                        model: task,
+                                        confirmColor: Colors.green,
+                                        onTap: () async {
+                                          final next = task.type == '0'
+                                              ? task.copyWithPromotionStatusAligned(
+                                                  StorageKeys.status_approved,
+                                                )
+                                              : task.copyWith(
+                                                  status: StorageKeys
+                                                      .status_approved,
+                                                );
+                                          await Get.find<HomeController>()
+                                              .updateTask(next);
+                                        },
                                       );
-                                      break;
-                                    case '3':
-                                      contentWriteDialog(context, model: task);
-                                      break;
-                                    case '4':
-                                      montageDialog(context, model: task);
-                                      break;
-                                    case '5':
-                                      publishDialog(context, model: task);
-                                      break;
-                                    case '6':
-                                      programmingDialog(context, model: task);
-                                      break;
-                                    case '7':
-                                      administrationDialog(context, model: task);
-                                      break;
-                                    default:
-                                  }
-                                } else if (value == 2) {
-                                  FunHelper.showConfirmDailog(
-                                    context,
-                                    title: 'tasks.confirm_delete_title'.tr,
-                                    message: 'tasks.confirm_delete_message'.tr,
-                                    confirmText: 'delete'.tr,
-                                    confirmColor: Colors.red,
-                                    onTap: () async {
-                                      await Get.find<HomeController>()
-                                          .deleteTask(task.id!);
-                                    },
-                                  );
-                                } else if (value == 3) {
-                                  showRejectTaskDialog(
-                                    context: context,
-                                    task: task,
-                                  );
-                                } else if (value == 70) {
-                                  showRequestTaskModificationDialog(
-                                    context: context,
-                                    task: task,
-                                  );
-                                } else if (value >= 20 &&
-                                    value <= 23 &&
-                                    task.type == '0') {
-                                  final st = [
-                                    StorageKeys.status_promotion_in_progress,
-                                    StorageKeys
-                                        .status_promotion_ad_platform_review,
-                                    StorageKeys.status_promotion_running,
-                                    StorageKeys.status_promotion_finished,
-                                  ][value - 20];
-                                  Get.find<HomeController>().updateTask(
-                                    task.copyWithPromotionStatusAligned(st),
-                                  );
-                                } else if (value == 4) {
-                                  if (canEscalate) {
+                                    } else {
+                                      FunHelper.showConfirmDailog(
+                                        context,
+                                        title: 'tasks.confirm_accept_title'.tr,
+                                        message:
+                                            'tasks.confirm_accept_message'.tr,
+                                        confirmText: 'tasks.accept'.tr,
+                                        confirmColor: Colors.green,
+                                        onTap: () async {
+                                          final next = task.type == '0'
+                                              ? task.copyWithPromotionStatusAligned(
+                                                  StorageKeys.status_approved,
+                                                )
+                                              : task.copyWith(
+                                                  status: StorageKeys
+                                                      .status_approved,
+                                                );
+                                          await Get.find<HomeController>()
+                                              .updateTask(next);
+                                        },
+                                      );
+                                    }
+                                  } else if (value == 5) {
                                     FunHelper.showConfirmDailog(
                                       context,
                                       title:
-                                          'tasks.confirm_supervisor_approve_direct_title'
+                                          'tasks.confirm_send_to_manager_title'
                                               .tr,
                                       message:
-                                          'tasks.confirm_supervisor_approve_direct_message'
+                                          'tasks.confirm_send_to_manager_message'
                                               .tr,
                                       confirmText:
-                                          'tasks.supervisor_approve_direct'.tr,
-                                      confirmColor: Colors.green,
+                                          'tasks.supervisor_send_to_manager'.tr,
+                                      confirmColor: Colors.indigo,
                                       onTap: () async {
-                                        final next =
-                                            task.type == '0'
-                                                ? task.copyWithPromotionStatusAligned(
-                                                    StorageKeys.status_approved,
-                                                  )
-                                                : task.copyWith(
-                                                    status: StorageKeys
-                                                        .status_approved,
-                                                  );
                                         await Get.find<HomeController>()
-                                            .updateTask(next);
+                                            .updateTask(
+                                              task.copyWith(
+                                                status: StorageKeys
+                                                    .status_awaiting_manager,
+                                              ),
+                                            );
                                       },
                                     );
-                                  } else {
-                                    FunHelper.showConfirmDailog(
-                                      context,
-                                      title: 'tasks.confirm_accept_title'.tr,
-                                      message:
-                                          'tasks.confirm_accept_message'.tr,
-                                      confirmText: 'tasks.accept'.tr,
-                                      confirmColor: Colors.green,
-                                      onTap: () async {
-                                        final next =
-                                            task.type == '0'
-                                                ? task.copyWithPromotionStatusAligned(
-                                                    StorageKeys.status_approved,
-                                                  )
-                                                : task.copyWith(
-                                                    status: StorageKeys
-                                                        .status_approved,
-                                                  );
-                                        await Get.find<HomeController>()
-                                            .updateTask(next);
-                                      },
+                                  } else if (value == 60 &&
+                                      task.type != '0' &&
+                                      canEditDirectly) {
+                                    Get.find<HomeController>().updateTask(
+                                      task.copyWith(
+                                        status: StorageKeys.status_processing,
+                                      ),
+                                    );
+                                  } else if (value == 61 &&
+                                      task.type != '0' &&
+                                      canEditDirectly) {
+                                    // Match quick "In progress" (60): set status directly. Do not use
+                                    // [openTaskFinalWorkDialog] — for admin/supervisor it opens the
+                                    // final-deliverable editor instead of changing status.
+                                    Get.find<HomeController>().updateTask(
+                                      task.copyWith(
+                                        status:
+                                            StorageKeys.status_under_revision,
+                                      ),
                                     );
                                   }
-                                } else if (value == 5) {
-                                  FunHelper.showConfirmDailog(
-                                    context,
-                                    title:
-                                        'tasks.confirm_send_to_manager_title'.tr,
-                                    message:
-                                        'tasks.confirm_send_to_manager_message'
-                                            .tr,
-                                    confirmText:
-                                        'tasks.supervisor_send_to_manager'.tr,
-                                    confirmColor: Colors.indigo,
-                                    onTap: () async {
-                                      await Get.find<HomeController>()
-                                          .updateTask(
-                                            task.copyWith(
-                                              status: StorageKeys
-                                                  .status_awaiting_manager,
-                                            ),
-                                          );
-                                    },
-                                  );
-                                } else if (value == 60 &&
-                                    task.type != '0' &&
-                                    canEditDirectly) {
-                                  Get.find<HomeController>().updateTask(
-                                    task.copyWith(
-                                      status: StorageKeys.status_processing,
-                                    ),
-                                  );
-                                } else if (value == 61 &&
-                                    task.type != '0' &&
-                                    canEditDirectly) {
-                                  // Match quick "In progress" (60): set status directly. Do not use
-                                  // [openTaskFinalWorkDialog] — for admin/supervisor it opens the
-                                  // final-deliverable editor instead of changing status.
-                                  Get.find<HomeController>().updateTask(
-                                    task.copyWith(
-                                      status:
-                                          StorageKeys.status_under_revision,
-                                    ),
-                                  );
-                                }
-                              },
-                              child: const Icon(Icons.more_vert),
-                              tooltip: 'tasks.options_tooltip'.tr,
-                            ),
+                                },
+                                child: const Icon(Icons.more_vert),
+                                tooltip: 'tasks.options_tooltip'.tr,
+                              ),
                             ),
                           ),
                         ],
@@ -537,7 +562,9 @@ class TaskCard extends StatelessWidget {
                     final cs = theme.colorScheme;
                     const stripPurple = AppColors.primary;
                     final stripBg = context.appTheme.panelTint;
-                    final stripBorder = AppColors.primary.withValues(alpha: 0.35);
+                    final stripBorder = AppColors.primary.withValues(
+                      alpha: 0.35,
+                    );
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       mainAxisSize: MainAxisSize.min,
@@ -630,28 +657,25 @@ class TaskCard extends StatelessWidget {
                                           shape: const CircleBorder(),
                                           elevation: 0,
                                         ),
-                                        onPressed:
-                                            req == null
-                                                ? null
-                                                : () async {
-                                                  await hc.updateTask(
-                                                    live.copyWith(
-                                                      toDate: req,
-                                                      deadlineExtensionStatus:
-                                                          '',
-                                                      deadlineExtensionReason:
-                                                          '',
-                                                      deadlineExtensionRequestedAt:
-                                                          '',
-                                                      deadlineExtensionRequestedBy:
-                                                          '',
-                                                      deadlineExtensionDeniedNote:
-                                                          '',
-                                                      clearDeadlineExtensionRequestedTo:
-                                                          true,
-                                                    ),
-                                                  );
-                                                },
+                                        onPressed: req == null
+                                            ? null
+                                            : () async {
+                                                await hc.updateTask(
+                                                  live.copyWith(
+                                                    toDate: req,
+                                                    deadlineExtensionStatus: '',
+                                                    deadlineExtensionReason: '',
+                                                    deadlineExtensionRequestedAt:
+                                                        '',
+                                                    deadlineExtensionRequestedBy:
+                                                        '',
+                                                    deadlineExtensionDeniedNote:
+                                                        '',
+                                                    clearDeadlineExtensionRequestedTo:
+                                                        true,
+                                                  ),
+                                                );
+                                              },
                                         icon: const Icon(
                                           Icons.check_rounded,
                                           size: 20,
@@ -682,12 +706,11 @@ class TaskCard extends StatelessWidget {
                                           ),
                                           elevation: 0,
                                         ),
-                                        onPressed:
-                                            () =>
-                                                TaskDetailsFeedbackWidgets.showDenyDeadlineExtensionDialog(
-                                                  context,
-                                                  live,
-                                                ),
+                                        onPressed: () =>
+                                            TaskDetailsFeedbackWidgets.showDenyDeadlineExtensionDialog(
+                                              context,
+                                              live,
+                                            ),
                                         icon: const Icon(
                                           Icons.close_rounded,
                                           size: 20,
@@ -756,12 +779,11 @@ class TaskCard extends StatelessWidget {
                                   ? '${StorageKeys.supabaseStorageBaseUrl}/Avatar.png'
                                   : task.assignedImageUrl,
                               radius: 14,
-                              displayName:
-                                  Get.find<HomeController>().employees
-                                      .firstWhereOrNull(
-                                        (emp) => emp.id == task.assignedTo,
-                                      )
-                                      ?.name,
+                              displayName: Get.find<HomeController>().employees
+                                  .firstWhereOrNull(
+                                    (emp) => emp.id == task.assignedTo,
+                                  )
+                                  ?.name,
                             ),
                             const SizedBox(width: 6),
                             Expanded(
@@ -876,9 +898,9 @@ class TaskCard extends StatelessWidget {
                                   ?.role ??
                               '';
                           if (!shouldShowPrimaryFinalWorkTaskButton(
-                                task,
-                                role,
-                              )) {
+                            task,
+                            role,
+                          )) {
                             return const SizedBox.shrink();
                           }
                           return Column(
@@ -962,7 +984,8 @@ Color _getPriorityColor(String priority) {
 
 Color _getprioritybgColor(BuildContext context, String priority) {
   final fg = _getPriorityColor(priority);
-  if (Theme.of(context).brightness == Brightness.dark) return fg.withValues(alpha: 0.18);
+  if (Theme.of(context).brightness == Brightness.dark)
+    return fg.withValues(alpha: 0.18);
   switch (priority) {
     case 'normal':
       return Colors.blue.shade50;
@@ -1018,7 +1041,8 @@ Color _getStatusColor(String status) {
 
 Color _getStatusbgColor(BuildContext context, String status) {
   final fg = _getStatusColor(status);
-  if (Theme.of(context).brightness == Brightness.dark) return fg.withValues(alpha: 0.18);
+  if (Theme.of(context).brightness == Brightness.dark)
+    return fg.withValues(alpha: 0.18);
   switch (status) {
     case StorageKeys.status_under_revision:
       return Colors.blue.shade50;
@@ -1069,7 +1093,7 @@ class OptionsMenu extends StatelessWidget {
     return Container(
       width: 150,
       decoration: BoxDecoration(
-              color: context.appTheme.cardSurface,
+        color: context.appTheme.cardSurface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(

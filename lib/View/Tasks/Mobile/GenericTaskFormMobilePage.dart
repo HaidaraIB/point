@@ -523,7 +523,9 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
         return _applyVoice(TaskModel(
           title: titleController.text,
           description: notesController.text,
-          status: StorageKeys.status_promotion_in_progress,
+          // مهمة جديدة تبدأ «لم تبدأ بعد»؛ الموظف المكلَّف هو من ينقلها
+          // إلى «قيد التنفيذ (ترويج)» — مثل بقية الأقسام.
+          status: StorageKeys.status_not_start_yet,
           priority: priorityController.text,
           fromDate: effectiveStartAt,
           toDate: effectiveEndAt,
@@ -540,7 +542,7 @@ class _GenericTaskFormMobilePageState extends State<GenericTaskFormMobilePage> {
             campaignName: titleController.text,
             type: '0',
             priority: priorityController.text,
-            status: StorageKeys.status_promotion_in_progress,
+            status: StorageKeys.status_not_start_yet,
             duration: durationPromoController.text,
             campaignBudget:
                 campaignBudgetPromoController.text.trim().isEmpty

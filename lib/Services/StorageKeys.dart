@@ -138,7 +138,11 @@ class StorageKeys {
   ];
 
   /// جارية في لوحة مهام الترويج (قبل انتهاء الترويج).
+  ///
+  /// تبدأ مهمة الترويج بـ [status_not_start_yet] مثل بقية الأقسام، ثم ينقلها
+  /// الموظف المكلَّف إلى [status_promotion_in_progress].
   static const List<String> promotionTaskStatusListOngoing = [
+    status_not_start_yet,
     status_promotion_in_progress,
     status_promotion_ad_platform_review,
     status_promotion_running,
@@ -146,7 +150,6 @@ class StorageKeys {
 
   /// مهام ترويج قديمة ما زالت تستخدم حالات مسار النشر العام.
   static const Set<String> legacyPromotionOngoingTaskStatuses = {
-    status_not_start_yet,
     status_processing,
     status_under_revision,
     status_in_edit,
