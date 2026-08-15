@@ -40,9 +40,11 @@ workflows:
           BUILD_FROM_PUB=$(echo "$VERSION_LINE" | cut -d'+' -f2)
           [ -n "$NAME" ] || NAME="1.0.0"
           [ -n "$BUILD_FROM_PUB" ] || BUILD_FROM_PUB="1"
-          echo "FLUTTER_BUILD_NAME=$NAME" >> "$CM_ENV"
-          echo "FLUTTER_BUILD_NUMBER=$BUILD_FROM_PUB" >> "$CM_ENV"
-          echo "✅ FLUTTER_BUILD_NAME=$NAME FLUTTER_BUILD_NUMBER=$BUILD_FROM_PUB (from pubspec: $VERSION_LINE)"
+          # Do not export FLUTTER_BUILD_NAME / FLUTTER_BUILD_NUMBER — Flutter
+          # reserves those env vars and refuses to run if they are set.
+          echo "APP_VERSION=$NAME" >> "$CM_ENV"
+          echo "APP_BUILD_NUMBER=$BUILD_FROM_PUB" >> "$CM_ENV"
+          echo "✅ APP_VERSION=$NAME APP_BUILD_NUMBER=$BUILD_FROM_PUB (from pubspec: $VERSION_LINE)"
       - name: Install CocoaPods dependencies
         script: |
           cd ios && pod install
@@ -117,6 +119,7 @@ workflows:
           # cloud_firestore 6.3.x + firebase-ios-sdk 12.14.0 via SPM fails in FLTPipelineParser; 6.5.0 pins SDK 12.13.0.
           rm -rf build/ios/SourcePackages
           rm -rf ~/Library/Caches/org.swift.swiftpm
+          unset FLUTTER_BUILD_NAME FLUTTER_BUILD_NUMBER
           set +e
           flutter build ipa \
             --release \
@@ -128,8 +131,8 @@ workflows:
             --dart-define=R2_SIGNER_URL="$R2_SIGNER_URL" \
             --dart-define=R2_PUBLIC_BASE_URL="$R2_PUBLIC_BASE_URL" \
             --export-options-plist /tmp/ExportOptions.plist \
-            --build-name="${FLUTTER_BUILD_NAME}" \
-            --build-number="${FLUTTER_BUILD_NUMBER}"
+            --build-name="${APP_VERSION}" \
+            --build-number="${APP_BUILD_NUMBER}"
           FLUTTER_EXIT=$?
           set -e
           if [ -d build/ios/ipa ] && [ -n "$(ls -A build/ios/ipa 2>/dev/null)" ]; then
