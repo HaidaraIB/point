@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/widgets.dart';
@@ -16,9 +18,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   WidgetsFlutterBinding.ensureInitialized();
   if (Firebase.apps.isEmpty) {
     try {
-      await Firebase.initializeApp(
-        options: FirebaseAppOptions.currentPlatform,
-      );
+      await Firebase.initializeApp(options: FirebaseAppOptions.currentPlatform);
     } on FirebaseException catch (e) {
       if (!e.code.contains('duplicate-app')) rethrow;
     }
@@ -35,8 +35,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   }
 
   // Base FCM data uses type=internal; chat pushes use notificationType=chat_message.
-  final notificationType =
-      data['notificationType']?.toString().trim() ?? '';
+  final notificationType = data['notificationType']?.toString().trim() ?? '';
   final legacyType = data['type']?.toString().trim() ?? '';
   if (notificationType == 'chat_message' || legacyType == 'chat_message') {
     await chat_notifications.NotificationService.instance.init();
@@ -49,20 +48,23 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // Non-chat pushes from send-fcm already include a system-level notification
   // payload, so showing another local one here would duplicate it.
   if (message.notification != null) {
-    appLog('FCM background non-chat: skip local duplicate (system notification present)');
+    appLog(
+      'FCM background non-chat: skip local duplicate (system notification present)',
+    );
     return;
   }
 
-  final title =
-      (message.notification?.title ?? data['title']?.toString() ?? '').trim();
+  final title = (message.notification?.title ?? data['title']?.toString() ?? '')
+      .trim();
   if (title.isEmpty) return;
-  final body =
-      (message.notification?.body ?? data['body']?.toString() ?? '').trim();
+  final body = (message.notification?.body ?? data['body']?.toString() ?? '')
+      .trim();
 
   await ensureAppLocalNotificationsInitialized();
   final android = appLocalNotificationsPlugin
       .resolvePlatformSpecificImplementation<
-      AndroidFlutterLocalNotificationsPlugin>();
+        AndroidFlutterLocalNotificationsPlugin
+      >();
   if (android == null) return;
 
   final rawFromData = data['pushSoundBase']?.toString();
@@ -72,7 +74,9 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
           notificationType.isEmpty ? null : notificationType,
         );
   final channelId = pushChannelIdForSoundBase(soundBase);
-  final channelName = soundBase != null ? 'Point: $soundBase' : 'General Notifications';
+  final channelName = soundBase != null
+      ? 'Point: $soundBase'
+      : 'General Notifications';
   await android.createNotificationChannel(
     AndroidNotificationChannel(
       channelId,
@@ -80,7 +84,9 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
       description: 'Point push notifications',
       importance: Importance.high,
       playSound: true,
-      sound: soundBase == null ? null : RawResourceAndroidNotificationSound(soundBase),
+      sound: soundBase == null
+          ? null
+          : RawResourceAndroidNotificationSound(soundBase),
     ),
   );
 
@@ -97,6 +103,9 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     title: title,
     body: body,
     notificationDetails: NotificationDetails(android: androidDetails),
+    payload: jsonEncode(
+      data.map((k, v) => MapEntry(k.toString(), v?.toString() ?? '')),
+    ),
   );
 }
 

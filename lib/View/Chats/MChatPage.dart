@@ -55,11 +55,13 @@ class ChatsListScreen extends StatefulWidget {
   // نحافظ على المتغيرات التي كانت موجودة في الشاشة الأصلية
   final VoidCallback onMinimize;
   final bool isFloatingPopUp;
+  final String? initialChatId;
 
   const ChatsListScreen({
     super.key,
     required this.onMinimize,
     this.isFloatingPopUp = false,
+    this.initialChatId,
   });
 
   @override
@@ -95,6 +97,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
   int _chatsEnrichGen = 0;
   final Set<String> _legacyPreviewFetched = {};
   Worker? _presenceWorker;
+  bool _didOpenInitialChat = false;
 
   DateTime? _presenceOf(String? employeeId) {
     final id = employeeId?.trim() ?? '';
@@ -104,7 +107,8 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
 
   bool _isOnlinePresence(DateTime? at) {
     if (at == null) return false;
-    return DateTime.now().difference(at.toLocal()) <= kEmployeePresenceOnlineWindow;
+    return DateTime.now().difference(at.toLocal()) <=
+        kEmployeePresenceOnlineWindow;
   }
 
   void _syncPresenceWatchFromChats(List<Map<String, dynamic>> chats) {
@@ -169,7 +173,9 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
     super.initState();
     if (Get.isRegistered<HomeController>()) {
       final hc = Get.find<HomeController>();
-      _presenceWorker = ever<Map<String, DateTime>>(hc.employeePresenceById, (_) {
+      _presenceWorker = ever<Map<String, DateTime>>(hc.employeePresenceById, (
+        _,
+      ) {
         if (!mounted) return;
         setState(() {});
       });
@@ -554,6 +560,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
       _chats = [];
       _loadingChats = false;
       if (mounted) setState(() {});
+      unawaited(_maybeOpenInitialChat());
       return;
     }
 
@@ -562,18 +569,17 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
       final id = c['id'] as String;
       final isGroup = c['isGroup'] == true;
       final preview = (c['lastMessage'] ?? '').toString().trim();
-      if (!isGroup &&
-          preview.isEmpty &&
-          !_legacyPreviewFetched.contains(id)) {
+      if (!isGroup && preview.isEmpty && !_legacyPreviewFetched.contains(id)) {
         needsLegacy.add(id);
       }
     }
     if (needsLegacy.isNotEmpty) {
       _legacyPreviewFetched.addAll(needsLegacy);
-      final previews = await FirestoreServices.fetchLatestMessagePreviewsForChatIds(
-        _firestore,
-        needsLegacy,
-      );
+      final previews =
+          await FirestoreServices.fetchLatestMessagePreviewsForChatIds(
+            _firestore,
+            needsLegacy,
+          );
       for (final c in built) {
         final id = c['id'] as String;
         final p = previews[id];
@@ -588,6 +594,39 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
     _loadingChats = false;
     _syncPresenceWatchFromChats(_chats);
     if (mounted) setState(() {});
+    unawaited(_maybeOpenInitialChat());
+  }
+
+  Future<void> _maybeOpenInitialChat() async {
+    if (_didOpenInitialChat) return;
+    final want = widget.initialChatId?.trim() ?? '';
+    if (want.isEmpty) return;
+    Map<String, dynamic>? found;
+    for (final c in _chats) {
+      if ((c['id'] ?? '').toString() == want) {
+        found = c;
+        break;
+      }
+    }
+    if (found == null) {
+      try {
+        final doc = await _firestore.collection('chats').doc(want).get();
+        if (!doc.exists) return;
+        final data = doc.data() ?? {};
+        found = {
+          'id': doc.id,
+          'participants': List<String>.from(data['participants'] ?? []),
+          'lastMessage': data['lastMessage'] ?? '',
+          'isGroup': data['isGroup'] ?? false,
+          'title': data['title'],
+        };
+      } catch (_) {
+        return;
+      }
+    }
+    if (!mounted || _didOpenInitialChat) return;
+    _didOpenInitialChat = true;
+    await _openExistingChat(found);
   }
 
   List<Map<String, dynamic>> _mergeChatsWithPreviews(
@@ -829,9 +868,11 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                     final displayName =
                                         _localizedGroupTitleFromChat(group);
                                     return ListTile(
-                                      leading: chatLeadingAvatar(context,
+                                      leading: chatLeadingAvatar(
+                                        context,
                                         radius: 20,
-                                        backgroundColor: chatGroupAvatarBackground(context),
+                                        backgroundColor:
+                                            chatGroupAvatarBackground(context),
                                         initial: _initialFromName(displayName),
                                         groupIcon: Icons.group,
                                         assetImagePath:
@@ -887,10 +928,12 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                         .toString()
                                         .trim();
                                     return ListTile(
-                                      leading: chatLeadingAvatar(context,
+                                      leading: chatLeadingAvatar(
+                                        context,
                                         radius: 20,
-                                        backgroundColor:
-                                            chatAvatarPlaceholder(context),
+                                        backgroundColor: chatAvatarPlaceholder(
+                                          context,
+                                        ),
                                         initial: _initialFromName(name),
                                         imageUrl: imageUrl.isEmpty
                                             ? null
@@ -1220,7 +1263,9 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                               groupAssetPath =
                                   _departmentGroupAssetPathFromChat(ch);
                               titleColor = Colors.blue.shade700;
-                              final connected = _connectedUsersCountForGroup(ch);
+                              final connected = _connectedUsersCountForGroup(
+                                ch,
+                              );
                               titleSubline = AppLocaleKeys.chatConnectedCount
                                   .trParams({'count': '$connected'});
                             } else {
@@ -1286,7 +1331,8 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                   avatarChild: _avatarWithOnlineDot(
                                     showOnlineDot:
                                         !isGroup && showPrivateOnlineDot,
-                                    avatar: chatLeadingAvatar(context,
+                                    avatar: chatLeadingAvatar(
+                                      context,
                                       radius: 24,
                                       backgroundColor: avatarColor,
                                       initial: initial,
@@ -1398,7 +1444,8 @@ class _MessageScreenState extends State<MessageScreen>
 
   bool _isOnlinePresence(DateTime? at) {
     if (at == null) return false;
-    return DateTime.now().difference(at.toLocal()) <= kEmployeePresenceOnlineWindow;
+    return DateTime.now().difference(at.toLocal()) <=
+        kEmployeePresenceOnlineWindow;
   }
 
   Widget _avatarWithOnlineDot({
@@ -1467,10 +1514,7 @@ class _MessageScreenState extends State<MessageScreen>
     ChatAudioFocus.setForeground(_chatId);
     ChatAudioFocus.registerMainLayoutChatOpen(_chatId);
     unawaited(
-      FirestoreServices.syncEmployeeActiveChatId(
-        widget.currentUserId,
-        _chatId,
-      ),
+      FirestoreServices.syncEmployeeActiveChatId(widget.currentUserId, _chatId),
     );
   }
 
@@ -1478,10 +1522,7 @@ class _MessageScreenState extends State<MessageScreen>
     ChatAudioFocus.unregisterMainLayoutChatOpen(_chatId);
     ChatAudioFocus.clearForegroundIfEquals(_chatId);
     unawaited(
-      FirestoreServices.syncEmployeeActiveChatId(
-        widget.currentUserId,
-        null,
-      ),
+      FirestoreServices.syncEmployeeActiveChatId(widget.currentUserId, null),
     );
   }
 
@@ -2078,8 +2119,8 @@ class _MessageScreenState extends State<MessageScreen>
   Widget build(BuildContext context) {
     final isGroup = widget.chat['isGroup'] ?? false;
     final otherAvatarUrl = widget.otherAvatarUrl?.trim() ?? '';
-    final privateOnlineDot = !isGroup &&
-        _isOnlinePresence(_presenceOf(widget.otherUserId));
+    final privateOnlineDot =
+        !isGroup && _isOnlinePresence(_presenceOf(widget.otherUserId));
     return _wrapAndroidMessageHardwareBack(
       context,
       Scaffold(
@@ -2155,92 +2196,106 @@ class _MessageScreenState extends State<MessageScreen>
                       : ChatMessagesViewport(
                           chatId: _chatId,
                           child: ChatMessageListHost(
-                          stream: _messagesStream!,
-                          chatId: _chatId,
-                          currentUserId: widget.currentUserId,
-                          listEpoch: _chatMessageListEpoch,
-                          panelController: _chatListPanelController,
-                          persistedScroll: _lastScrollSnapshotForPersist ??
-                              _persistedScrollForOpen,
-                          usePersistedScroll:
-                              _lastScrollSnapshotForPersist != null ||
-                              _persistedScrollForOpen != null,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          loadingWidget: const Center(
-                            child: CircularProgressIndicator(),
-                          ),
-                          emptyWidget: Center(
-                            child: Text('chat.start_first'.tr),
-                          ),
-                          onDocsChanged: _onChatListDocsChanged,
-                          onScrollSnapshotChanged: _onChatListScrollSnapshot,
-                          pinnedBannerBuilder: (context, pinnedDocs) => Padding(
-                            padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
-                            child: ChatPinnedMessagesBar(
-                              pinnedDocs: pinnedDocs,
-                              isGroup: isGroup,
-                              onTapMessage: _scrollToRepliedMessage,
+                            stream: _messagesStream!,
+                            chatId: _chatId,
+                            currentUserId: widget.currentUserId,
+                            listEpoch: _chatMessageListEpoch,
+                            panelController: _chatListPanelController,
+                            persistedScroll:
+                                _lastScrollSnapshotForPersist ??
+                                _persistedScrollForOpen,
+                            usePersistedScroll:
+                                _lastScrollSnapshotForPersist != null ||
+                                _persistedScrollForOpen != null,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
                             ),
-                          ),
-                          itemBuilder: (context, doc, index) {
-                            final msg = doc.data();
-                            final mid = doc.id;
-                            final isMe =
-                                msg['senderId'] == widget.currentUserId;
-                            final senderName =
-                                msg['senderName'] ?? 'chat.unknown_user'.tr;
-                            final timestamp = msg['timestamp'] as Timestamp?;
-                            final isRead = msg['isRead'] ?? false;
-
-                            return Padding(
-                              key: ValueKey(mid),
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 4,
-                                horizontal: 8,
-                              ),
-                              child: ChatMessageTile(
-                                chatId: _chatId,
-                                messageId: mid,
-                                message: Map<String, dynamic>.from(msg),
-                                isMe: isMe,
-                                isGroup: isGroup,
-                                senderName: senderName,
-                                showGroupSenderName: isGroup && !isMe,
-                                timestamp: timestamp,
-                                formatTime: _formatTimestamp,
-                                isAdmin: _currentUserRole == 'admin',
-                                currentUserId: widget.currentUserId,
-                                currentUserDisplayName: widget.currentUserName,
-                                onReply: (draft) =>
-                                    setState(() => _replyDraft = draft),
-                                onReplyPreviewTap: _scrollToRepliedMessage,
-                                bubbleDecoration: BoxDecoration(
-                                  color: isMe
-                                      ? AppColors.primary
-                                      : chatIncomingBubbleColorBright(context),
-                                  borderRadius: BorderRadius.only(
-                                    topLeft: const Radius.circular(18),
-                                    topRight: const Radius.circular(18),
-                                    bottomLeft: Radius.circular(isMe ? 18 : 5),
-                                    bottomRight: Radius.circular(isMe ? 5 : 18),
+                            loadingWidget: const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                            emptyWidget: Center(
+                              child: Text('chat.start_first'.tr),
+                            ),
+                            onDocsChanged: _onChatListDocsChanged,
+                            onScrollSnapshotChanged: _onChatListScrollSnapshot,
+                            pinnedBannerBuilder: (context, pinnedDocs) =>
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    10,
+                                    8,
+                                    10,
+                                    4,
+                                  ),
+                                  child: ChatPinnedMessagesBar(
+                                    pinnedDocs: pinnedDocs,
+                                    isGroup: isGroup,
+                                    onTapMessage: _scrollToRepliedMessage,
                                   ),
                                 ),
-                                maxWidthFactor: 0.76,
-                                alignment: isMe
-                                    ? Alignment.centerRight
-                                    : Alignment.centerLeft,
-                                columnCrossAxis: isMe
-                                    ? CrossAxisAlignment.end
-                                    : CrossAxisAlignment.start,
-                                showReadReceipts: true,
-                                messageIsRead: isRead,
-                              ),
-                            );
-                          },
-                        ),
+                            itemBuilder: (context, doc, index) {
+                              final msg = doc.data();
+                              final mid = doc.id;
+                              final isMe =
+                                  msg['senderId'] == widget.currentUserId;
+                              final senderName =
+                                  msg['senderName'] ?? 'chat.unknown_user'.tr;
+                              final timestamp = msg['timestamp'] as Timestamp?;
+                              final isRead = msg['isRead'] ?? false;
+
+                              return Padding(
+                                key: ValueKey(mid),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 4,
+                                  horizontal: 8,
+                                ),
+                                child: ChatMessageTile(
+                                  chatId: _chatId,
+                                  messageId: mid,
+                                  message: Map<String, dynamic>.from(msg),
+                                  isMe: isMe,
+                                  isGroup: isGroup,
+                                  senderName: senderName,
+                                  showGroupSenderName: isGroup && !isMe,
+                                  timestamp: timestamp,
+                                  formatTime: _formatTimestamp,
+                                  isAdmin: _currentUserRole == 'admin',
+                                  currentUserId: widget.currentUserId,
+                                  currentUserDisplayName:
+                                      widget.currentUserName,
+                                  onReply: (draft) =>
+                                      setState(() => _replyDraft = draft),
+                                  onReplyPreviewTap: _scrollToRepliedMessage,
+                                  bubbleDecoration: BoxDecoration(
+                                    color: isMe
+                                        ? AppColors.primary
+                                        : chatIncomingBubbleColorBright(
+                                            context,
+                                          ),
+                                    borderRadius: BorderRadius.only(
+                                      topLeft: const Radius.circular(18),
+                                      topRight: const Radius.circular(18),
+                                      bottomLeft: Radius.circular(
+                                        isMe ? 18 : 5,
+                                      ),
+                                      bottomRight: Radius.circular(
+                                        isMe ? 5 : 18,
+                                      ),
+                                    ),
+                                  ),
+                                  maxWidthFactor: 0.76,
+                                  alignment: isMe
+                                      ? Alignment.centerRight
+                                      : Alignment.centerLeft,
+                                  columnCrossAxis: isMe
+                                      ? CrossAxisAlignment.end
+                                      : CrossAxisAlignment.start,
+                                  showReadReceipts: true,
+                                  messageIsRead: isRead,
+                                ),
+                              );
+                            },
+                          ),
                         ),
                 ),
               ),
@@ -2250,229 +2305,246 @@ class _MessageScreenState extends State<MessageScreen>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-              ChatUploadProgressBanner(chatId: _chatId),
-              if (_replyDraft != null)
-                ChatReplyDraftBanner(
-                  draft: _replyDraft!,
-                  padding: const EdgeInsets.fromLTRB(14, 0, 14, 4),
-                  onCancel: () => setState(() => _replyDraft = null),
-                ),
-              const VoiceRecorderActiveStrip(
-                padding: EdgeInsets.fromLTRB(14, 0, 14, 2),
-              ),
-              if (_pendingAttachment != null)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 0, 14, 2),
-                  child: PendingAttachmentStrip(
-                    pending: _pendingAttachment!,
-                    onCancel: () => setState(() => _pendingAttachment = null),
-                    onTapPreview:
-                        (_pendingAttachment!.messageType == 'image' ||
-                            _pendingAttachment!.messageType == 'video')
-                        // No chatId: open this pending item alone, not the chat gallery.
-                        ? () => openChatMediaFromUrl(
-                            _pendingAttachment!.attachmentUrl,
-                          )
-                        : null,
-                  ),
-                ),
-
-              // 2. إدخال الرسالة والإيموجي
-              Align(
-                alignment: Alignment.center,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 860),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 220),
-                    curve: Curves.easeOutCubic,
-                    margin: EdgeInsets.fromLTRB(
-                      10,
-                      6,
-                      10,
-                      _messageFocusNode.hasFocus ? 14 : 10,
-                    ),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: _messageFocusNode.hasFocus ? 4 : 8,
-                      vertical: _messageFocusNode.hasFocus ? 6 : 4,
-                    ),
-                    constraints: BoxConstraints(
-                      minHeight: _messageFocusNode.hasFocus ? 54 : 50,
-                    ),
-                    decoration: BoxDecoration(
-              color: context.appTheme.cardSurface,
-                      borderRadius: BorderRadius.circular(
-                        _messageFocusNode.hasFocus ? 26 : 24,
+                    ChatUploadProgressBanner(chatId: _chatId),
+                    if (_replyDraft != null)
+                      ChatReplyDraftBanner(
+                        draft: _replyDraft!,
+                        padding: const EdgeInsets.fromLTRB(14, 0, 14, 4),
+                        onCancel: () => setState(() => _replyDraft = null),
                       ),
-                      border: Border.all(
-                        color: _messageFocusNode.hasFocus
-                            ? AppColors.primary.withValues(alpha: 0.35)
-                            : context.appTheme.border,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.06),
-                          blurRadius: _messageFocusNode.hasFocus ? 12 : 6,
-                          offset: const Offset(0, 2),
+                    const VoiceRecorderActiveStrip(
+                      padding: EdgeInsets.fromLTRB(14, 0, 14, 2),
+                    ),
+                    if (_pendingAttachment != null)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(14, 0, 14, 2),
+                        child: PendingAttachmentStrip(
+                          pending: _pendingAttachment!,
+                          onCancel: () =>
+                              setState(() => _pendingAttachment = null),
+                          onTapPreview:
+                              (_pendingAttachment!.messageType == 'image' ||
+                                  _pendingAttachment!.messageType == 'video')
+                              // No chatId: open this pending item alone, not the chat gallery.
+                              ? () => openChatMediaFromUrl(
+                                  _pendingAttachment!.attachmentUrl,
+                                )
+                              : null,
                         ),
-                      ],
-                    ),
-                    child: Obx(() {
-                      final busy = Get.find<HomeController>()
-                          .isChatUploadActiveFor(_chatId);
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          IconButton(
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(
-                              minWidth: 44,
-                              minHeight: 48,
-                            ),
-                            icon: Icon(
-                              _isEmojiVisible
-                                  ? Icons.keyboard
-                                  : Icons.emoji_emotions,
-                              color: context.appTheme.mutedText,
-                              size: 26,
-                            ),
-                            onPressed: busy
-                                ? null
-                                : () {
-                                    final showEmoji = !_isEmojiVisible;
-                                    setState(() => _isEmojiVisible = showEmoji);
-                                    if (showEmoji) {
-                                      FocusScope.of(context).unfocus();
-                                    } else {
-                                      _messageFocusNode.requestFocus();
-                                    }
-                                  },
+                      ),
+
+                    // 2. إدخال الرسالة والإيموجي
+                    Align(
+                      alignment: Alignment.center,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 860),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 220),
+                          curve: Curves.easeOutCubic,
+                          margin: EdgeInsets.fromLTRB(
+                            10,
+                            6,
+                            10,
+                            _messageFocusNode.hasFocus ? 14 : 10,
                           ),
-                          Builder(
-                            builder: (buttonContext) {
-                              return IconButton(
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(
-                                  minWidth: 44,
-                                  minHeight: 48,
-                                ),
-                                tooltip: AppLocaleKeys.chatAttachSheetTitle.tr,
-                                icon: Icon(
-                                  Icons.add_circle_outline,
-                                  color: context.appTheme.mutedText,
-                                  size: 28,
-                                ),
-                                onPressed: busy
-                                    ? null
-                                    : () => _showAttachmentMenu(buttonContext),
-                              );
-                            },
+                          padding: EdgeInsets.symmetric(
+                            horizontal: _messageFocusNode.hasFocus ? 4 : 8,
+                            vertical: _messageFocusNode.hasFocus ? 6 : 4,
                           ),
-                          Expanded(
-                            child: Theme(
-                              data: Theme.of(context).copyWith(
-                                textSelectionTheme:
-                                    const TextSelectionThemeData(
-                                      cursorColor: AppColors.primary,
-                                      selectionHandleColor: AppColors.primary,
-                                      selectionColor: Color(0x33514091),
-                                    ),
+                          constraints: BoxConstraints(
+                            minHeight: _messageFocusNode.hasFocus ? 54 : 50,
+                          ),
+                          decoration: BoxDecoration(
+                            color: context.appTheme.cardSurface,
+                            borderRadius: BorderRadius.circular(
+                              _messageFocusNode.hasFocus ? 26 : 24,
+                            ),
+                            border: Border.all(
+                              color: _messageFocusNode.hasFocus
+                                  ? AppColors.primary.withValues(alpha: 0.35)
+                                  : context.appTheme.border,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.06),
+                                blurRadius: _messageFocusNode.hasFocus ? 12 : 6,
+                                offset: const Offset(0, 2),
                               ),
-                              child: Focus(
-                                onKeyEvent: _onComposerKeyEvent,
-                                child: ListenableBuilder(
-                                  listenable: _messageFocusNode,
-                                  builder: (context, _) => TextField(
-                                  cursorColor: AppColors.primary,
-                                  controller: _messageController,
-                                  focusNode: _messageFocusNode,
-                                  contentInsertionConfiguration:
-                                      _enableContentInsertion
-                                      ? ContentInsertionConfiguration(
-                                          allowedMimeTypes: const <String>[
-                                            'image/png',
-                                            'image/jpeg',
-                                            'image/webp',
-                                            'image/gif',
-                                          ],
-                                          onContentInserted:
-                                              (
-                                                KeyboardInsertedContent content,
-                                              ) {
-                                                final data = content.data;
-                                                if (data == null ||
-                                                    data.isEmpty) {
-                                                  _showPasteImageFailed();
-                                                  return;
-                                                }
-                                                unawaited(
-                                                  _handlePastedImage(
-                                                    data,
-                                                    content.mimeType,
-                                                  ),
-                                                );
-                                              },
-                                        )
-                                      : null,
-                                  minLines: 1,
-                                  maxLines: 6,
-                                  keyboardType: TextInputType.multiline,
-                                  textInputAction: chatComposerTextInputAction(),
-                                  readOnly: busy,
-                                  textAlignVertical: TextAlignVertical.center,
-                                  textDirection:
-                                      textDirectionForTypedChatMessage(
-                                        _messageController.text,
-                                        Directionality.of(context),
+                            ],
+                          ),
+                          child: Obx(() {
+                            final busy = Get.find<HomeController>()
+                                .isChatUploadActiveFor(_chatId);
+                            return Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                IconButton(
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(
+                                    minWidth: 44,
+                                    minHeight: 48,
+                                  ),
+                                  icon: Icon(
+                                    _isEmojiVisible
+                                        ? Icons.keyboard
+                                        : Icons.emoji_emotions,
+                                    color: context.appTheme.mutedText,
+                                    size: 26,
+                                  ),
+                                  onPressed: busy
+                                      ? null
+                                      : () {
+                                          final showEmoji = !_isEmojiVisible;
+                                          setState(
+                                            () => _isEmojiVisible = showEmoji,
+                                          );
+                                          if (showEmoji) {
+                                            FocusScope.of(context).unfocus();
+                                          } else {
+                                            _messageFocusNode.requestFocus();
+                                          }
+                                        },
+                                ),
+                                Builder(
+                                  builder: (buttonContext) {
+                                    return IconButton(
+                                      padding: EdgeInsets.zero,
+                                      constraints: const BoxConstraints(
+                                        minWidth: 44,
+                                        minHeight: 48,
                                       ),
-                                  textAlign: TextAlign.start,
-                                  style: TextStyle(
-                                    fontSize: _messageFocusNode.hasFocus
-                                        ? 17
-                                        : 16,
-                                    height: 1.35,
-                                  ),
-                                  decoration: InputDecoration(
-                                    hintText: AppLocaleKeys.chatWriteMessage.tr,
-                                    hintStyle: TextStyle(
-                                      color: context.appTheme.mutedText,
-                                      fontSize: 16,
-                                    ),
-                                    border: InputBorder.none,
-                                    isDense: true,
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                      vertical: 12,
-                                    ),
-                                  ),
-                                  onTap: () {
-                                    if (_isEmojiVisible) {
-                                      setState(() => _isEmojiVisible = false);
-                                    }
+                                      tooltip:
+                                          AppLocaleKeys.chatAttachSheetTitle.tr,
+                                      icon: Icon(
+                                        Icons.add_circle_outline,
+                                        color: context.appTheme.mutedText,
+                                        size: 28,
+                                      ),
+                                      onPressed: busy
+                                          ? null
+                                          : () => _showAttachmentMenu(
+                                              buttonContext,
+                                            ),
+                                    );
                                   },
                                 ),
+                                Expanded(
+                                  child: Theme(
+                                    data: Theme.of(context).copyWith(
+                                      textSelectionTheme:
+                                          const TextSelectionThemeData(
+                                            cursorColor: AppColors.primary,
+                                            selectionHandleColor:
+                                                AppColors.primary,
+                                            selectionColor: Color(0x33514091),
+                                          ),
+                                    ),
+                                    child: Focus(
+                                      onKeyEvent: _onComposerKeyEvent,
+                                      child: ListenableBuilder(
+                                        listenable: _messageFocusNode,
+                                        builder: (context, _) => TextField(
+                                          cursorColor: AppColors.primary,
+                                          controller: _messageController,
+                                          focusNode: _messageFocusNode,
+                                          contentInsertionConfiguration:
+                                              _enableContentInsertion
+                                              ? ContentInsertionConfiguration(
+                                                  allowedMimeTypes:
+                                                      const <String>[
+                                                        'image/png',
+                                                        'image/jpeg',
+                                                        'image/webp',
+                                                        'image/gif',
+                                                      ],
+                                                  onContentInserted:
+                                                      (
+                                                        KeyboardInsertedContent
+                                                        content,
+                                                      ) {
+                                                        final data =
+                                                            content.data;
+                                                        if (data == null ||
+                                                            data.isEmpty) {
+                                                          _showPasteImageFailed();
+                                                          return;
+                                                        }
+                                                        unawaited(
+                                                          _handlePastedImage(
+                                                            data,
+                                                            content.mimeType,
+                                                          ),
+                                                        );
+                                                      },
+                                                )
+                                              : null,
+                                          minLines: 1,
+                                          maxLines: 6,
+                                          keyboardType: TextInputType.multiline,
+                                          textInputAction:
+                                              chatComposerTextInputAction(),
+                                          readOnly: busy,
+                                          textAlignVertical:
+                                              TextAlignVertical.center,
+                                          textDirection:
+                                              textDirectionForTypedChatMessage(
+                                                _messageController.text,
+                                                Directionality.of(context),
+                                              ),
+                                          textAlign: TextAlign.start,
+                                          style: TextStyle(
+                                            fontSize: _messageFocusNode.hasFocus
+                                                ? 17
+                                                : 16,
+                                            height: 1.35,
+                                          ),
+                                          decoration: InputDecoration(
+                                            hintText: AppLocaleKeys
+                                                .chatWriteMessage
+                                                .tr,
+                                            hintStyle: TextStyle(
+                                              color: context.appTheme.mutedText,
+                                              fontSize: 16,
+                                            ),
+                                            border: InputBorder.none,
+                                            isDense: true,
+                                            contentPadding:
+                                                const EdgeInsets.symmetric(
+                                                  horizontal: 6,
+                                                  vertical: 12,
+                                                ),
+                                          ),
+                                          onTap: () {
+                                            if (_isEmojiVisible) {
+                                              setState(
+                                                () => _isEmojiVisible = false,
+                                              );
+                                            }
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(
-                              minWidth: 48,
-                              minHeight: 48,
-                            ),
-                            icon: Icon(
-                              Icons.send_rounded,
-                              color: context.appTheme.accentText,
-                              size: 28,
-                            ),
-                            onPressed: busy ? null : _sendMessage,
-                          ),
-                        ],
-                      );
-                    }),
-                  ),
-                ),
-              ),
+                                IconButton(
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(
+                                    minWidth: 48,
+                                    minHeight: 48,
+                                  ),
+                                  icon: Icon(
+                                    Icons.send_rounded,
+                                    color: context.appTheme.accentText,
+                                    size: 28,
+                                  ),
+                                  onPressed: busy ? null : _sendMessage,
+                                ),
+                              ],
+                            );
+                          }),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),

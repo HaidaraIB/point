@@ -30,6 +30,7 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Services/fcm_token_cache.dart';
 import 'package:point/Services/NotificationService.dart';
 import 'package:point/Services/notification_email_fields.dart';
+import 'package:point/Services/notification_navigation/notification_destination.dart';
 import 'package:point/Services/push_permissions_helper.dart';
 import 'package:point/Services/r2_storage_upload.dart';
 import 'package:point/Services/upload_cancel_token.dart';
@@ -150,8 +151,7 @@ class HomeController extends GetxController {
     final empId = empDash?.id?.trim() ?? '';
     final selectedStatuses = selectedTaskStatuses.toList();
     final rejectedSelected = selectedStatuses.any(
-      (s) =>
-          FunHelper.canonicalStoredStatus(s) == StorageKeys.status_rejected,
+      (s) => FunHelper.canonicalStoredStatus(s) == StorageKeys.status_rejected,
     );
 
     late List<TaskModel> baseList;
@@ -182,8 +182,9 @@ class HomeController extends GetxController {
 
     // Empty status selection = all ongoing (incl. approved). Non-empty = match set.
     if (selectedStatuses.isNotEmpty) {
-      final selectedLower =
-          selectedStatuses.map((s) => s.toLowerCase()).toSet();
+      final selectedLower = selectedStatuses
+          .map((s) => s.toLowerCase())
+          .toSet();
       baseList = baseList
           .where((t) => selectedLower.contains(t.status.toLowerCase()))
           .toList();
@@ -211,10 +212,12 @@ class HomeController extends GetxController {
   void syncTaskFiltersForType(String taskType) {
     if (_taskFiltersAppliedType == taskType &&
         selectedTaskStatuses.isNotEmpty) {
-      final allowed =
-          StorageKeys.ongoingStatusFilterDropdownValues(taskType).toSet();
-      final pruned =
-          selectedTaskStatuses.where((s) => allowed.contains(s)).toList();
+      final allowed = StorageKeys.ongoingStatusFilterDropdownValues(
+        taskType,
+      ).toSet();
+      final pruned = selectedTaskStatuses
+          .where((s) => allowed.contains(s))
+          .toList();
       if (pruned.isNotEmpty) {
         if (pruned.length != selectedTaskStatuses.length) {
           selectedTaskStatuses.assignAll(pruned);
@@ -320,11 +323,9 @@ class HomeController extends GetxController {
           .toList();
       final search = (map['search'] as String?) ?? '';
       final allowed = isEmployee
-          ? StorageKeys
-              .employeeDashboardTaskStatusFilterDropdownValuesForDepartment(
-                employeeDashboardDepartmentFilterArg,
-              )
-              .toSet()
+          ? StorageKeys.employeeDashboardTaskStatusFilterDropdownValuesForDepartment(
+              employeeDashboardDepartmentFilterArg,
+            ).toSet()
           : StorageKeys.ongoingStatusFilterDropdownValues(type).toSet();
       final restoredStatuses = statuses.where(allowed.contains).toList();
       selectedTaskStatuses.assignAll(
@@ -375,7 +376,8 @@ class HomeController extends GetxController {
 
   Future<void> restoreEmployeeDashboardTaskFiltersFromPrefs() async {
     await restoreTaskFiltersFromPrefs(
-      taskType: taskTypeCodeForNormalizedDepartment(
+      taskType:
+          taskTypeCodeForNormalizedDepartment(
             StorageKeys.normalizeDepartment(
               employeeDashboardDepartmentFilterArg ?? '',
             ),
@@ -390,8 +392,9 @@ class HomeController extends GetxController {
 
   // --- Publish section multi-select filters (persisted) ---
 
-  final RxList<String> selectedPublishStatuses =
-      <String>[...StorageKeys.defaultPublishStatusFilters].obs;
+  final RxList<String> selectedPublishStatuses = <String>[
+    ...StorageKeys.defaultPublishStatusFilters,
+  ].obs;
   final RxList<String> selectedPublishPlatforms = <String>[].obs;
   final RxList<String> selectedPublishPostTypes = <String>[].obs;
   final RxList<String> selectedPublishMediaTypes = <String>[].obs;
@@ -404,6 +407,7 @@ class HomeController extends GetxController {
   final RxString publishSearchQuery = ''.obs;
   final Rxn<DateTime> publishDateFrom = Rxn<DateTime>();
   final Rxn<DateTime> publishDateTo = Rxn<DateTime>();
+
   /// Bumped on restore/clear so filter multi-select widgets rebuild selection.
   final RxInt publishFiltersRevision = 0.obs;
 
@@ -477,10 +481,11 @@ class HomeController extends GetxController {
       if (key == null || !seen.add(key)) continue;
       out.add(key);
     }
-    out.sort((a, b) =>
-        publishInstagramFilterLabel(a).toLowerCase().compareTo(
-              publishInstagramFilterLabel(b).toLowerCase(),
-            ));
+    out.sort(
+      (a, b) => publishInstagramFilterLabel(
+        a,
+      ).toLowerCase().compareTo(publishInstagramFilterLabel(b).toLowerCase()),
+    );
     return out;
   }
 
@@ -504,9 +509,9 @@ class HomeController extends GetxController {
     out.sort((a, b) {
       if (a == StorageKeys.publishClientFilterNone) return -1;
       if (b == StorageKeys.publishClientFilterNone) return 1;
-      return publishClientFilterLabel(a)
-          .toLowerCase()
-          .compareTo(publishClientFilterLabel(b).toLowerCase());
+      return publishClientFilterLabel(
+        a,
+      ).toLowerCase().compareTo(publishClientFilterLabel(b).toLowerCase());
     });
     return out;
   }
@@ -529,10 +534,11 @@ class HomeController extends GetxController {
       if (id.isEmpty || !seen.add(id)) continue;
       out.add(id);
     }
-    out.sort((a, b) =>
-        publishCreatedByFilterLabel(a).toLowerCase().compareTo(
-              publishCreatedByFilterLabel(b).toLowerCase(),
-            ));
+    out.sort(
+      (a, b) => publishCreatedByFilterLabel(
+        a,
+      ).toLowerCase().compareTo(publishCreatedByFilterLabel(b).toLowerCase()),
+    );
     return out;
   }
 
@@ -882,11 +888,7 @@ class HomeController extends GetxController {
         _sanitizePublishFilterList(m['clientIds'], const {}, allowAny: true),
       );
       selectedPublishCreatedByIds.assignAll(
-        _sanitizePublishFilterList(
-          m['createdByIds'],
-          const {},
-          allowAny: true,
-        ),
+        _sanitizePublishFilterList(m['createdByIds'], const {}, allowAny: true),
       );
       selectedPublishLangs.assignAll(
         _sanitizePublishFilterList(m['langs'], const {}, allowAny: true),
@@ -930,12 +932,14 @@ class HomeController extends GetxController {
       selectedHistoryStatuses.assignAll(pruned);
     }
 
-    List<TaskModel> baseList =
-        tasks.where((t) => StorageKeys.isTaskEnded(t)).toList();
+    List<TaskModel> baseList = tasks
+        .where((t) => StorageKeys.isTaskEnded(t))
+        .toList();
 
     if (selectedHistoryStatuses.isNotEmpty) {
-      final selectedLower =
-          selectedHistoryStatuses.map((s) => s.toLowerCase()).toSet();
+      final selectedLower = selectedHistoryStatuses
+          .map((s) => s.toLowerCase())
+          .toSet();
       baseList = baseList
           .where((t) => selectedLower.contains(t.status.toLowerCase()))
           .toList();
@@ -1062,9 +1066,9 @@ class HomeController extends GetxController {
       out.add(id);
     }
     out.sort(
-      (a, b) => taskExecutorFilterLabel(a)
-          .toLowerCase()
-          .compareTo(taskExecutorFilterLabel(b).toLowerCase()),
+      (a, b) => taskExecutorFilterLabel(
+        a,
+      ).toLowerCase().compareTo(taskExecutorFilterLabel(b).toLowerCase()),
     );
     return out;
   }
@@ -1123,9 +1127,8 @@ class HomeController extends GetxController {
     }
 
     final role = employee.role.trim().toLowerCase();
-    final needsClients = role == 'admin' ||
-        role == 'supervisor' ||
-        role == 'employee';
+    final needsClients =
+        role == 'admin' || role == 'supervisor' || role == 'employee';
 
     if (needsClients) {
       // Seed immediately so navigating to Clients is not empty while the
@@ -1469,7 +1472,10 @@ class HomeController extends GetxController {
     update(['employeeWebContent']);
   }
 
-  void setEmployeeWebContentFilterList(RxList<String> target, List<String> next) {
+  void setEmployeeWebContentFilterList(
+    RxList<String> target,
+    List<String> next,
+  ) {
     target.assignAll(next);
     employeeWebContentFiltersRevision.value++;
     update(['employeeWebContent']);
@@ -1958,18 +1964,18 @@ class HomeController extends GetxController {
     final newId = await _service.addTask(taskWithTimeline);
     final result = newId != null;
     if (result && task.sourceUpdateIds.isNotEmpty && newId.isNotEmpty) {
-      unawaited(
-        markProgrammingUpdatesConverted(task.sourceUpdateIds, newId),
-      );
+      unawaited(markProgrammingUpdatesConverted(task.sourceUpdateIds, newId));
     }
     isLoading.value = false;
     if (result && task.assignedTo.trim().isNotEmpty) {
       final ctx = _taskEmailContext(task);
+      final extras = notificationTaskExtras(taskId: newId, taskType: task.type);
       unawaited(
         NotificationService.notifyEmployeeAssignedToTask(
           employeeId: task.assignedTo,
           taskTitle: task.title,
           taskContext: ctx,
+          fcmDataExtras: extras,
         ),
       );
       unawaited(
@@ -1980,6 +1986,7 @@ class HomeController extends GetxController {
           ),
           dueDate: ctx.dueDate,
           clientName: ctx.clientName,
+          fcmDataExtras: extras,
         ),
       );
     }
@@ -2044,7 +2051,8 @@ class HomeController extends GetxController {
       extensionReason: task.deadlineExtensionReason.trim().isEmpty
           ? null
           : task.deadlineExtensionReason,
-      newDueDate: newDueDate ?? FunHelper.formatdate(task.deadlineExtensionRequestedTo),
+      newDueDate:
+          newDueDate ?? FunHelper.formatdate(task.deadlineExtensionRequestedTo),
       denialNote: task.deadlineExtensionDeniedNote.trim().isEmpty
           ? null
           : task.deadlineExtensionDeniedNote,
@@ -2079,6 +2087,10 @@ class HomeController extends GetxController {
     final actorName = (emp?.name ?? '').trim().isEmpty
         ? null
         : (emp?.name ?? '').trim();
+    final extras = notificationTaskExtras(
+      taskId: newTask.id,
+      taskType: newTask.type,
+    );
 
     if (oldTask.status != newTask.status) {
       if (assigneeId.isNotEmpty) {
@@ -2092,6 +2104,7 @@ class HomeController extends GetxController {
             actorName: actorName,
             newStatus: NotificationService.statusLabelAr(newTask.status),
           ),
+          fcmDataExtras: extras,
         );
       }
       if (isUpdateByAssignee) {
@@ -2101,6 +2114,7 @@ class HomeController extends GetxController {
             employeeName: assigneeName,
             taskTitle: newTask.title,
             taskContext: _taskEmailContext(newTask, actorName: assigneeName),
+            fcmDataExtras: extras,
           );
         } else if (newTask.status == StorageKeys.status_ready_to_publish ||
             newTask.status == StorageKeys.status_under_revision ||
@@ -2110,6 +2124,7 @@ class HomeController extends GetxController {
             employeeName: assigneeName,
             taskTitle: newTask.title,
             taskContext: _taskEmailContext(newTask, actorName: assigneeName),
+            fcmDataExtras: extras,
           );
         }
       }
@@ -2119,6 +2134,7 @@ class HomeController extends GetxController {
           employeeId: assigneeId,
           taskTitle: newTask.title,
           taskContext: _taskEmailContext(newTask, actorName: actorName),
+          fcmDataExtras: extras,
         );
       }
       if (assigneeId.isNotEmpty &&
@@ -2132,6 +2148,7 @@ class HomeController extends GetxController {
           employeeId: assigneeId,
           taskTitle: newTask.title,
           taskContext: _taskEmailContext(newTask, actorName: actorName),
+          fcmDataExtras: extras,
         );
       }
       if (oldTask.status != newTask.status &&
@@ -2142,6 +2159,7 @@ class HomeController extends GetxController {
           supervisorName: sn.isEmpty ? 'notify.unknown_actor'.tr : sn,
           taskTitle: newTask.title,
           taskContext: _taskEmailContext(newTask),
+          fcmDataExtras: extras,
         );
       }
       final wasEnded = StorageKeys.isTaskEnded(oldTask);
@@ -2151,6 +2169,7 @@ class HomeController extends GetxController {
           employeeId: assigneeId,
           taskTitle: newTask.title,
           taskContext: _taskEmailContext(newTask),
+          fcmDataExtras: extras,
         );
       }
     }
@@ -2164,6 +2183,7 @@ class HomeController extends GetxController {
           actorName: actorName,
           attachmentCount: newTask.files.length - oldTask.files.length,
         ),
+        fcmDataExtras: extras,
       );
     }
 
@@ -2184,6 +2204,7 @@ class HomeController extends GetxController {
         kind: editKind,
         taskContext: _taskEmailContext(newTask, actorName: assigneeName),
         commentPreview: addedNotes ? _latestNoteText(newTask) : null,
+        fcmDataExtras: extras,
       );
     }
 
@@ -2204,6 +2225,7 @@ class HomeController extends GetxController {
           commenterName: commenterName,
           commentPreview: _latestNoteText(newTask),
         ),
+        fcmDataExtras: extras,
       );
     }
 
@@ -2215,6 +2237,7 @@ class HomeController extends GetxController {
           employeeName: assigneeName,
           taskTitle: newTask.title,
           progressPercent: ((newNorm ?? 0) * 100).round(),
+          fcmDataExtras: extras,
         );
       }
     }
@@ -2227,6 +2250,7 @@ class HomeController extends GetxController {
         employeeName: assigneeName,
         taskTitle: newTask.title,
         taskContext: _taskEmailContext(newTask, actorName: assigneeName),
+        fcmDataExtras: extras,
       );
     }
     if (oldDe == TaskModel.kDeadlineExtensionPending &&
@@ -2238,10 +2262,8 @@ class HomeController extends GetxController {
         employeeId: assigneeId,
         taskTitle: newTask.title,
         newDueLabel: fmt ?? newTask.toDate.toIso8601String(),
-        taskContext: _taskEmailContext(
-          newTask,
-          newDueDate: fmt,
-        ),
+        taskContext: _taskEmailContext(newTask, newDueDate: fmt),
+        fcmDataExtras: extras,
       );
     }
     if (oldDe == TaskModel.kDeadlineExtensionPending &&
@@ -2251,6 +2273,7 @@ class HomeController extends GetxController {
         employeeId: assigneeId,
         taskTitle: newTask.title,
         taskContext: _taskEmailContext(newTask),
+        fcmDataExtras: extras,
       );
     }
   }
@@ -2488,7 +2511,8 @@ class HomeController extends GetxController {
       final snippet = noteText.length > _timelineValueMaxLength
           ? '${noteText.substring(0, _timelineValueMaxLength)}...'
           : noteText;
-      final voices = addedNote?.voiceRecords
+      final voices =
+          addedNote?.voiceRecords
               .where((e) => e.url.trim().isNotEmpty)
               .toList() ??
           const [];
@@ -3333,7 +3357,8 @@ class HomeController extends GetxController {
   }
 
   /// Camera photo for chat (Android/iOS only).
-  Future<({Uint8List bytes, String fileName})?> pickChatCameraImageBytes() async {
+  Future<({Uint8List bytes, String fileName})?>
+  pickChatCameraImageBytes() async {
     if (kIsWeb) return null;
     if (defaultTargetPlatform != TargetPlatform.android &&
         defaultTargetPlatform != TargetPlatform.iOS) {
@@ -3480,8 +3505,7 @@ class HomeController extends GetxController {
         return null;
       }
 
-      final ct =
-          lookupMimeType(fileName ?? '') ?? 'application/octet-stream';
+      final ct = lookupMimeType(fileName ?? '') ?? 'application/octet-stream';
       final url = await uploadObjectToR2(
         data: bytes,
         fileName: fileName ?? 'file.bin',
@@ -3526,7 +3550,9 @@ class HomeController extends GetxController {
             fileSizeBytes: uploadFileSize,
             fileName: uploadFileName,
             durationMs: uploadStopwatch.elapsedMilliseconds,
-            context: chatScopeId != null && chatScopeId.isNotEmpty ? 'chat' : null,
+            context: chatScopeId != null && chatScopeId.isNotEmpty
+                ? 'chat'
+                : null,
             employeeId: currentEmployee.value?.id,
           ),
         );
@@ -3675,7 +3701,8 @@ class HomeController extends GetxController {
               // Only rebind data streams when role/departments change.
               // Rebinding on every profile field (image, authUid, …) cancels an
               // in-flight clients listener right after login and leaves [].
-              final roleOrDeptsChanged = previous == null ||
+              final roleOrDeptsChanged =
+                  previous == null ||
                   previous.role.trim().toLowerCase() !=
                       employee.role.trim().toLowerCase() ||
                   previous.departments.length != employee.departments.length ||
@@ -3698,6 +3725,7 @@ class HomeController extends GetxController {
   var employees = <EmployeeModel>[].obs;
   var clients = <ClientModel>[].obs;
   var libraryFiles = <LibraryFileModel>[].obs;
+
   /// Full archive tasks for Library browse / picker (employees with libraryAccess).
   var libraryBrowseTasks = <TaskModel>[].obs;
   var contents = <ContentModel>[].obs;
@@ -3726,7 +3754,7 @@ class HomeController extends GetxController {
   StreamSubscription<String>? _fcmTokenRefreshSub;
   StreamSubscription<Map<String, DateTime>>? _employeePresenceSub;
   final Map<String, StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>>
-      _presenceDocSubs = {};
+  _presenceDocSubs = {};
   Set<String> _presenceWatchIds = const {};
   bool _useFullPresenceStream = false;
   final RxMap<String, DateTime> employeePresenceById = <String, DateTime>{}.obs;
@@ -3906,8 +3934,9 @@ class HomeController extends GetxController {
     if (_useFullPresenceStream) return;
 
     final next = _presenceWatchIds;
-    final toRemove =
-        _presenceDocSubs.keys.where((id) => !next.contains(id)).toList();
+    final toRemove = _presenceDocSubs.keys
+        .where((id) => !next.contains(id))
+        .toList();
     for (final id in toRemove) {
       _presenceDocSubs.remove(id)?.cancel();
       employeePresenceById.remove(id);
@@ -3915,16 +3944,16 @@ class HomeController extends GetxController {
 
     for (final id in next) {
       if (_presenceDocSubs.containsKey(id)) continue;
-      _presenceDocSubs[id] = _service.watchEmployeePresenceDoc(
-        id,
-        (employeeId, lastSeenAt) {
-          if (lastSeenAt == null) {
-            employeePresenceById.remove(employeeId);
-          } else {
-            employeePresenceById[employeeId] = lastSeenAt;
-          }
-        },
-      );
+      _presenceDocSubs[id] = _service.watchEmployeePresenceDoc(id, (
+        employeeId,
+        lastSeenAt,
+      ) {
+        if (lastSeenAt == null) {
+          employeePresenceById.remove(employeeId);
+        } else {
+          employeePresenceById[employeeId] = lastSeenAt;
+        }
+      });
     }
   }
 
@@ -4117,10 +4146,9 @@ class HomeController extends GetxController {
                 }
 
                 final p = uploadProgress.value.clamp(0.0, 1.0);
-                final statusText =
-                    phase == UploadUiPhase.finalizing
-                        ? AppLocaleKeys.commonUploadFinalizing.tr
-                        : 'common.uploading'.tr;
+                final statusText = phase == UploadUiPhase.finalizing
+                    ? AppLocaleKeys.commonUploadFinalizing.tr
+                    : 'common.uploading'.tr;
 
                 return Column(
                   mainAxisSize: MainAxisSize.min,

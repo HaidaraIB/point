@@ -7,14 +7,6 @@ import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Shared/button.dart';
-import 'package:point/View/Tasks/DetailsDialogs/DContentWriteDialog.dart';
-import 'package:point/View/Tasks/DetailsDialogs/DDesignDialog.dart';
-import 'package:point/View/Tasks/DetailsDialogs/DMontageDialog.dart';
-import 'package:point/View/Tasks/DetailsDialogs/DPhotographyDialog.dart';
-import 'package:point/View/Tasks/DetailsDialogs/DAdministrativeDialog.dart';
-import 'package:point/View/Tasks/DetailsDialogs/DProgrammingDialog.dart';
-import 'package:point/View/Tasks/DetailsDialogs/DPromotionDialog.dart';
-import 'package:point/View/Tasks/DetailsDialogs/DPublishDialog.dart';
 import 'package:point/View/Tasks/Dialogs/ContentWriteDialog.dart';
 import 'package:point/View/Tasks/Dialogs/DesignDialog.dart';
 import 'package:point/View/Tasks/Dialogs/MontageDialog.dart';
@@ -27,6 +19,7 @@ import 'package:point/View/Tasks/Dialogs/PromotionDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PublishDialog.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
 import 'package:point/View/Tasks/TaskCard.dart';
+import 'package:point/View/Tasks/open_task_details.dart';
 import 'package:point/View/Shared/task_list_filters_bar.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 
@@ -175,7 +168,7 @@ class TasksMobile extends StatelessWidget {
           height: cardHeight.clamp(280.0, 400.0),
           child: TaskCard(
             task: tasks[index],
-            onTap: () => _openTaskDetails(context, selectedIndex, tasks[index]),
+            onTap: () => openTaskDetails(context, tasks[index]),
           ),
         );
       }, childCount: tasks.length),
@@ -363,40 +356,6 @@ class TasksMobile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: TaskListFiltersBar(taskType: selectedIndex.toString()),
     );
-  }
-
-  void _openTaskDetails(
-    BuildContext context,
-    int selectedIndex,
-    TaskModel task,
-  ) {
-    switch (selectedIndex) {
-      case 0:
-        showCampaignDetailsDialog(context, task: task);
-        break;
-      case 1:
-        showDesignDetailsDialog(context, task: task);
-        break;
-      case 2:
-        showDPhotographyDialog(context, task: task);
-        break;
-      case 3:
-        showContentWriteDialog(context, task: task);
-        break;
-      case 4:
-        showMontageDialog(context, task: task);
-        break;
-      case 5:
-        showPublishDialog(context, task: task);
-        break;
-      case 6:
-        showProgrammingDialog(context, task: task);
-        break;
-      case 7:
-        showAdministrativeTaskDetailsDialog(context, task: task);
-        break;
-      default:
-    }
   }
 }
 

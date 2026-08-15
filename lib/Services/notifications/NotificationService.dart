@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:get/get.dart';
+import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Services/local_notifications_host.dart';
 import 'package:point/Services/notifications/ChatStore.dart';
 import 'package:point/Services/notifications/Models.dart';
@@ -23,6 +26,7 @@ class NotificationService {
 
   final ChatStore _chatStore = ChatStore.instance;
   final Map<String, Timer> _debounceByChat = <String, Timer>{};
+
   /// One in-flight handler chain per chat so Hive load/append/save stays atomic
   /// when Android delivers several data messages close together.
   static final Map<String, Future<void>> _incomingChainByChat =
@@ -54,7 +58,9 @@ class NotificationService {
 
     final previous = _incomingChainByChat[key] ?? Future<void>.value();
     late final Future<void> current;
-    current = previous.catchError((_) {}).then((_) => _handleIncomingMessageImpl(msg, payload));
+    current = previous
+        .catchError((_) {})
+        .then((_) => _handleIncomingMessageImpl(msg, payload));
     _incomingChainByChat[key] = current;
     try {
       await current;
@@ -151,8 +157,12 @@ class NotificationService {
       final displayName = buffer.chatTitle.trim().isNotEmpty
           ? buffer.chatTitle.trim()
           : (_humanChatLabel(normalized));
-      final collapsedSubtitle =
-          count > 1 ? '$count new · ${latest.text}' : latest.text.trim();
+      final collapsedSubtitle = count > 1
+          ? _tr(
+              AppLocaleKeys.chatNNewWithPreview,
+              {'count': '$count', 'text': latest.text},
+            )
+          : latest.text.trim();
 
       var inboxLines = sorted
           .map((m) => m.text.trim())
@@ -164,19 +174,22 @@ class NotificationService {
 
       final soundBase = pushSoundBaseForNotificationType('chat_message');
       final androidChannelId = pushChannelIdForSoundBase(soundBase);
-      final androidChannelName =
-          soundBase != null ? 'Point: $soundBase' : 'Chat messages';
+      final androidChannelName = soundBase != null
+          ? 'Point: $soundBase'
+          : _tr(AppLocaleKeys.notificationsChannelChat);
 
       // InboxStyle: message text only (no per-line sender). MessagingStyle would
       // always show Person avatars + names on Android.
       final StyleInformation? androidStyle =
           Platform.isAndroid && inboxLines.length > 1
-              ? InboxStyleInformation(
-                  inboxLines,
-                  contentTitle: displayName,
-                  summaryText: count > 1 ? '$count new' : null,
-                )
-              : null;
+          ? InboxStyleInformation(
+              inboxLines,
+              contentTitle: displayName,
+              summaryText: count > 1
+                  ? _tr(AppLocaleKeys.chatNNew, {'count': '$count'})
+                  : null,
+            )
+          : null;
 
       final androidDetails = AndroidNotificationDetails(
         androidChannelId,
@@ -205,12 +218,20 @@ class NotificationService {
           android: androidDetails,
           iOS: iOSDetails,
         ),
+        payload: jsonEncode(<String, String>{
+          'notificationType': 'chat_message',
+          'chatId': normalized,
+          'chatTitle': displayName,
+          'isGroup': buffer.isGroupChat ? '1' : '0',
+        }),
       );
       appLog(
         'ChatPush notification triggered chat_id=$normalized buffer_size=$count',
       );
     } catch (e, st) {
-      appLog('ChatPush showConversationNotification failed chat_id=$chatId: $e\n$st');
+      appLog(
+        'ChatPush showConversationNotification failed chat_id=$chatId: $e\n$st',
+      );
     }
   }
 
@@ -249,11 +270,12 @@ class NotificationService {
         (data['notificationType'] ?? data['notification_type'])
             ?.toString()
             .trim() ??
-            '';
+        '';
     final legacyType = data['type']?.toString().trim() ?? '';
     final isChatPush =
         notificationType == 'chat_message' || legacyType == 'chat_message';
-    final chatId = (_ciGet(data, 'chat_id') ?? _ciGet(data, 'chatId'))?.trim() ?? '';
+    final chatId =
+        (_ciGet(data, 'chat_id') ?? _ciGet(data, 'chatId'))?.trim() ?? '';
     final text =
         (_ciGet(data, 'text') ?? _ciGet(data, 'body'))?.toString() ?? '';
     final senderResolved = _resolveSenderName(data);
@@ -311,12 +333,13 @@ class NotificationService {
     String text,
     int timestampMs,
   ) {
-    final raw = (data['message_id'] ??
-            data['messageId'] ??
-            data['requestId'] ??
-            data['request_id'])
-        ?.toString()
-        .trim() ??
+    final raw =
+        (data['message_id'] ??
+                data['messageId'] ??
+                data['requestId'] ??
+                data['request_id'])
+            ?.toString()
+            .trim() ??
         '';
     if (raw.isNotEmpty) return raw;
     return 'synth_${chatId}_${timestampMs}_${text.hashCode}';
@@ -326,17 +349,19 @@ class NotificationService {
     if (!Platform.isAndroid) return;
     final android = appLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+          AndroidFlutterLocalNotificationsPlugin
+        >();
     if (android == null) return;
     final soundBase = pushSoundBaseForNotificationType('chat_message');
     final channelId = pushChannelIdForSoundBase(soundBase);
-    final channelName =
-        soundBase != null ? 'Point: $soundBase' : 'Chat messages';
+    final channelName = soundBase != null
+        ? 'Point: $soundBase'
+        : _tr(AppLocaleKeys.notificationsChannelChat);
     await android.createNotificationChannel(
       AndroidNotificationChannel(
         channelId,
         channelName,
-        description: 'Conversation chat notifications',
+        description: _tr(AppLocaleKeys.notificationsChannelChatDescription),
         importance: Importance.max,
         playSound: true,
         sound: soundBase == null
@@ -365,10 +390,37 @@ class NotificationService {
     ).hasMatch(t);
   }
 
+  /// GetX translations are unavailable in the FCM background isolate.
+  static String _tr(String key, [Map<String, String>? params]) {
+    try {
+      if (Get.translations.isNotEmpty) {
+        return params == null || params.isEmpty
+            ? key.tr
+            : key.trParams(params);
+      }
+    } catch (_) {}
+    var s = _arabicFallback[key] ?? key;
+    params?.forEach((k, v) {
+      s = s.replaceAll('@$k', v);
+    });
+    return s;
+  }
+
+  static const Map<String, String> _arabicFallback = {
+    AppLocaleKeys.chatFallbackTitle: 'محادثة',
+    AppLocaleKeys.chatNNew: '@count جديدة',
+    AppLocaleKeys.chatNNewWithPreview: '@count جديدة · @text',
+    AppLocaleKeys.notificationsChannelChat: 'رسائل الدردشة',
+    AppLocaleKeys.notificationsChannelChatDescription:
+        'إشعارات محادثات الدردشة',
+  };
+
   static String _humanChatLabel(String chatId) {
     final t = chatId.trim();
-    if (t.isEmpty) return 'Chat';
-    if (_looksLikeInternalChatId(t)) return 'Chat';
+    if (t.isEmpty) return _tr(AppLocaleKeys.chatFallbackTitle);
+    if (_looksLikeInternalChatId(t)) {
+      return _tr(AppLocaleKeys.chatFallbackTitle);
+    }
     return t;
   }
 

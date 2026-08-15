@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Services/AutoLoginService.dart';
+import 'package:point/Services/notification_navigation/notification_navigation_coordinator.dart';
 import 'package:point/View/Shared/animated_splash_screen.dart';
 
 /// Web cold start for client auth: restore session, then client session setup or login.
@@ -54,6 +55,7 @@ class _WebClientAuthSplashDeciderState extends State<WebClientAuthSplashDecider>
     } else {
       Get.offAllNamed('/auth/LoginUserAccount');
     }
+    NotificationNavigationCoordinator.scheduleFlush();
   }
 
   @override

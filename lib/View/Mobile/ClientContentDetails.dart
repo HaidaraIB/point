@@ -4,6 +4,7 @@ import 'package:point/Controller/ClientController.dart';
 import 'package:point/Models/ContentModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/NotificationService.dart';
+import 'package:point/Services/notification_navigation/notification_destination.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/View/Mobile/EditRequestSheet.dart';
 import 'package:point/View/Mobile/RefuseRequestSheet.dart';
@@ -55,10 +56,21 @@ class Clientcontentdetails extends StatelessWidget {
                             ),
                           );
                           if (ok) {
-                            await NotificationService.notifyClientApprovalConfirmed(clientId: m.clientId);
+                            await NotificationService.notifyClientApprovalConfirmed(
+                              clientId: m.clientId,
+                              fcmDataExtras: notificationContentExtras(m.id),
+                            );
                             final clientName = controller.currentClient.value?.name ?? m.clientId;
-                            await NotificationService.notifyManagersClientApprovedContent(clientName: clientName, contentTitle: m.title);
-                            await NotificationService.notifyPublishDeptClientApproved(clientName: clientName, contentTitle: m.title);
+                            await NotificationService.notifyManagersClientApprovedContent(
+                              clientName: clientName,
+                              contentTitle: m.title,
+                              fcmDataExtras: notificationContentExtras(m.id),
+                            );
+                            await NotificationService.notifyPublishDeptClientApproved(
+                              clientName: clientName,
+                              contentTitle: m.title,
+                              fcmDataExtras: notificationContentExtras(m.id),
+                            );
                             FunHelper.showSnackbar(
                               'success'.tr,
                               'client.accept_success'.tr,

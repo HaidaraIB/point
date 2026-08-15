@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Services/AutoLoginService.dart';
 import 'package:point/Services/mobile_version_gate.dart';
+import 'package:point/Services/notification_navigation/notification_navigation_coordinator.dart';
 import 'package:point/View/Shared/animated_splash_screen.dart';
 
 class MobileSplashDecider extends StatefulWidget {
@@ -60,6 +61,7 @@ class _MobileSplashDeciderState extends State<MobileSplashDecider> {
     } else {
       Get.offAllNamed('/auth/ChooseUserType');
     }
+    NotificationNavigationCoordinator.scheduleFlush();
   }
 
   @override

@@ -5,15 +5,8 @@ import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/View/Shared/CustomDropDown.dart';
 import 'package:point/View/Shared/task_history_filters_bar.dart';
-import 'package:point/View/Tasks/DetailsDialogs/DContentWriteDialog.dart';
-import 'package:point/View/Tasks/DetailsDialogs/DDesignDialog.dart';
-import 'package:point/View/Tasks/DetailsDialogs/DMontageDialog.dart';
-import 'package:point/View/Tasks/DetailsDialogs/DPhotographyDialog.dart';
-import 'package:point/View/Tasks/DetailsDialogs/DAdministrativeDialog.dart';
-import 'package:point/View/Tasks/DetailsDialogs/DProgrammingDialog.dart';
-import 'package:point/View/Tasks/DetailsDialogs/DPromotionDialog.dart';
-import 'package:point/View/Tasks/DetailsDialogs/DPublishDialog.dart';
 import 'package:point/View/Tasks/TaskCard.dart';
+import 'package:point/View/Tasks/open_task_details.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 
 /// Mobile-only task history screen: same layout as TasksMobile but uses
@@ -44,10 +37,9 @@ class TasksHistoryMobile extends StatelessWidget {
     return GetBuilder<HomeController>(
       builder: (controller) {
         return Obx(() {
-          final List<TaskModel> tasks =
-              controller.tasksHistory
-                  .where((a) => a.type == selectedIndex.toString())
-                  .toList();
+          final List<TaskModel> tasks = controller.tasksHistory
+              .where((a) => a.type == selectedIndex.toString())
+              .toList();
           final bottomPadding = MediaQuery.of(context).padding.bottom + 32.0;
 
           return CustomScrollView(
@@ -87,12 +79,7 @@ class TasksHistoryMobile extends StatelessWidget {
                     height: cardHeight.clamp(280.0, 400.0),
                     child: TaskCard(
                       task: tasks[index],
-                      onTap:
-                          () => _openTaskDetails(
-                            context,
-                            selectedIndex,
-                            tasks[index],
-                          ),
+                      onTap: () => openTaskDetails(context, tasks[index]),
                     ),
                   );
                 }, childCount: tasks.length),
@@ -109,8 +96,8 @@ class TasksHistoryMobile extends StatelessWidget {
     final safeIndex = selectedIndex < 0
         ? 0
         : (selectedIndex >= _departmentRouteSlugs.length
-            ? _departmentRouteSlugs.length - 1
-            : selectedIndex);
+              ? _departmentRouteSlugs.length - 1
+              : selectedIndex);
     return Row(
       children: [
         Text(
@@ -126,17 +113,14 @@ class TasksHistoryMobile extends StatelessWidget {
         const Spacer(),
         Expanded(
           child: DynamicDropdown<String>(
-            items:
-                StorageKeys.departments
-                    .map(
-                      (v) => DropdownMenuItem(
-                        value: v,
-                        child: Text(
-                          StorageKeys.semanticDepartmentLabelKey(v).tr,
-                        ),
-                      ),
-                    )
-                    .toList(),
+            items: StorageKeys.departments
+                .map(
+                  (v) => DropdownMenuItem(
+                    value: v,
+                    child: Text(StorageKeys.semanticDepartmentLabelKey(v).tr),
+                  ),
+                )
+                .toList(),
             value: StorageKeys.departments[safeIndex],
             label: 'history.select_department'.tr,
             borderRadius: 5,
@@ -185,7 +169,7 @@ class TasksHistoryMobile extends StatelessWidget {
     final boxWidth = width ?? (Get.width / 5 - 30);
     return Container(
       decoration: BoxDecoration(
-              color: resolveAppTheme().cardSurface,
+        color: resolveAppTheme().cardSurface,
         borderRadius: BorderRadius.circular(10),
       ),
       width: boxWidth,
@@ -241,39 +225,5 @@ class TasksHistoryMobile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: TaskHistoryFiltersBar(taskType: selectedIndex.toString()),
     );
-  }
-
-  void _openTaskDetails(
-    BuildContext context,
-    int selectedIndex,
-    TaskModel task,
-  ) {
-    switch (selectedIndex) {
-      case 0:
-        showCampaignDetailsDialog(context, task: task);
-        break;
-      case 1:
-        showDesignDetailsDialog(context, task: task);
-        break;
-      case 2:
-        showDPhotographyDialog(context, task: task);
-        break;
-      case 3:
-        showContentWriteDialog(context, task: task);
-        break;
-      case 4:
-        showMontageDialog(context, task: task);
-        break;
-      case 5:
-        showPublishDialog(context, task: task);
-        break;
-      case 6:
-        showProgrammingDialog(context, task: task);
-        break;
-      case 7:
-        showAdministrativeTaskDetailsDialog(context, task: task);
-        break;
-      default:
-    }
   }
 }

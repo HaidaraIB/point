@@ -22,7 +22,6 @@ class FirestoreFcmApi {
   /// Matches [supabase/functions/send-fcm/index.ts] `MAX_FCM_BATCH_RECIPIENTS`.
   static const int _maxFcmRecipientsPerRequest = 100;
 
-
   static String _newPushRequestId() {
     final ms = DateTime.now().millisecondsSinceEpoch;
     final rand = _random.nextInt(1 << 20).toRadixString(16);
@@ -115,8 +114,8 @@ class FirestoreFcmApi {
       return false;
     }
     try {
-      final firebaseIdToken =
-          await FirebaseAuth.instance.currentUser?.getIdToken();
+      final firebaseIdToken = await FirebaseAuth.instance.currentUser
+          ?.getIdToken();
       if (firebaseIdToken == null || firebaseIdToken.isEmpty) return false;
 
       final res = await Supabase.instance.client.functions.invoke(
@@ -306,13 +305,12 @@ class FirestoreFcmApi {
     String? recipientType,
     String? notificationType,
   }) async {
-    final targetLabel =
-        token != null
-            ? 'token=${_maskFcmToken(token)}'
-            : 'topic=${topic ?? "(null)"}';
+    final targetLabel = token != null
+        ? 'token=${_maskFcmToken(token)}'
+        : 'topic=${topic ?? "(null)"}';
 
-    final firebaseIdToken =
-        await FirebaseAuth.instance.currentUser?.getIdToken();
+    final firebaseIdToken = await FirebaseAuth.instance.currentUser
+        ?.getIdToken();
     if (firebaseIdToken == null || firebaseIdToken.isEmpty) {
       throw StateError('FirebaseAuth session required to send FCM.');
     }
@@ -405,8 +403,8 @@ class FirestoreFcmApi {
     required String requestId,
     String? notificationType,
   }) async {
-    final firebaseIdToken =
-        await FirebaseAuth.instance.currentUser?.getIdToken();
+    final firebaseIdToken = await FirebaseAuth.instance.currentUser
+        ?.getIdToken();
     if (firebaseIdToken == null || firebaseIdToken.isEmpty) {
       throw StateError('FirebaseAuth session required to send FCM.');
     }
@@ -430,9 +428,7 @@ class FirestoreFcmApi {
       },
     );
 
-    appLog(
-      '✅ FCM batch invoke done. status=${res.status} data=${res.data}',
-    );
+    appLog('✅ FCM batch invoke done. status=${res.status} data=${res.data}');
 
     if (res.data is! Map) {
       return <String, dynamic>{};
@@ -503,6 +499,24 @@ class FirestoreFcmApi {
     return t != 'chat_message' && t != 'chat_unread_digest';
   }
 
+  static Map<String, dynamic>? _navigationInboxData({
+    String? notificationType,
+    Map<String, String>? fcmDataExtras,
+  }) {
+    final m = <String, dynamic>{};
+    final t = notificationType?.trim() ?? '';
+    if (t.isNotEmpty) m['notificationType'] = t;
+    if (fcmDataExtras != null) {
+      for (final e in fcmDataExtras.entries) {
+        final k = e.key.trim();
+        final v = e.value.trim();
+        if (k.isEmpty || v.isEmpty) continue;
+        m[k] = v;
+      }
+    }
+    return m.isEmpty ? null : m;
+  }
+
   static String? _signedInAuthUid() {
     final uid = FirebaseAuth.instance.currentUser?.uid.trim() ?? '';
     return uid.isEmpty ? null : uid;
@@ -551,30 +565,34 @@ class FirestoreFcmApi {
     String? actionText,
     String? referenceId,
     Map<String, String>? emailDetails,
+
     /// يُدمج في حمولة `data` لـ FCM (مثل `chatId` لإشعارات الدردشة).
     Map<String, String>? fcmDataExtras,
     bool sendPush = true,
     bool useSupabaseTemplateWrapper = false,
+
     /// إن وُجد يُستخدم كما هو؛ وإلا تُطبَّق [NotificationEmailPolicy] حسب [notificationType].
     bool? sendEmail,
     Set<String>? batchSeenTokens,
+
     /// يمنع إرسال أكثر من بريد لنفس العنوان ضمن دفعة واحدة (مثل [sendFcmToEmployees]).
     Set<String>? batchSeenEmails,
+
     /// When true (default), do not notify the signed-in employee about their own action.
     bool excludeCurrentActor = true,
     Set<String>? excludeUserIds,
   }) async {
     try {
       final effectiveSendEmail =
-          sendEmail ?? NotificationEmailPolicy.shouldSendEmail(notificationType);
+          sendEmail ??
+          NotificationEmailPolicy.shouldSendEmail(notificationType);
 
       // 1. هات بيانات المستخدم من Firestore
       final trimmedUserId = userId.trim();
-      final doc =
-          await FirebaseFirestore.instance
-              .collection("employees")
-              .doc(trimmedUserId)
-              .get();
+      final doc = await FirebaseFirestore.instance
+          .collection("employees")
+          .doc(trimmedUserId)
+          .get();
 
       if (!doc.exists) {
         appLog("⚠️ Employee not found: $userId");
@@ -604,8 +622,8 @@ class FirestoreFcmApi {
       final recipientRole = data?['role'];
       final recipientName =
           (rawRecipientName != null && rawRecipientName.isNotEmpty)
-              ? rawRecipientName
-              : 'الموظف';
+          ? rawRecipientName
+          : 'الموظف';
 
       if (_shouldPersistFcmToNotificationInbox(notificationType)) {
         await FirestoreNotificationApi.addNotification(
@@ -615,6 +633,10 @@ class FirestoreFcmApi {
             recipientId: trimmedUserId,
             createdAt: DateTime.now(),
             isRead: false,
+            data: _navigationInboxData(
+              notificationType: notificationType,
+              fcmDataExtras: fcmDataExtras,
+            ),
           ),
         );
       }
@@ -648,8 +670,7 @@ class FirestoreFcmApi {
             languageCode: preferredLanguageCode,
           ),
         );
-      } else if (effectiveSendEmail &&
-          (email == null || email.isEmpty)) {
+      } else if (effectiveSendEmail && (email == null || email.isEmpty)) {
         appLog(
           "⚠️ Email missing for $recipientRole $recipientName — skipping email notification",
         );
@@ -659,7 +680,9 @@ class FirestoreFcmApi {
       if (!sendPush) return;
 
       if (tokens.isEmpty) {
-        appLog("⚠️ fcmToken missing for $recipientRole $recipientName — push not sent");
+        appLog(
+          "⚠️ fcmToken missing for $recipientRole $recipientName — push not sent",
+        );
         return;
       }
 
@@ -745,6 +768,7 @@ class FirestoreFcmApi {
     Map<String, String>? fcmDataExtras,
     bool sendPush = true,
     bool useSupabaseTemplateWrapper = false,
+
     /// إن وُجد يُستخدم كما هو؛ وإلا تُطبَّق [NotificationEmailPolicy] حسب [notificationType].
     bool? sendEmail,
     Set<String>? batchSeenTokens,
@@ -752,14 +776,14 @@ class FirestoreFcmApi {
   }) async {
     try {
       final effectiveSendEmail =
-          sendEmail ?? NotificationEmailPolicy.shouldSendEmail(notificationType);
+          sendEmail ??
+          NotificationEmailPolicy.shouldSendEmail(notificationType);
 
       // 1. هات بيانات المستخدم من Firestore
-      final doc =
-          await FirebaseFirestore.instance
-              .collection("clients")
-              .doc(userId)
-              .get();
+      final doc = await FirebaseFirestore.instance
+          .collection("clients")
+          .doc(userId)
+          .get();
 
       if (!doc.exists) {
         appLog("⚠️ Client not found: $userId");
@@ -775,8 +799,8 @@ class FirestoreFcmApi {
       );
       final recipientName =
           (rawRecipientName != null && rawRecipientName.isNotEmpty)
-              ? rawRecipientName
-              : 'العميل';
+          ? rawRecipientName
+          : 'العميل';
 
       final trimmedUserId = userId.trim();
       if (_shouldPersistFcmToNotificationInbox(notificationType)) {
@@ -787,6 +811,10 @@ class FirestoreFcmApi {
             recipientId: trimmedUserId,
             createdAt: DateTime.now(),
             isRead: false,
+            data: _navigationInboxData(
+              notificationType: notificationType,
+              fcmDataExtras: fcmDataExtras,
+            ),
           ),
         );
       }
@@ -818,8 +846,7 @@ class FirestoreFcmApi {
             languageCode: preferredLanguageCode,
           ),
         );
-      } else if (effectiveSendEmail &&
-          (email == null || email.isEmpty)) {
+      } else if (effectiveSendEmail && (email == null || email.isEmpty)) {
         appLog(
           "⚠️ Email missing for client $recipientName — skipping email notification",
         );
@@ -859,7 +886,11 @@ class FirestoreFcmApi {
           'recipientType': 'client',
           'requestId': _newPushRequestId(),
         });
-        metaClient.add((token: cleanedToken, userId: trimmedUserId, isClient: true));
+        metaClient.add((
+          token: cleanedToken,
+          userId: trimmedUserId,
+          isClient: true,
+        ));
       }
 
       if (recipientsClient.isEmpty) return;
@@ -922,12 +953,9 @@ class FirestoreFcmApi {
           topic: topic,
           title: title,
           body: body,
-          data:
-              notificationType != null && notificationType.trim().isNotEmpty
-                  ? <String, String>{
-                    'notificationType': notificationType.trim(),
-                  }
-                  : null,
+          data: notificationType != null && notificationType.trim().isNotEmpty
+              ? <String, String>{'notificationType': notificationType.trim()}
+              : null,
           requestId: requestId,
           recipientType: 'topic',
           notificationType: notificationType,
@@ -990,8 +1018,9 @@ class FirestoreFcmApi {
       int skippedClients = 0;
 
       if (topic == 'employees' || topic == 'all') {
-        final snap =
-            await FirebaseFirestore.instance.collection('employees').get();
+        final snap = await FirebaseFirestore.instance
+            .collection('employees')
+            .get();
         for (final doc in snap.docs) {
           final email = doc.data()['email']?.toString().trim();
           if (email != null && email.isNotEmpty) {
@@ -1002,8 +1031,9 @@ class FirestoreFcmApi {
         }
       }
       if (topic == 'clients' || topic == 'all') {
-        final snap =
-            await FirebaseFirestore.instance.collection('clients').get();
+        final snap = await FirebaseFirestore.instance
+            .collection('clients')
+            .get();
         for (final doc in snap.docs) {
           final email = doc.data()['email']?.toString().trim();
           if (email != null && email.isNotEmpty) {
@@ -1025,7 +1055,9 @@ class FirestoreFcmApi {
       for (final email in emails) {
         final key = _emailDedupeKey(email);
         if (!seenEmailKeys.add(key)) {
-          appLog("↩️ Duplicate topic email skipped (same address listed twice)");
+          appLog(
+            "↩️ Duplicate topic email skipped (same address listed twice)",
+          );
           continue;
         }
         dedupedEmails.add(email);
@@ -1064,11 +1096,10 @@ class FirestoreFcmApi {
     if (roles.isEmpty) return [];
     try {
       final list = roles.take(10).toList();
-      final snap =
-          await FirebaseFirestore.instance
-              .collection('employees')
-              .where('role', whereIn: list)
-              .get();
+      final snap = await FirebaseFirestore.instance
+          .collection('employees')
+          .where('role', whereIn: list)
+          .get();
       return snap.docs.map((d) => d.id).where((id) => id.isNotEmpty).toList();
     } catch (e) {
       appLog("❌ getEmployeeIdsByRole: $e");
@@ -1084,11 +1115,10 @@ class FirestoreFcmApi {
     try {
       final normalized = StorageKeys.normalizeDepartment(department);
       if (normalized.isEmpty) return [];
-      final snap =
-          await FirebaseFirestore.instance
-              .collection('employees')
-              .where('departments', arrayContains: normalized)
-              .get();
+      final snap = await FirebaseFirestore.instance
+          .collection('employees')
+          .where('departments', arrayContains: normalized)
+          .get();
       return snap.docs.map((d) => d.id).where((id) => id.isNotEmpty).toList();
     } catch (e) {
       appLog("❌ getEmployeeIdsByDepartment: $e");
@@ -1106,165 +1136,176 @@ class FirestoreFcmApi {
     String? referenceId,
     Map<String, String>? emailDetails,
     Map<String, String>? fcmDataExtras,
+
     /// When true (default), do not notify the signed-in employee about their own action.
     bool excludeCurrentActor = true,
     Set<String>? excludeUserIds,
   }) async {
     try {
-    final excludedIds = _normalizedExcludeUserIds(excludeUserIds);
-    final seen = <String>{};
-    final orderedIds = <String>[];
-    for (final id in userIds) {
-      final trimmed = id.trim();
-      if (trimmed.isEmpty || seen.contains(trimmed)) continue;
-      if (excludedIds.contains(trimmed)) continue;
-      seen.add(trimmed);
-      orderedIds.add(trimmed);
-    }
-    if (orderedIds.isEmpty) return;
-
-    final snapshots = await Future.wait(
-      orderedIds.map(
-        (id) =>
-            FirebaseFirestore.instance.collection('employees').doc(id).get(),
-      ),
-    );
-
-    final batchSeenTokens = <String>{};
-    final batchSeenEmails = <String>{};
-    final emailItems = <DetailedEmailBatchItem>[];
-    final fcmRecipients = <Map<String, dynamic>>[];
-    final fcmMeta = <({String token, String userId, bool isClient})>[];
-
-    final effectiveSendEmail =
-        NotificationEmailPolicy.shouldSendEmail(notificationType);
-
-    for (var i = 0; i < snapshots.length; i++) {
-      final doc = snapshots[i];
-      final trimmedUserId = orderedIds[i];
-      if (!doc.exists) {
-        appLog('⚠️ Employee not found: $trimmedUserId');
-        continue;
+      final excludedIds = _normalizedExcludeUserIds(excludeUserIds);
+      final seen = <String>{};
+      final orderedIds = <String>[];
+      for (final id in userIds) {
+        final trimmed = id.trim();
+        if (trimmed.isEmpty || seen.contains(trimmed)) continue;
+        if (excludedIds.contains(trimmed)) continue;
+        seen.add(trimmed);
+        orderedIds.add(trimmed);
       }
+      if (orderedIds.isEmpty) return;
 
-      final data = doc.data();
-      if (_shouldExcludeEmployeeRecipient(
-        recipientId: trimmedUserId,
-        data: data,
-        excludeCurrentActor: excludeCurrentActor,
-        excludeUserIds: null, // already filtered above
-      )) {
-        appLog(
-          '↩️ Skipping self-notification for employee $trimmedUserId '
-          '(type=${notificationType ?? "null"})',
-        );
-        continue;
-      }
-
-      final email = data?['email']?.toString().trim();
-      final tokens = _extractFcmTokens(data);
-      final rawRecipientName = data?['name']?.toString().trim();
-      final preferredLanguageCode = _normalizePreferredLanguageCode(
-        data?['language'],
+      final snapshots = await Future.wait(
+        orderedIds.map(
+          (id) =>
+              FirebaseFirestore.instance.collection('employees').doc(id).get(),
+        ),
       );
-      final recipientRole = data?['role'];
-      final recipientName =
-          (rawRecipientName != null && rawRecipientName.isNotEmpty)
-              ? rawRecipientName
-              : 'الموظف';
 
-      if (_shouldPersistFcmToNotificationInbox(notificationType)) {
-        await FirestoreNotificationApi.addNotification(
-          NotificationModel(
-            title: title,
-            body: body,
-            recipientId: trimmedUserId,
-            createdAt: DateTime.now(),
-            isRead: false,
-          ),
-        );
-      }
+      final batchSeenTokens = <String>{};
+      final batchSeenEmails = <String>{};
+      final emailItems = <DetailedEmailBatchItem>[];
+      final fcmRecipients = <Map<String, dynamic>>[];
+      final fcmMeta = <({String token, String userId, bool isClient})>[];
 
-      var sendThisEmail =
-          effectiveSendEmail && email != null && email.isNotEmpty;
-      if (sendThisEmail) {
-        final key = _emailDedupeKey(email);
-        if (!batchSeenEmails.add(key)) {
-          sendThisEmail = false;
-          appLog(
-            '↩️ Duplicate batch email skipped ($recipientName · $trimmedUserId)',
-          );
+      final effectiveSendEmail = NotificationEmailPolicy.shouldSendEmail(
+        notificationType,
+      );
+
+      for (var i = 0; i < snapshots.length; i++) {
+        final doc = snapshots[i];
+        final trimmedUserId = orderedIds[i];
+        if (!doc.exists) {
+          appLog('⚠️ Employee not found: $trimmedUserId');
+          continue;
         }
-      }
-      if (sendThisEmail) {
-        final details = <String, String>{
-          if (emailDetails != null) ...emailDetails,
-        };
-        emailItems.add(
-          DetailedEmailBatchItem(
-            toEmail: email!,
-            title: title,
-            body: body,
-            recipientLabel: recipientName,
-            actionText: actionText,
-            details: details,
-            languageCode: preferredLanguageCode,
-          ),
-        );
-      } else if (effectiveSendEmail && (email == null || email.isEmpty)) {
-        appLog(
-          '⚠️ Email missing for $recipientRole $recipientName — skipping email notification',
-        );
-      }
 
-      for (final token in tokens) {
-        final cleanedToken = token.trim();
-        if (cleanedToken.isEmpty) continue;
-        if (!batchSeenTokens.add(cleanedToken)) {
+        final data = doc.data();
+        if (_shouldExcludeEmployeeRecipient(
+          recipientId: trimmedUserId,
+          data: data,
+          excludeCurrentActor: excludeCurrentActor,
+          excludeUserIds: null, // already filtered above
+        )) {
           appLog(
-            '↩️ Duplicate batch token skipped for $recipientName (${_maskFcmToken(cleanedToken)})',
+            '↩️ Skipping self-notification for employee $trimmedUserId '
+            '(type=${notificationType ?? "null"})',
           );
           continue;
         }
-        fcmRecipients.add(<String, dynamic>{
-          'token': cleanedToken,
-          'recipientId': trimmedUserId,
-          'recipientType': 'employee',
-          'requestId': _newPushRequestId(),
-          'data': <String, String>{
-            'type': 'internal',
-            'id': trimmedUserId,
-            'url': 'https://example.com',
-            if (notificationType != null && notificationType.trim().isNotEmpty)
-              'notificationType': notificationType.trim(),
-            if (fcmDataExtras != null) ...fcmDataExtras,
-          },
-        });
-        fcmMeta.add((token: cleanedToken, userId: trimmedUserId, isClient: false));
+
+        final email = data?['email']?.toString().trim();
+        final tokens = _extractFcmTokens(data);
+        final rawRecipientName = data?['name']?.toString().trim();
+        final preferredLanguageCode = _normalizePreferredLanguageCode(
+          data?['language'],
+        );
+        final recipientRole = data?['role'];
+        final recipientName =
+            (rawRecipientName != null && rawRecipientName.isNotEmpty)
+            ? rawRecipientName
+            : 'الموظف';
+
+        if (_shouldPersistFcmToNotificationInbox(notificationType)) {
+          await FirestoreNotificationApi.addNotification(
+            NotificationModel(
+              title: title,
+              body: body,
+              recipientId: trimmedUserId,
+              createdAt: DateTime.now(),
+              isRead: false,
+              data: _navigationInboxData(
+                notificationType: notificationType,
+                fcmDataExtras: fcmDataExtras,
+              ),
+            ),
+          );
+        }
+
+        var sendThisEmail =
+            effectiveSendEmail && email != null && email.isNotEmpty;
+        if (sendThisEmail) {
+          final key = _emailDedupeKey(email);
+          if (!batchSeenEmails.add(key)) {
+            sendThisEmail = false;
+            appLog(
+              '↩️ Duplicate batch email skipped ($recipientName · $trimmedUserId)',
+            );
+          }
+        }
+        if (sendThisEmail) {
+          final details = <String, String>{
+            if (emailDetails != null) ...emailDetails,
+          };
+          emailItems.add(
+            DetailedEmailBatchItem(
+              toEmail: email!,
+              title: title,
+              body: body,
+              recipientLabel: recipientName,
+              actionText: actionText,
+              details: details,
+              languageCode: preferredLanguageCode,
+            ),
+          );
+        } else if (effectiveSendEmail && (email == null || email.isEmpty)) {
+          appLog(
+            '⚠️ Email missing for $recipientRole $recipientName — skipping email notification',
+          );
+        }
+
+        for (final token in tokens) {
+          final cleanedToken = token.trim();
+          if (cleanedToken.isEmpty) continue;
+          if (!batchSeenTokens.add(cleanedToken)) {
+            appLog(
+              '↩️ Duplicate batch token skipped for $recipientName (${_maskFcmToken(cleanedToken)})',
+            );
+            continue;
+          }
+          fcmRecipients.add(<String, dynamic>{
+            'token': cleanedToken,
+            'recipientId': trimmedUserId,
+            'recipientType': 'employee',
+            'requestId': _newPushRequestId(),
+            'data': <String, String>{
+              'type': 'internal',
+              'id': trimmedUserId,
+              'url': 'https://example.com',
+              if (notificationType != null &&
+                  notificationType.trim().isNotEmpty)
+                'notificationType': notificationType.trim(),
+              if (fcmDataExtras != null) ...fcmDataExtras,
+            },
+          });
+          fcmMeta.add((
+            token: cleanedToken,
+            userId: trimmedUserId,
+            isClient: false,
+          ));
+        }
       }
-    }
 
-    if (emailItems.isNotEmpty) {
-      unawaited(
-        EmailNotificationService.sendDetailedNotificationBatch(
-          emailItems,
-          useSupabaseTemplateWrapper: false,
-        ),
+      if (emailItems.isNotEmpty) {
+        unawaited(
+          EmailNotificationService.sendDetailedNotificationBatch(
+            emailItems,
+            useSupabaseTemplateWrapper: false,
+          ),
+        );
+      }
+
+      if (fcmRecipients.isEmpty) return;
+
+      final parentRequestId = _newPushRequestId();
+      await _sendFcmBatchesAndApplyResults(
+        recipients: fcmRecipients,
+        metaAligned: fcmMeta,
+        title: title,
+        body: body,
+        data: null,
+        parentRequestId: parentRequestId,
+        notificationType: notificationType,
       );
-    }
-
-    if (fcmRecipients.isEmpty) return;
-
-    final parentRequestId = _newPushRequestId();
-    await _sendFcmBatchesAndApplyResults(
-      recipients: fcmRecipients,
-      metaAligned: fcmMeta,
-      title: title,
-      body: body,
-      data: null,
-      parentRequestId: parentRequestId,
-      notificationType: notificationType,
-    );
     } on FunctionException catch (e) {
       final ex = _fcmSendExceptionFromFunctionException(e);
       switch (ex.errorCode) {

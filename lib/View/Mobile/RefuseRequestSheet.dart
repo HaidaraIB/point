@@ -4,6 +4,7 @@ import 'package:point/Controller/ClientController.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/ContentModel.dart';
 import 'package:point/Services/NotificationService.dart';
+import 'package:point/Services/notification_navigation/notification_destination.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 
@@ -96,7 +97,11 @@ class RefuseRequestSheet extends StatelessWidget {
                                           )
                                           ?.name ??
                                       model.clientId;
-                                  await NotificationService.notifyPublishDeptClientRejected(contentTitle: model.title, clientName: clientName);
+                                  await NotificationService.notifyPublishDeptClientRejected(
+                                    contentTitle: model.title,
+                                    clientName: clientName,
+                                    fcmDataExtras: notificationContentExtras(model.id),
+                                  );
                                 },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green,

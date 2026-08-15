@@ -7,6 +7,7 @@ import 'package:point/Models/ContentModel.dart';
 import 'package:point/Models/EmployeeModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/NotificationService.dart';
+import 'package:point/Services/notification_navigation/notification_destination.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/ContentPermissions.dart';
 import 'package:point/Utils/media_url_opener.dart';
@@ -58,6 +59,7 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
       contentTitle: emp.title,
       statusLabelAr: statusLabelAr,
       changedByName: actorName.isEmpty ? 'notify.unknown_actor'.tr : actorName,
+      fcmDataExtras: notificationContentExtras(emp.id),
     );
     if (value == StorageKeys.status_published) {
       final clientName =
@@ -68,6 +70,7 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
       await NotificationService.notifyPromotionDeptNewPublishedContent(
         clientName: clientName,
         contentTitle: emp.title,
+        fcmDataExtras: notificationContentExtras(emp.id),
       );
     }
     controller.refreshFilteredContents();
@@ -91,6 +94,7 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
       await NotificationService.notifyAdminContentPromotionStatusChanged(
         contentTitle: emp.title,
         promotionLabelAr: promotionLabel,
+        fcmDataExtras: notificationContentExtras(emp.id),
       );
     }
     controller.refreshFilteredContents();

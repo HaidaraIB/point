@@ -7,6 +7,7 @@ import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/AppNotificationInbox.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/Services/notification_navigation/notification_navigation_coordinator.dart';
 
 /// لوحة إشعارات صندوق التطبيق: تعليم الكل كمقروء عند أول فتح، واختيار متعدد للحذف.
 class InAppNotificationsPanel extends StatefulWidget {
@@ -79,8 +80,9 @@ class _InAppNotificationsPanelState extends State<InAppNotificationsPanel> {
     await FunHelper.showConfirmDailog(
       context,
       title: 'notifications.confirm_delete_bulk_title'.tr,
-      message: 'notifications.confirm_delete_bulk_message'
-          .trParams({'count': '${ids.length}'}),
+      message: 'notifications.confirm_delete_bulk_message'.trParams({
+        'count': '${ids.length}',
+      }),
       confirmText: 'notifications.action.delete'.tr,
       confirmColor: Colors.red,
       onTap: () async {
@@ -154,10 +156,8 @@ class _InAppNotificationsPanelState extends State<InAppNotificationsPanel> {
                   child: FilledButton.icon(
                     onPressed: selectedIds.isEmpty
                         ? null
-                        : () => _confirmDeleteBulk(
-                              context,
-                              selectedIds.toList(),
-                            ),
+                        : () =>
+                              _confirmDeleteBulk(context, selectedIds.toList()),
                     icon: const Icon(Icons.delete_outline, size: 20),
                     label: Text('notifications.action.delete_selected'.tr),
                     style: FilledButton.styleFrom(
@@ -192,10 +192,8 @@ class _InAppNotificationsPanelState extends State<InAppNotificationsPanel> {
             return ListView.separated(
               padding: widget.listPadding,
               itemCount: inbox.length,
-              separatorBuilder: (_, __) => Divider(
-                height: 10,
-                color: context.appTheme.border,
-              ),
+              separatorBuilder: (_, __) =>
+                  Divider(height: 10, color: context.appTheme.border),
               itemBuilder: (context, index) {
                 final n = inbox[index];
                 final accentColors = [
@@ -249,7 +247,14 @@ class _InAppNotificationsPanelState extends State<InAppNotificationsPanel> {
                             }
                           });
                         }
-                      : null,
+                      : (n.data == null || n.data!.isEmpty)
+                      ? null
+                      : () {
+                          Navigator.of(context).maybePop();
+                          NotificationNavigationCoordinator.handlePayload(
+                            n.data,
+                          );
+                        },
                   title: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
@@ -299,8 +304,7 @@ class _InAppNotificationsPanelState extends State<InAppNotificationsPanel> {
                                 onPressed: !hasId
                                     ? null
                                     : () async {
-                                        await FirestoreServices
-                                            .markInAppNotificationsAsRead(
+                                        await FirestoreServices.markInAppNotificationsAsRead(
                                           [id],
                                         );
                                       },

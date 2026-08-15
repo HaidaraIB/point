@@ -289,6 +289,12 @@ class AppLocaleKeys {
   static const chatVoicePlaybackSpeed = 'chat.voice_playback_speed';
   static const chatPickEmployee = 'chat.pick_employee';
   static const chatUnknownUser = 'chat.unknown_user';
+  static const chatFallbackTitle = 'chat.fallback_title';
+  static const chatNNew = 'chat.n_new';
+  static const chatNNewWithPreview = 'chat.n_new_with_preview';
+  static const notificationsChannelChat = 'notifications.channel.chat';
+  static const notificationsChannelChatDescription =
+      'notifications.channel.chat_description';
   static const chatFileTapToOpen = 'chat.file_tap_to_open';
   static const chatFileUntitled = 'chat.file_untitled';
   static const chatPreviewImageTitle = 'chat.preview_image_title';
@@ -332,6 +338,10 @@ class AppLocaleKeys {
   static const errorsMethodNotAllowed = 'errors.method_not_allowed';
   static const errorsUnauthorized = 'errors.unauthorized';
   static const errorsForbidden = 'errors.forbidden';
+  static const errorsNotificationTargetMissing =
+      'errors.notification_target_missing';
+  static const errorsNotificationUnavailable =
+      'errors.notification_unavailable';
   static const errorsMissingToken = 'errors.missing_token';
   static const errorsInvalidData = 'errors.invalid_data';
   static const errorsServer = 'errors.server';

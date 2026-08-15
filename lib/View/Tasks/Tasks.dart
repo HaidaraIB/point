@@ -10,14 +10,6 @@ import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/task_list_filters_bar.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
-import 'package:point/View/Tasks/DetailsDialogs/DContentWriteDialog.dart';
-import 'package:point/View/Tasks/DetailsDialogs/DDesignDialog.dart';
-import 'package:point/View/Tasks/DetailsDialogs/DMontageDialog.dart';
-import 'package:point/View/Tasks/DetailsDialogs/DPhotographyDialog.dart';
-import 'package:point/View/Tasks/DetailsDialogs/DAdministrativeDialog.dart';
-import 'package:point/View/Tasks/DetailsDialogs/DProgrammingDialog.dart';
-import 'package:point/View/Tasks/DetailsDialogs/DPromotionDialog.dart';
-import 'package:point/View/Tasks/DetailsDialogs/DPublishDialog.dart';
 import 'package:point/View/Tasks/Dialogs/ContentWriteDialog.dart';
 import 'package:point/View/Tasks/Dialogs/DesignDialog.dart';
 import 'package:point/View/Tasks/Dialogs/MontageDialog.dart';
@@ -30,6 +22,7 @@ import 'package:point/View/Tasks/Dialogs/PromotionDialog.dart';
 import 'package:point/View/Tasks/Dialogs/PublishDialog.dart';
 import 'package:point/View/Tasks/TaskCard.dart';
 import 'package:point/View/Tasks/TasksMobile.dart';
+import 'package:point/View/Tasks/open_task_details.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 
 class Tasks extends StatelessWidget {
@@ -438,42 +431,7 @@ class TasksGridPage extends StatelessWidget {
                     child: TaskCard(
                       task: tasks[index],
                       onTap: () {
-                        switch (selectedIndex) {
-                          case 0:
-                            showCampaignDetailsDialog(
-                              context,
-                              task: tasks[index],
-                            );
-                            break;
-                          case 1:
-                            showDesignDetailsDialog(
-                              context,
-                              task: tasks[index],
-                            );
-                            break;
-                          case 2:
-                            showDPhotographyDialog(context, task: tasks[index]);
-                            break;
-                          case 3:
-                            showContentWriteDialog(context, task: tasks[index]);
-                            break;
-                          case 4:
-                            showMontageDialog(context, task: tasks[index]);
-                            break;
-                          case 5:
-                            showPublishDialog(context, task: tasks[index]);
-                            break;
-                          case 6:
-                            showProgrammingDialog(context, task: tasks[index]);
-                            break;
-                          case 7:
-                            showAdministrativeTaskDetailsDialog(
-                              context,
-                              task: tasks[index],
-                            );
-                            break;
-                          default:
-                        }
+                        openTaskDetails(context, tasks[index]);
                       },
                     ),
                   );

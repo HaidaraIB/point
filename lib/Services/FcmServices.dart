@@ -16,6 +16,7 @@ import 'package:point/Services/notifications/NotificationService.dart'
     as chat_notifications;
 import 'package:point/Services/push_permissions_helper.dart';
 import 'package:point/Services/StorageKeys.dart';
+import 'package:point/Services/notification_navigation/notification_navigation_coordinator.dart';
 import 'package:point/Services/push_notification_sound.dart';
 import 'package:point/Utils/app_log.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -26,8 +27,10 @@ class NotificationService {
   NotificationService._internal();
 
   StreamSubscription<RemoteMessage>? _foregroundSub;
+  StreamSubscription<RemoteMessage>? _openedAppSub;
   bool _initialized = false;
   Future<void>? _initFuture;
+  bool _consumedLaunchTap = false;
 
   Future<void> init() {
     _initFuture ??= _initInternal();
@@ -38,17 +41,25 @@ class NotificationService {
     if (_initialized || kIsWeb) return;
     _initialized = true;
 
+    setLocalNotificationTapHandler(_onLocalNotificationTap);
     await ensureAppLocalNotificationsInitialized();
     await chat_notifications.NotificationService.instance.init();
-    await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
-      alert: false,
-      badge: true,
-      sound: false,
-    );
+    await FirebaseMessaging.instance
+        .setForegroundNotificationPresentationOptions(
+          alert: false,
+          badge: true,
+          sound: false,
+        );
 
-    _foregroundSub ??= FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    _foregroundSub ??= FirebaseMessaging.onMessage.listen((
+      RemoteMessage message,
+    ) {
       unawaited(_handleForegroundMessage(message));
     });
+    _openedAppSub ??= FirebaseMessaging.onMessageOpenedApp.listen((message) {
+      _handleNotificationTapData(_stringDataMap(message));
+    });
+    await _consumeLaunchTaps();
   }
 
   Future<void> onAppResumed() async {
@@ -56,10 +67,61 @@ class NotificationService {
     await _consumePendingPushSyncPrefs();
     await FcmTokenCache.resyncIfChanged();
     await _pollMissedInAppNotificationsOnResume();
+    NotificationNavigationCoordinator.scheduleFlush();
+  }
+
+  void _onLocalNotificationTap(NotificationResponse response) {
+    _handleNotificationTapPayload(response.payload);
+  }
+
+  void _handleNotificationTapPayload(String? payload) {
+    if (payload == null || payload.trim().isEmpty) return;
+    try {
+      final decoded = jsonDecode(payload);
+      if (decoded is Map) {
+        _handleNotificationTapData(<String, String>{
+          for (final e in decoded.entries)
+            e.key.toString(): e.value?.toString() ?? '',
+        });
+      }
+    } catch (e) {
+      appLog('local notification tap payload parse failed: $e');
+    }
+  }
+
+  void _handleNotificationTapData(Map<String, String> data) {
+    if (_isSilentPushData(data)) return;
+    NotificationNavigationCoordinator.handlePayload(data);
+  }
+
+  Future<void> _consumeLaunchTaps() async {
+    if (_consumedLaunchTap) return;
+    _consumedLaunchTap = true;
+    try {
+      final initial = await FirebaseMessaging.instance.getInitialMessage();
+      if (initial != null) {
+        _handleNotificationTapData(_stringDataMap(initial));
+      }
+    } catch (e) {
+      appLog('getInitialMessage failed: $e');
+    }
+    try {
+      final launch = await appLocalNotificationsPlugin
+          .getNotificationAppLaunchDetails();
+      if (launch != null &&
+          launch.didNotificationLaunchApp &&
+          launch.notificationResponse?.payload != null) {
+        _handleNotificationTapPayload(launch.notificationResponse!.payload);
+      }
+    } catch (e) {
+      appLog('getNotificationAppLaunchDetails failed: $e');
+    }
   }
 
   Future<void> dismissChatMessageNotification(String chatId) {
-    return chat_notifications.NotificationService.instance.clearConversation(chatId);
+    return chat_notifications.NotificationService.instance.clearConversation(
+      chatId,
+    );
   }
 
   Future<void> showTestLocalNotification({
@@ -102,9 +164,8 @@ class NotificationService {
 
     if (_isChatMessage(message)) {
       if (_suppressForegroundChatNotification(message)) return;
-      await chat_notifications.NotificationService.instance.handleIncomingMessage(
-        message,
-      );
+      await chat_notifications.NotificationService.instance
+          .handleIncomingMessage(message);
       return;
     }
     await _showLocalNotification(message);
@@ -124,8 +185,9 @@ class NotificationService {
             .trim() ??
         '';
     if (incoming.isEmpty) return false;
-    final suppress =
-        ChatAudioFocus.shouldSuppressForegroundFcmForChat(incoming);
+    final suppress = ChatAudioFocus.shouldSuppressForegroundFcmForChat(
+      incoming,
+    );
     if (suppress) {
       appLog(
         'FCM foreground: suppress chat_message tray for chatId=$incoming '
@@ -165,14 +227,16 @@ class NotificationService {
         ? rawFromData
         : pushSoundBaseForNotificationType(notificationType);
     final channelId = pushChannelIdForSoundBase(soundBase);
-    final channelName =
-        soundBase != null ? 'Point: $soundBase' : 'General Notifications';
+    final channelName = soundBase != null
+        ? 'Point: $soundBase'
+        : 'General Notifications';
     final iosSoundFile = iosPushSoundFile(soundBase);
 
     if (Platform.isAndroid) {
       final android = appLocalNotificationsPlugin
           .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin>();
+            AndroidFlutterLocalNotificationsPlugin
+          >();
       if (android != null) {
         await android.createNotificationChannel(
           AndroidNotificationChannel(
@@ -214,7 +278,9 @@ class NotificationService {
       ),
       payload: jsonEncode(message.data.map((k, v) => MapEntry(k, '$v'))),
     );
-    appLog('Foreground non-chat local notification shown type=$notificationType');
+    appLog(
+      'Foreground non-chat local notification shown type=$notificationType',
+    );
   }
 
   bool _isSilentPushData(Map<String, String> data) {
@@ -226,8 +292,7 @@ class NotificationService {
 
   Map<String, String> _stringDataMap(RemoteMessage message) {
     return {
-      for (final e in message.data.entries)
-        e.key: e.value?.toString() ?? '',
+      for (final e in message.data.entries) e.key: e.value?.toString() ?? '',
     };
   }
 
@@ -261,10 +326,12 @@ class NotificationService {
 
   Future<void> _pollMissedInAppNotificationsOnResume() async {
     final prefs = await SharedPreferences.getInstance();
-    final userId = prefs.getString(StorageKeys.prefsFcmTokenUserId)?.trim() ?? '';
+    final userId =
+        prefs.getString(StorageKeys.prefsFcmTokenUserId)?.trim() ?? '';
     if (userId.isEmpty) return;
 
-    final lastMs = prefs.getInt(StorageKeys.prefsNotificationsResumeCursorMs) ?? 0;
+    final lastMs =
+        prefs.getInt(StorageKeys.prefsNotificationsResumeCursorMs) ?? 0;
     try {
       final snap = await FirebaseFirestore.instance
           .collection('notifications')

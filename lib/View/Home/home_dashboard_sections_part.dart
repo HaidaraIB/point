@@ -511,36 +511,7 @@ Widget tasksUnderProcessing(BuildContext context) {
                     final content = contents[index];
                     return InkWell(
                       onTap: () {
-                        switch (content.type) {
-                          case '0':
-                            showCampaignDetailsDialog(context, task: content);
-                            break;
-                          case '1':
-                            showDesignDetailsDialog(context, task: content);
-                            break;
-                          case '2':
-                            showDPhotographyDialog(context, task: content);
-                            break;
-                          case '3':
-                            showContentWriteDialog(context, task: content);
-                            break;
-                          case '4':
-                            showMontageDialog(context, task: content);
-                            break;
-                          case '5':
-                            showPublishDialog(context, task: content);
-                            break;
-                          case '6':
-                            showProgrammingDialog(context, task: content);
-                            break;
-                          case '7':
-                            showAdministrativeTaskDetailsDialog(
-                              context,
-                              task: content,
-                            );
-                            break;
-                          default:
-                        }
+                        openTaskDetails(context, content);
                       },
                       child: Container(
                         constraints:

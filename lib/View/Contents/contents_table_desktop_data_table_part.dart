@@ -421,6 +421,10 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                                             changedByName: actorName.isEmpty
                                                 ? 'notify.unknown_actor'.tr
                                                 : actorName,
+                                            fcmDataExtras:
+                                                notificationContentExtras(
+                                              emp.id,
+                                            ),
                                           );
                                           if (value ==
                                               StorageKeys.status_published) {
@@ -435,6 +439,10 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                                             await NotificationService.notifyPromotionDeptNewPublishedContent(
                                               clientName: clientName,
                                               contentTitle: emp.title,
+                                              fcmDataExtras:
+                                                  notificationContentExtras(
+                                                emp.id,
+                                              ),
                                             );
                                           }
                                           controller.refreshFilteredContents();
@@ -536,6 +544,10 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                                             await NotificationService.notifyAdminContentPromotionStatusChanged(
                                               contentTitle: emp.title,
                                               promotionLabelAr: promotionLabel,
+                                              fcmDataExtras:
+                                                  notificationContentExtras(
+                                                emp.id,
+                                              ),
                                             );
                                           }
                                           controller.refreshFilteredContents();

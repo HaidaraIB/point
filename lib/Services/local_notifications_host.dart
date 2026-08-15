@@ -10,6 +10,16 @@ final FlutterLocalNotificationsPlugin appLocalNotificationsPlugin =
 
 bool _appLocalNotificationsInitialized = false;
 
+void Function(NotificationResponse)? _onLocalNotificationResponse;
+
+/// Set from the main isolate so tray taps can navigate. Background isolates
+/// leave this null.
+void setLocalNotificationTapHandler(
+  void Function(NotificationResponse)? handler,
+) {
+  _onLocalNotificationResponse = handler;
+}
+
 /// Initializes local notifications once per isolate (main + background).
 Future<void> ensureAppLocalNotificationsInitialized() async {
   if (kIsWeb || _appLocalNotificationsInitialized) return;
@@ -19,7 +29,12 @@ Future<void> ensureAppLocalNotificationsInitialized() async {
   );
   const iosInit = DarwinInitializationSettings();
   const init = InitializationSettings(android: androidInit, iOS: iosInit);
-  await appLocalNotificationsPlugin.initialize(settings: init);
+  await appLocalNotificationsPlugin.initialize(
+    settings: init,
+    onDidReceiveNotificationResponse: (response) {
+      _onLocalNotificationResponse?.call(response);
+    },
+  );
 }
 
 /// Same collapse rule as [supabase/functions/send-fcm] `androidChatCollapseTagFromData`.

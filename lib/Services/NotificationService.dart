@@ -9,8 +9,10 @@ import 'package:point/Services/notification_email_fields.dart';
 enum ManagerTaskEditKind {
   /// تعليق (ملاحظات) فقط.
   comment,
+
   /// مرفقات فقط.
   attachment,
+
   /// تعليق ومرفق.
   both,
 }
@@ -44,6 +46,7 @@ class NotificationService {
     required String employeeId,
     required String taskTitle,
     TaskEmailContext? taskContext,
+    Map<String, String>? fcmDataExtras,
   }) async {
     await FirestoreServices.sendFcm(
       userId: employeeId,
@@ -54,6 +57,7 @@ class NotificationService {
       emailDetails: taskContext != null
           ? NotificationEmailFields.employeeTaskAssigned(taskContext)
           : null,
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
@@ -61,6 +65,7 @@ class NotificationService {
     required String employeeId,
     required String taskTitle,
     TaskEmailContext? taskContext,
+    Map<String, String>? fcmDataExtras,
   }) async {
     await FirestoreServices.sendFcm(
       userId: employeeId,
@@ -71,6 +76,7 @@ class NotificationService {
       emailDetails: taskContext != null
           ? NotificationEmailFields.employeeTaskEditRequested(taskContext)
           : null,
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
@@ -78,6 +84,7 @@ class NotificationService {
     required String employeeId,
     required String taskTitle,
     TaskEmailContext? taskContext,
+    Map<String, String>? fcmDataExtras,
   }) async {
     await FirestoreServices.sendFcm(
       userId: employeeId,
@@ -88,6 +95,7 @@ class NotificationService {
       emailDetails: taskContext != null
           ? NotificationEmailFields.employeeTaskRejected(taskContext)
           : _emailLabels({'notify.email.status': 'status_rejected'.tr}),
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
@@ -95,6 +103,7 @@ class NotificationService {
     required String employeeId,
     required String taskTitle,
     TaskEmailContext? taskContext,
+    Map<String, String>? fcmDataExtras,
   }) async {
     await FirestoreServices.sendFcm(
       userId: employeeId,
@@ -104,7 +113,10 @@ class NotificationService {
       actionText: 'notify.emp.reopened.action'.tr,
       emailDetails: taskContext != null
           ? NotificationEmailFields.employeeTaskReopened(taskContext)
-          : _emailLabels({'notify.email.status': 'notify.email.state_reopened'.tr}),
+          : _emailLabels({
+              'notify.email.status': 'notify.email.state_reopened'.tr,
+            }),
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
@@ -112,6 +124,7 @@ class NotificationService {
     required String employeeId,
     required String taskTitle,
     TaskEmailContext? taskContext,
+    Map<String, String>? fcmDataExtras,
   }) async {
     await FirestoreServices.sendFcm(
       userId: employeeId,
@@ -122,6 +135,7 @@ class NotificationService {
       emailDetails: taskContext != null
           ? NotificationEmailFields.employeeTaskNewAttachments(taskContext)
           : null,
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
@@ -131,20 +145,22 @@ class NotificationService {
     required String commenterName,
     required String taskTitle,
     TaskEmailContext? taskContext,
+    Map<String, String>? fcmDataExtras,
   }) async {
-    final ctx = taskContext ??
-        TaskEmailContext(
-          taskTitle: taskTitle,
-          commenterName: commenterName,
-        );
+    final ctx =
+        taskContext ??
+        TaskEmailContext(taskTitle: taskTitle, commenterName: commenterName);
     await FirestoreServices.sendFcm(
       userId: employeeId,
       title: 'notify.emp.new_comment.title'.tr,
-      body: 'notify.emp.new_comment.body'
-          .trParams({'name': commenterName, 'title': taskTitle}),
+      body: 'notify.emp.new_comment.body'.trParams({
+        'name': commenterName,
+        'title': taskTitle,
+      }),
       notificationType: 'employee_task_new_comment',
       actionText: 'notify.emp.new_comment.action'.tr,
       emailDetails: NotificationEmailFields.employeeTaskNewComment(ctx),
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
@@ -154,11 +170,14 @@ class NotificationService {
     required String newStatus,
     required String changedBy,
     TaskEmailContext? taskContext,
+    Map<String, String>? fcmDataExtras,
   }) async {
     final label = statusLabelAr(newStatus);
-    final actor =
-        changedBy.trim().isEmpty ? 'notify.unknown_actor'.tr : changedBy.trim();
-    final ctx = taskContext ??
+    final actor = changedBy.trim().isEmpty
+        ? 'notify.unknown_actor'.tr
+        : changedBy.trim();
+    final ctx =
+        taskContext ??
         TaskEmailContext(
           taskTitle: taskTitle,
           newStatus: label,
@@ -167,11 +186,15 @@ class NotificationService {
     await FirestoreServices.sendFcm(
       userId: employeeId,
       title: 'notify.emp.status_changed.title'.tr,
-      body: 'notify.emp.status_changed.body'
-          .trParams({'title': taskTitle, 'label': label, 'by': actor}),
+      body: 'notify.emp.status_changed.body'.trParams({
+        'title': taskTitle,
+        'label': label,
+        'by': actor,
+      }),
       notificationType: 'employee_task_status_changed',
       actionText: 'notify.emp.status_changed.action'.tr,
       emailDetails: NotificationEmailFields.employeeTaskStatusChanged(ctx),
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
@@ -180,18 +203,24 @@ class NotificationService {
     required String taskTitle,
     required String newDueLabel,
     TaskEmailContext? taskContext,
+    Map<String, String>? fcmDataExtras,
   }) async {
-    final ctx = taskContext ??
+    final ctx =
+        taskContext ??
         TaskEmailContext(taskTitle: taskTitle, newDueDate: newDueLabel);
     await FirestoreServices.sendFcm(
       userId: employeeId,
       title: 'notify.emp.deadline_extension.title'.tr,
-      body: 'notify.emp.deadline_extension.approved.body'
-          .trParams({'title': taskTitle, 'date': newDueLabel}),
+      body: 'notify.emp.deadline_extension.approved.body'.trParams({
+        'title': taskTitle,
+        'date': newDueLabel,
+      }),
       notificationType: 'employee_deadline_extension_approved',
       actionText: 'notify.emp.deadline_extension.action'.tr,
-      emailDetails:
-          NotificationEmailFields.employeeDeadlineExtensionApproved(ctx),
+      emailDetails: NotificationEmailFields.employeeDeadlineExtensionApproved(
+        ctx,
+      ),
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
@@ -199,22 +228,26 @@ class NotificationService {
     required String employeeId,
     required String taskTitle,
     TaskEmailContext? taskContext,
+    Map<String, String>? fcmDataExtras,
   }) async {
     await FirestoreServices.sendFcm(
       userId: employeeId,
       title: 'notify.emp.deadline_extension.title'.tr,
-      body: 'notify.emp.deadline_extension.denied.body'
-          .trParams({'title': taskTitle}),
+      body: 'notify.emp.deadline_extension.denied.body'.trParams({
+        'title': taskTitle,
+      }),
       notificationType: 'employee_deadline_extension_denied',
       actionText: 'notify.emp.deadline_extension.action'.tr,
       emailDetails: taskContext != null
           ? NotificationEmailFields.employeeDeadlineExtensionDenied(taskContext)
           : null,
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
   static Future<void> notifyEmployeeCheckInReminder({
     required String employeeId,
+    Map<String, String>? fcmDataExtras,
   }) async {
     await FirestoreServices.sendFcm(
       userId: employeeId,
@@ -223,11 +256,13 @@ class NotificationService {
       notificationType: 'employee_attendance_check_in',
       actionText: AppLocaleKeys.attendancePresent.tr,
       referenceId: 'attendance',
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
   static Future<void> notifyEmployeeCheckOutReminder({
     required String employeeId,
+    Map<String, String>? fcmDataExtras,
   }) async {
     await FirestoreServices.sendFcm(
       userId: employeeId,
@@ -236,16 +271,16 @@ class NotificationService {
       notificationType: 'employee_attendance_check_out',
       actionText: AppLocaleKeys.attendanceLeft.tr,
       referenceId: 'attendance',
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
   static Future<void> notifyManagersAttendanceSubmitted({
     required String employeeName,
     required String action,
+    Map<String, String>? fcmDataExtras,
   }) async {
-    final ids = await FirestoreServices.getEmployeeIdsByRole(
-      ['admin'],
-    );
+    final ids = await FirestoreServices.getEmployeeIdsByRole(['admin']);
     if (ids.isEmpty) return;
     final actionLabel = action == AttendanceRecordModel.actionPresent
         ? AppLocaleKeys.attendancePresent.tr
@@ -260,9 +295,8 @@ class NotificationService {
       notificationType: 'manager_attendance_submitted',
       actionText: 'notify.mgr.attendance_submitted.action'.tr,
       referenceId: 'attendance',
-      emailDetails: _emailLabels({
-        'notify.email.employee': employeeName,
-      }),
+      emailDetails: _emailLabels({'notify.email.employee': employeeName}),
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
@@ -272,10 +306,12 @@ class NotificationService {
     required String employeeName,
     required String taskTitle,
     required int progressPercent,
+    Map<String, String>? fcmDataExtras,
   }) async {
-    final ids = await FirestoreServices.getEmployeeIdsByRole(
-      ['admin', 'supervisor'],
-    );
+    final ids = await FirestoreServices.getEmployeeIdsByRole([
+      'admin',
+      'supervisor',
+    ]);
     final pct = progressPercent.clamp(0, 100).toString();
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
@@ -292,6 +328,7 @@ class NotificationService {
         'notify.email.employee': employeeName,
         'notify.email.task': taskTitle,
       }),
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
@@ -299,20 +336,26 @@ class NotificationService {
     required String employeeName,
     required String taskTitle,
     TaskEmailContext? taskContext,
+    Map<String, String>? fcmDataExtras,
   }) async {
-    final ids = await FirestoreServices.getEmployeeIdsByRole(
-      ['admin', 'supervisor'],
-    );
-    final ctx = taskContext ??
+    final ids = await FirestoreServices.getEmployeeIdsByRole([
+      'admin',
+      'supervisor',
+    ]);
+    final ctx =
+        taskContext ??
         TaskEmailContext(taskTitle: taskTitle, changedBy: employeeName);
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
       title: 'notify.mgr.received.title'.tr,
-      body: 'notify.mgr.received.body'
-          .trParams({'name': employeeName, 'title': taskTitle}),
+      body: 'notify.mgr.received.body'.trParams({
+        'name': employeeName,
+        'title': taskTitle,
+      }),
       notificationType: 'manager_task_received',
       actionText: 'notify.mgr.received.action'.tr,
       emailDetails: NotificationEmailFields.managerTaskWithEmployee(ctx),
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
@@ -320,20 +363,26 @@ class NotificationService {
     required String employeeName,
     required String taskTitle,
     TaskEmailContext? taskContext,
+    Map<String, String>? fcmDataExtras,
   }) async {
-    final ids = await FirestoreServices.getEmployeeIdsByRole(
-      ['admin', 'supervisor'],
-    );
-    final ctx = taskContext ??
+    final ids = await FirestoreServices.getEmployeeIdsByRole([
+      'admin',
+      'supervisor',
+    ]);
+    final ctx =
+        taskContext ??
         TaskEmailContext(taskTitle: taskTitle, changedBy: employeeName);
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
       title: 'notify.mgr.completed.title'.tr,
-      body: 'notify.mgr.completed.body'
-          .trParams({'name': employeeName, 'title': taskTitle}),
+      body: 'notify.mgr.completed.body'.trParams({
+        'name': employeeName,
+        'title': taskTitle,
+      }),
       notificationType: 'manager_task_completed',
       actionText: 'notify.mgr.completed.action'.tr,
       emailDetails: NotificationEmailFields.managerTaskWithEmployee(ctx),
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
@@ -342,6 +391,7 @@ class NotificationService {
     required String supervisorName,
     required String taskTitle,
     TaskEmailContext? taskContext,
+    Map<String, String>? fcmDataExtras,
   }) async {
     final ids = await FirestoreServices.getEmployeeIdsByRole(['admin']);
     if (ids.isEmpty) return;
@@ -361,6 +411,7 @@ class NotificationService {
               department: taskContext.department,
             )
           : _emailLabels({'notify.email.employee': supervisorName}),
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
@@ -370,21 +421,24 @@ class NotificationService {
     required ManagerTaskEditKind kind,
     TaskEmailContext? taskContext,
     String? commentPreview,
+    Map<String, String>? fcmDataExtras,
   }) async {
-    final ids = await FirestoreServices.getEmployeeIdsByRole(
-      ['admin', 'supervisor'],
-    );
+    final ids = await FirestoreServices.getEmployeeIdsByRole([
+      'admin',
+      'supervisor',
+    ]);
     final prefix = switch (kind) {
       ManagerTaskEditKind.comment => 'notify.mgr.edited',
       ManagerTaskEditKind.attachment => 'notify.mgr.edited_files',
       ManagerTaskEditKind.both => 'notify.mgr.edited_both',
     };
     final String pushType = switch (kind) {
-      ManagerTaskEditKind.comment || ManagerTaskEditKind.both =>
-        'manager_task_comment',
+      ManagerTaskEditKind.comment ||
+      ManagerTaskEditKind.both => 'manager_task_comment',
       ManagerTaskEditKind.attachment => 'manager_task_edited',
     };
-    final ctx = taskContext ??
+    final ctx =
+        taskContext ??
         TaskEmailContext(
           taskTitle: taskTitle,
           changedBy: employeeName,
@@ -398,21 +452,26 @@ class NotificationService {
       notificationType: pushType,
       actionText: '$prefix.action'.tr,
       emailDetails: NotificationEmailFields.managerTaskComment(ctx),
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
   static Future<void> notifyManagersContentSubmittedByClient({
     required String clientName,
     required String contentTitle,
+    Map<String, String>? fcmDataExtras,
   }) async {
-    final ids = await FirestoreServices.getEmployeeIdsByRole(
-      ['admin', 'supervisor'],
-    );
+    final ids = await FirestoreServices.getEmployeeIdsByRole([
+      'admin',
+      'supervisor',
+    ]);
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
       title: 'notify.mgr.content_submitted.title'.tr,
-      body: 'notify.mgr.content_submitted.body'
-          .trParams({'name': clientName, 'title': contentTitle}),
+      body: 'notify.mgr.content_submitted.body'.trParams({
+        'name': clientName,
+        'title': contentTitle,
+      }),
       notificationType: 'manager_content_submitted_by_client',
       actionText: 'notify.mgr.content_submitted.action'.tr,
       referenceId: contentTitle,
@@ -420,6 +479,7 @@ class NotificationService {
         'notify.email.client': clientName,
         'notify.email.content': contentTitle,
       }),
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
@@ -428,14 +488,17 @@ class NotificationService {
     required String departmentNameAr,
     String? dueDate,
     String? clientName,
+    Map<String, String>? fcmDataExtras,
   }) async {
-    final ids = await FirestoreServices.getEmployeeIdsByRole(
-      ['admin', 'supervisor'],
-    );
+    final ids = await FirestoreServices.getEmployeeIdsByRole([
+      'admin',
+      'supervisor',
+    ]);
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
-      title: 'notify.mgr.new_task_dept.title'
-          .trParams({'dept': departmentNameAr}),
+      title: 'notify.mgr.new_task_dept.title'.trParams({
+        'dept': departmentNameAr,
+      }),
       body: taskTitle,
       notificationType: 'manager_new_task_department',
       actionText: 'notify.mgr.new_task_dept.action'.tr,
@@ -444,6 +507,7 @@ class NotificationService {
         dueDate: dueDate ?? '',
         clientName: clientName,
       ),
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
@@ -451,35 +515,47 @@ class NotificationService {
     required String employeeName,
     required String taskTitle,
     TaskEmailContext? taskContext,
+    Map<String, String>? fcmDataExtras,
   }) async {
-    final ids = await FirestoreServices.getEmployeeIdsByRole(
-      ['admin', 'supervisor'],
-    );
-    final ctx = taskContext ??
+    final ids = await FirestoreServices.getEmployeeIdsByRole([
+      'admin',
+      'supervisor',
+    ]);
+    final ctx =
+        taskContext ??
         TaskEmailContext(taskTitle: taskTitle, changedBy: employeeName);
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
       title: 'notify.mgr.deadline_extension.title'.tr,
-      body: 'notify.mgr.deadline_extension.body'
-          .trParams({'name': employeeName, 'title': taskTitle}),
+      body: 'notify.mgr.deadline_extension.body'.trParams({
+        'name': employeeName,
+        'title': taskTitle,
+      }),
       notificationType: 'manager_deadline_extension_requested',
       actionText: 'notify.mgr.deadline_extension.action'.tr,
-      emailDetails: NotificationEmailFields.managerDeadlineExtensionRequested(ctx),
+      emailDetails: NotificationEmailFields.managerDeadlineExtensionRequested(
+        ctx,
+      ),
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
   static Future<void> notifyManagersClientNotesOnContent({
     required String clientName,
     required String contentTitle,
+    Map<String, String>? fcmDataExtras,
   }) async {
-    final ids = await FirestoreServices.getEmployeeIdsByRole(
-      ['admin', 'supervisor'],
-    );
+    final ids = await FirestoreServices.getEmployeeIdsByRole([
+      'admin',
+      'supervisor',
+    ]);
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
       title: 'notify.mgr.client_notes.title'.tr,
-      body: 'notify.mgr.client_notes.body'
-          .trParams({'name': clientName, 'title': contentTitle}),
+      body: 'notify.mgr.client_notes.body'.trParams({
+        'name': clientName,
+        'title': contentTitle,
+      }),
       notificationType: 'manager_client_notes',
       actionText: 'notify.mgr.client_notes.action'.tr,
       referenceId: contentTitle,
@@ -487,21 +563,26 @@ class NotificationService {
         'notify.email.client': clientName,
         'notify.email.content': contentTitle,
       }),
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
   static Future<void> notifyManagersClientApprovedContent({
     required String clientName,
     required String contentTitle,
+    Map<String, String>? fcmDataExtras,
   }) async {
-    final ids = await FirestoreServices.getEmployeeIdsByRole(
-      ['admin', 'supervisor'],
-    );
+    final ids = await FirestoreServices.getEmployeeIdsByRole([
+      'admin',
+      'supervisor',
+    ]);
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
       title: 'notify.mgr.client_approved.title'.tr,
-      body: 'notify.mgr.client_approved.body'
-          .trParams({'name': clientName, 'title': contentTitle}),
+      body: 'notify.mgr.client_approved.body'.trParams({
+        'name': clientName,
+        'title': contentTitle,
+      }),
       notificationType: 'manager_client_approved_content',
       actionText: 'notify.mgr.client_approved.action'.tr,
       referenceId: contentTitle,
@@ -509,6 +590,7 @@ class NotificationService {
         'notify.email.client': clientName,
         'notify.email.content': contentTitle,
       }),
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
@@ -517,6 +599,7 @@ class NotificationService {
   static Future<void> notifyClientContentPendingApproval({
     required String clientId,
     required String contentTypeLabel,
+    Map<String, String>? fcmDataExtras,
   }) async {
     await FirestoreServices.sendFcmForClient(
       userId: clientId,
@@ -528,11 +611,13 @@ class NotificationService {
       emailDetails: _emailLabels({
         'notify.email.content_type': contentTypeLabel,
       }),
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
   static Future<void> notifyClientApprovalConfirmed({
     required String clientId,
+    Map<String, String>? fcmDataExtras,
   }) async {
     await FirestoreServices.sendFcmForClient(
       userId: clientId,
@@ -545,12 +630,14 @@ class NotificationService {
         'notify.email.status':
             'notify.client.approval_confirmed.email_status'.tr,
       }),
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
   static Future<void> notifyClientEditsDone({
     required String clientId,
     required String contentTitle,
+    Map<String, String>? fcmDataExtras,
   }) async {
     await FirestoreServices.sendFcmForClient(
       userId: clientId,
@@ -560,12 +647,14 @@ class NotificationService {
       actionText: 'notify.client.edits_done.action'.tr,
       referenceId: contentTitle,
       emailDetails: _emailLabels({'notify.email.content': contentTitle}),
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
   static Future<void> notifyClientContentUpdatedForApproval({
     required String clientId,
     required String contentTitle,
+    Map<String, String>? fcmDataExtras,
   }) async {
     await FirestoreServices.sendFcmForClient(
       userId: clientId,
@@ -575,6 +664,7 @@ class NotificationService {
       actionText: 'notify.client.updated.action'.tr,
       referenceId: contentTitle,
       emailDetails: _emailLabels({'notify.email.content': contentTitle}),
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
@@ -582,11 +672,11 @@ class NotificationService {
     required String clientId,
     required String contentTitle,
     required String dateFormatted,
+    Map<String, String>? fcmDataExtras,
   }) async {
     await FirestoreServices.sendFcmForClient(
       userId: clientId,
-      title: 'notify.client.scheduled.title'
-          .trParams({'date': dateFormatted}),
+      title: 'notify.client.scheduled.title'.trParams({'date': dateFormatted}),
       body: contentTitle,
       notificationType: 'client_content_scheduled',
       actionText: 'notify.client.scheduled.action'.tr,
@@ -595,6 +685,7 @@ class NotificationService {
         'notify.email.content': contentTitle,
         'notify.email.publish_date': dateFormatted,
       }),
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
@@ -605,10 +696,12 @@ class NotificationService {
     required String platformLabel,
     required String dateFormatted,
     required String timeFormatted,
+    Map<String, String>? fcmDataExtras,
   }) async {
-    final adminIds = await FirestoreServices.getEmployeeIdsByRole(
-      ['admin', 'supervisor'],
-    );
+    final adminIds = await FirestoreServices.getEmployeeIdsByRole([
+      'admin',
+      'supervisor',
+    ]);
     final deptIds = await FirestoreServices.getEmployeeIdsByDepartment(
       StorageKeys.departmentPublishing,
     );
@@ -631,15 +724,18 @@ class NotificationService {
         'notify.email.date': dateFormatted,
         'notify.email.time': timeFormatted,
       }),
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
   static Future<void> notifyPublishDeptClientEditRequest({
     required String contentTitle,
+    Map<String, String>? fcmDataExtras,
   }) async {
-    final adminIds = await FirestoreServices.getEmployeeIdsByRole(
-      ['admin', 'supervisor'],
-    );
+    final adminIds = await FirestoreServices.getEmployeeIdsByRole([
+      'admin',
+      'supervisor',
+    ]);
     final deptIds = await FirestoreServices.getEmployeeIdsByDepartment(
       StorageKeys.departmentPublishing,
     );
@@ -652,16 +748,19 @@ class NotificationService {
       actionText: 'notify.publish.edit_req.action'.tr,
       referenceId: contentTitle,
       emailDetails: _emailLabels({'notify.email.content': contentTitle}),
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
   static Future<void> notifyPublishDeptClientApproved({
     required String clientName,
     required String contentTitle,
+    Map<String, String>? fcmDataExtras,
   }) async {
-    final adminIds = await FirestoreServices.getEmployeeIdsByRole(
-      ['admin', 'supervisor'],
-    );
+    final adminIds = await FirestoreServices.getEmployeeIdsByRole([
+      'admin',
+      'supervisor',
+    ]);
     final deptIds = await FirestoreServices.getEmployeeIdsByDepartment(
       StorageKeys.departmentPublishing,
     );
@@ -669,8 +768,10 @@ class NotificationService {
     await FirestoreServices.sendFcmToEmployees(
       userIds: all.toList(),
       title: 'notify.publish.approved.title'.tr,
-      body: 'notify.publish.approved.body'
-          .trParams({'name': clientName, 'title': contentTitle}),
+      body: 'notify.publish.approved.body'.trParams({
+        'name': clientName,
+        'title': contentTitle,
+      }),
       notificationType: 'publish_client_approved',
       actionText: 'notify.publish.approved.action'.tr,
       referenceId: contentTitle,
@@ -678,16 +779,19 @@ class NotificationService {
         'notify.email.client': clientName,
         'notify.email.content': contentTitle,
       }),
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
   static Future<void> notifyPublishDeptClientRejected({
     required String contentTitle,
     required String clientName,
+    Map<String, String>? fcmDataExtras,
   }) async {
-    final adminIds = await FirestoreServices.getEmployeeIdsByRole(
-      ['admin', 'supervisor'],
-    );
+    final adminIds = await FirestoreServices.getEmployeeIdsByRole([
+      'admin',
+      'supervisor',
+    ]);
     final deptIds = await FirestoreServices.getEmployeeIdsByDepartment(
       StorageKeys.departmentPublishing,
     );
@@ -695,8 +799,10 @@ class NotificationService {
     await FirestoreServices.sendFcmToEmployees(
       userIds: all.toList(),
       title: 'notify.publish.rejected.title'.tr,
-      body: 'notify.publish.rejected.body'
-          .trParams({'title': contentTitle, 'name': clientName}),
+      body: 'notify.publish.rejected.body'.trParams({
+        'title': contentTitle,
+        'name': clientName,
+      }),
       notificationType: 'publish_client_rejected',
       actionText: 'notify.publish.rejected.action'.tr,
       referenceId: contentTitle,
@@ -704,22 +810,26 @@ class NotificationService {
         'notify.email.client': clientName,
         'notify.email.content': contentTitle,
       }),
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
   static Future<void> notifyPublishDeptPostScheduledTodayNotConfirmed({
     required String employeeId,
     required String contentRef,
+    Map<String, String>? fcmDataExtras,
   }) async {
     await FirestoreServices.sendFcm(
       userId: employeeId,
       title: 'notify.publish.today_not_confirmed.title'.tr,
-      body: 'notify.publish.today_not_confirmed.body'
-          .trParams({'ref': contentRef}),
+      body: 'notify.publish.today_not_confirmed.body'.trParams({
+        'ref': contentRef,
+      }),
       notificationType: 'publish_post_not_confirmed_today',
       actionText: 'notify.publish.today_not_confirmed.action'.tr,
       referenceId: contentRef,
       emailDetails: _emailLabels({'notify.email.reference': contentRef}),
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
@@ -727,11 +837,13 @@ class NotificationService {
     required List<String> recipientIds,
     required String platformLabel,
     required String contentTitle,
+    Map<String, String>? fcmDataExtras,
   }) async {
     await FirestoreServices.sendFcmToEmployees(
       userIds: recipientIds,
-      title: 'notify.publish.published.title'
-          .trParams({'platform': platformLabel}),
+      title: 'notify.publish.published.title'.trParams({
+        'platform': platformLabel,
+      }),
       body: contentTitle,
       notificationType: 'publish_post_published',
       actionText: 'notify.publish.published.action'.tr,
@@ -740,12 +852,14 @@ class NotificationService {
         'notify.email.platform': platformLabel,
         'notify.email.content': contentTitle,
       }),
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
   static Future<void> notifyPublishDeptLinkAdded({
     required List<String> recipientIds,
     required String contentTitle,
+    Map<String, String>? fcmDataExtras,
   }) async {
     await FirestoreServices.sendFcmToEmployees(
       userIds: recipientIds,
@@ -755,12 +869,14 @@ class NotificationService {
       actionText: 'notify.publish.link_added.action'.tr,
       referenceId: contentTitle,
       emailDetails: _emailLabels({'notify.email.content': contentTitle}),
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
   static Future<void> notifyPublishDeptNotesAfterPublish({
     required List<String> recipientIds,
     required String contentTitle,
+    Map<String, String>? fcmDataExtras,
   }) async {
     await FirestoreServices.sendFcmToEmployees(
       userIds: recipientIds,
@@ -770,12 +886,14 @@ class NotificationService {
       actionText: 'notify.publish.notes_after.action'.tr,
       referenceId: contentTitle,
       emailDetails: _emailLabels({'notify.email.content': contentTitle}),
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
   static Future<void> notifyPublishDeptScheduledCancelled({
     required List<String> recipientIds,
     required String contentTitle,
+    Map<String, String>? fcmDataExtras,
   }) async {
     await FirestoreServices.sendFcmToEmployees(
       userIds: recipientIds,
@@ -785,6 +903,7 @@ class NotificationService {
       actionText: 'notify.publish.cancelled.action'.tr,
       referenceId: contentTitle,
       emailDetails: _emailLabels({'notify.email.content': contentTitle}),
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
@@ -793,13 +912,16 @@ class NotificationService {
   static Future<void> notifyAdminContentPromotionStatusChanged({
     required String contentTitle,
     required String promotionLabelAr,
+    Map<String, String>? fcmDataExtras,
   }) async {
     final ids = await FirestoreServices.getEmployeeIdsByRole(['admin']);
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
       title: 'notify.admin.promo_changed.title'.tr,
-      body: 'notify.admin.promo_changed.body'
-          .trParams({'title': contentTitle, 'label': promotionLabelAr}),
+      body: 'notify.admin.promo_changed.body'.trParams({
+        'title': contentTitle,
+        'label': promotionLabelAr,
+      }),
       notificationType: 'admin_promotion_status_changed',
       actionText: 'notify.admin.promo_changed.action'.tr,
       referenceId: contentTitle,
@@ -807,6 +929,7 @@ class NotificationService {
         'notify.email.content': contentTitle,
         'notify.email.status': promotionLabelAr,
       }),
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
@@ -814,6 +937,7 @@ class NotificationService {
     required String contentTitle,
     required String statusLabelAr,
     required String changedByName,
+    Map<String, String>? fcmDataExtras,
   }) async {
     final ids = await FirestoreServices.getEmployeeIdsByRole(['admin']);
     await FirestoreServices.sendFcmToEmployees(
@@ -832,12 +956,14 @@ class NotificationService {
         'notify.email.status': statusLabelAr,
         'notify.email.changed_by': changedByName,
       }),
+      fcmDataExtras: fcmDataExtras,
     );
   }
 
   static Future<void> notifyPromotionDeptNewPublishedContent({
     required String clientName,
     required String contentTitle,
+    Map<String, String>? fcmDataExtras,
   }) async {
     final ids = await FirestoreServices.getEmployeeIdsByDepartment(
       StorageKeys.departmentPromotion,
@@ -845,8 +971,10 @@ class NotificationService {
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
       title: 'notify.promo.new_published.title'.tr,
-      body: 'notify.promo.new_published.body'
-          .trParams({'name': clientName, 'title': contentTitle}),
+      body: 'notify.promo.new_published.body'.trParams({
+        'name': clientName,
+        'title': contentTitle,
+      }),
       notificationType: 'promotion_new_published_content',
       actionText: 'notify.promo.new_published.action'.tr,
       referenceId: contentTitle,
@@ -854,6 +982,7 @@ class NotificationService {
         'notify.email.client': clientName,
         'notify.email.content': contentTitle,
       }),
+      fcmDataExtras: fcmDataExtras,
     );
   }
 }

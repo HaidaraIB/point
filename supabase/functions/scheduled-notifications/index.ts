@@ -718,6 +718,35 @@ function shouldPersistInAppNotification(notificationType: string | undefined): b
   return t !== "chat_message" && t !== "chat_unread_digest";
 }
 
+function firestoreDocIdFromName(name: string): string {
+  const i = name.lastIndexOf("/");
+  return i >= 0 ? name.slice(i + 1) : name;
+}
+
+function taskNavExtras(doc: { name: string; fields: Record<string, unknown> }): Record<string, string> {
+  const extras: Record<string, string> = {};
+  const id = firestoreDocIdFromName(doc.name);
+  if (id) extras.taskId = id;
+  const type = getStringField(doc.fields, "type");
+  if (type) extras.taskType = type;
+  return extras;
+}
+
+function contentNavExtras(doc: { name: string }): Record<string, string> {
+  const id = firestoreDocIdFromName(doc.name);
+  return id ? { contentId: id } : {};
+}
+
+function firestoreStringMapValue(data: Record<string, string>): Record<string, unknown> | undefined {
+  const fields: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(data)) {
+    if (!k.trim() || !v.trim()) continue;
+    fields[k] = { stringValue: v };
+  }
+  if (Object.keys(fields).length === 0) return undefined;
+  return { mapValue: { fields } };
+}
+
 /** يطابق [FirestoreNotificationApi.addNotification] — مجموعة `notifications` للوارد داخل التطبيق. */
 async function persistInAppNotification(
   accessToken: string,
@@ -725,6 +754,7 @@ async function persistInAppNotification(
   recipientId: string,
   title: string,
   body: string,
+  data?: Record<string, string>,
 ): Promise<void> {
   const rid = recipientId.trim();
   if (!rid) return;
@@ -738,6 +768,10 @@ async function persistInAppNotification(
       createdAt: { stringValue: new Date().toISOString() },
       isRead: { booleanValue: false },
     };
+    if (data) {
+      const mapVal = firestoreStringMapValue(data);
+      if (mapVal) fields.data = mapVal;
+    }
     const res = await fetch(url, {
       method: "POST",
       headers: {
@@ -1055,7 +1089,19 @@ async function sendFcm({
     projectId &&
     shouldPersistInAppNotification(notificationType)
   ) {
-    await persistInAppNotification(accessToken, projectId, recipientId, title, body);
+    await persistInAppNotification(
+      accessToken,
+      projectId,
+      recipientId,
+      title,
+      body,
+      {
+        ...(notificationType && notificationType.trim()
+          ? { notificationType: notificationType.trim() }
+          : {}),
+        ...(dataExtras ?? {}),
+      },
+    );
   }
   const cleaned = [...new Set(tokens.map((t) => t.trim()).filter((t) => t.length > 0))];
   if (cleaned.length === 0) {
@@ -1085,9 +1131,6 @@ async function sendFcm({
   }
   if (soundBase) {
     dataPayloadBase.pushSoundBase = soundBase;
-  }
-  if ((notificationType ?? "").trim() === "chat_unread_digest") {
-    dataPayloadBase.openScreen = "chats";
   }
   dataPayloadBase.title = title;
   dataPayloadBase.body = body;
@@ -1468,6 +1511,7 @@ async function handleTaskReminders({
         notificationType: "manager_task_overdue",
         recipientId: id,
         recipientKind: "employee",
+                dataExtras: taskNavExtras(t),
         projectId,
       });
     }
@@ -1489,6 +1533,7 @@ async function handleTaskReminders({
         notificationType: "employee_task_overdue",
         recipientId: assignedTo,
         recipientKind: "employee",
+                dataExtras: taskNavExtras(t),
         projectId,
       });
       await patchTaskStringFields(accessToken, t.name, { overdueEmployeeNotifiedAt: notifyStamp });
@@ -1548,6 +1593,7 @@ async function handleTaskReminders({
         notificationType: "employee_task_due_soon",
         recipientId: assignedTo,
         recipientKind: "employee",
+                dataExtras: taskNavExtras(t),
         projectId,
       });
       await patchTaskStringFields(accessToken, t.name, { dueSoonNotifiedAt24h: notifyStamp });
@@ -1566,6 +1612,7 @@ async function handleTaskReminders({
         notificationType: "employee_task_followup",
         recipientId: assignedTo,
         recipientKind: "employee",
+                dataExtras: taskNavExtras(t),
         projectId,
       });
       await patchTaskStringFields(accessToken, t.name, { dueSoonNotifiedAt12h: notifyStamp });
@@ -1584,6 +1631,7 @@ async function handleTaskReminders({
         notificationType: "employee_task_due_soon",
         recipientId: assignedTo,
         recipientKind: "employee",
+                dataExtras: taskNavExtras(t),
         projectId,
       });
       await patchTaskStringFields(accessToken, t.name, { dueSoonNotifiedAt6h: notifyStamp });
@@ -1602,6 +1650,7 @@ async function handleTaskReminders({
         notificationType: "employee_task_due_soon_1h",
         recipientId: assignedTo,
         recipientKind: "employee",
+                dataExtras: taskNavExtras(t),
         projectId,
       });
       await patchTaskStringFields(accessToken, t.name, { dueSoonNotifiedAt1h: notifyStamp });
@@ -1650,7 +1699,8 @@ async function handleTaskReminders({
       notificationType: "employee_task_start_reminder",
       recipientId: assignedTo,
       recipientKind: "employee",
-      projectId,
+              dataExtras: taskNavExtras(t),
+        projectId,
     });
     await patchTaskStringFields(accessToken, t.name, { startReminderNotifiedAt: notifyStamp });
   }
@@ -1681,6 +1731,7 @@ async function handleTaskReminders({
         notificationType: "manager_task_no_action",
         recipientId: id,
         recipientKind: "employee",
+                dataExtras: taskNavExtras(t),
         projectId,
       });
     }
@@ -1731,7 +1782,8 @@ async function handleTaskReminders({
       notificationType: "employee_task_no_progress_yet",
       recipientId: assignedTo,
       recipientKind: "employee",
-      projectId,
+              dataExtras: taskNavExtras(t),
+        projectId,
     });
     await patchTaskStringFields(accessToken, t.name, { noProgressRemindedAt: notifyStamp });
   }
@@ -1799,7 +1851,8 @@ async function handleTaskReminders({
               notificationType: payload.notificationType,
               recipientId: assignedTo,
               recipientKind: "employee",
-              projectId,
+                      dataExtras: taskNavExtras(t),
+        projectId,
             });
             const prev = parseTaskMaskInt(getStringField(f, "progressReminderSentMask"));
             await patchTaskStringFields(accessToken, t.name, {
@@ -1831,6 +1884,7 @@ async function handleTaskReminders({
         notificationType: "employee_task_stale_update",
         recipientId: assignedTo,
         recipientKind: "employee",
+                dataExtras: taskNavExtras(t),
         projectId,
       });
       await patchTaskStringFields(accessToken, t.name, { staleUpdateNotifiedAt: notifyStamp });
@@ -1851,7 +1905,8 @@ async function handleTaskReminders({
           notificationType: "manager_task_progress_stalled",
           recipientId: id,
           recipientKind: "employee",
-          projectId,
+                  dataExtras: taskNavExtras(t),
+        projectId,
         });
       }
       await patchTaskStringFields(accessToken, t.name, { managerStalledNotifiedAt: notifyStamp });
@@ -1918,7 +1973,8 @@ async function handleContentPendingOver24h({
       notificationType: "client_pending_over_24h",
       recipientId: clientId,
       recipientKind: "client",
-      projectId,
+              dataExtras: contentNavExtras(doc),
+        projectId,
     });
   }
 }
@@ -1999,7 +2055,8 @@ async function handlePublishReminders({
       notificationType: "publish_post_one_hour",
       recipientId: targetId,
       recipientKind: "employee",
-      projectId,
+              dataExtras: contentNavExtras(doc),
+        projectId,
     });
     await patchTaskStringFields(accessToken, doc.name, { publishSoonNotifiedAt: notifyStamp });
   }

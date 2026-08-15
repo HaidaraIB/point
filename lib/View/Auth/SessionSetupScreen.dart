@@ -9,6 +9,7 @@ import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
+import 'package:point/Services/notification_navigation/notification_navigation_coordinator.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Shared/brand_logo.dart';
 
@@ -65,6 +66,7 @@ class _SessionSetupScreenState extends State<SessionSetupScreen> {
       Future.microtask(() {
         if (!mounted) return;
         Get.offAllNamed(route);
+        NotificationNavigationCoordinator.scheduleFlush();
       });
     });
   }

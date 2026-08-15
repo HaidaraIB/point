@@ -1,9 +1,6 @@
 part of 'package:point/Services/FireStoreServices.dart';
 
-const Set<String> _kGlobalRolesWithoutDepartment = {
-  'admin',
-  'supervisor',
-};
+const Set<String> _kGlobalRolesWithoutDepartment = {'admin', 'supervisor'};
 
 mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
   EmployeeModel _normalizeEmployeeDepartmentByRole(EmployeeModel employee) {
@@ -60,7 +57,6 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
     }
   }
 
-
   Future<void> _updateAuthFieldsWithRetry({
     required DocumentReference docRef,
     required String uid,
@@ -103,11 +99,10 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
   }) async {
     final normalizedEmail = email.trim().toLowerCase();
     if (normalizedEmail.isEmpty) return false;
-    final snap =
-        await _employeeCollection
-            .where("email", isEqualTo: normalizedEmail)
-            .limit(5)
-            .get();
+    final snap = await _employeeCollection
+        .where("email", isEqualTo: normalizedEmail)
+        .limit(5)
+        .get();
     for (final doc in snap.docs) {
       if (excludeEmployeeId != null && doc.id == excludeEmployeeId) continue;
       return true;
@@ -121,11 +116,10 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
   }) async {
     final normalizedEmail = email.trim().toLowerCase();
     if (normalizedEmail.isEmpty) return false;
-    final snap =
-        await _clientCollection
-            .where("email", isEqualTo: normalizedEmail)
-            .limit(5)
-            .get();
+    final snap = await _clientCollection
+        .where("email", isEqualTo: normalizedEmail)
+        .limit(5)
+        .get();
     for (final doc in snap.docs) {
       if (excludeClientId != null && doc.id == excludeClientId) continue;
       return true;
@@ -195,9 +189,9 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
         authUid: existing.authUid ?? normalizedUpdated.authUid,
         authStatus: existing.authStatus ?? normalizedUpdated.authStatus,
       );
-      await _employeeCollection.doc(merged.id).update(
-        _employeeFirestoreUpdateJson(merged),
-      );
+      await _employeeCollection
+          .doc(merged.id)
+          .update(_employeeFirestoreUpdateJson(merged));
 
       if (newPassword != null &&
           newPassword.trim().isNotEmpty &&
@@ -227,9 +221,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
     String? imageUrl,
   }) async {
     try {
-      final payload = <String, dynamic>{
-        'name': name,
-      };
+      final payload = <String, dynamic>{'name': name};
       final img = imageUrl?.trim();
       if (img != null && img.isNotEmpty) {
         payload['image'] = img;
@@ -289,9 +281,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
         throw Exception("معرف الموظف (id) مفقود!");
       }
       final json = _employeeFirestoreUpdateJson(normalizedEmployee);
-      await _employeeCollection
-          .doc(normalizedEmployee.id)
-          .update(json);
+      await _employeeCollection.doc(normalizedEmployee.id).update(json);
       appLog("✅ تم تحديث الموظف: ${normalizedEmployee.id}");
       return true;
     } catch (e, s) {
@@ -308,9 +298,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
     final id = employeeId.trim();
     if (id.isEmpty) return false;
     try {
-      await _employeeCollection.doc(id).update({
-        'libraryAccess': enabled,
-      });
+      await _employeeCollection.doc(id).update({'libraryAccess': enabled});
       final snap = await _employeeCollection.doc(id).get();
       if (!snap.exists) return false;
       final employee = EmployeeModel.fromFirestoreMap(snap.data(), id: id);
@@ -364,11 +352,10 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
     final normalizedEmail = email.trim().toLowerCase();
     try {
       // 1) Fetch profile from Firestore by email.
-      final query =
-          await _employeeCollection
-              .where("email", isEqualTo: normalizedEmail)
-              .limit(1)
-              .get();
+      final query = await _employeeCollection
+          .where("email", isEqualTo: normalizedEmail)
+          .limit(1)
+          .get();
 
       if (query.docs.isEmpty) {
         appLog("❌ loginEmployee: no employee record for $normalizedEmail");
@@ -490,23 +477,23 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
   Stream<List<EmployeeModel>> getEmployees() {
     try {
       return safeFirestoreListStream(
-        _employeeCollection.limit(FirestoreQueryLimits.employees).snapshots().map((snapshot) {
-          final employees = <EmployeeModel>[];
-          for (final doc in snapshot.docs) {
-            try {
-              employees.add(
-                EmployeeModel.fromFirestoreMap(
-                  doc.data(),
-                  id: doc.id,
-                ),
-              );
-            } catch (e, s) {
-              appLog('⚠️ Failed to parse employee ${doc.id}: $e');
-              appLog('StackTrace: $s');
-            }
-          }
-          return employees;
-        }),
+        _employeeCollection
+            .limit(FirestoreQueryLimits.employees)
+            .snapshots()
+            .map((snapshot) {
+              final employees = <EmployeeModel>[];
+              for (final doc in snapshot.docs) {
+                try {
+                  employees.add(
+                    EmployeeModel.fromFirestoreMap(doc.data(), id: doc.id),
+                  );
+                } catch (e, s) {
+                  appLog('⚠️ Failed to parse employee ${doc.id}: $e');
+                  appLog('StackTrace: $s');
+                }
+              }
+              return employees;
+            }),
         'employees',
       );
     } catch (e, s) {
@@ -541,7 +528,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
 
   /// One doc listener per id — for employees watching chat partners only.
   StreamSubscription<DocumentSnapshot<Map<String, dynamic>>>
-      watchEmployeePresenceDoc(
+  watchEmployeePresenceDoc(
     String employeeId,
     void Function(String id, DateTime? lastSeenAt) onUpdate, {
     void Function(Object error, StackTrace stackTrace)? onError,
@@ -559,7 +546,8 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
             }
             onUpdate(id, parseEmployeePresenceLastSeen(snap.data()));
           },
-          onError: onError ??
+          onError:
+              onError ??
               (Object e, StackTrace st) {
                 appLog('employee_presence/$id: $e');
               },
@@ -570,13 +558,13 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
     final id = employeeId.trim();
     if (id.isEmpty) return;
     try {
-      await FirebaseFirestore.instance.collection('employee_presence').doc(id).set(
-        <String, dynamic>{
-          'employeeId': id,
-          'lastSeenAt': FieldValue.serverTimestamp(),
-        },
-        SetOptions(merge: true),
-      );
+      await FirebaseFirestore.instance
+          .collection('employee_presence')
+          .doc(id)
+          .set(<String, dynamic>{
+            'employeeId': id,
+            'lastSeenAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
     } catch (e) {
       appLog('syncEmployeePresenceHeartbeat: $e');
     }
@@ -654,11 +642,10 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
       await FirebaseAuth.instance.signOut();
 
       // 1) Fetch profile from Firestore by email.
-      final query =
-          await _clientCollection
-              .where("email", isEqualTo: normalizedEmail)
-              .limit(1)
-              .get();
+      final query = await _clientCollection
+          .where("email", isEqualTo: normalizedEmail)
+          .limit(1)
+          .get();
 
       if (query.docs.isEmpty) {
         appLog("❌ loginClient: no client record for $normalizedEmail");
@@ -768,11 +755,10 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
     String authUid,
     String cleanedToken,
   ) async {
-    final employeeSnap =
-        await _employeeCollection
-            .where('authUid', isEqualTo: authUid)
-            .limit(1)
-            .get();
+    final employeeSnap = await _employeeCollection
+        .where('authUid', isEqualTo: authUid)
+        .limit(1)
+        .get();
     if (employeeSnap.docs.isNotEmpty) {
       await _stripFcmTokenFromUserDoc(
         employeeSnap.docs.first.reference,
@@ -780,11 +766,10 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
       );
     }
 
-    final clientSnap =
-        await _clientCollection
-            .where('authUid', isEqualTo: authUid)
-            .limit(1)
-            .get();
+    final clientSnap = await _clientCollection
+        .where('authUid', isEqualTo: authUid)
+        .limit(1)
+        .get();
     if (clientSnap.docs.isNotEmpty) {
       await _stripFcmTokenFromUserDoc(
         clientSnap.docs.first.reference,
@@ -803,11 +788,10 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
       if (cleanedToken.isEmpty) return;
 
       // تحديث الموظف مسموح فقط على employees/{myEmployeeId} — نقرأ المعرف من authRoles.
-      final roleSnap =
-          await FirebaseFirestore.instance
-              .collection(FirestoreAuthApi.authRolesCollection)
-              .doc(user.uid)
-              .get();
+      final roleSnap = await FirebaseFirestore.instance
+          .collection(FirestoreAuthApi.authRolesCollection)
+          .doc(user.uid)
+          .get();
 
       if (roleSnap.exists && roleSnap.data() != null) {
         final rd = roleSnap.data()!;
@@ -843,11 +827,10 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
     final uid = current.uid;
     QueryDocumentSnapshot? byUidDoc;
     try {
-      final byUid =
-          await _employeeCollection
-              .where('authUid', isEqualTo: uid)
-              .limit(1)
-              .get();
+      final byUid = await _employeeCollection
+          .where('authUid', isEqualTo: uid)
+          .limit(1)
+          .get();
       if (byUid.docs.isNotEmpty) {
         byUidDoc = byUid.docs.first;
       }
@@ -855,7 +838,9 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
       // During cold-start token/claims timing, this query can be denied.
       // Continue with email-based restore instead of failing whole auto-login.
       if (e.code == 'permission-denied') {
-        appLog('getCurrentEmployeeByAuth byUid permission-denied; fallback byEmail');
+        appLog(
+          'getCurrentEmployeeByAuth byUid permission-denied; fallback byEmail',
+        );
       } else {
         rethrow;
       }
@@ -872,11 +857,10 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
     }
     final email = current.email?.trim().toLowerCase();
     if (email == null || email.isEmpty) return null;
-    final byEmail =
-        await _employeeCollection
-            .where('email', isEqualTo: email)
-            .limit(1)
-            .get();
+    final byEmail = await _employeeCollection
+        .where('email', isEqualTo: email)
+        .limit(1)
+        .get();
     if (byEmail.docs.isEmpty) return null;
     final doc = byEmail.docs.first;
     try {
@@ -885,7 +869,9 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
         'authStatus': 'active',
       });
     } catch (e) {
-      appLog('getCurrentEmployeeByAuth update auth fields failed (ignored): $e');
+      appLog(
+        'getCurrentEmployeeByAuth update auth fields failed (ignored): $e',
+      );
     }
     final restored = EmployeeModel.fromFirestoreMap(
       doc.data(),
@@ -908,12 +894,17 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
 
     // استعلام بالبريد فقط: قواعد Firestore تسمح بـ canReadClientsDoc عندما يطابق
     // المستند request.auth.token.email. استعلام authUid أولاً يُرفض كاملاً قبل وجود authRoles.
-    final byEmail =
-        await _clientCollection.where('email', isEqualTo: email).limit(1).get();
+    final byEmail = await _clientCollection
+        .where('email', isEqualTo: email)
+        .limit(1)
+        .get();
     if (byEmail.docs.isEmpty) return null;
 
     final doc = byEmail.docs.first;
-    var client = ClientModel.fromJson(doc.data()! as Map<String, dynamic>, doc.id);
+    var client = ClientModel.fromJson(
+      doc.data()! as Map<String, dynamic>,
+      doc.id,
+    );
 
     if (client.authUid != null &&
         client.authUid!.trim().isNotEmpty &&
@@ -935,8 +926,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
     } catch (e) {
       appLog('getCurrentClientByAuth update auth fields failed (ignored): $e');
     }
-    final restored =
-        client.copyWith(authUid: uid, authStatus: 'active');
+    final restored = client.copyWith(authUid: uid, authStatus: 'active');
     try {
       await FirestoreAuthApi.syncAuthRoleForClient(restored);
     } catch (e) {
@@ -983,15 +973,14 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
           .limit(FirestoreQueryLimits.clients)
           .snapshots()
           .map(
-            (snapshot) =>
-                snapshot.docs
-                    .map(
-                      (doc) => ClientModel.fromJson(
-                        doc.data()! as Map<String, dynamic>,
-                        doc.id,
-                      ),
-                    )
-                    .toList(),
+            (snapshot) => snapshot.docs
+                .map(
+                  (doc) => ClientModel.fromJson(
+                    doc.data()! as Map<String, dynamic>,
+                    doc.id,
+                  ),
+                )
+                .toList(),
           ),
       'clients',
     );
@@ -1008,10 +997,8 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
         .get(GetOptions(source: source));
     return snapshot.docs
         .map(
-          (doc) => ClientModel.fromJson(
-            doc.data()! as Map<String, dynamic>,
-            doc.id,
-          ),
+          (doc) =>
+              ClientModel.fromJson(doc.data()! as Map<String, dynamic>, doc.id),
         )
         .toList();
   }
@@ -1032,15 +1019,14 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
           .limit(1)
           .snapshots()
           .map(
-            (snapshot) =>
-                snapshot.docs
-                    .map(
-                      (doc) => ClientModel.fromJson(
-                        doc.data()! as Map<String, dynamic>,
-                        doc.id,
-                      ),
-                    )
-                    .toList(),
+            (snapshot) => snapshot.docs
+                .map(
+                  (doc) => ClientModel.fromJson(
+                    doc.data()! as Map<String, dynamic>,
+                    doc.id,
+                  ),
+                )
+                .toList(),
           ),
       'clientsForEmail',
     );
@@ -1070,7 +1056,10 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
   }
 
   /// تحديث حقل الترويج فقط — يتوافق مع قواعد موظف الترويج في Firestore.
-  Future<bool> updateContentPromotionField(String contentId, String promotion) async {
+  Future<bool> updateContentPromotionField(
+    String contentId,
+    String promotion,
+  ) async {
     try {
       await _db.doc(contentId).update({'promotion': promotion});
       return true;
@@ -1097,15 +1086,14 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
           .limit(FirestoreQueryLimits.contents)
           .snapshots()
           .map(
-            (snapshot) =>
-                snapshot.docs
-                    .map(
-                      (doc) => ContentModel.fromJson(
-                        doc.data()! as Map<String, dynamic>,
-                        doc.id,
-                      ),
-                    )
-                    .toList(),
+            (snapshot) => snapshot.docs
+                .map(
+                  (doc) => ContentModel.fromJson(
+                    doc.data()! as Map<String, dynamic>,
+                    doc.id,
+                  ),
+                )
+                .toList(),
           ),
       'contents',
     );
@@ -1119,15 +1107,14 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
           .limit(FirestoreQueryLimits.contents)
           .snapshots()
           .map(
-            (snapshot) =>
-                snapshot.docs
-                    .map(
-                      (doc) => ContentModel.fromJson(
-                        doc.data()! as Map<String, dynamic>,
-                        doc.id,
-                      ),
-                    )
-                    .toList(),
+            (snapshot) => snapshot.docs
+                .map(
+                  (doc) => ContentModel.fromJson(
+                    doc.data()! as Map<String, dynamic>,
+                    doc.id,
+                  ),
+                )
+                .toList(),
           ),
       'contentsForClient',
     );
@@ -1140,15 +1127,14 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
           .limit(FirestoreQueryLimits.metaPosts)
           .snapshots()
           .map(
-            (snapshot) =>
-                snapshot.docs
-                    .map(
-                      (doc) => MetaPostModel.fromJson(
-                        doc.data()! as Map<String, dynamic>,
-                        doc.id,
-                      ),
-                    )
-                    .toList(),
+            (snapshot) => snapshot.docs
+                .map(
+                  (doc) => MetaPostModel.fromJson(
+                    doc.data()! as Map<String, dynamic>,
+                    doc.id,
+                  ),
+                )
+                .toList(),
           ),
       'meta_posts',
     );
@@ -1347,16 +1333,53 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
 
   Stream<List<TaskModel>> getTasks() {
     return safeFirestoreListStream(
-      _dbtask.limit(FirestoreQueryLimits.tasks).snapshots().map(
-        (snapshot) =>
-            snapshot.docs.map((doc) {
+      _dbtask
+          .limit(FirestoreQueryLimits.tasks)
+          .snapshots()
+          .map(
+            (snapshot) => snapshot.docs.map((doc) {
               final raw = doc.data();
               final map = Map<String, dynamic>.from(raw as Map);
               return TaskModel.fromJson(map);
             }).toList(),
-      ),
+          ),
       'tasks',
     );
+  }
+
+  Future<TaskModel?> getTaskById(String id) async {
+    final trimmed = id.trim();
+    if (trimmed.isEmpty) return null;
+    try {
+      final doc = await _dbtask.doc(trimmed).get();
+      if (!doc.exists) return null;
+      final raw = doc.data();
+      if (raw == null) return null;
+      final map = Map<String, dynamic>.from(raw as Map);
+      map['id'] = doc.id;
+      return TaskModel.fromJson(map);
+    } catch (e) {
+      appLog('❌ Error getTaskById: $e');
+      return null;
+    }
+  }
+
+  Future<ContentModel?> getContentById(String id) async {
+    final trimmed = id.trim();
+    if (trimmed.isEmpty) return null;
+    try {
+      final doc = await _db.doc(trimmed).get();
+      if (!doc.exists) return null;
+      final raw = doc.data();
+      if (raw == null) return null;
+      return ContentModel.fromJson(
+        Map<String, dynamic>.from(raw as Map),
+        doc.id,
+      );
+    } catch (e) {
+      appLog('❌ Error getContentById: $e');
+      return null;
+    }
   }
 
   /// تيار مهام موظف عادي (ليس مشرفاً/مديراً): `assignedTo` أو `type` حسب القسم.
@@ -1396,19 +1419,19 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
 
     return safeFirestoreListStream(
       q.limit(FirestoreQueryLimits.tasks).snapshots().map((snapshot) {
-        final list =
-            snapshot.docs.map((doc) {
-              final raw = doc.data();
-              final map = Map<String, dynamic>.from(raw);
-              map['id'] = doc.id;
-              return TaskModel.fromJson(map);
-            }).toList();
+        final list = snapshot.docs.map((doc) {
+          final raw = doc.data();
+          final map = Map<String, dynamic>.from(raw);
+          map['id'] = doc.id;
+          return TaskModel.fromJson(map);
+        }).toList();
         list.sort((a, b) => a.fromDate.compareTo(b.fromDate));
         return list;
       }),
       'tasksForEmployee',
     );
   }
+
   Stream<List<MessageModel>> getMessages(String chatId) {
     return safeFirestoreListStream(
       db
@@ -1417,10 +1440,9 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
           .limit(FirestoreQueryLimits.chatMessagesPage)
           .snapshots()
           .map(
-            (snapshot) =>
-                snapshot.docs
-                    .map((e) => MessageModel.fromJson(e.data()))
-                    .toList(),
+            (snapshot) => snapshot.docs
+                .map((e) => MessageModel.fromJson(e.data()))
+                .toList(),
           ),
       'chatMessages',
     );
@@ -1522,4 +1544,3 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
     return safeFirestoreListStream(mapped, 'notifications');
   }
 }
-

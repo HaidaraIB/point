@@ -799,6 +799,10 @@ void showAddContentDialog(
                                                     clientId: clientId,
                                                     contentTitle:
                                                         titleController.text,
+                                                    fcmDataExtras:
+                                                        notificationContentExtras(
+                                                      model.id,
+                                                    ),
                                                   );
                                                 }
                                               });

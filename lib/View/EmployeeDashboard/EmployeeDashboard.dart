@@ -19,45 +19,12 @@ import 'package:point/View/Shared/app_version_label.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/task_list_filters_bar.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
-import 'package:point/View/Tasks/DetailsDialogs/DContentWriteDialog.dart';
-import 'package:point/View/Tasks/DetailsDialogs/DDesignDialog.dart';
-import 'package:point/View/Tasks/DetailsDialogs/DMontageDialog.dart';
-import 'package:point/View/Tasks/DetailsDialogs/DPhotographyDialog.dart';
-import 'package:point/View/Tasks/DetailsDialogs/DAdministrativeDialog.dart';
-import 'package:point/View/Tasks/DetailsDialogs/DProgrammingDialog.dart';
-import 'package:point/View/Tasks/DetailsDialogs/DPromotionDialog.dart';
-import 'package:point/View/Tasks/DetailsDialogs/DPublishDialog.dart';
+import 'package:point/View/Tasks/open_task_details.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/Utils/LibraryPermissions.dart';
 
 void _openEmployeeDashboardTaskDetails(BuildContext context, TaskModel task) {
-  switch (task.type) {
-    case '0':
-      showCampaignDetailsDialog(context, task: task);
-      break;
-    case '1':
-      showDesignDetailsDialog(context, task: task);
-      break;
-    case '2':
-      showDPhotographyDialog(context, task: task);
-      break;
-    case '3':
-      showContentWriteDialog(context, task: task);
-      break;
-    case '4':
-      showMontageDialog(context, task: task);
-      break;
-    case '5':
-      showPublishDialog(context, task: task);
-      break;
-    case '6':
-      showProgrammingDialog(context, task: task);
-      break;
-    case '7':
-      showAdministrativeTaskDetailsDialog(context, task: task);
-      break;
-    default:
-  }
+  openTaskDetails(context, task);
 }
 
 Widget _employeeDashboardDepartmentChip(

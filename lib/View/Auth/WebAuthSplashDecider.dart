@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Services/AutoLoginService.dart';
+import 'package:point/Services/notification_navigation/notification_navigation_coordinator.dart';
 import 'package:point/View/Shared/animated_splash_screen.dart';
 
 /// Web cold start: show loading instead of the login form while we restore
@@ -47,6 +48,7 @@ class _WebAuthSplashDeciderState extends State<WebAuthSplashDecider> {
     } else {
       Get.offAllNamed('/auth/login');
     }
+    NotificationNavigationCoordinator.scheduleFlush();
   }
 
   @override

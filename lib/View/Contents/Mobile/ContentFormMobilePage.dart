@@ -6,6 +6,7 @@ import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/ContentModel.dart';
 import 'package:point/Models/EmployeeModel.dart';
 import 'package:point/Services/NotificationService.dart';
+import 'package:point/Services/notification_navigation/notification_destination.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
@@ -316,9 +317,17 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
         );
         Get.back();
         controller.uploadedFilesPaths.clear();
-        await NotificationService.notifyClientContentUpdatedForApproval(clientId: widget.clientId, contentTitle: titleController.text);
+        await NotificationService.notifyClientContentUpdatedForApproval(
+          clientId: widget.clientId,
+          contentTitle: titleController.text,
+          fcmDataExtras: notificationContentExtras(widget.model?.id),
+        );
         if (widget.model!.status == StorageKeys.status_edit_requested) {
-          await NotificationService.notifyClientEditsDone(clientId: widget.clientId, contentTitle: titleController.text);
+          await NotificationService.notifyClientEditsDone(
+            clientId: widget.clientId,
+            contentTitle: titleController.text,
+            fcmDataExtras: notificationContentExtras(widget.model?.id),
+          );
         }
         if (effectiveStatus == StorageKeys.status_scheduled &&
             publishDate != null) {
@@ -326,6 +335,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
             clientId: widget.clientId,
             contentTitle: titleController.text,
             dateFormatted: FunHelper.formatdate(publishDate) ?? '',
+            fcmDataExtras: notificationContentExtras(widget.model?.id),
           );
         }
       }

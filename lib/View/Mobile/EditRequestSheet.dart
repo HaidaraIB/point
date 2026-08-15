@@ -6,6 +6,7 @@ import 'package:point/Controller/ClientController.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/ContentModel.dart';
 import 'package:point/Services/NotificationService.dart';
+import 'package:point/Services/notification_navigation/notification_destination.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/media_url_opener.dart';
@@ -205,8 +206,15 @@ class EditRequestSheet extends StatelessWidget {
                                             )
                                             ?.name ??
                                         model.clientId;
-                                    await NotificationService.notifyPublishDeptClientEditRequest(contentTitle: model.title);
-                                    await NotificationService.notifyManagersClientNotesOnContent(clientName: clientName, contentTitle: model.title);
+                                    await NotificationService.notifyPublishDeptClientEditRequest(
+                                      contentTitle: model.title,
+                                      fcmDataExtras: notificationContentExtras(model.id),
+                                    );
+                                    await NotificationService.notifyManagersClientNotesOnContent(
+                                      clientName: clientName,
+                                      contentTitle: model.title,
+                                      fcmDataExtras: notificationContentExtras(model.id),
+                                    );
                                   },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.green,
