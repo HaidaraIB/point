@@ -344,10 +344,8 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                SelectableText(
                   widget.task.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -356,12 +354,12 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
                   const SizedBox(height: 4),
                   LinkifiedText(
                     widget.task.description,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                    selectable: true,
                     style: TextStyle(
                       color: colorScheme.onSurfaceVariant,
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
+                      height: 1.4,
                     ),
                   ),
                 ] else ...[
@@ -613,7 +611,7 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
                                 ],
                                 TaskNoteBody(
                                   note: task.notes[i],
-                                  maxLines: 4,
+                                  selectable: true,
                                   compactVoice: false,
                                 ),
                                 Text(
@@ -905,6 +903,7 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
             ),
             child: LinkifiedText(
               body,
+              selectable: true,
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,

@@ -334,6 +334,18 @@ const List<PushNotificationTestDefinition> kPushNotificationTestCatalog =
         categoryKey: 'push_test.category.publish',
       ),
       PushNotificationTestDefinition(
+        notificationType: 'publish_post_late',
+        audience: PushTestAudience.employee,
+        sortOrder: 50,
+        categoryKey: 'push_test.category.publish',
+      ),
+      PushNotificationTestDefinition(
+        notificationType: 'publish_post_late_again',
+        audience: PushTestAudience.employee,
+        sortOrder: 50,
+        categoryKey: 'push_test.category.publish',
+      ),
+      PushNotificationTestDefinition(
         notificationType: 'publish_post_not_confirmed_today',
         audience: PushTestAudience.employee,
         sortOrder: 50,

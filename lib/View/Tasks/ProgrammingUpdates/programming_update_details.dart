@@ -246,10 +246,8 @@ class ProgrammingUpdateDetailsBody extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                SelectableText(
                   _displayTitle(u),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w700,
                       ),
@@ -258,8 +256,7 @@ class ProgrammingUpdateDetailsBody extends StatelessWidget {
                 if (desc.isNotEmpty)
                   LinkifiedText(
                     desc,
-                    maxLines: isMobile ? null : 3,
-                    overflow: isMobile ? null : TextOverflow.ellipsis,
+                    selectable: true,
                     style: TextStyle(
                       color: colorScheme.onSurfaceVariant,
                       fontSize: 12,
@@ -549,22 +546,18 @@ class ProgrammingUpdateDetailsBody extends StatelessWidget {
               color: context.appTheme.cardSurface,
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Wrap(
-            alignment: WrapAlignment.center,
-            runSpacing: 8,
-            children: [
-              TaskDetailsDialogHelpers.infoBoxDates(
-                'task_details.date_start_task'.tr,
-                FunHelper.formatdate(u.fromDate),
-                CupertinoIcons.calendar,
-              ),
-              TaskDetailsDialogHelpers.infoBoxDates(
-                'task_details.date_end_task'.tr,
-                FunHelper.formatdate(u.toDate),
-                CupertinoIcons.calendar,
-              ),
-            ],
-          ),
+          child: TaskDetailsDialogHelpers.dateBoxesRow([
+            TaskDetailsDialogHelpers.infoBoxDates(
+              'task_details.date_start_task'.tr,
+              FunHelper.formatdate(u.fromDate),
+              CupertinoIcons.calendar,
+            ),
+            TaskDetailsDialogHelpers.infoBoxDates(
+              'task_details.date_end_task'.tr,
+              FunHelper.formatdate(u.toDate),
+              CupertinoIcons.calendar,
+            ),
+          ]),
         ),
       ],
     );
@@ -718,6 +711,7 @@ class ProgrammingUpdateDetailsBody extends StatelessWidget {
                 )
               : LinkifiedText(
                   u.description.trim(),
+                  selectable: true,
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,

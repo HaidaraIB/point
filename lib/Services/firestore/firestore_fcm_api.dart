@@ -360,6 +360,7 @@ class FirestoreFcmApi {
     Map<String, String>? data,
     required String parentRequestId,
     String? notificationType,
+    bool silentDataOnly = false,
   }) async {
     if (recipients.isEmpty) return;
     assert(recipients.length == metaAligned.length);
@@ -377,6 +378,7 @@ class FirestoreFcmApi {
           data: data,
           requestId: parentRequestId,
           notificationType: notificationType,
+          silentDataOnly: silentDataOnly,
         );
         await _applyFcmBatchResults(
           batchResponse: out,
@@ -402,6 +404,7 @@ class FirestoreFcmApi {
     Map<String, String>? data,
     required String requestId,
     String? notificationType,
+    bool silentDataOnly = false,
   }) async {
     final firebaseIdToken = await FirebaseAuth.instance.currentUser
         ?.getIdToken();
@@ -410,7 +413,7 @@ class FirestoreFcmApi {
     }
 
     appLog(
-      '➡️ FCM batch invoke start. count=${recipients.length} title="$title" bodyLen=${body.length}',
+      '➡️ FCM batch invoke start. count=${recipients.length} title="$title" bodyLen=${body.length} silent=$silentDataOnly',
     );
 
     final res = await Supabase.instance.client.functions.invoke(
@@ -425,6 +428,7 @@ class FirestoreFcmApi {
         if (data != null) 'data': data,
         'requestId': requestId,
         if (notificationType != null) 'notificationType': notificationType,
+        if (silentDataOnly) 'silentDataOnly': true,
       },
     );
 
@@ -496,7 +500,7 @@ class FirestoreFcmApi {
 
   static bool _shouldPersistFcmToNotificationInbox(String? notificationType) {
     final t = notificationType?.trim() ?? '';
-    return t != 'chat_message' && t != 'chat_unread_digest';
+    return t != 'chat_message' && t != 'chat_unread_digest' && t != 'chat_read';
   }
 
   static Map<String, dynamic>? _navigationInboxData({
@@ -581,11 +585,13 @@ class FirestoreFcmApi {
     /// When true (default), do not notify the signed-in employee about their own action.
     bool excludeCurrentActor = true,
     Set<String>? excludeUserIds,
+    bool silentDataOnly = false,
   }) async {
     try {
-      final effectiveSendEmail =
-          sendEmail ??
-          NotificationEmailPolicy.shouldSendEmail(notificationType);
+      final effectiveSendEmail = silentDataOnly
+          ? false
+          : (sendEmail ??
+              NotificationEmailPolicy.shouldSendEmail(notificationType));
 
       // 1. هات بيانات المستخدم من Firestore
       final trimmedUserId = userId.trim();
@@ -625,7 +631,8 @@ class FirestoreFcmApi {
           ? rawRecipientName
           : 'الموظف';
 
-      if (_shouldPersistFcmToNotificationInbox(notificationType)) {
+      if (!silentDataOnly &&
+          _shouldPersistFcmToNotificationInbox(notificationType)) {
         await FirestoreNotificationApi.addNotification(
           NotificationModel(
             title: title,
@@ -727,6 +734,7 @@ class FirestoreFcmApi {
           data: baseData,
           parentRequestId: parentRequestId,
           notificationType: notificationType,
+          silentDataOnly: silentDataOnly,
         );
       } on FunctionException catch (e) {
         throw _fcmSendExceptionFromFunctionException(e);

@@ -28,7 +28,10 @@ const TOKEN_URL = "https://oauth2.googleapis.com/token";
 const RESEND_URL = "https://api.resend.com/emails";
 const FROM_EMAIL = "Point Agency <no-reply@mail.point-iq.app>";
 
-const CRON_FCM_VERSION = "scheduled-notifications-v6";
+const CRON_FCM_VERSION = "scheduled-notifications-v7";
+
+/** Iraq (Asia/Baghdad) — naive Flutter ISO strings are wall time in this offset. */
+const AGENCY_TZ_OFFSET_HOURS = 3;
 
 type CronFcmAgg = {
   sendAttempts: number;
@@ -460,6 +463,8 @@ const PUSH_ONLY_NOTIFICATION_TYPES_EMAIL = new Set<string>([
   "client_content_pending_approval",
   "publish_content_added",
   "publish_post_one_hour",
+  "publish_post_late",
+  "publish_post_late_again",
   "publish_post_not_confirmed_today",
   "publish_no_posts_tomorrow",
   "publish_link_added",
@@ -552,6 +557,8 @@ function soundBaseForNotificationTypeCron(notificationType: string | undefined):
     publish_client_approved: "notification_task_approved",
     publish_client_rejected: "notification_content_status",
     publish_post_one_hour: "notification_content_scheduled",
+    publish_post_late: "notification_content_scheduled",
+    publish_post_late_again: "notification_content_scheduled",
     publish_post_not_confirmed_today: "notification_content_scheduled",
     publish_no_posts_tomorrow: "notification_task_deadline_soon",
     publish_post_published: "notification_promotion_status",
@@ -1417,15 +1424,60 @@ function taskIsEndedForReminders(raw: string | undefined | null): boolean {
   return TASK_ENDED_STATUSES_LOWER.has(s.toLowerCase());
 }
 
-/** محتوى منشور مسبقاً — لا نرسل تذكير اقتراب موعد النشر. */
-const CONTENT_PUBLISHED_STATUSES = new Set(
-  ["status_published", "تم النشر", "Published", "published"].map((s) => s.toLowerCase()),
+/** محتوى منشور أو مرفوض — لا نرسل تذكير اقتراب/تأخير النشر. */
+const CONTENT_SKIP_PUBLISH_REMINDER_STATUSES = new Set(
+  [
+    "status_published",
+    "تم النشر",
+    "Published",
+    "published",
+    "status_rejected",
+    "مرفوض",
+    "Rejected",
+    "rejected",
+  ].map((s) => s.toLowerCase()),
 );
 
-function contentIsAlreadyPublishedForReminders(raw: string | undefined | null): boolean {
+function contentShouldSkipPublishReminders(raw: string | undefined | null): boolean {
   const s = (raw ?? "").trim();
   if (!s) return false;
-  return CONTENT_PUBLISHED_STATUSES.has(s.toLowerCase());
+  return CONTENT_SKIP_PUBLISH_REMINDER_STATUSES.has(s.toLowerCase());
+}
+
+/** Naive ISO (Flutter `toIso8601String` without Z) = agency wall time. Offset/Z = absolute. */
+function parseAgencyDateTime(
+  raw: string | null | undefined,
+  offsetHours = AGENCY_TZ_OFFSET_HOURS,
+): Date | null {
+  const s = (raw ?? "").trim();
+  if (!s) return null;
+  if (/[zZ]$/.test(s) || /[+-]\d{2}:\d{2}$/.test(s)) {
+    const d = new Date(s);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  const asIfUtc = new Date(`${s}Z`);
+  if (Number.isNaN(asIfUtc.getTime())) return null;
+  return new Date(asIfUtc.getTime() - offsetHours * 60 * 60 * 1000);
+}
+
+function localNaiveIso(now: Date, offsetHours = AGENCY_TZ_OFFSET_HOURS): string {
+  const shifted = new Date(now.getTime() + offsetHours * 60 * 60 * 1000);
+  const y = shifted.getUTCFullYear();
+  const m = String(shifted.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(shifted.getUTCDate()).padStart(2, "0");
+  const hh = String(shifted.getUTCHours()).padStart(2, "0");
+  const mm = String(shifted.getUTCMinutes()).padStart(2, "0");
+  const ss = String(shifted.getUTCSeconds()).padStart(2, "0");
+  const ms = String(shifted.getUTCMilliseconds()).padStart(3, "0");
+  return `${y}-${m}-${d}T${hh}:${mm}:${ss}.${ms}`;
+}
+
+function isPublishingDepartmentValue(raw: string): boolean {
+  const v = raw.trim().toLowerCase();
+  if (!v) return false;
+  if (v === "publishing" || v === "publish" || v === "cat6") return true;
+  if (raw.includes("النشر")) return true;
+  return v.includes("publishing") || v.includes("publish");
 }
 
 /** حالات جارية — للفحص عن جمود/تحديث (يتطابق مع التطبيق). */
@@ -1979,6 +2031,69 @@ async function handleContentPendingOver24h({
   }
 }
 
+type PublishReminderEmployee = {
+  email: string | null;
+  fcmTokens: string[];
+  role: string | null;
+  departments: string[];
+};
+
+function resolvePublishReminderTargetIds(
+  executor: string,
+  byEmpId: Map<string, PublishReminderEmployee>,
+): string[] {
+  if (executor && byEmpId.has(executor)) return [executor];
+  const publishers = [...byEmpId.entries()]
+    .filter(([, v]) => v.departments.some((d) => isPublishingDepartmentValue(d)))
+    .map(([id]) => id);
+  if (publishers.length > 0) return publishers;
+  return [...byEmpId.entries()]
+    .filter(([, v]) => v.role === "admin" || v.role === "supervisor")
+    .map(([id]) => id);
+}
+
+async function sendPublishReminderToTargets({
+  accessToken,
+  fcmUrl,
+  projectId,
+  byEmpId,
+  targetIds,
+  title,
+  body,
+  extras,
+}: {
+  accessToken: string;
+  fcmUrl: string;
+  projectId: string;
+  byEmpId: Map<string, PublishReminderEmployee>;
+  targetIds: string[];
+  title: string;
+  body: string;
+  extras: Record<string, string>;
+}): Promise<boolean> {
+  if (targetIds.length === 0) return false;
+  let sent = false;
+  for (const targetId of targetIds) {
+    const target = byEmpId.get(targetId);
+    if (!target) continue;
+    sent = true;
+    await sendEmailIfPolicyAllows("publish_post_one_hour", target.email ?? null, title, body);
+    await sendFcm({
+      accessToken,
+      fcmUrl,
+      tokens: target.fcmTokens ?? [],
+      title,
+      body,
+      notificationType: "publish_post_one_hour",
+      recipientId: targetId,
+      recipientKind: "employee",
+      dataExtras: extras,
+      projectId,
+    });
+  }
+  return sent;
+}
+
 async function handlePublishReminders({
   accessToken,
   firestoreBase,
@@ -1994,28 +2109,28 @@ async function handlePublishReminders({
 }) {
   const employees = await listDocuments(accessToken, "employees", firestoreBase);
 
-  const byEmpId = new Map<string, { email: string | null; fcmTokens: string[]; role: string | null; department: string | null }>();
+  const byEmpId = new Map<string, PublishReminderEmployee>();
   for (const e of employees) {
     const id = e.name.split("/").pop() ?? "";
+    const departments = getStringArrayField(e.fields, "departments");
+    const legacyDept = getStringField(e.fields, "department");
+    if (legacyDept && !departments.includes(legacyDept)) departments.push(legacyDept);
     byEmpId.set(id, {
       email: getStringField(e.fields, "email"),
       fcmTokens: extractFcmTokensFromFirestoreFields(e.fields),
       role: getStringField(e.fields, "role"),
-      department: getStringField(e.fields, "department"),
+      departments,
     });
   }
-  const publishDept = [...byEmpId.entries()]
-    .filter(([, v]) => v.department === "cat6" || v.role === "admin" || v.role === "supervisor")
-    .map(([id]) => id);
 
-  const nowIso = now.toISOString();
-  /** Lead time before publishDate. Keep cron for mode=publish ≤ this (e.g. every 5–10 min). */
-  const PUBLISH_REMINDER_LEAD_MS = 15 * 60 * 1000;
-  const inLeadIso = new Date(now.getTime() + PUBLISH_REMINDER_LEAD_MS).toISOString();
-  const notifyStamp = nowIso;
+  /** Soon: 15 min before publishDate. Late: 15 min after, then one more 15 min later. */
+  const PUBLISH_WINDOW_MS = 15 * 60 * 1000;
+  const LOOKBACK_MS = 48 * 60 * 60 * 1000;
+  const notifyStamp = now.toISOString();
+  const lookbackLocalNaive = localNaiveIso(new Date(now.getTime() - LOOKBACK_MS));
+  const inLeadLocalNaive = localNaiveIso(new Date(now.getTime() + PUBLISH_WINDOW_MS));
 
-  // خلال ١٥ دقيقة — يستبعد المنشور فعلاً عبر الحالة أدناه
-  const nearPublish = await runQuery({
+  const publishCandidates = await runQuery({
     accessToken,
     projectId,
     structuredQuery: {
@@ -2024,41 +2139,85 @@ async function handlePublishReminders({
         compositeFilter: {
           op: "AND",
           filters: [
-            { fieldFilter: { field: { fieldPath: "publishDate" }, op: "GREATER_THAN_OR_EQUAL", value: { stringValue: nowIso } } },
-            { fieldFilter: { field: { fieldPath: "publishDate" }, op: "LESS_THAN_OR_EQUAL", value: { stringValue: inLeadIso } } },
+            {
+              fieldFilter: {
+                field: { fieldPath: "publishDate" },
+                op: "GREATER_THAN_OR_EQUAL",
+                value: { stringValue: lookbackLocalNaive },
+              },
+            },
+            {
+              fieldFilter: {
+                field: { fieldPath: "publishDate" },
+                op: "LESS_THAN_OR_EQUAL",
+                value: { stringValue: inLeadLocalNaive },
+              },
+            },
           ],
         },
       },
-      limit: 50,
+      orderBy: [{ field: { fieldPath: "publishDate" }, direction: "DESCENDING" }],
+      limit: 100,
     },
   });
 
-  for (const doc of nearPublish) {
-    const f = doc.fields as any;
+  for (const doc of publishCandidates) {
+    const f = doc.fields as Record<string, unknown>;
     const status = getStringField(f, "status") ?? "";
-    if (contentIsAlreadyPublishedForReminders(status)) continue;
-    if (getStringField(f, "publishSoonNotifiedAt")) continue;
+    if (contentShouldSkipPublishReminders(status)) continue;
 
-    const title = (f?.title?.stringValue as string) ?? "منشور";
-    const executor = (f?.executor?.stringValue as string) ?? "";
-    const targetId = executor || publishDept[0];
-    const target = targetId ? byEmpId.get(targetId) : null;
-    if (!targetId || !target) continue;
-    const msgTitle = "تذكير نشر خلال ١٥ دقيقة";
-    await sendEmailIfPolicyAllows("publish_post_one_hour", target.email ?? null, msgTitle, title);
-    await sendFcm({
+    const publishAt = parseAgencyDateTime(getStringField(f, "publishDate"));
+    if (!publishAt) continue;
+    const untilMs = publishAt.getTime() - now.getTime();
+    const lateMs = now.getTime() - publishAt.getTime();
+
+    let wave: "soon" | "lateFirst" | "lateSecond" | null = null;
+    if (untilMs >= 0 && untilMs <= PUBLISH_WINDOW_MS && !getStringField(f, "publishSoonNotifiedAt")) {
+      wave = "soon";
+    } else if (lateMs >= PUBLISH_WINDOW_MS && !getStringField(f, "publishLateSecondNotifiedAt")) {
+      const lateFirstRaw = getStringField(f, "publishLateNotifiedAt");
+      if (!lateFirstRaw) {
+        wave = "lateFirst";
+      } else {
+        const lateFirstAt = new Date(lateFirstRaw);
+        if (
+          !Number.isNaN(lateFirstAt.getTime()) &&
+          lateMs >= 2 * PUBLISH_WINDOW_MS &&
+          now.getTime() - lateFirstAt.getTime() >= PUBLISH_WINDOW_MS
+        ) {
+          wave = "lateSecond";
+        }
+      }
+    }
+    if (!wave) continue;
+
+    const title = getStringField(f, "title") ?? "منشور";
+    const executor = getStringField(f, "executor") ?? "";
+    const targetIds = resolvePublishReminderTargetIds(executor, byEmpId);
+    const msgTitle =
+      wave === "soon"
+        ? "تذكير نشر خلال ١٥ دقيقة"
+        : wave === "lateFirst"
+          ? "تذكير نشر متأخر ١٥ دقيقة"
+          : "تذكير نشر متأخر — لم يُنشر بعد";
+    const sent = await sendPublishReminderToTargets({
       accessToken,
       fcmUrl,
-      tokens: target.fcmTokens ?? [],
+      projectId,
+      byEmpId,
+      targetIds,
       title: msgTitle,
       body: title,
-      notificationType: "publish_post_one_hour",
-      recipientId: targetId,
-      recipientKind: "employee",
-              dataExtras: contentNavExtras(doc),
-        projectId,
+      extras: contentNavExtras(doc),
     });
-    await patchTaskStringFields(accessToken, doc.name, { publishSoonNotifiedAt: notifyStamp });
+    if (!sent) continue;
+    if (wave === "soon") {
+      await patchTaskStringFields(accessToken, doc.name, { publishSoonNotifiedAt: notifyStamp });
+    } else if (wave === "lateFirst") {
+      await patchTaskStringFields(accessToken, doc.name, { publishLateNotifiedAt: notifyStamp });
+    } else {
+      await patchTaskStringFields(accessToken, doc.name, { publishLateSecondNotifiedAt: notifyStamp });
+    }
   }
 }
 
@@ -2071,7 +2230,7 @@ function parseHHmm(value: string | null): { hour: number; minute: number } | nul
   return { hour, minute };
 }
 
-function localDateKey(now: Date, offsetHours = 3): string {
+function localDateKey(now: Date, offsetHours = AGENCY_TZ_OFFSET_HOURS): string {
   const shifted = new Date(now.getTime() + offsetHours * 60 * 60 * 1000);
   const y = shifted.getUTCFullYear();
   const m = String(shifted.getUTCMonth() + 1).padStart(2, "0");
@@ -2079,7 +2238,7 @@ function localDateKey(now: Date, offsetHours = 3): string {
   return `${y}-${m}-${d}`;
 }
 
-function localHourMinute(now: Date, offsetHours = 3): { hour: number; minute: number } {
+function localHourMinute(now: Date, offsetHours = AGENCY_TZ_OFFSET_HOURS): { hour: number; minute: number } {
   const shifted = new Date(now.getTime() + offsetHours * 60 * 60 * 1000);
   return { hour: shifted.getUTCHours(), minute: shifted.getUTCMinutes() };
 }

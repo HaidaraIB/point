@@ -585,7 +585,7 @@ class _EmployeeDashboardBody extends StatelessWidget {
 class TasksGridPage extends StatelessWidget {
   static const _crossAxisCount = 3;
   static const _spacing = 12.0;
-  static const _aspectRatio = 1.35;
+  static const _aspectRatio = 1.15;
 
   @override
   Widget build(BuildContext context) {

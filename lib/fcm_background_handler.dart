@@ -26,6 +26,13 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
   appLog('FCM background rx message_id=${message.messageId}');
   final data = message.data;
+  if (chat_notifications.NotificationService.isChatReadPayload(data)) {
+    await chat_notifications.NotificationService.instance.init();
+    await chat_notifications.NotificationService.instance.handleChatReadMessage(
+      message,
+    );
+    return;
+  }
   final silentRaw = data['silentSync'] ?? data['fcmSilentSync'];
   final silent = _isTruthy(silentRaw);
   if (silent) {

@@ -213,6 +213,14 @@ const Map<String, String> notifyTranslationsEn = {
       'Reminder: scheduled post will be published within 15 minutes',
   'notify.publish.one_hour.action':
       'Ensure the post is ready before publishing.',
+  'notify.publish.late.title':
+      'Reminder: scheduled post is 15 minutes overdue',
+  'notify.publish.late.action':
+      'Please publish the post or update its status.',
+  'notify.publish.late_again.title':
+      'Reminder: scheduled post is still unpublished',
+  'notify.publish.late_again.action':
+      'Please handle the overdue post now.',
   'notify.publish.today_not_confirmed.title':
       'Alert: post scheduled for today is not confirmed yet',
   'notify.publish.today_not_confirmed.body': 'Post: @ref',
@@ -469,6 +477,14 @@ const Map<String, String> notifyTranslationsAr = {
       'تذكير: لديك منشور مجدول سيتم نشره خلال ١٥ دقيقة',
   'notify.publish.one_hour.action':
       'يرجى التأكد من جاهزية المنشور قبل النشر.',
+  'notify.publish.late.title':
+      'تذكير: المنشور المجدول متأخر ١٥ دقيقة',
+  'notify.publish.late.action':
+      'يرجى نشر المنشور أو تحديث حالته.',
+  'notify.publish.late_again.title':
+      'تذكير نشر متأخر — لم يُنشر بعد',
+  'notify.publish.late_again.action':
+      'يرجى معالجة المنشور المتأخر الآن.',
   'notify.publish.today_not_confirmed.title':
       'تنبيه: منشور مجدول اليوم ولم يتم تأكيده بعد',
   'notify.publish.today_not_confirmed.body': 'المنشور: @ref',

@@ -54,6 +54,8 @@ String? pushSoundBaseForNotificationType(String? notificationType) {
     'publish_client_approved': 'notification_task_approved',
     'publish_client_rejected': 'notification_content_status',
     'publish_post_one_hour': 'notification_content_scheduled',
+    'publish_post_late': 'notification_content_scheduled',
+    'publish_post_late_again': 'notification_content_scheduled',
     'publish_post_not_confirmed_today': 'notification_content_scheduled',
     'publish_no_posts_tomorrow': 'notification_task_deadline_soon',
     'publish_post_published': 'notification_promotion_status',

@@ -13,6 +13,7 @@ class TaskNoteBody extends StatelessWidget {
   final TextStyle? style;
   final bool compactVoice;
   final bool linkify;
+  final bool selectable;
 
   const TaskNoteBody({
     super.key,
@@ -22,6 +23,7 @@ class TaskNoteBody extends StatelessWidget {
     this.style,
     this.compactVoice = true,
     this.linkify = true,
+    this.selectable = false,
   });
 
   @override
@@ -49,16 +51,29 @@ class TaskNoteBody extends StatelessWidget {
           linkify
               ? LinkifiedText(
                   text,
+                  selectable: selectable,
                   maxLines: maxLines,
-                  overflow: overflow ?? TextOverflow.ellipsis,
+                  overflow: overflow ??
+                      (maxLines == null
+                          ? TextOverflow.visible
+                          : TextOverflow.ellipsis),
                   style: resolvedStyle,
                 )
-              : Text(
-                  text,
-                  maxLines: maxLines,
-                  overflow: overflow ?? TextOverflow.ellipsis,
-                  style: resolvedStyle,
-                )
+              : selectable
+                  ? SelectableText(
+                      text,
+                      maxLines: maxLines,
+                      style: resolvedStyle,
+                    )
+                  : Text(
+                      text,
+                      maxLines: maxLines,
+                      overflow: overflow ??
+                          (maxLines == null
+                              ? TextOverflow.visible
+                              : TextOverflow.ellipsis),
+                      style: resolvedStyle,
+                    )
         else if (voices.isNotEmpty)
           Text(
             'tasks.form.voice_record'.tr,

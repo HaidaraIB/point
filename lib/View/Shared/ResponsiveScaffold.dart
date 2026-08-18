@@ -19,6 +19,7 @@ import 'package:point/Services/FcmServices.dart' as fcm_notifications;
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/firestore/firestore_chat_api.dart';
+import 'package:point/Services/notifications/chat_fcm_extras.dart';
 import 'package:point/Services/firestore/firestore_query_limits.dart';
 import 'package:point/Services/chat_clipboard_image_reader.dart';
 import 'package:point/Services/chat_mark_read_scheduler.dart';
@@ -1438,22 +1439,27 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
     final title = data['title']?.toString() ?? widget.chat.name;
     final chatForTitle = Map<String, dynamic>.from(data)..['id'] = _chatId;
     final fcmChatLabel = chatConversationTitleForPushDisplay(chatForTitle);
+    final sentAtMs = DateTime.now().millisecondsSinceEpoch;
+    final senderName = me.name ?? me.email ?? '';
 
     if (!isGroup) {
       final others = participants.where((id) => id != me.id).toList();
       if (others.isNotEmpty) {
         await FirestoreServices.sendFcm(
           userId: others.first,
-          title: me.name ?? me.email ?? '',
+          title: senderName,
           body: lastMessagePreview,
           notificationType: 'chat_message',
-          fcmDataExtras: {
-            'chatId': _chatId,
-            'chatTitle': me.name ?? me.email ?? '',
-            'chatDisplayName': fcmChatLabel,
-            'senderName': me.name ?? me.email ?? '',
-            'isGroup': '0',
-          },
+          fcmDataExtras: chatMessageFcmExtras(
+            chatId: _chatId,
+            chatTitle: senderName,
+            chatDisplayName: fcmChatLabel,
+            senderName: senderName,
+            senderId: me.id ?? '',
+            messageId: msgRef.id,
+            isGroup: false,
+            timestampMs: sentAtMs,
+          ),
         );
       }
     } else {
@@ -1467,13 +1473,16 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
             }),
             body: lastMessagePreview,
             notificationType: 'chat_message',
-            fcmDataExtras: {
-              'chatId': _chatId,
-              'chatTitle': title,
-              'chatDisplayName': fcmChatLabel,
-              'senderName': me.name ?? me.email ?? '',
-              'isGroup': '1',
-            },
+            fcmDataExtras: chatMessageFcmExtras(
+              chatId: _chatId,
+              chatTitle: title,
+              chatDisplayName: fcmChatLabel,
+              senderName: senderName,
+              senderId: me.id ?? '',
+              messageId: msgRef.id,
+              isGroup: true,
+              timestampMs: sentAtMs,
+            ),
           );
         }
       }

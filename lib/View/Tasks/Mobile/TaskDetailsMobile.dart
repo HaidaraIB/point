@@ -103,7 +103,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    SelectableText(
                       task.title,
                       style: TextStyle(
                         fontSize: 18,
@@ -112,8 +112,9 @@ class TaskDetailsMobilePage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
+                    LinkifiedText(
                       task.description,
+                      selectable: true,
                       style: TextStyle(
                         fontSize: 14,
                         color: context.appTheme.mutedText,
@@ -398,6 +399,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
           const SizedBox(height: 4),
           LinkifiedText(
             displayValue,
+            selectable: true,
             style: TextStyle(
               fontSize: 13,
               color: isPlaceholder
@@ -785,7 +787,11 @@ class TaskDetailsMobilePage extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 5),
                               ],
-                              TaskNoteBody(note: note, compactVoice: false),
+                              TaskNoteBody(
+                                note: note,
+                                selectable: true,
+                                compactVoice: false,
+                              ),
                               Text(
                                 isLatest
                                     ? _buildNoteMeta(note.byWho, note.timestamp)
@@ -1460,37 +1466,40 @@ class TaskDetailsMobilePage extends StatelessWidget {
   }
 
   Widget _buildActions(BuildContext context) {
-    final controller = Get.find<HomeController>();
-    final role = controller.currentEmployee.value?.role ?? '';
-    final canEditDirectly = role == 'admin' || role == 'supervisor';
-    final isEmployee = role == 'employee';
-    final canEscalate =
-        role == 'supervisor' &&
-        FunHelper.taskStatusAllowsSupervisorDirectOrEscalate(
-          task.status,
-          taskType: task.type,
-        );
-    final hideAccept = FunHelper.supervisorShouldHideTaskAccept(
-      role,
-      task.status,
-    );
-    final employeeRejectedReadOnly =
-        isEmployee &&
-        FunHelper.canonicalStoredStatus(task.status) ==
-            StorageKeys.status_rejected;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final neutralOutlineSide = BorderSide(color: context.appTheme.border);
-    final dangerFg = isDark ? Colors.red.shade300 : Colors.red;
-    final dangerOutlineSide = BorderSide(
-      color: dangerFg.withValues(alpha: 0.75),
-    );
-    final indigoFg =
-        isDark ? Colors.indigo.shade300 : Colors.indigo.shade800;
-    final indigoOutlineSide = BorderSide(
-      color: indigoFg.withValues(alpha: 0.75),
-    );
+    return Obx(() {
+      final controller = Get.find<HomeController>();
+      final live =
+          controller.tasks.firstWhereOrNull((x) => x.id == task.id) ?? task;
+      final role = controller.currentEmployee.value?.role ?? '';
+      final canEditDirectly = role == 'admin' || role == 'supervisor';
+      final isEmployee = role == 'employee';
+      final canEscalate =
+          role == 'supervisor' &&
+          FunHelper.taskStatusAllowsSupervisorDirectOrEscalate(
+            live.status,
+            taskType: live.type,
+          );
+      final hideAccept = FunHelper.supervisorShouldHideTaskAccept(
+        role,
+        live.status,
+      );
+      final employeeRejectedReadOnly =
+          isEmployee &&
+          FunHelper.canonicalStoredStatus(live.status) ==
+              StorageKeys.status_rejected;
+      final isDark = Theme.of(context).brightness == Brightness.dark;
+      final neutralOutlineSide = BorderSide(color: context.appTheme.border);
+      final dangerFg = isDark ? Colors.red.shade300 : Colors.red;
+      final dangerOutlineSide = BorderSide(
+        color: dangerFg.withValues(alpha: 0.75),
+      );
+      final indigoFg =
+          isDark ? Colors.indigo.shade300 : Colors.indigo.shade800;
+      final indigoOutlineSide = BorderSide(
+        color: indigoFg.withValues(alpha: 0.75),
+      );
 
-    return Column(
+      return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         OutlinedButton.icon(
@@ -1509,7 +1518,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
         if (!employeeRejectedReadOnly) ...[
           const SizedBox(height: 10),
           OutlinedButton.icon(
-            onPressed: () => _openEditDialog(context, task),
+            onPressed: () => _openEditDialog(context, live),
             icon: const Icon(Icons.edit_outlined, size: 18),
             label: Text(canEditDirectly ? 'edit'.tr : 'tasks.request_edit'.tr),
             style: OutlinedButton.styleFrom(
@@ -1521,12 +1530,12 @@ class TaskDetailsMobilePage extends StatelessWidget {
               ),
             ),
           ),
-          if (canEditDirectly && _taskInManagementReviewMobile(task)) ...[
+          if (canEditDirectly && _taskInManagementReviewMobile(live)) ...[
             const SizedBox(height: 10),
             FilledButton.icon(
               onPressed: () => showRequestTaskModificationDialog(
                 context: context,
-                task: task,
+                task: live,
               ),
               icon: const Icon(Icons.edit_note_outlined, size: 18),
               label: Text('tasks.request_modification_menu'.tr),
@@ -1543,15 +1552,15 @@ class TaskDetailsMobilePage extends StatelessWidget {
           const SizedBox(height: 10),
         ],
         if (isEmployee &&
-            task.assignedTo.trim() ==
+            live.assignedTo.trim() ==
                 (controller.currentEmployee.value?.id ?? '').trim() &&
-            StorageKeys.isTaskOngoing(task) &&
-            task.deadlineExtensionStatus.trim() !=
+            StorageKeys.isTaskOngoing(live) &&
+            live.deadlineExtensionStatus.trim() !=
                 TaskModel.kDeadlineExtensionPending) ...[
           OutlinedButton.icon(
             onPressed: () => showDeadlineExtensionRequestDialog(
               context: context,
-              task: task,
+              task: live,
             ),
             icon: const Icon(Icons.event_repeat_outlined, size: 18),
             label: Text('tasks.deadline_extension_button'.tr),
@@ -1566,8 +1575,29 @@ class TaskDetailsMobilePage extends StatelessWidget {
           ),
           const SizedBox(height: 10),
         ],
+        if (shouldShowPrimaryFinalWorkTaskButton(live, role) &&
+            FunHelper.canonicalStoredStatus(live.status) ==
+                StorageKeys.status_approved) ...[
+          FilledButton.icon(
+            onPressed: () => openTaskFinalWorkDialog(
+              context: context,
+              task: live,
+            ),
+            icon: const Icon(Icons.outbox_outlined, size: 18),
+            label: Text('tasks.final_deliverable_section'.tr),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
         if (!isEmployee) ...[
-          if (task.type != '0' && canEscalate) ...[
+          if (live.type != '0' && canEscalate) ...[
             Row(
               children: [
                 Expanded(
@@ -1575,7 +1605,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
                     onPressed: () {
                       showRejectTaskDialog(
                         context: context,
-                        task: task,
+                        task: live,
                         onSuccess: () => Get.back(),
                       );
                     },
@@ -1606,7 +1636,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
                         confirmColor: Colors.green,
                         onTap: () async {
                           await controller.updateTask(
-                            task.copyWith(status: StorageKeys.status_approved),
+                            live.copyWith(status: StorageKeys.status_approved),
                           );
                           Get.back();
                         },
@@ -1638,7 +1668,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
                     confirmColor: Colors.indigo,
                     onTap: () async {
                       await controller.updateTask(
-                        task.copyWith(
+                        live.copyWith(
                           status: StorageKeys.status_awaiting_manager,
                         ),
                       );
@@ -1683,7 +1713,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
               onPressed: () {
                 showRejectTaskDialog(
                   context: context,
-                  task: task,
+                  task: live,
                   onSuccess: () => Get.back(),
                 );
               },
@@ -1706,7 +1736,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
                     onPressed: () {
                       showRejectTaskDialog(
                         context: context,
-                        task: task,
+                        task: live,
                         onSuccess: () => Get.back(),
                       );
                     },
@@ -1733,11 +1763,11 @@ class TaskDetailsMobilePage extends StatelessWidget {
                         confirmText: 'tasks.accept'.tr,
                         confirmColor: Colors.green,
                         onTap: () async {
-                          final next = task.type == '0'
-                              ? task.copyWithPromotionStatusAligned(
+                          final next = live.type == '0'
+                              ? live.copyWithPromotionStatusAligned(
                                   StorageKeys.status_approved,
                                 )
-                              : task.copyWith(
+                              : live.copyWith(
                                   status: StorageKeys.status_approved,
                                 );
                           await controller.updateTask(next);
@@ -1769,7 +1799,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
                 confirmText: 'delete'.tr,
                 confirmColor: Colors.red,
                 onTap: () async {
-                  await controller.deleteTask(task.id!);
+                  await controller.deleteTask(live.id!);
                   Get.back();
                 },
               );
@@ -1788,6 +1818,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
         ],
       ],
     );
+    });
   }
 
   void _openEditDialog(BuildContext context, TaskModel task) {

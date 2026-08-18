@@ -117,22 +117,18 @@ class ContentWriteDetailsSection extends StatelessWidget {
               color: context.appTheme.cardSurface,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Wrap(
-                alignment: WrapAlignment.center,
-                runSpacing: 8,
-                children: [
-                  TaskDetailsDialogHelpers.infoBoxDates(
-                    'task_details.date_start_task'.tr,
-                    FunHelper.formatdate(task.fromDate),
-                    CupertinoIcons.calendar,
-                  ),
-                  TaskDetailsDialogHelpers.infoBoxDates(
-                    'task_details.date_end_task'.tr,
-                    FunHelper.formatdate(task.toDate),
-                    CupertinoIcons.calendar,
-                  ),
-                ],
-              ),
+              child: TaskDetailsDialogHelpers.dateBoxesRow([
+                TaskDetailsDialogHelpers.infoBoxDates(
+                  'task_details.date_start_task'.tr,
+                  FunHelper.formatdate(task.fromDate),
+                  CupertinoIcons.calendar,
+                ),
+                TaskDetailsDialogHelpers.infoBoxDates(
+                  'task_details.date_end_task'.tr,
+                  FunHelper.formatdate(task.toDate),
+                  CupertinoIcons.calendar,
+                ),
+              ]),
             ),
           ],
         );

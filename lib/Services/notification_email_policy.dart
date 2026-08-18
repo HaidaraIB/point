@@ -10,6 +10,7 @@ class NotificationEmailPolicy {
   static const Set<String> _pushOnlyNotificationTypes = {
     // دردشة — حجم الرسائل كبير
     'chat_message',
+    'chat_read',
 
     // موظف — تذكيرات زمنية متكررة لنفس المهمة
     'employee_task_due_soon',
@@ -49,6 +50,8 @@ class NotificationEmailPolicy {
 
     // نشر — تنبيهات تشغيلية / تذكيرات
     'publish_post_one_hour',
+    'publish_post_late',
+    'publish_post_late_again',
     'publish_post_not_confirmed_today',
     'publish_no_posts_tomorrow',
     'publish_link_added',

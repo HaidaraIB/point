@@ -2,17 +2,22 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Services/StorageKeys.dart';
+import 'package:point/Services/firestore/firestore_chat_api.dart';
 import 'package:point/Services/local_notifications_host.dart';
 import 'package:point/Services/notifications/ChatStore.dart';
 import 'package:point/Services/notifications/Models.dart';
+import 'package:point/Services/notifications/chat_notification_format.dart';
 import 'package:point/Services/push_notification_sound.dart';
 import 'package:point/Services/push_permissions_helper.dart';
 import 'package:point/Utils/app_log.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class NotificationService {
   NotificationService._();
@@ -82,7 +87,24 @@ class NotificationService {
     try {
       await _clearLegacyUnreadDigestNotifications();
       final buffer = await _chatStore.loadBuffer(payload.chatId);
-      final isDuplicate = buffer.messages.any(
+      final lastReadAtMs = await _resolveLastReadAtMs(payload.chatId, buffer);
+      final pruned = ChatStore.pruneReadMessages(buffer, lastReadAtMs);
+      if (payload.message.timestamp > 0 &&
+          lastReadAtMs > 0 &&
+          payload.message.timestamp <= lastReadAtMs) {
+        await _chatStore.saveBuffer(pruned);
+        appLog(
+          'ChatPush skipped already-read chat_id=${payload.chatId} '
+          'message_id=${payload.message.messageId} lastReadAtMs=$lastReadAtMs',
+        );
+        if (pruned.messages.isEmpty) {
+          await _cancelOsNotification(payload.chatId);
+        } else {
+          _scheduleNotification(payload.chatId);
+        }
+        return;
+      }
+      final isDuplicate = pruned.messages.any(
         (m) => m.messageId == payload.message.messageId,
       );
       if (isDuplicate) {
@@ -93,15 +115,20 @@ class NotificationService {
       }
 
       final next = _chatStore.appendMessage(
-        buffer: buffer,
+        buffer: pruned,
         message: payload.message,
         chatTitle: payload.chatTitle,
         isGroupChat: payload.isGroupChat,
+        lastReadAtMs: lastReadAtMs,
       );
       await _chatStore.saveBuffer(next);
       appLog(
         'ChatPush stored chat_id=${payload.chatId} message_id=${payload.message.messageId} buffer_size=${next.messages.length}',
       );
+      if (next.messages.isEmpty) {
+        await _cancelOsNotification(payload.chatId);
+        return;
+      }
       _scheduleNotification(payload.chatId);
     } catch (e, st) {
       appLog(
@@ -157,15 +184,32 @@ class NotificationService {
       final displayName = buffer.chatTitle.trim().isNotEmpty
           ? buffer.chatTitle.trim()
           : (_humanChatLabel(normalized));
+      final senderLineTemplate = _tr(AppLocaleKeys.chatNotificationSenderLine);
+      final latestPreview = buffer.isGroupChat
+          ? ChatNotificationFormat.senderLine(
+              sender: latest.sender,
+              text: latest.text,
+              template: senderLineTemplate,
+            )
+          : latest.text.trim();
       final collapsedSubtitle = count > 1
           ? _tr(
               AppLocaleKeys.chatNNewWithPreview,
-              {'count': '$count', 'text': latest.text},
+              {'count': '$count', 'text': latestPreview},
             )
-          : latest.text.trim();
+          : latestPreview;
 
       var inboxLines = sorted
-          .map((m) => m.text.trim())
+          .map((m) {
+            final text = m.text.trim();
+            if (text.isEmpty) return '';
+            if (!buffer.isGroupChat) return text;
+            return ChatNotificationFormat.senderLine(
+              sender: m.sender,
+              text: text,
+              template: senderLineTemplate,
+            );
+          })
           .where((t) => t.isNotEmpty)
           .toList(growable: false);
       if (inboxLines.isEmpty) {
@@ -178,18 +222,21 @@ class NotificationService {
           ? 'Point: $soundBase'
           : _tr(AppLocaleKeys.notificationsChannelChat);
 
-      // InboxStyle: message text only (no per-line sender). MessagingStyle would
-      // always show Person avatars + names on Android.
-      final StyleInformation? androidStyle =
-          Platform.isAndroid && inboxLines.length > 1
-          ? InboxStyleInformation(
-              inboxLines,
-              contentTitle: displayName,
-              summaryText: count > 1
-                  ? _tr(AppLocaleKeys.chatNNew, {'count': '$count'})
-                  : null,
-            )
-          : null;
+      StyleInformation? androidStyle;
+      if (Platform.isAndroid) {
+        if (buffer.isGroupChat) {
+          androidStyle = _messagingStyleForGroup(
+            displayName: displayName,
+            messages: sorted,
+          );
+        } else if (inboxLines.length > 1) {
+          androidStyle = InboxStyleInformation(
+            inboxLines,
+            contentTitle: displayName,
+            summaryText: _tr(AppLocaleKeys.chatNNew, {'count': '$count'}),
+          );
+        }
+      }
 
       final androidDetails = AndroidNotificationDetails(
         androidChannelId,
@@ -235,19 +282,89 @@ class NotificationService {
     }
   }
 
-  Future<void> clearConversation(String chatId) async {
+  Future<void> clearConversation(String chatId, {int? lastReadAtMs}) async {
     final normalized = chatId.trim();
     if (normalized.isEmpty || kIsWeb) return;
     try {
       _debounceByChat.remove(normalized)?.cancel();
-      await _chatStore.clearChat(normalized);
-      await appLocalNotificationsPlugin.cancel(
-        id: normalized.hashCode,
-        tag: androidChatNotificationTag(normalized),
-      );
+      await _chatStore.markChatRead(normalized, lastReadAtMs: lastReadAtMs);
+      await _cancelOsNotification(normalized);
       appLog('ChatPush cleared chat_id=$normalized');
     } catch (e, st) {
       appLog('ChatPush clearConversation failed chat_id=$normalized: $e\n$st');
+    }
+  }
+
+  /// Silent `chat_read` from another device (or this device's other tokens).
+  Future<void> handleChatReadMessage(RemoteMessage msg) async {
+    final data = msg.data;
+    final chatId =
+        (_ciGet(data, 'chat_id') ?? _ciGet(data, 'chatId'))?.trim() ?? '';
+    if (chatId.isEmpty) return;
+    final raw =
+        data['lastReadAtMs'] ?? data['last_read_at_ms'] ?? data['lastReadAt'];
+    final parsed = int.tryParse(raw?.toString().trim() ?? '') ?? 0;
+    await clearConversation(
+      chatId,
+      lastReadAtMs: parsed > 0 ? parsed : null,
+    );
+  }
+
+  static bool isChatReadPayload(Map<Object?, Object?> data) {
+    final type =
+        (data['notificationType'] ?? data['notification_type'])
+            ?.toString()
+            .trim() ??
+        '';
+    return type == 'chat_read';
+  }
+
+  /// On resume: drop tray entries for chats whose unread count is already 0.
+  Future<void> reconcileReadConversations() async {
+    if (kIsWeb) return;
+    try {
+      await init();
+      final uid = await _localEmployeeId();
+      if (uid == null || uid.isEmpty) return;
+      final ids = await _chatStore.listChatIds();
+      for (final chatId in ids) {
+        try {
+          final buffer = await _chatStore.loadBuffer(chatId);
+          if (buffer.messages.isEmpty) continue;
+          final snap = await FirebaseFirestore.instance
+              .collection('chats')
+              .doc(chatId)
+              .get();
+          if (!snap.exists) continue;
+          final data = snap.data() ?? const <String, dynamic>{};
+          final unread = FirestoreChatApi.unreadCountFromChatData(data, uid);
+          final lastRead = FirestoreChatApi.lastReadAtMsFromChatData(
+            data,
+            uid,
+          );
+          if (unread <= 0) {
+            await clearConversation(
+              chatId,
+              lastReadAtMs: lastRead > 0 ? lastRead : null,
+            );
+            continue;
+          }
+          if (lastRead <= 0) continue;
+          final pruned = ChatStore.pruneReadMessages(buffer, lastRead);
+          await _chatStore.saveBuffer(pruned);
+          if (pruned.messages.isEmpty) {
+            await _cancelOsNotification(chatId);
+          } else if (pruned.messages.length != buffer.messages.length) {
+            _scheduleNotification(chatId);
+          }
+        } catch (e, st) {
+          appLog(
+            'ChatPush reconcile failed chat_id=$chatId: $e\n$st',
+          );
+        }
+      }
+    } catch (e, st) {
+      appLog('ChatPush reconcileReadConversations failed: $e\n$st');
     }
   }
 
@@ -279,6 +396,8 @@ class NotificationService {
     final text =
         (_ciGet(data, 'text') ?? _ciGet(data, 'body'))?.toString() ?? '';
     final senderResolved = _resolveSenderName(data);
+    final senderId =
+        (_ciGet(data, 'senderId') ?? _ciGet(data, 'sender_id'))?.trim() ?? '';
     final timestampMs = _parseTimestampMs(
       data['timestamp'] ?? data['created_at'],
     );
@@ -308,6 +427,7 @@ class NotificationService {
         messageId: messageId,
         text: text,
         sender: senderResolved,
+        senderId: senderId,
         timestamp: timestampMs,
       ),
     );
@@ -343,6 +463,91 @@ class NotificationService {
         '';
     if (raw.isNotEmpty) return raw;
     return 'synth_${chatId}_${timestampMs}_${text.hashCode}';
+  }
+
+  Future<void> _cancelOsNotification(String chatId) async {
+    final normalized = chatId.trim();
+    if (normalized.isEmpty || kIsWeb) return;
+    await appLocalNotificationsPlugin.cancel(
+      id: normalized.hashCode,
+      tag: androidChatNotificationTag(normalized),
+    );
+  }
+
+  MessagingStyleInformation _messagingStyleForGroup({
+    required String displayName,
+    required List<StoredMessage> messages,
+  }) {
+    final self = Person(key: 'self', name: _tr(AppLocaleKeys.me));
+    final lines = <Message>[];
+    for (final m in messages) {
+      final text = m.text.trim();
+      if (text.isEmpty) continue;
+      final sender = m.sender.trim().isNotEmpty
+          ? m.sender.trim()
+          : _tr(AppLocaleKeys.chatSenderFallback);
+      final key = m.senderId.trim().isNotEmpty ? m.senderId.trim() : sender;
+      lines.add(
+        Message(
+          text,
+          DateTime.fromMillisecondsSinceEpoch(
+            m.timestamp > 0
+                ? m.timestamp
+                : DateTime.now().millisecondsSinceEpoch,
+          ),
+          Person(key: key, name: sender),
+        ),
+      );
+    }
+    if (lines.isEmpty) {
+      lines.add(
+        Message('…', DateTime.now(), Person(name: displayName, key: displayName)),
+      );
+    }
+    return MessagingStyleInformation(
+      self,
+      conversationTitle: displayName,
+      groupConversation: true,
+      messages: lines,
+    );
+  }
+
+  Future<int> _resolveLastReadAtMs(
+    String chatId,
+    StoredChatBuffer buffer,
+  ) async {
+    var ms = buffer.lastReadAtMs;
+    try {
+      final uid = await _localEmployeeId();
+      if (uid != null && uid.isNotEmpty) {
+        final snap = await FirebaseFirestore.instance
+            .collection('chats')
+            .doc(chatId)
+            .get();
+        if (snap.exists) {
+          final remote = FirestoreChatApi.lastReadAtMsFromChatData(
+            snap.data() ?? const <String, dynamic>{},
+            uid,
+          );
+          if (remote > ms) ms = remote;
+        }
+      }
+    } catch (e, st) {
+      appLog(
+        'ChatPush lastReadAt lookup failed chat_id=$chatId: $e\n$st',
+      );
+    }
+    return ms;
+  }
+
+  static Future<String?> _localEmployeeId() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final role = prefs.getString(StorageKeys.prefsFcmTokenRole)?.trim() ?? '';
+      final id = prefs.getString(StorageKeys.prefsFcmTokenUserId)?.trim() ?? '';
+      if (id.isNotEmpty && (role.isEmpty || role == 'employee')) return id;
+    } catch (_) {}
+    return null;
   }
 
   Future<void> _ensureAndroidChannel() async {
@@ -410,6 +615,9 @@ class NotificationService {
     AppLocaleKeys.chatFallbackTitle: 'محادثة',
     AppLocaleKeys.chatNNew: '@count جديدة',
     AppLocaleKeys.chatNNewWithPreview: '@count جديدة · @text',
+    AppLocaleKeys.chatNotificationSenderLine: '@sender: @text',
+    AppLocaleKeys.chatSenderFallback: 'مُرسل',
+    AppLocaleKeys.me: 'أنا',
     AppLocaleKeys.notificationsChannelChat: 'رسائل الدردشة',
     AppLocaleKeys.notificationsChannelChatDescription:
         'إشعارات محادثات الدردشة',

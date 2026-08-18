@@ -344,6 +344,7 @@ class AppTranslations extends Translations {
         'chat.fallback_title': 'Chat',
         'chat.n_new': '@count new',
         'chat.n_new_with_preview': '@count new · @text',
+        'chat.notification_sender_line': '@sender: @text',
         'notifications.channel.chat': 'Chat messages',
         'notifications.channel.chat_description':
             'Conversation chat notifications',
@@ -1924,6 +1925,7 @@ class AppTranslations extends Translations {
         "chat.fallback_title": "محادثة",
         "chat.n_new": "@count جديدة",
         "chat.n_new_with_preview": "@count جديدة · @text",
+        "chat.notification_sender_line": "@sender: @text",
         "notifications.channel.chat": "رسائل الدردشة",
         "notifications.channel.chat_description": "إشعارات محادثات الدردشة",
         "chat.file_tap_to_open": "اضغط للفتح",

@@ -10,7 +10,8 @@
 
 | `notificationType` | الجمهور (من يستلم) | مصدر الإرسال في الكود |
 |-------------------|---------------------|------------------------|
-| `chat_message` | الموظفون **المشاركون في المحادثة** غير المرسل: في محادثة ثنائية الطرف الآخر؛ في المجموعة **كل المشاركين** عدا المرسل. الإرسال عبر `FirestoreServices.sendFcm` (مسار موظفين). | واجهات المحادثة: `lib/View/Chats/ChatPage.dart`، `MChatPage.dart`؛ و`lib/View/Shared/ResponsiveScaffold.dart`. |
+| `chat_message` | الموظفون **المشاركون في المحادثة** غير المرسل: في محادثة ثنائية الطرف الآخر؛ في المجموعة **كل المشاركين** عدا المرسل. الإرسال عبر `FirestoreServices.sendFcm` (مسار موظفين). على أندرويد يُجمَّع محلياً (آخر 5، مع اسم المرسل في المجموعات). على iOS يظهر تنبيه APNs بعنوان المجموعة ونص `المرسل: الرسالة`. | واجهات المحادثة: `lib/View/Chats/ChatPage.dart`، `MChatPage.dart`؛ و`lib/View/Shared/ResponsiveScaffold.dart`. |
+| `chat_read` | **دفع صامت data-only** إلى **توكنات نفس القارئ** (كل أجهزته) عند تعليم المحادثة مقروءة (`unreadCount_*` أو رسائل `isRead`). لا بريد ولا صندوق إشعارات داخل التطبيق. الهدف إلغاء إشعار الدردشة على الأجهزة الأخرى. إن كان التطبيق مُغلقًا على iOS فقد يبقى تنبيه APNs حتى فتح التطبيق أو رسالة جديدة بنفس `apns-collapse-id`. | `FirestoreChatApi.markIncomingMessagesReadInChat`. |
 | `employee_task_assigned` | **الموظف المكلَّف** بالمهمة (`assignedTo`). | `NotificationService.notifyEmployeeAssignedToTask` ← `HomeController` عند إنشاء/تعيين مهمة. |
 | `employee_task_due_soon` | **الموظف المكلَّف** بالمهمة. | **Cron** فقط: `handleTaskReminders` (نافذتا 24 ساعة و6 ساعات قبل `toDate`). لا يوجد `NotificationService` لهذا النوع. |
 | `employee_task_edit_requested` | **الموظف المكلَّف** بالمهمة. | `HomeController` عند طلب تعديل من الإدارة. |
@@ -39,9 +40,9 @@
 | `publish_client_edit_request` | نفس اتحاد الإدارة + قسم النشر. | `EditRequestSheet.dart` (+ إشعار المديرين بالملاحظات). |
 | `publish_client_approved` | نفس الاتحاد. | `ClientContentDetails.dart`. |
 | `publish_client_rejected` | نفس الاتحاد. | `RefuseRequestSheet.dart`. |
-| `publish_post_one_hour` | **موظف واحد**: المنفّذ `executor` على المحتوى، أو أول موظف من مجموعة النشر إن لم يُحدَّد. | **Cron** فقط: `handlePublishReminders` (نافذة ١٥ دقيقة قبل `publishDate`؛ يتخطّى `status_published`؛ حقل `publishSoonNotifiedAt` لمنع التكرار). لا يوجد `NotificationService` لهذا النوع. |
+| `publish_post_one_hour` | **المنفّذ** `executor` إن وُجد في الموظفين، وإلا **كل** موظفي قسم `publishing`، وإلا `admin`/`supervisor`. | **Cron** فقط: `handlePublishReminders` (تذكير خلال ١٥ دقيقة قبل `publishDate`؛ ثم تذكير متأخر بعد ١٥ دقيقة إن لم يُنشر؛ ثم تذكير أخير بعد ١٥ دقيقة أخرى؛ يتخطّى المنشور والمرفوض؛ `publishSoonNotifiedAt` + `publishLateNotifiedAt` + `publishLateSecondNotifiedAt`). لا يوجد `NotificationService` لهذا النوع. |
 | `publish_post_not_confirmed_today` | **موظف واحد** (`employeeId`) — حسب من يستدعي الدالة. | الدالة في `NotificationService` — **لا يوجد استدعاء من `lib/`**. |
-| `publish_no_posts_tomorrow` | **كل** موظفي النشر + الإدارة المطابقين لفلتر الكرون (`department === cat6` أو `admin`/`supervisor`)، لكل عميل بلا منشور مجدول غداً. | **Cron** فقط: `handlePublishReminders`. لا يوجد `NotificationService` لهذا النوع. |
+| `publish_no_posts_tomorrow` | نوع محفوظ في خرائط الصوت/الاختبار. | **غير مُنفَّذ حالياً** في `handlePublishReminders`. |
 | `publish_post_published` | **قائمة موظفين** `recipientIds` (يحددها المتصل). | `notifyPublishDeptPostPublished` — **لا يوجد استدعاء من `lib/`**. |
 | `publish_link_added` | **قائمة موظفين** `recipientIds`. | الدالة في `NotificationService` — **لا يوجد استدعاء من `lib/`**. |
 | `publish_notes_after_publish` | **قائمة موظفين** `recipientIds`. | الدالة في `NotificationService` — **لا يوجد استدعاء من `lib/`**. |
@@ -65,6 +66,7 @@
 | إشعارات العميل (`client_*`) لعميل واحد | الخصوصية والملكية؛ العميل هو من يتخذ قرار الموافقة. |
 | `admin_supervisor_escalated_task` لـ `admin` فقط | تصميم تصعيد مقصود؛ أوسع من ذلك يُلغي معنى «تصعيد للمدير». |
 | `chat_message` للمشاركين فقط | متوقع اجتماعياً ولا حاجة لإشعار خارج المحادثة. |
+| `chat_read` لأجهزة نفس القارئ فقط | دفع صامت لإلغاء إشعار الدردشة بعد القراءة على جهاز آخر؛ لا جمهور إضافي. |
 | `broadcast_topic` | الجمهور يختاره المسؤول عن الإرسال؛ وعي بالضوضاء عند `all`. |
 
 ### حيث يُفضَّل التفكير في **توسيع** الجمهور
@@ -73,7 +75,7 @@
 |--------|-----------|
 | **`manager_task_overdue` (Cron)** | اليوم يُرسل لكل `admin` و`supervisor` **فقط**. **الموظف المكلَّف** لا يستلم push من هذا المسار رغم أنه الأكثر تأثراً. منطقياً يستحق **إشعاراً للمكلَّف** (نفس النوع أو نوع منفصل مثل `employee_task_overdue_reminder`) حتى لا يعتمد على تذكير «قريب من الموعد» فقط. |
 | **`promotion_new_published_content`** | يصل **قسم الترويج** فقط. إن كان المديرون يحتاجون رؤية كل محتوى مُنشر للترويج (مخاطر/موافقة)، قد يلزم **نسخة أو إشعار إضافي** لـ `admin` (أو مشرفين محددين). |
-| **`publish_post_one_hour` (Cron)** | إذا غاب `executor`، يُختار أول موظف من قائمة النشر؛ قد يكون **احتياطياً** إشعار **ثانٍ** لمدير النشر أو لقائمة بديلة إن كان المنفّذ غير مضبوط. |
+| **`publish_post_one_hour` (Cron)** | إذا غاب `executor` يُرسل لكل موظفي قسم النشر (وليس موظفاً واحداً فقط). |
 
 ### حيث يُفضَّل التفكير في **تضييق** الجمهور أو تلخيصه
 
@@ -114,8 +116,7 @@
 | `handleTaskReminders` — مهام متأخرة | `manager_task_overdue` | كل `admin` و`supervisor`. |
 | `handleTaskReminders` — اقتراب التسليم | `employee_task_due_soon` | الموظف المكلَّف `assignedTo`. |
 | `handleContentPendingOver24h` | `client_pending_over_24h` | العميل صاحب المحتوى. |
-| `handlePublishReminders` — منشور خلال ١٥ دقيقة | `publish_post_one_hour` | المنفّذ أو بديل من مجموعة النشر (انظر الكود؛ يتخطّى المنشور مسبقاً). |
-| `handlePublishReminders` — لا منشورات غداً | `publish_no_posts_tomorrow` | موظفو النشر + الإدارة المطابقون، لكل عميل بلا منشور غداً. |
+| `handlePublishReminders` — خلال ١٥ دقيقة ثم متأخر ثم تذكير أخير | `publish_post_one_hour` | المنفّذ إن وُجد، وإلا قسم النشر، وإلا الإدارة (يتخطّى المنشور والمرفوض). |
 
 ---
 

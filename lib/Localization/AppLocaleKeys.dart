@@ -292,6 +292,7 @@ class AppLocaleKeys {
   static const chatFallbackTitle = 'chat.fallback_title';
   static const chatNNew = 'chat.n_new';
   static const chatNNewWithPreview = 'chat.n_new_with_preview';
+  static const chatNotificationSenderLine = 'chat.notification_sender_line';
   static const notificationsChannelChat = 'notifications.channel.chat';
   static const notificationsChannelChatDescription =
       'notifications.channel.chat_description';

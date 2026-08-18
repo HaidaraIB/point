@@ -309,9 +309,11 @@ class EmployeeTaskCard extends StatelessWidget {
                       Text(
                         task.description,
                         maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: theme.secondaryText,
                           fontSize: 13,
+                          height: 1.35,
                         ),
                       ),
                       const SizedBox(height: 12),

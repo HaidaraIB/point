@@ -273,6 +273,8 @@ class _PushNotificationTestDialogBodyState
       'publish_client_approved': 'notify.publish.approved',
       'publish_client_rejected': 'notify.publish.rejected',
       'publish_post_one_hour': 'notify.publish.one_hour',
+      'publish_post_late': 'notify.publish.late',
+      'publish_post_late_again': 'notify.publish.late_again',
       'publish_post_not_confirmed_today': 'notify.publish.today_not_confirmed',
       'publish_no_posts_tomorrow': 'notify.publish.no_posts_tomorrow',
       'publish_post_published': 'notify.publish.published',

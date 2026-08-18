@@ -19,6 +19,7 @@ import 'package:point/Services/ChatIncomingMessageSound.dart';
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/firestore/firestore_chat_api.dart';
+import 'package:point/Services/notifications/chat_fcm_extras.dart';
 import 'package:point/Services/firestore/firestore_query_limits.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Services/chat_clipboard_image_reader.dart';
@@ -2029,19 +2030,23 @@ class _MessageScreenState extends State<MessageScreen>
     );
 
     final fcmConvTitle = _conversationTitleForFcm();
+    final sentAtMs = DateTime.now().millisecondsSinceEpoch;
     if (!isGroup && widget.otherUserId != null) {
       await FirestoreServices.sendFcm(
         userId: widget.otherUserId ?? '',
         title: widget.currentUserName,
         body: lastMessagePreview,
         notificationType: 'chat_message',
-        fcmDataExtras: {
-          'chatId': _chatId,
-          'chatTitle': widget.currentUserName,
-          'chatDisplayName': fcmConvTitle,
-          'senderName': widget.currentUserName,
-          'isGroup': '0',
-        },
+        fcmDataExtras: chatMessageFcmExtras(
+          chatId: _chatId,
+          chatTitle: widget.currentUserName,
+          chatDisplayName: fcmConvTitle,
+          senderName: widget.currentUserName,
+          senderId: widget.currentUserId,
+          messageId: msgRef.id,
+          isGroup: false,
+          timestampMs: sentAtMs,
+        ),
       );
     } else if (isGroup) {
       final participants = List<String>.from(widget.chat['participants'] ?? []);
@@ -2055,13 +2060,16 @@ class _MessageScreenState extends State<MessageScreen>
             }),
             body: lastMessagePreview,
             notificationType: 'chat_message',
-            fcmDataExtras: {
-              'chatId': _chatId,
-              'chatTitle': fcmConvTitle,
-              'chatDisplayName': fcmConvTitle,
-              'senderName': widget.currentUserName,
-              'isGroup': '1',
-            },
+            fcmDataExtras: chatMessageFcmExtras(
+              chatId: _chatId,
+              chatTitle: fcmConvTitle,
+              chatDisplayName: fcmConvTitle,
+              senderName: widget.currentUserName,
+              senderId: widget.currentUserId,
+              messageId: msgRef.id,
+              isGroup: true,
+              timestampMs: sentAtMs,
+            ),
           );
         }
       }

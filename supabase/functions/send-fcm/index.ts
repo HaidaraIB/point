@@ -35,7 +35,7 @@ type PushDiagnosticPayload = {
 // هذا يمنع انتقال المشكلة من `401 Invalid JWT` إلى `403` بسبب صلاحيات ناقصة.
 const FCM_SCOPE = "https://www.googleapis.com/auth/cloud-platform";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
-const FUNCTION_VERSION = "send-fcm-v5-batch";
+const FUNCTION_VERSION = "send-fcm-v6-chat-read";
 
 /** Max device targets per HTTP request (stays within typical Edge timeouts). */
 const MAX_FCM_BATCH_RECIPIENTS = 100;
@@ -144,12 +144,7 @@ async function handleFcmRecipientsBatch(args: {
 }): Promise<Response> {
   const { accessToken, sa, caller, parsed } = args;
 
-  if (parsed.silentDataOnly === true) {
-    return json(
-      { errorCode: "ERR_INVALID_DATA", details: "batch does not support silentDataOnly", requestId: parsed.requestId },
-      400,
-    );
-  }
+  const silentDataOnly = parsed.silentDataOnly === true;
 
   const rec = parsed.recipients ?? [];
   if (rec.length > MAX_FCM_BATCH_RECIPIENTS) {
@@ -162,7 +157,7 @@ async function handleFcmRecipientsBatch(args: {
 
   const title = parsed.title ?? "";
   const body = parsed.body ?? "";
-  if (!title || !body) {
+  if (!silentDataOnly && (!title || !body)) {
     return json({ errorCode: "ERR_INVALID_DATA", details: "title and body required" }, 400);
   }
 
@@ -205,21 +200,28 @@ async function handleFcmRecipientsBatch(args: {
     if (notificationType && notificationType.trim().length > 0) {
       dataPayload.notificationType = notificationType.trim();
     }
-    if (soundBase) {
+    if (!silentDataOnly && soundBase) {
       dataPayload.pushSoundBase = soundBase;
     }
-    dataPayload.title = title;
-    dataPayload.body = body;
+    if (!silentDataOnly) {
+      dataPayload.title = title;
+      dataPayload.body = body;
+    }
     dataPayload.requestId = subRequestId;
 
-    const fcmMessage = buildFcmV1NotificationMessage({
-      token,
-      title,
-      body,
-      dataPayload,
-      soundBase,
-      webNotificationTag: `point-${subRequestId}`,
-    });
+    const fcmMessage = silentDataOnly
+      ? buildFcmV1SilentDataOnlyMessage({
+        token,
+        dataPayload,
+      })
+      : buildFcmV1NotificationMessage({
+        token,
+        title,
+        body,
+        dataPayload,
+        soundBase,
+        webNotificationTag: `point-${subRequestId}`,
+      });
     await writePushDiagnostic({
       accessToken,
       projectId: sa.project_id,
@@ -404,6 +406,8 @@ function soundBaseForNotificationType(notificationType: string | undefined): str
     publish_client_approved: "notification_task_approved",
     publish_client_rejected: "notification_content_status",
     publish_post_one_hour: "notification_content_scheduled",
+    publish_post_late: "notification_content_scheduled",
+    publish_post_late_again: "notification_content_scheduled",
     publish_post_not_confirmed_today: "notification_content_scheduled",
     publish_no_posts_tomorrow: "notification_task_deadline_soon",
     publish_post_published: "notification_promotion_status",
@@ -497,6 +501,29 @@ function androidChatCollapseTagFromData(data: Record<string, string>): string | 
   return raw.length <= 64 ? raw : raw.slice(0, 64);
 }
 
+function isGroupChatData(data: Record<string, string>): boolean {
+  const s = (data.isGroup ?? data.is_group ?? "").trim().toLowerCase();
+  return s === "1" || s === "true" || s === "yes";
+}
+
+/** iOS shade: group name as title, `Sender: text` as body. `data.body` stays raw. */
+function groupChatApnsAlert(args: {
+  title: string;
+  body: string;
+  dataPayload: Record<string, string>;
+}): { title: string; body: string } {
+  if (!isGroupChatData(args.dataPayload)) {
+    return { title: args.title, body: args.body };
+  }
+  const groupTitle =
+    (args.dataPayload.chatTitle ?? args.dataPayload.chatDisplayName ?? "").trim() ||
+    args.title;
+  const sender =
+    (args.dataPayload.senderName ?? args.dataPayload.sender_name ?? "").trim();
+  const body = sender.length > 0 ? `${sender}: ${args.body}` : args.body;
+  return { title: groupTitle, body };
+}
+
 /**
  * جذر `notification` يحسّن التسليم على Android/iOS عند إغلاق التطبيق؛ الويب يبقى عبر
  * `webpush.notification` + tag لتقليل الازدواجية.
@@ -527,6 +554,11 @@ function buildFcmV1NotificationMessage(args: {
   const androidCollapseTag = androidChatCollapseTagFromData(args.dataPayload);
   const iosChatThreadId =
     ((args.dataPayload.chatId ?? "").trim() || undefined);
+  const apnsAlert = groupChatApnsAlert({
+    title: args.title,
+    body: args.body,
+    dataPayload: args.dataPayload,
+  });
   /**
    * `chat_message` + `chatId`: Android stays data-only so Flutter can aggregate locally.
    * iOS now uses APNs alert (not background-only) for reliable delivery while still
@@ -554,8 +586,8 @@ function buildFcmV1NotificationMessage(args: {
         aps: {
           ...prevAps,
           alert: {
-            title: args.title,
-            body: args.body,
+            title: apnsAlert.title,
+            body: apnsAlert.body,
           },
           ...(iosChatThreadId ? { "thread-id": iosChatThreadId } : {}),
         },
@@ -567,8 +599,8 @@ function buildFcmV1NotificationMessage(args: {
         aps: {
           ...prevAps,
           alert: {
-            title: args.title,
-            body: args.body,
+            title: apnsAlert.title,
+            body: apnsAlert.body,
           },
         },
       },

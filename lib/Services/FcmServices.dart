@@ -67,6 +67,10 @@ class NotificationService {
     await _consumePendingPushSyncPrefs();
     await FcmTokenCache.resyncIfChanged();
     await _pollMissedInAppNotificationsOnResume();
+    unawaited(
+      chat_notifications.NotificationService.instance
+          .reconcileReadConversations(),
+    );
     NotificationNavigationCoordinator.scheduleFlush();
   }
 
@@ -118,9 +122,13 @@ class NotificationService {
     }
   }
 
-  Future<void> dismissChatMessageNotification(String chatId) {
+  Future<void> dismissChatMessageNotification(
+    String chatId, {
+    int? lastReadAtMs,
+  }) {
     return chat_notifications.NotificationService.instance.clearConversation(
       chatId,
+      lastReadAtMs: lastReadAtMs,
     );
   }
 
@@ -155,6 +163,11 @@ class NotificationService {
 
   Future<void> _handleForegroundMessage(RemoteMessage message) async {
     final data = _stringDataMap(message);
+    if (chat_notifications.NotificationService.isChatReadPayload(data)) {
+      await chat_notifications.NotificationService.instance
+          .handleChatReadMessage(message);
+      return;
+    }
     if (_isSilentPushData(data)) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(StorageKeys.prefsPendingPushSync, true);

@@ -290,22 +290,18 @@ class PromotionDetailsSection extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Wrap(
-                    alignment: WrapAlignment.center,
-                    runSpacing: 8,
-                    children: [
-                      TaskDetailsDialogHelpers.infoBoxDates(
-                        'task_details.date_start_task'.tr,
-                        FunHelper.formatdate(task.fromDate),
-                        CupertinoIcons.calendar,
-                      ),
-                      TaskDetailsDialogHelpers.infoBoxDates(
-                        'task_details.date_end_task'.tr,
-                        FunHelper.formatdate(task.toDate),
-                        CupertinoIcons.calendar,
-                      ),
-                    ],
-                  ),
+                  TaskDetailsDialogHelpers.dateBoxesRow([
+                    TaskDetailsDialogHelpers.infoBoxDates(
+                      'task_details.date_start_task'.tr,
+                      FunHelper.formatdate(task.fromDate),
+                      CupertinoIcons.calendar,
+                    ),
+                    TaskDetailsDialogHelpers.infoBoxDates(
+                      'task_details.date_end_task'.tr,
+                      FunHelper.formatdate(task.toDate),
+                      CupertinoIcons.calendar,
+                    ),
+                  ]),
                   const SizedBox(height: 10),
                   Wrap(
                     spacing: 12,

@@ -282,6 +282,7 @@ class FirestoreServices extends FirestoreServicesBase
     Set<String>? batchSeenEmails,
     bool excludeCurrentActor = true,
     Set<String>? excludeUserIds,
+    bool silentDataOnly = false,
   }) =>
       FirestoreFcmApi.sendFcm(
         userId: userId,
@@ -299,6 +300,7 @@ class FirestoreServices extends FirestoreServicesBase
         batchSeenEmails: batchSeenEmails,
         excludeCurrentActor: excludeCurrentActor,
         excludeUserIds: excludeUserIds,
+        silentDataOnly: silentDataOnly,
       );
 
   static Future<void> sendFcmForClient({

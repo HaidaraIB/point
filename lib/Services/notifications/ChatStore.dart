@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:hive/hive.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:point/Services/notifications/Models.dart';
+import 'package:point/Services/notifications/chat_notification_format.dart';
 import 'package:point/Utils/app_log.dart';
 
 class ChatStore {
@@ -54,14 +55,42 @@ class ChatStore {
     }
   }
 
-  Future<void> clearChat(String chatId) async {
+  /// Clears messages but keeps [StoredChatBuffer.lastReadAtMs] so later FCM
+  /// payloads can be pruned after a cross-device read.
+  Future<void> markChatRead(String chatId, {int? lastReadAtMs}) async {
     final normalized = chatId.trim();
     if (normalized.isEmpty) return;
     try {
-      await init();
-      await _box?.delete(normalized);
+      final existing = await loadBuffer(normalized);
+      final ms = ChatNotificationFormat.maxInt(
+        lastReadAtMs ?? DateTime.now().millisecondsSinceEpoch,
+        existing.lastReadAtMs,
+      );
+      await saveBuffer(
+        StoredChatBuffer(
+          chatId: normalized,
+          chatTitle: existing.chatTitle,
+          isGroupChat: existing.isGroupChat,
+          lastReadAtMs: ms,
+          messages: const <StoredMessage>[],
+        ),
+      );
     } catch (e, st) {
-      appLog('ChatStore.clearChat failed chat_id=$normalized: $e\n$st');
+      appLog('ChatStore.markChatRead failed chat_id=$normalized: $e\n$st');
+    }
+  }
+
+  Future<List<String>> listChatIds() async {
+    try {
+      await init();
+      final keys = _box?.keys ?? const <dynamic>[];
+      return [
+        for (final k in keys)
+          if (k.toString().trim().isNotEmpty) k.toString().trim(),
+      ];
+    } catch (e, st) {
+      appLog('ChatStore.listChatIds failed: $e\n$st');
+      return const <String>[];
     }
   }
 
@@ -70,9 +99,15 @@ class ChatStore {
     required StoredMessage message,
     String? chatTitle,
     bool? isGroupChat,
+    int? lastReadAtMs,
   }) {
     final chatId = buffer.chatId.trim();
     if (chatId.isEmpty) return buffer;
+
+    final ms = ChatNotificationFormat.maxInt(
+      lastReadAtMs ?? 0,
+      buffer.lastReadAtMs,
+    );
 
     final seen = <String>{};
     final merged = <StoredMessage>[
@@ -81,6 +116,7 @@ class ChatStore {
     ].where((item) {
       final id = item.messageId.trim();
       if (id.isEmpty || seen.contains(id)) return false;
+      if (ms > 0 && item.timestamp <= ms) return false;
       seen.add(id);
       return true;
     }).toList(growable: true);
@@ -98,7 +134,26 @@ class ChatStore {
       chatId: chatId,
       chatTitle: nextTitle,
       isGroupChat: nextGroup,
+      lastReadAtMs: ms,
       messages: merged,
+    );
+  }
+
+  /// Drops messages at or before [lastReadAtMs] and records the watermark.
+  static StoredChatBuffer pruneReadMessages(
+    StoredChatBuffer buffer,
+    int lastReadAtMs,
+  ) {
+    final ms = ChatNotificationFormat.maxInt(lastReadAtMs, buffer.lastReadAtMs);
+    final kept = buffer.messages
+        .where((m) => ms <= 0 || m.timestamp > ms)
+        .toList(growable: false);
+    return StoredChatBuffer(
+      chatId: buffer.chatId,
+      chatTitle: buffer.chatTitle,
+      isGroupChat: buffer.isGroupChat,
+      lastReadAtMs: ms,
+      messages: kept,
     );
   }
 
@@ -106,15 +161,18 @@ class ChatStore {
     final chatId = buffer.chatId.trim();
     final seen = <String>{};
     final valid = <StoredMessage>[];
+    final ms = buffer.lastReadAtMs;
     for (final m in buffer.messages) {
       final id = m.messageId.trim();
       if (id.isEmpty || seen.contains(id)) continue;
+      if (ms > 0 && m.timestamp <= ms) continue;
       seen.add(id);
       valid.add(
         StoredMessage(
           messageId: id,
           text: m.text,
           sender: m.sender.trim(),
+          senderId: m.senderId.trim(),
           timestamp: m.timestamp,
         ),
       );
@@ -127,6 +185,7 @@ class ChatStore {
       chatId: chatId,
       chatTitle: buffer.chatTitle,
       isGroupChat: buffer.isGroupChat,
+      lastReadAtMs: ms < 0 ? 0 : ms,
       messages: valid,
     );
   }

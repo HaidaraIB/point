@@ -135,7 +135,8 @@ class TaskDetailsDialogHelpers {
     final displayValue = displayOrDash(value);
 
     return Container(
-      width: 170,
+      width: 200,
+      constraints: const BoxConstraints(minHeight: 104),
       margin: const EdgeInsets.all(5),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
@@ -144,11 +145,15 @@ class TaskDetailsDialogHelpers {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(icon, color: theme.secondaryText),
+              Padding(
+                padding: const EdgeInsets.only(top: 1),
+                child: Icon(icon, color: theme.secondaryText, size: 18),
+              ),
               const SizedBox(width: 5),
               Expanded(
                 child: Text(
@@ -156,7 +161,11 @@ class TaskDetailsDialogHelpers {
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 14, color: theme.secondaryText),
+                  style: TextStyle(
+                    fontSize: 13,
+                    height: 1.25,
+                    color: theme.secondaryText,
+                  ),
                 ),
               ),
             ],
@@ -174,6 +183,17 @@ class TaskDetailsDialogHelpers {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Keeps start/end date cards the same height when labels wrap.
+  static Widget dateBoxesRow(List<Widget> boxes) {
+    return IntrinsicHeight(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: boxes,
       ),
     );
   }

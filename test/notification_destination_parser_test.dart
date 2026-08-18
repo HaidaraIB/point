@@ -22,6 +22,16 @@ void main() {
       );
     });
 
+    test('skips chat_read dismiss pushes', () {
+      expect(
+        NotificationDestinationParser.parseStringMap({
+          'notificationType': 'chat_read',
+          'chatId': 'c1',
+        }),
+        isNull,
+      );
+    });
+
     test('chat_message with chatId opens chat', () {
       final dest = NotificationDestinationParser.parseStringMap({
         'notificationType': 'chat_message',

@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Services/FcmServices.dart' as fcm_notifications;
+import 'package:point/Services/firestore/firestore_fcm_api.dart';
 
 import 'package:point/Services/firestore/firestore_query_limits.dart';
 
@@ -104,6 +105,27 @@ class FirestoreChatApi {
     return 0;
   }
 
+  /// Epoch ms of [lastReadAt_<userId>], or 0 if missing.
+  static int lastReadAtMsFromChatData(
+    Map<String, dynamic> data,
+    String userId,
+  ) {
+    final raw = data[lastReadAtField(userId)];
+    if (raw is Timestamp) return raw.millisecondsSinceEpoch;
+    if (raw is DateTime) return raw.millisecondsSinceEpoch;
+    if (raw is int) {
+      if (raw <= 0) return 0;
+      return raw >= 1000000000000 ? raw : raw * 1000;
+    }
+    if (raw is num) {
+      final n = raw.toInt();
+      if (n <= 0) return 0;
+      return n >= 1000000000000 ? n : n * 1000;
+    }
+    final parsed = DateTime.tryParse(raw?.toString().trim() ?? '');
+    return parsed?.millisecondsSinceEpoch ?? 0;
+  }
+
   static Map<String, dynamic> lastMessageMetaMapFromMessageData(
     Map<String, dynamic> data,
   ) {
@@ -181,6 +203,8 @@ class FirestoreChatApi {
     final uid = viewerUserId.trim();
     if (uid.isEmpty) return;
     final chatRef = FirebaseFirestore.instance.collection('chats').doc(chatId);
+    var clearedUnread = false;
+    var markedMessages = false;
     try {
       final chatSnap = await chatRef.get();
       final currentUnread = chatSnap.exists
@@ -194,6 +218,7 @@ class FirestoreChatApi {
           unreadCountField(uid): 0,
           lastReadAtField(uid): FieldValue.serverTimestamp(),
         });
+        clearedUnread = true;
       }
     } catch (e) {
       appLog('markIncomingMessagesReadInChat chat doc: $e');
@@ -221,39 +246,79 @@ class FirestoreChatApi {
         final toMark = unreadSnapshot.docs
             .where((d) => d.data()['senderId'] != uid)
             .toList();
-        if (toMark.isEmpty) return;
-        final batch = FirebaseFirestore.instance.batch();
-        for (final doc in toMark) {
-          batch.update(doc.reference, {'isRead': true});
+        if (toMark.isNotEmpty) {
+          final batch = FirebaseFirestore.instance.batch();
+          for (final doc in toMark) {
+            batch.update(doc.reference, {'isRead': true});
+          }
+          await batch.commit();
+          markedMessages = true;
         }
-        await batch.commit();
-        unawaited(
-          fcm_notifications.NotificationService()
-              .dismissChatMessageNotification(chatId),
+        _finishMarkRead(
+          chatId,
+          uid,
+          broadcast: clearedUnread || markedMessages,
         );
         return;
       }
 
-      if (unreadMessages.docs.isEmpty) {
-        unawaited(
-          fcm_notifications.NotificationService()
-              .dismissChatMessageNotification(chatId),
-        );
-        return;
+      if (unreadMessages.docs.isNotEmpty) {
+        final batch = FirebaseFirestore.instance.batch();
+        for (final doc in unreadMessages.docs) {
+          batch.update(doc.reference, {'isRead': true});
+        }
+        await batch.commit();
+        markedMessages = true;
       }
-      final batch = FirebaseFirestore.instance.batch();
-      for (final doc in unreadMessages.docs) {
-        batch.update(doc.reference, {'isRead': true});
-      }
-      await batch.commit();
     } catch (e) {
       appLog('markIncomingMessagesReadInChat messages batch: $e');
     }
+    _finishMarkRead(
+      chatId,
+      uid,
+      broadcast: clearedUnread || markedMessages,
+    );
+  }
+
+  static void _finishMarkRead(
+    String chatId,
+    String viewerUserId, {
+    required bool broadcast,
+  }) {
+    final lastReadAtMs = DateTime.now().millisecondsSinceEpoch;
     unawaited(
       fcm_notifications.NotificationService().dismissChatMessageNotification(
         chatId,
+        lastReadAtMs: lastReadAtMs,
       ),
     );
+    if (broadcast) {
+      unawaited(_sendChatReadSilentPush(chatId, viewerUserId, lastReadAtMs));
+    }
+  }
+
+  static Future<void> _sendChatReadSilentPush(
+    String chatId,
+    String viewerUserId,
+    int lastReadAtMs,
+  ) async {
+    try {
+      await FirestoreFcmApi.sendFcm(
+        userId: viewerUserId,
+        title: '.',
+        body: '.',
+        notificationType: 'chat_read',
+        sendEmail: false,
+        excludeCurrentActor: false,
+        silentDataOnly: true,
+        fcmDataExtras: <String, String>{
+          'chatId': chatId,
+          'lastReadAtMs': '$lastReadAtMs',
+        },
+      );
+    } catch (e) {
+      appLog('chat_read silent push failed chat_id=$chatId: $e');
+    }
   }
 
   /// نص معاينة لقائمة المحادثات من مستند في `chats/.../messages`.
