@@ -700,9 +700,25 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
     );
   }
 
-  Widget _buildContent(BuildContext context) {
+  Widget _buildContent(BuildContext context, {bool fillViewport = false}) {
     final rows = _filteredRows;
     final isMobile = Responsive.isMobile(context);
+    late final Widget tableArea;
+    if (_loading) {
+      tableArea = const TableAreaLoading();
+    } else if (rows.isEmpty) {
+      tableArea = Center(
+        child: Text(
+          AppLocaleKeys.attendanceNoRecords.tr,
+          style: TextStyle(color: context.appTheme.mutedText),
+        ),
+      );
+    } else if (isMobile) {
+      tableArea = _buildMobileReportList(rows);
+    } else {
+      tableArea = _buildDataTable(rows);
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -711,22 +727,7 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
         const SizedBox(height: 10),
         _buildFilters(context),
         const SizedBox(height: 10),
-        if (_loading)
-          const TableAreaLoading()
-        else if (rows.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 48),
-            child: Center(
-              child: Text(
-                AppLocaleKeys.attendanceNoRecords.tr,
-                style: TextStyle(color: context.appTheme.mutedText),
-              ),
-            ),
-          )
-        else if (isMobile)
-          _buildMobileReportList(rows)
-        else
-          _buildDataTable(rows),
+        if (fillViewport) Expanded(child: tableArea) else tableArea,
       ],
     );
   }
@@ -745,12 +746,10 @@ class _AttendanceReportsPageState extends State<AttendanceReportsPage> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: _buildContent(context),
         ),
-        desktop: SingleChildScrollView(
-          child: Container(
-            padding: const EdgeInsets.all(10),
-            width: Responsive.isDesktop(context) ? Get.width - 270 : Get.width,
-            child: _buildContent(context),
-          ),
+        desktop: Container(
+          padding: const EdgeInsets.all(10),
+          width: double.infinity,
+          child: _buildContent(context, fillViewport: true),
         ),
       ),
     );

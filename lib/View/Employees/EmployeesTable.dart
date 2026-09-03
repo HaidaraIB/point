@@ -167,70 +167,63 @@ class _EmployeeTableState extends State<EmployeeTable> {
                 },
               ),
             ),
-            desktop: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SingleChildScrollView(
-                  scrollDirection: Axis.vertical,
-                  child: Container(
-                    padding: EdgeInsets.all(10),
-                    width: Responsive.isDesktop(context)
-                        ? Get.width - 270
-                        : Get.width,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(height: 50),
-
-                        Row(
+            desktop: Container(
+              padding: const EdgeInsets.all(10),
+              width: double.infinity,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 50),
+                  Row(
+                    children: [
+                      Text(
+                        'employees'.tr,
+                        style: TextStyle(
+                          color: appTheme.primaryText,
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Spacer(),
+                      MainButton(
+                        width: 180,
+                        height: 45,
+                        borderSize: 35,
+                        fontColor: Colors.white,
+                        backgroundColor: AppColors.primary,
+                        widget: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              'employees'.tr,
+                              'addnewwmployee'.tr,
                               style: TextStyle(
-                                color: appTheme.primaryText,
-                                fontSize: 17,
+                                color: Colors.white,
                                 fontWeight: FontWeight.bold,
+                                fontSize: 13,
                               ),
                             ),
-                            Spacer(),
-                            MainButton(
-                              width: 180,
-                              height: 45,
-                              borderSize: 35,
-                              fontColor: Colors.white,
-                              backgroundColor: AppColors.primary,
-                              widget: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    'addnewwmployee'.tr,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                  Icon(
-                                    Icons.add_circle_outline_rounded,
-                                    color: Colors.white,
-                                  ),
-                                ],
-                              ),
-                              onPressed: () {
-                                showAddEmployeeDialog(context);
-                              },
+                            Icon(
+                              Icons.add_circle_outline_rounded,
+                              color: Colors.white,
                             ),
                           ],
                         ),
-                        SizedBox(height: 10),
-                        HorizontalScrollbarTable(
-                          child: SizedBox(
-                            width: (Get.width - 270).clamp(
-                              1400.0,
-                              double.infinity,
-                            ),
-                            child: Obx(
-                              () => DataTable(
+                        onPressed: () {
+                          showAddEmployeeDialog(context);
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Expanded(
+                    child: HorizontalScrollbarTable(
+                      child: SizedBox(
+                        width: (Get.width - 270).clamp(
+                          1400.0,
+                          double.infinity,
+                        ),
+                        child: Obx(
+                          () => DataTable(
                                 dataRowMinHeight: 60,
                                 dataRowMaxHeight: 60,
                                 // headingRowColor: WidgetStateProperty.all(Colors.blue.shade50),
@@ -496,12 +489,10 @@ class _EmployeeTableState extends State<EmployeeTable> {
                             ),
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
           );
         },
       ),

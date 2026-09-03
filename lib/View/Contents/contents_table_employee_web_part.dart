@@ -438,50 +438,50 @@ class _EmployeeWebDesktopContentShell extends StatelessWidget {
       backgroundColor: context.appTheme.pageBackground,
       body: GetBuilder<HomeController>(
         builder: (controller) {
-          return SingleChildScrollView(
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              width: Get.width,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Obx(
-                    () => HeaderWidget(
-                      employee: true,
-                      name: controller.currentEmployee.value?.name ?? '',
-                      role: controller.currentEmployee.value?.role ?? '',
-                      departments:
-                          controller.currentEmployee.value?.departments ??
-                          const [],
-                      avatarUrl:
-                          controller.currentEmployee.value?.image ??
-                          kDefaultAvatarUrl,
-                    ),
+          return Container(
+            padding: const EdgeInsets.all(10),
+            width: double.infinity,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Obx(
+                  () => HeaderWidget(
+                    employee: true,
+                    name: controller.currentEmployee.value?.name ?? '',
+                    role: controller.currentEmployee.value?.role ?? '',
+                    departments:
+                        controller.currentEmployee.value?.departments ??
+                        const [],
+                    avatarUrl:
+                        controller.currentEmployee.value?.image ??
+                        kDefaultAvatarUrl,
                   ),
-                  const SizedBox(height: 20),
-                  _EmployeeWebContentTitleRow(context, controller),
-                  const SizedBox(height: 10),
-                  _buildClientPickerRow(
-                    controller,
-                    fullWidth: true,
-                    clearFiltersWhenClientChanges: true,
+                ),
+                const SizedBox(height: 20),
+                _EmployeeWebContentTitleRow(context, controller),
+                const SizedBox(height: 10),
+                _buildClientPickerRow(
+                  controller,
+                  fullWidth: true,
+                  clearFiltersWhenClientChanges: true,
+                ),
+                const SizedBox(height: 10),
+                _EmployeeWebContentStatsRow(controller, context),
+                _EmployeeWebContentFiltersRow(controller, context),
+                const SizedBox(height: 15),
+                Text(
+                  'employee.content.list_section'.tr,
+                  style: TextStyle(
+                    color: context.appTheme.secondaryText,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
                   ),
-                  const SizedBox(height: 10),
-                  _EmployeeWebContentStatsRow(controller, context),
-                  _EmployeeWebContentFiltersRow(controller, context),
-                  const SizedBox(height: 15),
-                  Text(
-                    'employee.content.list_section'.tr,
-                    style: TextStyle(
-                      color: context.appTheme.secondaryText,
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  _buildDesktopContentsDataTable(context),
-                ],
-              ),
+                ),
+                const SizedBox(height: 10),
+                Expanded(
+                  child: _buildDesktopContentsDataTable(context),
+                ),
+              ],
             ),
           );
         },

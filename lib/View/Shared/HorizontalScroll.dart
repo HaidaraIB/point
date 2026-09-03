@@ -3,20 +3,27 @@ import 'package:flutter/material.dart';
 
 /// Wraps [child] in a horizontal Scrollbar with a shared ScrollController
 /// on desktop/web. On Android and iOS the scrollbar is hidden (scroll still works).
+///
+/// When the parent gives a finite height (e.g. [Expanded]), the child is
+/// scrolled vertically inside that viewport so the horizontal scrollbar stays
+/// visible at the bottom of the screen instead of at the end of a tall table.
 class HorizontalScrollbarTable extends StatefulWidget {
   final Widget child;
   const HorizontalScrollbarTable({super.key, required this.child});
 
   @override
-  State<HorizontalScrollbarTable> createState() => _HorizontalScrollbarTableState();
+  State<HorizontalScrollbarTable> createState() =>
+      _HorizontalScrollbarTableState();
 }
 
 class _HorizontalScrollbarTableState extends State<HorizontalScrollbarTable> {
-  final ScrollController _controller = ScrollController();
+  final ScrollController _horizontalController = ScrollController();
+  final ScrollController _verticalController = ScrollController();
 
   @override
   void dispose() {
-    _controller.dispose();
+    _horizontalController.dispose();
+    _verticalController.dispose();
     super.dispose();
   }
 
@@ -26,19 +33,42 @@ class _HorizontalScrollbarTableState extends State<HorizontalScrollbarTable> {
 
   @override
   Widget build(BuildContext context) {
-    final scrollView = SingleChildScrollView(
-      controller: _controller,
-      scrollDirection: Axis.horizontal,
-      child: widget.child,
-    );
-    if (_isMobile) {
-      return scrollView;
-    }
-    return Scrollbar(
-      controller: _controller,
-      thumbVisibility: true,
-      scrollbarOrientation: ScrollbarOrientation.bottom,
-      child: scrollView,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final pinHeight =
+            constraints.maxHeight.isFinite ? constraints.maxHeight : null;
+
+        Widget content = widget.child;
+        if (pinHeight != null) {
+          Widget verticalBody = SingleChildScrollView(
+            controller: _verticalController,
+            child: widget.child,
+          );
+          if (!_isMobile) {
+            verticalBody = Scrollbar(
+              controller: _verticalController,
+              thumbVisibility: true,
+              child: verticalBody,
+            );
+          }
+          content = SizedBox(height: pinHeight, child: verticalBody);
+        }
+
+        final scrollView = SingleChildScrollView(
+          controller: _horizontalController,
+          scrollDirection: Axis.horizontal,
+          child: content,
+        );
+        if (_isMobile) {
+          return scrollView;
+        }
+        return Scrollbar(
+          controller: _horizontalController,
+          thumbVisibility: true,
+          scrollbarOrientation: ScrollbarOrientation.bottom,
+          child: scrollView,
+        );
+      },
     );
   }
 }

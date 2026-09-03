@@ -183,150 +183,136 @@ class ContentsTable extends StatelessWidget {
           return Responsive(
             mobileBreakpoint: webPubPromo ? 600 : 850,
             mobile: _buildMobileContent(context, controller),
-            desktop: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SingleChildScrollView(
-                  scrollDirection: Axis.vertical,
-                  child: Container(
-                    padding: EdgeInsets.all(10),
-                    width:
-                        Responsive.isDesktop(context)
-                            ? Get.width - 270
-                            : Get.width,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        SizedBox(height: 50),
-
-                        Row(
+            desktop: Container(
+              padding: const EdgeInsets.all(10),
+              width: double.infinity,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 50),
+                  Row(
+                    children: [
+                      Text(
+                        'managecontent'.tr,
+                        style: TextStyle(
+                          color: context.appTheme.secondaryText,
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Spacer(),
+                      Obx(() {
+                        if (!ContentPermissions.canAddOrEditContent(
+                          controller.currentEmployee.value,
+                        )) {
+                          return const SizedBox.shrink();
+                        }
+                        return Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
-                              'managecontent'.tr,
-                              style: TextStyle(
-                                color: context.appTheme.secondaryText,
-                                fontSize: 17,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Spacer(),
-                            Obx(() {
-                              if (!ContentPermissions.canAddOrEditContent(
-                                controller.currentEmployee.value,
-                              )) {
-                                return const SizedBox.shrink();
-                              }
-                              return Row(
-                                mainAxisSize: MainAxisSize.min,
+                            MainButton(
+                              width: 180,
+                              height: 45,
+                              borderSize: 35,
+                              fontColor: Colors.white,
+                              backgroundColor: AppColors.primary,
+                              widget: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  MainButton(
-                                    width: 180,
-                                    height: 45,
-                                    borderSize: 35,
-                                    fontColor: Colors.white,
-                                    backgroundColor: AppColors.primary,
-                                    widget: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          'addnewcontent'.tr,
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 13,
-                                          ),
-                                        ),
-                                        SizedBox(width: 5),
-                                        Icon(
-                                          Icons.add_circle_outline_rounded,
-                                          color: Colors.white,
-                                        ),
-                                      ],
-                                    ),
-                                    onPressed: () {
-                                      if (controller
-                                          .clientController
-                                          .text
-                                          .isEmpty) {
-                                        FunHelper.showSnackbar(
-                                          'error'.tr,
-                                          'content.form.select_client_first'.tr,
-                                          snackPosition: SnackPosition.TOP,
-                                          backgroundColor: Colors.red,
-                                          colorText: Colors.white,
-                                        );
-                                        return;
-                                      }
-                                      controller.uploadedFilesPaths.clear();
-                                      showAddContentDialog(
-                                        context,
-                                        clientId:
-                                            controller.clientController.text,
-                                      );
-                                    },
-                                  ),
-                                  SizedBox(width: 10),
-                                ],
-                              );
-                            }),
-                            if (controller.currentEmployee.value != null &&
-                                (controller.currentEmployee.value!
-                                        .hasDepartment(
-                                          StorageKeys.departmentPromotion,
-                                        ) ||
-                                    controller.currentEmployee.value!
-                                        .hasDepartment(
-                                          StorageKeys.departmentPublishing,
-                                        )))
-                              MainButton(
-                                width: 180,
-                                height: 45,
-                                borderSize: 35,
-                                fontColor: Colors.white,
-                                backgroundColor: AppColors.primary,
-                                widget: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text(
-                                      'tasks'.tr,
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                    SizedBox(width: 5),
-                                    Icon(
-                                      Icons.navigate_next,
+                                  Text(
+                                    'addnewcontent'.tr,
+                                    style: TextStyle(
                                       color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
                                     ),
-                                  ],
-                                ),
-                                onPressed: () {
-                                  Get.toNamed('/employeeDashboard');
-                                },
+                                  ),
+                                  SizedBox(width: 5),
+                                  Icon(
+                                    Icons.add_circle_outline_rounded,
+                                    color: Colors.white,
+                                  ),
+                                ],
                               ),
+                              onPressed: () {
+                                if (controller
+                                    .clientController
+                                    .text
+                                    .isEmpty) {
+                                  FunHelper.showSnackbar(
+                                    'error'.tr,
+                                    'content.form.select_client_first'.tr,
+                                    snackPosition: SnackPosition.TOP,
+                                    backgroundColor: Colors.red,
+                                    colorText: Colors.white,
+                                  );
+                                  return;
+                                }
+                                controller.uploadedFilesPaths.clear();
+                                showAddContentDialog(
+                                  context,
+                                  clientId:
+                                      controller.clientController.text,
+                                );
+                              },
+                            ),
+                            SizedBox(width: 10),
                           ],
+                        );
+                      }),
+                      if (controller.currentEmployee.value != null &&
+                          (controller.currentEmployee.value!.hasDepartment(
+                                StorageKeys.departmentPromotion,
+                              ) ||
+                              controller.currentEmployee.value!.hasDepartment(
+                                StorageKeys.departmentPublishing,
+                              )))
+                        MainButton(
+                          width: 180,
+                          height: 45,
+                          borderSize: 35,
+                          fontColor: Colors.white,
+                          backgroundColor: AppColors.primary,
+                          widget: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'tasks'.tr,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              SizedBox(width: 5),
+                              Icon(
+                                Icons.navigate_next,
+                                color: Colors.white,
+                              ),
+                            ],
+                          ),
+                          onPressed: () {
+                            Get.toNamed('/employeeDashboard');
+                          },
                         ),
-                        _buildClientPickerRow(
-                          controller,
-                          fullWidth: false,
-                          clearFiltersWhenClientChanges: false,
-                        ),
-                        SizedBox(height: 10),
-                        _bulkContentActionsControls(
-                          context,
-                          controller,
-                          expandInParentRow: false,
-                        ),
-                        _buildDesktopContentsDataTable(context),
-                      ],
-                    ),
+                    ],
                   ),
-                ),
-              ],
+                  _buildClientPickerRow(
+                    controller,
+                    fullWidth: false,
+                    clearFiltersWhenClientChanges: false,
+                  ),
+                  const SizedBox(height: 10),
+                  _bulkContentActionsControls(
+                    context,
+                    controller,
+                    expandInParentRow: false,
+                  ),
+                  Expanded(
+                    child: _buildDesktopContentsDataTable(context),
+                  ),
+                ],
+              ),
             ),
           );
         },

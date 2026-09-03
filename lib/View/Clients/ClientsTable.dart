@@ -106,86 +106,74 @@ class _ClientsTableState extends State<ClientsTable> {
                 },
               ),
             ),
-            desktop: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-
-              children: [
-                SingleChildScrollView(
-                  scrollDirection: Axis.vertical,
-                  child: Container(
-                    padding: EdgeInsets.all(10),
-                    width:
-                        Responsive.isDesktop(context)
-                            ? Get.width - 270
-                            : Get.width,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(height: 50),
-
-                        Row(
+            desktop: Container(
+              padding: const EdgeInsets.all(10),
+              width: double.infinity,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 50),
+                  Row(
+                    children: [
+                      Text(
+                        'clients'.tr,
+                        style: TextStyle(
+                          color: appTheme.primaryText,
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Spacer(),
+                      MainButton(
+                        width: 180,
+                        height: 45,
+                        borderSize: 35,
+                        fontColor: Colors.white,
+                        backgroundColor: AppColors.primary,
+                        widget: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              'clients'.tr,
+                              'addnewclient'.tr,
                               style: TextStyle(
-                                color: appTheme.primaryText,
-                                fontSize: 17,
+                                color: Colors.white,
                                 fontWeight: FontWeight.bold,
+                                fontSize: 13,
                               ),
                             ),
-                            Spacer(),
-                            MainButton(
-                              width: 180,
-                              height: 45,
-                              borderSize: 35,
-                              fontColor: Colors.white,
-                              backgroundColor: AppColors.primary,
-                              widget: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    'addnewclient'.tr,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                  Icon(
-                                    Icons.add_circle_outline_rounded,
-                                    color: Colors.white,
-                                  ),
-                                ],
-                              ),
-                              onPressed: () {
-                                showAddEmployeeDialog(context);
-                              },
+                            Icon(
+                              Icons.add_circle_outline_rounded,
+                              color: Colors.white,
                             ),
                           ],
                         ),
-                        SizedBox(height: 10),
-                        Obx(() {
-                          if (controller.clients.isEmpty) {
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 48),
-                              child: Center(
-                                child: Text(
-                                  'history.empty_data'.tr,
-                                  style: TextStyle(
-                                    color: appTheme.secondaryText,
-                                    fontSize: 15,
-                                  ),
-                                ),
-                              ),
-                            );
-                          }
-                          return HorizontalScrollbarTable(
-                          child: SizedBox(
-                            width: (Get.width - 270).clamp(
-                              1100.0,
-                              double.infinity,
+                        onPressed: () {
+                          showAddEmployeeDialog(context);
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Expanded(
+                    child: Obx(() {
+                      if (controller.clients.isEmpty) {
+                        return Center(
+                          child: Text(
+                            'history.empty_data'.tr,
+                            style: TextStyle(
+                              color: appTheme.secondaryText,
+                              fontSize: 15,
                             ),
-                            child: DataTable(
+                          ),
+                        );
+                      }
+                      return HorizontalScrollbarTable(
+                        child: SizedBox(
+                          width: (Get.width - 270).clamp(
+                            1100.0,
+                            double.infinity,
+                          ),
+                          child: DataTable(
                                 dataRowMinHeight: 60,
                                 dataRowMaxHeight: 60,
                                 // headingRowColor: WidgetStateProperty.all(Colors.blue.shade50),
@@ -460,13 +448,11 @@ class _ClientsTableState extends State<ClientsTable> {
                               ),
                           ),
                         );
-                        }),
-                      ],
+                      }),
                     ),
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              ),
           );
         },
       ),

@@ -30,8 +30,6 @@ class PublishTable extends StatefulWidget {
 }
 
 class _PublishTableState extends State<PublishTable> {
-  final ScrollController _desktopTableScrollController = ScrollController();
-
   @override
   void initState() {
     super.initState();
@@ -40,12 +38,6 @@ class _PublishTableState extends State<PublishTable> {
       if (!Get.isRegistered<HomeController>()) return;
       unawaited(Get.find<HomeController>().restorePublishFiltersFromPrefs());
     });
-  }
-
-  @override
-  void dispose() {
-    _desktopTableScrollController.dispose();
-    super.dispose();
   }
 
   String _instagramAccountText(MetaPostModel p) {
@@ -1185,17 +1177,12 @@ class _PublishTableState extends State<PublishTable> {
                   final width = tableWidth > constraints.maxWidth
                       ? tableWidth
                       : constraints.maxWidth;
-                  return Scrollbar(
-                    controller: _desktopTableScrollController,
-                    thumbVisibility: true,
-                    child: SingleChildScrollView(
-                      controller: _desktopTableScrollController,
-                      child: HorizontalScrollbarTable(
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 6, bottom: 14),
-                          child: SizedBox(
-                            width: width,
-                            child: DataTable(
+                  return HorizontalScrollbarTable(
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 6, bottom: 14),
+                      child: SizedBox(
+                        width: width,
+                        child: DataTable(
                               columnSpacing: colSpacing,
                               horizontalMargin: hMargin,
                               dataRowMinHeight: 64,
@@ -1241,8 +1228,7 @@ class _PublishTableState extends State<PublishTable> {
                                   headingRowAlignment: MainAxisAlignment.center,
                                   label: _headerText('publish_date'),
                                 ),
-                                DataColumn(
-                                  columnWidth: FixedColumnWidth(colWidths[7]),
+                                DataColumn(                                  columnWidth: FixedColumnWidth(colWidths[7]),
                                   headingRowAlignment: MainAxisAlignment.center,
                                   label: _headerText('publish.actions'),
                                 ),
@@ -1378,9 +1364,7 @@ class _PublishTableState extends State<PublishTable> {
                             ),
                           ),
                         ),
-                      ),
-                    ),
-                  );
+                      );
                 },
               );
             }),

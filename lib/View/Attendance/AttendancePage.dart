@@ -955,8 +955,42 @@ class _AttendancePageState extends State<AttendancePage> {
     );
   }
 
-  Widget _buildPageContent(BuildContext context) {
+  Widget _buildPageContent(BuildContext context, {bool fillViewport = false}) {
     final isMobile = Responsive.isMobile(context);
+    final tableArea = StreamBuilder<List<AttendanceRecordModel>>(
+      stream: FirestoreServices.streamAttendanceForDate(_selectedDate),
+      builder: (context, snapshot) {
+        final waitingForRecords =
+            snapshot.connectionState == ConnectionState.waiting;
+        if (waitingForRecords || _loadingDayContext) {
+          return const TableAreaLoading();
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('error'.tr));
+        }
+
+        final allRecords = snapshot.data ?? const [];
+        final dailyStates = _dailyStatesForRecords(allRecords);
+        final filtered = _filterRecords(allRecords, dailyStates);
+        if (filtered.isEmpty) {
+          return Center(
+            child: Text(
+              AppLocaleKeys.attendanceNoRecords.tr,
+              style: TextStyle(
+                color: context.appTheme.secondaryText,
+                fontSize: 14,
+              ),
+            ),
+          );
+        }
+
+        if (isMobile) {
+          return _buildMobileRecordList(context, filtered, dailyStates);
+        }
+        return _buildDataTable(context, filtered, dailyStates);
+      },
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -965,45 +999,7 @@ class _AttendancePageState extends State<AttendancePage> {
         const SizedBox(height: 10),
         _buildFilters(context),
         const SizedBox(height: 10),
-        StreamBuilder<List<AttendanceRecordModel>>(
-          stream: FirestoreServices.streamAttendanceForDate(_selectedDate),
-          builder: (context, snapshot) {
-            final waitingForRecords =
-                snapshot.connectionState == ConnectionState.waiting;
-            if (waitingForRecords || _loadingDayContext) {
-              return const TableAreaLoading();
-            }
-            if (snapshot.hasError) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 48),
-                child: Center(child: Text('error'.tr)),
-              );
-            }
-
-            final allRecords = snapshot.data ?? const [];
-            final dailyStates = _dailyStatesForRecords(allRecords);
-            final filtered = _filterRecords(allRecords, dailyStates);
-            if (filtered.isEmpty) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 48),
-                child: Center(
-                  child: Text(
-                    AppLocaleKeys.attendanceNoRecords.tr,
-                    style: TextStyle(
-                      color: context.appTheme.secondaryText,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-              );
-            }
-
-            if (isMobile) {
-              return _buildMobileRecordList(context, filtered, dailyStates);
-            }
-            return _buildDataTable(context, filtered, dailyStates);
-          },
-        ),
+        if (fillViewport) Expanded(child: tableArea) else tableArea,
       ],
     );
   }
@@ -1023,20 +1019,10 @@ class _AttendancePageState extends State<AttendancePage> {
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: _buildPageContent(context),
         ),
-        desktop: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SingleChildScrollView(
-              scrollDirection: Axis.vertical,
-              child: Container(
-                padding: const EdgeInsets.all(10),
-                width: Responsive.isDesktop(context)
-                    ? Get.width - 270
-                    : Get.width,
-                child: _buildPageContent(context),
-              ),
-            ),
-          ],
+        desktop: Container(
+          padding: const EdgeInsets.all(10),
+          width: double.infinity,
+          child: _buildPageContent(context, fillViewport: true),
         ),
       ),
     );

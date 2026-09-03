@@ -46,39 +46,28 @@ class History extends StatelessWidget {
 
           return Responsive(
             mobile: buildMobileHistory(context, controller, months),
-            desktop: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SingleChildScrollView(
-                  scrollDirection: Axis.vertical,
-                  child: Container(
-                    padding: EdgeInsets.all(10),
-                    width:
-                        Responsive.isDesktop(context)
-                            ? Get.width - 270
-                            : Get.width,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.start,
-                      children: [
-                        SizedBox(height: 50),
-
-                        Row(
-                          children: [
-                            Text(
-                              'settings'.tr,
-                              style: TextStyle(
-                                color: context.appTheme.secondaryText,
-                                fontSize: 17,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Spacer(),
-                          ],
+            desktop: Container(
+              padding: const EdgeInsets.all(10),
+              width: double.infinity,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 50),
+                  Row(
+                    children: [
+                      Text(
+                        'settings'.tr,
+                        style: TextStyle(
+                          color: context.appTheme.secondaryText,
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
                         ),
-                        const SizedBox(height: 16),
-
-                        Obx(() {
+                      ),
+                      Spacer(),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Obx(() {
                           final clientId = controller.clientController.text;
                           final clientIds = controller.clients
                               .map((c) => c.id?.trim() ?? '')
@@ -198,14 +187,15 @@ class History extends StatelessWidget {
                             ],
                           );
                         }),
-                        const SizedBox(height: 24),
-                        HorizontalScrollbarTable(
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: 6, bottom: 14),
-                            child: SizedBox(
-                              width: 2000,
-                              child: Obx(
-                                () => DataTable(
+                  const SizedBox(height: 24),
+                  Expanded(
+                    child: HorizontalScrollbarTable(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 6, bottom: 14),
+                        child: SizedBox(
+                          width: 2000,
+                          child: Obx(
+                            () => DataTable(
                                 dataRowMinHeight: 72,
                                 dataRowMaxHeight: double.infinity,
                                 dataRowColor: context.tableDataRowColor,
@@ -994,12 +984,10 @@ class History extends StatelessWidget {
                             ),
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
           );
         },
       ),
