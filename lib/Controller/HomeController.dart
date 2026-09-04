@@ -1587,6 +1587,7 @@ class HomeController extends GetxController {
       status = 'queued_now';
       scheduledAt = DateTime.now().toUtc();
     }
+    final postType = isReel ? 'reel' : (isStory ? 'story' : 'feed');
     return MetaPostModel(
       title: content.title,
       pageId: pageId,
@@ -1594,8 +1595,10 @@ class HomeController extends GetxController {
       pageName: linkedClient?.metaPageName,
       instagramUserId: linkedClient?.metaInstagramUserId,
       instagramUserName: linkedClient?.metaInstagramUserName,
-      postType: isReel ? 'reel' : (isStory ? 'story' : 'feed'),
-      mediaType: mediaUrl == null ? null : publishMediaTypeFromUrl(mediaUrl),
+      postType: postType,
+      mediaType: mediaUrl == null
+          ? null
+          : publishMediaTypeFromUrlOrPostType(mediaUrl, postType),
       mediaUrl: mediaUrl,
       caption: content.caption,
       platforms: normalizeMetaPlatformsForFirestore(content.platform),
@@ -1856,6 +1859,23 @@ class HomeController extends GetxController {
   Future<bool> publishMetaPost(String id) async {
     final post = metaPosts.firstWhereOrNull((p) => p.id == id);
     if (post == null) return false;
+    final blockingError = metaPublishBlockingErrorKey(
+      platforms: post.platforms.map((e) => e.toString()).toList(),
+      postType: post.postType,
+      mediaType: post.mediaType,
+      caption: post.caption,
+      instagramUserId: post.instagramUserId,
+    );
+    if (blockingError != null) {
+      FunHelper.showSnackbar(
+        'error'.tr,
+        blockingError.tr,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return false;
+    }
     final nowUtc = DateTime.now().toUtc();
     final queued = post.copyWith(
       status: 'queued_now',

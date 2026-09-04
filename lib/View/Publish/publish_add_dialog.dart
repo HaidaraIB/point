@@ -88,7 +88,7 @@ void _syncMediaFromUploadedList(
   }
   final last = controller.uploadedFilesPaths.last.toString();
   mediaUrl.value = last;
-  mediaType.value = publishMediaTypeFromUrl(last);
+  mediaType.value = publishMediaTypeFromUrl(last) ?? 'photo';
 }
 
 /// Library vs local drive — same flow as Content attachments.
@@ -712,17 +712,6 @@ Future<void> showAddPublishDialog({
                               final fs = normalizeMetaPlatformsForFirestore(
                                 platforms,
                               );
-                              if (fs.isEmpty) {
-                                FunHelper.showSnackbarDeduped(
-                                  'error'.tr,
-                                  'meta_err_no_platforms'.tr,
-                                  dedupeKey: 'publish_no_platforms',
-                                  snackPosition: SnackPosition.TOP,
-                                  backgroundColor: Colors.red,
-                                  colorText: Colors.white,
-                                );
-                                return;
-                              }
                               final emp = controller.currentEmployee.value;
                               final queueNow =
                                   queueOnNowSave &&
@@ -731,6 +720,30 @@ Future<void> showAddPublishDialog({
                                   scheduleMode.value == 'schedule'
                                   ? 'scheduled'
                                   : (queueNow ? 'queued_now' : 'created');
+                              // Drafts stay editable; anything the worker will
+                              // pick up must satisfy the bot publish rules.
+                              final blockingError = nextStatus == 'created'
+                                  ? (fs.isEmpty
+                                        ? 'meta_err_no_platforms'
+                                        : null)
+                                  : metaPublishBlockingErrorKey(
+                                      platforms: fs,
+                                      postType: postType.value,
+                                      mediaType: mediaType.value,
+                                      caption: captionController.text,
+                                      instagramUserId: asset.instagramUserId,
+                                    );
+                              if (blockingError != null) {
+                                FunHelper.showSnackbarDeduped(
+                                  'error'.tr,
+                                  blockingError.tr,
+                                  dedupeKey: 'publish_$blockingError',
+                                  snackPosition: SnackPosition.TOP,
+                                  backgroundColor: Colors.red,
+                                  colorText: Colors.white,
+                                );
+                                return;
+                              }
                               final nowUtc = DateTime.now().toUtc();
                               final post = MetaPostModel(
                                 title: title,

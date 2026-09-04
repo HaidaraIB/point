@@ -187,7 +187,7 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
     }
     final last = _controller.uploadedFilesPaths.last.toString();
     _mediaUrl.value = last;
-    _mediaType.value = publishMediaTypeFromUrl(last);
+    _mediaType.value = publishMediaTypeFromUrlOrPostType(last, _postType.value);
   }
 
   Future<void> _pickScheduleDateTime() async {
@@ -269,11 +269,28 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
     }
 
     final fs = normalizeMetaPlatformsForFirestore(_platforms);
-    if (fs.isEmpty) {
+    final emp = _controller.currentEmployee.value;
+    final queueNow =
+        widget.queueOnNowSave && _scheduleMode.value == 'now';
+    final nextStatus = _scheduleMode.value == 'schedule'
+        ? 'scheduled'
+        : (queueNow ? 'queued_now' : 'created');
+    // Drafts stay editable; anything the worker will pick up must satisfy the
+    // bot publish rules.
+    final blockingError = nextStatus == 'created'
+        ? (fs.isEmpty ? 'meta_err_no_platforms' : null)
+        : metaPublishBlockingErrorKey(
+            platforms: fs,
+            postType: _postType.value,
+            mediaType: _mediaType.value,
+            caption: _captionController.text,
+            instagramUserId: asset.instagramUserId,
+          );
+    if (blockingError != null) {
       FunHelper.showSnackbarDeduped(
         'error'.tr,
-        'meta_err_no_platforms'.tr,
-        dedupeKey: 'publish_no_platforms',
+        blockingError.tr,
+        dedupeKey: 'publish_$blockingError',
         snackPosition: SnackPosition.TOP,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -281,12 +298,6 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
       return;
     }
 
-    final emp = _controller.currentEmployee.value;
-    final queueNow =
-        widget.queueOnNowSave && _scheduleMode.value == 'now';
-    final nextStatus = _scheduleMode.value == 'schedule'
-        ? 'scheduled'
-        : (queueNow ? 'queued_now' : 'created');
     final nowUtc = DateTime.now().toUtc();
     final seed = widget.initialPost ?? widget.initialDraft;
     final post = MetaPostModel(
