@@ -12,6 +12,16 @@ class FirestoreAuthApi {
 
   static const String authRolesCollection = 'authRoles';
 
+  /// Signature of the last successful employee sync; the cold-start path calls
+  /// [syncAuthRoleForEmployee] several times with identical data, and each call
+  /// is a blocking write round-trip on the splash screen.
+  static String? _lastEmployeeSyncSignature;
+
+  /// Drop the memo so the next sync writes again (call on sign-out).
+  static void invalidateAuthRoleSyncCache() {
+    _lastEmployeeSyncSignature = null;
+  }
+
   /// يزامن مستند [authRoles] لـ Firebase Auth uid مع بيانات الموظف في Firestore.
   /// تُستخدم قواعد الأمان للتحقق من أن الحقول تطابق `employees/{employeeId}`.
   /// Returns `true` when the write succeeded.
@@ -23,6 +33,14 @@ class FirestoreAuthApi {
       final normalizedDepartments = StorageKeys.normalizeDepartments(
         employee.departments,
       );
+      final signature = [
+        uid,
+        eid,
+        employee.role,
+        employee.libraryAccess,
+        normalizedDepartments.join(','),
+      ].join('|');
+      if (signature == _lastEmployeeSyncSignature) return true;
       await FirebaseFirestore.instance.collection(authRolesCollection).doc(uid).set(
         {
           'role': employee.role,
@@ -37,6 +55,7 @@ class FirestoreAuthApi {
         },
         SetOptions(merge: true),
       );
+      _lastEmployeeSyncSignature = signature;
       return true;
     } catch (e, s) {
       appLog('⚠️ syncAuthRoleForEmployee failed: $e');

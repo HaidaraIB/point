@@ -22,7 +22,14 @@ class MetaPostModel {
     this.lang,
     this.scheduledAt,
     required this.createdAt,
+    this.source = sourceManual,
   });
+
+  /// Row was created by hand from the Publish section.
+  static const String sourceManual = 'manual';
+
+  /// Row was generated from a Content row (convert / auto-draft on publish date).
+  static const String sourceContent = 'content';
 
   final String? id;
   final String title;
@@ -53,6 +60,11 @@ class MetaPostModel {
   final DateTime? scheduledAt;
   final DateTime createdAt;
 
+  /// Where the row came from: [sourceManual] | [sourceContent].
+  final String source;
+
+  bool get isFromContent => source == sourceContent;
+
   MetaPostModel copyWith({
     String? id,
     String? title,
@@ -75,6 +87,7 @@ class MetaPostModel {
     String? lang,
     DateTime? scheduledAt,
     DateTime? createdAt,
+    String? source,
   }) {
     return MetaPostModel(
       id: id ?? this.id,
@@ -98,6 +111,7 @@ class MetaPostModel {
       lang: lang ?? this.lang,
       scheduledAt: scheduledAt ?? this.scheduledAt,
       createdAt: createdAt ?? this.createdAt,
+      source: source ?? this.source,
     );
   }
 
@@ -124,7 +138,17 @@ class MetaPostModel {
       lang: json['lang']?.toString(),
       scheduledAt: _parseDate(json['scheduledAt'] ?? json['scheduled_at']),
       createdAt: _parseDate(json['createdAt']) ?? DateTime.now(),
+      source: _parseSource(json['source'], json['contentId']),
     );
+  }
+
+  /// Rows written before `source` existed are classified by whether they carry
+  /// a `contentId`, which only the Content → Publish path sets.
+  static String _parseSource(dynamic raw, dynamic contentId) {
+    final value = raw?.toString().trim().toLowerCase() ?? '';
+    if (value == sourceContent || value == sourceManual) return value;
+    final linked = contentId?.toString().trim() ?? '';
+    return linked.isEmpty ? sourceManual : sourceContent;
   }
 
   static DateTime? _parseDate(dynamic v) {
@@ -155,6 +179,7 @@ class MetaPostModel {
       'lang': lang,
       'scheduledAt': scheduledAt?.toIso8601String(),
       'createdAt': createdAt.toIso8601String(),
+      'source': source,
     };
   }
 }

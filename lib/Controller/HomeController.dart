@@ -1088,6 +1088,26 @@ class HomeController extends GetxController {
     _rebindClientsAndTasksStreams();
   }
 
+  /// Last `authRoles/{uid}` document read from the server, so the cold-start
+  /// path does not re-fetch it once per step.
+  String? _cachedAuthRoleUid;
+  Map<String, dynamic>? _cachedAuthRoleData;
+  DateTime? _cachedAuthRoleAt;
+
+  void cacheAuthRoleSnapshot(String uid, Map<String, dynamic>? data) {
+    _cachedAuthRoleUid = uid;
+    _cachedAuthRoleData = data;
+    _cachedAuthRoleAt = DateTime.now();
+  }
+
+  /// Returns the cached doc when it belongs to [uid] and is still fresh.
+  Map<String, dynamic>? cachedAuthRoleData(String uid) {
+    final at = _cachedAuthRoleAt;
+    if (at == null || _cachedAuthRoleUid != uid) return null;
+    if (DateTime.now().difference(at) > const Duration(seconds: 15)) return null;
+    return _cachedAuthRoleData;
+  }
+
   /// Awaitable rebind used after login so navigation does not race an empty
   /// clients list from a too-early permission-denied listener.
   Future<void> rebindClientsAndTasksStreamsAndWait() async {
@@ -1106,6 +1126,14 @@ class HomeController extends GetxController {
   /// Sync [authRoles], confirm it is readable from the server, seed clients
   /// with a one-shot get, then bind live streams.
   Future<void> syncAuthRoleAndRefreshDataStreams(EmployeeModel employee) async {
+    await ensureAuthRoleSynced(employee);
+    await refreshDataStreamsForRole(employee);
+  }
+
+  /// Writes [authRoles] and confirms the server can read it back. Everything
+  /// else Firestore-side is gated on this, so it is the only part navigation
+  /// has to wait for.
+  Future<void> ensureAuthRoleSynced(EmployeeModel employee) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     for (var attempt = 0; attempt < 4; attempt++) {
       final synced = await FirestoreServices.syncAuthRoleForEmployee(employee);
@@ -1119,13 +1147,20 @@ class HomeController extends GetxController {
             .collection('authRoles')
             .doc(uid)
             .get(const GetOptions(source: Source.server));
-        if (snap.exists) break;
+        if (snap.exists) {
+          cacheAuthRoleSnapshot(uid, snap.data());
+          break;
+        }
       } catch (e) {
         appLog('syncAuthRoleAndRefreshDataStreams authRoles get: $e');
       }
       await Future<void>.delayed(Duration(milliseconds: 250 * (attempt + 1)));
     }
+  }
 
+  /// Seeds clients and binds the live streams. Safe to run in the background:
+  /// every consumer reads the observables reactively.
+  Future<void> refreshDataStreamsForRole(EmployeeModel employee) async {
     final role = employee.role.trim().toLowerCase();
     final needsClients =
         role == 'admin' || role == 'supervisor' || role == 'employee';
@@ -1137,7 +1172,9 @@ class HomeController extends GetxController {
         try {
           final list = await _service.getClientsOnce();
           clients.assignAll(list);
-          if (list.isNotEmpty || attempt == 3) break;
+          // getClientsOnce reads from Source.server, so an empty result is
+          // authoritative — retrying it immediately would only re-query.
+          break;
         } catch (e) {
           appLog('syncAuthRoleAndRefreshDataStreams getClientsOnce: $e');
           await FirestoreServices.syncAuthRoleForEmployee(employee);
@@ -1539,6 +1576,50 @@ class HomeController extends GetxController {
     return ok;
   }
 
+  /// Media a Content can be published with, best candidate first.
+  ///
+  /// The type-specific list (reel / story / post) wins, but content whose media
+  /// was attached to the general field — the usual case when it comes from the
+  /// internal library — must still be publishable, so [ContentModel.files] is a
+  /// fallback. Non-media files (documents, archives) are ignored, and when no
+  /// extension is recognizable (signed / extensionless library URLs) the URLs
+  /// are still kept: the media type is then inferred from the post type.
+  static List<String> publishMediaCandidatesForContent(ContentModel content) {
+    final contentType = content.contentType.toLowerCase();
+    final List<dynamic>? dedicatedRaw = contentType.contains('reel')
+        ? content.reelAttachments
+        : (contentType.contains('story')
+              ? content.storyAttachments
+              : content.postAttachments);
+
+    List<String> clean(List<dynamic>? raw) => (raw ?? const <dynamic>[])
+        .whereType<String>()
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+
+    final dedicated = clean(dedicatedRaw);
+    final pool = dedicated.isNotEmpty ? dedicated : clean(content.files);
+    if (pool.isEmpty) return const <String>[];
+
+    final known = pool
+        .where((u) => publishFileKindFromUrl(u) != 'unknown')
+        .toList();
+    if (known.isNotEmpty) return known;
+    final documents = {'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
+        'txt', 'csv', 'zip', 'rar', '7z', 'psd', 'ai'};
+    return pool
+        .where((u) => !documents.contains(_urlExtension(u)))
+        .toList();
+  }
+
+  static String _urlExtension(String url) {
+    final path = publishPathLower(url);
+    final dot = path.lastIndexOf('.');
+    if (dot < 0 || dot == path.length - 1) return '';
+    return path.substring(dot + 1);
+  }
+
   MetaPostModel? buildMetaDraftFromContent(
     ContentModel content, {
     required bool schedule,
@@ -1565,16 +1646,8 @@ class HomeController extends GetxController {
     final contentType = content.contentType.toLowerCase();
     final bool isReel = contentType.contains('reel');
     final bool isStory = contentType.contains('story');
-    final List<dynamic>? dedicatedRaw = isReel
-        ? content.reelAttachments
-        : (isStory ? content.storyAttachments : content.postAttachments);
-    String? mediaUrl;
-    for (final file in (dedicatedRaw ?? []).whereType<String>()) {
-      final trimmed = file.trim();
-      if (trimmed.isEmpty) continue;
-      mediaUrl = trimmed;
-      break;
-    }
+    final candidates = publishMediaCandidatesForContent(content);
+    final String? mediaUrl = candidates.isEmpty ? null : candidates.first;
     final String status;
     final DateTime? scheduledAt;
     if (asPendingDraft) {
@@ -1609,6 +1682,7 @@ class HomeController extends GetxController {
       lang: Get.locale?.languageCode ?? 'ar',
       scheduledAt: scheduledAt,
       createdAt: DateTime.now(),
+      source: MetaPostModel.sourceContent,
     );
   }
 
@@ -3613,7 +3687,11 @@ class HomeController extends GetxController {
     lastKnownEmployee.value = employee;
     FirestoreServices.setSessionEmployeeId(employee.id);
     syncActiveDepartmentFilterFromEmployee(employee);
-    await syncAuthRoleAndRefreshDataStreams(employee);
+    // Only the authRoles sync gates later Firestore reads; seeding clients and
+    // binding the data streams fills observables reactively, so keeping it off
+    // the await chain lets the splash hand over as soon as the session is valid.
+    await ensureAuthRoleSynced(employee);
+    unawaited(refreshDataStreamsForRole(employee));
     final role = employee.role.trim().toLowerCase();
     if (role == 'admin' || role == 'supervisor') {
       unawaited(BackfillEmployeeDepartments.runIfNeeded(isManager: true));

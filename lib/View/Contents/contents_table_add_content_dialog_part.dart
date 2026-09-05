@@ -29,14 +29,28 @@ void showAddContentDialog(
   final notesController = TextEditingController(text: model?.clientNotes);
   final captionController = TextEditingController(text: model?.caption);
   final filecontroller = TextEditingController();
+  // Attachments saved before the typed fields existed live in `files` only;
+  // adopt them into the field matching the content type so they can be
+  // previewed, removed and published like any other attachment.
+  final legacyUrls = model?.untypedFileUrls ?? const <String>[];
+  final legacyBucket = ContentModel.attachmentBucketFor(
+    model?.contentType ?? '',
+  );
+  String seedAttachments(List<dynamic>? typed, String bucket) {
+    return <String>{
+      ...(typed ?? const []).whereType<String>().map((e) => e.trim()),
+      if (bucket == legacyBucket) ...legacyUrls,
+    }.where((e) => e.isNotEmpty).join('\n');
+  }
+
   final postAttachmentController = TextEditingController(
-    text: (model?.postAttachments ?? []).whereType<String>().join('\n'),
+    text: seedAttachments(model?.postAttachments, 'post'),
   );
   final storyAttachmentController = TextEditingController(
-    text: (model?.storyAttachments ?? []).whereType<String>().join('\n'),
+    text: seedAttachments(model?.storyAttachments, 'story'),
   );
   final reelAttachmentController = TextEditingController(
-    text: (model?.reelAttachments ?? []).whereType<String>().join('\n'),
+    text: seedAttachments(model?.reelAttachments, 'reel'),
   );
   var submitStatus = StorageKeys.status_under_revision;
   List<String> splitAttachmentInput(String raw) {
@@ -61,31 +75,6 @@ void showAddContentDialog(
     final current = splitAttachmentInput(controller.text);
     final merged = {...current, ...urls}.toList();
     controller.text = merged.join('\n');
-  }
-
-  Future<void> pickMainAttachmentFromLocal() async {
-    final files = await hc.pickMultiFiles();
-    for (final file in files) {
-      final bytes = file.bytes;
-      if (bytes == null) continue;
-      await hc.uploadFiles(filePathOrBytes: bytes, fileName: file.name);
-    }
-  }
-
-  Future<void> pickMainAttachmentWithSource(BuildContext context) async {
-    final source = await resolveAttachmentSource(context);
-    if (source == null) return;
-    if (source == ContentAttachmentSource.local) {
-      await pickMainAttachmentFromLocal();
-      return;
-    }
-    final selected = await showLibraryAttachmentPickerDialog(context);
-    if (selected.isEmpty) return;
-    final merged = <String>{
-      ...hc.uploadedFilesPaths.map((e) => e.toString().trim()),
-      ...selected.map((e) => e.trim()),
-    }.where((e) => e.isNotEmpty).toList();
-    hc.uploadedFilesPaths.assignAll(merged);
   }
 
   Future<void> pickAttachmentFieldFromLocal(
@@ -355,12 +344,11 @@ void showAddContentDialog(
                                     borderRadius: 5,
                                   ),
                                 ),
-                                Obx(
-                                  () => Column(
+                                SizedBox(
+                                  width: (Get.width * 0.7 / 2) - 30,
+                                  child: Column(
                                     children: [
                                       SizedBox(
-                                        width: (Get.width * 0.7 / 2) - 30,
-
                                         child: InputText(
                                           labelText:
                                               'content.form.insert_link'.tr,
@@ -400,79 +388,6 @@ void showAddContentDialog(
                                           borderRadius: 5,
                                         ),
                                       ),
-                                      SizedBox(
-                                        width: (Get.width * 0.7 / 2) - 30,
-                                        child: ContentAttachmentSourceInput(
-                                          labelText: 'dragfile'.tr,
-                                          bodyHintText: 'dragfile'.tr,
-                                          onTap:
-                                              () => pickMainAttachmentWithSource(
-                                                context,
-                                              ),
-                                          loading: controller.isUploading.value,
-                                        ),
-                                      ),
-
-                                      SizedBox(
-                                        width: (Get.width * 0.7 / 2) - 30,
-                                        child: ListenableBuilder(
-                                          listenable: Listenable.merge([
-                                            postAttachmentController,
-                                            storyAttachmentController,
-                                            reelAttachmentController,
-                                          ]),
-                                          builder: (context, _) {
-                                            return Obx(
-                                              () {
-                                                final fieldUrls = <String>{
-                                                  ...splitAttachmentInput(
-                                                    postAttachmentController
-                                                        .text,
-                                                  ),
-                                                  ...splitAttachmentInput(
-                                                    storyAttachmentController
-                                                        .text,
-                                                  ),
-                                                  ...splitAttachmentInput(
-                                                    reelAttachmentController
-                                                        .text,
-                                                  ),
-                                                };
-                                                final urls =
-                                                    controller
-                                                        .uploadedFilesPaths
-                                                        .map((e) => e.toString())
-                                                        .where(
-                                                          (u) =>
-                                                              !fieldUrls
-                                                                  .contains(
-                                                                    u,
-                                                                  ),
-                                                        )
-                                                        .toList();
-                                                return FormAttachmentThumbnailsGrid(
-                                                  urls: urls,
-                                                  onRemoveUrl: (u) {
-                                                    controller
-                                                        .uploadedFilesPaths
-                                                        .removeWhere(
-                                                          (e) =>
-                                                              e.toString() ==
-                                                              u,
-                                                        );
-                                                  },
-                                                  onOpenUrl:
-                                                      _openAttachmentUrl,
-                                                  spacing: 6,
-                                                  tileExtent: 72,
-                                                  closeButtonSize: 22,
-                                                  closeIconSize: 13,
-                                                );
-                                              },
-                                            );
-                                          },
-                                        ),
-                                      ),
                                     ],
                                   ),
                                 ),
@@ -486,16 +401,19 @@ void showAddContentDialog(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.stretch,
                                     children: [
-                                      ContentAttachmentSourceInput(
-                                        labelText:
-                                            'content.post_attachment'.tr,
-                                        bodyHintText: 'dragfile'.tr,
-                                        onTap:
-                                            () =>
-                                                pickAttachmentFieldWithSource(
-                                                  context,
-                                                  postAttachmentController,
-                                                ),
+                                      Obx(
+                                        () => ContentAttachmentSourceInput(
+                                          labelText:
+                                              'content.post_attachment'.tr,
+                                          bodyHintText: 'dragfile'.tr,
+                                          onTap: () =>
+                                              pickAttachmentFieldWithSource(
+                                                context,
+                                                postAttachmentController,
+                                              ),
+                                          loading:
+                                              controller.isUploading.value,
+                                        ),
                                       ),
                                       ListenableBuilder(
                                         listenable: postAttachmentController,
@@ -536,16 +454,19 @@ void showAddContentDialog(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.stretch,
                                     children: [
-                                      ContentAttachmentSourceInput(
-                                        labelText:
-                                            'content.story_attachment'.tr,
-                                        bodyHintText: 'dragfile'.tr,
-                                        onTap:
-                                            () =>
-                                                pickAttachmentFieldWithSource(
-                                                  context,
-                                                  storyAttachmentController,
-                                                ),
+                                      Obx(
+                                        () => ContentAttachmentSourceInput(
+                                          labelText:
+                                              'content.story_attachment'.tr,
+                                          bodyHintText: 'dragfile'.tr,
+                                          onTap: () =>
+                                              pickAttachmentFieldWithSource(
+                                                context,
+                                                storyAttachmentController,
+                                              ),
+                                          loading:
+                                              controller.isUploading.value,
+                                        ),
                                       ),
                                       ListenableBuilder(
                                         listenable: storyAttachmentController,
@@ -586,16 +507,19 @@ void showAddContentDialog(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.stretch,
                                     children: [
-                                      ContentAttachmentSourceInput(
-                                        labelText:
-                                            'content.reel_attachment'.tr,
-                                        bodyHintText: 'dragfile'.tr,
-                                        onTap:
-                                            () =>
-                                                pickAttachmentFieldWithSource(
-                                                  context,
-                                                  reelAttachmentController,
-                                                ),
+                                      Obx(
+                                        () => ContentAttachmentSourceInput(
+                                          labelText:
+                                              'content.reel_attachment'.tr,
+                                          bodyHintText: 'dragfile'.tr,
+                                          onTap: () =>
+                                              pickAttachmentFieldWithSource(
+                                                context,
+                                                reelAttachmentController,
+                                              ),
+                                          loading:
+                                              controller.isUploading.value,
+                                        ),
                                       ),
                                       ListenableBuilder(
                                         listenable: reelAttachmentController,
@@ -668,38 +592,31 @@ void showAddContentDialog(
                                         final enteredReel = splitAttachmentInput(
                                           reelAttachmentController.text,
                                         );
-                                        final mergedPost = [
-                                          ...?(model?.postAttachments),
-                                          ...enteredPost,
-                                        ].toSet().toList();
-                                        final mergedStory = [
-                                          ...?(model?.storyAttachments),
-                                          ...enteredStory,
-                                        ].toSet().toList();
-                                        final mergedReel = [
-                                          ...?(model?.reelAttachments),
-                                          ...enteredReel,
-                                        ].toSet().toList();
+                                        // Exactly what the fields hold now —
+                                        // merging the saved lists back in here
+                                        // made removing an attachment
+                                        // impossible.
+                                        final mergedPost =
+                                            enteredPost.toSet().toList();
+                                        final mergedStory =
+                                            enteredStory.toSet().toList();
+                                        final mergedReel =
+                                            enteredReel.toSet().toList();
+                                        final mergedFiles = <String>{
+                                          if (filecontroller.text
+                                              .trim()
+                                              .isNotEmpty)
+                                            filecontroller.text.trim(),
+                                          ...mergedPost,
+                                          ...mergedStory,
+                                          ...mergedReel,
+                                        }.toList();
                                         if (model == null) {
                                           await controller
                                               .addContent(
                                                 ContentModel(
                                                   title: titleController.text,
-                                                  files: [
-                                                    ...controller
-                                                        .uploadedFilesPaths,
-                                                    ...filecontroller
-                                                            .text
-                                                            .isEmpty
-                                                        ? []
-                                                        : [
-                                                          filecontroller.text
-                                                              .trim(),
-                                                        ],
-                                                    ...mergedPost,
-                                                    ...mergedStory,
-                                                    ...mergedReel,
-                                                  ].toSet().toList(),
+                                                  files: mergedFiles,
                                                   platform: platforms,
                                                   publishDate: publishDate,
 
@@ -755,22 +672,7 @@ void showAddContentDialog(
                                                 model.copyWith(
                                                   title: titleController.text,
 
-                                                  files: [
-                                                    // الملفات القديمة (لو موجودة)
-                                                    ...controller
-                                                        .uploadedFilesPaths,
-                                                    ...filecontroller
-                                                            .text
-                                                            .isEmpty
-                                                        ? []
-                                                        : [
-                                                          filecontroller.text
-                                                              .trim(),
-                                                        ],
-                                                    ...mergedPost,
-                                                    ...mergedStory,
-                                                    ...mergedReel,
-                                                  ].toSet().toList(),
+                                                  files: mergedFiles,
                                                   platform: platforms,
                                                   publishDate: publishDate,
                                                   contentType:

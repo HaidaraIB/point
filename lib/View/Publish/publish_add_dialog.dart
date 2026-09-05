@@ -48,6 +48,7 @@ Future<void> _pickAndUploadSinglePublishMedia({
   required HomeController controller,
   required Rxn<String> mediaUrl,
   required Rxn<String> mediaType,
+  required String postType,
 }) async {
   if (controller.isUploading.value) return;
   controller.uploadedFilesPaths.clear();
@@ -71,7 +72,7 @@ Future<void> _pickAndUploadSinglePublishMedia({
   );
   if (url != null && url.isNotEmpty) {
     mediaUrl.value = url;
-    mediaType.value = publishMediaTypeFromUrl(url) ?? 'photo';
+    mediaType.value = publishMediaTypeFromUrlOrPostType(url, postType);
     controller.update();
   }
 }
@@ -80,6 +81,7 @@ void _syncMediaFromUploadedList(
   HomeController controller,
   Rxn<String> mediaUrl,
   Rxn<String> mediaType,
+  String postType,
 ) {
   if (controller.uploadedFilesPaths.isEmpty) {
     mediaUrl.value = null;
@@ -88,7 +90,7 @@ void _syncMediaFromUploadedList(
   }
   final last = controller.uploadedFilesPaths.last.toString();
   mediaUrl.value = last;
-  mediaType.value = publishMediaTypeFromUrl(last) ?? 'photo';
+  mediaType.value = publishMediaTypeFromUrlOrPostType(last, postType);
 }
 
 /// Library vs local drive — same flow as Content attachments.
@@ -97,6 +99,7 @@ Future<void> _pickPublishMediaWithSource({
   required HomeController controller,
   required Rxn<String> mediaUrl,
   required Rxn<String> mediaType,
+  required String postType,
 }) async {
   if (controller.isUploading.value) return;
   final source = await resolveAttachmentSource(context);
@@ -107,6 +110,7 @@ Future<void> _pickPublishMediaWithSource({
       controller: controller,
       mediaUrl: mediaUrl,
       mediaType: mediaType,
+      postType: postType,
     );
     return;
   }
@@ -125,7 +129,7 @@ Future<void> _pickPublishMediaWithSource({
   controller.uploadedFilesPaths.clear();
   controller.uploadedFilesPaths.add(url);
   mediaUrl.value = url;
-  mediaType.value = publishMediaTypeFromUrl(url) ?? 'photo';
+  mediaType.value = publishMediaTypeFromUrlOrPostType(url, postType);
   controller.update();
 }
 
@@ -284,7 +288,9 @@ Future<void> showAddPublishDialog({
     if (existingMedia != null && existingMedia.isNotEmpty) {
       hc.uploadedFilesPaths.add(existingMedia);
       mediaUrl.value = existingMedia;
-      mediaType.value = seed.mediaType ?? publishMediaTypeFromUrl(existingMedia);
+      mediaType.value =
+          seed.mediaType ??
+          publishMediaTypeFromUrlOrPostType(existingMedia, postType.value);
     } else {
       mediaUrl.value = null;
       mediaType.value = seed.mediaType;
@@ -475,6 +481,7 @@ Future<void> showAddPublishDialog({
                             controller: controller,
                             mediaUrl: mediaUrl,
                             mediaType: mediaType,
+                            postType: postType.value,
                           ),
                           loading: controller.isUploading.value,
                         ),
@@ -507,6 +514,7 @@ Future<void> showAddPublishDialog({
                                 controller,
                                 mediaUrl,
                                 mediaType,
+                                postType.value,
                               );
                               controller.update();
                             },
@@ -769,6 +777,12 @@ Future<void> showAddPublishDialog({
                                     : (queueNow ? nowUtc : null),
                                 createdAt:
                                     existing?.createdAt ?? DateTime.now(),
+                                // Editing keeps the original origin; a new row
+                                // seeded from a Content draft stays `content`.
+                                source:
+                                    existing?.source ??
+                                    seed?.source ??
+                                    MetaPostModel.sourceManual,
                               );
                               final ok = existing == null
                                   ? await controller.addMetaPost(post)

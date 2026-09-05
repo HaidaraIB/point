@@ -731,6 +731,7 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
     await prefs.remove(StorageKeys.prefsFcmTokenLastSynced);
     await prefs.remove(StorageKeys.prefsFcmTokenRole);
     await prefs.remove(StorageKeys.prefsFcmTokenUserId);
+    FirestoreAuthApi.invalidateAuthRoleSyncCache();
     await FirebaseAuth.instance.signOut();
   }
 

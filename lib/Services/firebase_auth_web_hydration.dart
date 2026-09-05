@@ -11,8 +11,13 @@ Future<void> waitForFirebaseAuthHydrationOnWeb() async {
     await FirebaseAuth.instance.authStateChanges().first.timeout(
           const Duration(seconds: 1),
         );
+    // The first auth event is emitted only after persistence is restored, so a
+    // null user here means signed out — no point polling further.
+    return;
   } catch (_) {}
-  for (var i = 0; i < 80; i++) {
+  // Only the timeout path falls through: poll briefly instead of stalling the
+  // splash for seconds on a user who is simply signed out.
+  for (var i = 0; i < 12; i++) {
     if (FirebaseAuth.instance.currentUser != null) return;
     await Future<void>.delayed(const Duration(milliseconds: 50));
   }

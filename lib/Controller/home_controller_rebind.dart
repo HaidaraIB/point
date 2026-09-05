@@ -49,23 +49,29 @@ Future<void> homeRebindClientsAndTasksStreamsAsync(
   if (u == null) return;
 
   try {
-    DocumentSnapshot roleSnap;
-    try {
-      roleSnap = await FirebaseFirestore.instance
-          .collection('authRoles')
-          .doc(u.uid)
-          .get(const GetOptions(source: Source.server));
-    } catch (_) {
-      roleSnap = await FirebaseFirestore.instance
-          .collection('authRoles')
-          .doc(u.uid)
-          .get();
+    // Reuse the doc [HomeController.ensureAuthRoleSynced] just read from the
+    // server instead of paying for another round-trip on the splash screen.
+    Map<String, dynamic>? roleData = c.cachedAuthRoleData(u.uid);
+    if (roleData == null) {
+      DocumentSnapshot roleSnap;
+      try {
+        roleSnap = await FirebaseFirestore.instance
+            .collection('authRoles')
+            .doc(u.uid)
+            .get(const GetOptions(source: Source.server));
+      } catch (_) {
+        roleSnap = await FirebaseFirestore.instance
+            .collection('authRoles')
+            .doc(u.uid)
+            .get();
+      }
+      if (gen != c._clientsTasksRebindGeneration) return;
+      roleData = roleSnap.exists ? roleSnap.data() as Map<String, dynamic>? : null;
+      if (roleData != null) c.cacheAuthRoleSnapshot(u.uid, roleData);
     }
-    if (gen != c._clientsTasksRebindGeneration) return;
 
     String? role;
-    final roleData = roleSnap.data() as Map<String, dynamic>?;
-    if (roleSnap.exists && roleData != null) {
+    if (roleData != null) {
       role = roleData['role']?.toString();
     }
 

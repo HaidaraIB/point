@@ -187,6 +187,43 @@ class _PublishTableState extends State<PublishTable> {
     );
   }
 
+  Widget _sourceChip(String source) {
+    final isContent = source.trim().toLowerCase() ==
+        MetaPostModel.sourceContent;
+    final fg = isContent
+        ? const Color(0xFF38BDF8)
+        : const Color(0xFF94A3B8);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: _chipBackground(fg),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: fg.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isContent
+                ? Icons.auto_awesome_motion_rounded
+                : Icons.edit_note_rounded,
+            size: 14,
+            color: fg,
+          ),
+          const SizedBox(width: 5),
+          Text(
+            (isContent ? 'publish.source_content' : 'publish.source_manual').tr,
+            style: TextStyle(
+              color: fg,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _platformBadge(String platform) {
     final p = platform.trim().toLowerCase();
     IconData icon = Icons.public;
@@ -204,9 +241,9 @@ class _PublishTableState extends State<PublishTable> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
-        color: resolveAppTheme().panelTint,
+        color: _chipBackground(iconColor),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: resolveAppTheme().border),
+        border: Border.all(color: iconColor.withValues(alpha: 0.35)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -216,9 +253,9 @@ class _PublishTableState extends State<PublishTable> {
           Text(
             label,
             style: TextStyle(
-              color: resolveAppTheme().primaryText,
+              color: iconColor,
               fontSize: 12,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],
@@ -237,11 +274,24 @@ class _PublishTableState extends State<PublishTable> {
     if (items.isEmpty) {
       return Text('-', style: TextStyle(color: resolveAppTheme().mutedText));
     }
+    // Badges of one row must sit tighter than the gap between rows, otherwise
+    // a wrapped 2-line group reads as four unrelated badges.
     return Wrap(
       alignment: alignment,
       spacing: 6,
-      runSpacing: 6,
+      runSpacing: 3,
       children: items.map(_platformBadge).toList(),
+    );
+  }
+
+  /// Row stripe for the publish table. `panelTint` is nearly identical to
+  /// `cardSurface` in dark mode, so the stripe is mixed from `border` instead.
+  Color _rowStripe(bool even) {
+    final theme = resolveAppTheme();
+    if (even) return theme.cardSurface;
+    return Color.alphaBlend(
+      theme.border.withValues(alpha: 0.75),
+      theme.cardSurface,
     );
   }
 
@@ -482,6 +532,14 @@ class _PublishTableState extends State<PublishTable> {
                         alignment: WrapAlignment.start,
                       ),
                     ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Text('${'publish.source'.tr}: '),
+                    const SizedBox(width: 4),
+                    _sourceChip(p.source),
                   ],
                 ),
                 const SizedBox(height: 6),
@@ -1149,6 +1207,7 @@ class _PublishTableState extends State<PublishTable> {
       140, // instagram
       110, // post type
       140, // platforms
+      120, // source
       150, // status
       140, // date
       88, // actions
@@ -1189,7 +1248,7 @@ class _PublishTableState extends State<PublishTable> {
                               dataRowMaxHeight: double.infinity,
                               dataRowColor: context.tableDataRowColor,
                               headingRowColor: context.tableHeadingRowColor,
-                              dividerThickness: 0.5,
+                              dividerThickness: 1,
                               columns: [
                                 DataColumn(
                                   columnWidth: FixedColumnWidth(colWidths[0]),
@@ -1221,20 +1280,32 @@ class _PublishTableState extends State<PublishTable> {
                                 DataColumn(
                                   columnWidth: FixedColumnWidth(colWidths[5]),
                                   headingRowAlignment: MainAxisAlignment.center,
-                                  label: _headerText('publish.status'),
+                                  label: _headerText('publish.source'),
                                 ),
                                 DataColumn(
                                   columnWidth: FixedColumnWidth(colWidths[6]),
                                   headingRowAlignment: MainAxisAlignment.center,
+                                  label: _headerText('publish.status'),
+                                ),
+                                DataColumn(
+                                  columnWidth: FixedColumnWidth(colWidths[7]),
+                                  headingRowAlignment: MainAxisAlignment.center,
                                   label: _headerText('publish_date'),
                                 ),
-                                DataColumn(                                  columnWidth: FixedColumnWidth(colWidths[7]),
+                                DataColumn(                                  columnWidth: FixedColumnWidth(colWidths[8]),
                                   headingRowAlignment: MainAxisAlignment.center,
                                   label: _headerText('publish.actions'),
                                 ),
                               ],
-                              rows: list.map((p) {
+                              rows: list.asMap().entries.map((entry) {
+                                final p = entry.value;
+                                // Rows carry several stacked chips (platforms
+                                // wrap onto 2 lines), so a hairline divider is
+                                // not enough to tell one row from the next.
                                 return DataRow(
+                                  color: WidgetStateProperty.all(
+                                    _rowStripe(entry.key.isEven),
+                                  ),
                                   cells: [
                                     DataCell(
                                       TableCellCenter(
@@ -1328,7 +1399,19 @@ class _PublishTableState extends State<PublishTable> {
                                     ),
                                     DataCell(
                                       TableCellCenter(
-                                        child: _platformsWrap(p.platforms),
+                                        child: Padding(
+                                          // Breathing room so a wrapped group
+                                          // stays clear of the rows above/below.
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 10,
+                                          ),
+                                          child: _platformsWrap(p.platforms),
+                                        ),
+                                      ),
+                                    ),
+                                    DataCell(
+                                      TableCellCenter(
+                                        child: _sourceChip(p.source),
                                       ),
                                     ),
                                     DataCell(
@@ -1479,6 +1562,7 @@ class _PublishTableState extends State<PublishTable> {
             children: [
               _postTypeChip(p.postType),
               _buildStatusControl(controller, p),
+              _sourceChip(p.source),
             ],
           ),
           if (p.platforms.isNotEmpty) ...[

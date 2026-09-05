@@ -844,9 +844,7 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                                   },
                                   onSelected: (value) {
                                     if (value == 0) {
-                                      controller.uploadedFilesPaths.assignAll(
-                                        emp.attachmentUrls,
-                                      );
+                                      controller.uploadedFilesPaths.clear();
                                       showAddContentDialog(
                                         context,
                                         clientId:
@@ -863,15 +861,10 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                                         },
                                       );
                                     } else if (value == 2) {
-                                      final contentType =
-                                          emp.contentType.toLowerCase();
-                                      final dedicated = (contentType
-                                                  .contains('reel')
-                                              ? emp.reelAttachments
-                                              : (contentType.contains('story')
-                                                  ? emp.storyAttachments
-                                                  : emp.postAttachments)) ??
-                                          const <dynamic>[];
+                                      final dedicated = HomeController
+                                          .publishMediaCandidatesForContent(
+                                            emp,
+                                          );
                                       final draft = controller
                                           .buildMetaDraftFromContent(
                                             emp,
@@ -887,15 +880,10 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                                         );
                                       }
                                     } else if (value == 3) {
-                                      final contentType =
-                                          emp.contentType.toLowerCase();
-                                      final dedicated = (contentType
-                                                  .contains('reel')
-                                              ? emp.reelAttachments
-                                              : (contentType.contains('story')
-                                                  ? emp.storyAttachments
-                                                  : emp.postAttachments)) ??
-                                          const <dynamic>[];
+                                      final dedicated = HomeController
+                                          .publishMediaCandidatesForContent(
+                                            emp,
+                                          );
                                       final draft = controller
                                           .buildScheduledMetaDraftFromContent(
                                             emp,

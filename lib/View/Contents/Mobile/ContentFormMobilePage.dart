@@ -19,7 +19,6 @@ import 'package:point/View/Shared/CustomDropDown.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/form_attachment_thumbnails_grid.dart';
 import 'package:point/View/Shared/t.dart';
-import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 
 /// Mobile-only full-screen form for add/edit content. Desktop keeps using [showAddContentDialog].
@@ -66,14 +65,26 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
     notesController = TextEditingController(text: m?.clientNotes);
     captionController = TextEditingController(text: m?.caption);
     fileController = TextEditingController();
+    // Attachments saved before the typed fields existed live in `files` only;
+    // adopt them into the field matching the content type so they can be
+    // previewed, removed and published like any other attachment.
+    final legacyUrls = m?.untypedFileUrls ?? const <String>[];
+    final legacyBucket = ContentModel.attachmentBucketFor(m?.contentType ?? '');
+    String seedAttachments(List<dynamic>? typed, String bucket) {
+      return <String>{
+        ...(typed ?? const []).whereType<String>().map((e) => e.trim()),
+        if (bucket == legacyBucket) ...legacyUrls,
+      }.where((e) => e.isNotEmpty).join('\n');
+    }
+
     postAttachmentController = TextEditingController(
-      text: (m?.postAttachments ?? []).whereType<String>().join('\n'),
+      text: seedAttachments(m?.postAttachments, 'post'),
     );
     storyAttachmentController = TextEditingController(
-      text: (m?.storyAttachments ?? []).whereType<String>().join('\n'),
+      text: seedAttachments(m?.storyAttachments, 'story'),
     );
     reelAttachmentController = TextEditingController(
-      text: (m?.reelAttachments ?? []).whereType<String>().join('\n'),
+      text: seedAttachments(m?.reelAttachments, 'reel'),
     );
     platforms = (m?.platform ?? []).obs;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -171,34 +182,6 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
     setState(() => _appendAttachmentLinks(targetController, selected));
   }
 
-  Future<void> _pickMainAttachmentFromLocal() async {
-    final hc = Get.find<HomeController>();
-    if (hc.isUploading.value) return;
-    final files = await hc.pickMultiFiles();
-    for (final file in files) {
-      final bytes = file.bytes;
-      if (bytes == null) continue;
-      await hc.uploadFiles(filePathOrBytes: bytes, fileName: file.name);
-    }
-  }
-
-  Future<void> _pickMainAttachmentWithSource() async {
-    final hc = Get.find<HomeController>();
-    final source = await resolveAttachmentSource(context);
-    if (source == null || !mounted) return;
-    if (source == ContentAttachmentSource.local) {
-      await _pickMainAttachmentFromLocal();
-      return;
-    }
-    final selected = await showLibraryAttachmentPickerDialog(context);
-    if (!mounted || selected.isEmpty) return;
-    final merged = <String>{
-      ...hc.uploadedFilesPaths.map((e) => e.toString().trim()),
-      ...selected.map((e) => e.trim()),
-    }.where((e) => e.isNotEmpty).toList();
-    hc.uploadedFilesPaths.assignAll(merged);
-  }
-
   Future<void> _pickPublishDate() async {
     final picked = await customDatePicker(
       context,
@@ -219,25 +202,17 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
     final enteredPost = _splitAttachmentInput(postAttachmentController.text);
     final enteredStory = _splitAttachmentInput(storyAttachmentController.text);
     final enteredReel = _splitAttachmentInput(reelAttachmentController.text);
-    final postAttachments = [
-      ...?widget.model?.postAttachments,
-      ...enteredPost,
-    ].toSet().toList();
-    final storyAttachments = [
-      ...?widget.model?.storyAttachments,
-      ...enteredStory,
-    ].toSet().toList();
-    final reelAttachments = [
-      ...?widget.model?.reelAttachments,
-      ...enteredReel,
-    ].toSet().toList();
-    final files = [
-      ...controller.uploadedFilesPaths,
+    // Exactly what the fields hold now — merging the saved lists back in here
+    // made removing an attachment impossible.
+    final postAttachments = enteredPost.toSet().toList();
+    final storyAttachments = enteredStory.toSet().toList();
+    final reelAttachments = enteredReel.toSet().toList();
+    final files = <String>{
       if (fileController.text.trim().isNotEmpty) fileController.text.trim(),
       ...postAttachments,
       ...storyAttachments,
       ...reelAttachments,
-    ].toSet().toList();
+    }.toList();
 
     final effectiveStatus =
         widget.model == null
@@ -484,11 +459,15 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                     borderRadius: 8,
                   ),
                   const SizedBox(height: 16),
-                  ContentAttachmentSourceInput(
-                    labelText: 'content.post_attachment'.tr,
-                    bodyHintText: 'content.attachment_field_hint'.tr,
-                    onTap: () =>
-                        _pickAttachmentFieldWithSource(postAttachmentController),
+                  Obx(
+                    () => ContentAttachmentSourceInput(
+                      labelText: 'content.post_attachment'.tr,
+                      bodyHintText: 'content.attachment_field_hint'.tr,
+                      onTap: () => _pickAttachmentFieldWithSource(
+                        postAttachmentController,
+                      ),
+                      loading: controller.isUploading.value,
+                    ),
                   ),
                   ListenableBuilder(
                     listenable: postAttachmentController,
@@ -515,11 +494,14 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  ContentAttachmentSourceInput(
-                    labelText: 'content.story_attachment'.tr,
-                    bodyHintText: 'content.attachment_field_hint'.tr,
-                    onTap: () => _pickAttachmentFieldWithSource(
-                      storyAttachmentController,
+                  Obx(
+                    () => ContentAttachmentSourceInput(
+                      labelText: 'content.story_attachment'.tr,
+                      bodyHintText: 'content.attachment_field_hint'.tr,
+                      onTap: () => _pickAttachmentFieldWithSource(
+                        storyAttachmentController,
+                      ),
+                      loading: controller.isUploading.value,
                     ),
                   ),
                   ListenableBuilder(
@@ -547,11 +529,14 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  ContentAttachmentSourceInput(
-                    labelText: 'content.reel_attachment'.tr,
-                    bodyHintText: 'content.attachment_field_hint'.tr,
-                    onTap: () => _pickAttachmentFieldWithSource(
-                      reelAttachmentController,
+                  Obx(
+                    () => ContentAttachmentSourceInput(
+                      labelText: 'content.reel_attachment'.tr,
+                      bodyHintText: 'content.attachment_field_hint'.tr,
+                      onTap: () => _pickAttachmentFieldWithSource(
+                        reelAttachmentController,
+                      ),
+                      loading: controller.isUploading.value,
                     ),
                   ),
                   ListenableBuilder(
@@ -575,119 +560,6 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
                           closeButtonSize: 20,
                           closeIconSize: 12,
                         ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  Obx(
-                    () => ContentAttachmentSourceInput(
-                      labelText: 'dragfile'.tr,
-                      bodyHintText: 'content.attachment_field_hint'.tr,
-                      onTap: () => _pickMainAttachmentWithSource(),
-                      loading: controller.isUploading.value,
-                    ),
-                  ),
-                  ListenableBuilder(
-                    listenable: Listenable.merge([
-                      postAttachmentController,
-                      storyAttachmentController,
-                      reelAttachmentController,
-                    ]),
-                    builder: (context, _) {
-                      return Obx(
-                        () {
-                          final fieldUrls = <String>{
-                            ..._splitAttachmentInput(
-                              postAttachmentController.text,
-                            ),
-                            ..._splitAttachmentInput(
-                              storyAttachmentController.text,
-                            ),
-                            ..._splitAttachmentInput(
-                              reelAttachmentController.text,
-                            ),
-                          };
-                          final urls =
-                              controller.uploadedFilesPaths
-                                  .map((e) => e.toString())
-                                  .where((u) => !fieldUrls.contains(u))
-                                  .toList();
-                          if (urls.isEmpty) {
-                            return const SizedBox.shrink();
-                          }
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 12),
-                            child: GridView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: urls.length,
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 3,
-                                    crossAxisSpacing: 10,
-                                    mainAxisSpacing: 10,
-                                    mainAxisExtent: 96,
-                                  ),
-                              itemBuilder: (context, i) {
-                                final filePath = urls[i];
-                                return Center(
-                                  child: SizedBox(
-                                    width: 88,
-                                    height: 88,
-                                    child: Stack(
-                                      clipBehavior: Clip.none,
-                                      children: [
-                                        Positioned.fill(
-                                          child:
-                                              TaskDetailsDialogHelpers.attachmentThumbnail(
-                                                filePath,
-                                                onOpen: () =>
-                                                    _openUploadedFile(
-                                                      filePath,
-                                                    ),
-                                              ),
-                                        ),
-                                        PositionedDirectional(
-                                          top: 4,
-                                          end: 4,
-                                          child: Material(
-                                            color: Colors.transparent,
-                                            child: InkWell(
-                                              onTap: () {
-                                                controller.uploadedFilesPaths
-                                                    .removeWhere(
-                                                      (e) =>
-                                                          e.toString() ==
-                                                          filePath,
-                                                    );
-                                              },
-                                              child: Container(
-                                                width: 22,
-                                                height: 22,
-                                                decoration: BoxDecoration(
-                                                  color: appTheme.secondaryText,
-                                                  borderRadius:
-                                                      BorderRadius.circular(
-                                                        11,
-                                                      ),
-                                                ),
-                                                child: const Icon(
-                                                  Icons.close,
-                                                  color: Colors.white,
-                                                  size: 14,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          );
-                        },
                       );
                     },
                   ),

@@ -165,6 +165,51 @@ class ContentModel {
     return out;
   }
 
+  /// Which typed attachment list a content type belongs to: `post`, `story` or
+  /// `reel`. Everything that is neither a story nor a reel is treated as a post,
+  /// the same mapping the publish flow uses.
+  static String attachmentBucketFor(String contentType) {
+    final t = contentType.toLowerCase();
+    if (t.contains('reel')) return 'reel';
+    if (t.contains('story')) return 'story';
+    return 'post';
+  }
+
+  /// The typed list matching [contentType].
+  List<String> get bucketAttachments {
+    switch (attachmentBucketFor(contentType)) {
+      case 'reel':
+        return _clean(reelAttachments);
+      case 'story':
+        return _clean(storyAttachments);
+      default:
+        return _clean(postAttachments);
+    }
+  }
+
+  /// URLs saved only in the legacy general [files] bucket, i.e. attachments that
+  /// belong to no typed list. Content forms adopt these into the typed list so
+  /// they stay editable and publishable.
+  List<String> get untypedFileUrls {
+    final typed = <String>{
+      ..._clean(postAttachments),
+      ..._clean(storyAttachments),
+      ..._clean(reelAttachments),
+    };
+    return _clean(files).where((u) => !typed.contains(u)).toList();
+  }
+
+  static List<String> _clean(List<dynamic>? raw) {
+    final out = <String>[];
+    final seen = <String>{};
+    for (final e in raw ?? const <dynamic>[]) {
+      final s = e?.toString().trim() ?? '';
+      if (s.isEmpty) continue;
+      if (seen.add(s)) out.add(s);
+    }
+    return out;
+  }
+
   /// Prefer a URL for list-card thumbnails (first available attachment).
   String? get primaryAttachmentUrl {
     final urls = attachmentUrls;

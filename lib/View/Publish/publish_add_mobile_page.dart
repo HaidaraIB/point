@@ -99,7 +99,8 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
       _controller.uploadedFilesPaths.add(existingMedia);
       _mediaUrl.value = existingMedia;
       _mediaType.value =
-          seed.mediaType ?? publishMediaTypeFromUrl(existingMedia);
+          seed.mediaType ??
+          publishMediaTypeFromUrlOrPostType(existingMedia, _postType.value);
     } else {
       _mediaType.value = seed.mediaType;
     }
@@ -146,7 +147,7 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
     );
     if (url != null && url.isNotEmpty) {
       _mediaUrl.value = url;
-      _mediaType.value = publishMediaTypeFromUrl(url) ?? 'photo';
+      _mediaType.value = publishMediaTypeFromUrlOrPostType(url, _postType.value);
       _controller.update();
     }
   }
@@ -175,7 +176,7 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
     _controller.uploadedFilesPaths.clear();
     _controller.uploadedFilesPaths.add(url);
     _mediaUrl.value = url;
-    _mediaType.value = publishMediaTypeFromUrl(url) ?? 'photo';
+    _mediaType.value = publishMediaTypeFromUrlOrPostType(url, _postType.value);
     _controller.update();
   }
 
@@ -321,6 +322,11 @@ class _PublishAddMobilePageState extends State<PublishAddMobilePage> {
           ? _scheduledAt.value
           : (queueNow ? nowUtc : null),
       createdAt: widget.initialPost?.createdAt ?? DateTime.now(),
+      // Editing keeps the original origin; a new row seeded from a Content
+      // draft stays `content`.
+      source: widget.initialPost?.source ??
+          seed?.source ??
+          MetaPostModel.sourceManual,
     );
     final ok = widget.initialPost == null
         ? await _controller.addMetaPost(post)

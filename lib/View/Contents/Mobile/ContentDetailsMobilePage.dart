@@ -103,7 +103,7 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
 
   void _openEdit(HomeController hc, EmployeeModel? emp) {
     if (!ContentPermissions.canAddOrEditContent(emp)) return;
-    hc.uploadedFilesPaths.assignAll(_task.attachmentUrls);
+    hc.uploadedFilesPaths.clear();
     Get.off(
       () => ContentFormMobilePage(clientId: _task.clientId, model: _task),
     );
@@ -350,13 +350,8 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
               onSelected: (v) {
                 if (v == 0) _openEdit(hc, emp);
                 if (v == 1) {
-                  final contentType = _task.contentType.toLowerCase();
-                  final dedicated = (contentType.contains('reel')
-                          ? _task.reelAttachments
-                          : (contentType.contains('story')
-                              ? _task.storyAttachments
-                              : _task.postAttachments)) ??
-                      const <dynamic>[];
+                  final dedicated =
+                      HomeController.publishMediaCandidatesForContent(_task);
                   final draft = hc.buildMetaDraftFromContent(
                     _task,
                     schedule: false,
@@ -371,13 +366,8 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
                   }
                 }
                 if (v == 2) {
-                  final contentType = _task.contentType.toLowerCase();
-                  final dedicated = (contentType.contains('reel')
-                          ? _task.reelAttachments
-                          : (contentType.contains('story')
-                              ? _task.storyAttachments
-                              : _task.postAttachments)) ??
-                      const <dynamic>[];
+                  final dedicated =
+                      HomeController.publishMediaCandidatesForContent(_task);
                   final draft = hc.buildScheduledMetaDraftFromContent(_task);
                   if (draft != null) {
                     showAddPublishDialog(
