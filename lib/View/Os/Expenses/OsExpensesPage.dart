@@ -6,6 +6,7 @@ import 'package:point/Controller/OsFinanceController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsDailyExpenseModel.dart';
 import 'package:point/Models/Os/os_expense_constants.dart';
+import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/OsPermissions.dart';
 import 'package:point/Utils/app_theme_extension.dart';
@@ -16,7 +17,7 @@ import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_page_header.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
-import 'package:point/View/Shared/TableCellCenter.dart';
+import 'package:point/View/Shared/app_data_table.dart';
 import 'package:point/View/Shared/safe_network_image.dart';
 
 class OsExpensesPage extends StatefulWidget {
@@ -28,7 +29,6 @@ class OsExpensesPage extends StatefulWidget {
 
 class _OsExpensesPageState extends State<OsExpensesPage> {
   final _search = TextEditingController();
-  final _tableHScroll = ScrollController();
   final _money = NumberFormat('#,##0', 'en_US');
   var _category = 'ALL';
   var _datePreset = 'ALL';
@@ -39,7 +39,6 @@ class _OsExpensesPageState extends State<OsExpensesPage> {
   @override
   void dispose() {
     _search.dispose();
-    _tableHScroll.dispose();
     super.dispose();
   }
 
@@ -118,31 +117,22 @@ class _OsExpensesPageState extends State<OsExpensesPage> {
     OsFinanceController finance,
     OsDailyExpenseModel e,
   ) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(AppLocaleKeys.osCommonDelete.tr),
-        content: Text(AppLocaleKeys.osExpensesDeleteConfirm.tr),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(AppLocaleKeys.osCommonCancel.tr),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(AppLocaleKeys.osCommonDelete.tr),
-          ),
-        ],
-      ),
+    if (e.id == null) return;
+    await FunHelper.showDeleteConfirmDialog(
+      context,
+      title: AppLocaleKeys.osCommonDelete.tr,
+      message: AppLocaleKeys.osExpensesDeleteConfirm.tr,
+      onTap: () async {
+        final deleted = await finance.deleteExpense(e.id!);
+        if (!deleted) {
+          OsSnackbar.error(
+            AppLocaleKeys.osExpensesTitle.tr,
+            AppLocaleKeys.osCommonSaveFailed.tr,
+          );
+          throw Exception('delete failed');
+        }
+      },
     );
-    if (ok != true || e.id == null) return;
-    final deleted = await finance.deleteExpense(e.id!);
-    if (!deleted) {
-      OsSnackbar.error(
-        AppLocaleKeys.osExpensesTitle.tr,
-        AppLocaleKeys.osCommonSaveFailed.tr,
-      );
-    }
   }
 
   void _viewReceipt(OsDailyExpenseModel e) {
@@ -413,149 +403,49 @@ class _OsExpensesPageState extends State<OsExpensesPage> {
                     child: Padding(
                       padding: const EdgeInsets.all(14),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
+                          // Row 1: date + category/branch/receipt filters, view toggle at end
                           LayoutBuilder(
                             builder: (context, c) {
-                              final stack = c.maxWidth < 780;
-                              final search = TextField(
-                                controller: _search,
-                                onChanged: (_) => setState(() {}),
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: theme.primaryText,
-                                ),
-                                decoration: InputDecoration(
-                                  hintText: AppLocaleKeys.osExpensesSearch.tr,
-                                  hintMaxLines: 1,
-                                  prefixIcon: Icon(
-                                    Icons.search,
-                                    size: 18,
-                                    color: theme.mutedText,
-                                  ),
-                                  suffixIcon: _search.text.isEmpty
-                                      ? null
-                                      : IconButton(
-                                          icon: const Icon(Icons.close, size: 16),
-                                          onPressed: () {
-                                            _search.clear();
-                                            setState(() {});
-                                          },
-                                        ),
-                                  filled: true,
-                                  fillColor: theme.inputFill,
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: theme.border),
-                                  ),
-                                  enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: theme.border),
-                                  ),
-                                  focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: const BorderSide(
-                                      color: AppColors.primary,
-                                    ),
-                                  ),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 14,
-                                  ),
-                                  isDense: false,
-                                ),
-                              );
-                              final presets = SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: Row(
-                                  children: [
-                                    for (final entry in const [
-                                      ('ALL', AppLocaleKeys.osExpensesFilterAll),
-                                      ('TODAY', AppLocaleKeys.osExpensesFilterToday),
-                                      (
-                                        'YESTERDAY',
-                                        AppLocaleKeys.osExpensesFilterYesterday
-                                      ),
-                                      ('WEEK', AppLocaleKeys.osExpensesFilterWeek),
-                                      ('MONTH', AppLocaleKeys.osExpensesFilterMonth),
-                                    ]) ...[
-                                      _DatePill(
-                                        label: entry.$2.tr,
-                                        selected: _datePreset == entry.$1,
-                                        onTap: () => setState(
-                                          () => _datePreset = entry.$1,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                    ],
-                                  ],
-                                ),
-                              );
-                              final viewToggle = Container(
-                                padding: const EdgeInsets.all(4),
-                                decoration: BoxDecoration(
-                                  color: theme.inputFill,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    _ViewToggleBtn(
-                                      icon: Icons.view_list_outlined,
-                                      selected: _tableView,
-                                      tooltip:
-                                          AppLocaleKeys.osExpensesViewTable.tr,
-                                      onTap: () =>
-                                          setState(() => _tableView = true),
-                                    ),
-                                    _ViewToggleBtn(
-                                      icon: Icons.grid_view_outlined,
-                                      selected: !_tableView,
-                                      tooltip:
-                                          AppLocaleKeys.osExpensesViewGrid.tr,
-                                      onTap: () =>
-                                          setState(() => _tableView = false),
-                                    ),
-                                  ],
-                                ),
-                              );
-                              if (stack) {
-                                return Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    search,
-                                    const SizedBox(height: 10),
-                                    Row(
-                                      children: [
-                                        Expanded(child: presets),
-                                        const SizedBox(width: 8),
-                                        viewToggle,
-                                      ],
-                                    ),
-                                  ],
-                                );
-                              }
-                              return Row(
+                              final narrow = c.maxWidth < 780;
+                              final presets = Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Expanded(flex: 3, child: search),
-                                  const SizedBox(width: 12),
-                                  Expanded(flex: 4, child: presets),
-                                  const SizedBox(width: 12),
-                                  viewToggle,
+                                  for (final entry in const [
+                                    (
+                                      'ALL',
+                                      AppLocaleKeys.osExpensesFilterAll
+                                    ),
+                                    (
+                                      'TODAY',
+                                      AppLocaleKeys.osExpensesFilterToday
+                                    ),
+                                    (
+                                      'YESTERDAY',
+                                      AppLocaleKeys.osExpensesFilterYesterday
+                                    ),
+                                    (
+                                      'WEEK',
+                                      AppLocaleKeys.osExpensesFilterWeek
+                                    ),
+                                    (
+                                      'MONTH',
+                                      AppLocaleKeys.osExpensesFilterMonth
+                                    ),
+                                  ]) ...[
+                                    _DatePill(
+                                      label: entry.$2.tr,
+                                      selected: _datePreset == entry.$1,
+                                      onTap: () => setState(
+                                        () => _datePreset = entry.$1,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                  ],
                                 ],
                               );
-                            },
-                          ),
-                          const SizedBox(height: 12),
-                          Divider(height: 1, color: theme.border),
-                          const SizedBox(height: 12),
-                          Wrap(
-                            spacing: 16,
-                            runSpacing: 10,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            alignment: WrapAlignment.spaceBetween,
-                            children: [
-                              Wrap(
+                              final secondaryFilters = Wrap(
                                 spacing: 12,
                                 runSpacing: 8,
                                 crossAxisAlignment: WrapCrossAlignment.center,
@@ -583,9 +473,9 @@ class _OsExpensesPageState extends State<OsExpensesPage> {
                                             AppLocaleKeys
                                                 .osExpensesFilterCategoryAll.tr
                                           ),
-                                          for (final c
+                                          for (final cat
                                               in OsExpenseCategories.all)
-                                            (c, c.tr),
+                                            (cat, cat.tr),
                                         ],
                                         onChanged: (v) =>
                                             setState(() => _category = v),
@@ -629,42 +519,172 @@ class _OsExpensesPageState extends State<OsExpensesPage> {
                                       ),
                                     ],
                                   ),
+                                  InkWell(
+                                    onTap: () => setState(
+                                      () =>
+                                          _withReceiptOnly = !_withReceiptOnly,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Checkbox(
+                                          value: _withReceiptOnly,
+                                          onChanged: (v) => setState(
+                                            () => _withReceiptOnly =
+                                                v ?? false,
+                                          ),
+                                          visualDensity: VisualDensity.compact,
+                                        ),
+                                        Icon(
+                                          Icons.camera_alt_outlined,
+                                          size: 14,
+                                          color: theme.accentText,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          AppLocaleKeys
+                                              .osExpensesWithReceiptOnly.tr,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: theme.primaryText,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ],
-                              ),
-                              InkWell(
-                                onTap: () => setState(
-                                  () => _withReceiptOnly = !_withReceiptOnly,
+                              );
+                              final viewToggle = Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: theme.inputFill,
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                borderRadius: BorderRadius.circular(8),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Checkbox(
-                                      value: _withReceiptOnly,
-                                      onChanged: (v) => setState(
-                                        () => _withReceiptOnly = v ?? false,
-                                      ),
-                                      visualDensity: VisualDensity.compact,
+                                    _ViewToggleBtn(
+                                      icon: Icons.view_list_outlined,
+                                      selected: _tableView,
+                                      tooltip:
+                                          AppLocaleKeys.osExpensesViewTable.tr,
+                                      onTap: () =>
+                                          setState(() => _tableView = true),
                                     ),
-                                    Icon(
-                                      Icons.camera_alt_outlined,
-                                      size: 14,
-                                      color: theme.accentText,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      AppLocaleKeys
-                                          .osExpensesWithReceiptOnly.tr,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: theme.primaryText,
-                                      ),
+                                    _ViewToggleBtn(
+                                      icon: Icons.grid_view_outlined,
+                                      selected: !_tableView,
+                                      tooltip:
+                                          AppLocaleKeys.osExpensesViewGrid.tr,
+                                      onTap: () =>
+                                          setState(() => _tableView = false),
                                     ),
                                   ],
                                 ),
+                              );
+
+                              if (narrow) {
+                                return Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: SingleChildScrollView(
+                                            scrollDirection: Axis.horizontal,
+                                            child: presets,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        viewToggle,
+                                      ],
+                                    ),
+                                    const SizedBox(height: 10),
+                                    secondaryFilters,
+                                  ],
+                                );
+                              }
+
+                              return Row(
+                                children: [
+                                  Expanded(
+                                    child: SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      child: Row(
+                                        children: [
+                                          presets,
+                                          const SizedBox(width: 16),
+                                          secondaryFilters,
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  viewToggle,
+                                ],
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 10),
+                          // Row 2: search alone under the filters
+                          Align(
+                            alignment: AlignmentDirectional.centerStart,
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 420),
+                              child: TextField(
+                                controller: _search,
+                                onChanged: (_) => setState(() {}),
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: theme.primaryText,
+                                ),
+                                decoration: InputDecoration(
+                                  hintText: AppLocaleKeys.osExpensesSearch.tr,
+                                  hintMaxLines: 1,
+                                  prefixIcon: Icon(
+                                    Icons.search,
+                                    size: 18,
+                                    color: theme.mutedText,
+                                  ),
+                                  suffixIcon: _search.text.isEmpty
+                                      ? null
+                                      : IconButton(
+                                          icon:
+                                              const Icon(Icons.close, size: 16),
+                                          onPressed: () {
+                                            _search.clear();
+                                            setState(() {});
+                                          },
+                                        ),
+                                  filled: true,
+                                  fillColor: theme.inputFill,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide:
+                                        BorderSide(color: theme.border),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide:
+                                        BorderSide(color: theme.border),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 14,
+                                  ),
+                                  isDense: false,
+                                ),
                               ),
-                            ],
+                            ),
                           ),
                         ],
                       ),
@@ -739,20 +759,16 @@ class _OsExpensesPageState extends State<OsExpensesPage> {
                       onReceipt: _viewReceipt,
                     )
                   else
-                    _panel(
-                      theme,
-                      child: _ExpensesTable(
-                        scrollController: _tableHScroll,
-                        expenses: list,
-                        categoryLabel: _categoryLabel,
-                        paidByLabel: _paidByLabel,
-                        money: _money,
-                        currency: currency,
-                        onEdit: (e) =>
-                            showOsExpenseFormDialog(context, existing: e),
-                        onDelete: (e) => _confirmDelete(finance, e),
-                        onReceipt: _viewReceipt,
-                      ),
+                    _ExpensesTable(
+                      expenses: list,
+                      categoryLabel: _categoryLabel,
+                      paidByLabel: _paidByLabel,
+                      money: _money,
+                      currency: currency,
+                      onEdit: (e) =>
+                          showOsExpenseFormDialog(context, existing: e),
+                      onDelete: (e) => _confirmDelete(finance, e),
+                      onReceipt: _viewReceipt,
                     ),
                   ],
                 ),
@@ -994,7 +1010,6 @@ class _KpiCard extends StatelessWidget {
 
 class _ExpensesTable extends StatelessWidget {
   const _ExpensesTable({
-    required this.scrollController,
     required this.expenses,
     required this.categoryLabel,
     required this.paidByLabel,
@@ -1005,7 +1020,6 @@ class _ExpensesTable extends StatelessWidget {
     required this.onReceipt,
   });
 
-  final ScrollController scrollController;
   final List<OsDailyExpenseModel> expenses;
   final String Function(OsDailyExpenseModel) categoryLabel;
   final String Function(String) paidByLabel;
@@ -1020,68 +1034,23 @@ class _ExpensesTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final tableWidth = constraints.maxWidth < _tableMinWidth
-            ? _tableMinWidth
-            : constraints.maxWidth;
-        return Scrollbar(
-          controller: scrollController,
-          thumbVisibility: true,
-          trackVisibility: true,
-          notificationPredicate: (n) => n.depth == 0,
-          child: SingleChildScrollView(
-            controller: scrollController,
-            scrollDirection: Axis.horizontal,
-            primary: false,
-            child: SizedBox(
-              width: tableWidth,
-              child: DataTable(
-                headingRowColor: WidgetStatePropertyAll(
-                  theme.inputFill.withValues(alpha: 0.6),
-                ),
-                columnSpacing: 20,
-                horizontalMargin: 16,
-                dataRowMinHeight: 72,
-                dataRowMaxHeight: 88,
-                columns: [
-                  DataColumn(
-                    headingRowAlignment: MainAxisAlignment.center,
-                    label: Text(AppLocaleKeys.osExpensesColReceipt.tr),
-                  ),
-                  DataColumn(
-                    headingRowAlignment: MainAxisAlignment.center,
-                    label: Text(AppLocaleKeys.osExpensesColStatement.tr),
-                  ),
-                  DataColumn(
-                    headingRowAlignment: MainAxisAlignment.center,
-                    label: Text(AppLocaleKeys.osExpensesCategory.tr),
-                  ),
-                  DataColumn(
-                    headingRowAlignment: MainAxisAlignment.center,
-                    label: Text(AppLocaleKeys.osExpensesColVendor.tr),
-                  ),
-                  DataColumn(
-                    headingRowAlignment: MainAxisAlignment.center,
-                    label: Text(AppLocaleKeys.osExpensesAmount.tr),
-                  ),
-                  DataColumn(
-                    headingRowAlignment: MainAxisAlignment.center,
-                    label: Text(AppLocaleKeys.osExpensesColDatetime.tr),
-                  ),
-                  DataColumn(
-                    headingRowAlignment: MainAxisAlignment.center,
-                    label: Text(AppLocaleKeys.osExpensesColResponsible.tr),
-                  ),
-                  DataColumn(
-                    headingRowAlignment: MainAxisAlignment.center,
-                    label: Text(AppLocaleKeys.osExpensesPaymentMethod.tr),
-                  ),
-                  DataColumn(
-                    headingRowAlignment: MainAxisAlignment.center,
-                    label: Text(AppLocaleKeys.osCommonActions.tr),
-                  ),
-                ],
+    return AppDataTable(
+      minWidth: _tableMinWidth,
+      columnSpacing: 20,
+      horizontalMargin: 16,
+      dataRowMinHeight: 72,
+      dataRowMaxHeight: 88,
+      columns: [
+        appDataColumn(context, AppLocaleKeys.osExpensesColReceipt.tr),
+        appDataColumn(context, AppLocaleKeys.osExpensesColStatement.tr),
+        appDataColumn(context, AppLocaleKeys.osExpensesCategory.tr),
+        appDataColumn(context, AppLocaleKeys.osExpensesColVendor.tr),
+        appDataColumn(context, AppLocaleKeys.osExpensesAmount.tr),
+        appDataColumn(context, AppLocaleKeys.osExpensesColDatetime.tr),
+        appDataColumn(context, AppLocaleKeys.osExpensesColResponsible.tr),
+        appDataColumn(context, AppLocaleKeys.osExpensesPaymentMethod.tr),
+        appDataColumn(context, AppLocaleKeys.osCommonActions.tr),
+      ],
                 rows: [
                   for (final e in expenses)
                     DataRow(
@@ -1144,7 +1113,6 @@ class _ExpensesTable extends StatelessWidget {
                                         '#${e.receiptNumber}',
                                         style: TextStyle(
                                           fontSize: 11,
-                                          fontFamily: 'monospace',
                                           color: theme.secondaryText,
                                         ),
                                       ),
@@ -1318,11 +1286,6 @@ class _ExpensesTable extends StatelessWidget {
                       ],
                     ),
                 ],
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 }
@@ -1491,7 +1454,6 @@ class _ExpensesGrid extends StatelessWidget {
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 10,
-                                    fontFamily: 'monospace',
                                   ),
                                 ),
                               ),

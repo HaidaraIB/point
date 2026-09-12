@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 
@@ -135,13 +136,17 @@ class _StatisticsCardState extends State<StatisticsCard> {
                 axisLine: const AxisLine(width: 0),
               ),
               primaryXAxis: CategoryAxis(
-                labelStyle: TextStyle(color: context.appTheme.primaryText),
+                labelStyle: GoogleFonts.almarai(
+                  color: context.appTheme.primaryText,
+                ),
                 axisLine: AxisLine(color: context.appTheme.border),
               ),
               legend: Legend(
                 isVisible: true,
                 position: LegendPosition.bottom,
-                textStyle: TextStyle(color: context.appTheme.primaryText),
+                textStyle: GoogleFonts.almarai(
+                  color: context.appTheme.primaryText,
+                ),
               ),
               tooltipBehavior: TooltipBehavior(enable: true),
               series: [

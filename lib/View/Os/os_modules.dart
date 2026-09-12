@@ -53,6 +53,7 @@ const osModules = <OsModule>[
   OsModule(
     titleKey: AppLocaleKeys.osModulePayroll,
     icon: Icons.badge_outlined,
+    route: '/os/payroll',
   ),
   OsModule(
     titleKey: AppLocaleKeys.osModuleContracts,

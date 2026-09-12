@@ -852,7 +852,7 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                                         model: emp,
                                       );
                                     } else if (value == 1) {
-                                      FunHelper.showConfirmDailog(
+                                      FunHelper.showDeleteConfirmDialog(
                                         context,
                                         onTap: () async {
                                           await controller.deleteContent(

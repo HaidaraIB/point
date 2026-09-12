@@ -219,6 +219,7 @@ class FirestoreOsFinanceApi {
           bankAccountId: accountId,
           status: OsVoucherStatus.completed,
           invoiceId: invoiceId,
+          source: OsVoucherSource.invoice,
           createdAt: now,
         );
         tx.set(voucherRef, voucher.toJson());
@@ -375,6 +376,9 @@ class FirestoreOsFinanceApi {
           id: id,
           displayNumber: displayNumber,
           status: OsVoucherStatus.completed,
+          source: (voucher.source?.trim().isNotEmpty ?? false)
+              ? voucher.source!.trim()
+              : OsVoucherSource.manual,
         );
         tx.set(voucherRef, toSave.toJson());
         tx.set(
@@ -388,6 +392,64 @@ class FirestoreOsFinanceApi {
       rethrow;
     } catch (e, st) {
       appLog('createVoucher failed: $e\n$st');
+      return false;
+    }
+  }
+
+  /// Deletes a manually issued voucher and reverses its bank-account effect.
+  static Future<bool> deleteVoucher(String id) async {
+    final voucherId = id.trim();
+    if (voucherId.isEmpty) {
+      throw OsFinanceException('os.vouchers.error.missing_id');
+    }
+
+    final firestore = FirebaseFirestore.instance;
+    final voucherRef =
+        firestore.collection(vouchersCollection).doc(voucherId);
+
+    try {
+      await firestore.runTransaction((tx) async {
+        final snap = await tx.get(voucherRef);
+        if (!snap.exists) {
+          throw OsFinanceException('os.vouchers.error.not_found');
+        }
+        final voucher = OsVoucherModel.fromJson(snap.data()!, snap.id);
+        if (!voucher.isManuallyDeletable) {
+          throw OsFinanceException('os.vouchers.error.not_manual');
+        }
+
+        final accountId = voucher.bankAccountId.trim();
+        if (accountId.isEmpty) {
+          throw OsFinanceException('os.vouchers.error.account_required');
+        }
+        final accountRef =
+            firestore.collection(bankAccountsCollection).doc(accountId);
+        final accountSnap = await tx.get(accountRef);
+        if (!accountSnap.exists) {
+          throw OsFinanceException('os.invoices.error.account_missing');
+        }
+        final account = OsBankAccountModel.fromJson(
+          accountSnap.data()!,
+          accountSnap.id,
+        );
+
+        // Reverse the createVoucher delta.
+        final reverseDelta = voucher.type == OsVoucherType.payment
+            ? voucher.amount
+            : -voucher.amount;
+
+        tx.set(
+          accountRef,
+          account.copyWith(balance: account.balance + reverseDelta).toJson(),
+          SetOptions(merge: true),
+        );
+        tx.delete(voucherRef);
+      });
+      return true;
+    } on OsFinanceException {
+      rethrow;
+    } catch (e, st) {
+      appLog('deleteVoucher failed: $e\n$st');
       return false;
     }
   }
@@ -475,6 +537,7 @@ class FirestoreOsFinanceApi {
             description: paymentDescription,
             bankAccountId: sourceId,
             status: OsVoucherStatus.completed,
+            source: OsVoucherSource.transfer,
             createdAt: now,
           ).toJson(),
         );
@@ -490,6 +553,7 @@ class FirestoreOsFinanceApi {
             description: receiptDescription,
             bankAccountId: destId,
             status: OsVoucherStatus.completed,
+            source: OsVoucherSource.transfer,
             createdAt: now,
           ).toJson(),
         );
@@ -506,9 +570,11 @@ class FirestoreOsFinanceApi {
   // --- Daily expenses ---
 
   /// Creates an expense; if [bankAccountId] is set, also posts a PAYMENT voucher.
-  static Future<bool> createExpense({
+  /// Returns the saved expense (with id / voucherId) or null on failure.
+  static Future<OsDailyExpenseModel?> createExpense({
     required OsDailyExpenseModel expense,
     required String voucherDescription,
+    String voucherSource = OsVoucherSource.expense,
   }) async {
     try {
       final id = (expense.id == null || expense.id!.trim().isEmpty)
@@ -531,10 +597,11 @@ class FirestoreOsFinanceApi {
             payeeOrPayer: payee,
             description: voucherDescription,
             bankAccountId: accountId,
+            source: voucherSource,
             createdAt: DateTime.now(),
           ),
         );
-        if (!ok) return false;
+        if (!ok) return null;
       }
 
       final toSave = expense.copyWith(id: id, voucherId: voucherId);
@@ -542,12 +609,12 @@ class FirestoreOsFinanceApi {
           .collection(expensesCollection)
           .doc(id)
           .set(toSave.toJson(), SetOptions(merge: true));
-      return true;
+      return toSave;
     } on OsFinanceException {
       rethrow;
     } catch (e, st) {
       appLog('createExpense failed: $e\n$st');
-      return false;
+      return null;
     }
   }
 

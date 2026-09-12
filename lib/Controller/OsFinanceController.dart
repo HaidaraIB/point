@@ -5,8 +5,10 @@ import 'package:point/Models/Os/OsDailyExpenseModel.dart';
 import 'package:point/Models/Os/OsInvoiceModel.dart';
 import 'package:point/Models/Os/OsVoucherModel.dart';
 import 'package:point/Models/Os/os_finance_enums.dart';
+import 'package:point/Services/NotificationService.dart';
 import 'package:point/Services/firestore/firestore_os_finance_api.dart';
 import 'package:point/Utils/app_log.dart';
+import 'package:point/View/Os/os_finance_format.dart';
 
 class OsFinanceController extends GetxController {
   final invoices = <OsInvoiceModel>[].obs;
@@ -75,13 +77,32 @@ class OsFinanceController extends GetxController {
   }) async {
     isLoading.value = true;
     try {
-      return await FirestoreOsFinanceApi.markInvoicePaid(
+      final ok = await FirestoreOsFinanceApi.markInvoicePaid(
         invoice: invoice,
         bankAccountId: bankAccountId,
         voucherDescription: AppLocaleKeys.osInvoicesCollectionDesc.trParams({
           'client': invoice.clientName,
         }),
       );
+      if (ok) {
+        final clientId = invoice.clientId.trim();
+        if (clientId.isNotEmpty) {
+          try {
+            await NotificationService.notifyClientInvoicePaid(
+              clientId: clientId,
+              invoiceRef: OsFinanceFormat.invoiceRef(invoice),
+              amountLabel: OsFinanceFormat.money(invoice.total),
+            );
+          } catch (e, s) {
+            appLog(
+              'markInvoicePaid client notify failed: $e',
+              error: e,
+              stackTrace: s,
+            );
+          }
+        }
+      }
+      return ok;
     } on OsFinanceException catch (e) {
       appLog('markInvoicePaid rejected: ${e.messageKey}');
       rethrow;
@@ -138,6 +159,17 @@ class OsFinanceController extends GetxController {
     }
   }
 
+  Future<bool> deleteVoucher(String id) async {
+    isLoading.value = true;
+    try {
+      return await FirestoreOsFinanceApi.deleteVoucher(id);
+    } on OsFinanceException {
+      rethrow;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   Future<bool> transferBetweenAccounts({
     required String sourceAccountId,
     required String destAccountId,
@@ -169,10 +201,11 @@ class OsFinanceController extends GetxController {
         'title': expense.title,
         'vendor': vendor.isEmpty ? '' : ' ($vendor)',
       });
-      return await FirestoreOsFinanceApi.createExpense(
+      final saved = await FirestoreOsFinanceApi.createExpense(
         expense: expense,
         voucherDescription: desc,
       );
+      return saved != null;
     } on OsFinanceException {
       rethrow;
     } finally {

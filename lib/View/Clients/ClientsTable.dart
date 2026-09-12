@@ -87,7 +87,7 @@ class _ClientsTableState extends State<ClientsTable> {
                 onAdd: () => showAddEmployeeDialog(context),
                 onEdit: (client) => showAddEmployeeDialog(context, model: client),
                 onDelete: (client) {
-                  FunHelper.showConfirmDailog(
+                  FunHelper.showDeleteConfirmDialog(
                     context,
                     onTap: () async => await controller.deleteClient(client.id!),
                   );
@@ -402,7 +402,7 @@ class _ClientsTableState extends State<ClientsTable> {
                                                     );
                                                   } else if (canDeleteClients &&
                                                       value == 1) {
-                                                    FunHelper.showConfirmDailog(
+                                                    FunHelper.showDeleteConfirmDialog(
                                                       context,
                                                       onTap: () async {
                                                         await controller
@@ -531,7 +531,7 @@ Future<void> showAddEmployeeDialog(BuildContext context, {ClientModel? model}) a
                           Container(
                             margin: EdgeInsets.all(15),
                             decoration: BoxDecoration(
-                              color: appTheme.accentText,
+                              color: appTheme.navSurface,
                               borderRadius: BorderRadius.vertical(
                                 top: Radius.circular(12),
                               ),

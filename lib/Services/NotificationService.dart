@@ -300,6 +300,145 @@ class NotificationService {
     );
   }
 
+  static Future<void> notifyEmployeeAttendanceReviewed({
+    required String employeeId,
+    required String action,
+    required bool approved,
+    Map<String, String>? fcmDataExtras,
+  }) async {
+    final actionLabel = action == AttendanceRecordModel.actionPresent
+        ? AppLocaleKeys.attendancePresent.tr
+        : AppLocaleKeys.attendanceLeft.tr;
+    final outcomeLabel = approved
+        ? AppLocaleKeys.attendanceApproved.tr
+        : AppLocaleKeys.attendanceAbsent.tr;
+    final body = approved
+        ? AppLocaleKeys.notifyEmpAttendanceReviewedBodyApproved.trParams({
+            'action': actionLabel,
+          })
+        : AppLocaleKeys.notifyEmpAttendanceReviewedBodyAbsent.trParams({
+            'action': actionLabel,
+          });
+    await FirestoreServices.sendFcm(
+      userId: employeeId,
+      title: AppLocaleKeys.notifyEmpAttendanceReviewedTitle.tr,
+      body: body,
+      notificationType: 'employee_attendance_reviewed',
+      actionText: AppLocaleKeys.notifyEmpAttendanceReviewedAction.tr,
+      referenceId: 'attendance',
+      emailDetails: _emailLabels({
+        'notify.email.outcome': outcomeLabel,
+      }),
+      fcmDataExtras: fcmDataExtras,
+    );
+  }
+
+  static Future<void> notifyEmployeePayslipReady({
+    required String employeeId,
+    required String period,
+    required String netPayLabel,
+    Map<String, String>? fcmDataExtras,
+  }) async {
+    await FirestoreServices.sendFcm(
+      userId: employeeId,
+      title: AppLocaleKeys.notifyEmpPayslipReadyTitle.tr,
+      body: AppLocaleKeys.notifyEmpPayslipReadyBody.trParams({
+        'period': period,
+        'amount': netPayLabel,
+      }),
+      notificationType: 'employee_payslip_ready',
+      actionText: AppLocaleKeys.notifyEmpPayslipReadyAction.tr,
+      referenceId: period,
+      emailDetails: _emailLabels({
+        'notify.email.period': period,
+        'notify.email.amount': netPayLabel,
+      }),
+      fcmDataExtras: fcmDataExtras,
+    );
+  }
+
+  static Future<void> notifyEmployeePayslipPaid({
+    required String employeeId,
+    required String period,
+    required String netPayLabel,
+    String? advanceDeductionLabel,
+    Map<String, String>? fcmDataExtras,
+  }) async {
+    final advance = advanceDeductionLabel?.trim() ?? '';
+    final body = advance.isEmpty
+        ? AppLocaleKeys.notifyEmpPayslipPaidBody.trParams({
+            'period': period,
+            'amount': netPayLabel,
+          })
+        : AppLocaleKeys.notifyEmpPayslipPaidBodyWithAdvance.trParams({
+            'period': period,
+            'amount': netPayLabel,
+            'advance': advance,
+          });
+    final emailDetails = <String, String>{
+      'notify.email.period': period,
+      'notify.email.amount': netPayLabel,
+    };
+    if (advance.isNotEmpty) {
+      emailDetails['notify.email.advance'] = advance;
+    }
+    await FirestoreServices.sendFcm(
+      userId: employeeId,
+      title: AppLocaleKeys.notifyEmpPayslipPaidTitle.tr,
+      body: body,
+      notificationType: 'employee_payslip_paid',
+      actionText: AppLocaleKeys.notifyEmpPayslipPaidAction.tr,
+      referenceId: period,
+      emailDetails: _emailLabels(emailDetails),
+      fcmDataExtras: fcmDataExtras,
+    );
+  }
+
+  static Future<void> notifyEmployeeAdvanceRecorded({
+    required String employeeId,
+    required String amountLabel,
+    Map<String, String>? fcmDataExtras,
+  }) async {
+    await FirestoreServices.sendFcm(
+      userId: employeeId,
+      title: AppLocaleKeys.notifyEmpAdvanceRecordedTitle.tr,
+      body: AppLocaleKeys.notifyEmpAdvanceRecordedBody.trParams({
+        'amount': amountLabel,
+      }),
+      notificationType: 'employee_advance_recorded',
+      actionText: AppLocaleKeys.notifyEmpAdvanceRecordedAction.tr,
+      referenceId: amountLabel,
+      emailDetails: _emailLabels({
+        'notify.email.amount': amountLabel,
+      }),
+      fcmDataExtras: fcmDataExtras,
+    );
+  }
+
+  static Future<void> notifyClientInvoicePaid({
+    required String clientId,
+    required String invoiceRef,
+    required String amountLabel,
+    Map<String, String>? fcmDataExtras,
+  }) async {
+    await FirestoreServices.sendFcmForClient(
+      userId: clientId,
+      title: AppLocaleKeys.notifyClientInvoicePaidTitle.tr,
+      body: AppLocaleKeys.notifyClientInvoicePaidBody.trParams({
+        'ref': invoiceRef,
+        'amount': amountLabel,
+      }),
+      notificationType: 'client_invoice_paid',
+      actionText: AppLocaleKeys.notifyClientInvoicePaidAction.tr,
+      referenceId: invoiceRef,
+      emailDetails: _emailLabels({
+        'notify.email.invoice': invoiceRef,
+        'notify.email.amount': amountLabel,
+      }),
+      fcmDataExtras: fcmDataExtras,
+    );
+  }
+
   // ─── Manager / admin ─────────────────────────────────────────────────────
 
   static Future<void> notifyManagersTaskProgressUpdated({

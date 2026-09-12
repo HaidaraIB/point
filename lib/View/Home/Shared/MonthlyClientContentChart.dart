@@ -119,7 +119,7 @@ class MonthlyClientContentChart extends StatelessWidget {
                               maximumRadius: 10,
                               dataLabelSettings: DataLabelSettings(
                                 isVisible: true,
-                                textStyle: TextStyle(
+                                textStyle: GoogleFonts.almarai(
                                   color: onSurface,
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,

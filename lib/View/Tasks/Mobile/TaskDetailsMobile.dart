@@ -1792,17 +1792,16 @@ class TaskDetailsMobilePage extends StatelessWidget {
           const SizedBox(height: 10),
           OutlinedButton.icon(
             onPressed: () {
-              FunHelper.showConfirmDailog(
+              FunHelper.showDeleteConfirmDialog(
                 context,
                 title: 'tasks.confirm_delete_title'.tr,
                 message: 'tasks.confirm_delete_message'.tr,
-                confirmText: 'delete'.tr,
-                confirmColor: Colors.red,
                 onTap: () async {
                   await controller.deleteTask(live.id!);
-                  Get.back();
                 },
-              );
+              ).then((ok) {
+                if (ok) Get.back();
+              });
             },
             icon: const Icon(Icons.delete_outline, size: 18),
             label: Text('delete'.tr),

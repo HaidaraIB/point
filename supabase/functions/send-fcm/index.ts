@@ -438,6 +438,13 @@ function soundBaseForNotificationType(notificationType: string | undefined): str
     employee_progress_reminder_75_a: "notification_task_deadline_soon",
     employee_progress_reminder_75_b: "notification_task_deadline_soon",
     employee_progress_reminder_100: "notification_task_approved",
+    // OS / HR
+    employee_payslip_ready: "notification_task_preview",
+    employee_payslip_paid: "notification_task_approved",
+    employee_advance_recorded: "notification_task_comment",
+    employee_attendance_reviewed: "notification_content_status",
+    manager_attendance_submitted: "notification_content_status",
+    client_invoice_paid: "notification_task_approved",
   };
   return map[t] ?? null;
 }

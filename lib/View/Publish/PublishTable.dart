@@ -319,12 +319,10 @@ class _PublishTableState extends State<PublishTable> {
       return;
     }
     if (action == 'delete') {
-      await FunHelper.showConfirmDailog(
+      await FunHelper.showDeleteConfirmDialog(
         Get.context!,
         title: 'publish.delete'.tr,
         message: 'content.bulk_delete_confirm_title'.tr,
-        confirmText: 'delete'.tr,
-        confirmColor: Colors.red,
         onTap: () async {
           await controller.deleteMetaPost(p.id!);
         },

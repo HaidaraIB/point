@@ -112,13 +112,12 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
   Future<void> _confirmDelete(HomeController hc) async {
     final id = _task.id;
     if (id == null) return;
-    await FunHelper.showConfirmDailog(
+    await FunHelper.showDeleteConfirmDialog(
       context,
       onTap: () async {
         final ok = await hc.deleteContent(id);
         if (!mounted) return;
         if (ok) {
-          // [FunHelper.showConfirmDailog] يغلق الحوار بعد onTap؛ نُخرج المستخدم من صفحة التفاصيل في الإطار التالي.
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) Get.back();
           });

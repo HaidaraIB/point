@@ -960,7 +960,7 @@ class History extends StatelessWidget {
                                                         model: emp,
                                                       );
                                                     } else if (value == 1) {
-                                                      FunHelper.showConfirmDailog(
+                                                      FunHelper.showDeleteConfirmDialog(
                                                         context,
                                                         onTap: () async {
                                                           await controller

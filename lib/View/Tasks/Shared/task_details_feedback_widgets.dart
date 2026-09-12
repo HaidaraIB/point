@@ -7,6 +7,7 @@ import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/attachment_download.dart';
 import 'package:point/Utils/media_url_opener.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Tasks/Shared/task_attachment_gallery.dart';
 
 /// Shared management/rejection banners and deadline-extension panel for
@@ -15,7 +16,6 @@ class TaskDetailsFeedbackWidgets {
   TaskDetailsFeedbackWidgets._();
 
   static Widget feedbackBanners(BuildContext context, TaskModel t) {
-    final colorScheme = Theme.of(context).colorScheme;
     final children = <Widget>[];
 
     if (t.managementEditRequestMessage.trim().isNotEmpty ||
@@ -23,7 +23,6 @@ class TaskDetailsFeedbackWidgets {
       children.add(
         _bannerBox(
           context,
-          colorScheme,
           title: 'tasks.management_edit_request_banner'.tr,
           body: t.managementEditRequestMessage.trim(),
           fileUrls: t.managementEditRequestFileUrls,
@@ -38,7 +37,6 @@ class TaskDetailsFeedbackWidgets {
       children.add(
         _bannerBox(
           context,
-          colorScheme,
           title: 'tasks.rejection_feedback_banner'.tr,
           body: t.rejectionMessage.trim(),
           fileUrls: t.rejectionFileUrls,
@@ -64,14 +62,13 @@ class TaskDetailsFeedbackWidgets {
 
   /// Compact alerts on employee dashboard cards (web + mobile layouts).
   static Widget compactEmployeeAlerts(BuildContext context, TaskModel t) {
-    final colorScheme = Theme.of(context).colorScheme;
     final children = <Widget>[];
 
     if (t.managementEditRequestMessage.trim().isNotEmpty ||
         t.managementEditRequestFileUrls.isNotEmpty) {
       children.add(
         _compactBanner(
-          colorScheme,
+          context,
           title: 'tasks.management_edit_request_banner'.tr,
           body: t.managementEditRequestMessage.trim(),
           error: false,
@@ -84,7 +81,7 @@ class TaskDetailsFeedbackWidgets {
             t.rejectionFileUrls.isNotEmpty)) {
       children.add(
         _compactBanner(
-          colorScheme,
+          context,
           title: 'tasks.rejection_feedback_banner'.tr,
           body: t.rejectionMessage.trim(),
           error: true,
@@ -95,7 +92,7 @@ class TaskDetailsFeedbackWidgets {
     if (ext == TaskModel.kDeadlineExtensionPending) {
       children.add(
         _compactBanner(
-          colorScheme,
+          context,
           title: 'tasks.deadline_extension_pending_banner'.tr,
           body: '',
           error: false,
@@ -104,7 +101,7 @@ class TaskDetailsFeedbackWidgets {
     } else if (ext == TaskModel.kDeadlineExtensionDenied) {
       children.add(
         _compactBanner(
-          colorScheme,
+          context,
           title: 'tasks.deadline_extension_denied_banner'.tr,
           body: t.deadlineExtensionDeniedNote.trim(),
           error: true,
@@ -128,19 +125,24 @@ class TaskDetailsFeedbackWidgets {
   }
 
   static Widget _compactBanner(
-    ColorScheme colorScheme, {
+    BuildContext context, {
     required String title,
     required String body,
     required bool error,
   }) {
+    final appTheme = context.appTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+    final bg = error ? colorScheme.errorContainer : appTheme.panelTint;
+    final fg = error ? colorScheme.onErrorContainer : appTheme.accentText;
+    final border = error
+        ? colorScheme.error.withValues(alpha: 0.4)
+        : appTheme.accentBorder;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: error ? Colors.red.shade50 : colorScheme.primaryContainer.withValues(alpha: 0.35),
+        color: bg,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: error ? Colors.red.shade200 : colorScheme.outlineVariant,
-        ),
+        border: Border.all(color: border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -150,7 +152,7 @@ class TaskDetailsFeedbackWidgets {
             style: TextStyle(
               fontWeight: FontWeight.w800,
               fontSize: 11,
-              color: error ? Colors.red.shade900 : colorScheme.primary,
+              color: fg,
             ),
           ),
           if (body.isNotEmpty)
@@ -159,7 +161,9 @@ class TaskDetailsFeedbackWidgets {
               style: TextStyle(
                 fontSize: 11,
                 height: 1.25,
-                color: error ? Colors.red.shade900 : colorScheme.onSurface,
+                color: error
+                    ? colorScheme.onErrorContainer
+                    : appTheme.primaryText,
               ),
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
@@ -314,16 +318,20 @@ class TaskDetailsFeedbackWidgets {
   }
 
   static Widget _bannerBox(
-    BuildContext context,
-    ColorScheme colorScheme, {
+    BuildContext context, {
     required String title,
     required String body,
     List<String> fileUrls = const [],
     bool toneError = false,
   }) {
-    final border = toneError ? Colors.red.shade200 : colorScheme.outlineVariant;
-    final bg =
-        toneError ? Colors.red.shade50 : colorScheme.surfaceContainerHighest;
+    final appTheme = context.appTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+    final border = toneError
+        ? colorScheme.error.withValues(alpha: 0.4)
+        : appTheme.accentBorder;
+    final bg = toneError ? colorScheme.errorContainer : appTheme.panelTint;
+    final titleColor =
+        toneError ? colorScheme.onErrorContainer : appTheme.accentText;
     final imageUrls =
         fileUrls.where((u) => isImageMediaUrl(u.toString())).toList();
     return Container(
@@ -341,7 +349,7 @@ class TaskDetailsFeedbackWidgets {
             style: TextStyle(
               fontWeight: FontWeight.w800,
               fontSize: 13,
-              color: toneError ? Colors.red.shade900 : colorScheme.primary,
+              color: titleColor,
             ),
           ),
           if (body.isNotEmpty) ...[

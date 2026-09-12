@@ -32,6 +32,18 @@ class EmployeeModel {
   /// Admin-granted access to the Library (browse, direct upload, pick from library).
   final bool libraryAccess;
 
+  /// Monthly basic salary in IQD (Point OS payroll).
+  final double? salary;
+
+  /// Job title / position shown on payslips (distinct from [role]).
+  final String? jobTitle;
+
+  /// Org branch id (e.g. BR-01) used by payroll / expenses.
+  final String? branchId;
+
+  final String? bankName;
+  final String? bankAccountNumber;
+
   EmployeeModel({
     this.id,
     required this.name,
@@ -54,6 +66,11 @@ class EmployeeModel {
     this.attendanceRemote = false,
     this.attendanceFlexibleHours = false,
     this.libraryAccess = false,
+    this.salary,
+    this.jobTitle,
+    this.branchId,
+    this.bankName,
+    this.bankAccountNumber,
   });
 
   /// First department slug, if any (e.g. notifications / legacy single-field UX).
@@ -109,8 +126,19 @@ class EmployeeModel {
     bool? attendanceRemote,
     bool? attendanceFlexibleHours,
     bool? libraryAccess,
+    double? salary,
+    String? jobTitle,
+    String? branchId,
+    String? bankName,
+    String? bankAccountNumber,
     bool clearAttendanceLocation = false,
     bool clearWorkHours = false,
+    bool clearHireDate = false,
+    bool clearSalary = false,
+    bool clearJobTitle = false,
+    bool clearBranchId = false,
+    bool clearBankName = false,
+    bool clearBankAccountNumber = false,
   }) {
     return EmployeeModel(
       id: id ?? this.id,
@@ -121,7 +149,7 @@ class EmployeeModel {
       departments: departments ?? this.departments,
       fcmToken: fcmToken ?? this.fcmToken,
       onesignal: onesignal ?? this.onesignal,
-      hireDate: hireDate ?? this.hireDate,
+      hireDate: clearHireDate ? null : (hireDate ?? this.hireDate),
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
       authUid: authUid ?? this.authUid,
@@ -137,6 +165,13 @@ class EmployeeModel {
       attendanceFlexibleHours:
           attendanceFlexibleHours ?? this.attendanceFlexibleHours,
       libraryAccess: libraryAccess ?? this.libraryAccess,
+      salary: clearSalary ? null : (salary ?? this.salary),
+      jobTitle: clearJobTitle ? null : (jobTitle ?? this.jobTitle),
+      branchId: clearBranchId ? null : (branchId ?? this.branchId),
+      bankName: clearBankName ? null : (bankName ?? this.bankName),
+      bankAccountNumber: clearBankAccountNumber
+          ? null
+          : (bankAccountNumber ?? this.bankAccountNumber),
     );
   }
 
@@ -209,6 +244,11 @@ class EmployeeModel {
       attendanceRemote: json['attendanceRemote'] == true,
       attendanceFlexibleHours: json['attendanceFlexibleHours'] == true,
       libraryAccess: json['libraryAccess'] == true,
+      salary: (json['salary'] as num?)?.toDouble(),
+      jobTitle: json['jobTitle']?.toString(),
+      branchId: json['branchId']?.toString(),
+      bankName: json['bankName']?.toString(),
+      bankAccountNumber: json['bankAccountNumber']?.toString(),
     );
   }
 
@@ -253,6 +293,15 @@ class EmployeeModel {
       "attendanceRemote": attendanceRemote,
       "attendanceFlexibleHours": attendanceFlexibleHours,
       "libraryAccess": libraryAccess,
+      if (salary != null) "salary": salary,
+      if (jobTitle != null && jobTitle!.trim().isNotEmpty)
+        "jobTitle": jobTitle!.trim(),
+      if (branchId != null && branchId!.trim().isNotEmpty)
+        "branchId": branchId!.trim(),
+      if (bankName != null && bankName!.trim().isNotEmpty)
+        "bankName": bankName!.trim(),
+      if (bankAccountNumber != null && bankAccountNumber!.trim().isNotEmpty)
+        "bankAccountNumber": bankAccountNumber!.trim(),
     };
   }
 }

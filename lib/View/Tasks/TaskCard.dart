@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:point/Utils/AppColors.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/TaskModel.dart';
@@ -398,13 +397,11 @@ class TaskCard extends StatelessWidget {
                                       default:
                                     }
                                   } else if (value == 2) {
-                                    FunHelper.showConfirmDailog(
+                                    FunHelper.showDeleteConfirmDialog(
                                       context,
                                       title: 'tasks.confirm_delete_title'.tr,
                                       message:
                                           'tasks.confirm_delete_message'.tr,
-                                      confirmText: 'delete'.tr,
-                                      confirmColor: Colors.red,
                                       onTap: () async {
                                         await Get.find<HomeController>()
                                             .deleteTask(task.id!);
@@ -560,11 +557,10 @@ class TaskCard extends StatelessWidget {
                     final req = live.deadlineExtensionRequestedTo;
                     final theme = Theme.of(context);
                     final cs = theme.colorScheme;
-                    const stripPurple = AppColors.primary;
-                    final stripBg = context.appTheme.panelTint;
-                    final stripBorder = AppColors.primary.withValues(
-                      alpha: 0.35,
-                    );
+                    final appTheme = context.appTheme;
+                    final stripFg = appTheme.accentText;
+                    final stripBg = appTheme.panelTint;
+                    final stripBorder = appTheme.accentBorder;
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       mainAxisSize: MainAxisSize.min,
@@ -605,7 +601,7 @@ class TaskCard extends StatelessWidget {
                                       padding: const EdgeInsets.all(8),
                                       child: Icon(
                                         Icons.schedule_send_rounded,
-                                        color: cs.primary,
+                                        color: stripFg,
                                         size: 18,
                                       ),
                                     ),
@@ -628,7 +624,7 @@ class TaskCard extends StatelessWidget {
                                               ?.copyWith(
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.w600,
-                                                color: stripPurple,
+                                                color: stripFg,
                                                 height: 1.25,
                                               ),
                                         ),
@@ -815,6 +811,7 @@ class TaskCard extends StatelessWidget {
                                 FunHelper.taskTimeUntilDeadline(task.toDate);
                             final expired =
                                 deadlineText == 'tasks.deadline_expired'.tr;
+                            final appTheme = context.appTheme;
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisSize: MainAxisSize.min,
@@ -828,7 +825,7 @@ class TaskCard extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w700,
-                                    color: context.appTheme.mutedText,
+                                    color: appTheme.secondaryText,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
@@ -842,8 +839,8 @@ class TaskCard extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 13,
                                     color: expired
-                                        ? Colors.red.shade700
-                                        : AppColors.primary,
+                                        ? Theme.of(context).colorScheme.error
+                                        : appTheme.accentText,
                                     fontWeight: FontWeight.w700,
                                   ),
                                 ),

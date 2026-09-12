@@ -131,7 +131,6 @@ class OsInvoicesMobileScreen extends StatelessWidget {
                                   fontSize: 13,
                                   fontWeight: FontWeight.w800,
                                   color: theme.accentText,
-                                  fontFamily: 'monospace',
                                 ),
                               ),
                               const SizedBox(height: 2),

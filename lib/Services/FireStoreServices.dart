@@ -146,13 +146,29 @@ class FirestoreServices extends FirestoreServicesBase
     required bool approved,
     required String reviewerEmployeeId,
     required String reviewerName,
-  }) =>
-      FirestoreAttendanceApi.reviewAttendanceRecord(
-        recordId: recordId,
+    required String employeeId,
+    required String action,
+  }) async {
+    await FirestoreAttendanceApi.reviewAttendanceRecord(
+      recordId: recordId,
+      approved: approved,
+      reviewerEmployeeId: reviewerEmployeeId,
+      reviewerName: reviewerName,
+    );
+    try {
+      await NotificationService.notifyEmployeeAttendanceReviewed(
+        employeeId: employeeId,
+        action: action,
         approved: approved,
-        reviewerEmployeeId: reviewerEmployeeId,
-        reviewerName: reviewerName,
       );
+    } catch (e, s) {
+      appLog(
+        'reviewAttendanceRecord employee notify failed: $e',
+        error: e,
+        stackTrace: s,
+      );
+    }
+  }
 
   static Stream<List<AttendanceRecordModel>> streamPendingAttendance() =>
       FirestoreAttendanceApi.streamPendingRecords();

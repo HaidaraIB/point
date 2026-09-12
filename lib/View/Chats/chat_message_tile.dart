@@ -604,37 +604,29 @@ class _ChatMessageTileState extends State<ChatMessageTile>
   }
 
   Future<void> _confirmDelete() async {
-    final ok = await Get.dialog<bool>(
-      AlertDialog(
-        title: Text(AppLocaleKeys.chatConfirmDeleteAdminTitle.tr),
-        content: Text(AppLocaleKeys.chatConfirmDeleteAdminBody.tr),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(result: false),
-            child: Text(AppLocaleKeys.commonCancel.tr),
-          ),
-          TextButton(
-            onPressed: () => Get.back(result: true),
-            child: Text(AppLocaleKeys.chatActionDelete.tr),
-          ),
-        ],
-      ),
+    await FunHelper.showDeleteConfirmDialog(
+      context,
+      title: AppLocaleKeys.chatConfirmDeleteAdminTitle.tr,
+      message: AppLocaleKeys.chatConfirmDeleteAdminBody.tr,
+      confirmText: AppLocaleKeys.chatActionDelete.tr,
+      onTap: () async {
+        try {
+          await ChatMessageActions.softDeleteMessage(
+            fs: FirebaseFirestore.instance,
+            chatId: widget.chatId,
+            messageId: widget.messageId,
+            deletedBy: widget.currentUserId,
+          );
+        } catch (e) {
+          _showChatFeedback(
+            AppLocaleKeys.errorTitle.tr,
+            AppLocaleKeys.errorGeneric.tr,
+            isError: true,
+          );
+          rethrow;
+        }
+      },
     );
-    if (ok != true) return;
-    try {
-      await ChatMessageActions.softDeleteMessage(
-        fs: FirebaseFirestore.instance,
-        chatId: widget.chatId,
-        messageId: widget.messageId,
-        deletedBy: widget.currentUserId,
-      );
-    } catch (e) {
-      _showChatFeedback(
-        AppLocaleKeys.errorTitle.tr,
-        AppLocaleKeys.errorGeneric.tr,
-        isError: true,
-      );
-    }
   }
 
   bool _shouldSkipFeedback(String? dedupeKey, Duration dedupeWindow) {

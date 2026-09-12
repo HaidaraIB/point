@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/LibraryFileModel.dart';
+import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/LibraryPermissions.dart';
 import 'package:point/Utils/attachment_download.dart';
 import 'package:point/Utils/media_url_opener.dart';
@@ -28,27 +29,17 @@ class LibraryDirectFileCard extends StatelessWidget {
   Future<void> _confirmDelete(BuildContext context) async {
     final id = file.id;
     if (id == null || id.isEmpty) return;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('library.delete_file'.tr),
-        content: Text('library.delete_file_confirm'.tr),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text('common.cancel'.tr),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: Text('delete'.tr),
-          ),
-        ],
-      ),
+    final ok = await FunHelper.showDeleteConfirmDialog(
+      context,
+      title: 'library.delete_file'.tr,
+      message: 'library.delete_file_confirm'.tr,
+      onTap: () async {
+        final hc = Get.find<HomeController>();
+        final deleted = await hc.deleteLibraryFile(id);
+        if (!deleted) throw Exception('delete failed');
+      },
     );
-    if (ok != true || !context.mounted) return;
-    final hc = Get.find<HomeController>();
-    final deleted = await hc.deleteLibraryFile(id);
-    if (deleted) onDeleted?.call();
+    if (ok && context.mounted) onDeleted?.call();
   }
 
   Widget _compactActionIcon({

@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsVoucherModel.dart';
 import 'package:point/Models/Os/os_finance_enums.dart';
+import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/os_stamp_settings.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
@@ -18,10 +19,12 @@ class OsVoucherDetailPanel extends StatefulWidget {
     super.key,
     required this.voucher,
     required this.accountName,
+    this.onDelete,
   });
 
   final OsVoucherModel voucher;
   final String accountName;
+  final Future<void> Function(OsVoucherModel voucher)? onDelete;
 
   @override
   State<OsVoucherDetailPanel> createState() => _OsVoucherDetailPanelState();
@@ -29,6 +32,7 @@ class OsVoucherDetailPanel extends StatefulWidget {
 
 class _OsVoucherDetailPanelState extends State<OsVoucherDetailPanel> {
   var _copied = false;
+  var _deleting = false;
 
   String get _ref => OsFinanceFormat.voucherRef(widget.voucher);
 
@@ -52,6 +56,23 @@ class _OsVoucherDetailPanelState extends State<OsVoucherDetailPanel> {
     );
   }
 
+  Future<void> _confirmDelete() async {
+    if (widget.onDelete == null || _deleting) return;
+    await FunHelper.showDeleteConfirmDialog(
+      context,
+      title: AppLocaleKeys.osVouchersDelete.tr,
+      message: AppLocaleKeys.osVouchersDeleteConfirm.tr,
+      onTap: () async {
+        setState(() => _deleting = true);
+        try {
+          await widget.onDelete!(widget.voucher);
+        } finally {
+          if (mounted) setState(() => _deleting = false);
+        }
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
@@ -65,6 +86,8 @@ class _OsVoucherDetailPanelState extends State<OsVoucherDetailPanel> {
             ? const Color(0xFFF87171)
             : Colors.redAccent);
     final desc = OsFinanceFormat.displayDescription(v.description);
+    final canDelete =
+        v.isManuallyDeletable && widget.onDelete != null && !_deleting;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -133,6 +156,26 @@ class _OsVoucherDetailPanelState extends State<OsVoucherDetailPanel> {
                     icon: const Icon(Icons.print_outlined, size: 18),
                     label: Text(AppLocaleKeys.osVouchersPrint.tr),
                   ),
+                  if (v.isManuallyDeletable && widget.onDelete != null)
+                    OutlinedButton.icon(
+                      onPressed: canDelete ? _confirmDelete : null,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xFFF43F5E),
+                        side: const BorderSide(color: Color(0xFFF43F5E)),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                      ),
+                      icon: _deleting
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.delete_outline, size: 18),
+                      label: Text(AppLocaleKeys.osVouchersDelete.tr),
+                    ),
                 ],
               ),
             ],

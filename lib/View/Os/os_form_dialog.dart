@@ -115,10 +115,13 @@ Future<bool?> showOsFormDialog({
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14),
                               ),
-                              textStyle: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                              ),
+                              textStyle: Theme.of(context)
+                                  .textTheme
+                                  .labelLarge
+                                  ?.copyWith(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                             ),
                             icon: Icon(saveIcon, size: 20),
                             label: Text(
@@ -144,13 +147,15 @@ class OsTabToolbar extends StatelessWidget {
     this.title,
     this.subtitle,
     this.icon,
-    required this.actions,
+    this.leading,
+    this.actions = const [],
     this.asCard = false,
   });
 
   final String? title;
   final String? subtitle;
   final IconData? icon;
+  final Widget? leading;
   final List<Widget> actions;
   final bool asCard;
 
@@ -206,11 +211,13 @@ class OsTabToolbar extends StatelessWidget {
             ],
           );
 
+    final hasTitle = title != null || subtitle != null;
+
     final content = narrow
         ? Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              if (icon != null || title != null || subtitle != null)
+              if (icon != null || hasTitle || leading != null)
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -218,11 +225,14 @@ class OsTabToolbar extends StatelessWidget {
                       Icon(icon, color: theme.accentText, size: 22),
                       const SizedBox(width: 10),
                     ],
-                    if (title != null || subtitle != null)
-                      Expanded(child: titleColumn()),
+                    if (leading != null) ...[
+                      Flexible(child: leading!),
+                      if (hasTitle) const SizedBox(width: 12),
+                    ],
+                    if (hasTitle) Expanded(child: titleColumn()),
                   ],
                 ),
-              if (title != null || subtitle != null) const SizedBox(height: 12),
+              if (hasTitle || leading != null) const SizedBox(height: 12),
               actionsMobile,
             ],
           )
@@ -233,23 +243,24 @@ class OsTabToolbar extends StatelessWidget {
                 Icon(icon, color: theme.accentText, size: 22),
                 const SizedBox(width: 10),
               ],
-              if (title != null || subtitle != null)
-                Expanded(child: titleColumn())
-              else
-                const Spacer(),
+              if (leading != null) ...[
+                leading!,
+                if (hasTitle) const SizedBox(width: 16),
+              ],
+              if (hasTitle) Expanded(child: titleColumn()) else const Spacer(),
               actionsDesktop,
             ],
           );
 
     if (!asCard) {
       return Padding(
-        padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
         child: content,
       );
     }
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -259,6 +270,191 @@ class OsTabToolbar extends StatelessWidget {
         ),
         child: content,
       ),
+    );
+  }
+}
+
+InputDecoration osDialogFieldDecoration(
+  BuildContext context, {
+  String? hint,
+  String? suffixText,
+  Widget? prefixIcon,
+}) {
+  final theme = context.appTheme;
+  return InputDecoration(
+    filled: true,
+    fillColor: theme.inputFill,
+    hintText: hint,
+    suffixText: suffixText,
+    prefixIcon: prefixIcon,
+    hintStyle: TextStyle(
+      color: theme.mutedText,
+      fontWeight: FontWeight.w600,
+    ),
+    suffixStyle: TextStyle(
+      color: theme.mutedText,
+      fontWeight: FontWeight.w800,
+    ),
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+      borderSide: BorderSide(color: theme.border),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+      borderSide: const BorderSide(color: AppColors.primary, width: 1.4),
+    ),
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+  );
+}
+
+class OsDialogFrame extends StatelessWidget {
+  const OsDialogFrame({
+    super.key,
+    required this.title,
+    required this.body,
+    required this.onClose,
+    this.icon,
+    this.closeEnabled = true,
+    this.maxWidth = 460,
+  });
+
+  final String title;
+  final Widget body;
+  final VoidCallback onClose;
+  final IconData? icon;
+  final bool closeEnabled;
+  final double maxWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.appTheme;
+    return Dialog(
+      backgroundColor: theme.cardSurface,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(22, 14, 14, 22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  if (icon != null) ...[
+                    Icon(icon, color: theme.accentText, size: 22),
+                    const SizedBox(width: 10),
+                  ],
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                        color: theme.primaryText,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: closeEnabled ? onClose : null,
+                    icon: Icon(Icons.close, color: theme.secondaryText),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.only(left: 8, right: 8),
+                child: body,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Save + cancel row used by OS create/edit dialogs (Point OS style).
+class OsFormDialogActions extends StatelessWidget {
+  const OsFormDialogActions({
+    super.key,
+    required this.saveLabel,
+    required this.onSave,
+    required this.onCancel,
+    this.saving = false,
+    this.saveColor,
+    this.saveIcon = Icons.save_outlined,
+  });
+
+  final String saveLabel;
+  final VoidCallback onSave;
+  final VoidCallback onCancel;
+  final bool saving;
+  final Color? saveColor;
+  final IconData saveIcon;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.appTheme;
+    return Row(
+      children: [
+        Expanded(
+          flex: 3,
+          child: SizedBox(
+            height: 52,
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: saveColor ?? AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              onPressed: saving ? null : onSave,
+              icon: saving
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Icon(saveIcon, size: 18),
+              label: Text(saveLabel, textAlign: TextAlign.center),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          flex: 2,
+          child: SizedBox(
+            height: 52,
+            child: FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: theme.unselected,
+                foregroundColor: theme.secondaryText,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              onPressed: saving ? null : onCancel,
+              child: Text('cancel'.tr),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

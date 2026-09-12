@@ -5,6 +5,7 @@ import 'package:point/Controller/OsFinanceController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsInvoiceModel.dart';
 import 'package:point/Models/Os/os_finance_enums.dart';
+import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/OsPermissions.dart';
 import 'package:point/Utils/app_theme_extension.dart';
@@ -13,12 +14,15 @@ import 'package:point/View/Os/Invoices/os_invoice_form_dialog.dart';
 import 'package:point/View/Os/Invoices/os_invoice_preview_dialog.dart';
 import 'package:point/View/Os/Invoices/os_invoice_share.dart';
 import 'package:point/View/Os/os_finance_format.dart';
+import 'package:point/View/Os/os_list_filters.dart';
 import 'package:point/View/Os/os_page_header.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 import 'package:point/View/Os/os_stamp_settings_panel.dart';
 import 'package:point/Services/firestore/firestore_os_finance_api.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
+import 'package:point/View/Shared/app_data_table.dart';
 import 'package:point/View/Shared/responsive.dart';
+import 'package:point/View/Os/os_form_dialog.dart';
 
 class OsInvoicesPage extends StatelessWidget {
   const OsInvoicesPage({super.key});
@@ -104,38 +108,38 @@ class OsInvoicesPage extends StatelessWidget {
 
     // Leaving PAID → debit collection account; keep receipt voucher (point_os).
     if (inv.isPaid) {
-      final ok = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: Text(AppLocaleKeys.osInvoicesStatus.tr),
-          content: Text(AppLocaleKeys.osInvoicesUnmarkConfirm.tr),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: Text(AppLocaleKeys.osCommonCancel.tr),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text(AppLocaleKeys.osCommonSave.tr),
-            ),
-          ],
-        ),
-      );
-      if (ok != true) return;
       try {
-        final done = await finance.unmarkInvoicePaid(
-          invoice: inv,
-          newStatus: status,
+        final ok = await FunHelper.showConfirmDailog(
+          context,
+          title: AppLocaleKeys.osInvoicesStatus.tr,
+          message: AppLocaleKeys.osInvoicesUnmarkConfirm.tr,
+          confirmText: AppLocaleKeys.osCommonSave.tr,
+          onTap: () async {
+            try {
+              final done = await finance.unmarkInvoicePaid(
+                invoice: inv,
+                newStatus: status,
+              );
+              if (!done) {
+                OsSnackbar.error(
+                  AppLocaleKeys.osInvoicesTitle.tr,
+                  AppLocaleKeys.osCommonSaveFailed.tr,
+                );
+                throw Exception('unmark failed');
+              }
+            } on OsFinanceException catch (e) {
+              OsSnackbar.error(
+                AppLocaleKeys.osInvoicesTitle.tr,
+                e.messageKey.tr,
+              );
+              rethrow;
+            }
+          },
         );
-        if (done) {
+        if (ok == true) {
           OsSnackbar.success(
             AppLocaleKeys.osInvoicesTitle.tr,
             AppLocaleKeys.osInvoicesUnmarkSuccess.tr,
-          );
-        } else {
-          OsSnackbar.error(
-            AppLocaleKeys.osInvoicesTitle.tr,
-            AppLocaleKeys.osCommonSaveFailed.tr,
           );
         }
       } on OsFinanceException catch (e) {
@@ -153,29 +157,14 @@ class OsInvoicesPage extends StatelessWidget {
     OsInvoiceModel inv,
   ) async {
     if (inv.isPaid) return;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(AppLocaleKeys.osCommonDelete.tr),
-        content: Text(AppLocaleKeys.osInvoicesDeleteConfirm.tr),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(AppLocaleKeys.osCommonCancel.tr),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.destructive,
-            ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(AppLocaleKeys.osCommonDelete.tr),
-          ),
-        ],
-      ),
+    await FunHelper.showDeleteConfirmDialog(
+      context,
+      title: AppLocaleKeys.osCommonDelete.tr,
+      message: AppLocaleKeys.osInvoicesDeleteConfirm.tr,
+      onTap: () async {
+        if (inv.id != null) await finance.deleteInvoice(inv.id!);
+      },
     );
-    if (ok == true && inv.id != null) {
-      await finance.deleteInvoice(inv.id!);
-    }
   }
 }
 
@@ -212,11 +201,8 @@ class _DesktopInvoicesBody extends StatefulWidget {
 
 class _DesktopInvoicesBodyState extends State<_DesktopInvoicesBody> {
   var _showStampSettings = false;
-  final _hScroll = ScrollController();
-  final _vScroll = ScrollController();
-
-  /// Wide enough for all columns + action icons so content scrolls, not clips.
-  static const _tableMinWidth = 1280.0;
+  final _search = TextEditingController();
+  var _status = 'ALL';
 
   static const _headerBtnPadding =
       EdgeInsets.symmetric(horizontal: 18, vertical: 14);
@@ -228,15 +214,25 @@ class _DesktopInvoicesBodyState extends State<_DesktopInvoicesBody> {
 
   @override
   void dispose() {
-    _hScroll.dispose();
-    _vScroll.dispose();
+    _search.dispose();
     super.dispose();
+  }
+
+  List<OsInvoiceModel> _filtered(List<OsInvoiceModel> all) {
+    final q = _search.text.trim().toLowerCase();
+    return all.where((inv) {
+      if (_status != 'ALL' && inv.status != _status) return false;
+      if (q.isEmpty) return true;
+      final ref = OsFinanceFormat.invoiceRef(inv).toLowerCase();
+      return ref.contains(q) || inv.clientName.toLowerCase().contains(q);
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
     final invoices = widget.invoices;
+    final filtered = _filtered(invoices);
     final paid = invoices.where((i) => i.isPaid).length;
     final overdue =
         invoices.where((i) => i.status == OsInvoiceStatus.overdue).length;
@@ -261,26 +257,20 @@ class _DesktopInvoicesBodyState extends State<_DesktopInvoicesBody> {
                   padding: _headerBtnPadding,
                   textStyle: _headerBtnTextStyle,
                   visualDensity: VisualDensity.standard,
-                  side: BorderSide(color: theme.border),
+                  foregroundColor: _showStampSettings
+                      ? theme.accentText
+                      : theme.primaryText,
+                  side: BorderSide(
+                    color: _showStampSettings
+                        ? theme.accentBorder
+                        : theme.border,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                icon: Icon(
-                  Icons.tune,
-                  size: 20,
-                  color: _showStampSettings
-                      ? AppColors.primary
-                      : theme.primaryText,
-                ),
-                label: Text(
-                  AppLocaleKeys.osInvoicesCustomizeStamp.tr,
-                  style: TextStyle(
-                    color: _showStampSettings
-                        ? AppColors.primary
-                        : theme.primaryText,
-                  ),
-                ),
+                icon: const Icon(Icons.tune, size: 20),
+                label: Text(AppLocaleKeys.osInvoicesCustomizeStamp.tr),
               ),
               const SizedBox(width: 8),
               FilledButton.icon(
@@ -312,18 +302,27 @@ class _DesktopInvoicesBodyState extends State<_DesktopInvoicesBody> {
                 _StatCard(
                   label: AppLocaleKeys.osInvoicesTitle.tr,
                   value: '${invoices.length}',
+                  selected: _status == 'ALL',
+                  onTap: () => setState(() => _status = 'ALL'),
                 ),
                 _StatCard(
                   label: AppLocaleKeys.osInvoicesStatusPaid.tr,
                   value: '$paid',
+                  selected: _status == OsInvoiceStatus.paid,
+                  onTap: () => setState(() => _status = OsInvoiceStatus.paid),
                 ),
                 _StatCard(
                   label: AppLocaleKeys.osInvoicesStatusOverdue.tr,
                   value: '$overdue',
+                  selected: _status == OsInvoiceStatus.overdue,
+                  onTap: () =>
+                      setState(() => _status = OsInvoiceStatus.overdue),
                 ),
                 _StatCard(
                   label: AppLocaleKeys.osInvoicesStatusSent.tr,
                   value: '$sent',
+                  selected: _status == OsInvoiceStatus.sent,
+                  onTap: () => setState(() => _status = OsInvoiceStatus.sent),
                 ),
               ];
               if (wide) {
@@ -349,59 +348,47 @@ class _DesktopInvoicesBodyState extends State<_DesktopInvoicesBody> {
               );
             },
           ),
-          const SizedBox(height: 16),
+          OsListFilterBar(
+            chips: OsFilterChips(
+              value: _status,
+              onChanged: (v) => setState(() => _status = v),
+              options: [
+                OsFilterChipOption(
+                  value: 'ALL',
+                  label: AppLocaleKeys.osCommonFilterAll.tr,
+                ),
+                for (final s in OsInvoiceStatus.all)
+                  OsFilterChipOption(
+                    value: s,
+                    label: OsFinanceFormat.invoiceStatusLabel(s),
+                  ),
+              ],
+            ),
+            search: OsSearchField(
+              controller: _search,
+              hint: AppLocaleKeys.osInvoicesSearch.tr,
+              onChanged: (_) => setState(() {}),
+            ),
+            matchCount: invoices.isEmpty ? null : filtered.length,
+          ),
           Expanded(
-            child: invoices.isEmpty
-                ? Center(
-                    child: Text(
-                      AppLocaleKeys.osInvoicesEmpty.tr,
-                      style: TextStyle(
-                        fontSize: 18,
-                        color: theme.mutedText,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
+            child: filtered.isEmpty
+                ? OsEmptyState(
+                    message: invoices.isEmpty
+                        ? AppLocaleKeys.osInvoicesEmpty.tr
+                        : AppLocaleKeys.osInvoicesEmptyFilter.tr,
                   )
-                : LayoutBuilder(
-                    builder: (context, constraints) {
-                      final tableWidth = constraints.maxWidth < _tableMinWidth
-                          ? _tableMinWidth
-                          : constraints.maxWidth;
-                      return ClipRect(
-                        child: Scrollbar(
-                          controller: _hScroll,
-                          thumbVisibility: true,
-                          trackVisibility: true,
-                          child: SingleChildScrollView(
-                            controller: _hScroll,
-                            scrollDirection: Axis.horizontal,
-                            child: SizedBox(
-                              width: tableWidth,
-                              height: constraints.maxHeight,
-                              child: Scrollbar(
-                                controller: _vScroll,
-                                thumbVisibility: true,
-                                child: SingleChildScrollView(
-                                  controller: _vScroll,
-                                  child: _InvoicesTable(
-                                    invoices: invoices,
-                                    onEdit: widget.onEdit,
-                                    onDelete: widget.onDelete,
-                                    onMarkPaid: widget.onMarkPaid,
-                                    onStatusChange: widget.onStatusChange,
-                                    onPreview: widget.onPreview,
-                                    onPaymentLink: widget.onPaymentLink,
-                                    onWhatsApp: widget.onWhatsApp,
-                                    onEmail: widget.onEmail,
-                                    onLinkAccount: widget.onLinkAccount,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
+                : _InvoicesTable(
+                    invoices: filtered,
+                    onEdit: widget.onEdit,
+                    onDelete: widget.onDelete,
+                    onMarkPaid: widget.onMarkPaid,
+                    onStatusChange: widget.onStatusChange,
+                    onPreview: widget.onPreview,
+                    onPaymentLink: widget.onPaymentLink,
+                    onWhatsApp: widget.onWhatsApp,
+                    onEmail: widget.onEmail,
+                    onLinkAccount: widget.onLinkAccount,
                   ),
           ),
         ],
@@ -435,34 +422,6 @@ class _InvoicesTable extends StatelessWidget {
   final ValueChanged<OsInvoiceModel> onEmail;
   final ValueChanged<OsInvoiceModel> onLinkAccount;
 
-  Widget _cell(
-    BuildContext context,
-    Widget child, {
-    bool header = false,
-  }) {
-    final theme = context.appTheme;
-    return Container(
-      alignment: Alignment.center,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
-      decoration: header
-          ? BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: theme.border),
-              ),
-            )
-          : null,
-      child: DefaultTextStyle(
-        style: TextStyle(
-          fontSize: header ? 14 : 15,
-          fontWeight: header ? FontWeight.w700 : FontWeight.w500,
-          color: header ? theme.secondaryText : theme.primaryText,
-        ),
-        textAlign: TextAlign.center,
-        child: child,
-      ),
-    );
-  }
-
   String _accountLabel(OsInvoiceModel inv) {
     final finance = Get.find<OsFinanceController>();
     final acc = finance.accountById(inv.bankAccountId);
@@ -473,66 +432,45 @@ class _InvoicesTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
-    // Fixed widths so the table keeps a real min width and scrolls horizontally
-    // instead of crushing the actions column off-screen.
-    return Table(
-      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-      columnWidths: const {
-        0: FixedColumnWidth(120),
-        1: FlexColumnWidth(1.4),
-        2: FlexColumnWidth(1.5),
-        3: FixedColumnWidth(160),
-        4: FixedColumnWidth(130),
-        // 7× compact IconButtons (~40px) + padding — keep ≥280 to avoid paint overflow.
-        5: FixedColumnWidth(320),
-      },
-      children: [
-        TableRow(
-          children: [
-            _cell(context, Text(AppLocaleKeys.osInvoicesNumber.tr),
-                header: true),
-            _cell(context, Text(AppLocaleKeys.osInvoicesClient.tr),
-                header: true),
-            _cell(
-              context,
-              Text(AppLocaleKeys.osInvoicesCollectionAccount.tr),
-              header: true,
-            ),
-            _cell(context, Text(AppLocaleKeys.osInvoicesTotal.tr), header: true),
-            _cell(context, Text(AppLocaleKeys.osInvoicesStatus.tr),
-                header: true),
-            _cell(context, Text(AppLocaleKeys.osInvoicesActions.tr),
-                header: true),
-          ],
+    return AppDataTable(
+      minWidth: 1280,
+      dataRowMinHeight: 72,
+      dataRowMaxHeight: 88,
+      columns: [
+        appDataColumn(context, AppLocaleKeys.osInvoicesNumber.tr),
+        appDataColumn(context, AppLocaleKeys.osInvoicesClient.tr),
+        appDataColumn(context, AppLocaleKeys.osInvoicesCollectionAccount.tr),
+        appDataColumn(context, AppLocaleKeys.osInvoicesTotal.tr),
+        appDataColumn(context, AppLocaleKeys.osInvoicesStatus.tr),
+        appDataColumn(
+          context,
+          AppLocaleKeys.osInvoicesActions.tr,
+          width: 320,
         ),
+      ],
+      rows: [
         for (final inv in invoices)
-          TableRow(
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: theme.border.withValues(alpha: 0.6)),
-              ),
-            ),
-            children: [
-              _cell(
-                context,
+          DataRow(
+            cells: [
+              appDataCell(
                 Text(
                   OsFinanceFormat.invoiceRef(inv),
                   style: TextStyle(
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.bold,
                     color: theme.accentText,
-                    fontFamily: 'monospace',
                   ),
                 ),
               ),
-              _cell(
-                context,
+              appDataCell(
                 Text(
                   inv.clientName,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: theme.secondaryText,
+                  ),
                 ),
               ),
-              _cell(
-                context,
+              appDataCell(
                 InkWell(
                   onTap: inv.isPaid ? null : () => onLinkAccount(inv),
                   child: Text(
@@ -547,14 +485,16 @@ class _InvoicesTable extends StatelessWidget {
                   ),
                 ),
               ),
-              _cell(
-                context,
+              appDataCell(
                 Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
                       OsFinanceFormat.money(inv.total),
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: theme.secondaryText,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Container(
@@ -580,8 +520,7 @@ class _InvoicesTable extends StatelessWidget {
                   ],
                 ),
               ),
-              _cell(
-                context,
+              appDataCell(
                 DropdownButton<String>(
                   value: OsInvoiceStatus.all.contains(inv.status)
                       ? inv.status
@@ -605,8 +544,7 @@ class _InvoicesTable extends StatelessWidget {
                   },
                 ),
               ),
-              _cell(
-                context,
+              appDataCell(
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   mainAxisSize: MainAxisSize.min,
@@ -663,43 +601,60 @@ class _InvoicesTable extends StatelessWidget {
 }
 
 class _StatCard extends StatelessWidget {
-  const _StatCard({required this.label, required this.value});
+  const _StatCard({
+    required this.label,
+    required this.value,
+    this.selected = false,
+    this.onTap,
+  });
 
   final String label;
   final String value;
+  final bool selected;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-      decoration: BoxDecoration(
-        color: theme.cardSurface,
+    return Material(
+      color: theme.cardSurface,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: theme.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              color: theme.mutedText,
-              fontWeight: FontWeight.w600,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: selected ? theme.accentBorder : theme.border,
+              width: selected ? 1.5 : 1,
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              color: theme.primaryText,
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: selected ? theme.accentText : theme.mutedText,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: theme.primaryText,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

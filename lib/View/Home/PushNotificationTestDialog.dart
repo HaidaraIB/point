@@ -221,6 +221,10 @@ class _PushNotificationTestDialogBodyState
       'dept': 'التصميم',
       'type': 'محتوى',
       'supervisor': 'المشرف',
+      'period': '2026-04',
+      'amount': '1,000,000 د.ع',
+      'advance': '100,000 د.ع',
+      'action': 'حضور',
     };
 
     final prefixByType = <String, String>{
@@ -285,6 +289,12 @@ class _PushNotificationTestDialogBodyState
       'admin_content_status_changed': 'notify.admin.status_changed',
       'promotion_new_published_content': 'notify.promo.new_published',
       'broadcast_topic': 'notify.publish.added',
+      'manager_attendance_submitted': 'notify.mgr.attendance_submitted',
+      'employee_attendance_reviewed': 'notify.emp.attendance_reviewed',
+      'employee_payslip_ready': 'notify.emp.payslip_ready',
+      'employee_payslip_paid': 'notify.emp.payslip_paid',
+      'employee_advance_recorded': 'notify.emp.advance_recorded',
+      'client_invoice_paid': 'notify.client.invoice_paid',
     };
 
     final prefix = prefixByType[notificationType];
@@ -593,7 +603,6 @@ class _PushNotificationTestDialogBodyState
                             def.notificationType,
                             style: TextStyle(
                               fontSize: 12,
-                              fontFamily: 'monospace',
                             ),
                           ),
                           subtitle: Text(
@@ -833,7 +842,6 @@ class _PushNotificationTestDialogBodyState
                       def.notificationType,
                       style: TextStyle(
                         fontSize: 12,
-                        fontFamily: 'monospace',
                       ),
                     ),
                     subtitle: Text(

@@ -51,6 +51,12 @@
 | `admin_content_status_changed` | **كل** `admin` فقط. | `ContentsTable.dart`. |
 | `promotion_new_published_content` | **موظفو قسم الترويج** (`getEmployeeIdsByDepartment(departmentPromotion)`) فقط (لا يدمج الإدارة في الدالة). | `History.dart`، `ContentsTable.dart`. |
 | `broadcast_topic` | **مشتركو موضوع FCM** المختار من الإدارة: `employees` أو `clients` أو `all` (حسب اشتراك الأجهزة في التطبيق). | `FirestoreServices.sendFcmTopic` من `lib/View/Home/Home.dart` مع `notificationType: 'broadcast_topic'`. |
+| `manager_attendance_submitted` | **كل** من لديه دور `admin` فقط. | `NotificationService.notifyManagersAttendanceSubmitted` ← `FireStoreServices.recordAttendance`. |
+| `employee_attendance_reviewed` | **الموظف** صاحب سجل الحضور. | `NotificationService.notifyEmployeeAttendanceReviewed` ← `FireStoreServices.reviewAttendanceRecord` (من `AttendancePage`). |
+| `employee_payslip_ready` | **الموظف** صاحب القسيمة. | `NotificationService.notifyEmployeePayslipReady` ← `OsPayrollController.generatePayslip`. |
+| `employee_payslip_paid` | **الموظف** صاحب القسيمة (يُذكر خصم السلفة في النص إن وُجد). | `NotificationService.notifyEmployeePayslipPaid` ← `OsPayrollController.disbursePayslip`. |
+| `employee_advance_recorded` | **الموظف** عند إنشاء سلفة جديدة. | `NotificationService.notifyEmployeeAdvanceRecorded` ← `OsPayrollController.saveAdvance` (إنشاء فقط). |
+| `client_invoice_paid` | **العميل** صاحب `clientId` على الفاتورة. | `NotificationService.notifyClientInvoicePaid` ← `OsFinanceController.markInvoicePaid`. |
 
 ---
 

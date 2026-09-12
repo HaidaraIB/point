@@ -405,6 +405,42 @@ const List<PushNotificationTestDefinition> kPushNotificationTestCatalog =
         sortOrder: 70,
         categoryKey: 'push_test.category.broadcast',
       ),
+      PushNotificationTestDefinition(
+        notificationType: 'employee_payslip_ready',
+        audience: PushTestAudience.employee,
+        sortOrder: 80,
+        categoryKey: 'push_test.category.employee',
+      ),
+      PushNotificationTestDefinition(
+        notificationType: 'employee_payslip_paid',
+        audience: PushTestAudience.employee,
+        sortOrder: 80,
+        categoryKey: 'push_test.category.employee',
+      ),
+      PushNotificationTestDefinition(
+        notificationType: 'employee_advance_recorded',
+        audience: PushTestAudience.employee,
+        sortOrder: 80,
+        categoryKey: 'push_test.category.employee',
+      ),
+      PushNotificationTestDefinition(
+        notificationType: 'employee_attendance_reviewed',
+        audience: PushTestAudience.employee,
+        sortOrder: 80,
+        categoryKey: 'push_test.category.employee',
+      ),
+      PushNotificationTestDefinition(
+        notificationType: 'manager_attendance_submitted',
+        audience: PushTestAudience.employee,
+        sortOrder: 30,
+        categoryKey: 'push_test.category.manager',
+      ),
+      PushNotificationTestDefinition(
+        notificationType: 'client_invoice_paid',
+        audience: PushTestAudience.client,
+        sortOrder: 40,
+        categoryKey: 'push_test.category.client',
+      ),
     ];
 
 List<PushNotificationTestDefinition> sortedPushTestCatalog() {

@@ -13,6 +13,8 @@ class OsVoucherModel {
   final String bankAccountId;
   final String status;
   final String? invoiceId;
+  /// [OsVoucherSource] — empty/null treated as legacy manual when no invoice.
+  final String? source;
   final DateTime createdAt;
 
   const OsVoucherModel({
@@ -26,8 +28,17 @@ class OsVoucherModel {
     required this.bankAccountId,
     this.status = OsVoucherStatus.completed,
     this.invoiceId,
+    this.source,
     required this.createdAt,
   });
+
+  /// Manual receipts/payments the user may delete (and reverse balance).
+  bool get isManuallyDeletable {
+    if (invoiceId != null && invoiceId!.trim().isNotEmpty) return false;
+    final s = source?.trim() ?? '';
+    if (s.isEmpty) return true;
+    return s == OsVoucherSource.manual;
+  }
 
   static DateTime? _parseDateTime(dynamic value) {
     if (value == null) return null;
@@ -48,6 +59,7 @@ class OsVoucherModel {
       bankAccountId: json['bankAccountId'] as String? ?? '',
       status: json['status'] as String? ?? OsVoucherStatus.completed,
       invoiceId: json['invoiceId'] as String?,
+      source: json['source'] as String?,
       createdAt: _parseDateTime(json['createdAt']) ?? DateTime.now(),
     );
   }
@@ -63,6 +75,7 @@ class OsVoucherModel {
         'bankAccountId': bankAccountId,
         'status': status,
         if (invoiceId != null) 'invoiceId': invoiceId,
+        if (source != null && source!.isNotEmpty) 'source': source,
         'createdAt': Timestamp.fromDate(createdAt),
       };
 
@@ -77,6 +90,7 @@ class OsVoucherModel {
     String? bankAccountId,
     String? status,
     String? invoiceId,
+    String? source,
     DateTime? createdAt,
   }) {
     return OsVoucherModel(
@@ -90,6 +104,7 @@ class OsVoucherModel {
       bankAccountId: bankAccountId ?? this.bankAccountId,
       status: status ?? this.status,
       invoiceId: invoiceId ?? this.invoiceId,
+      source: source ?? this.source,
       createdAt: createdAt ?? this.createdAt,
     );
   }

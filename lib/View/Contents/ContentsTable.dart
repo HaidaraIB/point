@@ -50,12 +50,10 @@ part 'contents_table_add_content_dialog_part.dart';
 void _confirmBulkDeleteContent(BuildContext context, HomeController controller) {
   final n = controller.selectedContentIds.length;
   if (n == 0) return;
-  FunHelper.showConfirmDailog(
+  FunHelper.showDeleteConfirmDialog(
     context,
     title: 'content.bulk_delete_confirm_title'.tr,
     message: 'content.bulk_delete_confirm_message'.trParams({'count': '$n'}),
-    confirmText: 'delete'.tr,
-    confirmColor: Colors.red,
     onTap: () async {
       await controller.deleteSelectedContents();
     },

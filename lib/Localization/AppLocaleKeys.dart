@@ -195,6 +195,31 @@ class AppLocaleKeys {
   static const notifyEmpAttendanceCheckInBody = 'notify.emp.attendance_check_in.body';
   static const notifyEmpAttendanceCheckOutTitle = 'notify.emp.attendance_check_out.title';
   static const notifyEmpAttendanceCheckOutBody = 'notify.emp.attendance_check_out.body';
+  static const notifyEmpAttendanceReviewedTitle =
+      'notify.emp.attendance_reviewed.title';
+  static const notifyEmpAttendanceReviewedBodyApproved =
+      'notify.emp.attendance_reviewed.body_approved';
+  static const notifyEmpAttendanceReviewedBodyAbsent =
+      'notify.emp.attendance_reviewed.body_absent';
+  static const notifyEmpAttendanceReviewedAction =
+      'notify.emp.attendance_reviewed.action';
+  static const notifyEmpPayslipReadyTitle = 'notify.emp.payslip_ready.title';
+  static const notifyEmpPayslipReadyBody = 'notify.emp.payslip_ready.body';
+  static const notifyEmpPayslipReadyAction = 'notify.emp.payslip_ready.action';
+  static const notifyEmpPayslipPaidTitle = 'notify.emp.payslip_paid.title';
+  static const notifyEmpPayslipPaidBody = 'notify.emp.payslip_paid.body';
+  static const notifyEmpPayslipPaidBodyWithAdvance =
+      'notify.emp.payslip_paid.body_with_advance';
+  static const notifyEmpPayslipPaidAction = 'notify.emp.payslip_paid.action';
+  static const notifyEmpAdvanceRecordedTitle =
+      'notify.emp.advance_recorded.title';
+  static const notifyEmpAdvanceRecordedBody = 'notify.emp.advance_recorded.body';
+  static const notifyEmpAdvanceRecordedAction =
+      'notify.emp.advance_recorded.action';
+  static const notifyClientInvoicePaidTitle = 'notify.client.invoice_paid.title';
+  static const notifyClientInvoicePaidBody = 'notify.client.invoice_paid.body';
+  static const notifyClientInvoicePaidAction =
+      'notify.client.invoice_paid.action';
 
   static const appClose = 'app.close';
 
@@ -450,6 +475,18 @@ class AppLocaleKeys {
   static const employeesOnlineNow = 'employees.online_now';
   static const employeesLastSeenAt = 'employees.last_seen_at';
   static const employeesLastSeenUnknown = 'employees.last_seen_unknown';
+  static const employeesJobTitle = 'employees.job_title';
+  static const employeesJobTitleHint = 'employees.job_title_hint';
+  static const employeesSalary = 'employees.salary';
+  static const employeesSalaryHint = 'employees.salary_hint';
+  static const employeesBranch = 'employees.branch';
+  static const employeesBranchUnset = 'employees.branch_unset';
+  static const employeesHireDate = 'employees.hire_date';
+  static const employeesHireDateHint = 'employees.hire_date_hint';
+  static const employeesBankName = 'employees.bank_name';
+  static const employeesBankNameHint = 'employees.bank_name_hint';
+  static const employeesBankAccount = 'employees.bank_account';
+  static const employeesBankAccountHint = 'employees.bank_account_hint';
 
   static const osSidebar = 'os.sidebar';
   static const osDashboardTitle = 'os.dashboard.title';
@@ -479,6 +516,8 @@ class AppLocaleKeys {
   static const osInvoicesAdd = 'os.invoices.add';
   static const osInvoicesEdit = 'os.invoices.edit';
   static const osInvoicesEmpty = 'os.invoices.empty';
+  static const osInvoicesEmptyFilter = 'os.invoices.empty_filter';
+  static const osInvoicesSearch = 'os.invoices.search';
   static const osInvoicesClient = 'os.invoices.client';
   static const osInvoicesDate = 'os.invoices.date';
   static const osInvoicesDueDate = 'os.invoices.due_date';
@@ -595,6 +634,8 @@ class AppLocaleKeys {
   static const osAccountsTypeCash = 'os.accounts.type.cash';
   static const osAccountsTypeVault = 'os.accounts.type.vault';
   static const osAccountsEmpty = 'os.accounts.empty';
+  static const osAccountsEmptyFilter = 'os.accounts.empty_filter';
+  static const osAccountsSearch = 'os.accounts.search';
   static const osAccountsSaved = 'os.accounts.saved';
   static const osAccountsDeleteConfirm = 'os.accounts.delete_confirm';
   static const osAccountsSubtitle = 'os.accounts.subtitle';
@@ -673,6 +714,12 @@ class AppLocaleKeys {
       'os.vouchers.error.account_required';
   static const osVouchersErrorInvalidAmount =
       'os.vouchers.error.invalid_amount';
+  static const osVouchersErrorMissingId = 'os.vouchers.error.missing_id';
+  static const osVouchersErrorNotFound = 'os.vouchers.error.not_found';
+  static const osVouchersErrorNotManual = 'os.vouchers.error.not_manual';
+  static const osVouchersDelete = 'os.vouchers.delete';
+  static const osVouchersDeleteConfirm = 'os.vouchers.delete_confirm';
+  static const osVouchersDeleted = 'os.vouchers.deleted';
 
   static const osCommonCancel = 'os.common.cancel';
   static const osCommonDelete = 'os.common.delete';
@@ -682,6 +729,8 @@ class AppLocaleKeys {
   static const osCommonClose = 'os.common.close';
   static const osCommonNa = 'os.common.na';
   static const osCommonDash = 'os.common.dash';
+  static const osCommonFilterAll = 'os.common.filter_all';
+  static const osCommonMatchCount = 'os.common.match_count';
 
   static const osExpensesTitle = 'os.expenses.title';
   static const osExpensesSubtitle = 'os.expenses.subtitle';
@@ -744,6 +793,19 @@ class AppLocaleKeys {
   static const osExpensesPrint = 'os.expenses.print';
   static const osExpensesPrintTitle = 'os.expenses.print_title';
   static const osExpensesPrintFallback = 'os.expenses.print_fallback';
+  static const osExpensesPrintSubtitle = 'os.expenses.print_subtitle';
+  static const osExpensesPrintDate = 'os.expenses.print_date';
+  static const osExpensesPrintCount = 'os.expenses.print_count';
+  static const osExpensesPrintIndex = 'os.expenses.print_index';
+  static const osExpensesPrintReceiptNo = 'os.expenses.print_receipt_no';
+  static const osExpensesPrintReceiptAttached =
+      'os.expenses.print_receipt_attached';
+  static const osExpensesPrintTotal = 'os.expenses.print_total';
+  static const osExpensesPrintSignCashier = 'os.expenses.print_sign_cashier';
+  static const osExpensesPrintSignAccountant =
+      'os.expenses.print_sign_accountant';
+  static const osExpensesPrintSignManagement =
+      'os.expenses.print_sign_management';
   static const osExpensesKpiToday = 'os.expenses.kpi.today';
   static const osExpensesKpiWeek = 'os.expenses.kpi.week';
   static const osExpensesKpiMonth = 'os.expenses.kpi.month';
@@ -780,6 +842,7 @@ class AppLocaleKeys {
   static const osExpensesCatRent = 'os.expenses.cat.rent';
   static const osExpensesCatMarketing = 'os.expenses.cat.marketing';
   static const osExpensesCatOffice = 'os.expenses.cat.office';
+  static const osExpensesCatPayroll = 'os.expenses.cat.payroll';
   static const osExpensesCatOther = 'os.expenses.cat.other';
   static const osExpensesPayCash = 'os.expenses.pay.cash';
   static const osExpensesPayZain = 'os.expenses.pay.zain';
@@ -793,4 +856,142 @@ class AppLocaleKeys {
       'os.expenses.paid_by.accountant';
   static const osExpensesPaidByManagement =
       'os.expenses.paid_by.management';
+
+  // --- Payroll ---
+  static const osPayrollTitle = 'os.payroll.title';
+  static const osPayrollSubtitle = 'os.payroll.subtitle';
+  static const osPayrollTabRun = 'os.payroll.tab.run';
+  static const osPayrollTabSlips = 'os.payroll.tab.slips';
+  static const osPayrollTabContracts = 'os.payroll.tab.contracts';
+  static const osPayrollTabAdvances = 'os.payroll.tab.advances';
+  static const osPayrollRunTitle = 'os.payroll.run.title';
+  static const osPayrollRunHint = 'os.payroll.run.hint';
+  static const osPayrollPeriod = 'os.payroll.period';
+  static const osPayrollAdjustTitle = 'os.payroll.adjust.title';
+  static const osPayrollAdjustEdit = 'os.payroll.adjust.edit';
+  static const osPayrollAdjustSaved = 'os.payroll.adjust.saved';
+  static const osPayrollAdjustNetPreview = 'os.payroll.adjust.net_preview';
+  static const osPayrollColEmployee = 'os.payroll.col.employee';
+  static const osPayrollColBasic = 'os.payroll.col.basic';
+  static const osPayrollColAllowances = 'os.payroll.col.allowances';
+  static const osPayrollColDeductions = 'os.payroll.col.deductions';
+  static const osPayrollColSocial = 'os.payroll.col.social';
+  static const osPayrollColAdvance = 'os.payroll.col.advance';
+  static const osPayrollColNet = 'os.payroll.col.net';
+  static const osPayrollColStatus = 'os.payroll.col.status';
+  static const osPayrollGenerate = 'os.payroll.generate';
+  static const osPayrollDisburse = 'os.payroll.disburse';
+  static const osPayrollDisbursed = 'os.payroll.disbursed';
+  static const osPayrollDisbursedPosted = 'os.payroll.disbursed_posted';
+  static const osPayrollSelectAccount = 'os.payroll.select_account';
+  static const osPayrollGenerated = 'os.payroll.generated';
+  static const osPayrollPaidSuccess = 'os.payroll.paid_success';
+  static const osPayrollEmptyEmployees = 'os.payroll.empty_employees';
+  static const osPayrollEmptyFilter = 'os.payroll.empty_filter';
+  static const osPayrollSearch = 'os.payroll.search';
+  static const osPayrollFilterPending = 'os.payroll.filter.pending';
+  static const osPayrollFilterPaid = 'os.payroll.filter.paid';
+  static const osPayrollFilterNoSalary = 'os.payroll.filter.no_salary';
+  static const osPayrollNoSalary = 'os.payroll.no_salary';
+  static const osPayrollStatusPending = 'os.payroll.status.pending';
+  static const osPayrollStatusPaid = 'os.payroll.status.paid';
+  static const osPayrollExpenseTitle = 'os.payroll.expense_title';
+  static const osPayrollExpenseVoucherDesc = 'os.payroll.expense_voucher_desc';
+  static const osPayrollErrorMissingId = 'os.payroll.error.missing_id';
+  static const osPayrollErrorAlreadyPaid = 'os.payroll.error.already_paid';
+  static const osPayrollErrorNoAccount = 'os.payroll.error.no_account';
+  static const osPayrollErrorInvalidAmount = 'os.payroll.error.invalid_amount';
+  static const osPayrollErrorNoSalary = 'os.payroll.error.no_salary';
+
+  static const osPayslipsTitle = 'os.payslips.title';
+  static const osPayslipsSelectEmployee = 'os.payslips.select_employee';
+  static const osPayslipsPrint = 'os.payslips.print';
+  static const osPayslipsCopy = 'os.payslips.copy';
+  static const osPayslipsCopied = 'os.payslips.copied';
+  static const osPayslipsCopiedBtn = 'os.payslips.copied_btn';
+  static const osPayslipsPrintHint = 'os.payslips.print_hint';
+  static const osPayslipsPrintWarningTitle = 'os.payslips.print_warning_title';
+  static const osPayslipsPrintWarningBody = 'os.payslips.print_warning_body';
+  static const osPayslipsEmpty = 'os.payslips.empty';
+  static const osPayslipsAgency = 'os.payslips.agency';
+  static const osPayslipsDept = 'os.payslips.dept';
+  static const osPayslipsRef = 'os.payslips.ref';
+  static const osPayslipsDate = 'os.payslips.date';
+  static const osPayslipsEmployee = 'os.payslips.employee';
+  static const osPayslipsJobTitle = 'os.payslips.job_title';
+  static const osPayslipsBranch = 'os.payslips.branch';
+  static const osPayslipsHireDate = 'os.payslips.hire_date';
+  static const osPayslipsEarnings = 'os.payslips.earnings';
+  static const osPayslipsDeductions = 'os.payslips.deductions';
+  static const osPayslipsBasic = 'os.payslips.basic';
+  static const osPayslipsAllowances = 'os.payslips.allowances';
+  static const osPayslipsTotalEarnings = 'os.payslips.total_earnings';
+  static const osPayslipsPenalties = 'os.payslips.penalties';
+  static const osPayslipsSocial = 'os.payslips.social';
+  static const osPayslipsAdvance = 'os.payslips.advance';
+  static const osPayslipsTotalDeductions = 'os.payslips.total_deductions';
+  static const osPayslipsNet = 'os.payslips.net';
+  static const osPayslipsNetTransferred = 'os.payslips.net_transferred';
+  static const osPayslipsNetSuffix = 'os.payslips.net_suffix';
+  static const osPayslipsStatusPending = 'os.payslips.status.pending';
+  static const osPayslipsStatusPaid = 'os.payslips.status.paid';
+
+  static const osContractsTitle = 'os.contracts.title';
+  static const osContractsAdd = 'os.contracts.add';
+  static const osContractsDialogTitle = 'os.contracts.dialog_title';
+  static const osContractsEmployee = 'os.contracts.employee';
+  static const osContractsType = 'os.contracts.type';
+  static const osContractsTypeHint = 'os.contracts.type_hint';
+  static const osContractsStart = 'os.contracts.start';
+  static const osContractsEnd = 'os.contracts.end';
+  static const osContractsStatus = 'os.contracts.status';
+  static const osContractsStatusActive = 'os.contracts.status.active';
+  static const osContractsStatusExpired = 'os.contracts.status.expired';
+  static const osContractsSave = 'os.contracts.save';
+  static const osContractsSaved = 'os.contracts.saved';
+  static const osContractsEmpty = 'os.contracts.empty';
+  static const osContractsEmptyFilter = 'os.contracts.empty_filter';
+  static const osContractsSearch = 'os.contracts.search';
+  static const osContractsDeleteConfirm = 'os.contracts.delete_confirm';
+  static const osContractsDeleted = 'os.contracts.deleted';
+
+  static const osContractsColEmployee = 'os.contracts.col.employee';
+  static const osContractsColType = 'os.contracts.col.type';
+  static const osContractsColEnd = 'os.contracts.col.end';
+  static const osContractsColStatus = 'os.contracts.col.status';
+  static const osContractsColActions = 'os.contracts.col.actions';
+  static const osContractsErrorEmployee = 'os.contracts.error.employee';
+  static const osContractsErrorType = 'os.contracts.error.type';
+
+  static const osAdvancesTitle = 'os.advances.title';
+  static const osAdvancesAdd = 'os.advances.add';
+  static const osAdvancesDialogTitle = 'os.advances.dialog_title';
+  static const osAdvancesEmployee = 'os.advances.employee';
+  static const osAdvancesAmount = 'os.advances.amount';
+  static const osAdvancesInstallment = 'os.advances.installment';
+  static const osAdvancesTotalGranted = 'os.advances.total_granted';
+  static const osAdvancesPaid = 'os.advances.paid';
+  static const osAdvancesRemaining = 'os.advances.remaining';
+  static const osAdvancesRepay = 'os.advances.repay';
+  static const osAdvancesRepayDialogTitle = 'os.advances.repay_dialog_title';
+  static const osAdvancesRepayAmount = 'os.advances.repay_amount';
+  static const osAdvancesRepayHint = 'os.advances.repay_hint';
+  static const osAdvancesRepayConfirm = 'os.advances.repay_confirm';
+  static const osAdvancesWriteOff = 'os.advances.write_off';
+  static const osAdvancesWriteOffConfirm = 'os.advances.write_off_confirm';
+  static const osAdvancesSave = 'os.advances.save';
+  static const osAdvancesSaved = 'os.advances.saved';
+  static const osAdvancesEmpty = 'os.advances.empty';
+  static const osAdvancesEmptyFilter = 'os.advances.empty_filter';
+  static const osAdvancesSearch = 'os.advances.search';
+  static const osAdvancesStatusActive = 'os.advances.status.active';
+  static const osAdvancesStatusSettled = 'os.advances.status.settled';
+  static const osAdvancesRepaid = 'os.advances.repaid';
+  static const osAdvancesWrittenOff = 'os.advances.written_off';
+  static const osAdvancesDeleteConfirm = 'os.advances.delete_confirm';
+  static const osAdvancesDeleted = 'os.advances.deleted';
+  static const osAdvancesErrorEmployee = 'os.advances.error.employee';
+  static const osAdvancesErrorAmount = 'os.advances.error.amount';
+  static const osAdvancesErrorRepayAmount = 'os.advances.error.repay_amount';
+  static const osAdvancesErrorNotFound = 'os.advances.error.not_found';
 }

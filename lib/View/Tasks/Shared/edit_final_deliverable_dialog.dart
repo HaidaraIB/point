@@ -179,12 +179,11 @@ class _EditFinalDeliverableDialogState extends State<_EditFinalDeliverableDialog
   }
 
   void _confirmClearAll() {
-    FunHelper.showConfirmDailog(
+    FunHelper.showDeleteConfirmDialog(
       context,
       title: 'tasks.final_deliverable_clear_title'.tr,
       message: 'tasks.final_deliverable_clear_message'.tr,
       confirmText: 'tasks.final_deliverable_clear_all'.tr,
-      confirmColor: Colors.red,
       onTap: () async {
         setState(() => _submitting = true);
         final hc = Get.find<HomeController>();

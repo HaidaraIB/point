@@ -41,3 +41,23 @@ class OsVoucherStatus {
   static const draft = 'DRAFT';
   static const completed = 'COMPLETED';
 }
+
+/// How a voucher was created — used to gate manual delete.
+class OsVoucherSource {
+  OsVoucherSource._();
+
+  /// Entered via the Finance “issue voucher” form.
+  static const manual = 'MANUAL';
+
+  /// Auto receipt when an invoice is marked paid.
+  static const invoice = 'INVOICE';
+
+  /// Audit pair from an internal account transfer (balance already adjusted).
+  static const transfer = 'TRANSFER';
+
+  /// Payment posted with a daily expense.
+  static const expense = 'EXPENSE';
+
+  /// Payment posted when a payslip is disbursed.
+  static const payroll = 'PAYROLL';
+}

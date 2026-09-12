@@ -332,6 +332,7 @@ class StorageKeys {
 
   /// Last selected OS Finance tab (`overview` | `accounts` | `vouchers`).
   static const prefsOsFinanceTabKey = 'point_os_finance_tab_v1';
+  static const prefsOsPayrollTabKey = 'point_os_payroll_tab_v1';
 
   /// OS electronic stamp (mirrors point_os localStorage).
   static const prefsOsStampText = 'point_os_stamp_text_v1';

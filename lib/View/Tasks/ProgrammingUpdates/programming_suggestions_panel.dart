@@ -141,12 +141,10 @@ class _ProgrammingSuggestionsCardState
   ) async {
     final id = update.id;
     if (id == null || id.isEmpty) return;
-    await FunHelper.showConfirmDailog(
+    await FunHelper.showDeleteConfirmDialog(
       context,
       title: 'tasks.confirm_delete_title'.tr,
       message: 'programming.updates.delete_confirm'.tr,
-      confirmText: 'delete'.tr,
-      confirmColor: Colors.red,
       onTap: () async {
         await Get.find<HomeController>().deleteProgrammingUpdate(id);
         if (mounted) setState(() => _selectedIds.remove(id));

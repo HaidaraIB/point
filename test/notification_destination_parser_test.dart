@@ -123,7 +123,25 @@ void main() {
       );
       expect(
         NotificationDestinationParser.parseStringMap({
+          'notificationType': 'employee_attendance_reviewed',
+        })!.kind,
+        NotificationDestinationKind.attendance,
+      );
+      expect(
+        NotificationDestinationParser.parseStringMap({
           'notificationType': 'broadcast_topic',
+        })!.kind,
+        NotificationDestinationKind.home,
+      );
+      expect(
+        NotificationDestinationParser.parseStringMap({
+          'notificationType': 'employee_payslip_paid',
+        })!.kind,
+        NotificationDestinationKind.home,
+      );
+      expect(
+        NotificationDestinationParser.parseStringMap({
+          'notificationType': 'client_invoice_paid',
         })!.kind,
         NotificationDestinationKind.home,
       );

@@ -6,6 +6,7 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsBankAccountModel.dart';
 import 'package:point/Models/Os/OsVoucherModel.dart';
 import 'package:point/Models/Os/os_finance_enums.dart';
+import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/firestore/firestore_os_finance_api.dart';
 import 'package:point/Services/os_finance_tab_persistence.dart';
 import 'package:point/Utils/AppColors.dart';
@@ -14,6 +15,7 @@ import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Finance/os_voucher_detail_panel.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
+import 'package:point/View/Os/os_list_filters.dart';
 import 'package:point/View/Os/os_page_header.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
@@ -534,8 +536,45 @@ class _RecentCard extends StatelessWidget {
   }
 }
 
-class _AccountsTab extends StatelessWidget {
+class _AccountsTab extends StatefulWidget {
   const _AccountsTab();
+
+  @override
+  State<_AccountsTab> createState() => _AccountsTabState();
+}
+
+class _AccountsTabState extends State<_AccountsTab> {
+  final _search = TextEditingController();
+  var _type = 'ALL';
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  List<OsBankAccountModel> _filtered(List<OsBankAccountModel> all) {
+    final q = _search.text.trim().toLowerCase();
+    return all.where((a) {
+      if (_type != 'ALL' && a.type != _type) return false;
+      if (q.isEmpty) return true;
+      return a.name.toLowerCase().contains(q);
+    }).toList();
+  }
+
+  Future<void> _confirmDeleteAccount(
+    BuildContext context,
+    OsFinanceController finance,
+    OsBankAccountModel a,
+  ) async {
+    if (a.id == null) return;
+    await FunHelper.showDeleteConfirmDialog(
+      context,
+      title: AppLocaleKeys.osCommonDelete.tr,
+      message: AppLocaleKeys.osAccountsDeleteConfirm.tr,
+      onTap: () => finance.deleteBankAccount(a.id!),
+    );
+  }
 
   Future<void> _openForm(
     BuildContext context, {
@@ -765,10 +804,31 @@ class _AccountsTab extends StatelessWidget {
 
     return Obx(() {
       final accounts = finance.bankAccounts.toList();
+      final filtered = _filtered(accounts);
       return Column(
         children: [
-          OsTabToolbar(
-            title: AppLocaleKeys.osAccountsSubtitle.tr,
+          OsListFilterBar(
+            chips: OsFilterChips(
+              value: _type,
+              onChanged: (v) => setState(() => _type = v),
+              options: [
+                OsFilterChipOption(
+                  value: 'ALL',
+                  label: AppLocaleKeys.osCommonFilterAll.tr,
+                ),
+                for (final t in OsBankAccountType.all)
+                  OsFilterChipOption(
+                    value: t,
+                    label: OsFinanceFormat.accountTypeLabel(t),
+                  ),
+              ],
+            ),
+            search: OsSearchField(
+              controller: _search,
+              hint: AppLocaleKeys.osAccountsSearch.tr,
+              onChanged: (_) => setState(() {}),
+            ),
+            matchCount: accounts.isEmpty ? null : filtered.length,
             actions: [
               OutlinedButton.icon(
                 onPressed: () => _openTransfer(context),
@@ -802,58 +862,33 @@ class _AccountsTab extends StatelessWidget {
             ],
           ),
           Expanded(
-            child: accounts.isEmpty
-                ? OsEmptyState(message: AppLocaleKeys.osAccountsEmpty.tr)
+            child: filtered.isEmpty
+                ? OsEmptyState(
+                    message: accounts.isEmpty
+                        ? AppLocaleKeys.osAccountsEmpty.tr
+                        : AppLocaleKeys.osAccountsEmptyFilter.tr,
+                  )
                 : LayoutBuilder(
                     builder: (context, constraints) {
                       final narrow = constraints.maxWidth < 640;
                       if (narrow) {
                         return ListView.separated(
                           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                          itemCount: accounts.length,
+                          itemCount: filtered.length,
                           separatorBuilder: (_, __) =>
                               const SizedBox(height: 12),
                           itemBuilder: (context, index) {
                             return _AccountCard(
-                              account: accounts[index],
+                              account: filtered[index],
                               onEdit: () => _openForm(
                                 context,
-                                existing: accounts[index],
+                                existing: filtered[index],
                               ),
-                              onDelete: () async {
-                                final a = accounts[index];
-                                final ok = await showDialog<bool>(
-                                  context: context,
-                                  builder: (ctx) => AlertDialog(
-                                    content: Text(
-                                      AppLocaleKeys.osAccountsDeleteConfirm.tr,
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () =>
-                                            Navigator.pop(ctx, false),
-                                        child: Text(
-                                          AppLocaleKeys.osCommonCancel.tr,
-                                        ),
-                                      ),
-                                      FilledButton(
-                                        style: FilledButton.styleFrom(
-                                          backgroundColor:
-                                              AppColors.destructive,
-                                        ),
-                                        onPressed: () =>
-                                            Navigator.pop(ctx, true),
-                                        child: Text(
-                                          AppLocaleKeys.osCommonDelete.tr,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                                if (ok == true && a.id != null) {
-                                  await finance.deleteBankAccount(a.id!);
-                                }
-                              },
+                              onDelete: () => _confirmDeleteAccount(
+                                context,
+                                finance,
+                                filtered[index],
+                              ),
                             );
                           },
                         );
@@ -864,44 +899,17 @@ class _AccountsTab extends StatelessWidget {
                           maxCrossAxisExtent: 360,
                           mainAxisExtent: 248,
                         ),
-                        itemCount: accounts.length,
+                        itemCount: filtered.length,
                         itemBuilder: (context, index) {
-                          final a = accounts[index];
+                          final a = filtered[index];
                           return _AccountCard(
                             account: a,
                             onEdit: () => _openForm(context, existing: a),
-                            onDelete: () async {
-                              final ok = await showDialog<bool>(
-                                context: context,
-                                builder: (ctx) => AlertDialog(
-                                  content: Text(
-                                    AppLocaleKeys.osAccountsDeleteConfirm.tr,
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () =>
-                                          Navigator.pop(ctx, false),
-                                      child: Text(
-                                        AppLocaleKeys.osCommonCancel.tr,
-                                      ),
-                                    ),
-                                    FilledButton(
-                                      style: FilledButton.styleFrom(
-                                        backgroundColor: AppColors.destructive,
-                                      ),
-                                      onPressed: () =>
-                                          Navigator.pop(ctx, true),
-                                      child: Text(
-                                        AppLocaleKeys.osCommonDelete.tr,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                              if (ok == true && a.id != null) {
-                                await finance.deleteBankAccount(a.id!);
-                              }
-                            },
+                            onDelete: () => _confirmDeleteAccount(
+                              context,
+                              finance,
+                              a,
+                            ),
                           );
                         },
                       );
@@ -1218,6 +1226,7 @@ class _VouchersTabState extends State<_VouchersTab> {
           payeeOrPayer: payee,
           description: desc,
           bankAccountId: accountId!,
+          source: OsVoucherSource.manual,
           createdAt: DateTime.now(),
         ),
       );
@@ -1248,6 +1257,36 @@ class _VouchersTabState extends State<_VouchersTab> {
           OsFinanceFormat.voucherRef(v).toLowerCase().contains(q) ||
           (v.id ?? '').toLowerCase().contains(q);
     }).toList();
+  }
+
+  Future<void> _deleteVoucher(OsVoucherModel voucher) async {
+    final id = voucher.id?.trim() ?? '';
+    if (id.isEmpty) {
+      OsSnackbar.error(
+        AppLocaleKeys.osFinanceVouchers.tr,
+        AppLocaleKeys.osVouchersErrorMissingId.tr,
+      );
+      return;
+    }
+    final finance = Get.find<OsFinanceController>();
+    try {
+      final ok = await finance.deleteVoucher(id);
+      if (!mounted) return;
+      if (ok) {
+        setState(() => _selectedId = null);
+        OsSnackbar.success(
+          AppLocaleKeys.osFinanceVouchers.tr,
+          AppLocaleKeys.osVouchersDeleted.tr,
+        );
+      } else {
+        OsSnackbar.error(
+          AppLocaleKeys.osFinanceVouchers.tr,
+          AppLocaleKeys.osCommonSaveFailed.tr,
+        );
+      }
+    } on OsFinanceException catch (e) {
+      OsSnackbar.error(AppLocaleKeys.osFinanceVouchers.tr, e.messageKey.tr);
+    }
   }
 
   @override
@@ -1288,7 +1327,7 @@ class _VouchersTabState extends State<_VouchersTab> {
             ],
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
             child: Row(
               children: [
                 Expanded(
@@ -1320,12 +1359,13 @@ class _VouchersTabState extends State<_VouchersTab> {
                 ),
                 const SizedBox(width: 10),
                 SizedBox(
-                  width: 220,
+                  width: 320,
                   child: TextField(
                     controller: _searchCtrl,
                     onChanged: (_) => setState(() {}),
                     decoration: InputDecoration(
                       hintText: AppLocaleKeys.osVouchersSearch.tr,
+                      hintMaxLines: 1,
                       prefixIcon: const Icon(Icons.search, size: 20),
                       isDense: true,
                       border: const OutlineInputBorder(),
@@ -1373,19 +1413,31 @@ class _VouchersTabState extends State<_VouchersTab> {
                               message: AppLocaleKeys.osVouchersSelectHint.tr,
                             )
                           : SingleChildScrollView(
-                              padding: const EdgeInsets.fromLTRB(0, 0, 20, 24),
+                              // Directional: outer edge stays 20 in both LTR and RTL.
+                              padding: const EdgeInsetsDirectional.fromSTEB(
+                                0,
+                                0,
+                                20,
+                                24,
+                              ),
                               child: OsVoucherDetailPanel(
                                 voucher: selected,
                                 accountName: finance
                                         .accountById(selected.bankAccountId)
                                         ?.name ??
                                     AppLocaleKeys.osFinanceUnknownAccount.tr,
+                                onDelete: _deleteVoucher,
                               ),
                             );
 
                       if (!split) {
                         return ListView(
-                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                          padding: const EdgeInsetsDirectional.fromSTEB(
+                            20,
+                            0,
+                            20,
+                            24,
+                          ),
                           children: [
                             SizedBox(height: 320, child: list),
                             const SizedBox(height: 16),
@@ -1400,8 +1452,12 @@ class _VouchersTabState extends State<_VouchersTab> {
                           SizedBox(
                             width: 360,
                             child: Padding(
-                              padding:
-                                  const EdgeInsets.fromLTRB(20, 0, 10, 24),
+                              padding: const EdgeInsetsDirectional.fromSTEB(
+                                20,
+                                0,
+                                10,
+                                24,
+                              ),
                               child: list,
                             ),
                           ),
@@ -1468,8 +1524,8 @@ class _VoucherMasterList extends StatelessWidget {
                     color: selected
                         ? theme.accentText.withValues(alpha: 0.1)
                         : null,
-                    border: Border(
-                      right: BorderSide(
+                    border: BorderDirectional(
+                      start: BorderSide(
                         width: 3,
                         color: selected
                             ? theme.accentText
@@ -1491,7 +1547,6 @@ class _VoucherMasterList extends StatelessWidget {
                                 fontSize: 13,
                                 fontWeight: FontWeight.w800,
                                 color: theme.accentText,
-                                fontFamily: 'monospace',
                               ),
                             ),
                           ),

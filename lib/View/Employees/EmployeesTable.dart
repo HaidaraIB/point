@@ -6,6 +6,7 @@ import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/EmployeeAttendanceLocation.dart';
 import 'package:point/Models/EmployeeModel.dart';
+import 'package:point/Models/Os/os_expense_constants.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
@@ -160,7 +161,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                     );
                     return;
                   }
-                  FunHelper.showConfirmDailog(
+                  FunHelper.showDeleteConfirmDialog(
                     context,
                     onTap: () => controller.deleteEmployee(emp.id ?? ''),
                   );
@@ -461,7 +462,7 @@ class _EmployeeTableState extends State<EmployeeTable> {
                                                   );
                                                   return;
                                                 }
-                                                FunHelper.showConfirmDailog(
+                                                FunHelper.showDeleteConfirmDialog(
                                                   context,
                                                   onTap: () {
                                                     controller.deleteEmployee(
@@ -509,6 +510,20 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
   final nameController = TextEditingController(text: model?.name);
   final emailController = TextEditingController(text: model?.email);
   final passwordController = TextEditingController();
+  final jobTitleController = TextEditingController(text: model?.jobTitle);
+  final salaryController = TextEditingController(
+    text: model?.salary != null ? model!.salary!.toStringAsFixed(0) : '',
+  );
+  final bankNameController = TextEditingController(text: model?.bankName);
+  final bankAccountController =
+      TextEditingController(text: model?.bankAccountNumber);
+  final hireDateController = TextEditingController(
+    text: model?.hireDate == null
+        ? ''
+        : '${model!.hireDate!.year.toString().padLeft(4, '0')}-'
+            '${model.hireDate!.month.toString().padLeft(2, '0')}-'
+            '${model.hireDate!.day.toString().padLeft(2, '0')}',
+  );
 
   bool obscurePassword = true;
 
@@ -520,6 +535,8 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
             ? List<String>.from(model.departments)
             : <String>[StorageKeys.departmentPromotion]);
   List<String> roles = ["supervisor", "admin", "employee"];
+  String? selectedBranchId = model?.branchId;
+  DateTime? hireDate = model?.hireDate;
   final branchLabelController = TextEditingController();
   final branchLatController = TextEditingController();
   final branchLngController = TextEditingController();
@@ -568,7 +585,7 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                           Container(
                             margin: EdgeInsets.all(15),
                             decoration: BoxDecoration(
-                              color: appTheme.accentText,
+                              color: appTheme.navSurface,
                               borderRadius: BorderRadius.vertical(
                                 top: Radius.circular(12),
                               ),
@@ -769,6 +786,98 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                         ? ' '
                                         : null,
                                   ),
+                                InputText(
+                                  labelText: AppLocaleKeys.employeesJobTitle.tr,
+                                  hintText:
+                                      AppLocaleKeys.employeesJobTitleHint.tr,
+                                  height: 42,
+                                  controller: jobTitleController,
+                                  borderRadius: 5,
+                                ),
+                                InputText(
+                                  labelText: AppLocaleKeys.employeesSalary.tr,
+                                  hintText:
+                                      AppLocaleKeys.employeesSalaryHint.tr,
+                                  height: 42,
+                                  controller: salaryController,
+                                  textInputType: TextInputType.number,
+                                  borderRadius: 5,
+                                ),
+                                DynamicDropdown<String>(
+                                  items: [
+                                    DropdownMenuItem(
+                                      value: '',
+                                      child: Text(
+                                        AppLocaleKeys.employeesBranchUnset.tr,
+                                      ),
+                                    ),
+                                    ...osExpenseBranches.map(
+                                      (b) => DropdownMenuItem(
+                                        value: b.id,
+                                        child: Text(b.nameKey.tr),
+                                      ),
+                                    ),
+                                  ],
+                                  value: selectedBranchId ?? '',
+                                  label: AppLocaleKeys.employeesBranch.tr,
+                                  borderRadius: 5,
+                                  height: 42,
+                                  onChanged: (value) {
+                                    selectedBranchId =
+                                        (value == null || value.isEmpty)
+                                            ? null
+                                            : value;
+                                    newstate(() {});
+                                  },
+                                ),
+                                InputText(
+                                  labelText: AppLocaleKeys.employeesHireDate.tr,
+                                  hintText:
+                                      AppLocaleKeys.employeesHireDateHint.tr,
+                                  height: 42,
+                                  controller: hireDateController,
+                                  readOnly: true,
+                                  borderRadius: 5,
+                                  suffixIcon: Icon(
+                                    Icons.calendar_today_outlined,
+                                    size: 18,
+                                    color: appTheme.mutedText,
+                                  ),
+                                  onTap: () async {
+                                    final picked = await showDatePicker(
+                                      context: context,
+                                      initialDate: hireDate ?? DateTime.now(),
+                                      firstDate: DateTime(1990),
+                                      lastDate: DateTime.now()
+                                          .add(const Duration(days: 365)),
+                                    );
+                                    if (picked != null) {
+                                      hireDate = picked;
+                                      hireDateController.text =
+                                          '${picked.year.toString().padLeft(4, '0')}-'
+                                          '${picked.month.toString().padLeft(2, '0')}-'
+                                          '${picked.day.toString().padLeft(2, '0')}';
+                                      newstate(() {});
+                                    }
+                                  },
+                                ),
+                                InputText(
+                                  labelText: AppLocaleKeys.employeesBankName.tr,
+                                  hintText:
+                                      AppLocaleKeys.employeesBankNameHint.tr,
+                                  height: 42,
+                                  controller: bankNameController,
+                                  borderRadius: 5,
+                                ),
+                                InputText(
+                                  labelText:
+                                      AppLocaleKeys.employeesBankAccount.tr,
+                                  hintText: AppLocaleKeys
+                                      .employeesBankAccountHint.tr,
+                                  height: 42,
+                                  controller: bankAccountController,
+                                  borderRadius: 5,
+                                ),
                                 if (selectedRole == 'employee') ...[
                                   const SizedBox(height: 16),
                                   EmployeeAttendanceConfigFields(
@@ -906,6 +1015,18 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                               (workHoursOptional &&
                                                   workFrom == null &&
                                                   workTo == null);
+                                          final parsedSalary =
+                                              double.tryParse(
+                                            salaryController.text
+                                                .trim()
+                                                .replaceAll(',', ''),
+                                          );
+                                          final jobTitle =
+                                              jobTitleController.text.trim();
+                                          final bankName =
+                                              bankNameController.text.trim();
+                                          final bankAccount =
+                                              bankAccountController.text.trim();
                                           if (model == null) {
                                             controller
                                                 .addEmployee(
@@ -925,6 +1046,7 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                                         departmentsToSave,
                                                     status: 'active',
                                                     createdAt: DateTime.now(),
+                                                    hireDate: hireDate,
                                                     image:
                                                         controller
                                                             .uploadedFilesPaths
@@ -947,6 +1069,18 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                                             'employee' &&
                                                         attendanceRemote &&
                                                         attendanceFlexibleHours,
+                                                    salary: parsedSalary,
+                                                    jobTitle: jobTitle.isEmpty
+                                                        ? null
+                                                        : jobTitle,
+                                                    branchId: selectedBranchId,
+                                                    bankName: bankName.isEmpty
+                                                        ? null
+                                                        : bankName,
+                                                    bankAccountNumber:
+                                                        bankAccount.isEmpty
+                                                            ? null
+                                                            : bankAccount,
                                                   ),
                                                 )
                                                 .then((v) {
@@ -968,6 +1102,9 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                                     role: selectedRole,
                                                     departments:
                                                         departmentsToSave,
+                                                    hireDate: hireDate,
+                                                    clearHireDate:
+                                                        hireDate == null,
                                                     image:
                                                         controller
                                                             .uploadedFilesPaths
@@ -996,6 +1133,31 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                                         attendanceRemote,
                                                     clearWorkHours:
                                                         clearWorkHoursOnSave,
+                                                    salary: parsedSalary,
+                                                    clearSalary:
+                                                        parsedSalary == null,
+                                                    jobTitle: jobTitle.isEmpty
+                                                        ? null
+                                                        : jobTitle,
+                                                    clearJobTitle:
+                                                        jobTitle.isEmpty,
+                                                    branchId: selectedBranchId,
+                                                    clearBranchId:
+                                                        selectedBranchId ==
+                                                            null ||
+                                                        selectedBranchId!
+                                                            .isEmpty,
+                                                    bankName: bankName.isEmpty
+                                                        ? null
+                                                        : bankName,
+                                                    clearBankName:
+                                                        bankName.isEmpty,
+                                                    bankAccountNumber:
+                                                        bankAccount.isEmpty
+                                                            ? null
+                                                            : bankAccount,
+                                                    clearBankAccountNumber:
+                                                        bankAccount.isEmpty,
                                                   ),
                                                   newPassword:
                                                       !canEditCredentials ||

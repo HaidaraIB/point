@@ -211,7 +211,7 @@ class _EmployeeAttendanceConfigFieldsState
             decoration: BoxDecoration(
               color: context.appTheme.cardSurface,
               borderRadius: BorderRadius.circular(5),
-              border: Border.all(color: Colors.grey.shade300, width: 1.2),
+              border: Border.all(color: context.appTheme.border, width: 1.2),
             ),
             child: Row(
               children: [
@@ -264,7 +264,7 @@ class _EmployeeAttendanceConfigFieldsState
               decoration: BoxDecoration(
               color: context.appTheme.cardSurface,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade300),
+                border: Border.all(color: context.appTheme.border),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -276,7 +276,7 @@ class _EmployeeAttendanceConfigFieldsState
                     height: 42,
                     fillColor: context.appTheme.pageBackground,
                     borderRadius: 5,
-                    borderColor: Colors.grey.shade300,
+                    borderColor: context.appTheme.border,
                   ),
                   const SizedBox(height: 12),
                   Responsive(
@@ -289,7 +289,7 @@ class _EmployeeAttendanceConfigFieldsState
                           height: 42,
                           fillColor: context.appTheme.pageBackground,
                           borderRadius: 5,
-                          borderColor: Colors.grey.shade300,
+                          borderColor: context.appTheme.border,
                           textInputType: const TextInputType.numberWithOptions(
                             decimal: true,
                             signed: true,
@@ -311,7 +311,7 @@ class _EmployeeAttendanceConfigFieldsState
                           height: 42,
                           fillColor: context.appTheme.pageBackground,
                           borderRadius: 5,
-                          borderColor: Colors.grey.shade300,
+                          borderColor: context.appTheme.border,
                           textInputType: const TextInputType.numberWithOptions(
                             decimal: true,
                             signed: true,
@@ -337,7 +337,7 @@ class _EmployeeAttendanceConfigFieldsState
                             height: 42,
                             fillColor: context.appTheme.pageBackground,
                             borderRadius: 5,
-                            borderColor: Colors.grey.shade300,
+                            borderColor: context.appTheme.border,
                             textInputType: const TextInputType.numberWithOptions(
                               decimal: true,
                               signed: true,
@@ -361,7 +361,7 @@ class _EmployeeAttendanceConfigFieldsState
                             height: 42,
                             fillColor: context.appTheme.pageBackground,
                             borderRadius: 5,
-                            borderColor: Colors.grey.shade300,
+                            borderColor: context.appTheme.border,
                             textInputType: const TextInputType.numberWithOptions(
                               decimal: true,
                               signed: true,
@@ -388,7 +388,7 @@ class _EmployeeAttendanceConfigFieldsState
                     height: 42,
                     fillColor: context.appTheme.pageBackground,
                     borderRadius: 5,
-                    borderColor: Colors.grey.shade300,
+                    borderColor: context.appTheme.border,
                     textInputType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     validator: widget.attendanceRemote ? null : _validateRadius,

@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/EmployeeAttendanceLocation.dart';
 import 'package:point/Models/EmployeeModel.dart';
+import 'package:point/Models/Os/os_expense_constants.dart';
+import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
@@ -33,6 +35,11 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
   late final TextEditingController nameController;
   late final TextEditingController emailController;
   late final TextEditingController passwordController;
+  late final TextEditingController jobTitleController;
+  late final TextEditingController salaryController;
+  late final TextEditingController bankNameController;
+  late final TextEditingController bankAccountController;
+  late final TextEditingController hireDateController;
   late final TextEditingController branchLabelController;
   late final TextEditingController branchLatController;
   late final TextEditingController branchLngController;
@@ -41,6 +48,8 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
   bool obscurePassword = true;
   String selectedRole = "employee";
   List<String> selectedDepartments = [StorageKeys.departmentPromotion];
+  String? selectedBranchId;
+  DateTime? hireDate;
   TimeOfDay? workFrom;
   TimeOfDay? workTo;
   bool attendanceRemote = false;
@@ -66,6 +75,19 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
     nameController = TextEditingController(text: m?.name);
     emailController = TextEditingController(text: m?.email);
     passwordController = TextEditingController();
+    jobTitleController = TextEditingController(text: m?.jobTitle);
+    salaryController = TextEditingController(
+      text: m?.salary != null ? m!.salary!.toStringAsFixed(0) : '',
+    );
+    bankNameController = TextEditingController(text: m?.bankName);
+    bankAccountController = TextEditingController(text: m?.bankAccountNumber);
+    hireDateController = TextEditingController(
+      text: m?.hireDate == null
+          ? ''
+          : '${m!.hireDate!.year.toString().padLeft(4, '0')}-'
+              '${m.hireDate!.month.toString().padLeft(2, '0')}-'
+              '${m.hireDate!.day.toString().padLeft(2, '0')}',
+    );
     branchLabelController = TextEditingController();
     branchLatController = TextEditingController();
     branchLngController = TextEditingController();
@@ -84,6 +106,8 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
     attendanceRemote = m?.attendanceRemote ?? false;
     attendanceFlexibleHours = m?.attendanceFlexibleHours ?? false;
     selectedRole = m?.role ?? "employee";
+    selectedBranchId = m?.branchId;
+    hireDate = m?.hireDate;
     selectedDepartments = m == null
         ? <String>[StorageKeys.departmentPromotion]
         : (m.departments.isNotEmpty
@@ -100,6 +124,11 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
     nameController.dispose();
     emailController.dispose();
     passwordController.dispose();
+    jobTitleController.dispose();
+    salaryController.dispose();
+    bankNameController.dispose();
+    bankAccountController.dispose();
+    hireDateController.dispose();
     branchLabelController.dispose();
     branchLatController.dispose();
     branchLngController.dispose();
@@ -162,6 +191,12 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
         : null;
     final clearWorkHoursOnSave = selectedRole != 'employee' ||
         (workHoursOptional && workFrom == null && workTo == null);
+    final parsedSalary = double.tryParse(
+      salaryController.text.trim().replaceAll(',', ''),
+    );
+    final jobTitle = jobTitleController.text.trim();
+    final bankName = bankNameController.text.trim();
+    final bankAccount = bankAccountController.text.trim();
 
     if (model == null) {
       final success = await controller.addEmployee(
@@ -176,6 +211,7 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
           departments: departmentsToSave,
           status: 'active',
           createdAt: DateTime.now(),
+          hireDate: hireDate,
           image: controller.uploadedFilesPaths.isNotEmpty
               ? controller.uploadedFilesPaths.last
               : null,
@@ -187,6 +223,11 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
           attendanceFlexibleHours: selectedRole == 'employee' &&
               attendanceRemote &&
               attendanceFlexibleHours,
+          salary: parsedSalary,
+          jobTitle: jobTitle.isEmpty ? null : jobTitle,
+          branchId: selectedBranchId,
+          bankName: bankName.isEmpty ? null : bankName,
+          bankAccountNumber: bankAccount.isEmpty ? null : bankAccount,
         ),
       );
       if (!mounted) return;
@@ -203,6 +244,8 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
               : (model.email ?? ''),
           role: selectedRole,
           departments: departmentsToSave,
+          hireDate: hireDate,
+          clearHireDate: hireDate == null,
           image: controller.uploadedFilesPaths.isNotEmpty
               ? controller.uploadedFilesPaths.last
               : model.image,
@@ -217,6 +260,17 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
           clearAttendanceLocation:
               selectedRole != 'employee' || attendanceRemote,
           clearWorkHours: clearWorkHoursOnSave,
+          salary: parsedSalary,
+          clearSalary: parsedSalary == null,
+          jobTitle: jobTitle.isEmpty ? null : jobTitle,
+          clearJobTitle: jobTitle.isEmpty,
+          branchId: selectedBranchId,
+          clearBranchId:
+              selectedBranchId == null || selectedBranchId!.isEmpty,
+          bankName: bankName.isEmpty ? null : bankName,
+          clearBankName: bankName.isEmpty,
+          bankAccountNumber: bankAccount.isEmpty ? null : bankAccount,
+          clearBankAccountNumber: bankAccount.isEmpty,
         ),
         newPassword:
             !_canEditCredentials || passwordController.text.trim().isEmpty
@@ -406,6 +460,98 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                       validator: (list) =>
                           (list == null || list.isEmpty) ? ' ' : null,
                     ),
+                  ],
+                  const SizedBox(height: 16),
+                  InputText(
+                    labelText: AppLocaleKeys.employeesJobTitle.tr,
+                    hintText: AppLocaleKeys.employeesJobTitleHint.tr,
+                    height: 48,
+                    controller: jobTitleController,
+                    borderRadius: 8,
+                  ),
+                  const SizedBox(height: 16),
+                  InputText(
+                    labelText: AppLocaleKeys.employeesSalary.tr,
+                    hintText: AppLocaleKeys.employeesSalaryHint.tr,
+                    height: 48,
+                    controller: salaryController,
+                    textInputType: TextInputType.number,
+                    borderRadius: 8,
+                  ),
+                  const SizedBox(height: 16),
+                  DynamicDropdown<String>(
+                    items: [
+                      DropdownMenuItem(
+                        value: '',
+                        child: Text(AppLocaleKeys.employeesBranchUnset.tr),
+                      ),
+                      ...osExpenseBranches.map(
+                        (b) => DropdownMenuItem(
+                          value: b.id,
+                          child: Text(b.nameKey.tr),
+                        ),
+                      ),
+                    ],
+                    value: selectedBranchId ?? '',
+                    label: AppLocaleKeys.employeesBranch.tr,
+                    borderRadius: 8,
+                    height: 48,
+                    onChanged: (value) {
+                      setState(() {
+                        selectedBranchId =
+                            (value == null || value.isEmpty) ? null : value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  InputText(
+                    labelText: AppLocaleKeys.employeesHireDate.tr,
+                    hintText: AppLocaleKeys.employeesHireDateHint.tr,
+                    height: 48,
+                    controller: hireDateController,
+                    readOnly: true,
+                    borderRadius: 8,
+                    suffixIcon: Icon(
+                      Icons.calendar_today_outlined,
+                      size: 18,
+                      color: appTheme.mutedText,
+                    ),
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: hireDate ?? DateTime.now(),
+                        firstDate: DateTime(1990),
+                        lastDate:
+                            DateTime.now().add(const Duration(days: 365)),
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          hireDate = picked;
+                          hireDateController.text =
+                              '${picked.year.toString().padLeft(4, '0')}-'
+                              '${picked.month.toString().padLeft(2, '0')}-'
+                              '${picked.day.toString().padLeft(2, '0')}';
+                        });
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  InputText(
+                    labelText: AppLocaleKeys.employeesBankName.tr,
+                    hintText: AppLocaleKeys.employeesBankNameHint.tr,
+                    height: 48,
+                    controller: bankNameController,
+                    borderRadius: 8,
+                  ),
+                  const SizedBox(height: 16),
+                  InputText(
+                    labelText: AppLocaleKeys.employeesBankAccount.tr,
+                    hintText: AppLocaleKeys.employeesBankAccountHint.tr,
+                    height: 48,
+                    controller: bankAccountController,
+                    borderRadius: 8,
+                  ),
+                  if (selectedRole == 'employee') ...[
                     const SizedBox(height: 16),
                     EmployeeAttendanceConfigFields(
                       labelController: branchLabelController,

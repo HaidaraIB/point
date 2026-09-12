@@ -91,6 +91,12 @@ class NotificationDestinationParser {
         t.startsWith('manager_attendance_')) {
       return NotificationDestinationKind.attendance;
     }
+    if (t == 'employee_payslip_ready' ||
+        t == 'employee_payslip_paid' ||
+        t == 'employee_advance_recorded' ||
+        t == 'client_invoice_paid') {
+      return NotificationDestinationKind.home;
+    }
     if (t.startsWith('publish_')) return NotificationDestinationKind.publish;
     if (t.startsWith('client_') ||
         t.startsWith('manager_content_') ||

@@ -321,6 +321,8 @@ class _AttendancePageState extends State<AttendancePage> {
         approved: approved,
         reviewerEmployeeId: admin!.id!,
         reviewerName: admin.name ?? '',
+        employeeId: record.employeeId,
+        action: record.action,
       );
       FunHelper.showSnackbar(
         'common.confirm'.tr,

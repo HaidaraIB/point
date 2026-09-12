@@ -463,6 +463,9 @@ class EmployeeTaskCard extends StatelessWidget {
                               remaining == 'tasks.deadline_expired'.tr;
                           final isDark =
                               Theme.of(ctx).brightness == Brightness.dark;
+                          final appTheme = ctx.appTheme;
+                          final errorColor =
+                              Theme.of(ctx).colorScheme.error;
                           return Container(
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(
@@ -472,11 +475,11 @@ class EmployeeTaskCard extends StatelessWidget {
                             decoration: BoxDecoration(
                               color:
                                   expired
-                                      ? Colors.red.withValues(
-                                        alpha: isDark ? 0.14 : 0.08,
+                                      ? errorColor.withValues(
+                                        alpha: isDark ? 0.16 : 0.08,
                                       )
                                       : (isDark
-                                          ? AppColors.primary.withValues(
+                                          ? appTheme.accentText.withValues(
                                             alpha: 0.12,
                                           )
                                           : const Color(0xFFEFF6FF)),
@@ -484,11 +487,9 @@ class EmployeeTaskCard extends StatelessWidget {
                               border: Border.all(
                                 color:
                                     expired
-                                        ? Colors.red.withValues(alpha: 0.35)
+                                        ? errorColor.withValues(alpha: 0.4)
                                         : (isDark
-                                            ? AppColors.primary.withValues(
-                                              alpha: 0.3,
-                                            )
+                                            ? appTheme.accentBorder
                                             : const Color(0xFFBFDBFE)),
                               ),
                             ),
@@ -502,7 +503,7 @@ class EmployeeTaskCard extends StatelessWidget {
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w800,
-                                    color: ctx.appTheme.mutedText,
+                                    color: appTheme.secondaryText,
                                   ),
                                 ),
                                 const SizedBox(height: 4),
@@ -517,8 +518,8 @@ class EmployeeTaskCard extends StatelessWidget {
                                     fontWeight: FontWeight.w800,
                                     color:
                                         expired
-                                            ? Colors.red.shade700
-                                            : AppColors.primary,
+                                            ? errorColor
+                                            : appTheme.accentText,
                                   ),
                                 ),
                               ],

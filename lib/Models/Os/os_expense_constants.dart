@@ -13,6 +13,7 @@ class OsExpenseCategories {
     AppLocaleKeys.osExpensesCatRent,
     AppLocaleKeys.osExpensesCatMarketing,
     AppLocaleKeys.osExpensesCatOffice,
+    AppLocaleKeys.osExpensesCatPayroll,
     AppLocaleKeys.osExpensesCatOther,
   ];
 }

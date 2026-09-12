@@ -12,7 +12,11 @@ class AppTheme {
   static ThemeData dark() => _build(Brightness.dark, AppThemeExtension.dark);
 
   static ThemeData _build(Brightness brightness, AppThemeExtension ext) {
-    final base = ThemeData(brightness: brightness, useMaterial3: true);
+    final base = ThemeData(
+      brightness: brightness,
+      useMaterial3: true,
+      fontFamily: GoogleFonts.almarai().fontFamily,
+    );
     final colorScheme = ColorScheme.fromSeed(
       seedColor: AppColors.primary,
       brightness: brightness,

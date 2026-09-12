@@ -120,7 +120,6 @@ Future<void> showOsInvoicePaymentLinkDialog(
                               link,
                               style: TextStyle(
                                 fontSize: 12,
-                                fontFamily: 'monospace',
                                 color: theme.primaryText,
                               ),
                             ),

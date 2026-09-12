@@ -487,7 +487,8 @@ class FunHelper {
     return Color(int.parse("0x$hexCode"));
   }
 
-  static showConfirmDailog(
+  /// Shared confirm dialog. Returns `true` if the user confirmed.
+  static Future<bool?> showConfirmDailog(
     BuildContext context, {
     required FutureOr<void> Function() onTap,
     String? title,
@@ -501,7 +502,7 @@ class FunHelper {
     final resolvedMessage = message ?? AppLocaleKeys.funConfirmMessage.tr;
     final resolvedConfirm = confirmText ?? AppLocaleKeys.commonConfirm.tr;
     final dialogWidth = Get.width > 900 ? 420.0 : Get.width * 0.82;
-    return showDialog<String>(
+    return showDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
@@ -581,7 +582,7 @@ class FunHelper {
                             height: 56,
                             enabled: !loading,
                             onPressed: () {
-                              Get.back();
+                              Navigator.pop(dialogContext, false);
                             },
                           ),
                         ),
@@ -603,7 +604,9 @@ class FunHelper {
                               setState(() => loading = true);
                               try {
                                 await Future.sync(onTap);
-                                if (dialogContext.mounted) Get.back();
+                                if (dialogContext.mounted) {
+                                  Navigator.pop(dialogContext, true);
+                                }
                               } catch (_) {
                                 if (dialogContext.mounted) {
                                   setState(() => loading = false);
@@ -622,6 +625,25 @@ class FunHelper {
         );
       },
     );
+  }
+
+  /// Delete confirm: same shared dialog, red confirm button.
+  static Future<bool> showDeleteConfirmDialog(
+    BuildContext context, {
+    required FutureOr<void> Function() onTap,
+    String? title,
+    String? message,
+    String? confirmText,
+  }) async {
+    final result = await showConfirmDailog(
+      context,
+      title: title ?? AppLocaleKeys.osCommonDelete.tr,
+      message: message ?? AppLocaleKeys.funConfirmMessage.tr,
+      confirmText: confirmText ?? 'delete'.tr,
+      confirmColor: Colors.red,
+      onTap: onTap,
+    );
+    return result == true;
   }
 
   static String getFileNameFromUrl(String url) {

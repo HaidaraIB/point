@@ -48,6 +48,7 @@ function renderEmailShell(args: {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width">
   <title>${safeTitle}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&display=swap" rel="stylesheet">
 
   <!-- Preheader (hidden preview text) -->
   <style>
@@ -64,7 +65,7 @@ function renderEmailShell(args: {
   </style>
 </head>
 
-<body style="margin:0;padding:0;background-color:#F2F3F5;font-family:Segoe UI, Tahoma, Geneva, Verdana, sans-serif;">
+<body style="margin:0;padding:0;background-color:#F2F3F5;font-family:'Almarai', Tahoma, Geneva, Verdana, sans-serif;">
 
   <!-- Preheader -->
   <div class="preheader">

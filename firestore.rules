@@ -1261,6 +1261,27 @@ service cloud.firestore {
         if isSignedIn() && hasAuthRole() && isAdmin();
     }
 
+    // Point OS payroll (admin-only)
+    match /os_payroll_runs/{runId} {
+      allow read, create, update, delete:
+        if isSignedIn() && hasAuthRole() && isAdmin();
+    }
+
+    match /os_payslips/{payslipId} {
+      allow read, create, update, delete:
+        if isSignedIn() && hasAuthRole() && isAdmin();
+    }
+
+    match /os_employee_contracts/{contractId} {
+      allow read, create, update, delete:
+        if isSignedIn() && hasAuthRole() && isAdmin();
+    }
+
+    match /os_employee_advances/{advanceId} {
+      allow read, create, update, delete:
+        if isSignedIn() && hasAuthRole() && isAdmin();
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

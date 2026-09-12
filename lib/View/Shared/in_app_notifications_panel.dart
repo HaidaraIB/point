@@ -77,14 +77,13 @@ class _InAppNotificationsPanelState extends State<InAppNotificationsPanel> {
     BuildContext context,
     List<String> ids,
   ) async {
-    await FunHelper.showConfirmDailog(
+    await FunHelper.showDeleteConfirmDialog(
       context,
       title: 'notifications.confirm_delete_bulk_title'.tr,
       message: 'notifications.confirm_delete_bulk_message'.trParams({
         'count': '${ids.length}',
       }),
       confirmText: 'notifications.action.delete'.tr,
-      confirmColor: Colors.red,
       onTap: () async {
         await FirestoreServices.deleteInAppNotifications(ids);
         if (!mounted) return;
@@ -97,12 +96,11 @@ class _InAppNotificationsPanelState extends State<InAppNotificationsPanel> {
   }
 
   Future<void> _confirmDeleteSingle(BuildContext context, String id) async {
-    await FunHelper.showConfirmDailog(
+    await FunHelper.showDeleteConfirmDialog(
       context,
       title: 'notifications.confirm_delete_title'.tr,
       message: 'notifications.confirm_delete_message'.tr,
       confirmText: 'notifications.action.delete'.tr,
-      confirmColor: Colors.red,
       onTap: () async {
         await FirestoreServices.deleteInAppNotifications([id]);
       },

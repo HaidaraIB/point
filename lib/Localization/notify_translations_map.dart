@@ -116,6 +116,35 @@ const Map<String, String> notifyTranslationsEn = {
   'notify.mgr.attendance_submitted.title': 'Attendance submitted',
   'notify.mgr.attendance_submitted.body': '@name — @action (pending approval)',
   'notify.mgr.attendance_submitted.action': 'Open attendance log to review.',
+  'notify.emp.attendance_reviewed.title': 'Attendance review update',
+  'notify.emp.attendance_reviewed.body_approved':
+      'Your @action was approved.',
+  'notify.emp.attendance_reviewed.body_absent':
+      'Your @action was marked as absent.',
+  'notify.emp.attendance_reviewed.action': 'Open attendance for details.',
+  'notify.emp.payslip_ready.title': 'Payslip ready',
+  'notify.emp.payslip_ready.body':
+      'Your salary slip for @period is ready (net @amount).',
+  'notify.emp.payslip_ready.action': 'Check with HR if you have questions.',
+  'notify.emp.payslip_paid.title': 'Salary transferred',
+  'notify.emp.payslip_paid.body':
+      'Your salary for @period was transferred (net @amount).',
+  'notify.emp.payslip_paid.body_with_advance':
+      'Your salary for @period was transferred (net @amount). Advance deduction: @advance.',
+  'notify.emp.payslip_paid.action': 'Keep this for your records.',
+  'notify.emp.advance_recorded.title': 'Salary advance recorded',
+  'notify.emp.advance_recorded.body':
+      'An advance of @amount was recorded against your salary.',
+  'notify.emp.advance_recorded.action': 'It will be deducted in upcoming payroll.',
+  'notify.client.invoice_paid.title': 'Payment received',
+  'notify.client.invoice_paid.body':
+      'We received your payment for invoice @ref (@amount).',
+  'notify.client.invoice_paid.action': 'Thank you for your payment.',
+  'notify.email.period': 'Period',
+  'notify.email.amount': 'Amount',
+  'notify.email.invoice': 'Invoice',
+  'notify.email.advance': 'Advance deduction',
+  'notify.email.outcome': 'Outcome',
   'notify.mgr.completed.title':
       'Employee completed the task — please review and approve',
   'notify.mgr.completed.body': 'Employee: @name — Task: @title',
@@ -379,6 +408,36 @@ const Map<String, String> notifyTranslationsAr = {
   'notify.mgr.attendance_submitted.title': 'تم تسجيل حضور',
   'notify.mgr.attendance_submitted.body': '@name — @action (بانتظار الموافقة)',
   'notify.mgr.attendance_submitted.action': 'افتح سجل الحضور للمراجعة.',
+  'notify.emp.attendance_reviewed.title': 'تحديث مراجعة الحضور',
+  'notify.emp.attendance_reviewed.body_approved':
+      'تمت الموافقة على @action.',
+  'notify.emp.attendance_reviewed.body_absent':
+      'تم تسجيل @action كغياب.',
+  'notify.emp.attendance_reviewed.action': 'افتح سجل الحضور للتفاصيل.',
+  'notify.emp.payslip_ready.title': 'قسيمة الراتب جاهزة',
+  'notify.emp.payslip_ready.body':
+      'قسيمة راتبك لشهر @period جاهزة (الصافي @amount).',
+  'notify.emp.payslip_ready.action': 'راجع الموارد البشرية إن كان لديك استفسار.',
+  'notify.emp.payslip_paid.title': 'تم تحويل الراتب',
+  'notify.emp.payslip_paid.body':
+      'تم تحويل راتبك لشهر @period (الصافي @amount).',
+  'notify.emp.payslip_paid.body_with_advance':
+      'تم تحويل راتبك لشهر @period (الصافي @amount). خصم السلفة: @advance.',
+  'notify.emp.payslip_paid.action': 'احتفظ بالإشعار لسجلاتك.',
+  'notify.emp.advance_recorded.title': 'تم تسجيل سلفة',
+  'notify.emp.advance_recorded.body':
+      'تم تسجيل سلفة بمبلغ @amount على راتبك.',
+  'notify.emp.advance_recorded.action':
+      'سيتم خصمها من الرواتب القادمة.',
+  'notify.client.invoice_paid.title': 'تم استلام الدفعة',
+  'notify.client.invoice_paid.body':
+      'استلمنا دفعتك لفاتورة @ref (@amount).',
+  'notify.client.invoice_paid.action': 'شكراً لدفعتك.',
+  'notify.email.period': 'الفترة',
+  'notify.email.amount': 'المبلغ',
+  'notify.email.invoice': 'الفاتورة',
+  'notify.email.advance': 'خصم السلفة',
+  'notify.email.outcome': 'النتيجة',
   'notify.mgr.completed.title':
       'قام الموظف بإنجاز المهمة يرجى الاطلاع والموافقة',
   'notify.mgr.completed.body': 'الموظف: @name — المهمة: @title',
