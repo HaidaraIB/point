@@ -36,6 +36,10 @@ import 'package:point/View/Mobile/force_update_page.dart';
 import 'package:point/View/AdminSettings/AdminSettingsPage.dart';
 import 'package:point/View/Attendance/AttendancePage.dart';
 import 'package:point/View/Attendance/AttendanceReportsPage.dart';
+import 'package:point/View/Os/OsDashboardPage.dart';
+import 'package:point/View/Os/Finance/OsFinancePage.dart';
+import 'package:point/View/Os/Invoices/OsInvoicesPage.dart';
+import 'package:point/View/Os/Expenses/OsExpensesPage.dart';
 import 'package:point/View/Statistics/Statistics.dart';
 import 'package:point/View/Tasks/Tasks.dart';
 
@@ -221,6 +225,26 @@ class AppRouting {
         GetPage(
           name: '/adminSettings',
           page: () => const AdminSettingsPage(),
+          middlewares: [AuthMiddleware()],
+        ),
+        GetPage(
+          name: '/os',
+          page: () => const OsDashboardPage(),
+          middlewares: [AuthMiddleware()],
+        ),
+        GetPage(
+          name: '/os/invoices',
+          page: () => const OsInvoicesPage(),
+          middlewares: [AuthMiddleware()],
+        ),
+        GetPage(
+          name: '/os/finance',
+          page: () => const OsFinancePage(),
+          middlewares: [AuthMiddleware()],
+        ),
+        GetPage(
+          name: '/os/expenses',
+          page: () => const OsExpensesPage(),
           middlewares: [AuthMiddleware()],
         ),
         GetPage(

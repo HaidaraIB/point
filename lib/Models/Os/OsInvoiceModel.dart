@@ -1,0 +1,176 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:point/Models/Os/os_finance_enums.dart';
+
+class OsInvoiceItem {
+  final String id;
+  final String description;
+  final double quantity;
+  final double unitPrice;
+  final double total;
+
+  const OsInvoiceItem({
+    required this.id,
+    required this.description,
+    required this.quantity,
+    required this.unitPrice,
+    required this.total,
+  });
+
+  factory OsInvoiceItem.fromJson(Map<String, dynamic> json) {
+    final qty = (json['quantity'] as num?)?.toDouble() ?? 1;
+    final price = (json['unitPrice'] as num?)?.toDouble() ?? 0;
+    return OsInvoiceItem(
+      id: json['id'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      quantity: qty,
+      unitPrice: price,
+      total: (json['total'] as num?)?.toDouble() ?? (qty * price),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'description': description,
+        'quantity': quantity,
+        'unitPrice': unitPrice,
+        'total': total,
+      };
+
+  OsInvoiceItem copyWith({
+    String? id,
+    String? description,
+    double? quantity,
+    double? unitPrice,
+    double? total,
+  }) {
+    return OsInvoiceItem(
+      id: id ?? this.id,
+      description: description ?? this.description,
+      quantity: quantity ?? this.quantity,
+      unitPrice: unitPrice ?? this.unitPrice,
+      total: total ?? this.total,
+    );
+  }
+}
+
+class OsInvoiceModel {
+  final String? id;
+  /// Human-readable ref like `INV-001` (point_os style).
+  final String? displayNumber;
+  final String clientId;
+  final String clientName;
+  final String date;
+  final String dueDate;
+  final String status;
+  final double amount;
+  final double vat;
+  final double total;
+  final List<OsInvoiceItem> items;
+  final String? bankAccountId;
+  final DateTime createdAt;
+
+  const OsInvoiceModel({
+    this.id,
+    this.displayNumber,
+    required this.clientId,
+    required this.clientName,
+    required this.date,
+    required this.dueDate,
+    this.status = OsInvoiceStatus.sent,
+    required this.amount,
+    required this.vat,
+    required this.total,
+    this.items = const [],
+    this.bankAccountId,
+    required this.createdAt,
+  });
+
+  bool get isPaid => status == OsInvoiceStatus.paid;
+
+  static DateTime? _parseDateTime(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    if (value is Timestamp) return value.toDate();
+    return null;
+  }
+
+  factory OsInvoiceModel.fromJson(Map<String, dynamic> json, String docId) {
+    final rawItems = json['items'];
+    final items = <OsInvoiceItem>[];
+    if (rawItems is List) {
+      for (final e in rawItems) {
+        if (e is Map<String, dynamic>) {
+          items.add(OsInvoiceItem.fromJson(e));
+        } else if (e is Map) {
+          items.add(OsInvoiceItem.fromJson(Map<String, dynamic>.from(e)));
+        }
+      }
+    }
+
+    return OsInvoiceModel(
+      id: json['id'] as String? ?? docId,
+      displayNumber: json['displayNumber'] as String?,
+      clientId: json['clientId'] as String? ?? '',
+      clientName: json['clientName'] as String? ?? '',
+      date: json['date'] as String? ?? '',
+      dueDate: json['dueDate'] as String? ?? '',
+      status: json['status'] as String? ?? OsInvoiceStatus.sent,
+      amount: (json['amount'] as num?)?.toDouble() ?? 0,
+      vat: (json['vat'] as num?)?.toDouble() ?? 0,
+      total: (json['total'] as num?)?.toDouble() ?? 0,
+      items: items,
+      bankAccountId: json['bankAccountId'] as String?,
+      createdAt: _parseDateTime(json['createdAt']) ?? DateTime.now(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        if (displayNumber != null) 'displayNumber': displayNumber,
+        'clientId': clientId,
+        'clientName': clientName,
+        'date': date,
+        'dueDate': dueDate,
+        'status': status,
+        'amount': amount,
+        'vat': vat,
+        'total': total,
+        'items': items.map((e) => e.toJson()).toList(),
+        'bankAccountId': bankAccountId,
+        'createdAt': Timestamp.fromDate(createdAt),
+      };
+
+  OsInvoiceModel copyWith({
+    String? id,
+    String? displayNumber,
+    String? clientId,
+    String? clientName,
+    String? date,
+    String? dueDate,
+    String? status,
+    double? amount,
+    double? vat,
+    double? total,
+    List<OsInvoiceItem>? items,
+    String? bankAccountId,
+    bool clearBankAccountId = false,
+    DateTime? createdAt,
+  }) {
+    return OsInvoiceModel(
+      id: id ?? this.id,
+      displayNumber: displayNumber ?? this.displayNumber,
+      clientId: clientId ?? this.clientId,
+      clientName: clientName ?? this.clientName,
+      date: date ?? this.date,
+      dueDate: dueDate ?? this.dueDate,
+      status: status ?? this.status,
+      amount: amount ?? this.amount,
+      vat: vat ?? this.vat,
+      total: total ?? this.total,
+      items: items ?? this.items,
+      bankAccountId:
+          clearBankAccountId ? null : (bankAccountId ?? this.bankAccountId),
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+}

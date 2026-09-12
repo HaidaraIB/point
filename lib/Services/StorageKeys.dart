@@ -330,6 +330,14 @@ class StorageKeys {
   static String prefsTaskFiltersKey(String employeeId) =>
       'point_task_filters_v1_${employeeId.trim()}';
 
+  /// Last selected OS Finance tab (`overview` | `accounts` | `vouchers`).
+  static const prefsOsFinanceTabKey = 'point_os_finance_tab_v1';
+
+  /// OS electronic stamp (mirrors point_os localStorage).
+  static const prefsOsStampText = 'point_os_stamp_text_v1';
+  static const prefsOsStampColor = 'point_os_stamp_color_v1';
+  static const prefsOsStampEnabled = 'point_os_stamp_enabled_v1';
+
   static String prefsHistoryTaskFiltersKey(String employeeId) =>
       'point_history_task_filters_v1_${employeeId.trim()}';
 

@@ -1240,6 +1240,27 @@ service cloud.firestore {
       allow update: if false;
     }
 
+    // Point OS finance (admin-only)
+    match /os_invoices/{invoiceId} {
+      allow read, create, update, delete:
+        if isSignedIn() && hasAuthRole() && isAdmin();
+    }
+
+    match /os_bank_accounts/{accountId} {
+      allow read, create, update, delete:
+        if isSignedIn() && hasAuthRole() && isAdmin();
+    }
+
+    match /os_vouchers/{voucherId} {
+      allow read, create, update, delete:
+        if isSignedIn() && hasAuthRole() && isAdmin();
+    }
+
+    match /os_expenses/{expenseId} {
+      allow read, create, update, delete:
+        if isSignedIn() && hasAuthRole() && isAdmin();
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

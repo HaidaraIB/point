@@ -300,6 +300,22 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                 // onTap: () => Get.toNamed('/users'),
                               ),
                               _buildTile(
+                                selectedTab: 14,
+                                icon: 'assets/images/nav_statistics.png',
+                                text: AppLocaleKeys.osSidebar.tr,
+                                iconData: Icons.account_balance_outlined,
+                                onTap: () {
+                                  setState(() {
+                                    _selectedTab = 14;
+                                  });
+                                  WidgetsBinding.instance.addPostFrameCallback((
+                                    _,
+                                  ) {
+                                    Get.toNamed('/os');
+                                  });
+                                },
+                              ),
+                              _buildTile(
                                 selectedTab: 3,
                                 icon: 'assets/images/nav_content.png',
                                 text: "content".tr,
