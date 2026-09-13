@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Utils/AppFonts.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/os_module_nav.dart';
 
@@ -36,49 +37,98 @@ class OsPageHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
+    final width = MediaQuery.sizeOf(context).width;
+    final stackActions = width < 900 && (actions?.isNotEmpty ?? false);
+
+    final titleBlock = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: Appfonts.text(
+            fontSize: 26,
+            fontWeight: FontWeight.w800,
+            color: theme.primaryText,
+          ),
+        ),
+        if (subtitle != null) ...[
+          const SizedBox(height: 2),
+          Text(
+            subtitle!,
+            style: Appfonts.text(
+              fontSize: 14,
+              color: theme.secondaryText,
+            ),
+          ),
+        ],
+      ],
+    );
+
+    final actionsRow = actions == null
+        ? null
+        : Wrap(
+            // End = far side (left in RTL, right in LTR).
+            alignment: WrapAlignment.end,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 8,
+            runSpacing: 8,
+            children: actions!,
+          );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(8, 12, 16, 8),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              IconButton(
-                tooltip: AppLocaleKeys.osBackToHub.tr,
-                onPressed: _goBackToOs,
-                // arrow_back mirrors automatically in RTL (points right in Arabic).
-                icon: Icon(Icons.arrow_back, size: 26, color: theme.primaryText),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          child: stackActions
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
-                        color: theme.primaryText,
-                      ),
-                    ),
-                    if (subtitle != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        subtitle!,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: theme.secondaryText,
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          tooltip: AppLocaleKeys.osBackToHub.tr,
+                          onPressed: _goBackToOs,
+                          icon: Icon(
+                            Icons.arrow_back,
+                            size: 26,
+                            color: theme.primaryText,
+                          ),
                         ),
+                        const SizedBox(width: 8),
+                        Expanded(child: titleBlock),
+                      ],
+                    ),
+                    if (actionsRow != null) ...[
+                      const SizedBox(height: 10),
+                      Align(
+                        alignment: AlignmentDirectional.centerEnd,
+                        child: actionsRow,
                       ),
                     ],
                   ],
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      tooltip: AppLocaleKeys.osBackToHub.tr,
+                      onPressed: _goBackToOs,
+                      icon: Icon(
+                        Icons.arrow_back,
+                        size: 26,
+                        color: theme.primaryText,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(child: titleBlock),
+                    if (actionsRow != null) ...[
+                      const SizedBox(width: 16),
+                      actionsRow,
+                    ],
+                  ],
                 ),
-              ),
-              if (actions != null) ...actions!,
-            ],
-          ),
         ),
         if (showModuleNav) OsModuleNav(currentRoute: currentRoute),
       ],

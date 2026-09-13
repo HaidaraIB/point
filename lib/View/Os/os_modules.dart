@@ -39,6 +39,7 @@ const osModules = <OsModule>[
   OsModule(
     titleKey: AppLocaleKeys.osModuleQuotations,
     icon: Icons.request_quote_outlined,
+    route: '/os/quotations',
   ),
   OsModule(
     titleKey: AppLocaleKeys.osModuleFinance,

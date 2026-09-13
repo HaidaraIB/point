@@ -97,6 +97,8 @@ class OsFilterChips extends StatelessWidget {
             child: ChoiceChip(
               label: Text(opt.label),
               selected: value == opt.value,
+              visualDensity: VisualDensity.standard,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               onSelected: (_) => onChanged(opt.value),
             ),
           ),
@@ -143,22 +145,28 @@ class OsListFilterBar extends StatelessWidget {
     final topRow = !hasTopRow
         ? null
         : Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
                 child: Align(
                   alignment: AlignmentDirectional.centerStart,
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
+                    clipBehavior: Clip.none,
+                    padding: const EdgeInsets.symmetric(vertical: 4),
                     child: topControls,
                   ),
                 ),
               ),
               if (actions.isNotEmpty) ...[
                 const SizedBox(width: 12),
-                for (var i = 0; i < actions.length; i++) ...[
-                  if (i > 0) const SizedBox(width: 8),
-                  actions[i],
-                ],
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.end,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: actions,
+                ),
               ],
             ],
           );

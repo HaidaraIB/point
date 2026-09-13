@@ -13,6 +13,29 @@ class OsInvoiceStatus {
   static const editable = [draft, sent, overdue];
 }
 
+/// Quotation approval statuses (point_os Quotations).
+class OsQuotationStatus {
+  OsQuotationStatus._();
+
+  static const sent = 'SENT';
+  static const approved = 'APPROVED';
+  static const rejected = 'REJECTED';
+
+  static const all = [sent, approved, rejected];
+
+  /// Cycle used by the card icon toggle in point_os.
+  static String next(String current) {
+    switch (current) {
+      case approved:
+        return rejected;
+      case rejected:
+        return sent;
+      default:
+        return approved;
+    }
+  }
+}
+
 class OsBankAccountType {
   OsBankAccountType._();
 

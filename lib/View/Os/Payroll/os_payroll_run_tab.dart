@@ -11,6 +11,7 @@ import 'package:point/Services/firestore/firestore_os_payroll_api.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Payroll/os_payroll_adjust_dialog.dart';
+import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_list_filters.dart';
@@ -262,19 +263,8 @@ class _OsPayrollRunTabState extends State<OsPayrollRunTab> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           OsListFilterBar(
-            leading: OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: theme.accentText,
-                backgroundColor: theme.cardSurface,
-                side: BorderSide(color: theme.border),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 12,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
+            leading: FilledButton.icon(
+              style: OsButtonStyles.secondaryCompact(theme),
               onPressed: () => _pickPeriod(context, payroll, period),
               icon: const Icon(Icons.calendar_month_outlined, size: 18),
               label: Text(
@@ -570,54 +560,21 @@ class _OsPayrollRunTabState extends State<OsPayrollRunTab> {
                         ],
                       ),
                     )
-                  : Row(
-                      mainAxisSize: MainAxisSize.min,
+                  : Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      alignment: WrapAlignment.end,
                       children: [
-                        if (canEdit) ...[
-                          OutlinedButton(
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: theme.primaryText,
-                              side: BorderSide(color: theme.border),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                              textStyle: Theme.of(context)
-                                  .textTheme
-                                  .labelLarge
-                                  ?.copyWith(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
+                        if (canEdit)
+                          FilledButton(
+                            style: OsButtonStyles.secondaryCompact(theme),
                             onPressed: () =>
                                 showOsPayrollAdjustDialog(context, emp),
                             child: Text(AppLocaleKeys.osPayrollAdjustEdit.tr),
                           ),
-                          const SizedBox(width: 8),
-                        ],
                         FilledButton(
-                          style: FilledButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            textStyle: Theme.of(context)
-                                .textTheme
-                                .labelLarge
-                                ?.copyWith(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
+                          style: OsButtonStyles.primaryCompact(),
                           onPressed: payroll.isLoading.value
                               ? null
                               : () => _pay(context, payroll, emp),

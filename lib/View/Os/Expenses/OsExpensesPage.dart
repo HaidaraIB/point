@@ -13,6 +13,7 @@ import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Mobile/Shared/VideoCart.dart';
 import 'package:point/View/Os/Expenses/os_expense_form_dialog.dart';
 import 'package:point/View/Os/Expenses/os_expense_print.dart';
+import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_page_header.dart';
 import 'package:point/View/Os/os_snackbar.dart';
@@ -259,10 +260,12 @@ class _OsExpensesPageState extends State<OsExpensesPage> {
                             ],
                           );
                           final actions = Wrap(
-                            spacing: 10,
+                            spacing: 8,
                             runSpacing: 8,
+                            crossAxisAlignment: WrapCrossAlignment.center,
+                            alignment: WrapAlignment.end,
                             children: [
-                              OutlinedButton.icon(
+                              FilledButton.icon(
                                 onPressed: list.isEmpty
                                     ? null
                                     : () => printOsExpensesSheet(
@@ -273,33 +276,14 @@ class _OsExpensesPageState extends State<OsExpensesPage> {
                                         ),
                                 icon: const Icon(Icons.print_outlined, size: 16),
                                 label: Text(AppLocaleKeys.osExpensesPrint.tr),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: theme.primaryText,
-                                  side: BorderSide(color: theme.border),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 12,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
+                                style: OsButtonStyles.secondaryCompact(theme),
                               ),
                               FilledButton.icon(
                                 onPressed: () =>
                                     showOsExpenseFormDialog(context),
                                 icon: const Icon(Icons.add, size: 18),
                                 label: Text(AppLocaleKeys.osExpensesAdd.tr),
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: AppColors.primary,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 12,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
+                                style: OsButtonStyles.primaryCompact(),
                               ),
                             ],
                           );
@@ -314,9 +298,16 @@ class _OsExpensesPageState extends State<OsExpensesPage> {
                             );
                           }
                           return Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Expanded(child: titleBlock),
-                              actions,
+                              const SizedBox(width: 12),
+                              Flexible(
+                                child: Align(
+                                  alignment: AlignmentDirectional.centerEnd,
+                                  child: actions,
+                                ),
+                              ),
                             ],
                           );
                         },
@@ -737,9 +728,7 @@ class _OsExpensesPageState extends State<OsExpensesPage> {
                             FilledButton(
                               onPressed: () =>
                                   showOsExpenseFormDialog(context),
-                              style: FilledButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                              ),
+                              style: OsButtonStyles.primaryCompact(),
                               child: Text(AppLocaleKeys.osExpensesEmptyCta.tr),
                             ),
                           ],

@@ -3,6 +3,7 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsBankAccountModel.dart';
 import 'package:point/Models/Os/OsDailyExpenseModel.dart';
 import 'package:point/Models/Os/OsInvoiceModel.dart';
+import 'package:point/Models/Os/OsQuotationModel.dart';
 import 'package:point/Models/Os/OsVoucherModel.dart';
 import 'package:point/Models/Os/os_finance_enums.dart';
 import 'package:point/Services/NotificationService.dart';
@@ -12,6 +13,7 @@ import 'package:point/View/Os/os_finance_format.dart';
 
 class OsFinanceController extends GetxController {
   final invoices = <OsInvoiceModel>[].obs;
+  final quotations = <OsQuotationModel>[].obs;
   final bankAccounts = <OsBankAccountModel>[].obs;
   final vouchers = <OsVoucherModel>[].obs;
   final expenses = <OsDailyExpenseModel>[].obs;
@@ -25,6 +27,7 @@ class OsFinanceController extends GetxController {
 
   void _bindStreams() {
     invoices.bindStream(FirestoreOsFinanceApi.streamInvoices());
+    quotations.bindStream(FirestoreOsFinanceApi.streamQuotations());
     bankAccounts.bindStream(FirestoreOsFinanceApi.streamBankAccounts());
     vouchers.bindStream(FirestoreOsFinanceApi.streamVouchers());
     expenses.bindStream(FirestoreOsFinanceApi.streamExpenses());
@@ -69,6 +72,28 @@ class OsFinanceController extends GetxController {
     } finally {
       isLoading.value = false;
     }
+  }
+
+  Future<bool> saveQuotation(OsQuotationModel quotation) async {
+    isLoading.value = true;
+    try {
+      return await FirestoreOsFinanceApi.upsertQuotation(quotation);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<bool> deleteQuotation(String id) async {
+    isLoading.value = true;
+    try {
+      return await FirestoreOsFinanceApi.deleteQuotation(id);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<bool> cycleQuotationStatus(OsQuotationModel quotation) async {
+    return saveQuotation(quotation.copyWith(status: quotation.nextStatus));
   }
 
   Future<bool> markInvoicePaid({

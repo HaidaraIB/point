@@ -6,6 +6,7 @@ import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Invoices/os_invoice_print.dart';
 import 'package:point/View/Os/Invoices/os_invoice_share.dart';
+import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_invoice_stamp.dart';
 
@@ -87,14 +88,15 @@ class _OsInvoicePreviewDialog extends StatelessWidget {
                       ],
                     ),
                   ),
-                  TextButton.icon(
+                  FilledButton.icon(
                     onPressed: () => printOsInvoice(invoice),
+                    style: OsButtonStyles.secondaryCompact(theme),
                     icon: const Icon(Icons.print_outlined, size: 18),
                     label: Text(AppLocaleKeys.osInvoicesPrint.tr),
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: Icon(Icons.close, color: theme.secondaryText),
+                    icon: Icon(Icons.close, color: theme.primaryText),
                   ),
                 ],
               ),

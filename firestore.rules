@@ -1246,6 +1246,11 @@ service cloud.firestore {
         if isSignedIn() && hasAuthRole() && isAdmin();
     }
 
+    match /os_quotations/{quotationId} {
+      allow read, create, update, delete:
+        if isSignedIn() && hasAuthRole() && isAdmin();
+    }
+
     match /os_bank_accounts/{accountId} {
       allow read, create, update, delete:
         if isSignedIn() && hasAuthRole() && isAdmin();

@@ -10,6 +10,7 @@ import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Payroll/os_advance_form_dialog.dart';
 import 'package:point/View/Os/Payroll/os_advance_repay_dialog.dart';
+import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_list_filters.dart';
@@ -166,13 +167,7 @@ class _OsAdvancesTabState extends State<OsAdvancesTab> {
             ),
             actions: [
               FilledButton.icon(
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
+                style: OsButtonStyles.primaryCompact(),
                 onPressed: () => showOsAdvanceFormDialog(context),
                 icon: const Icon(Icons.add, size: 18),
                 label: Text(AppLocaleKeys.osAdvancesAdd.tr),
@@ -314,37 +309,27 @@ class _AdvanceCard extends StatelessWidget {
                 ),
                 if (active) ...[
                   const SizedBox(height: 14),
-                  Row(
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    alignment: WrapAlignment.spaceBetween,
                     children: [
                       FilledButton(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: theme.inputFill,
-                          foregroundColor: theme.primaryText,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 10,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          textStyle: Theme.of(context)
-                              .textTheme
-                              .labelLarge
-                              ?.copyWith(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                              ),
-                        ),
+                        style: OsButtonStyles.secondaryCompact(theme),
                         onPressed: onRepay,
                         child: Text(AppLocaleKeys.osAdvancesRepay.tr),
                       ),
-                      const Spacer(),
                       TextButton(
                         onPressed: onWriteOff,
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.destructive,
+                          visualDensity: VisualDensity.compact,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
                         child: Text(
                           AppLocaleKeys.osAdvancesWriteOff.tr,
                           style: const TextStyle(
-                            color: AppColors.destructive,
                             fontWeight: FontWeight.w700,
                             fontSize: 12,
                           ),

@@ -120,7 +120,17 @@ class AppTheme {
         circularTrackColor: ext.unselected,
       ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(foregroundColor: ext.accentText),
+        style: TextButton.styleFrom(
+          foregroundColor: ext.accentText,
+          textStyle: almaraiTextTheme.labelLarge,
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          textStyle: almaraiTextTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -128,6 +138,9 @@ class AppTheme {
           foregroundColor: Colors.white,
           disabledBackgroundColor: ext.unselected,
           disabledForegroundColor: ext.mutedText,
+          textStyle: almaraiTextTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
         ),
       ),
       tabBarTheme: TabBarThemeData(
@@ -147,6 +160,7 @@ class AppTheme {
         style: OutlinedButton.styleFrom(
           foregroundColor: ext.accentText,
           side: BorderSide(color: ext.accentBorder),
+          textStyle: almaraiTextTheme.labelLarge,
         ),
       ),
       listTileTheme: ListTileThemeData(
@@ -190,8 +204,12 @@ class AppTheme {
       chipTheme: ChipThemeData(
         backgroundColor: ext.panelTint,
         selectedColor: AppColors.primary,
-        labelStyle: TextStyle(color: ext.primaryText),
-        secondaryLabelStyle: const TextStyle(color: Colors.white),
+        labelStyle: almaraiTextTheme.labelMedium?.copyWith(
+          color: ext.primaryText,
+        ),
+        secondaryLabelStyle: almaraiTextTheme.labelMedium?.copyWith(
+          color: Colors.white,
+        ),
         side: BorderSide(color: ext.border),
         checkmarkColor: Colors.white,
       ),

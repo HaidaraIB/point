@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsInvoiceModel.dart';
+import 'package:point/Models/Os/OsQuotationModel.dart';
 import 'package:point/Models/Os/OsVoucherModel.dart';
 import 'package:point/Models/Os/os_finance_enums.dart';
 
@@ -18,6 +19,8 @@ class OsFinanceFormat {
   );
   static final _voucherNum = RegExp(r'^V-(\d+)$', caseSensitive: false);
   static final _invoiceNum = RegExp(r'^INV-0*(\d+)$', caseSensitive: false);
+  static final _quotationNum =
+      RegExp(r'^Q-(\d{4})-0*(\d+)$', caseSensitive: false);
 
   static String money(num value) {
     return '${_iqd.format(value)} ${AppLocaleKeys.osInvoicesCurrency.tr}';
@@ -44,13 +47,21 @@ class OsFinanceFormat {
     return shortRef(inv.id);
   }
 
+  static String quotationRef(OsQuotationModel q) {
+    final display = q.displayNumber?.trim();
+    if (display != null && display.isNotEmpty) return display;
+    return shortRef(q.id);
+  }
+
   /// Short audit fallback (last 8 hex chars).
   static String shortRef(String? id) {
     if (id == null || id.trim().isEmpty) {
       return AppLocaleKeys.osCommonDash.tr;
     }
     final trimmed = id.trim();
-    if (_voucherNum.hasMatch(trimmed) || _invoiceNum.hasMatch(trimmed)) {
+    if (_voucherNum.hasMatch(trimmed) ||
+        _invoiceNum.hasMatch(trimmed) ||
+        _quotationNum.hasMatch(trimmed)) {
       return trimmed.toUpperCase();
     }
     final compact = trimmed.replaceAll('-', '');
@@ -81,6 +92,60 @@ class OsFinanceFormat {
     }
     final next = maxN + 1;
     return 'INV-${next.toString().padLeft(3, '0')}';
+  }
+
+  /// Human refs like `Q-2024-001` (point_os). Sequence resets per calendar year.
+  static String nextQuotationDisplayNumber(
+    Iterable<String?> existing, {
+    DateTime? now,
+  }) {
+    final year = (now ?? DateTime.now()).year;
+    var maxN = 0;
+    for (final raw in existing) {
+      final m = _quotationNum.firstMatch((raw ?? '').trim());
+      if (m != null) {
+        final y = int.tryParse(m.group(1)!) ?? 0;
+        if (y != year) continue;
+        final n = int.tryParse(m.group(2)!) ?? 0;
+        if (n > maxN) maxN = n;
+      }
+    }
+    return 'Q-$year-${(maxN + 1).toString().padLeft(3, '0')}';
+  }
+
+  static String quotationStatusLabel(String status) {
+    switch (status) {
+      case OsQuotationStatus.approved:
+        return AppLocaleKeys.osQuotationsStatusApproved.tr;
+      case OsQuotationStatus.rejected:
+        return AppLocaleKeys.osQuotationsStatusRejected.tr;
+      default:
+        return AppLocaleKeys.osQuotationsStatusPending.tr;
+    }
+  }
+
+  /// Bright enough for dark-theme badges (indigo #4F46E5 is too dim on dark UI).
+  static Color quotationStatusColor(String status) {
+    switch (status) {
+      case OsQuotationStatus.approved:
+        return const Color(0xFF34D399);
+      case OsQuotationStatus.rejected:
+        return const Color(0xFFFB7185);
+      default:
+        return const Color(0xFFA5B4FC);
+    }
+  }
+
+  /// Dark enough to sit on a white chip (e.g. quote preview brand band).
+  static Color quotationStatusOnLight(String status) {
+    switch (status) {
+      case OsQuotationStatus.approved:
+        return const Color(0xFF047857);
+      case OsQuotationStatus.rejected:
+        return const Color(0xFFBE123C);
+      default:
+        return const Color(0xFF3730A3);
+    }
   }
 
   /// Strip legacy UUID noise from stored voucher descriptions for display.

@@ -512,6 +512,47 @@ class AppLocaleKeys {
   static const osBackToHub = 'os.back_to_hub';
   static const osNavHub = 'os.nav.hub';
 
+  static const osQuotationsTitle = 'os.quotations.title';
+  static const osQuotationsSubtitle = 'os.quotations.subtitle';
+  static const osQuotationsAdd = 'os.quotations.add';
+  static const osQuotationsCreateTitle = 'os.quotations.create_title';
+  static const osQuotationsEmpty = 'os.quotations.empty';
+  static const osQuotationsClient = 'os.quotations.client';
+  static const osQuotationsClientHint = 'os.quotations.client_hint';
+  static const osQuotationsTotal = 'os.quotations.total';
+  static const osQuotationsExpiry = 'os.quotations.expiry';
+  static const osQuotationsSaveSend = 'os.quotations.save_send';
+  static const osQuotationsSaved = 'os.quotations.saved';
+  static const osQuotationsNumber = 'os.quotations.number';
+  static const osQuotationsIssueDate = 'os.quotations.issue_date';
+  static const osQuotationsExpires = 'os.quotations.expires';
+  static const osQuotationsStatusApproved = 'os.quotations.status.approved';
+  static const osQuotationsStatusPending = 'os.quotations.status.pending';
+  static const osQuotationsStatusRejected = 'os.quotations.status.rejected';
+  static const osQuotationsCycleStatusHint = 'os.quotations.cycle_status_hint';
+  static const osQuotationsCopyLink = 'os.quotations.copy_link';
+  static const osQuotationsCopied = 'os.quotations.copied';
+  static const osQuotationsLinkCopied = 'os.quotations.link_copied';
+  static const osQuotationsPreview = 'os.quotations.preview';
+  static const osQuotationsPreviewTitle = 'os.quotations.preview_title';
+  static const osQuotationsPrint = 'os.quotations.print';
+  static const osQuotationsPrintHint = 'os.quotations.print_hint';
+  static const osQuotationsCustomizeTemplate =
+      'os.quotations.customize_template';
+  static const osQuotationsTemplateSettings =
+      'os.quotations.template_settings';
+  static const osQuotationsTemplateHeader = 'os.quotations.template_header';
+  static const osQuotationsTemplateFooter = 'os.quotations.template_footer';
+  static const osQuotationsTemplateHeaderDefault =
+      'os.quotations.template_header_default';
+  static const osQuotationsTemplateFooterDefault =
+      'os.quotations.template_footer_default';
+  static const osQuotationsHeaderLabel = 'os.quotations.header_label';
+  static const osQuotationsApprovalStatus = 'os.quotations.approval_status';
+  static const osQuotationsErrorNoClient = 'os.quotations.error.no_client';
+  static const osQuotationsErrorAmount = 'os.quotations.error.amount';
+  static const osQuotationsErrorExpiry = 'os.quotations.error.expiry';
+
   static const osInvoicesTitle = 'os.invoices.title';
   static const osInvoicesAdd = 'os.invoices.add';
   static const osInvoicesEdit = 'os.invoices.edit';

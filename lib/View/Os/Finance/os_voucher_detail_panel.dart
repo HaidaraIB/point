@@ -6,11 +6,11 @@ import 'package:point/Models/Os/OsVoucherModel.dart';
 import 'package:point/Models/Os/os_finance_enums.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/os_stamp_settings.dart';
-import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/Utils/os_arabic_currency.dart';
 import 'package:point/View/Os/Finance/os_voucher_print.dart';
 import 'package:point/View/Os/Finance/os_voucher_print_text.dart';
+import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_electronic_stamp.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 
@@ -128,15 +128,11 @@ class _OsVoucherDetailPanelState extends State<OsVoucherDetailPanel> {
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  OutlinedButton.icon(
+                  FilledButton.icon(
                     onPressed: _copy,
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 12,
-                      ),
-                    ),
+                    style: OsButtonStyles.secondaryCompact(theme),
                     icon: Icon(_copied ? Icons.check : Icons.copy, size: 18),
                     label: Text(
                       _copied
@@ -146,13 +142,7 @@ class _OsVoucherDetailPanelState extends State<OsVoucherDetailPanel> {
                   ),
                   FilledButton.icon(
                     onPressed: _print,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 12,
-                      ),
-                    ),
+                    style: OsButtonStyles.primaryCompact(),
                     icon: const Icon(Icons.print_outlined, size: 18),
                     label: Text(AppLocaleKeys.osVouchersPrint.tr),
                   ),
@@ -162,10 +152,10 @@ class _OsVoucherDetailPanelState extends State<OsVoucherDetailPanel> {
                       style: OutlinedButton.styleFrom(
                         foregroundColor: const Color(0xFFF43F5E),
                         side: const BorderSide(color: Color(0xFFF43F5E)),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
-                        ),
+                        minimumSize: OsButtonStyles.compactMinSize,
+                        padding: OsButtonStyles.compactPadding,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
                       ),
                       icon: _deleting
                           ? const SizedBox(

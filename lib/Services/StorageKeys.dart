@@ -339,6 +339,10 @@ class StorageKeys {
   static const prefsOsStampColor = 'point_os_stamp_color_v1';
   static const prefsOsStampEnabled = 'point_os_stamp_enabled_v1';
 
+  /// OS quotation digital template header/footer (point_os Quotations).
+  static const prefsOsQuoteHeader = 'point_os_quote_header_v1';
+  static const prefsOsQuoteFooter = 'point_os_quote_footer_v1';
+
   static String prefsHistoryTaskFiltersKey(String employeeId) =>
       'point_history_task_filters_v1_${employeeId.trim()}';
 

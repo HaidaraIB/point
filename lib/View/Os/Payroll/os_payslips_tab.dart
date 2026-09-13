@@ -12,6 +12,7 @@ import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Payroll/os_payslip_print.dart';
 import 'package:point/View/Os/Payroll/os_payslip_print_text.dart';
+import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
 
@@ -134,19 +135,8 @@ class _OsPayslipsTabState extends State<OsPayslipsTab> {
               runSpacing: 10,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: theme.accentText,
-                    backgroundColor: theme.cardSurface,
-                    side: BorderSide(color: theme.border),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
+                FilledButton.icon(
+                  style: OsButtonStyles.secondaryCompact(theme),
                   onPressed: () => _pickPeriod(context, payroll, period),
                   icon: const Icon(Icons.calendar_month_outlined, size: 18),
                   label: Text(
@@ -197,30 +187,28 @@ class _OsPayslipsTabState extends State<OsPayslipsTab> {
             actions: [
               if (slip != null) ...[
                 FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
+                  style: OsButtonStyles.primaryCompact(),
                   onPressed: () => printOsPayslip(slip),
                   icon: const Icon(Icons.print_outlined, size: 18),
                   label: Text(AppLocaleKeys.osPayslipsPrint.tr),
                 ),
-                OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: _copied
-                        ? AppColors.success
-                        : theme.primaryText,
-                    side: BorderSide(
-                      color: _copied ? AppColors.success : theme.border,
+                FilledButton.icon(
+                  style: OsButtonStyles.secondaryCompact(
+                    theme,
+                    active: _copied,
+                  ).copyWith(
+                    foregroundColor: WidgetStatePropertyAll(
+                      _copied ? AppColors.success : theme.primaryText,
                     ),
-                    backgroundColor: _copied
-                        ? AppColors.success.withValues(alpha: 0.08)
-                        : theme.inputFill,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                    backgroundColor: WidgetStatePropertyAll(
+                      _copied
+                          ? AppColors.success.withValues(alpha: 0.12)
+                          : theme.elevatedSurface,
+                    ),
+                    side: WidgetStatePropertyAll(
+                      BorderSide(
+                        color: _copied ? AppColors.success : theme.border,
+                      ),
                     ),
                   ),
                   onPressed: () => _copy(slip),

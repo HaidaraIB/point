@@ -13,6 +13,7 @@ import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/OsPermissions.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Finance/os_voucher_detail_panel.dart';
+import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_list_filters.dart';
@@ -797,10 +798,7 @@ class _AccountsTabState extends State<_AccountsTab> {
   @override
   Widget build(BuildContext context) {
     final finance = Get.find<OsFinanceController>();
-
-    const btnPad = EdgeInsets.symmetric(horizontal: 16, vertical: 14);
-    const btnMin = Size(48, 48);
-    const btnText = TextStyle(fontSize: 14, fontWeight: FontWeight.w700);
+    final theme = context.appTheme;
 
     return Obx(() {
       final accounts = finance.bankAccounts.toList();
@@ -830,33 +828,16 @@ class _AccountsTabState extends State<_AccountsTab> {
             ),
             matchCount: accounts.isEmpty ? null : filtered.length,
             actions: [
-              OutlinedButton.icon(
+              FilledButton.icon(
                 onPressed: () => _openTransfer(context),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: btnMin,
-                  padding: btnPad,
-                  textStyle: btnText,
-                  visualDensity: VisualDensity.standard,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                icon: const Icon(Icons.swap_horiz, size: 20),
+                style: OsButtonStyles.secondaryCompact(theme),
+                icon: const Icon(Icons.swap_horiz, size: 18),
                 label: Text(AppLocaleKeys.osAccountsTransfer.tr),
               ),
               FilledButton.icon(
                 onPressed: () => _openForm(context),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  minimumSize: btnMin,
-                  padding: btnPad,
-                  textStyle: btnText,
-                  visualDensity: VisualDensity.standard,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                icon: const Icon(Icons.add, size: 20),
+                style: OsButtonStyles.primaryCompact(),
+                icon: const Icon(Icons.add, size: 18),
                 label: Text(AppLocaleKeys.osAccountsAdd.tr),
               ),
             ],
@@ -1311,17 +1292,8 @@ class _VouchersTabState extends State<_VouchersTab> {
             actions: [
               FilledButton.icon(
                 onPressed: () => _openCreate(context),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 14,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                icon: const Icon(Icons.add, size: 20),
+                style: OsButtonStyles.primaryCompact(),
+                icon: const Icon(Icons.add, size: 18),
                 label: Text(AppLocaleKeys.osVouchersIssueNew.tr),
               ),
             ],

@@ -4,10 +4,10 @@ import 'package:point/Controller/OsFinanceController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsInvoiceModel.dart';
 import 'package:point/Models/Os/os_finance_enums.dart';
-import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Invoices/Mobile/OsInvoiceFormMobilePage.dart';
 import 'package:point/View/Os/Invoices/os_invoice_share.dart';
+import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_page_header.dart';
 import 'package:point/View/Shared/responsive.dart';
@@ -80,18 +80,9 @@ class OsInvoicesMobileScreen extends StatelessWidget {
             actions: [
               FilledButton.icon(
                 onPressed: () => _openAdd(context),
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 12,
-                  ),
-                ),
-                icon: const Icon(Icons.add, size: 20),
-                label: Text(
-                  AppLocaleKeys.osInvoicesAdd.tr,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-                ),
+                style: OsButtonStyles.primaryCompact(),
+                icon: const Icon(Icons.add, size: 18),
+                label: Text(AppLocaleKeys.osInvoicesAdd.tr),
               ),
             ],
           ),

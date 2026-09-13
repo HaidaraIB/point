@@ -6,13 +6,13 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsInvoiceModel.dart';
 import 'package:point/Models/Os/os_finance_enums.dart';
 import 'package:point/Services/FunHelper.dart';
-import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/OsPermissions.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Invoices/Mobile/OsInvoicesMobileScreen.dart';
 import 'package:point/View/Os/Invoices/os_invoice_form_dialog.dart';
 import 'package:point/View/Os/Invoices/os_invoice_preview_dialog.dart';
 import 'package:point/View/Os/Invoices/os_invoice_share.dart';
+import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_list_filters.dart';
 import 'package:point/View/Os/os_page_header.dart';
@@ -204,14 +204,6 @@ class _DesktopInvoicesBodyState extends State<_DesktopInvoicesBody> {
   final _search = TextEditingController();
   var _status = 'ALL';
 
-  static const _headerBtnPadding =
-      EdgeInsets.symmetric(horizontal: 18, vertical: 14);
-  static const _headerBtnMinSize = Size(48, 48);
-  static const _headerBtnTextStyle = TextStyle(
-    fontSize: 15,
-    fontWeight: FontWeight.w700,
-  );
-
   @override
   void dispose() {
     _search.dispose();
@@ -239,160 +231,154 @@ class _DesktopInvoicesBodyState extends State<_DesktopInvoicesBody> {
     final sent =
         invoices.where((i) => i.status == OsInvoiceStatus.sent).length;
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          OsPageHeader(
-            title: AppLocaleKeys.osInvoicesTitle.tr,
-            subtitle: AppLocaleKeys.osInvoicesSubtitle.tr,
-            currentRoute: '/os/invoices',
-            actions: [
-              OutlinedButton.icon(
-                onPressed: () =>
-                    setState(() => _showStampSettings = !_showStampSettings),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: _headerBtnMinSize,
-                  padding: _headerBtnPadding,
-                  textStyle: _headerBtnTextStyle,
-                  visualDensity: VisualDensity.standard,
-                  foregroundColor: _showStampSettings
-                      ? theme.accentText
-                      : theme.primaryText,
-                  side: BorderSide(
-                    color: _showStampSettings
-                        ? theme.accentBorder
-                        : theme.border,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                icon: const Icon(Icons.tune, size: 20),
-                label: Text(AppLocaleKeys.osInvoicesCustomizeStamp.tr),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        OsPageHeader(
+          title: AppLocaleKeys.osInvoicesTitle.tr,
+          subtitle: AppLocaleKeys.osInvoicesSubtitle.tr,
+          currentRoute: '/os/invoices',
+          actions: [
+            FilledButton.icon(
+              onPressed: () =>
+                  setState(() => _showStampSettings = !_showStampSettings),
+              style: OsButtonStyles.secondaryCompact(
+                theme,
+                active: _showStampSettings,
               ),
-              const SizedBox(width: 8),
-              FilledButton.icon(
-                onPressed: widget.onAdd,
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  minimumSize: _headerBtnMinSize,
-                  padding: _headerBtnPadding,
-                  textStyle: _headerBtnTextStyle,
-                  visualDensity: VisualDensity.standard,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                icon: const Icon(Icons.add, size: 22),
-                label: Text(AppLocaleKeys.osInvoicesAdd.tr),
-              ),
-            ],
-          ),
-          if (_showStampSettings) ...[
-            const SizedBox(height: 12),
-            const OsStampSettingsPanel(),
+              icon: const Icon(Icons.tune, size: 18),
+              label: Text(AppLocaleKeys.osInvoicesCustomizeStamp.tr),
+            ),
+            FilledButton.icon(
+              onPressed: widget.onAdd,
+              style: OsButtonStyles.primaryCompact(),
+              icon: const Icon(Icons.add, size: 18),
+              label: Text(AppLocaleKeys.osInvoicesAdd.tr),
+            ),
           ],
-          const SizedBox(height: 12),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final wide = constraints.maxWidth >= 720;
-              final cards = [
-                _StatCard(
-                  label: AppLocaleKeys.osInvoicesTitle.tr,
-                  value: '${invoices.length}',
-                  selected: _status == 'ALL',
-                  onTap: () => setState(() => _status = 'ALL'),
-                ),
-                _StatCard(
-                  label: AppLocaleKeys.osInvoicesStatusPaid.tr,
-                  value: '$paid',
-                  selected: _status == OsInvoiceStatus.paid,
-                  onTap: () => setState(() => _status = OsInvoiceStatus.paid),
-                ),
-                _StatCard(
-                  label: AppLocaleKeys.osInvoicesStatusOverdue.tr,
-                  value: '$overdue',
-                  selected: _status == OsInvoiceStatus.overdue,
-                  onTap: () =>
-                      setState(() => _status = OsInvoiceStatus.overdue),
-                ),
-                _StatCard(
-                  label: AppLocaleKeys.osInvoicesStatusSent.tr,
-                  value: '$sent',
-                  selected: _status == OsInvoiceStatus.sent,
-                  onTap: () => setState(() => _status = OsInvoiceStatus.sent),
-                ),
-              ];
-              if (wide) {
-                return Row(
-                  children: [
-                    for (var i = 0; i < cards.length; i++) ...[
-                      if (i > 0) const SizedBox(width: 12),
-                      Expanded(child: cards[i]),
-                    ],
-                  ],
-                );
-              }
-              return Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  for (final c in cards)
-                    SizedBox(
-                      width: (constraints.maxWidth - 12) / 2,
-                      child: c,
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (_showStampSettings) ...[
+                  const SizedBox(height: 8),
+                  ConstrainedBox(
+                    constraints: BoxConstraints(
+                      maxHeight: MediaQuery.sizeOf(context).height * 0.34,
                     ),
-                ],
-              );
-            },
-          ),
-          OsListFilterBar(
-            chips: OsFilterChips(
-              value: _status,
-              onChanged: (v) => setState(() => _status = v),
-              options: [
-                OsFilterChipOption(
-                  value: 'ALL',
-                  label: AppLocaleKeys.osCommonFilterAll.tr,
-                ),
-                for (final s in OsInvoiceStatus.all)
-                  OsFilterChipOption(
-                    value: s,
-                    label: OsFinanceFormat.invoiceStatusLabel(s),
+                    child: const SingleChildScrollView(
+                      child: OsStampSettingsPanel(),
+                    ),
                   ),
+                ],
+                const SizedBox(height: 12),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final wide = constraints.maxWidth >= 720;
+                    final cards = [
+                      _StatCard(
+                        label: AppLocaleKeys.osInvoicesTitle.tr,
+                        value: '${invoices.length}',
+                        selected: _status == 'ALL',
+                        onTap: () => setState(() => _status = 'ALL'),
+                      ),
+                      _StatCard(
+                        label: AppLocaleKeys.osInvoicesStatusPaid.tr,
+                        value: '$paid',
+                        selected: _status == OsInvoiceStatus.paid,
+                        onTap: () =>
+                            setState(() => _status = OsInvoiceStatus.paid),
+                      ),
+                      _StatCard(
+                        label: AppLocaleKeys.osInvoicesStatusOverdue.tr,
+                        value: '$overdue',
+                        selected: _status == OsInvoiceStatus.overdue,
+                        onTap: () => setState(
+                          () => _status = OsInvoiceStatus.overdue,
+                        ),
+                      ),
+                      _StatCard(
+                        label: AppLocaleKeys.osInvoicesStatusSent.tr,
+                        value: '$sent',
+                        selected: _status == OsInvoiceStatus.sent,
+                        onTap: () =>
+                            setState(() => _status = OsInvoiceStatus.sent),
+                      ),
+                    ];
+                    if (wide) {
+                      return Row(
+                        children: [
+                          for (var i = 0; i < cards.length; i++) ...[
+                            if (i > 0) const SizedBox(width: 12),
+                            Expanded(child: cards[i]),
+                          ],
+                        ],
+                      );
+                    }
+                    return Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        for (final c in cards)
+                          SizedBox(
+                            width: (constraints.maxWidth - 12) / 2,
+                            child: c,
+                          ),
+                      ],
+                    );
+                  },
+                ),
+                OsListFilterBar(
+                  chips: OsFilterChips(
+                    value: _status,
+                    onChanged: (v) => setState(() => _status = v),
+                    options: [
+                      OsFilterChipOption(
+                        value: 'ALL',
+                        label: AppLocaleKeys.osCommonFilterAll.tr,
+                      ),
+                      for (final s in OsInvoiceStatus.all)
+                        OsFilterChipOption(
+                          value: s,
+                          label: OsFinanceFormat.invoiceStatusLabel(s),
+                        ),
+                    ],
+                  ),
+                  search: OsSearchField(
+                    controller: _search,
+                    hint: AppLocaleKeys.osInvoicesSearch.tr,
+                    onChanged: (_) => setState(() {}),
+                  ),
+                  matchCount: invoices.isEmpty ? null : filtered.length,
+                ),
+                Expanded(
+                  child: filtered.isEmpty
+                      ? OsEmptyState(
+                          message: invoices.isEmpty
+                              ? AppLocaleKeys.osInvoicesEmpty.tr
+                              : AppLocaleKeys.osInvoicesEmptyFilter.tr,
+                        )
+                      : _InvoicesTable(
+                          invoices: filtered,
+                          onEdit: widget.onEdit,
+                          onDelete: widget.onDelete,
+                          onMarkPaid: widget.onMarkPaid,
+                          onStatusChange: widget.onStatusChange,
+                          onPreview: widget.onPreview,
+                          onPaymentLink: widget.onPaymentLink,
+                          onWhatsApp: widget.onWhatsApp,
+                          onEmail: widget.onEmail,
+                          onLinkAccount: widget.onLinkAccount,
+                        ),
+                ),
               ],
             ),
-            search: OsSearchField(
-              controller: _search,
-              hint: AppLocaleKeys.osInvoicesSearch.tr,
-              onChanged: (_) => setState(() {}),
-            ),
-            matchCount: invoices.isEmpty ? null : filtered.length,
           ),
-          Expanded(
-            child: filtered.isEmpty
-                ? OsEmptyState(
-                    message: invoices.isEmpty
-                        ? AppLocaleKeys.osInvoicesEmpty.tr
-                        : AppLocaleKeys.osInvoicesEmptyFilter.tr,
-                  )
-                : _InvoicesTable(
-                    invoices: filtered,
-                    onEdit: widget.onEdit,
-                    onDelete: widget.onDelete,
-                    onMarkPaid: widget.onMarkPaid,
-                    onStatusChange: widget.onStatusChange,
-                    onPreview: widget.onPreview,
-                    onPaymentLink: widget.onPaymentLink,
-                    onWhatsApp: widget.onWhatsApp,
-                    onEmail: widget.onEmail,
-                    onLinkAccount: widget.onLinkAccount,
-                  ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:point/Models/Os/OsBankAccountModel.dart';
 import 'package:point/Models/Os/OsDailyExpenseModel.dart';
 import 'package:point/Models/Os/OsInvoiceModel.dart';
+import 'package:point/Models/Os/OsQuotationModel.dart';
 import 'package:point/Models/Os/OsVoucherModel.dart';
 import 'package:point/Models/Os/os_finance_enums.dart';
 import 'package:point/Services/firestore/firestore_query_limits.dart';
@@ -23,6 +24,7 @@ class FirestoreOsFinanceApi {
   FirestoreOsFinanceApi._();
 
   static const invoicesCollection = 'os_invoices';
+  static const quotationsCollection = 'os_quotations';
   static const bankAccountsCollection = 'os_bank_accounts';
   static const vouchersCollection = 'os_vouchers';
   static const expensesCollection = 'os_expenses';
@@ -61,6 +63,20 @@ class FirestoreOsFinanceApi {
               .toList(),
         );
     return safeFirestoreListStream(mapped, 'os_invoices');
+  }
+
+  static Stream<List<OsQuotationModel>> streamQuotations() {
+    final mapped = FirebaseFirestore.instance
+        .collection(quotationsCollection)
+        .orderBy('createdAt', descending: true)
+        .limit(FirestoreQueryLimits.osQuotations)
+        .snapshots()
+        .map(
+          (snap) => snap.docs
+              .map((d) => OsQuotationModel.fromJson(d.data(), d.id))
+              .toList(),
+        );
+    return safeFirestoreListStream(mapped, 'os_quotations');
   }
 
   static Stream<List<OsBankAccountModel>> streamBankAccounts() {
@@ -142,6 +158,47 @@ class FirestoreOsFinanceApi {
       return true;
     } catch (e, st) {
       appLog('deleteInvoice failed: $e\n$st');
+      return false;
+    }
+  }
+
+  // --- Quotations ---
+
+  static Future<bool> upsertQuotation(OsQuotationModel quotation) async {
+    try {
+      final isNew = quotation.id == null || quotation.id!.trim().isEmpty;
+      final id = isNew ? newId() : quotation.id!;
+      var displayNumber = quotation.displayNumber?.trim();
+      if (isNew || displayNumber == null || displayNumber.isEmpty) {
+        final snap = await FirebaseFirestore.instance
+            .collection(quotationsCollection)
+            .limit(FirestoreQueryLimits.osQuotations)
+            .get();
+        displayNumber = OsFinanceFormat.nextQuotationDisplayNumber(
+          snap.docs.map((d) => d.data()['displayNumber'] as String?),
+        );
+      }
+      final toSave = quotation.copyWith(id: id, displayNumber: displayNumber);
+      await FirebaseFirestore.instance
+          .collection(quotationsCollection)
+          .doc(id)
+          .set(toSave.toJson(), SetOptions(merge: true));
+      return true;
+    } catch (e, st) {
+      appLog('upsertQuotation failed: $e\n$st');
+      return false;
+    }
+  }
+
+  static Future<bool> deleteQuotation(String id) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection(quotationsCollection)
+          .doc(id)
+          .delete();
+      return true;
+    } catch (e, st) {
+      appLog('deleteQuotation failed: $e\n$st');
       return false;
     }
   }

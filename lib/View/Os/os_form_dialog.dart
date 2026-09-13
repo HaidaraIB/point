@@ -188,27 +188,14 @@ class OsTabToolbar extends StatelessWidget {
       );
     }
 
-    final actionsDesktop = Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      alignment: WrapAlignment.end,
-      children: actions,
-    );
-
-    final actionsMobile = actions.isEmpty
+    final actionsCluster = actions.isEmpty
         ? const SizedBox.shrink()
-        : Row(
-            children: [
-              for (var i = 0; i < actions.length; i++) ...[
-                if (i > 0) const SizedBox(width: 8),
-                Expanded(
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: actions[i],
-                  ),
-                ),
-              ],
-            ],
+        : Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.end,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: actions,
           );
 
     final hasTitle = title != null || subtitle != null;
@@ -226,14 +213,19 @@ class OsTabToolbar extends StatelessWidget {
                       const SizedBox(width: 10),
                     ],
                     if (leading != null) ...[
-                      Flexible(child: leading!),
+                      Expanded(child: leading!),
                       if (hasTitle) const SizedBox(width: 12),
                     ],
                     if (hasTitle) Expanded(child: titleColumn()),
                   ],
                 ),
-              if (hasTitle || leading != null) const SizedBox(height: 12),
-              actionsMobile,
+              if (actions.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: actionsCluster,
+                ),
+              ],
             ],
           )
         : Row(
@@ -243,25 +235,33 @@ class OsTabToolbar extends StatelessWidget {
                 Icon(icon, color: theme.accentText, size: 22),
                 const SizedBox(width: 10),
               ],
-              if (leading != null) ...[
-                leading!,
-                if (hasTitle) const SizedBox(width: 16),
+              if (leading != null)
+                Expanded(
+                  child: Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: leading!,
+                  ),
+                ),
+              if (hasTitle) Expanded(child: titleColumn()),
+              if (!hasTitle && leading == null) const Spacer(),
+              if (actions.isNotEmpty) ...[
+                const SizedBox(width: 16),
+                actionsCluster,
               ],
-              if (hasTitle) Expanded(child: titleColumn()) else const Spacer(),
-              actionsDesktop,
             ],
           );
 
     if (!asCard) {
       return Padding(
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
-        child: content,
+        child: SizedBox(width: double.infinity, child: content),
       );
     }
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
       child: Container(
+        width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: theme.cardSurface,

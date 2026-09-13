@@ -8,6 +8,7 @@ import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Payroll/os_contract_form_dialog.dart';
+import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_list_filters.dart';
 import 'package:point/View/Os/os_snackbar.dart';
@@ -98,13 +99,7 @@ class _OsContractsTabState extends State<OsContractsTab> {
             ),
             actions: [
               FilledButton.icon(
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
+                style: OsButtonStyles.primaryCompact(),
                 onPressed: () => showOsContractFormDialog(context),
                 icon: const Icon(Icons.add, size: 18),
                 label: Text(AppLocaleKeys.osContractsAdd.tr),
