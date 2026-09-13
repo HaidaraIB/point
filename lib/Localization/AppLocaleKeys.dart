@@ -164,6 +164,8 @@ class AppLocaleKeys {
   static const attendanceLeftBeforeWindow = 'attendance.left_before_window';
   static const attendanceLeftAfterWindow = 'attendance.left_after_window';
   static const attendanceActionAvailable = 'attendance.action_available';
+  static const attendanceTapToPresent = 'attendance.tap_to_present';
+  static const attendanceTapToLeft = 'attendance.tap_to_left';
   static const attendanceActionSubmitted = 'attendance.action_submitted';
   static const attendanceActionWindowClosed = 'attendance.action_window_closed';
   static const attendanceCardToday = 'attendance.card_today';

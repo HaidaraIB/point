@@ -2075,9 +2075,7 @@ class HomeController extends GetxController {
       unawaited(
         NotificationService.notifyManagersNewTaskInDepartment(
           taskTitle: task.title,
-          departmentNameAr: NotificationService.departmentNameFromTaskType(
-            task.type,
-          ),
+          taskType: task.type,
           dueDate: ctx.dueDate,
           clientName: ctx.clientName,
           fcmDataExtras: extras,
@@ -2128,7 +2126,8 @@ class HomeController extends GetxController {
     final client = task.clientName.trim();
     return TaskEmailContext(
       taskTitle: task.title,
-      department: NotificationService.departmentNameFromTaskType(task.type),
+      // Raw task type index — localized per recipient in NotificationService.
+      department: task.type,
       dueDate: FunHelper.formatdate(task.toDate),
       startDate: FunHelper.formatdate(task.fromDate),
       priority: priority.isEmpty ? null : priority,
@@ -2196,7 +2195,7 @@ class HomeController extends GetxController {
           taskContext: _taskEmailContext(
             newTask,
             actorName: actorName,
-            newStatus: NotificationService.statusLabelAr(newTask.status),
+            newStatus: newTask.status,
           ),
           fcmDataExtras: extras,
         );

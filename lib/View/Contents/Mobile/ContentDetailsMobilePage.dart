@@ -50,15 +50,14 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
     final controller = Get.find<HomeController>();
     final emp = _task;
     if (emp.id == null) return;
-    final statusLabelAr = NotificationService.statusLabelAr(value);
     final ok = await controller.updateContent(emp.copyWith(status: value));
     if (!mounted) return;
     if (!ok) return;
     final actorName = (controller.currentEmployee.value?.name ?? '').trim();
     await NotificationService.notifyAdminContentStatusChanged(
       contentTitle: emp.title,
-      statusLabelAr: statusLabelAr,
-      changedByName: actorName.isEmpty ? 'notify.unknown_actor'.tr : actorName,
+      statusKey: value,
+      changedByName: actorName,
       fcmDataExtras: notificationContentExtras(emp.id),
     );
     if (value == StorageKeys.status_published) {
@@ -88,12 +87,9 @@ class _ContentDetailsMobilePageState extends State<ContentDetailsMobilePage> {
     if (!mounted) return;
     if (!ok) return;
     if (value == 'under_promotion' || value == 'end_promotion') {
-      final promotionLabel = value == 'under_promotion'
-          ? 'under_promotion'.tr
-          : 'end_promotion'.tr;
       await NotificationService.notifyAdminContentPromotionStatusChanged(
         contentTitle: emp.title,
-        promotionLabelAr: promotionLabel,
+        promotionLabelKey: value,
         fcmDataExtras: notificationContentExtras(emp.id),
       );
     }

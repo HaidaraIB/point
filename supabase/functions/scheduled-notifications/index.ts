@@ -822,6 +822,140 @@ function normalizeDigestLang(raw: string | null | undefined): EmailLocale {
   return s === "en" ? "en" : "ar";
 }
 
+
+/** Translate cron notification copy for a recipient locale (`ar`|`en`). */
+function trCron(
+  lang: EmailLocale,
+  key: string,
+  params?: Record<string, string>,
+): string {
+  const maps = CRON_NOTIFY_COPY;
+  let template = maps[lang][key] ?? maps.ar[key] ?? maps.en[key] ?? key;
+  if (params) {
+    for (const [k, v] of Object.entries(params)) {
+      template = template.split(`@${k}`).join(v);
+    }
+  }
+  return template;
+}
+
+/** Cron push/email strings — mirrors Flutter notify copy (+ attendance cron extras). */
+const CRON_NOTIFY_COPY: Record<EmailLocale, Record<string, string>> = {
+  en: {
+    "task.fallback": "Task",
+    "content.fallback": "Post",
+    "notify.mgr.overdue.title": "Overdue task",
+    "notify.mgr.overdue.body": "Past deadline: @title — Employee: @name",
+    "notify.mgr.overdue.email_subject": "Overdue task alert",
+    "notify.emp.overdue.title": "Overdue task",
+    "notify.emp.overdue.body": "Deadline passed: @title",
+    "notify.emp.due_soon.title": "Delivery deadline approaching",
+    "notify.emp.due_soon.body": "Little time left — @title",
+    "notify.emp.due_soon_6h.title": "Delivery deadline approaching (6 hours)",
+    "notify.emp.due_soon_6h.body": "Task \"@title\" is approaching the deadline.",
+    "notify.emp.followup.title": "Follow-up: task still waiting",
+    "notify.emp.followup.body": "@title — act before the deadline.",
+    "notify.emp.due_soon_1h.title": "About one hour to deadline",
+    "notify.emp.due_soon_1h.body": "@title",
+    "notify.emp.start_reminder.title": "Start reminder",
+    "notify.emp.start_reminder.body": "Not started yet — @title",
+    "notify.mgr.no_action.title": "No action on task",
+    "notify.mgr.no_action.body": "Employee @name has not started task \"@title\" after the start date.",
+    "notify.mgr.no_action.email_subject": "Alert: no action on task",
+    "notify.emp.no_progress_yet.title": "Still no recorded progress",
+    "notify.emp.no_progress_yet.body": "@title — log your progress.",
+    "notify.emp.stale_update.title": "Task update needed",
+    "notify.emp.stale_update.body": "No update on \"@title\" for a while.",
+    "notify.mgr.stalled.title": "Progress stalled",
+    "notify.mgr.stalled.body": "No new progress on \"@title\" (@name) for a while.",
+    "notify.mgr.stalled.email_subject": "Progress stalled alert",
+    "notify.client.pending_24h.title": "Content pending review for over 24 hours",
+    "notify.publish.soon.title": "Publish reminder — in 15 minutes",
+    "notify.publish.late.title": "Late publish reminder — 15 minutes",
+    "notify.publish.late_again.title": "Late publish reminder — still not published",
+    "notify.att.marked_absent.title": "Marked absent",
+    "notify.att.marked_absent.checkin_eod.body": "Check-in was not recorded by end of day.",
+    "notify.att.marked_absent.checkout_eod.body": "Check-out was not recorded by end of day.",
+    "notify.att.marked_absent.checkin_window.body": "Check-in was not recorded within the allowed time.",
+    "notify.att.marked_absent.checkout_window.body": "Check-out was not recorded within the allowed time.",
+    "notify.att.checkin_eod.title": "Check in before end of day",
+    "notify.att.checkin_eod.body": "You have not checked in today. Please submit Present before the day ends.",
+    "notify.att.checkout_eod.title": "Check out before end of day",
+    "notify.att.checkout_eod.body": "Please submit Left before the day ends to complete attendance.",
+    "notify.emp.attendance_check_in.title": "Time to check in",
+    "notify.emp.attendance_check_in.body": "Please check in for work now.",
+    "notify.att.checkin_soon.title": "Check in soon",
+    "notify.att.checkin_soon.body": "Your check-in window is closing soon.",
+    "notify.emp.attendance_check_out.title": "Time to check out",
+    "notify.emp.attendance_check_out.body": "Please record your departure.",
+    "notify.att.checkout_soon.title": "Check out soon",
+    "notify.att.checkout_soon.body": "Your check-out window is closing soon.",
+    "notify.emp.milestone.none.body": "Not started yet — the task still has no progress.",
+    "notify.emp.milestone.on_track.body": "Good start — work has begun.",
+    "notify.emp.milestone.halfway.body": "Halfway there — keep going.",
+    "notify.emp.milestone.near_end_a.body": "Almost done — just a little left.",
+    "notify.emp.milestone.near_end_b.body": "Nearly finished — complete the task.",
+    "notify.emp.milestone.finished.body": "Fully done — task completed successfully.",
+  },
+  ar: {
+    "task.fallback": "مهمة",
+    "content.fallback": "منشور",
+    "notify.mgr.overdue.title": "مهمة متأخرة",
+    "notify.mgr.overdue.body": "المهمة \"@title\" متأخرة. الموظف: @name.",
+    "notify.mgr.overdue.email_subject": "تنبيه مهمة متأخرة",
+    "notify.emp.overdue.title": "مهمة متأخرة",
+    "notify.emp.overdue.body": "انتهى موعد تسليم المهمة \"@title\".",
+    "notify.emp.due_soon.title": "اقتراب موعد التسليم",
+    "notify.emp.due_soon.body": "المهمة \"@title\" تقترب من موعد التسليم.",
+    "notify.emp.due_soon_6h.title": "اقتراب موعد التسليم (6 ساعات)",
+    "notify.emp.due_soon_6h.body": "المهمة \"@title\" تقترب من الموعد النهائي.",
+    "notify.emp.followup.title": "متابعة المهمة",
+    "notify.emp.followup.body": "المهمة \"@title\" ما زالت بانتظار الإجراء.",
+    "notify.emp.due_soon_1h.title": "متبقي حوالي ساعة على التسليم",
+    "notify.emp.due_soon_1h.body": "@title",
+    "notify.emp.start_reminder.title": "تذكير بالبدء",
+    "notify.emp.start_reminder.body": "لم يبدأ العمل على \"@title\" بعد.",
+    "notify.mgr.no_action.title": "⚠️ لم يتخذ موظف إجراءً على المهمة",
+    "notify.mgr.no_action.body": "الموظف @name لم يبدأ المهمة \"@title\" بعد تاريخ البدء.",
+    "notify.mgr.no_action.email_subject": "تنبيه: لا يوجد إجراء على المهمة",
+    "notify.emp.no_progress_yet.title": "لا يوجد تقدم مسجّل",
+    "notify.emp.no_progress_yet.body": "المهمة \"@title\" لا تحتوي على تقدم مسجّل بعد.",
+    "notify.emp.stale_update.title": "تحديث المهمة مطلوب",
+    "notify.emp.stale_update.body": "لا يوجد تحديث جديد على \"@title\" منذ فترة.",
+    "notify.mgr.stalled.title": "⛔ توقف التقدم",
+    "notify.mgr.stalled.body": "لا يوجد تقدم جديد على \"@title\" (@name) منذ فترة.",
+    "notify.mgr.stalled.email_subject": "تنبيه توقف التقدم",
+    "notify.client.pending_24h.title": "محتوى بانتظار المراجعة لأكثر من 24 ساعة",
+    "notify.publish.soon.title": "تذكير نشر خلال ١٥ دقيقة",
+    "notify.publish.late.title": "تذكير نشر متأخر ١٥ دقيقة",
+    "notify.publish.late_again.title": "تذكير نشر متأخر — لم يُنشر بعد",
+    "notify.att.marked_absent.title": "تم تسجيل غياب",
+    "notify.att.marked_absent.checkin_eod.body": "لم يُسجَّل الحضور قبل نهاية اليوم.",
+    "notify.att.marked_absent.checkout_eod.body": "لم يُسجَّل الانصراف قبل نهاية اليوم.",
+    "notify.att.marked_absent.checkin_window.body": "لم يُسجَّل الحضور ضمن الوقت المسموح.",
+    "notify.att.marked_absent.checkout_window.body": "لم يُسجَّل الانصراف ضمن الوقت المسموح.",
+    "notify.att.checkin_eod.title": "سجّل الحضور قبل نهاية اليوم",
+    "notify.att.checkin_eod.body": "لم تسجّل حضورك اليوم. يرجى تسجيل الحضور قبل نهاية اليوم.",
+    "notify.att.checkout_eod.title": "سجّل الانصراف قبل نهاية اليوم",
+    "notify.att.checkout_eod.body": "يرجى تسجيل الانصراف قبل نهاية اليوم لإكمال الحضور.",
+    "notify.emp.attendance_check_in.title": "حان وقت تسجيل الحضور",
+    "notify.emp.attendance_check_in.body": "يرجى تسجيل حضورك الآن.",
+    "notify.att.checkin_soon.title": "اقترب وقت تسجيل الحضور",
+    "notify.att.checkin_soon.body": "نافذة تسجيل الحضور ستُغلق قريباً.",
+    "notify.emp.attendance_check_out.title": "حان وقت تسجيل الانصراف",
+    "notify.emp.attendance_check_out.body": "يرجى تسجيل انصرافك.",
+    "notify.att.checkout_soon.title": "اقترب وقت تسجيل الانصراف",
+    "notify.att.checkout_soon.body": "نافذة تسجيل الانصراف ستُغلق قريباً.",
+    "notify.emp.milestone.none.body": "لم يتم البدء بعد - المهمة ما زالت بدون أي تقدم.",
+    "notify.emp.milestone.on_track.body": "بداية جيدة - تم تسجيل بداية العمل.",
+    "notify.emp.milestone.halfway.body": "منتصف الطريق - أداء جيد، استمر.",
+    "notify.emp.milestone.near_end_a.body": "اقتربت من النهاية - باقي القليل.",
+    "notify.emp.milestone.near_end_b.body": "تقريبًا انتهيت - أكمل المهمة.",
+    "notify.emp.milestone.finished.body": "إنجاز كامل - تم إنهاء المهمة بنجاح.",
+  },
+};
+
+
 const CHAT_UNREAD_DIGEST_COPY: Record<
   EmailLocale,
   { pushTitle: string; pushBody: string; emailSubject: string; emailIntro: string }
@@ -1343,25 +1477,26 @@ function progressTierReminderBit(norm: number): number {
 function buildProgressTierReminderPayload(
   taskTitle: string,
   tierBit: number,
+  lang: EmailLocale = "ar",
 ): { msgTitle: string; msgBody: string; notificationType: string } | null {
   if (tierBit === PROGRESS_REMINDER_BIT_0) {
     return {
       msgTitle: `📌 ${taskTitle}`,
-      msgBody: "لم يتم البدء بعد - المهمة ما زالت بدون أي تقدم.",
+      msgBody: trCron(lang, "notify.emp.milestone.none.body"),
       notificationType: "employee_progress_reminder_0",
     };
   }
   if (tierBit === PROGRESS_REMINDER_BIT_25) {
     return {
       msgTitle: `🚀 ${taskTitle}`,
-      msgBody: "بداية جيدة - تم تسجيل بداية العمل.",
+      msgBody: trCron(lang, "notify.emp.milestone.on_track.body"),
       notificationType: "employee_progress_reminder_25",
     };
   }
   if (tierBit === PROGRESS_REMINDER_BIT_50) {
     return {
       msgTitle: `📊 ${taskTitle}`,
-      msgBody: "منتصف الطريق - أداء جيد، استمر.",
+      msgBody: trCron(lang, "notify.emp.milestone.halfway.body"),
       notificationType: "employee_progress_reminder_50",
     };
   }
@@ -1370,19 +1505,19 @@ function buildProgressTierReminderPayload(
     return useA
       ? {
           msgTitle: `🔥 ${taskTitle}`,
-          msgBody: "اقتربت من النهاية - باقي القليل.",
+          msgBody: trCron(lang, "notify.emp.milestone.near_end_a.body"),
           notificationType: "employee_progress_reminder_75_a",
         }
       : {
           msgTitle: `⚡ ${taskTitle}`,
-          msgBody: "تقريبًا انتهيت - أكمل المهمة.",
+          msgBody: trCron(lang, "notify.emp.milestone.near_end_b.body"),
           notificationType: "employee_progress_reminder_75_b",
         };
   }
   if (tierBit === PROGRESS_REMINDER_BIT_100) {
     return {
       msgTitle: `✅ ${taskTitle}`,
-      msgBody: "إنجاز كامل - تم إنهاء المهمة بنجاح.",
+      msgBody: trCron(lang, "notify.emp.milestone.finished.body"),
       notificationType: "employee_progress_reminder_100",
     };
   }
@@ -1506,7 +1641,7 @@ async function handleTaskReminders({
   projectId: string;
 }) {
   const employees = await listDocuments(accessToken, "employees", firestoreBase);
-  const byEmpId = new Map<string, { name: string; email: string | null; fcmTokens: string[]; role: string | null }>();
+  const byEmpId = new Map<string, { name: string; email: string | null; fcmTokens: string[]; role: string | null; language: EmailLocale }>();
   for (const e of employees) {
     const id = e.name.split("/").pop() ?? "";
     byEmpId.set(id, {
@@ -1514,6 +1649,7 @@ async function handleTaskReminders({
       email: getStringField(e.fields, "email"),
       fcmTokens: extractFcmTokensFromFirestoreFields(e.fields),
       role: getStringField(e.fields, "role"),
+      language: normalizeDigestLang(getStringField(e.fields, "language")),
     });
   }
   const managers = [...byEmpId.entries()].filter(([, v]) => v.role === "admin" || v.role === "supervisor").map(([id]) => id);
@@ -1543,22 +1679,29 @@ async function handleTaskReminders({
 
   for (const t of overdueTasks) {
     const f = t.fields as any;
-    const title = (f?.title?.stringValue as string) ?? "مهمة";
+    const title = (f?.title?.stringValue as string) ?? trCron("ar", "task.fallback");
     const assignedTo = (f?.assignedTo?.stringValue as string) ?? "";
     if (!assignedTo) continue;
     const st = getStringField(f, "status") ?? "";
     if (taskIsEndedForReminders(st)) continue;
     const emp = byEmpId.get(assignedTo);
     const empName = emp?.name ?? assignedTo;
-      const msgBody = `المهمة "${title}" متأخرة. الموظف: ${empName}.`;
     for (const id of managers) {
       const m = byEmpId.get(id);
-      await sendEmailIfPolicyAllows("manager_task_overdue", m?.email ?? null, "تنبيه مهمة متأخرة", msgBody);
+      const lang = m?.language ?? "ar";
+      const msgTitle = trCron(lang, "notify.mgr.overdue.title");
+      const msgBody = trCron(lang, "notify.mgr.overdue.body", { title, name: empName });
+      await sendEmailIfPolicyAllows(
+        "manager_task_overdue",
+        m?.email ?? null,
+        trCron(lang, "notify.mgr.overdue.email_subject"),
+        msgBody,
+      );
       await sendFcm({
         accessToken,
         fcmUrl,
         tokens: m?.fcmTokens ?? [],
-        title: "مهمة متأخرة",
+        title: msgTitle,
         body: msgBody,
         notificationType: "manager_task_overdue",
         recipientId: id,
@@ -1573,8 +1716,9 @@ async function handleTaskReminders({
     const lastEmp = overdueEmpNotified ? new Date(overdueEmpNotified).getTime() : 0;
     const canEmp = !overdueEmpNotified || now.getTime() - lastEmp >= dayMs;
     if (canEmp && emp) {
-      const empTitle = "مهمة متأخرة";
-      const empBody = `انتهى موعد تسليم المهمة "${title}".`;
+      const lang = emp.language;
+      const empTitle = trCron(lang, "notify.emp.overdue.title");
+      const empBody = trCron(lang, "notify.emp.overdue.body", { title });
       await sendEmailIfPolicyAllows("employee_task_overdue", emp.email ?? null, empTitle, empBody);
       await sendFcm({
         accessToken,
@@ -1614,7 +1758,7 @@ async function handleTaskReminders({
 
   for (const t of upcomingTasks) {
     const f = t.fields as any;
-    const title = (f?.title?.stringValue as string) ?? "مهمة";
+    const title = (f?.title?.stringValue as string) ?? trCron("ar", "task.fallback");
     const assignedTo = (f?.assignedTo?.stringValue as string) ?? "";
     const toDateStr = getStringField(f, "toDate");
     const status = getStringField(f, "status") ?? "";
@@ -1633,8 +1777,9 @@ async function handleTaskReminders({
 
     // متبقي أكثر من 23 ساعة وأقل أو يساوي 24 ساعة
     if (hoursUntil <= 24 && hoursUntil > 23 && !notified24) {
-      const msgTitle = "اقتراب موعد التسليم";
-      const msgBody = `المهمة "${title}" تقترب من موعد التسليم.`;
+      const lang = emp?.language ?? "ar";
+      const msgTitle = trCron(lang, "notify.emp.due_soon.title");
+      const msgBody = trCron(lang, "notify.emp.due_soon.body", { title });
       await sendEmailIfPolicyAllows("employee_task_due_soon", emp?.email ?? null, msgTitle, msgBody);
       await sendFcm({
         accessToken,
@@ -1652,8 +1797,9 @@ async function handleTaskReminders({
     }
 
     if (hoursUntil <= 12 && hoursUntil > 11 && !notified12h) {
-      const msgTitle = "متابعة المهمة";
-      const msgBody = `المهمة "${title}" ما زالت بانتظار الإجراء.`;
+      const lang = emp?.language ?? "ar";
+      const msgTitle = trCron(lang, "notify.emp.followup.title");
+      const msgBody = trCron(lang, "notify.emp.followup.body", { title });
       await sendEmailIfPolicyAllows("employee_task_followup", emp?.email ?? null, msgTitle, msgBody);
       await sendFcm({
         accessToken,
@@ -1671,8 +1817,9 @@ async function handleTaskReminders({
     }
 
     if (hoursUntil <= 6 && hoursUntil > 5 && !notified6) {
-      const msgTitle = "اقتراب موعد التسليم (6 ساعات)";
-      const msgBody = `المهمة "${title}" تقترب من الموعد النهائي.`;
+      const lang = emp?.language ?? "ar";
+      const msgTitle = trCron(lang, "notify.emp.due_soon_6h.title");
+      const msgBody = trCron(lang, "notify.emp.due_soon_6h.body", { title });
       await sendEmailIfPolicyAllows("employee_task_due_soon", emp?.email ?? null, msgTitle, msgBody);
       await sendFcm({
         accessToken,
@@ -1690,8 +1837,9 @@ async function handleTaskReminders({
     }
 
     if (hoursUntil <= 1 && hoursUntil > 1 / 60 && !notified1h) {
-      const msgTitle = "متبقي حوالي ساعة على التسليم";
-      const msgBody = title;
+      const lang = emp?.language ?? "ar";
+      const msgTitle = trCron(lang, "notify.emp.due_soon_1h.title");
+      const msgBody = trCron(lang, "notify.emp.due_soon_1h.body", { title });
       await sendEmailIfPolicyAllows("employee_task_due_soon_1h", emp?.email ?? null, msgTitle, msgBody);
       await sendFcm({
         accessToken,
@@ -1733,14 +1881,15 @@ async function handleTaskReminders({
 
   for (const t of notStartedTasks) {
     const f = t.fields as any;
-    const title = (f?.title?.stringValue as string) ?? "مهمة";
+    const title = (f?.title?.stringValue as string) ?? trCron("ar", "task.fallback");
     const assignedTo = (f?.assignedTo?.stringValue as string) ?? "";
     if (!assignedTo) continue;
     const startN = getStringField(f, "startReminderNotifiedAt");
     if (hoursSinceIso(startN, now) < 24) continue;
     const emp = byEmpId.get(assignedTo);
-      const msgTitle = "تذكير بالبدء";
-      const msgBody = `لم يبدأ العمل على "${title}" بعد.`;
+      const lang = emp?.language ?? "ar";
+      const msgTitle = trCron(lang, "notify.emp.start_reminder.title");
+      const msgBody = trCron(lang, "notify.emp.start_reminder.body", { title });
     await sendEmailIfPolicyAllows("employee_task_start_reminder", emp?.email ?? null, msgTitle, msgBody);
     await sendFcm({
       accessToken,
@@ -1760,7 +1909,7 @@ async function handleTaskReminders({
   // تحذير إداري: لم يتخذ إجراء بعد مرور 48 ساعة على تاريخ البدء
   for (const t of notStartedTasks) {
     const f = t.fields as any;
-    const title = (f?.title?.stringValue as string) ?? "مهمة";
+    const title = (f?.title?.stringValue as string) ?? trCron("ar", "task.fallback");
     const assignedTo = (f?.assignedTo?.stringValue as string) ?? "";
     const fromStr = getStringField(f, "fromDate");
     if (!assignedTo || !fromStr) continue;
@@ -1770,15 +1919,22 @@ async function handleTaskReminders({
     if (hoursSinceIso(mgrN, now) < 24) continue;
     const emp = byEmpId.get(assignedTo);
     const empName = emp?.name ?? assignedTo;
-    const msgBody = `الموظف ${empName} لم يبدأ المهمة "${title}" بعد تاريخ البدء.`;
     for (const id of managers) {
       const m = byEmpId.get(id);
-      await sendEmailIfPolicyAllows("manager_task_no_action", m?.email ?? null, "تنبيه: لا يوجد إجراء على المهمة", msgBody);
+      const lang = m?.language ?? "ar";
+      const msgTitle = trCron(lang, "notify.mgr.no_action.title");
+      const msgBody = trCron(lang, "notify.mgr.no_action.body", { title, name: empName });
+      await sendEmailIfPolicyAllows(
+        "manager_task_no_action",
+        m?.email ?? null,
+        trCron(lang, "notify.mgr.no_action.email_subject"),
+        msgBody,
+      );
       await sendFcm({
         accessToken,
         fcmUrl,
         tokens: m?.fcmTokens ?? [],
-        title: "⚠️ لم يتخذ موظف إجراءً على المهمة",
+        title: msgTitle,
         body: msgBody,
         notificationType: "manager_task_no_action",
         recipientId: id,
@@ -1811,7 +1967,7 @@ async function handleTaskReminders({
 
   for (const t of processingNoProgress) {
     const f = t.fields as any;
-    const title = (f?.title?.stringValue as string) ?? "مهمة";
+    const title = (f?.title?.stringValue as string) ?? trCron("ar", "task.fallback");
     const assignedTo = (f?.assignedTo?.stringValue as string) ?? "";
     const fromStr = getStringField(f, "fromDate");
     const prog = getDoubleField(f, "progress");
@@ -1822,8 +1978,9 @@ async function handleTaskReminders({
     const np = getStringField(f, "noProgressRemindedAt");
     if (hoursSinceIso(np, now) < 72) continue;
     const emp = byEmpId.get(assignedTo);
-    const msgTitle = "لا يوجد تقدم مسجّل";
-    const msgBody = `المهمة "${title}" لا تحتوي على تقدم مسجّل بعد.`;
+    const lang = emp?.language ?? "ar";
+    const msgTitle = trCron(lang, "notify.emp.no_progress_yet.title");
+    const msgBody = trCron(lang, "notify.emp.no_progress_yet.body", { title });
     await sendEmailIfPolicyAllows("employee_task_no_progress_yet", emp?.email ?? null, msgTitle, msgBody);
     await sendFcm({
       accessToken,
@@ -1872,7 +2029,7 @@ async function handleTaskReminders({
 
   for (const t of ongoingTasks) {
     const f = t.fields as any;
-    const title = (f?.title?.stringValue as string) ?? "مهمة";
+    const title = (f?.title?.stringValue as string) ?? trCron("ar", "task.fallback");
     const assignedTo = (f?.assignedTo?.stringValue as string) ?? "";
     const st = getStringField(f, "status") ?? "";
     if (!assignedTo || taskIsEndedForReminders(st)) continue;
@@ -1886,7 +2043,7 @@ async function handleTaskReminders({
       if (tierBit !== 0 && emp) {
         const merged = mergedProgressReminderMask(f);
         if ((merged & tierBit) === 0) {
-          const payload = buildProgressTierReminderPayload(title, tierBit);
+          const payload = buildProgressTierReminderPayload(title, tierBit, emp?.language ?? "ar");
           if (payload) {
             await sendEmailIfPolicyAllows(
               payload.notificationType,
@@ -1924,8 +2081,9 @@ async function handleTaskReminders({
 
     const staleN = getStringField(f, "staleUpdateNotifiedAt");
     if (hoursSinceIso(staleN, now) >= 72) {
-      const msgTitle = "تحديث المهمة مطلوب";
-      const msgBody = `لا يوجد تحديث جديد على "${title}" منذ فترة.`;
+      const lang = emp?.language ?? "ar";
+      const msgTitle = trCron(lang, "notify.emp.stale_update.title");
+      const msgBody = trCron(lang, "notify.emp.stale_update.body", { title });
       await sendEmailIfPolicyAllows("employee_task_stale_update", emp?.email ?? null, msgTitle, msgBody);
       await sendFcm({
         accessToken,
@@ -1944,15 +2102,22 @@ async function handleTaskReminders({
 
     const stallN = getStringField(f, "managerStalledNotifiedAt");
     if (hoursSinceIso(stallN, now) >= 72) {
-      const msgBody = `لا يوجد تقدم جديد على "${title}" (${empName}) منذ فترة.`;
       for (const id of managers) {
         const m = byEmpId.get(id);
-        await sendEmailIfPolicyAllows("manager_task_progress_stalled", m?.email ?? null, "تنبيه توقف التقدم", msgBody);
+        const lang = m?.language ?? "ar";
+        const msgTitle = trCron(lang, "notify.mgr.stalled.title");
+        const msgBody = trCron(lang, "notify.mgr.stalled.body", { title, name: empName });
+        await sendEmailIfPolicyAllows(
+          "manager_task_progress_stalled",
+          m?.email ?? null,
+          trCron(lang, "notify.mgr.stalled.email_subject"),
+          msgBody,
+        );
         await sendFcm({
           accessToken,
           fcmUrl,
           tokens: m?.fcmTokens ?? [],
-          title: "⛔ توقف التقدم",
+          title: msgTitle,
           body: msgBody,
           notificationType: "manager_task_progress_stalled",
           recipientId: id,
@@ -1980,12 +2145,13 @@ async function handleContentPendingOver24h({
   projectId: string;
 }) {
   const clients = await listDocuments(accessToken, "clients", firestoreBase);
-  const byClientId = new Map<string, { email: string | null; fcmTokens: string[] }>();
+  const byClientId = new Map<string, { email: string | null; fcmTokens: string[]; language: EmailLocale }>();
   for (const c of clients) {
     const id = c.name.split("/").pop() ?? "";
     byClientId.set(id, {
       email: getStringField(c.fields, "email"),
       fcmTokens: extractFcmTokensFromFirestoreFields(c.fields),
+      language: normalizeDigestLang(getStringField(c.fields, "language")),
     });
   }
 
@@ -2014,7 +2180,8 @@ async function handleContentPendingOver24h({
     const title = (f?.title?.stringValue as string) ?? "محتوى";
     if (!clientId) continue;
     const client = byClientId.get(clientId);
-    const msgTitle = "محتوى بانتظار المراجعة لأكثر من 24 ساعة";
+    const lang = client?.language ?? "ar";
+    const msgTitle = trCron(lang, "notify.client.pending_24h.title");
     await sendEmailIfPolicyAllows("client_pending_over_24h", client?.email ?? null, msgTitle, title);
     await sendFcm({
       accessToken,
@@ -2036,6 +2203,7 @@ type PublishReminderEmployee = {
   fcmTokens: string[];
   role: string | null;
   departments: string[];
+  language: EmailLocale;
 };
 
 function resolvePublishReminderTargetIds(
@@ -2058,7 +2226,7 @@ async function sendPublishReminderToTargets({
   projectId,
   byEmpId,
   targetIds,
-  title,
+  wave,
   body,
   extras,
 }: {
@@ -2067,16 +2235,24 @@ async function sendPublishReminderToTargets({
   projectId: string;
   byEmpId: Map<string, PublishReminderEmployee>;
   targetIds: string[];
-  title: string;
+  wave: "soon" | "lateFirst" | "lateSecond";
   body: string;
   extras: Record<string, string>;
 }): Promise<boolean> {
   if (targetIds.length === 0) return false;
   let sent = false;
+  const titleKey =
+    wave === "soon"
+      ? "notify.publish.soon.title"
+      : wave === "lateFirst"
+        ? "notify.publish.late.title"
+        : "notify.publish.late_again.title";
   for (const targetId of targetIds) {
     const target = byEmpId.get(targetId);
     if (!target) continue;
     sent = true;
+    const lang = target.language ?? "ar";
+    const title = trCron(lang, titleKey);
     await sendEmailIfPolicyAllows("publish_post_one_hour", target.email ?? null, title, body);
     await sendFcm({
       accessToken,
@@ -2120,6 +2296,7 @@ async function handlePublishReminders({
       fcmTokens: extractFcmTokensFromFirestoreFields(e.fields),
       role: getStringField(e.fields, "role"),
       departments,
+      language: normalizeDigestLang(getStringField(e.fields, "language")),
     });
   }
 
@@ -2191,22 +2368,16 @@ async function handlePublishReminders({
     }
     if (!wave) continue;
 
-    const title = getStringField(f, "title") ?? "منشور";
+    const title = getStringField(f, "title") ?? trCron("ar", "content.fallback");
     const executor = getStringField(f, "executor") ?? "";
     const targetIds = resolvePublishReminderTargetIds(executor, byEmpId);
-    const msgTitle =
-      wave === "soon"
-        ? "تذكير نشر خلال ١٥ دقيقة"
-        : wave === "lateFirst"
-          ? "تذكير نشر متأخر ١٥ دقيقة"
-          : "تذكير نشر متأخر — لم يُنشر بعد";
     const sent = await sendPublishReminderToTargets({
       accessToken,
       fcmUrl,
       projectId,
       byEmpId,
       targetIds,
-      title: msgTitle,
+      wave,
       body: title,
       extras: contentNavExtras(doc),
     });
@@ -2431,6 +2602,7 @@ async function processFlexibleCalendarDayAbsent({
   dayKey,
   records,
   fcmTokens,
+  language,
 }: {
   accessToken: string;
   projectId: string;
@@ -2440,7 +2612,9 @@ async function processFlexibleCalendarDayAbsent({
   dayKey: string;
   records: Array<{ fields: Record<string, unknown> }>;
   fcmTokens: string[];
+  language: EmailLocale;
 }): Promise<void> {
+  const lang = language;
   const hasPresentRecord = records.some((r) =>
     getStringField(r.fields, "action") === "present"
   );
@@ -2463,8 +2637,8 @@ async function processFlexibleCalendarDayAbsent({
         accessToken,
         fcmUrl,
         tokens: fcmTokens,
-        title: "Marked absent",
-        body: "Check-in was not recorded by end of day.",
+        title: trCron(lang, "notify.att.marked_absent.title"),
+        body: trCron(lang, "notify.att.marked_absent.checkin_eod.body"),
         notificationType: "employee_attendance_auto_absent",
         recipientId: employeeId,
         recipientKind: "employee",
@@ -2490,8 +2664,8 @@ async function processFlexibleCalendarDayAbsent({
         accessToken,
         fcmUrl,
         tokens: fcmTokens,
-        title: "Marked absent",
-        body: "Check-out was not recorded by end of day.",
+        title: trCron(lang, "notify.att.marked_absent.title"),
+        body: trCron(lang, "notify.att.marked_absent.checkout_eod.body"),
         notificationType: "employee_attendance_auto_absent",
         recipientId: employeeId,
         recipientKind: "employee",
@@ -2597,6 +2771,7 @@ async function handleAttendanceReminders({
 
     if (isFlexibleRemote) {
       const fcmTokens = extractFcmTokensFromFirestoreFields(e.fields);
+      const lang = normalizeDigestLang(getStringField(e.fields, "language"));
       const email = getStringField(e.fields, "email");
       const todayRecords = await fetchAttendanceRecordsForDay({
         accessToken,
@@ -2632,8 +2807,8 @@ async function handleAttendanceReminders({
             dayKey,
             dedupeSuffix: "flex_check_in_eod",
             emailType: "employee_attendance_check_in",
-            title: "Check in before end of day",
-            body: "You have not checked in today. Please submit Present before the day ends.",
+            title: trCron(lang, "notify.att.checkin_eod.title"),
+            body: trCron(lang, "notify.att.checkin_eod.body"),
             notificationType: "employee_attendance_check_in",
           });
         } else if (hasValidPresent && !hasLeftRecord) {
@@ -2647,8 +2822,8 @@ async function handleAttendanceReminders({
             dayKey,
             dedupeSuffix: "flex_check_out_eod",
             emailType: "employee_attendance_check_out",
-            title: "Check out before end of day",
-            body: "Please submit Left before the day ends to complete attendance.",
+            title: trCron(lang, "notify.att.checkout_eod.title"),
+            body: trCron(lang, "notify.att.checkout_eod.body"),
             notificationType: "employee_attendance_check_out",
           });
         }
@@ -2664,7 +2839,9 @@ async function handleAttendanceReminders({
           dayKey,
           records: todayRecords,
           fcmTokens,
-        });
+        
+        language: lang,
+      });
       }
 
       const yesterdayKey = localDateKey(
@@ -2686,7 +2863,9 @@ async function handleAttendanceReminders({
           dayKey: yesterdayKey,
           records: yesterdayRecords,
           fcmTokens,
-        });
+        
+        language: lang,
+      });
       }
       continue;
     }
@@ -2702,6 +2881,7 @@ async function handleAttendanceReminders({
     }
 
     const fcmTokens = extractFcmTokensFromFirestoreFields(e.fields);
+    const lang = normalizeDigestLang(getStringField(e.fields, "language"));
     const email = getStringField(e.fields, "email");
 
     const todayRecords = await fetchAttendanceRecordsForDay({
@@ -2741,8 +2921,8 @@ async function handleAttendanceReminders({
           accessToken,
           fcmUrl,
           tokens: fcmTokens,
-          title: "Marked absent",
-          body: "Check-in was not recorded within the allowed time.",
+          title: trCron(lang, "notify.att.marked_absent.title"),
+          body: trCron(lang, "notify.att.marked_absent.checkin_window.body"),
           notificationType: "employee_attendance_auto_absent",
           recipientId: id,
           recipientKind: "employee",
@@ -2768,8 +2948,8 @@ async function handleAttendanceReminders({
           accessToken,
           fcmUrl,
           tokens: fcmTokens,
-          title: "Marked absent",
-          body: "Check-out was not recorded within the allowed time.",
+          title: trCron(lang, "notify.att.marked_absent.title"),
+          body: trCron(lang, "notify.att.marked_absent.checkout_window.body"),
           notificationType: "employee_attendance_auto_absent",
           recipientId: id,
           recipientKind: "employee",
@@ -2792,8 +2972,8 @@ async function handleAttendanceReminders({
         dayKey,
         dedupeSuffix: "check_in",
         emailType: "employee_attendance_check_in",
-        title: "Time to check in",
-        body: "Please check in for work now.",
+        title: trCron(lang, "notify.emp.attendance_check_in.title"),
+        body: trCron(lang, "notify.emp.attendance_check_in.body"),
         notificationType: "employee_attendance_check_in",
       });
     }
@@ -2812,8 +2992,8 @@ async function handleAttendanceReminders({
         dayKey,
         dedupeSuffix: "check_in_closing",
         emailType: "employee_attendance_check_in",
-        title: "Check in soon",
-        body: "Your check-in window is closing soon.",
+        title: trCron(lang, "notify.att.checkin_soon.title"),
+        body: trCron(lang, "notify.att.checkin_soon.body"),
         notificationType: "employee_attendance_check_in",
       });
     }
@@ -2831,8 +3011,8 @@ async function handleAttendanceReminders({
         dayKey,
         dedupeSuffix: "check_out",
         emailType: "employee_attendance_check_out",
-        title: "Time to check out",
-        body: "Please record your departure.",
+        title: trCron(lang, "notify.emp.attendance_check_out.title"),
+        body: trCron(lang, "notify.emp.attendance_check_out.body"),
         notificationType: "employee_attendance_check_out",
       });
     }
@@ -2851,8 +3031,8 @@ async function handleAttendanceReminders({
         dayKey,
         dedupeSuffix: "check_out_closing",
         emailType: "employee_attendance_check_out",
-        title: "Check out soon",
-        body: "Your check-out window is closing soon.",
+        title: trCron(lang, "notify.att.checkout_soon.title"),
+        body: trCron(lang, "notify.att.checkout_soon.body"),
         notificationType: "employee_attendance_check_out",
       });
     }

@@ -401,10 +401,6 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                                         }).toList(),
                                       ).then((value) async {
                                         if (value != null) {
-                                          final statusLabelAr =
-                                              NotificationService.statusLabelAr(
-                                                value,
-                                              );
                                           await controller.updateContent(
                                             emp.copyWith(status: value),
                                           );
@@ -417,10 +413,8 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                                                   .trim();
                                           await NotificationService.notifyAdminContentStatusChanged(
                                             contentTitle: emp.title,
-                                            statusLabelAr: statusLabelAr,
-                                            changedByName: actorName.isEmpty
-                                                ? 'notify.unknown_actor'.tr
-                                                : actorName,
+                                            statusKey: value,
+                                            changedByName: actorName,
                                             fcmDataExtras:
                                                 notificationContentExtras(
                                               emp.id,
@@ -537,13 +531,9 @@ Widget _buildDesktopContentsDataTable(BuildContext context) {
                                           if (!ok) return;
                                           if (value == 'under_promotion' ||
                                               value == 'end_promotion') {
-                                            final promotionLabel =
-                                                value == 'under_promotion'
-                                                ? 'under_promotion'.tr
-                                                : 'end_promotion'.tr;
                                             await NotificationService.notifyAdminContentPromotionStatusChanged(
                                               contentTitle: emp.title,
-                                              promotionLabelAr: promotionLabel,
+                                              promotionLabelKey: value,
                                               fcmDataExtras:
                                                   notificationContentExtras(
                                                 emp.id,

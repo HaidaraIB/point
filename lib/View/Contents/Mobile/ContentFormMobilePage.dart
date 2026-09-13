@@ -252,7 +252,7 @@ class _ContentFormMobilePageState extends State<ContentFormMobilePage> {
         final clientName = controller.clients.firstWhereOrNull((c) => c.id == widget.clientId)?.name ?? widget.clientId;
         await NotificationService.notifyClientContentPendingApproval(
           clientId: widget.clientId,
-          contentTypeLabel: 'content.notify.design_video_new'.tr,
+          contentTypeKey: 'content.notify.design_video_new',
         );
         await NotificationService.notifyManagersContentSubmittedByClient(clientName: clientName, contentTitle: titleController.text);
         if (effectiveStatus == StorageKeys.status_scheduled &&

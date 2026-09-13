@@ -1,5 +1,5 @@
-import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Localization/notify_locale.dart';
 import 'package:point/Models/AttendanceRecordModel.dart';
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/StorageKeys.dart';
@@ -19,26 +19,44 @@ enum ManagerTaskEditKind {
 
 /// Push/email for **app-triggered** flows. Types sent only by Supabase Cron
 /// (`scheduled-notifications`) live in that function — no Dart wrappers here.
+///
+/// Copy is resolved per recipient via [NotificationCopyForLocale] using the
+/// receiver's Firestore `language`, not the sender's GetX locale.
 class NotificationService {
   NotificationService._();
 
-  static Map<String, String> _emailLabels(Map<String, String> fields) => {
-    for (final e in fields.entries) e.key.tr: e.value,
-  };
-
   /// Task type index aligned with [StorageKeys.departmentSlugs] → localized name.
-  static String departmentNameFromTaskType(String type) {
+  static String departmentNameFromTaskType(
+    String type, {
+    String locale = 'ar',
+  }) {
     final idx = int.tryParse(type);
     final max = StorageKeys.departmentSlugs.length - 1;
     if (idx == null || idx < 0 || idx > max) {
-      return 'notify.department_unknown'.tr;
+      return NotifyLocale.tr(locale, 'notify.department_unknown');
     }
     final semantic = StorageKeys.departmentSlugs[idx];
-    return StorageKeys.semanticDepartmentLabelKey(semantic).tr;
+    return NotifyLocale.tr(
+      locale,
+      StorageKeys.semanticDepartmentLabelKey(semantic),
+    );
   }
 
   /// Content / task status storage key → localized label.
-  static String statusLabelAr(String status) => status.tr;
+  static String statusLabelAr(String status, {String locale = 'ar'}) =>
+      NotifyLocale.tr(locale, status);
+
+  /// Localizes [TaskEmailContext.department] when it holds a raw task type index.
+  static TaskEmailContext localizeTaskEmailContext(
+    String locale,
+    TaskEmailContext ctx,
+  ) {
+    final raw = ctx.department?.trim() ?? '';
+    if (raw.isEmpty || int.tryParse(raw) == null) return ctx;
+    return ctx.copyWith(
+      department: departmentNameFromTaskType(raw, locale: locale),
+    );
+  }
 
   // ─── Employee notifications ─────────────────────────────────────────────
 
@@ -50,14 +68,19 @@ class NotificationService {
   }) async {
     await FirestoreServices.sendFcm(
       userId: employeeId,
-      title: 'notify.emp.assigned.title'.tr,
-      body: taskTitle,
       notificationType: 'employee_task_assigned',
-      actionText: 'notify.emp.assigned.action'.tr,
-      emailDetails: taskContext != null
-          ? NotificationEmailFields.employeeTaskAssigned(taskContext)
-          : null,
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(locale, 'notify.emp.assigned.title'),
+        body: taskTitle,
+        actionText: NotifyLocale.tr(locale, 'notify.emp.assigned.action'),
+        emailDetails: taskContext != null
+            ? NotificationEmailFields.employeeTaskAssigned(
+                locale,
+                localizeTaskEmailContext(locale, taskContext),
+              )
+            : null,
+      ),
     );
   }
 
@@ -69,14 +92,19 @@ class NotificationService {
   }) async {
     await FirestoreServices.sendFcm(
       userId: employeeId,
-      title: 'notify.emp.edit_mgmt.title'.tr,
-      body: taskTitle,
       notificationType: 'employee_task_edit_requested',
-      actionText: 'notify.emp.edit_mgmt.action'.tr,
-      emailDetails: taskContext != null
-          ? NotificationEmailFields.employeeTaskEditRequested(taskContext)
-          : null,
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(locale, 'notify.emp.edit_mgmt.title'),
+        body: taskTitle,
+        actionText: NotifyLocale.tr(locale, 'notify.emp.edit_mgmt.action'),
+        emailDetails: taskContext != null
+            ? NotificationEmailFields.employeeTaskEditRequested(
+                locale,
+                localizeTaskEmailContext(locale, taskContext),
+              )
+            : null,
+      ),
     );
   }
 
@@ -88,14 +116,26 @@ class NotificationService {
   }) async {
     await FirestoreServices.sendFcm(
       userId: employeeId,
-      title: 'notify.emp.rejected.title'.tr,
-      body: 'notify.emp.rejected.body'.trParams({'title': taskTitle}),
       notificationType: 'employee_task_rejected',
-      actionText: 'notify.emp.rejected.action'.tr,
-      emailDetails: taskContext != null
-          ? NotificationEmailFields.employeeTaskRejected(taskContext)
-          : _emailLabels({'notify.email.status': 'status_rejected'.tr}),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(locale, 'notify.emp.rejected.title'),
+        body: NotifyLocale.tr(locale, 'notify.emp.rejected.body', {
+          'title': taskTitle,
+        }),
+        actionText: NotifyLocale.tr(locale, 'notify.emp.rejected.action'),
+        emailDetails: taskContext != null
+            ? NotificationEmailFields.employeeTaskRejected(
+                locale,
+                localizeTaskEmailContext(locale, taskContext),
+              )
+            : NotificationEmailFields.labels(locale, {
+                'notify.email.status': NotifyLocale.tr(
+                  locale,
+                  'status_rejected',
+                ),
+              }),
+      ),
     );
   }
 
@@ -107,16 +147,24 @@ class NotificationService {
   }) async {
     await FirestoreServices.sendFcm(
       userId: employeeId,
-      title: 'notify.emp.reopened.title'.tr,
-      body: taskTitle,
       notificationType: 'employee_task_reopened',
-      actionText: 'notify.emp.reopened.action'.tr,
-      emailDetails: taskContext != null
-          ? NotificationEmailFields.employeeTaskReopened(taskContext)
-          : _emailLabels({
-              'notify.email.status': 'notify.email.state_reopened'.tr,
-            }),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(locale, 'notify.emp.reopened.title'),
+        body: taskTitle,
+        actionText: NotifyLocale.tr(locale, 'notify.emp.reopened.action'),
+        emailDetails: taskContext != null
+            ? NotificationEmailFields.employeeTaskReopened(
+                locale,
+                localizeTaskEmailContext(locale, taskContext),
+              )
+            : NotificationEmailFields.labels(locale, {
+                'notify.email.status': NotifyLocale.tr(
+                  locale,
+                  'notify.email.state_reopened',
+                ),
+              }),
+      ),
     );
   }
 
@@ -128,14 +176,19 @@ class NotificationService {
   }) async {
     await FirestoreServices.sendFcm(
       userId: employeeId,
-      title: 'notify.emp.attachments.title'.tr,
-      body: taskTitle,
       notificationType: 'employee_task_new_attachments',
-      actionText: 'notify.emp.attachments.action'.tr,
-      emailDetails: taskContext != null
-          ? NotificationEmailFields.employeeTaskNewAttachments(taskContext)
-          : null,
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(locale, 'notify.emp.attachments.title'),
+        body: taskTitle,
+        actionText: NotifyLocale.tr(locale, 'notify.emp.attachments.action'),
+        emailDetails: taskContext != null
+            ? NotificationEmailFields.employeeTaskNewAttachments(
+                locale,
+                localizeTaskEmailContext(locale, taskContext),
+              )
+            : null,
+      ),
     );
   }
 
@@ -152,15 +205,20 @@ class NotificationService {
         TaskEmailContext(taskTitle: taskTitle, commenterName: commenterName);
     await FirestoreServices.sendFcm(
       userId: employeeId,
-      title: 'notify.emp.new_comment.title'.tr,
-      body: 'notify.emp.new_comment.body'.trParams({
-        'name': commenterName,
-        'title': taskTitle,
-      }),
       notificationType: 'employee_task_new_comment',
-      actionText: 'notify.emp.new_comment.action'.tr,
-      emailDetails: NotificationEmailFields.employeeTaskNewComment(ctx),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(locale, 'notify.emp.new_comment.title'),
+        body: NotifyLocale.tr(locale, 'notify.emp.new_comment.body', {
+          'name': commenterName,
+          'title': taskTitle,
+        }),
+        actionText: NotifyLocale.tr(locale, 'notify.emp.new_comment.action'),
+        emailDetails: NotificationEmailFields.employeeTaskNewComment(
+          locale,
+          localizeTaskEmailContext(locale, ctx),
+        ),
+      ),
     );
   }
 
@@ -172,29 +230,39 @@ class NotificationService {
     TaskEmailContext? taskContext,
     Map<String, String>? fcmDataExtras,
   }) async {
-    final label = statusLabelAr(newStatus);
-    final actor = changedBy.trim().isEmpty
-        ? 'notify.unknown_actor'.tr
-        : changedBy.trim();
-    final ctx =
-        taskContext ??
-        TaskEmailContext(
-          taskTitle: taskTitle,
-          newStatus: label,
-          changedBy: actor,
-        );
     await FirestoreServices.sendFcm(
       userId: employeeId,
-      title: 'notify.emp.status_changed.title'.tr,
-      body: 'notify.emp.status_changed.body'.trParams({
-        'title': taskTitle,
-        'label': label,
-        'by': actor,
-      }),
       notificationType: 'employee_task_status_changed',
-      actionText: 'notify.emp.status_changed.action'.tr,
-      emailDetails: NotificationEmailFields.employeeTaskStatusChanged(ctx),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) {
+        final label = statusLabelAr(newStatus, locale: locale);
+        final actor = changedBy.trim().isEmpty
+            ? NotifyLocale.tr(locale, 'notify.unknown_actor')
+            : changedBy.trim();
+        final ctx =
+            taskContext?.copyWith(newStatus: label, changedBy: actor) ??
+            TaskEmailContext(
+              taskTitle: taskTitle,
+              newStatus: label,
+              changedBy: actor,
+            );
+        return ResolvedNotificationCopy(
+          title: NotifyLocale.tr(locale, 'notify.emp.status_changed.title'),
+          body: NotifyLocale.tr(locale, 'notify.emp.status_changed.body', {
+            'title': taskTitle,
+            'label': label,
+            'by': actor,
+          }),
+          actionText: NotifyLocale.tr(
+            locale,
+            'notify.emp.status_changed.action',
+          ),
+          emailDetails: NotificationEmailFields.employeeTaskStatusChanged(
+            locale,
+            localizeTaskEmailContext(locale, ctx),
+          ),
+        );
+      },
     );
   }
 
@@ -210,17 +278,25 @@ class NotificationService {
         TaskEmailContext(taskTitle: taskTitle, newDueDate: newDueLabel);
     await FirestoreServices.sendFcm(
       userId: employeeId,
-      title: 'notify.emp.deadline_extension.title'.tr,
-      body: 'notify.emp.deadline_extension.approved.body'.trParams({
-        'title': taskTitle,
-        'date': newDueLabel,
-      }),
       notificationType: 'employee_deadline_extension_approved',
-      actionText: 'notify.emp.deadline_extension.action'.tr,
-      emailDetails: NotificationEmailFields.employeeDeadlineExtensionApproved(
-        ctx,
-      ),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(locale, 'notify.emp.deadline_extension.title'),
+        body: NotifyLocale.tr(
+          locale,
+          'notify.emp.deadline_extension.approved.body',
+          {'title': taskTitle, 'date': newDueLabel},
+        ),
+        actionText: NotifyLocale.tr(
+          locale,
+          'notify.emp.deadline_extension.action',
+        ),
+        emailDetails:
+            NotificationEmailFields.employeeDeadlineExtensionApproved(
+          locale,
+          localizeTaskEmailContext(locale, ctx),
+        ),
+      ),
     );
   }
 
@@ -232,16 +308,26 @@ class NotificationService {
   }) async {
     await FirestoreServices.sendFcm(
       userId: employeeId,
-      title: 'notify.emp.deadline_extension.title'.tr,
-      body: 'notify.emp.deadline_extension.denied.body'.trParams({
-        'title': taskTitle,
-      }),
       notificationType: 'employee_deadline_extension_denied',
-      actionText: 'notify.emp.deadline_extension.action'.tr,
-      emailDetails: taskContext != null
-          ? NotificationEmailFields.employeeDeadlineExtensionDenied(taskContext)
-          : null,
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(locale, 'notify.emp.deadline_extension.title'),
+        body: NotifyLocale.tr(
+          locale,
+          'notify.emp.deadline_extension.denied.body',
+          {'title': taskTitle},
+        ),
+        actionText: NotifyLocale.tr(
+          locale,
+          'notify.emp.deadline_extension.action',
+        ),
+        emailDetails: taskContext != null
+            ? NotificationEmailFields.employeeDeadlineExtensionDenied(
+                locale,
+                localizeTaskEmailContext(locale, taskContext),
+              )
+            : null,
+      ),
     );
   }
 
@@ -251,12 +337,20 @@ class NotificationService {
   }) async {
     await FirestoreServices.sendFcm(
       userId: employeeId,
-      title: AppLocaleKeys.notifyEmpAttendanceCheckInTitle.tr,
-      body: AppLocaleKeys.notifyEmpAttendanceCheckInBody.tr,
       notificationType: 'employee_attendance_check_in',
-      actionText: AppLocaleKeys.attendancePresent.tr,
       referenceId: 'attendance',
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(
+          locale,
+          AppLocaleKeys.notifyEmpAttendanceCheckInTitle,
+        ),
+        body: NotifyLocale.tr(
+          locale,
+          AppLocaleKeys.notifyEmpAttendanceCheckInBody,
+        ),
+        actionText: NotifyLocale.tr(locale, AppLocaleKeys.attendancePresent),
+      ),
     );
   }
 
@@ -266,12 +360,20 @@ class NotificationService {
   }) async {
     await FirestoreServices.sendFcm(
       userId: employeeId,
-      title: AppLocaleKeys.notifyEmpAttendanceCheckOutTitle.tr,
-      body: AppLocaleKeys.notifyEmpAttendanceCheckOutBody.tr,
       notificationType: 'employee_attendance_check_out',
-      actionText: AppLocaleKeys.attendanceLeft.tr,
       referenceId: 'attendance',
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(
+          locale,
+          AppLocaleKeys.notifyEmpAttendanceCheckOutTitle,
+        ),
+        body: NotifyLocale.tr(
+          locale,
+          AppLocaleKeys.notifyEmpAttendanceCheckOutBody,
+        ),
+        actionText: NotifyLocale.tr(locale, AppLocaleKeys.attendanceLeft),
+      ),
     );
   }
 
@@ -282,21 +384,34 @@ class NotificationService {
   }) async {
     final ids = await FirestoreServices.getEmployeeIdsByRole(['admin']);
     if (ids.isEmpty) return;
-    final actionLabel = action == AttendanceRecordModel.actionPresent
-        ? AppLocaleKeys.attendancePresent.tr
-        : AppLocaleKeys.attendanceLeft.tr;
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
-      title: 'notify.mgr.attendance_submitted.title'.tr,
-      body: 'notify.mgr.attendance_submitted.body'.trParams({
-        'name': employeeName,
-        'action': actionLabel,
-      }),
       notificationType: 'manager_attendance_submitted',
-      actionText: 'notify.mgr.attendance_submitted.action'.tr,
       referenceId: 'attendance',
-      emailDetails: _emailLabels({'notify.email.employee': employeeName}),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) {
+        final actionLabel = action == AttendanceRecordModel.actionPresent
+            ? NotifyLocale.tr(locale, AppLocaleKeys.attendancePresent)
+            : NotifyLocale.tr(locale, AppLocaleKeys.attendanceLeft);
+        return ResolvedNotificationCopy(
+          title: NotifyLocale.tr(
+            locale,
+            'notify.mgr.attendance_submitted.title',
+          ),
+          body: NotifyLocale.tr(
+            locale,
+            'notify.mgr.attendance_submitted.body',
+            {'name': employeeName, 'action': actionLabel},
+          ),
+          actionText: NotifyLocale.tr(
+            locale,
+            'notify.mgr.attendance_submitted.action',
+          ),
+          emailDetails: NotificationEmailFields.labels(locale, {
+            'notify.email.employee': employeeName,
+          }),
+        );
+      },
     );
   }
 
@@ -306,30 +421,44 @@ class NotificationService {
     required bool approved,
     Map<String, String>? fcmDataExtras,
   }) async {
-    final actionLabel = action == AttendanceRecordModel.actionPresent
-        ? AppLocaleKeys.attendancePresent.tr
-        : AppLocaleKeys.attendanceLeft.tr;
-    final outcomeLabel = approved
-        ? AppLocaleKeys.attendanceApproved.tr
-        : AppLocaleKeys.attendanceAbsent.tr;
-    final body = approved
-        ? AppLocaleKeys.notifyEmpAttendanceReviewedBodyApproved.trParams({
-            'action': actionLabel,
-          })
-        : AppLocaleKeys.notifyEmpAttendanceReviewedBodyAbsent.trParams({
-            'action': actionLabel,
-          });
     await FirestoreServices.sendFcm(
       userId: employeeId,
-      title: AppLocaleKeys.notifyEmpAttendanceReviewedTitle.tr,
-      body: body,
       notificationType: 'employee_attendance_reviewed',
-      actionText: AppLocaleKeys.notifyEmpAttendanceReviewedAction.tr,
       referenceId: 'attendance',
-      emailDetails: _emailLabels({
-        'notify.email.outcome': outcomeLabel,
-      }),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) {
+        final actionLabel = action == AttendanceRecordModel.actionPresent
+            ? NotifyLocale.tr(locale, AppLocaleKeys.attendancePresent)
+            : NotifyLocale.tr(locale, AppLocaleKeys.attendanceLeft);
+        final outcomeLabel = approved
+            ? NotifyLocale.tr(locale, AppLocaleKeys.attendanceApproved)
+            : NotifyLocale.tr(locale, AppLocaleKeys.attendanceAbsent);
+        final body = approved
+            ? NotifyLocale.tr(
+                locale,
+                AppLocaleKeys.notifyEmpAttendanceReviewedBodyApproved,
+                {'action': actionLabel},
+              )
+            : NotifyLocale.tr(
+                locale,
+                AppLocaleKeys.notifyEmpAttendanceReviewedBodyAbsent,
+                {'action': actionLabel},
+              );
+        return ResolvedNotificationCopy(
+          title: NotifyLocale.tr(
+            locale,
+            AppLocaleKeys.notifyEmpAttendanceReviewedTitle,
+          ),
+          body: body,
+          actionText: NotifyLocale.tr(
+            locale,
+            AppLocaleKeys.notifyEmpAttendanceReviewedAction,
+          ),
+          emailDetails: NotificationEmailFields.labels(locale, {
+            'notify.email.outcome': outcomeLabel,
+          }),
+        );
+      },
     );
   }
 
@@ -341,19 +470,28 @@ class NotificationService {
   }) async {
     await FirestoreServices.sendFcm(
       userId: employeeId,
-      title: AppLocaleKeys.notifyEmpPayslipReadyTitle.tr,
-      body: AppLocaleKeys.notifyEmpPayslipReadyBody.trParams({
-        'period': period,
-        'amount': netPayLabel,
-      }),
       notificationType: 'employee_payslip_ready',
-      actionText: AppLocaleKeys.notifyEmpPayslipReadyAction.tr,
       referenceId: period,
-      emailDetails: _emailLabels({
-        'notify.email.period': period,
-        'notify.email.amount': netPayLabel,
-      }),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(
+          locale,
+          AppLocaleKeys.notifyEmpPayslipReadyTitle,
+        ),
+        body: NotifyLocale.tr(
+          locale,
+          AppLocaleKeys.notifyEmpPayslipReadyBody,
+          {'period': period, 'amount': netPayLabel},
+        ),
+        actionText: NotifyLocale.tr(
+          locale,
+          AppLocaleKeys.notifyEmpPayslipReadyAction,
+        ),
+        emailDetails: NotificationEmailFields.labels(locale, {
+          'notify.email.period': period,
+          'notify.email.amount': netPayLabel,
+        }),
+      ),
     );
   }
 
@@ -365,32 +503,47 @@ class NotificationService {
     Map<String, String>? fcmDataExtras,
   }) async {
     final advance = advanceDeductionLabel?.trim() ?? '';
-    final body = advance.isEmpty
-        ? AppLocaleKeys.notifyEmpPayslipPaidBody.trParams({
-            'period': period,
-            'amount': netPayLabel,
-          })
-        : AppLocaleKeys.notifyEmpPayslipPaidBodyWithAdvance.trParams({
-            'period': period,
-            'amount': netPayLabel,
-            'advance': advance,
-          });
-    final emailDetails = <String, String>{
-      'notify.email.period': period,
-      'notify.email.amount': netPayLabel,
-    };
-    if (advance.isNotEmpty) {
-      emailDetails['notify.email.advance'] = advance;
-    }
     await FirestoreServices.sendFcm(
       userId: employeeId,
-      title: AppLocaleKeys.notifyEmpPayslipPaidTitle.tr,
-      body: body,
       notificationType: 'employee_payslip_paid',
-      actionText: AppLocaleKeys.notifyEmpPayslipPaidAction.tr,
       referenceId: period,
-      emailDetails: _emailLabels(emailDetails),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) {
+        final body = advance.isEmpty
+            ? NotifyLocale.tr(
+                locale,
+                AppLocaleKeys.notifyEmpPayslipPaidBody,
+                {'period': period, 'amount': netPayLabel},
+              )
+            : NotifyLocale.tr(
+                locale,
+                AppLocaleKeys.notifyEmpPayslipPaidBodyWithAdvance,
+                {
+                  'period': period,
+                  'amount': netPayLabel,
+                  'advance': advance,
+                },
+              );
+        final emailDetails = <String, String>{
+          'notify.email.period': period,
+          'notify.email.amount': netPayLabel,
+        };
+        if (advance.isNotEmpty) {
+          emailDetails['notify.email.advance'] = advance;
+        }
+        return ResolvedNotificationCopy(
+          title: NotifyLocale.tr(
+            locale,
+            AppLocaleKeys.notifyEmpPayslipPaidTitle,
+          ),
+          body: body,
+          actionText: NotifyLocale.tr(
+            locale,
+            AppLocaleKeys.notifyEmpPayslipPaidAction,
+          ),
+          emailDetails: NotificationEmailFields.labels(locale, emailDetails),
+        );
+      },
     );
   }
 
@@ -401,17 +554,27 @@ class NotificationService {
   }) async {
     await FirestoreServices.sendFcm(
       userId: employeeId,
-      title: AppLocaleKeys.notifyEmpAdvanceRecordedTitle.tr,
-      body: AppLocaleKeys.notifyEmpAdvanceRecordedBody.trParams({
-        'amount': amountLabel,
-      }),
       notificationType: 'employee_advance_recorded',
-      actionText: AppLocaleKeys.notifyEmpAdvanceRecordedAction.tr,
       referenceId: amountLabel,
-      emailDetails: _emailLabels({
-        'notify.email.amount': amountLabel,
-      }),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(
+          locale,
+          AppLocaleKeys.notifyEmpAdvanceRecordedTitle,
+        ),
+        body: NotifyLocale.tr(
+          locale,
+          AppLocaleKeys.notifyEmpAdvanceRecordedBody,
+          {'amount': amountLabel},
+        ),
+        actionText: NotifyLocale.tr(
+          locale,
+          AppLocaleKeys.notifyEmpAdvanceRecordedAction,
+        ),
+        emailDetails: NotificationEmailFields.labels(locale, {
+          'notify.email.amount': amountLabel,
+        }),
+      ),
     );
   }
 
@@ -423,19 +586,28 @@ class NotificationService {
   }) async {
     await FirestoreServices.sendFcmForClient(
       userId: clientId,
-      title: AppLocaleKeys.notifyClientInvoicePaidTitle.tr,
-      body: AppLocaleKeys.notifyClientInvoicePaidBody.trParams({
-        'ref': invoiceRef,
-        'amount': amountLabel,
-      }),
       notificationType: 'client_invoice_paid',
-      actionText: AppLocaleKeys.notifyClientInvoicePaidAction.tr,
       referenceId: invoiceRef,
-      emailDetails: _emailLabels({
-        'notify.email.invoice': invoiceRef,
-        'notify.email.amount': amountLabel,
-      }),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(
+          locale,
+          AppLocaleKeys.notifyClientInvoicePaidTitle,
+        ),
+        body: NotifyLocale.tr(
+          locale,
+          AppLocaleKeys.notifyClientInvoicePaidBody,
+          {'ref': invoiceRef, 'amount': amountLabel},
+        ),
+        actionText: NotifyLocale.tr(
+          locale,
+          AppLocaleKeys.notifyClientInvoicePaidAction,
+        ),
+        emailDetails: NotificationEmailFields.labels(locale, {
+          'notify.email.invoice': invoiceRef,
+          'notify.email.amount': amountLabel,
+        }),
+      ),
     );
   }
 
@@ -454,20 +626,25 @@ class NotificationService {
     final pct = progressPercent.clamp(0, 100).toString();
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
-      title: 'notify.mgr.progress_updated.title'.tr,
-      body: 'notify.mgr.progress_updated.body'.trParams({
-        'name': employeeName,
-        'title': taskTitle,
-        'pct': pct,
-      }),
       notificationType: 'manager_task_progress_updated',
-      actionText: 'notify.mgr.progress_updated.action'.tr,
       referenceId: taskTitle,
-      emailDetails: _emailLabels({
-        'notify.email.employee': employeeName,
-        'notify.email.task': taskTitle,
-      }),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(locale, 'notify.mgr.progress_updated.title'),
+        body: NotifyLocale.tr(locale, 'notify.mgr.progress_updated.body', {
+          'name': employeeName,
+          'title': taskTitle,
+          'pct': pct,
+        }),
+        actionText: NotifyLocale.tr(
+          locale,
+          'notify.mgr.progress_updated.action',
+        ),
+        emailDetails: NotificationEmailFields.labels(locale, {
+          'notify.email.employee': employeeName,
+          'notify.email.task': taskTitle,
+        }),
+      ),
     );
   }
 
@@ -486,15 +663,20 @@ class NotificationService {
         TaskEmailContext(taskTitle: taskTitle, changedBy: employeeName);
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
-      title: 'notify.mgr.received.title'.tr,
-      body: 'notify.mgr.received.body'.trParams({
-        'name': employeeName,
-        'title': taskTitle,
-      }),
       notificationType: 'manager_task_received',
-      actionText: 'notify.mgr.received.action'.tr,
-      emailDetails: NotificationEmailFields.managerTaskWithEmployee(ctx),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(locale, 'notify.mgr.received.title'),
+        body: NotifyLocale.tr(locale, 'notify.mgr.received.body', {
+          'name': employeeName,
+          'title': taskTitle,
+        }),
+        actionText: NotifyLocale.tr(locale, 'notify.mgr.received.action'),
+        emailDetails: NotificationEmailFields.managerTaskWithEmployee(
+          locale,
+          localizeTaskEmailContext(locale, ctx),
+        ),
+      ),
     );
   }
 
@@ -513,15 +695,20 @@ class NotificationService {
         TaskEmailContext(taskTitle: taskTitle, changedBy: employeeName);
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
-      title: 'notify.mgr.completed.title'.tr,
-      body: 'notify.mgr.completed.body'.trParams({
-        'name': employeeName,
-        'title': taskTitle,
-      }),
       notificationType: 'manager_task_completed',
-      actionText: 'notify.mgr.completed.action'.tr,
-      emailDetails: NotificationEmailFields.managerTaskWithEmployee(ctx),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(locale, 'notify.mgr.completed.title'),
+        body: NotifyLocale.tr(locale, 'notify.mgr.completed.body', {
+          'name': employeeName,
+          'title': taskTitle,
+        }),
+        actionText: NotifyLocale.tr(locale, 'notify.mgr.completed.action'),
+        emailDetails: NotificationEmailFields.managerTaskWithEmployee(
+          locale,
+          localizeTaskEmailContext(locale, ctx),
+        ),
+      ),
     );
   }
 
@@ -536,21 +723,36 @@ class NotificationService {
     if (ids.isEmpty) return;
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
-      title: 'notify.admin.supervisor_escalated.title'.tr,
-      body: 'notify.admin.supervisor_escalated.body'.trParams({
-        'supervisor': supervisorName,
-        'title': taskTitle,
-      }),
       notificationType: 'admin_supervisor_escalated_task',
-      actionText: 'notify.admin.supervisor_escalated.action'.tr,
-      emailDetails: taskContext != null
-          ? NotificationEmailFields.adminSupervisorEscalated(
-              supervisorName: supervisorName,
-              dueDate: taskContext.dueDate ?? '',
-              department: taskContext.department,
-            )
-          : _emailLabels({'notify.email.employee': supervisorName}),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(
+          locale,
+          'notify.admin.supervisor_escalated.title',
+        ),
+        body: NotifyLocale.tr(
+          locale,
+          'notify.admin.supervisor_escalated.body',
+          {'supervisor': supervisorName, 'title': taskTitle},
+        ),
+        actionText: NotifyLocale.tr(
+          locale,
+          'notify.admin.supervisor_escalated.action',
+        ),
+        emailDetails: taskContext != null
+            ? NotificationEmailFields.adminSupervisorEscalated(
+                locale,
+                supervisorName: supervisorName,
+                dueDate: taskContext.dueDate ?? '',
+                department: localizeTaskEmailContext(
+                  locale,
+                  taskContext,
+                ).department,
+              )
+            : NotificationEmailFields.labels(locale, {
+                'notify.email.employee': supervisorName,
+              }),
+      ),
     );
   }
 
@@ -576,22 +778,37 @@ class NotificationService {
       ManagerTaskEditKind.both => 'manager_task_comment',
       ManagerTaskEditKind.attachment => 'manager_task_edited',
     };
-    final ctx =
-        taskContext ??
-        TaskEmailContext(
-          taskTitle: taskTitle,
-          changedBy: employeeName,
-          newStatus: '$prefix.detail_value'.tr,
-          commentPreview: commentPreview,
-        );
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
-      title: '$prefix.title'.tr,
-      body: '$prefix.body'.trParams({'name': employeeName, 'title': taskTitle}),
       notificationType: pushType,
-      actionText: '$prefix.action'.tr,
-      emailDetails: NotificationEmailFields.managerTaskComment(ctx),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) {
+        final detailValue = NotifyLocale.tr(locale, '$prefix.detail_value');
+        final ctx =
+            taskContext?.copyWith(
+              changedBy: employeeName,
+              newStatus: detailValue,
+              commentPreview: commentPreview,
+            ) ??
+            TaskEmailContext(
+              taskTitle: taskTitle,
+              changedBy: employeeName,
+              newStatus: detailValue,
+              commentPreview: commentPreview,
+            );
+        return ResolvedNotificationCopy(
+          title: NotifyLocale.tr(locale, '$prefix.title'),
+          body: NotifyLocale.tr(locale, '$prefix.body', {
+            'name': employeeName,
+            'title': taskTitle,
+          }),
+          actionText: NotifyLocale.tr(locale, '$prefix.action'),
+          emailDetails: NotificationEmailFields.managerTaskComment(
+            locale,
+            localizeTaskEmailContext(locale, ctx),
+          ),
+        );
+      },
     );
   }
 
@@ -606,25 +823,30 @@ class NotificationService {
     ]);
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
-      title: 'notify.mgr.content_submitted.title'.tr,
-      body: 'notify.mgr.content_submitted.body'.trParams({
-        'name': clientName,
-        'title': contentTitle,
-      }),
       notificationType: 'manager_content_submitted_by_client',
-      actionText: 'notify.mgr.content_submitted.action'.tr,
       referenceId: contentTitle,
-      emailDetails: _emailLabels({
-        'notify.email.client': clientName,
-        'notify.email.content': contentTitle,
-      }),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(locale, 'notify.mgr.content_submitted.title'),
+        body: NotifyLocale.tr(locale, 'notify.mgr.content_submitted.body', {
+          'name': clientName,
+          'title': contentTitle,
+        }),
+        actionText: NotifyLocale.tr(
+          locale,
+          'notify.mgr.content_submitted.action',
+        ),
+        emailDetails: NotificationEmailFields.labels(locale, {
+          'notify.email.client': clientName,
+          'notify.email.content': contentTitle,
+        }),
+      ),
     );
   }
 
   static Future<void> notifyManagersNewTaskInDepartment({
     required String taskTitle,
-    required String departmentNameAr,
+    required String taskType,
     String? dueDate,
     String? clientName,
     Map<String, String>? fcmDataExtras,
@@ -635,18 +857,27 @@ class NotificationService {
     ]);
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
-      title: 'notify.mgr.new_task_dept.title'.trParams({
-        'dept': departmentNameAr,
-      }),
-      body: taskTitle,
       notificationType: 'manager_new_task_department',
-      actionText: 'notify.mgr.new_task_dept.action'.tr,
-      emailDetails: NotificationEmailFields.managerNewTaskDepartment(
-        department: departmentNameAr,
-        dueDate: dueDate ?? '',
-        clientName: clientName,
-      ),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) {
+        final dept = departmentNameFromTaskType(taskType, locale: locale);
+        return ResolvedNotificationCopy(
+          title: NotifyLocale.tr(locale, 'notify.mgr.new_task_dept.title', {
+            'dept': dept,
+          }),
+          body: taskTitle,
+          actionText: NotifyLocale.tr(
+            locale,
+            'notify.mgr.new_task_dept.action',
+          ),
+          emailDetails: NotificationEmailFields.managerNewTaskDepartment(
+            locale,
+            department: dept,
+            dueDate: dueDate ?? '',
+            clientName: clientName,
+          ),
+        );
+      },
     );
   }
 
@@ -665,17 +896,24 @@ class NotificationService {
         TaskEmailContext(taskTitle: taskTitle, changedBy: employeeName);
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
-      title: 'notify.mgr.deadline_extension.title'.tr,
-      body: 'notify.mgr.deadline_extension.body'.trParams({
-        'name': employeeName,
-        'title': taskTitle,
-      }),
       notificationType: 'manager_deadline_extension_requested',
-      actionText: 'notify.mgr.deadline_extension.action'.tr,
-      emailDetails: NotificationEmailFields.managerDeadlineExtensionRequested(
-        ctx,
-      ),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(locale, 'notify.mgr.deadline_extension.title'),
+        body: NotifyLocale.tr(locale, 'notify.mgr.deadline_extension.body', {
+          'name': employeeName,
+          'title': taskTitle,
+        }),
+        actionText: NotifyLocale.tr(
+          locale,
+          'notify.mgr.deadline_extension.action',
+        ),
+        emailDetails:
+            NotificationEmailFields.managerDeadlineExtensionRequested(
+          locale,
+          localizeTaskEmailContext(locale, ctx),
+        ),
+      ),
     );
   }
 
@@ -690,19 +928,21 @@ class NotificationService {
     ]);
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
-      title: 'notify.mgr.client_notes.title'.tr,
-      body: 'notify.mgr.client_notes.body'.trParams({
-        'name': clientName,
-        'title': contentTitle,
-      }),
       notificationType: 'manager_client_notes',
-      actionText: 'notify.mgr.client_notes.action'.tr,
       referenceId: contentTitle,
-      emailDetails: _emailLabels({
-        'notify.email.client': clientName,
-        'notify.email.content': contentTitle,
-      }),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(locale, 'notify.mgr.client_notes.title'),
+        body: NotifyLocale.tr(locale, 'notify.mgr.client_notes.body', {
+          'name': clientName,
+          'title': contentTitle,
+        }),
+        actionText: NotifyLocale.tr(locale, 'notify.mgr.client_notes.action'),
+        emailDetails: NotificationEmailFields.labels(locale, {
+          'notify.email.client': clientName,
+          'notify.email.content': contentTitle,
+        }),
+      ),
     );
   }
 
@@ -717,19 +957,24 @@ class NotificationService {
     ]);
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
-      title: 'notify.mgr.client_approved.title'.tr,
-      body: 'notify.mgr.client_approved.body'.trParams({
-        'name': clientName,
-        'title': contentTitle,
-      }),
       notificationType: 'manager_client_approved_content',
-      actionText: 'notify.mgr.client_approved.action'.tr,
       referenceId: contentTitle,
-      emailDetails: _emailLabels({
-        'notify.email.client': clientName,
-        'notify.email.content': contentTitle,
-      }),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(locale, 'notify.mgr.client_approved.title'),
+        body: NotifyLocale.tr(locale, 'notify.mgr.client_approved.body', {
+          'name': clientName,
+          'title': contentTitle,
+        }),
+        actionText: NotifyLocale.tr(
+          locale,
+          'notify.mgr.client_approved.action',
+        ),
+        emailDetails: NotificationEmailFields.labels(locale, {
+          'notify.email.client': clientName,
+          'notify.email.content': contentTitle,
+        }),
+      ),
     );
   }
 
@@ -737,20 +982,27 @@ class NotificationService {
 
   static Future<void> notifyClientContentPendingApproval({
     required String clientId,
-    required String contentTypeLabel,
+    required String contentTypeKey,
     Map<String, String>? fcmDataExtras,
   }) async {
     await FirestoreServices.sendFcmForClient(
       userId: clientId,
-      title: 'notify.client.pending.title'.trParams({'type': contentTypeLabel}),
-      body: 'notify.client.pending.body'.tr,
       notificationType: 'client_content_pending_approval',
-      actionText: 'notify.client.pending.action'.tr,
-      referenceId: contentTypeLabel,
-      emailDetails: _emailLabels({
-        'notify.email.content_type': contentTypeLabel,
-      }),
+      referenceId: contentTypeKey,
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) {
+        final typeLabel = NotifyLocale.tr(locale, contentTypeKey);
+        return ResolvedNotificationCopy(
+          title: NotifyLocale.tr(locale, 'notify.client.pending.title', {
+            'type': typeLabel,
+          }),
+          body: NotifyLocale.tr(locale, 'notify.client.pending.body'),
+          actionText: NotifyLocale.tr(locale, 'notify.client.pending.action'),
+          emailDetails: NotificationEmailFields.labels(locale, {
+            'notify.email.content_type': typeLabel,
+          }),
+        );
+      },
     );
   }
 
@@ -760,16 +1012,29 @@ class NotificationService {
   }) async {
     await FirestoreServices.sendFcmForClient(
       userId: clientId,
-      title: 'notify.client.approval_confirmed.title'.tr,
-      body: 'notify.client.approval_confirmed.body'.tr,
       notificationType: 'client_approval_confirmed',
-      actionText: 'notify.client.approval_confirmed.action'.tr,
       referenceId: clientId,
-      emailDetails: _emailLabels({
-        'notify.email.status':
-            'notify.client.approval_confirmed.email_status'.tr,
-      }),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(
+          locale,
+          'notify.client.approval_confirmed.title',
+        ),
+        body: NotifyLocale.tr(
+          locale,
+          'notify.client.approval_confirmed.body',
+        ),
+        actionText: NotifyLocale.tr(
+          locale,
+          'notify.client.approval_confirmed.action',
+        ),
+        emailDetails: NotificationEmailFields.labels(locale, {
+          'notify.email.status': NotifyLocale.tr(
+            locale,
+            'notify.client.approval_confirmed.email_status',
+          ),
+        }),
+      ),
     );
   }
 
@@ -780,13 +1045,20 @@ class NotificationService {
   }) async {
     await FirestoreServices.sendFcmForClient(
       userId: clientId,
-      title: 'notify.client.edits_done.title'.tr,
-      body: contentTitle,
       notificationType: 'client_edits_done',
-      actionText: 'notify.client.edits_done.action'.tr,
       referenceId: contentTitle,
-      emailDetails: _emailLabels({'notify.email.content': contentTitle}),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(locale, 'notify.client.edits_done.title'),
+        body: contentTitle,
+        actionText: NotifyLocale.tr(
+          locale,
+          'notify.client.edits_done.action',
+        ),
+        emailDetails: NotificationEmailFields.labels(locale, {
+          'notify.email.content': contentTitle,
+        }),
+      ),
     );
   }
 
@@ -797,13 +1069,17 @@ class NotificationService {
   }) async {
     await FirestoreServices.sendFcmForClient(
       userId: clientId,
-      title: 'notify.client.updated.title'.tr,
-      body: contentTitle,
       notificationType: 'client_content_updated',
-      actionText: 'notify.client.updated.action'.tr,
       referenceId: contentTitle,
-      emailDetails: _emailLabels({'notify.email.content': contentTitle}),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(locale, 'notify.client.updated.title'),
+        body: contentTitle,
+        actionText: NotifyLocale.tr(locale, 'notify.client.updated.action'),
+        emailDetails: NotificationEmailFields.labels(locale, {
+          'notify.email.content': contentTitle,
+        }),
+      ),
     );
   }
 
@@ -815,16 +1091,20 @@ class NotificationService {
   }) async {
     await FirestoreServices.sendFcmForClient(
       userId: clientId,
-      title: 'notify.client.scheduled.title'.trParams({'date': dateFormatted}),
-      body: contentTitle,
       notificationType: 'client_content_scheduled',
-      actionText: 'notify.client.scheduled.action'.tr,
       referenceId: contentTitle,
-      emailDetails: _emailLabels({
-        'notify.email.content': contentTitle,
-        'notify.email.publish_date': dateFormatted,
-      }),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(locale, 'notify.client.scheduled.title', {
+          'date': dateFormatted,
+        }),
+        body: contentTitle,
+        actionText: NotifyLocale.tr(locale, 'notify.client.scheduled.action'),
+        emailDetails: NotificationEmailFields.labels(locale, {
+          'notify.email.content': contentTitle,
+          'notify.email.publish_date': dateFormatted,
+        }),
+      ),
     );
   }
 
@@ -847,23 +1127,25 @@ class NotificationService {
     final all = <String>{...adminIds, ...deptIds};
     await FirestoreServices.sendFcmToEmployees(
       userIds: all.toList(),
-      title: 'notify.publish.added.title'.tr,
-      body: 'notify.publish.added.body'.trParams({
-        'client': clientName,
-        'platform': platformLabel,
-        'date': dateFormatted,
-        'time': timeFormatted,
-      }),
       notificationType: 'publish_content_added',
-      actionText: 'notify.publish.added.action'.tr,
       referenceId: clientName,
-      emailDetails: _emailLabels({
-        'notify.email.client': clientName,
-        'notify.email.platform': platformLabel,
-        'notify.email.date': dateFormatted,
-        'notify.email.time': timeFormatted,
-      }),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(locale, 'notify.publish.added.title'),
+        body: NotifyLocale.tr(locale, 'notify.publish.added.body', {
+          'client': clientName,
+          'platform': platformLabel,
+          'date': dateFormatted,
+          'time': timeFormatted,
+        }),
+        actionText: NotifyLocale.tr(locale, 'notify.publish.added.action'),
+        emailDetails: NotificationEmailFields.labels(locale, {
+          'notify.email.client': clientName,
+          'notify.email.platform': platformLabel,
+          'notify.email.date': dateFormatted,
+          'notify.email.time': timeFormatted,
+        }),
+      ),
     );
   }
 
@@ -881,13 +1163,17 @@ class NotificationService {
     final all = <String>{...adminIds, ...deptIds};
     await FirestoreServices.sendFcmToEmployees(
       userIds: all.toList(),
-      title: 'notify.publish.edit_req.title'.tr,
-      body: contentTitle,
       notificationType: 'publish_client_edit_request',
-      actionText: 'notify.publish.edit_req.action'.tr,
       referenceId: contentTitle,
-      emailDetails: _emailLabels({'notify.email.content': contentTitle}),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(locale, 'notify.publish.edit_req.title'),
+        body: contentTitle,
+        actionText: NotifyLocale.tr(locale, 'notify.publish.edit_req.action'),
+        emailDetails: NotificationEmailFields.labels(locale, {
+          'notify.email.content': contentTitle,
+        }),
+      ),
     );
   }
 
@@ -906,19 +1192,21 @@ class NotificationService {
     final all = <String>{...adminIds, ...deptIds};
     await FirestoreServices.sendFcmToEmployees(
       userIds: all.toList(),
-      title: 'notify.publish.approved.title'.tr,
-      body: 'notify.publish.approved.body'.trParams({
-        'name': clientName,
-        'title': contentTitle,
-      }),
       notificationType: 'publish_client_approved',
-      actionText: 'notify.publish.approved.action'.tr,
       referenceId: contentTitle,
-      emailDetails: _emailLabels({
-        'notify.email.client': clientName,
-        'notify.email.content': contentTitle,
-      }),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(locale, 'notify.publish.approved.title'),
+        body: NotifyLocale.tr(locale, 'notify.publish.approved.body', {
+          'name': clientName,
+          'title': contentTitle,
+        }),
+        actionText: NotifyLocale.tr(locale, 'notify.publish.approved.action'),
+        emailDetails: NotificationEmailFields.labels(locale, {
+          'notify.email.client': clientName,
+          'notify.email.content': contentTitle,
+        }),
+      ),
     );
   }
 
@@ -937,19 +1225,21 @@ class NotificationService {
     final all = <String>{...adminIds, ...deptIds};
     await FirestoreServices.sendFcmToEmployees(
       userIds: all.toList(),
-      title: 'notify.publish.rejected.title'.tr,
-      body: 'notify.publish.rejected.body'.trParams({
-        'title': contentTitle,
-        'name': clientName,
-      }),
       notificationType: 'publish_client_rejected',
-      actionText: 'notify.publish.rejected.action'.tr,
       referenceId: contentTitle,
-      emailDetails: _emailLabels({
-        'notify.email.client': clientName,
-        'notify.email.content': contentTitle,
-      }),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(locale, 'notify.publish.rejected.title'),
+        body: NotifyLocale.tr(locale, 'notify.publish.rejected.body', {
+          'title': contentTitle,
+          'name': clientName,
+        }),
+        actionText: NotifyLocale.tr(locale, 'notify.publish.rejected.action'),
+        emailDetails: NotificationEmailFields.labels(locale, {
+          'notify.email.client': clientName,
+          'notify.email.content': contentTitle,
+        }),
+      ),
     );
   }
 
@@ -960,15 +1250,27 @@ class NotificationService {
   }) async {
     await FirestoreServices.sendFcm(
       userId: employeeId,
-      title: 'notify.publish.today_not_confirmed.title'.tr,
-      body: 'notify.publish.today_not_confirmed.body'.trParams({
-        'ref': contentRef,
-      }),
       notificationType: 'publish_post_not_confirmed_today',
-      actionText: 'notify.publish.today_not_confirmed.action'.tr,
       referenceId: contentRef,
-      emailDetails: _emailLabels({'notify.email.reference': contentRef}),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(
+          locale,
+          'notify.publish.today_not_confirmed.title',
+        ),
+        body: NotifyLocale.tr(
+          locale,
+          'notify.publish.today_not_confirmed.body',
+          {'ref': contentRef},
+        ),
+        actionText: NotifyLocale.tr(
+          locale,
+          'notify.publish.today_not_confirmed.action',
+        ),
+        emailDetails: NotificationEmailFields.labels(locale, {
+          'notify.email.reference': contentRef,
+        }),
+      ),
     );
   }
 
@@ -980,18 +1282,23 @@ class NotificationService {
   }) async {
     await FirestoreServices.sendFcmToEmployees(
       userIds: recipientIds,
-      title: 'notify.publish.published.title'.trParams({
-        'platform': platformLabel,
-      }),
-      body: contentTitle,
       notificationType: 'publish_post_published',
-      actionText: 'notify.publish.published.action'.tr,
       referenceId: contentTitle,
-      emailDetails: _emailLabels({
-        'notify.email.platform': platformLabel,
-        'notify.email.content': contentTitle,
-      }),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(locale, 'notify.publish.published.title', {
+          'platform': platformLabel,
+        }),
+        body: contentTitle,
+        actionText: NotifyLocale.tr(
+          locale,
+          'notify.publish.published.action',
+        ),
+        emailDetails: NotificationEmailFields.labels(locale, {
+          'notify.email.platform': platformLabel,
+          'notify.email.content': contentTitle,
+        }),
+      ),
     );
   }
 
@@ -1002,13 +1309,20 @@ class NotificationService {
   }) async {
     await FirestoreServices.sendFcmToEmployees(
       userIds: recipientIds,
-      title: 'notify.publish.link_added.title'.tr,
-      body: contentTitle,
       notificationType: 'publish_link_added',
-      actionText: 'notify.publish.link_added.action'.tr,
       referenceId: contentTitle,
-      emailDetails: _emailLabels({'notify.email.content': contentTitle}),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(locale, 'notify.publish.link_added.title'),
+        body: contentTitle,
+        actionText: NotifyLocale.tr(
+          locale,
+          'notify.publish.link_added.action',
+        ),
+        emailDetails: NotificationEmailFields.labels(locale, {
+          'notify.email.content': contentTitle,
+        }),
+      ),
     );
   }
 
@@ -1019,13 +1333,20 @@ class NotificationService {
   }) async {
     await FirestoreServices.sendFcmToEmployees(
       userIds: recipientIds,
-      title: 'notify.publish.notes_after.title'.tr,
-      body: contentTitle,
       notificationType: 'publish_notes_after_publish',
-      actionText: 'notify.publish.notes_after.action'.tr,
       referenceId: contentTitle,
-      emailDetails: _emailLabels({'notify.email.content': contentTitle}),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(locale, 'notify.publish.notes_after.title'),
+        body: contentTitle,
+        actionText: NotifyLocale.tr(
+          locale,
+          'notify.publish.notes_after.action',
+        ),
+        emailDetails: NotificationEmailFields.labels(locale, {
+          'notify.email.content': contentTitle,
+        }),
+      ),
     );
   }
 
@@ -1036,13 +1357,20 @@ class NotificationService {
   }) async {
     await FirestoreServices.sendFcmToEmployees(
       userIds: recipientIds,
-      title: 'notify.publish.cancelled.title'.tr,
-      body: contentTitle,
       notificationType: 'publish_scheduled_cancelled',
-      actionText: 'notify.publish.cancelled.action'.tr,
       referenceId: contentTitle,
-      emailDetails: _emailLabels({'notify.email.content': contentTitle}),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(locale, 'notify.publish.cancelled.title'),
+        body: contentTitle,
+        actionText: NotifyLocale.tr(
+          locale,
+          'notify.publish.cancelled.action',
+        ),
+        emailDetails: NotificationEmailFields.labels(locale, {
+          'notify.email.content': contentTitle,
+        }),
+      ),
     );
   }
 
@@ -1050,52 +1378,71 @@ class NotificationService {
 
   static Future<void> notifyAdminContentPromotionStatusChanged({
     required String contentTitle,
-    required String promotionLabelAr,
+    required String promotionLabelKey,
     Map<String, String>? fcmDataExtras,
   }) async {
     final ids = await FirestoreServices.getEmployeeIdsByRole(['admin']);
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
-      title: 'notify.admin.promo_changed.title'.tr,
-      body: 'notify.admin.promo_changed.body'.trParams({
-        'title': contentTitle,
-        'label': promotionLabelAr,
-      }),
       notificationType: 'admin_promotion_status_changed',
-      actionText: 'notify.admin.promo_changed.action'.tr,
       referenceId: contentTitle,
-      emailDetails: _emailLabels({
-        'notify.email.content': contentTitle,
-        'notify.email.status': promotionLabelAr,
-      }),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) {
+        final label = NotifyLocale.tr(locale, promotionLabelKey);
+        return ResolvedNotificationCopy(
+          title: NotifyLocale.tr(locale, 'notify.admin.promo_changed.title'),
+          body: NotifyLocale.tr(locale, 'notify.admin.promo_changed.body', {
+            'title': contentTitle,
+            'label': label,
+          }),
+          actionText: NotifyLocale.tr(
+            locale,
+            'notify.admin.promo_changed.action',
+          ),
+          emailDetails: NotificationEmailFields.labels(locale, {
+            'notify.email.content': contentTitle,
+            'notify.email.status': label,
+          }),
+        );
+      },
     );
   }
 
   static Future<void> notifyAdminContentStatusChanged({
     required String contentTitle,
-    required String statusLabelAr,
+    required String statusKey,
     required String changedByName,
     Map<String, String>? fcmDataExtras,
   }) async {
     final ids = await FirestoreServices.getEmployeeIdsByRole(['admin']);
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
-      title: 'notify.admin.status_changed.title'.tr,
-      body: 'notify.admin.status_changed.body'.trParams({
-        'title': contentTitle,
-        'label': statusLabelAr,
-        'by': changedByName,
-      }),
       notificationType: 'admin_content_status_changed',
-      actionText: 'notify.admin.status_changed.action'.tr,
       referenceId: contentTitle,
-      emailDetails: _emailLabels({
-        'notify.email.content': contentTitle,
-        'notify.email.status': statusLabelAr,
-        'notify.email.changed_by': changedByName,
-      }),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) {
+        final label = statusLabelAr(statusKey, locale: locale);
+        final by = changedByName.trim().isEmpty
+            ? NotifyLocale.tr(locale, 'notify.unknown_actor')
+            : changedByName.trim();
+        return ResolvedNotificationCopy(
+          title: NotifyLocale.tr(locale, 'notify.admin.status_changed.title'),
+          body: NotifyLocale.tr(locale, 'notify.admin.status_changed.body', {
+            'title': contentTitle,
+            'label': label,
+            'by': by,
+          }),
+          actionText: NotifyLocale.tr(
+            locale,
+            'notify.admin.status_changed.action',
+          ),
+          emailDetails: NotificationEmailFields.labels(locale, {
+            'notify.email.content': contentTitle,
+            'notify.email.status': label,
+            'notify.email.changed_by': by,
+          }),
+        );
+      },
     );
   }
 
@@ -1109,19 +1456,24 @@ class NotificationService {
     );
     await FirestoreServices.sendFcmToEmployees(
       userIds: ids,
-      title: 'notify.promo.new_published.title'.tr,
-      body: 'notify.promo.new_published.body'.trParams({
-        'name': clientName,
-        'title': contentTitle,
-      }),
       notificationType: 'promotion_new_published_content',
-      actionText: 'notify.promo.new_published.action'.tr,
       referenceId: contentTitle,
-      emailDetails: _emailLabels({
-        'notify.email.client': clientName,
-        'notify.email.content': contentTitle,
-      }),
       fcmDataExtras: fcmDataExtras,
+      copyForLocale: (locale) => ResolvedNotificationCopy(
+        title: NotifyLocale.tr(locale, 'notify.promo.new_published.title'),
+        body: NotifyLocale.tr(locale, 'notify.promo.new_published.body', {
+          'name': clientName,
+          'title': contentTitle,
+        }),
+        actionText: NotifyLocale.tr(
+          locale,
+          'notify.promo.new_published.action',
+        ),
+        emailDetails: NotificationEmailFields.labels(locale, {
+          'notify.email.client': clientName,
+          'notify.email.content': contentTitle,
+        }),
+      ),
     );
   }
 }

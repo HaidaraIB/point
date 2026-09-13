@@ -13,7 +13,6 @@ import 'package:point/View/Shared/voice_message_row.dart';
 import 'package:point/View/Tasks/DetailsDialogs/DProgrammingDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 import 'package:point/View/Tasks/Shared/task_voice_form_helpers.dart';
-import 'package:point/View/Shared/app_user_avatar.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 
 void showProgrammingUpdateDetails(
@@ -276,54 +275,13 @@ class ProgrammingUpdateDetailsBody extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          Container(
-            constraints: BoxConstraints(
-              maxWidth: contentWidth < 520 ? contentWidth - 120 : 250,
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: colorScheme.outlineVariant),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AppUserAvatar(
-                  url: assigneeImage.isEmpty
-                      ? '${StorageKeys.supabaseStorageBaseUrl}/Avatar.png'
-                      : assigneeImage,
-                  radius: 12,
-                  displayName: assignee.isEmpty ? null : assignee,
-                ),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'content.dialog.executor'.tr,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 10,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      Text(
-                        assignee.isEmpty ? '-' : assignee,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+          TaskDetailsDialogHelpers.executorChip(
+            context: context,
+            name: assignee,
+            imageUrl: assigneeImage.isEmpty
+                ? '${StorageKeys.supabaseStorageBaseUrl}/Avatar.png'
+                : assigneeImage,
+            maxWidth: contentWidth < 520 ? contentWidth - 120 : 220,
           ),
         ],
       ),

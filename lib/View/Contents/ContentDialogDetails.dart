@@ -10,7 +10,6 @@ import 'package:point/Utils/ContentPermissions.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
 import 'package:point/Utils/AppConstants.dart';
-import 'package:point/View/Shared/app_user_avatar.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
 
 void showContentDialogDetails(
@@ -174,52 +173,11 @@ class _ContentDialogDetailsState extends State<ContentDialogDetails> {
             ),
           ),
           const SizedBox(width: 10),
-          Container(
-            constraints: BoxConstraints(
-              maxWidth: dialogWidth < 520 ? dialogWidth - 120 : 250,
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: colorScheme.outlineVariant),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AppUserAvatar(
-                  url: executorEmployee?.image ?? kDefaultAvatarUrl,
-                  radius: 12,
-                  displayName: executorName,
-                ),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        AppLocaleKeys.contentDialogExecutor.tr,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 10,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      Text(
-                        executorName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+          TaskDetailsDialogHelpers.executorChip(
+            context: context,
+            name: executorName,
+            imageUrl: executorEmployee?.image ?? kDefaultAvatarUrl,
+            maxWidth: dialogWidth < 520 ? dialogWidth - 120 : 220,
           ),
         ],
       ),

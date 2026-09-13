@@ -12,6 +12,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Localization/notify_locale.dart';
 import 'package:point/Services/AudioService.dart';
 import 'package:point/Services/ChatAudioFocus.dart';
 import 'package:point/Services/ChatIncomingMessageSound.dart';
@@ -1455,12 +1456,14 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         if (id != _currentUserId) {
           await FirestoreServices.sendFcm(
             userId: id,
-            title: 'chat.fcm_in_group_title'.trParams({
-              'user': _currentUserName ?? '',
-              'group': _localizedGroupTitleFromChat(_selectedChat!),
-            }),
-            body: lastMessagePreview,
             notificationType: 'chat_message',
+            copyForLocale: (locale) => ResolvedNotificationCopy(
+              title: NotifyLocale.tr(locale, 'chat.fcm_in_group_title', {
+                'user': _currentUserName ?? '',
+                'group': _localizedGroupTitleFromChat(_selectedChat!),
+              }),
+              body: lastMessagePreview,
+            ),
             fcmDataExtras: chatMessageFcmExtras(
               chatId: chatId,
               chatTitle: _localizedGroupTitleFromChat(_selectedChat!),

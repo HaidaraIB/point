@@ -646,9 +646,8 @@ void showAddContentDialog(
 
                                                   await NotificationService.notifyClientContentPendingApproval(
                                                     clientId: clientId,
-                                                    contentTypeLabel:
-                                                        'content.notify.design_video_new'
-                                                            .tr,
+                                                    contentTypeKey:
+                                                        'content.notify.design_video_new',
                                                   );
                                                   final clientName =
                                                       controller.clients

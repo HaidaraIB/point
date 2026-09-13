@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/media_url_opener.dart';
+import 'package:point/View/Shared/app_user_avatar.dart';
 import 'package:point/View/Shared/attachment_thumbnail_tile.dart'
     as attachment_thumb;
 import 'package:point/Utils/app_theme_extension.dart';
@@ -298,5 +299,76 @@ class TaskDetailsDialogHelpers {
     required VoidCallback onOpen,
   }) {
     return attachment_thumb.AttachmentThumbnailTile(url: url, onTap: onOpen);
+  }
+
+  /// Assignee chip for task/content details headers.
+  ///
+  /// Sized with a real width so the avatar initials never paint over the name
+  /// (`Flexible` inside a shrink-wrapped `Row` was collapsing the text).
+  static Widget executorChip({
+    required BuildContext context,
+    required String name,
+    required String imageUrl,
+    required double maxWidth,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final trimmed = name.trim();
+    final displayName = trimmed.isEmpty ? '-' : trimmed;
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        minWidth: 156,
+        maxWidth: maxWidth.clamp(156.0, 280.0),
+      ),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHigh,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: colorScheme.outlineVariant),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'content.dialog.executor'.tr,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 11,
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                children: [
+                  AppUserAvatar(
+                    url: imageUrl,
+                    radius: 14,
+                    displayName: trimmed.isEmpty ? null : trimmed,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        height: 1.25,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

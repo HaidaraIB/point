@@ -677,18 +677,11 @@ class History extends StatelessWidget {
                                                                   'under_promotion' ||
                                                               value ==
                                                                   'end_promotion') {
-                                                            final promotionLabel =
-                                                                value ==
-                                                                        'under_promotion'
-                                                                    ? 'under_promotion'
-                                                                        .tr
-                                                                    : 'end_promotion'
-                                                                        .tr;
                                                             await NotificationService.notifyAdminContentPromotionStatusChanged(
                                                               contentTitle:
                                                                   emp.title,
-                                                              promotionLabelAr:
-                                                                  promotionLabel,
+                                                              promotionLabelKey:
+                                                                  value,
                                                               fcmDataExtras:
                                                                   notificationContentExtras(
                                                                 emp.id,
@@ -1580,9 +1573,8 @@ void showAddContentDialog(
 
                                                   await NotificationService.notifyClientContentPendingApproval(
                                                     clientId: clientId,
-                                                    contentTypeLabel:
-                                                        'content.notify.design_video_new'
-                                                            .tr,
+                                                    contentTypeKey:
+                                                        'content.notify.design_video_new',
                                                   );
                                                   final clientName =
                                                       controller.clients

@@ -1,6 +1,10 @@
-import 'package:get/get.dart';
+import 'package:point/Localization/notify_locale.dart';
 
 /// Context for building task-related email detail rows.
+///
+/// Prefer storing raw / language-neutral values (task title, names, dates).
+/// Localized labels (department, status) should be resolved inside
+/// [NotificationCopyForLocale] via [NotifyLocale.tr].
 class TaskEmailContext {
   const TaskEmailContext({
     required this.taskTitle,
@@ -55,10 +59,11 @@ class TaskEmailContext {
     int? attachmentCount,
     String? newDueDate,
     String? denialNote,
+    String? department,
   }) {
     return TaskEmailContext(
       taskTitle: taskTitle,
-      department: department,
+      department: department ?? this.department,
       dueDate: dueDate,
       startDate: startDate,
       priority: priority,
@@ -80,12 +85,16 @@ class TaskEmailContext {
   }
 }
 
-/// Builds localized email detail maps per notification type.
+/// Builds localized email detail maps per notification type for [locale].
 class NotificationEmailFields {
   NotificationEmailFields._();
 
-  static Map<String, String> labels(Map<String, String> fields) => {
-    for (final e in fields.entries) e.key.tr: e.value,
+  static Map<String, String> labels(
+    String locale,
+    Map<String, String> fields,
+  ) => {
+    for (final e in fields.entries)
+      NotifyLocale.tr(locale, e.key): e.value,
   };
 
   static String? truncate(String? text, {int maxLen = 200}) {
@@ -97,139 +106,197 @@ class NotificationEmailFields {
   }
 
   static void _put(
+    String locale,
     Map<String, String> out,
     String labelKey,
     String? value,
   ) {
     final v = value?.trim() ?? '';
     if (v.isEmpty) return;
-    out[labelKey.tr] = v;
+    out[NotifyLocale.tr(locale, labelKey)] = v;
   }
 
-  static void _putTaskCommon(Map<String, String> out, TaskEmailContext ctx) {
-    _put(out, 'notify.email.department', ctx.department);
-    _put(out, 'notify.email.due_date', ctx.dueDate);
-    _put(out, 'notify.email.start_date', ctx.startDate);
-    _put(out, 'notify.email.priority', ctx.priority);
-    _put(out, 'notify.email.client', ctx.clientName);
+  static void _putTaskCommon(
+    String locale,
+    Map<String, String> out,
+    TaskEmailContext ctx,
+  ) {
+    _put(locale, out, 'notify.email.department', ctx.department);
+    _put(locale, out, 'notify.email.due_date', ctx.dueDate);
+    _put(locale, out, 'notify.email.start_date', ctx.startDate);
+    _put(locale, out, 'notify.email.priority', ctx.priority);
+    _put(locale, out, 'notify.email.client', ctx.clientName);
   }
 
-  static Map<String, String> employeeTaskAssigned(TaskEmailContext ctx) {
+  static Map<String, String> employeeTaskAssigned(
+    String locale,
+    TaskEmailContext ctx,
+  ) {
     final out = <String, String>{};
-    _putTaskCommon(out, ctx);
+    _putTaskCommon(locale, out, ctx);
     return out;
   }
 
-  static Map<String, String> employeeTaskEditRequested(TaskEmailContext ctx) {
+  static Map<String, String> employeeTaskEditRequested(
+    String locale,
+    TaskEmailContext ctx,
+  ) {
     final out = <String, String>{};
-    _put(out, 'notify.email.edit_message', truncate(ctx.editMessage));
-    _put(out, 'notify.email.requested_by', ctx.requestedBy);
-    _put(out, 'notify.email.due_date', ctx.dueDate);
+    _put(locale, out, 'notify.email.edit_message', truncate(ctx.editMessage));
+    _put(locale, out, 'notify.email.requested_by', ctx.requestedBy);
+    _put(locale, out, 'notify.email.due_date', ctx.dueDate);
     return out;
   }
 
-  static Map<String, String> employeeTaskRejected(TaskEmailContext ctx) {
+  static Map<String, String> employeeTaskRejected(
+    String locale,
+    TaskEmailContext ctx,
+  ) {
     final out = <String, String>{};
-    _put(out, 'notify.email.rejection_reason', truncate(ctx.rejectionReason));
-    _put(out, 'notify.email.rejected_by', ctx.rejectedBy);
-    _put(out, 'notify.email.due_date', ctx.dueDate);
+    _put(
+      locale,
+      out,
+      'notify.email.rejection_reason',
+      truncate(ctx.rejectionReason),
+    );
+    _put(locale, out, 'notify.email.rejected_by', ctx.rejectedBy);
+    _put(locale, out, 'notify.email.due_date', ctx.dueDate);
     return out;
   }
 
-  static Map<String, String> employeeTaskReopened(TaskEmailContext ctx) {
+  static Map<String, String> employeeTaskReopened(
+    String locale,
+    TaskEmailContext ctx,
+  ) {
     final out = <String, String>{};
-    _put(out, 'notify.email.due_date', ctx.dueDate);
-    _put(out, 'notify.email.department', ctx.department);
+    _put(locale, out, 'notify.email.due_date', ctx.dueDate);
+    _put(locale, out, 'notify.email.department', ctx.department);
     return out;
   }
 
-  static Map<String, String> employeeTaskNewAttachments(TaskEmailContext ctx) {
+  static Map<String, String> employeeTaskNewAttachments(
+    String locale,
+    TaskEmailContext ctx,
+  ) {
     final out = <String, String>{};
     if (ctx.attachmentCount != null && ctx.attachmentCount! > 0) {
-      out['notify.email.attachment_count'.tr] = ctx.attachmentCount.toString();
+      out[NotifyLocale.tr(locale, 'notify.email.attachment_count')] =
+          ctx.attachmentCount.toString();
     }
-    _put(out, 'notify.email.added_by', ctx.addedBy);
+    _put(locale, out, 'notify.email.added_by', ctx.addedBy);
     return out;
   }
 
-  static Map<String, String> employeeTaskNewComment(TaskEmailContext ctx) {
+  static Map<String, String> employeeTaskNewComment(
+    String locale,
+    TaskEmailContext ctx,
+  ) {
     final out = <String, String>{};
-    _put(out, 'notify.email.changed_by', ctx.commenterName);
-    _put(out, 'notify.email.comment_preview', truncate(ctx.commentPreview));
+    _put(locale, out, 'notify.email.changed_by', ctx.commenterName);
+    _put(
+      locale,
+      out,
+      'notify.email.comment_preview',
+      truncate(ctx.commentPreview),
+    );
     return out;
   }
 
-  static Map<String, String> employeeTaskStatusChanged(TaskEmailContext ctx) {
+  static Map<String, String> employeeTaskStatusChanged(
+    String locale,
+    TaskEmailContext ctx,
+  ) {
     final out = <String, String>{};
-    _put(out, 'notify.email.new_status', ctx.newStatus);
-    _put(out, 'notify.email.changed_by', ctx.changedBy);
+    _put(locale, out, 'notify.email.new_status', ctx.newStatus);
+    _put(locale, out, 'notify.email.changed_by', ctx.changedBy);
     return out;
   }
 
   static Map<String, String> employeeDeadlineExtensionApproved(
+    String locale,
     TaskEmailContext ctx,
   ) {
     final out = <String, String>{};
-    _put(out, 'notify.email.due_date', ctx.newDueDate ?? ctx.dueDate);
+    _put(locale, out, 'notify.email.due_date', ctx.newDueDate ?? ctx.dueDate);
     return out;
   }
 
   static Map<String, String> employeeDeadlineExtensionDenied(
+    String locale,
     TaskEmailContext ctx,
   ) {
     final out = <String, String>{};
-    _put(out, 'notify.email.denial_note', truncate(ctx.denialNote));
-    _put(out, 'notify.email.due_date', ctx.dueDate);
+    _put(locale, out, 'notify.email.denial_note', truncate(ctx.denialNote));
+    _put(locale, out, 'notify.email.due_date', ctx.dueDate);
     return out;
   }
 
-  static Map<String, String> managerTaskWithEmployee(TaskEmailContext ctx) {
+  static Map<String, String> managerTaskWithEmployee(
+    String locale,
+    TaskEmailContext ctx,
+  ) {
     final out = <String, String>{};
-    _put(out, 'notify.email.employee', ctx.changedBy ?? ctx.addedBy);
-    _put(out, 'notify.email.department', ctx.department);
-    _put(out, 'notify.email.due_date', ctx.dueDate);
+    _put(locale, out, 'notify.email.employee', ctx.changedBy ?? ctx.addedBy);
+    _put(locale, out, 'notify.email.department', ctx.department);
+    _put(locale, out, 'notify.email.due_date', ctx.dueDate);
     return out;
   }
 
-  static Map<String, String> managerTaskComment(TaskEmailContext ctx) {
+  static Map<String, String> managerTaskComment(
+    String locale,
+    TaskEmailContext ctx,
+  ) {
     final out = <String, String>{};
-    _put(out, 'notify.email.employee', ctx.changedBy ?? ctx.addedBy);
-    _put(out, 'notify.email.update_type', ctx.newStatus);
-    _put(out, 'notify.email.comment_preview', truncate(ctx.commentPreview));
+    _put(locale, out, 'notify.email.employee', ctx.changedBy ?? ctx.addedBy);
+    _put(locale, out, 'notify.email.update_type', ctx.newStatus);
+    _put(
+      locale,
+      out,
+      'notify.email.comment_preview',
+      truncate(ctx.commentPreview),
+    );
     return out;
   }
 
   static Map<String, String> managerDeadlineExtensionRequested(
+    String locale,
     TaskEmailContext ctx,
   ) {
     final out = <String, String>{};
-    _put(out, 'notify.email.employee', ctx.changedBy ?? ctx.addedBy);
-    _put(out, 'notify.email.due_date', ctx.newDueDate);
-    _put(out, 'notify.email.extension_reason', truncate(ctx.extensionReason));
+    _put(locale, out, 'notify.email.employee', ctx.changedBy ?? ctx.addedBy);
+    _put(locale, out, 'notify.email.due_date', ctx.newDueDate);
+    _put(
+      locale,
+      out,
+      'notify.email.extension_reason',
+      truncate(ctx.extensionReason),
+    );
     return out;
   }
 
-  static Map<String, String> managerNewTaskDepartment({
+  static Map<String, String> managerNewTaskDepartment(
+    String locale, {
     required String department,
     required String dueDate,
     String? clientName,
   }) {
     final out = <String, String>{};
-    _put(out, 'notify.email.department', department);
-    _put(out, 'notify.email.due_date', dueDate);
-    _put(out, 'notify.email.client', clientName);
+    _put(locale, out, 'notify.email.department', department);
+    _put(locale, out, 'notify.email.due_date', dueDate);
+    _put(locale, out, 'notify.email.client', clientName);
     return out;
   }
 
-  static Map<String, String> adminSupervisorEscalated({
+  static Map<String, String> adminSupervisorEscalated(
+    String locale, {
     required String supervisorName,
     required String dueDate,
     String? department,
   }) {
     final out = <String, String>{};
-    _put(out, 'notify.email.employee', supervisorName);
-    _put(out, 'notify.email.department', department);
-    _put(out, 'notify.email.due_date', dueDate);
+    _put(locale, out, 'notify.email.employee', supervisorName);
+    _put(locale, out, 'notify.email.department', department);
+    _put(locale, out, 'notify.email.due_date', dueDate);
     return out;
   }
 }

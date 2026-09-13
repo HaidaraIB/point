@@ -8,6 +8,7 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Localization/notify_locale.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/AppConstants.dart';
 import 'package:point/Utils/AppNotificationInbox.dart';
@@ -1467,12 +1468,14 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
         if (id != me.id) {
           await FirestoreServices.sendFcm(
             userId: id,
-            title: 'chat.fcm_in_group_title'.trParams({
-              'user': me.name ?? '',
-              'group': title,
-            }),
-            body: lastMessagePreview,
             notificationType: 'chat_message',
+            copyForLocale: (locale) => ResolvedNotificationCopy(
+              title: NotifyLocale.tr(locale, 'chat.fcm_in_group_title', {
+                'user': me.name ?? '',
+                'group': title,
+              }),
+              body: lastMessagePreview,
+            ),
             fcmDataExtras: chatMessageFcmExtras(
               chatId: _chatId,
               chatTitle: title,

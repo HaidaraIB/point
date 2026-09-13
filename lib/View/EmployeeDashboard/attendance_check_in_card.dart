@@ -361,9 +361,8 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
     const presentLightSoft = Color(0xFFEAF8F1);
     final accentSoft = _softAccentFill(AppColors.success, presentLightSoft);
     final record = dayState.presentRecord;
-    final allDayLabel = AppLocaleKeys.attendanceActionAvailableAllDay.tr;
     final windowLabel = flexibleHours
-        ? allDayLabel
+        ? ''
         : _windowRangeLabel(
             workHoursFrom,
             _policy.checkInGraceMinutes,
@@ -406,9 +405,7 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
       return _ActionVisual(
         phase: _ActionPhase.active,
         windowLabel: windowLabel,
-        statusLabel: flexibleHours
-            ? AppLocaleKeys.attendanceActionAvailableAllDay.tr
-            : AppLocaleKeys.attendanceActionAvailable.tr,
+        statusLabel: AppLocaleKeys.attendanceTapToPresent.tr,
         enabled: !_busy,
         accent: accent,
         accentSoft: accentSoft,
@@ -473,9 +470,8 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
     const leftLightSoft = Color(0xFFF3F0FA);
     final accentSoft = _softAccentFill(AppColors.primary, leftLightSoft);
     final record = dayState.leftRecord;
-    final allDayLabel = AppLocaleKeys.attendanceActionAvailableAllDay.tr;
     final windowLabel = flexibleHours
-        ? allDayLabel
+        ? ''
         : _windowRangeLabel(
             workHoursTo,
             _policy.checkOutGraceMinutes,
@@ -529,9 +525,7 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
       return _ActionVisual(
         phase: _ActionPhase.active,
         windowLabel: windowLabel,
-        statusLabel: flexibleHours
-            ? AppLocaleKeys.attendanceActionAvailableAllDay.tr
-            : AppLocaleKeys.attendanceActionAvailable.tr,
+        statusLabel: AppLocaleKeys.attendanceTapToLeft.tr,
         enabled: !_busy,
         accent: accent,
         accentSoft: accentSoft,
@@ -731,7 +725,6 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
   Widget _buildProgressStep({
     required String label,
     required _ActionVisual visual,
-    required bool isLast,
   }) {
     final dotColor = switch (visual.phase) {
       _ActionPhase.approved => visual.accent,
@@ -748,49 +741,52 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
       _ => Icons.radio_button_off_rounded,
     };
 
-    return Expanded(
-      child: Row(
-        children: [
-          Column(
-            children: [
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: dotColor.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: dotColor, width: 1.5),
-                ),
-                child: Icon(icon, size: 16, color: dotColor),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: context.appTheme.primaryText,
-                ),
-              ),
-            ],
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: dotColor.withValues(alpha: 0.15),
+            shape: BoxShape.circle,
+            border: Border.all(color: dotColor, width: 1.5),
           ),
-          if (!isLast)
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 22),
-                child: Container(
-                  height: 2,
-                  margin: const EdgeInsets.symmetric(horizontal: 8),
-                  decoration: BoxDecoration(
-                    color: visual.phase == _ActionPhase.approved
-                        ? dotColor.withValues(alpha: 0.5)
-                        : Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(1),
-                  ),
-                ),
-              ),
-            ),
-        ],
+          child: Icon(icon, size: 16, color: dotColor),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: context.appTheme.primaryText,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProgressConnector(_ActionVisual visual) {
+    final dotColor = switch (visual.phase) {
+      _ActionPhase.approved => visual.accent,
+      _ActionPhase.submitted => Colors.orange.shade700,
+      _ActionPhase.active => visual.accent,
+      _ActionPhase.failed => Colors.red.shade700,
+      _ => Colors.grey.shade400,
+    };
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 22),
+      child: Container(
+        height: 2,
+        margin: const EdgeInsets.symmetric(horizontal: 8),
+        decoration: BoxDecoration(
+          color: visual.phase == _ActionPhase.approved
+              ? dotColor.withValues(alpha: 0.5)
+              : Colors.grey.shade300,
+          borderRadius: BorderRadius.circular(1),
+        ),
       ),
     );
   }
@@ -802,21 +798,39 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
   ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: Row(
-        children: [
-          _buildProgressStep(
-            label: AppLocaleKeys.attendancePresent.tr,
-            visual: presentVisual,
-            isLast: false,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 280),
+          child: Row(
+            children: [
+              _buildProgressStep(
+                label: AppLocaleKeys.attendancePresent.tr,
+                visual: presentVisual,
+              ),
+              Expanded(child: _buildProgressConnector(presentVisual)),
+              _buildProgressStep(
+                label: AppLocaleKeys.attendanceLeft.tr,
+                visual: leftVisual,
+              ),
+            ],
           ),
-          _buildProgressStep(
-            label: AppLocaleKeys.attendanceLeft.tr,
-            visual: leftVisual,
-            isLast: true,
-          ),
-        ],
+        ),
       ),
     );
+  }
+
+  String? _supportingWindow(_ActionVisual visual) {
+    final window = visual.windowLabel.trim();
+    if (window.isEmpty) return null;
+    if (window == visual.statusLabel.trim()) return null;
+    switch (visual.phase) {
+      case _ActionPhase.submitted:
+      case _ActionPhase.approved:
+      case _ActionPhase.failed:
+        return null;
+      default:
+        return window;
+    }
   }
 
   Widget _buildActionTile({
@@ -827,8 +841,15 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
     required bool loading,
   }) {
     final isActive = visual.phase == _ActionPhase.active;
-
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final windowLabel = _supportingWindow(visual);
+    final onAccent = isDark
+        ? Color.lerp(visual.accent, Colors.white, 0.62)!
+        : visual.accent;
+    final chipBg = isDark
+        ? visual.accent.withValues(alpha: 0.28)
+        : Colors.white.withValues(alpha: 0.9);
+    final chipFg = isDark ? Colors.white : visual.accent;
 
     return Material(
       color: visual.accentSoft,
@@ -842,7 +863,7 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isActive
-                  ? visual.accent.withValues(alpha: 0.55)
+                  ? onAccent.withValues(alpha: 0.7)
                   : context.appTheme.border,
               width: isActive ? 1.5 : 1,
             ),
@@ -856,10 +877,10 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
                     width: 36,
                     height: 36,
                     decoration: BoxDecoration(
-                      color: visual.accent.withValues(alpha: 0.12),
+                      color: visual.accent.withValues(alpha: isDark ? 0.22 : 0.12),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: Icon(icon, color: visual.accent, size: 20),
+                    child: Icon(icon, color: onAccent, size: 20),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -878,29 +899,28 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
                       height: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: visual.accent,
+                        color: onAccent,
                       ),
                     ),
                 ],
               ),
-              const SizedBox(height: 10),
-              if (visual.windowLabel.isNotEmpty)
+              if (windowLabel != null) ...[
+                const SizedBox(height: 10),
                 Text(
-                  visual.windowLabel,
+                  windowLabel,
                   style: TextStyle(
                     fontSize: 12,
-                    color: context.appTheme.mutedText,
+                    fontWeight: FontWeight.w500,
+                    color: context.appTheme.secondaryText,
                     fontFeatures: const [FontFeature.tabularFigures()],
                   ),
                 ),
-              const SizedBox(height: 8),
+              ],
+              const SizedBox(height: 10),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color:
-                      isDark
-                          ? context.appTheme.elevatedSurface
-                          : Colors.white.withValues(alpha: 0.85),
+                  color: chipBg,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -909,8 +929,8 @@ class _AttendanceCheckInCardState extends State<AttendanceCheckInCard> {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: visual.accent,
+                    fontWeight: FontWeight.w700,
+                    color: chipFg,
                   ),
                 ),
               ),

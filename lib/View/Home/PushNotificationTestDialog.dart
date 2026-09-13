@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Localization/notify_locale.dart';
 import 'package:point/Services/FireStoreServices.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/push_notification_test_catalog.dart';
@@ -141,29 +142,25 @@ class _PushNotificationTestDialogBodyState
       return;
     }
 
-    final sample = _sampleCopyForType(_selected.notificationType);
-    final title = sample.$1;
-    final body = sample.$2;
-    final chatTestExtras = _selected.notificationType == 'chat_message'
-        ? <String, String>{
-            'chatId': 'push_test_chat_${DateTime.now().millisecondsSinceEpoch}',
-            'chatTitle': 'Push Test Chat',
-            'chatDisplayName': 'Push Test Chat',
-            'senderName': 'Push Tester',
-            'isGroup': '0',
-          }
-        : null;
-
     setState(() => _sending = true);
     try {
       final batchSeenTokens = <String>{};
       final batchSeenEmails = <String>{};
+      final notificationType = _selected.notificationType;
+      final chatTestExtras = notificationType == 'chat_message'
+          ? <String, String>{
+              'chatId':
+                  'push_test_chat_${DateTime.now().millisecondsSinceEpoch}',
+              'chatTitle': 'Push Test Chat',
+              'chatDisplayName': 'Push Test Chat',
+              'senderName': 'Push Tester',
+              'isGroup': '0',
+            }
+          : null;
       for (final id in _empIds) {
         await FirestoreServices.sendFcm(
           userId: id,
-          title: title,
-          body: body,
-          notificationType: _selected.notificationType,
+          notificationType: notificationType,
           fcmDataExtras: chatTestExtras,
           sendPush: _sendPush,
           sendEmail: _sendEmail,
@@ -171,20 +168,26 @@ class _PushNotificationTestDialogBodyState
           batchSeenTokens: batchSeenTokens,
           batchSeenEmails: batchSeenEmails,
           excludeCurrentActor: false,
+          copyForLocale: (locale) {
+            final sample = _sampleCopyForType(notificationType, locale: locale);
+            return ResolvedNotificationCopy(title: sample.$1, body: sample.$2);
+          },
         );
       }
       for (final id in _clientIds) {
         await FirestoreServices.sendFcmForClient(
           userId: id,
-          title: title,
-          body: body,
-          notificationType: _selected.notificationType,
+          notificationType: notificationType,
           fcmDataExtras: chatTestExtras,
           sendPush: _sendPush,
           sendEmail: _sendEmail,
           useSupabaseTemplateWrapper: _useSupabaseTemplateWrapper,
           batchSeenTokens: batchSeenTokens,
           batchSeenEmails: batchSeenEmails,
+          copyForLocale: (locale) {
+            final sample = _sampleCopyForType(notificationType, locale: locale);
+            return ResolvedNotificationCopy(title: sample.$1, body: sample.$2);
+          },
         );
       }
 
@@ -206,7 +209,10 @@ class _PushNotificationTestDialogBodyState
     }
   }
 
-  (String, String) _sampleCopyForType(String notificationType) {
+  (String, String) _sampleCopyForType(
+    String notificationType, {
+    String locale = 'ar',
+  }) {
     final params = <String, String>{
       'title': 'مهمة تجريبية',
       'name': 'الموظف',
@@ -299,28 +305,31 @@ class _PushNotificationTestDialogBodyState
 
     final prefix = prefixByType[notificationType];
     if (prefix != null) {
-      final title = '$prefix.title'.trParams(params);
-      final rawBody = '$prefix.body'.trParams(params);
-      final body =
-          rawBody == '$prefix.body'
-              ? '$prefix.action'.trParams(params)
-              : rawBody;
+      final title = NotifyLocale.tr(locale, '$prefix.title', params);
+      final rawBody = NotifyLocale.tr(locale, '$prefix.body', params);
+      final body = rawBody == '$prefix.body'
+          ? NotifyLocale.tr(locale, '$prefix.action', params)
+          : rawBody;
       if (title != '$prefix.title') {
-        return (title, body == '$prefix.action' ? _genericBody() : body);
+        return (
+          title,
+          body == '$prefix.action' ? _genericBody(locale) : body,
+        );
       }
     }
 
-    final isArabic = Get.locale?.languageCode.toLowerCase() == 'ar';
-    return isArabic
-        ? ('إشعار جديد', 'لديك تحديث جديد في النظام.')
-        : ('New notification', 'You have a new update in the system.');
+    return locale == 'en'
+        ? ('New notification', 'You have a new update in the system.')
+        : ('إشعار جديد', 'لديك تحديث جديد في النظام.');
   }
 
-  String _genericBody() {
-    final isArabic = Get.locale?.languageCode.toLowerCase() == 'ar';
-    return isArabic
-        ? 'يرجى فتح التطبيق للاطلاع على التفاصيل.'
-        : 'Open the app to view details.';
+  String _genericBody([String? localeCode]) {
+    final locale = NotifyLocale.normalize(
+      localeCode ?? Get.locale?.languageCode,
+    );
+    return locale == 'en'
+        ? 'Open the app to view details.'
+        : 'يرجى فتح التطبيق للاطلاع على التفاصيل.';
   }
 
   @override

@@ -19,7 +19,6 @@ import 'package:point/View/Tasks/Shared/task_note_body.dart';
 import 'package:point/View/Tasks/Shared/task_voice_details_tile.dart';
 import 'package:point/View/Shared/task_status_visuals.dart';
 import 'package:point/Utils/AppColors.dart';
-import 'package:point/View/Shared/app_user_avatar.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 
 /// Generic web dialog for task details. Renders common shell (header, notes,
@@ -377,54 +376,13 @@ class _GenericTaskDetailsDialogState extends State<GenericTaskDetailsDialog> {
             ),
           ),
           const SizedBox(width: 10),
-          Container(
-            constraints: BoxConstraints(
-              maxWidth: dialogWidth < 520 ? dialogWidth - 120 : 250,
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: colorScheme.outlineVariant),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AppUserAvatar(
-                  url: widget.task.assignedImageUrl.isEmpty
-                      ? '${StorageKeys.supabaseStorageBaseUrl}/Avatar.png'
-                      : widget.task.assignedImageUrl,
-                  radius: 12,
-                  displayName: assignedName.isEmpty ? null : assignedName,
-                ),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'content.dialog.executor'.tr,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 10,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      Text(
-                        assignedName.isEmpty ? '-' : assignedName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+          TaskDetailsDialogHelpers.executorChip(
+            context: context,
+            name: assignedName,
+            imageUrl: widget.task.assignedImageUrl.isEmpty
+                ? '${StorageKeys.supabaseStorageBaseUrl}/Avatar.png'
+                : widget.task.assignedImageUrl,
+            maxWidth: dialogWidth < 520 ? dialogWidth - 120 : 220,
           ),
         ],
       ),

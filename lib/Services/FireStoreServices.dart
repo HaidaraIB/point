@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:point/Services/NotificationService.dart';
+import 'package:point/Localization/notify_locale.dart';
 import 'package:point/config/app_config.dart';
 import 'package:point/Models/AttendanceDayOutcomeModel.dart';
 import 'package:point/Models/AttendanceRecordModel.dart';
@@ -284,12 +285,13 @@ class FirestoreServices extends FirestoreServicesBase
 
   static Future<void> sendFcm({
     required String userId,
-    required String title,
-    required String body,
+    String title = '',
+    String body = '',
     String? notificationType,
     String? actionText,
     String? referenceId,
     Map<String, String>? emailDetails,
+    NotificationCopyForLocale? copyForLocale,
     Map<String, String>? fcmDataExtras,
     bool sendPush = true,
     bool useSupabaseTemplateWrapper = false,
@@ -308,6 +310,7 @@ class FirestoreServices extends FirestoreServicesBase
         actionText: actionText,
         referenceId: referenceId,
         emailDetails: emailDetails,
+        copyForLocale: copyForLocale,
         fcmDataExtras: fcmDataExtras,
         sendPush: sendPush,
         useSupabaseTemplateWrapper: useSupabaseTemplateWrapper,
@@ -321,12 +324,13 @@ class FirestoreServices extends FirestoreServicesBase
 
   static Future<void> sendFcmForClient({
     required String userId,
-    required String title,
-    required String body,
+    String title = '',
+    String body = '',
     String? notificationType,
     String? actionText,
     String? referenceId,
     Map<String, String>? emailDetails,
+    NotificationCopyForLocale? copyForLocale,
     Map<String, String>? fcmDataExtras,
     bool sendPush = true,
     bool useSupabaseTemplateWrapper = false,
@@ -342,6 +346,7 @@ class FirestoreServices extends FirestoreServicesBase
         actionText: actionText,
         referenceId: referenceId,
         emailDetails: emailDetails,
+        copyForLocale: copyForLocale,
         fcmDataExtras: fcmDataExtras,
         sendPush: sendPush,
         useSupabaseTemplateWrapper: useSupabaseTemplateWrapper,
@@ -389,12 +394,13 @@ class FirestoreServices extends FirestoreServicesBase
 
   static Future<void> sendFcmToEmployees({
     required List<String> userIds,
-    required String title,
-    required String body,
+    String title = '',
+    String body = '',
     String? notificationType,
     String? actionText,
     String? referenceId,
     Map<String, String>? emailDetails,
+    NotificationCopyForLocale? copyForLocale,
     Map<String, String>? fcmDataExtras,
     bool excludeCurrentActor = true,
     Set<String>? excludeUserIds,
@@ -407,6 +413,7 @@ class FirestoreServices extends FirestoreServicesBase
         actionText: actionText,
         referenceId: referenceId,
         emailDetails: emailDetails,
+        copyForLocale: copyForLocale,
         fcmDataExtras: fcmDataExtras,
         excludeCurrentActor: excludeCurrentActor,
         excludeUserIds: excludeUserIds,

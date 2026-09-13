@@ -29,6 +29,7 @@ import 'package:point/Services/chat_image_paste_listener.dart';
 
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Localization/notify_locale.dart';
 import 'package:point/Routing/app_route_observer.dart';
 import 'package:point/Services/FcmServices.dart' as fcm_notifications;
 import 'package:point/View/Chats/chat_message_tile.dart';
@@ -2054,12 +2055,18 @@ class _MessageScreenState extends State<MessageScreen>
         if (id != widget.currentUserId) {
           await FirestoreServices.sendFcm(
             userId: id,
-            title: AppLocaleKeys.chatFcmInGroupTitle.trParams({
-              'user': widget.currentUserName,
-              'group': _displayName,
-            }),
-            body: lastMessagePreview,
             notificationType: 'chat_message',
+            copyForLocale: (locale) => ResolvedNotificationCopy(
+              title: NotifyLocale.tr(
+                locale,
+                AppLocaleKeys.chatFcmInGroupTitle,
+                {
+                  'user': widget.currentUserName,
+                  'group': _displayName,
+                },
+              ),
+              body: lastMessagePreview,
+            ),
             fcmDataExtras: chatMessageFcmExtras(
               chatId: _chatId,
               chatTitle: fcmConvTitle,

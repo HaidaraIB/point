@@ -4,6 +4,7 @@ import 'dart:math' show Random, min;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Localization/notify_locale.dart';
 import 'package:point/Models/NotificationModel.dart';
 import 'package:point/Services/EmailNotificationService.dart';
 import 'package:point/Services/firestore/fcm_exceptions.dart';
@@ -563,12 +564,16 @@ class FirestoreFcmApi {
 
   static Future<void> sendFcm({
     required String userId,
-    required String title,
-    required String body,
+    String title = '',
+    String body = '',
     String? notificationType,
     String? actionText,
     String? referenceId,
     Map<String, String>? emailDetails,
+
+    /// When set, title/body/actionText/emailDetails are built for the
+    /// recipient's Firestore `language` (not the sender locale).
+    NotificationCopyForLocale? copyForLocale,
 
     /// يُدمج في حمولة `data` لـ FCM (مثل `chatId` لإشعارات الدردشة).
     Map<String, String>? fcmDataExtras,
@@ -622,8 +627,8 @@ class FirestoreFcmApi {
       final email = data?['email']?.toString().trim();
       final tokens = _extractFcmTokens(data);
       final rawRecipientName = data?['name']?.toString().trim();
-      final preferredLanguageCode = _normalizePreferredLanguageCode(
-        data?['language'],
+      final preferredLanguageCode = NotifyLocale.normalize(
+        _normalizePreferredLanguageCode(data?['language']),
       );
       final recipientRole = data?['role'];
       final recipientName =
@@ -631,12 +636,18 @@ class FirestoreFcmApi {
           ? rawRecipientName
           : 'الموظف';
 
+      final resolved = copyForLocale?.call(preferredLanguageCode);
+      final resolvedTitle = resolved?.title ?? title;
+      final resolvedBody = resolved?.body ?? body;
+      final resolvedAction = resolved?.actionText ?? actionText;
+      final resolvedEmailDetails = resolved?.emailDetails ?? emailDetails;
+
       if (!silentDataOnly &&
           _shouldPersistFcmToNotificationInbox(notificationType)) {
         await FirestoreNotificationApi.addNotification(
           NotificationModel(
-            title: title,
-            body: body,
+            title: resolvedTitle,
+            body: resolvedBody,
             recipientId: trimmedUserId,
             createdAt: DateTime.now(),
             isRead: false,
@@ -663,16 +674,16 @@ class FirestoreFcmApi {
       if (sendThisEmail) {
         // إرسال إيميل حتى عند غياب FCM (من لم يثبت التطبيق أو عطّل الإشعارات يظل يحصل على الإيميل)
         final details = <String, String>{
-          if (emailDetails != null) ...emailDetails,
+          if (resolvedEmailDetails != null) ...resolvedEmailDetails,
         };
         unawaited(
           EmailNotificationService.sendDetailedNotification(
             toEmail: email!,
-            title: title,
-            body: body,
+            title: resolvedTitle,
+            body: resolvedBody,
             useSupabaseTemplateWrapper: useSupabaseTemplateWrapper,
             recipientLabel: recipientName,
-            actionText: actionText,
+            actionText: resolvedAction,
             details: details,
             languageCode: preferredLanguageCode,
           ),
@@ -729,8 +740,8 @@ class FirestoreFcmApi {
         await _sendFcmBatchesAndApplyResults(
           recipients: recipients,
           metaAligned: meta,
-          title: title,
-          body: body,
+          title: resolvedTitle,
+          body: resolvedBody,
           data: baseData,
           parentRequestId: parentRequestId,
           notificationType: notificationType,
@@ -767,12 +778,13 @@ class FirestoreFcmApi {
 
   static Future<void> sendFcmForClient({
     required String userId,
-    required String title,
-    required String body,
+    String title = '',
+    String body = '',
     String? notificationType,
     String? actionText,
     String? referenceId,
     Map<String, String>? emailDetails,
+    NotificationCopyForLocale? copyForLocale,
     Map<String, String>? fcmDataExtras,
     bool sendPush = true,
     bool useSupabaseTemplateWrapper = false,
@@ -802,20 +814,26 @@ class FirestoreFcmApi {
       final email = data?['email']?.toString().trim();
       final tokens = _extractFcmTokens(data);
       final rawRecipientName = data?['name']?.toString().trim();
-      final preferredLanguageCode = _normalizePreferredLanguageCode(
-        data?['language'],
+      final preferredLanguageCode = NotifyLocale.normalize(
+        _normalizePreferredLanguageCode(data?['language']),
       );
       final recipientName =
           (rawRecipientName != null && rawRecipientName.isNotEmpty)
           ? rawRecipientName
           : 'العميل';
 
+      final resolved = copyForLocale?.call(preferredLanguageCode);
+      final resolvedTitle = resolved?.title ?? title;
+      final resolvedBody = resolved?.body ?? body;
+      final resolvedAction = resolved?.actionText ?? actionText;
+      final resolvedEmailDetails = resolved?.emailDetails ?? emailDetails;
+
       final trimmedUserId = userId.trim();
       if (_shouldPersistFcmToNotificationInbox(notificationType)) {
         await FirestoreNotificationApi.addNotification(
           NotificationModel(
-            title: title,
-            body: body,
+            title: resolvedTitle,
+            body: resolvedBody,
             recipientId: trimmedUserId,
             createdAt: DateTime.now(),
             isRead: false,
@@ -840,16 +858,16 @@ class FirestoreFcmApi {
       }
       if (sendThisClientEmail) {
         final details = <String, String>{
-          if (emailDetails != null) ...emailDetails,
+          if (resolvedEmailDetails != null) ...resolvedEmailDetails,
         };
         unawaited(
           EmailNotificationService.sendDetailedNotification(
             toEmail: email!,
-            title: title,
-            body: body,
+            title: resolvedTitle,
+            body: resolvedBody,
             useSupabaseTemplateWrapper: useSupabaseTemplateWrapper,
             recipientLabel: recipientName,
-            actionText: actionText,
+            actionText: resolvedAction,
             details: details,
             languageCode: preferredLanguageCode,
           ),
@@ -907,8 +925,8 @@ class FirestoreFcmApi {
         await _sendFcmBatchesAndApplyResults(
           recipients: recipientsClient,
           metaAligned: metaClient,
-          title: title,
-          body: body,
+          title: resolvedTitle,
+          body: resolvedBody,
           data: baseDataClient,
           parentRequestId: parentRequestIdClient,
           notificationType: notificationType,
@@ -1137,12 +1155,13 @@ class FirestoreFcmApi {
   /// إرسال إشعار FCM (وإيميل + حفظ في notifications) لعدة موظفين بدون تكرار.
   static Future<void> sendFcmToEmployees({
     required List<String> userIds,
-    required String title,
-    required String body,
+    String title = '',
+    String body = '',
     String? notificationType,
     String? actionText,
     String? referenceId,
     Map<String, String>? emailDetails,
+    NotificationCopyForLocale? copyForLocale,
     Map<String, String>? fcmDataExtras,
 
     /// When true (default), do not notify the signed-in employee about their own action.
@@ -1172,8 +1191,10 @@ class FirestoreFcmApi {
       final batchSeenTokens = <String>{};
       final batchSeenEmails = <String>{};
       final emailItems = <DetailedEmailBatchItem>[];
-      final fcmRecipients = <Map<String, dynamic>>[];
-      final fcmMeta = <({String token, String userId, bool isClient})>[];
+      // Group FCM targets by resolved (title, body) so ar/en recipients get
+      // separate batches (send-fcm uses one title/body per batch).
+      final fcmByCopy =
+          <String, ({String title, String body, List<Map<String, dynamic>> recipients, List<({String token, String userId, bool isClient})> meta})>{};
 
       final effectiveSendEmail = NotificationEmailPolicy.shouldSendEmail(
         notificationType,
@@ -1204,8 +1225,8 @@ class FirestoreFcmApi {
         final email = data?['email']?.toString().trim();
         final tokens = _extractFcmTokens(data);
         final rawRecipientName = data?['name']?.toString().trim();
-        final preferredLanguageCode = _normalizePreferredLanguageCode(
-          data?['language'],
+        final preferredLanguageCode = NotifyLocale.normalize(
+          _normalizePreferredLanguageCode(data?['language']),
         );
         final recipientRole = data?['role'];
         final recipientName =
@@ -1213,11 +1234,17 @@ class FirestoreFcmApi {
             ? rawRecipientName
             : 'الموظف';
 
+        final resolved = copyForLocale?.call(preferredLanguageCode);
+        final resolvedTitle = resolved?.title ?? title;
+        final resolvedBody = resolved?.body ?? body;
+        final resolvedAction = resolved?.actionText ?? actionText;
+        final resolvedEmailDetails = resolved?.emailDetails ?? emailDetails;
+
         if (_shouldPersistFcmToNotificationInbox(notificationType)) {
           await FirestoreNotificationApi.addNotification(
             NotificationModel(
-              title: title,
-              body: body,
+              title: resolvedTitle,
+              body: resolvedBody,
               recipientId: trimmedUserId,
               createdAt: DateTime.now(),
               isRead: false,
@@ -1242,15 +1269,15 @@ class FirestoreFcmApi {
         }
         if (sendThisEmail) {
           final details = <String, String>{
-            if (emailDetails != null) ...emailDetails,
+            if (resolvedEmailDetails != null) ...resolvedEmailDetails,
           };
           emailItems.add(
             DetailedEmailBatchItem(
               toEmail: email!,
-              title: title,
-              body: body,
+              title: resolvedTitle,
+              body: resolvedBody,
               recipientLabel: recipientName,
-              actionText: actionText,
+              actionText: resolvedAction,
               details: details,
               languageCode: preferredLanguageCode,
             ),
@@ -1261,6 +1288,17 @@ class FirestoreFcmApi {
           );
         }
 
+        final copyKey = '$resolvedTitle\u0000$resolvedBody';
+        final bucket = fcmByCopy.putIfAbsent(
+          copyKey,
+          () => (
+            title: resolvedTitle,
+            body: resolvedBody,
+            recipients: <Map<String, dynamic>>[],
+            meta: <({String token, String userId, bool isClient})>[],
+          ),
+        );
+
         for (final token in tokens) {
           final cleanedToken = token.trim();
           if (cleanedToken.isEmpty) continue;
@@ -1270,7 +1308,7 @@ class FirestoreFcmApi {
             );
             continue;
           }
-          fcmRecipients.add(<String, dynamic>{
+          bucket.recipients.add(<String, dynamic>{
             'token': cleanedToken,
             'recipientId': trimmedUserId,
             'recipientType': 'employee',
@@ -1285,7 +1323,7 @@ class FirestoreFcmApi {
               if (fcmDataExtras != null) ...fcmDataExtras,
             },
           });
-          fcmMeta.add((
+          bucket.meta.add((
             token: cleanedToken,
             userId: trimmedUserId,
             isClient: false,
@@ -1302,18 +1340,19 @@ class FirestoreFcmApi {
         );
       }
 
-      if (fcmRecipients.isEmpty) return;
-
-      final parentRequestId = _newPushRequestId();
-      await _sendFcmBatchesAndApplyResults(
-        recipients: fcmRecipients,
-        metaAligned: fcmMeta,
-        title: title,
-        body: body,
-        data: null,
-        parentRequestId: parentRequestId,
-        notificationType: notificationType,
-      );
+      for (final bucket in fcmByCopy.values) {
+        if (bucket.recipients.isEmpty) continue;
+        final parentRequestId = _newPushRequestId();
+        await _sendFcmBatchesAndApplyResults(
+          recipients: bucket.recipients,
+          metaAligned: bucket.meta,
+          title: bucket.title,
+          body: bucket.body,
+          data: null,
+          parentRequestId: parentRequestId,
+          notificationType: notificationType,
+        );
+      }
     } on FunctionException catch (e) {
       final ex = _fcmSendExceptionFromFunctionException(e);
       switch (ex.errorCode) {
