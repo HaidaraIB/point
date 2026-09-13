@@ -119,10 +119,14 @@ class _OsExpensesPageState extends State<OsExpensesPage> {
     OsDailyExpenseModel e,
   ) async {
     if (e.id == null) return;
+    final hasVoucher =
+        e.voucherId != null && e.voucherId!.trim().isNotEmpty;
     await FunHelper.showDeleteConfirmDialog(
       context,
       title: AppLocaleKeys.osCommonDelete.tr,
-      message: AppLocaleKeys.osExpensesDeleteConfirm.tr,
+      message: hasVoucher
+          ? AppLocaleKeys.osExpensesDeletePostedConfirm.tr
+          : AppLocaleKeys.osExpensesDeleteConfirm.tr,
       onTap: () async {
         final deleted = await finance.deleteExpense(e.id!);
         if (!deleted) {

@@ -264,20 +264,113 @@ class FirestoreOsPayrollApi {
       final ref =
           FirebaseFirestore.instance.collection(payslipsCollection).doc(id);
       final snap = await ref.get();
-      final runId = snap.data()?['runId'] as String?;
-      final status = snap.data()?['status'] as String?;
-      if (status == OsPayslipStatus.paid) {
-        throw OsPayrollException(AppLocaleKeys.osPayrollErrorAlreadyPaid);
+      if (!snap.exists) return false;
+      final slip = OsPayslipModel.fromJson(snap.data()!, snap.id);
+
+      if (slip.isPaid) {
+        final expenseId = slip.expenseId?.trim();
+        final voucherId = slip.voucherId?.trim();
+        var reversed = false;
+        if (expenseId != null && expenseId.isNotEmpty) {
+          reversed = await FirestoreOsFinanceApi.deleteExpense(expenseId);
+        }
+        if (!reversed && voucherId != null && voucherId.isNotEmpty) {
+          reversed = await FirestoreOsFinanceApi.deleteVoucher(voucherId);
+        }
+        // Paid slips must reverse ledger before the doc is removed.
+        if ((expenseId != null && expenseId.isNotEmpty) ||
+            (voucherId != null && voucherId.isNotEmpty)) {
+          if (!reversed) return false;
+        }
+
+        final ded = slip.advanceDeduction;
+        final advId = slip.advanceId?.trim();
+        if (ded > 0 && advId != null && advId.isNotEmpty) {
+          await undoAdvanceRepayment(advanceId: advId, amount: ded);
+        }
       }
+
       await ref.delete();
+      final runId = slip.runId;
       if (runId != null && runId.isNotEmpty) {
         await refreshRunTotals(runId);
       }
       return true;
+    } on OsFinanceException {
+      rethrow;
     } on OsPayrollException {
       rethrow;
     } catch (e, st) {
       appLog('deletePayslip failed: $e\n$st');
+      return false;
+    }
+  }
+
+  /// Undo a prior [applyAdvanceRepayment] (subtract from paidAmount).
+  static Future<bool> undoAdvanceRepayment({
+    required String advanceId,
+    required double amount,
+  }) async {
+    if (amount <= 0) return true;
+    try {
+      final ref = FirebaseFirestore.instance
+          .collection(advancesCollection)
+          .doc(advanceId);
+      await FirebaseFirestore.instance.runTransaction((tx) async {
+        final snap = await tx.get(ref);
+        if (!snap.exists) return;
+        final adv = OsEmployeeAdvanceModel.fromJson(snap.data()!, snap.id);
+        final newPaid =
+            (adv.paidAmount - amount).clamp(0, adv.totalAmount).toDouble();
+        final remaining =
+            (adv.totalAmount - newPaid).clamp(0, double.infinity).toDouble();
+        final status = remaining <= 0
+            ? OsEmployeeAdvanceStatus.settled
+            : OsEmployeeAdvanceStatus.active;
+        tx.set(
+          ref,
+          adv
+              .copyWith(
+                paidAmount: newPaid,
+                remainingAmount: remaining,
+                status: status,
+              )
+              .toJson(),
+          SetOptions(merge: true),
+        );
+      });
+      return true;
+    } catch (e, st) {
+      appLog('undoAdvanceRepayment failed: $e\n$st');
+      return false;
+    }
+  }
+
+  /// Deletes all payslips in a run (reversing paid ones), then the run doc.
+  static Future<bool> deletePayrollRun(String runId) async {
+    final id = runId.trim();
+    if (id.isEmpty) return false;
+    try {
+      final slips = await FirebaseFirestore.instance
+          .collection(payslipsCollection)
+          .where('runId', isEqualTo: id)
+          .limit(FirestoreQueryLimits.osPayslips)
+          .get();
+      for (final d in slips.docs) {
+        final ok = await deletePayslip(d.id);
+        if (!ok) return false;
+      }
+      await FirebaseFirestore.instance
+          .collection(payrollRunsCollection)
+          .doc(id)
+          .delete();
+      return true;
+    } on OsFinanceException {
+      rethrow;
+    } on OsPayrollException {
+      rethrow;
+    } catch (e, st) {
+      appLog('deletePayrollRun failed: $e\n$st');
       return false;
     }
   }
@@ -345,6 +438,8 @@ class FirestoreOsPayrollApi {
         'paidAt': Timestamp.fromDate(now),
         'expenseId': savedExpense.id,
         'voucherId': savedExpense.voucherId,
+        if (advanceId != null && advanceId.trim().isNotEmpty)
+          'advanceId': advanceId.trim(),
       }, SetOptions(merge: true));
 
       final ded = payslip.advanceDeduction;

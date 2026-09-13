@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Controller/OsFinanceController.dart';
@@ -11,27 +10,33 @@ import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
+import 'package:point/View/Os/os_line_items_editor.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 
-Future<void> showOsQuotationFormDialog(BuildContext context) {
+Future<void> showOsQuotationFormDialog(
+  BuildContext context, {
+  OsQuotationModel? existing,
+}) {
   return showDialog<void>(
     context: context,
     barrierDismissible: false,
-    builder: (_) => const _OsQuotationFormDialog(),
+    builder: (_) => _OsQuotationFormDialog(existing: existing),
   );
 }
 
 class _OsQuotationFormDialog extends StatefulWidget {
-  const _OsQuotationFormDialog();
+  const _OsQuotationFormDialog({this.existing});
+
+  final OsQuotationModel? existing;
 
   @override
   State<_OsQuotationFormDialog> createState() => _OsQuotationFormDialogState();
 }
 
 class _OsQuotationFormDialogState extends State<_OsQuotationFormDialog> {
-  final _amountCtrl = TextEditingController(text: '0');
   String? _clientId;
   late DateTime _expiry;
+  late final OsLineItemsController _lines;
   var _saving = false;
 
   List<ClientModel> get _clients {
@@ -44,12 +49,27 @@ class _OsQuotationFormDialogState extends State<_OsQuotationFormDialog> {
   @override
   void initState() {
     super.initState();
-    _expiry = DateTime.now().add(const Duration(days: 14));
+    final e = widget.existing;
+    _clientId = e?.clientId;
+    _expiry = OsFinanceFormat.parseYmd(e?.expiryDate) ??
+        DateTime.now().add(const Duration(days: 14));
+    _lines = OsLineItemsController(
+      initialItems: e?.items,
+      initialTaxRate: (e != null && e.vat > 0) ? 0.05 : 0,
+    );
+    // Legacy lump-sum: seed one line from amount/total when no items.
+    if (e != null && e.items.isEmpty && e.total > 0) {
+      final draft = _lines.lines.first;
+      draft.description.text = AppLocaleKeys.osInvoicesItemsFallback.tr;
+      draft.qtyCtrl.text = '1';
+      draft.priceCtrl.text =
+          (e.amount > 0 ? e.amount : e.total).toStringAsFixed(0);
+    }
   }
 
   @override
   void dispose() {
-    _amountCtrl.dispose();
+    _lines.dispose();
     super.dispose();
   }
 
@@ -97,14 +117,12 @@ class _OsQuotationFormDialogState extends State<_OsQuotationFormDialog> {
       );
       return;
     }
-    final amount = double.tryParse(
-          _amountCtrl.text.trim().replaceAll(',', ''),
-        ) ??
-        0;
-    if (amount <= 0) {
+
+    final items = _lines.buildItems();
+    if (items == null) {
       OsSnackbar.error(
         AppLocaleKeys.osQuotationsCreateTitle.tr,
-        AppLocaleKeys.osQuotationsErrorAmount.tr,
+        AppLocaleKeys.osInvoicesErrorNoItems.tr,
       );
       return;
     }
@@ -112,15 +130,21 @@ class _OsQuotationFormDialogState extends State<_OsQuotationFormDialog> {
     setState(() => _saving = true);
     try {
       final now = DateTime.now();
+      final existing = widget.existing;
       final ok = await finance.saveQuotation(
         OsQuotationModel(
+          id: existing?.id,
+          displayNumber: existing?.displayNumber,
           clientId: client.id!,
           clientName: (client.name ?? client.email ?? client.id!).trim(),
-          date: OsFinanceFormat.ymd(now),
+          date: existing?.date ?? OsFinanceFormat.ymd(now),
           expiryDate: OsFinanceFormat.ymd(_expiry),
-          status: OsQuotationStatus.sent,
-          total: amount,
-          createdAt: now,
+          status: existing?.status ?? OsQuotationStatus.sent,
+          amount: _lines.subtotal,
+          vat: _lines.vat,
+          total: _lines.total,
+          items: items,
+          createdAt: existing?.createdAt ?? now,
         ),
       );
       if (!mounted) return;
@@ -146,65 +170,82 @@ class _OsQuotationFormDialogState extends State<_OsQuotationFormDialog> {
   @override
   Widget build(BuildContext context) {
     final clients = _clients;
-    final currency = AppLocaleKeys.osInvoicesCurrency.tr;
+    final narrow = MediaQuery.sizeOf(context).width < 600;
+    final maxH = MediaQuery.sizeOf(context).height * (narrow ? 0.92 : 0.9);
+    final theme = context.appTheme;
+    final isEdit = widget.existing != null;
 
-    return OsDialogFrame(
-      title: AppLocaleKeys.osQuotationsCreateTitle.tr,
-      icon: Icons.description_outlined,
-      closeEnabled: !_saving,
-      onClose: () => Navigator.pop(context),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _label(AppLocaleKeys.osQuotationsClient.tr),
-          DropdownButtonFormField<String>(
-            initialValue:
-                clients.any((c) => c.id == _clientId) ? _clientId : null,
-            decoration: osDialogFieldDecoration(
-              context,
-              hint: AppLocaleKeys.osQuotationsClientHint.tr,
-            ),
-            items: [
-              for (final c in clients)
-                DropdownMenuItem(
-                  value: c.id,
-                  child: Text(
-                    c.name ?? c.email ?? c.id!,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
+    return Dialog(
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: narrow ? 12 : 28,
+        vertical: narrow ? 16 : 28,
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: 820, maxHeight: maxH),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 8, 0),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.description_outlined,
+                    color: theme.accentText,
+                    size: 24,
                   ),
-                ),
-            ],
-            onChanged: (v) => setState(() => _clientId = v),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _label(AppLocaleKeys.osQuotationsTotal.tr),
-                    TextField(
-                      controller: _amountCtrl,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly,
-                      ],
-                      decoration: osDialogFieldDecoration(
-                        context,
-                        hint: '0',
-                        suffixText: currency,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      isEdit
+                          ? AppLocaleKeys.osQuotationsEditTitle.tr
+                          : AppLocaleKeys.osQuotationsCreateTitle.tr,
+                      style: TextStyle(
+                        fontSize: narrow ? 17 : 20,
+                        fontWeight: FontWeight.w800,
+                        color: theme.primaryText,
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                  IconButton(
+                    onPressed: _saving ? null : () => Navigator.pop(context),
+                    icon: Icon(Icons.close, color: theme.secondaryText),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Expanded(
+            ),
+            const Divider(height: 16),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    _label(AppLocaleKeys.osQuotationsClient.tr),
+                    DropdownButtonFormField<String>(
+                      initialValue: clients.any((c) => c.id == _clientId)
+                          ? _clientId
+                          : null,
+                      decoration: osDialogFieldDecoration(
+                        context,
+                        hint: AppLocaleKeys.osQuotationsClientHint.tr,
+                      ),
+                      items: [
+                        for (final c in clients)
+                          DropdownMenuItem(
+                            value: c.id,
+                            child: Text(
+                              c.name ?? c.email ?? c.id!,
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                      ],
+                      onChanged: (v) => setState(() => _clientId = v),
+                    ),
+                    const SizedBox(height: 16),
                     _label(AppLocaleKeys.osQuotationsExpiry.tr),
                     OutlinedButton(
                       style: OutlinedButton.styleFrom(
@@ -228,21 +269,23 @@ class _OsQuotationFormDialogState extends State<_OsQuotationFormDialog> {
                         ],
                       ),
                     ),
+                    const SizedBox(height: 16),
+                    OsLineItemsEditor(controller: _lines),
+                    const SizedBox(height: 24),
+                    OsFormDialogActions(
+                      saveLabel: AppLocaleKeys.osQuotationsSaveSend.tr,
+                      saveColor: AppColors.primary,
+                      saveIcon: Icons.save_outlined,
+                      saving: _saving,
+                      onSave: _save,
+                      onCancel: () => Navigator.pop(context),
+                    ),
                   ],
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          OsFormDialogActions(
-            saveLabel: AppLocaleKeys.osQuotationsSaveSend.tr,
-            saveColor: AppColors.primary,
-            saveIcon: Icons.save_outlined,
-            saving: _saving,
-            onSave: _save,
-            onCancel: () => Navigator.pop(context),
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }

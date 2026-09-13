@@ -902,6 +902,20 @@ class AppTranslations extends Translations {
         'employees.bank_name_hint': 'Salary bank',
         'employees.bank_account': 'Bank account number',
         'employees.bank_account_hint': 'IBAN / account number',
+        'employees.identity.section': 'Identity & residence',
+        'employees.identity.birth_date': 'Date of birth',
+        'employees.identity.birth_date_hint': 'Select date',
+        'employees.identity.address': 'Residence address',
+        'employees.identity.address_hint': 'City / district / street',
+        'employees.identity.national_id_number': 'National ID number',
+        'employees.identity.national_id_number_hint': '12-digit national ID',
+        'employees.identity.national_id_card': 'National ID card scan',
+        'employees.residence.card_number': 'Residence card number',
+        'employees.residence.card_number_hint': 'Residence / office code',
+        'employees.residence.card': 'Residence card scan',
+        'employees.identity.upload': 'Upload scan',
+        'employees.identity.remove': 'Remove',
+        'employees.identity.view_only': 'Identity & residence (read-only)',
         'os.sidebar': 'Point OS',
         'os.dashboard.title': 'Agency OS dashboard',
         'os.dashboard.subtitle':
@@ -931,6 +945,8 @@ class AppTranslations extends Translations {
             'Prepare and customize quotes for Point agency clients in IQD.',
         'os.quotations.add': 'New quote',
         'os.quotations.create_title': 'Create new quote',
+        'os.quotations.edit_title': 'Edit quote',
+        'os.quotations.edit': 'Edit',
         'os.quotations.empty': 'No quotes recorded yet.',
         'os.quotations.client': 'Target client',
         'os.quotations.client_hint': 'Select client...',
@@ -938,6 +954,9 @@ class AppTranslations extends Translations {
         'os.quotations.expiry': 'Valid until',
         'os.quotations.save_send': 'Save and send quote',
         'os.quotations.saved': 'Quote saved',
+        'os.quotations.delete_confirm':
+            'Delete this quotation permanently?',
+        'os.quotations.deleted': 'Quotation deleted',
         'os.quotations.number': 'Quote no.',
         'os.quotations.issue_date': 'Issue date',
         'os.quotations.expires': 'Expires',
@@ -990,6 +1009,8 @@ class AppTranslations extends Translations {
         'os.invoices.select_account': 'Collection account',
         'os.invoices.save': 'Save invoice',
         'os.invoices.delete_confirm': 'Delete this invoice?',
+        'os.invoices.delete_posted_confirm':
+            'This invoice is paid. Deleting will reverse the collection from the bank account and remove the receipt voucher. Continue?',
         'os.invoices.saved': 'Invoice saved',
         'os.invoices.paid_success': 'Invoice marked as paid',
         'os.invoices.status.draft': 'Draft',
@@ -1102,6 +1123,8 @@ class AppTranslations extends Translations {
         'os.accounts.search': 'Search accounts…',
         'os.accounts.saved': 'Account saved',
         'os.accounts.delete_confirm': 'Delete this account?',
+        'os.accounts.delete_posted_confirm':
+            'This account has a balance or linked vouchers. Deleting it will not remove voucher history and may leave finance records inconsistent. Continue?',
         'os.accounts.subtitle': 'Manage accounts and liquidity movements.',
         'os.accounts.save_full': 'Save vault details',
         'os.accounts.transfer': 'Internal transfer',
@@ -1188,9 +1211,12 @@ class AppTranslations extends Translations {
         'os.vouchers.delete': 'Delete voucher',
         'os.vouchers.delete_confirm':
             'Delete this voucher and reverse its effect on the linked account balance?',
+        'os.vouchers.delete_posted_confirm':
+            'This is a system voucher (invoice, expense, payroll, or transfer). Deleting will reverse linked ledger entries and may update the parent record. Continue?',
         'os.vouchers.deleted': 'Voucher deleted',
         'os.common.cancel': 'Cancel',
         'os.common.delete': 'Delete',
+        'os.common.delete_failed': 'Could not delete. Try again.',
         'os.common.save': 'Save',
         'os.common.save_failed': 'Could not save. Try again.',
         'os.common.actions': 'Actions',
@@ -1217,6 +1243,8 @@ class AppTranslations extends Translations {
         'os.expenses.save_full': 'Save expense & invoice',
         'os.expenses.saved': 'Expense saved',
         'os.expenses.delete_confirm': 'Delete this expense?',
+        'os.expenses.delete_posted_confirm':
+            'This expense has a payment voucher. Deleting will reverse the bank payment and remove the voucher. Continue?',
         'os.expenses.title_field': 'Expense statement (description)',
         'os.expenses.title_hint':
             'e.g. Extra lighting batteries for the Karrada shoot',
@@ -1338,6 +1366,11 @@ class AppTranslations extends Translations {
         'os.payroll.run.title': 'Active payroll for the current month',
         'os.payroll.run.hint':
             'You can add extra allowances or deduct staff advances directly before disbursement.',
+        'os.payroll.run.delete': 'Delete run',
+        'os.payroll.run.delete_confirm':
+            'Delete this payroll run and all its payslips? Paid slips will reverse disbursements first.',
+        'os.payroll.run.deleted': 'Payroll run deleted',
+        'os.payroll.run.missing': 'No payroll run for this period yet.',
         'os.payroll.period': 'Period',
         'os.payroll.adjust.title': 'Edit allowances & deductions',
         'os.payroll.adjust.edit': 'Edit',
@@ -1377,6 +1410,12 @@ class AppTranslations extends Translations {
         'os.payroll.error.invalid_amount': 'Net pay must be greater than zero',
         'os.payroll.error.no_salary': 'Set a basic salary on the employee first',
         'os.payslips.title': 'Individual salary slip',
+        'os.payslips.delete_confirm': 'Delete this payslip?',
+        'os.payslips.delete_posted_confirm':
+            'This payslip is paid. Deleting will reverse the payroll expense, voucher, and any advance repayment. Continue?',
+        'os.payslips.delete_not_saved':
+            'This payslip is only a preview. Generate or pay it before deleting.',
+        'os.payslips.deleted': 'Payslip deleted',
         'os.payslips.select_employee': 'Employee',
         'os.payslips.print': 'Print slip',
         'os.payslips.copy': 'Copy details',
@@ -3042,6 +3081,20 @@ class AppTranslations extends Translations {
         "employees.bank_name_hint": "بنك الراتب",
         "employees.bank_account": "رقم الحساب البنكي",
         "employees.bank_account_hint": "رقم الحساب / IBAN",
+        "employees.identity.section": "بيانات الهوية والسكن",
+        "employees.identity.birth_date": "تاريخ الميلاد",
+        "employees.identity.birth_date_hint": "اختر التاريخ",
+        "employees.identity.address": "محل السكن والإقامة",
+        "employees.identity.address_hint": "المدينة / المحلة / الشارع",
+        "employees.identity.national_id_number": "رقم البطاقة الوطنية",
+        "employees.identity.national_id_number_hint": "البطاقة الوطنية (12 رقماً)",
+        "employees.identity.national_id_card": "مسح البطاقة الوطنية",
+        "employees.residence.card_number": "رقم بطاقة السكن",
+        "employees.residence.card_number_hint": "بطاقة السكن / الرمز المكتبي",
+        "employees.residence.card": "مسح بطاقة السكن",
+        "employees.identity.upload": "رفع المسح",
+        "employees.identity.remove": "إزالة",
+        "employees.identity.view_only": "بيانات الهوية والسكن (للعرض فقط)",
         "os.sidebar": "نظام نقطة",
         "os.dashboard.title": "لوحة تحكم نظام الوكالة",
         "os.dashboard.subtitle":
@@ -3071,6 +3124,8 @@ class AppTranslations extends Translations {
             "إعداد وتخصيص العروض وعقود التفاهم لعملاء وكالة نقطة بالدينار العراقي.",
         "os.quotations.add": "عرض سعر جديد",
         "os.quotations.create_title": "إنشاء عرض سعر جديد",
+        "os.quotations.edit_title": "تعديل عرض السعر",
+        "os.quotations.edit": "تعديل",
         "os.quotations.empty": "لا توجد عروض أسعار مسجلة في الوقت الحالي.",
         "os.quotations.client": "العميل المستهدف",
         "os.quotations.client_hint": "اختر العميل...",
@@ -3078,6 +3133,8 @@ class AppTranslations extends Translations {
         "os.quotations.expiry": "صلاحية العرض لغاية",
         "os.quotations.save_send": "حفظ وإرسال العرض",
         "os.quotations.saved": "تم حفظ العرض",
+        "os.quotations.delete_confirm": "هل تريد حذف عرض السعر نهائياً؟",
+        "os.quotations.deleted": "تم حذف عرض السعر",
         "os.quotations.number": "رقم العرض",
         "os.quotations.issue_date": "تاريخ الإصدار",
         "os.quotations.expires": "ينتهي في",
@@ -3130,6 +3187,8 @@ class AppTranslations extends Translations {
         "os.invoices.select_account": "حساب التحصيل",
         "os.invoices.save": "حفظ الفاتورة",
         "os.invoices.delete_confirm": "حذف هذه الفاتورة؟",
+        "os.invoices.delete_posted_confirm":
+            "هذه الفاتورة مدفوعة. سيؤدي الحذف إلى عكس التحصيل من الحساب البنكي وحذف سند القبض. هل تريد المتابعة؟",
         "os.invoices.saved": "تم حفظ الفاتورة",
         "os.invoices.paid_success": "تم تسجيل الفاتورة كمدفوعة",
         "os.invoices.status.draft": "مسودة",
@@ -3242,6 +3301,8 @@ class AppTranslations extends Translations {
         "os.accounts.search": "ابحث في الحسابات…",
         "os.accounts.saved": "تم حفظ الحساب",
         "os.accounts.delete_confirm": "حذف هذا الحساب؟",
+        "os.accounts.delete_posted_confirm":
+            "هذا الحساب لديه رصيد أو سندات مرتبطة. الحذف لن يزيل سجل السندات وقد يترك المالية غير متسقة. هل تريد المتابعة؟",
         "os.accounts.subtitle": "إدارة الأوعية المالية وحركات السيولة.",
         "os.accounts.save_full": "حفظ بيانات الخزينة",
         "os.accounts.transfer": "تحويل داخلي",
@@ -3328,9 +3389,12 @@ class AppTranslations extends Translations {
         "os.vouchers.delete": "حذف السند",
         "os.vouchers.delete_confirm":
             "حذف هذا السند وعكس أثره على رصيد الحساب المرتبط؟",
+        "os.vouchers.delete_posted_confirm":
+            "هذا سند نظامي (فاتورة أو مصروف أو رواتب أو تحويل). سيؤدي الحذف إلى عكس القيود المرتبطة وقد يحدّث السجل الأب. هل تريد المتابعة؟",
         "os.vouchers.deleted": "تم حذف السند",
         "os.common.cancel": "إلغاء",
         "os.common.delete": "حذف",
+        "os.common.delete_failed": "تعذر الحذف. حاول مرة أخرى.",
         "os.common.save": "حفظ",
         "os.common.save_failed": "تعذر الحفظ. حاول مرة أخرى.",
         "os.common.actions": "إجراءات",
@@ -3356,6 +3420,8 @@ class AppTranslations extends Translations {
         "os.expenses.save_full": "حفظ المصروف والفاتورة",
         "os.expenses.saved": "تم حفظ المصروف",
         "os.expenses.delete_confirm": "حذف هذا المصروف؟",
+        "os.expenses.delete_posted_confirm":
+            "هذا المصروف مرتبط بسند صرف. سيؤدي الحذف إلى عكس الدفعة البنكية وحذف السند. هل تريد المتابعة؟",
         "os.expenses.title_field": "بيان المصروف (الوصف)",
         "os.expenses.title_hint":
             "مثال: بطاريات إضاءة إضافية لجلسة تصوير الكرادة",
@@ -3475,6 +3541,11 @@ class AppTranslations extends Translations {
         "os.payroll.run.title": "مسير الرواتب للشهر الحالي",
         "os.payroll.run.hint":
             "يمكنك إضافة البدلات الإضافية أو استقطاع سلف الموظفين مباشرة قبل الصرف.",
+        "os.payroll.run.delete": "حذف المسير",
+        "os.payroll.run.delete_confirm":
+            "حذف مسير الرواتب هذا وجميع قسائمه؟ القسائم المدفوعة ستُعكس أولاً.",
+        "os.payroll.run.deleted": "تم حذف مسير الرواتب",
+        "os.payroll.run.missing": "لا يوجد مسير رواتب لهذه الفترة بعد.",
         "os.payroll.period": "الفترة",
         "os.payroll.adjust.title": "تعديل البدلات والاستقطاعات",
         "os.payroll.adjust.edit": "تعديل",
@@ -3514,6 +3585,12 @@ class AppTranslations extends Translations {
         "os.payroll.error.invalid_amount": "صافي الراتب يجب أن يكون أكبر من صفر",
         "os.payroll.error.no_salary": "عيّن راتباً أساسياً للموظف أولاً",
         "os.payslips.title": "قسيمة الراتب الفردية",
+        "os.payslips.delete_confirm": "حذف قسيمة الراتب هذه؟",
+        "os.payslips.delete_posted_confirm":
+            "هذه القسيمة مدفوعة. سيؤدي الحذف إلى عكس مصروف الرواتب والسند وأي تسديد سلف. هل تريد المتابعة؟",
+        "os.payslips.delete_not_saved":
+            "هذه القسيمة معاينة فقط. أنشئها أو ادفعها قبل الحذف.",
+        "os.payslips.deleted": "تم حذف قسيمة الراتب",
         "os.payslips.select_employee": "الموظف",
         "os.payslips.print": "طباعة القسيمة",
         "os.payslips.copy": "نسخ التفاصيل",

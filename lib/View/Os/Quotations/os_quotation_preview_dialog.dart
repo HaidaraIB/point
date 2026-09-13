@@ -8,6 +8,7 @@ import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Quotations/os_quotation_print.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_finance_format.dart';
+import 'package:point/View/Os/os_line_items_table.dart';
 
 Future<void> showOsQuotationPreviewDialog(
   BuildContext context,
@@ -254,35 +255,71 @@ class _OsQuotationPreviewDialog extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 16),
+                            Text(
+                              AppLocaleKeys.osInvoicesItems.tr,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                color: theme.primaryText,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            OsLineItemsTable(
+                              items: quote.items,
+                              fallbackAmount: quote.amount > 0
+                                  ? quote.amount
+                                  : quote.total,
+                            ),
+                            const SizedBox(height: 16),
                             Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 18,
-                              ),
+                              padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: theme.elevatedSurface,
+                                color: theme.panelTint,
                                 borderRadius: BorderRadius.circular(14),
-                                border: Border.all(color: theme.accentBorder),
+                                border: Border.all(color: theme.border),
                               ),
-                              child: Row(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Expanded(
-                                    child: Text(
-                                      AppLocaleKeys.osQuotationsTotal.tr,
+                                  Text(
+                                    '${AppLocaleKeys.osInvoicesAmount.tr}: ${OsFinanceFormat.money(quote.amount > 0 ? quote.amount : quote.total)}',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: theme.secondaryText,
+                                    ),
+                                  ),
+                                  if (quote.vat > 0) ...[
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '${AppLocaleKeys.osInvoicesVat.tr}: ${OsFinanceFormat.money(quote.vat)}',
                                       style: TextStyle(
                                         fontSize: 13,
-                                        fontWeight: FontWeight.w700,
                                         color: theme.secondaryText,
                                       ),
                                     ),
-                                  ),
-                                  Text(
-                                    OsFinanceFormat.money(quote.total),
-                                    style: TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w900,
-                                      color: theme.accentText,
-                                    ),
+                                  ],
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          AppLocaleKeys.osQuotationsTotal.tr,
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                            color: theme.secondaryText,
+                                          ),
+                                        ),
+                                      ),
+                                      Text(
+                                        OsFinanceFormat.money(quote.total),
+                                        style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w900,
+                                          color: theme.accentText,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),

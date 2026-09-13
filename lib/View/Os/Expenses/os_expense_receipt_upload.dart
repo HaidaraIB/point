@@ -5,8 +5,9 @@ import 'package:point/Services/r2_storage_upload.dart';
 import 'package:point/Utils/app_log.dart';
 import 'package:point/config/app_config.dart';
 
-class OsExpenseReceiptUpload {
-  OsExpenseReceiptUpload._();
+/// Shared R2 image upload used by expense receipts and employee ID scans.
+class OsDocumentImageUpload {
+  OsDocumentImageUpload._();
 
   static const _uploadTimeout = Duration(seconds: 90);
 
@@ -18,29 +19,48 @@ class OsExpenseReceiptUpload {
     );
   }
 
-  /// Uploads receipt bytes via the app's R2 presign path (works on web).
+  /// Uploads image bytes via the app's R2 presign path (works on web).
   /// Returns null when R2 is not configured or the upload fails/times out.
   static Future<String?> upload({
-    required String expenseId,
+    required String fileNamePrefix,
     required Uint8List bytes,
     String contentType = 'image/jpeg',
   }) async {
     try {
       if (AppConfig.r2SignerUrl.trim().isEmpty) {
-        appLog('expense receipt upload skipped: R2 signer not configured');
+        appLog('document upload skipped: R2 signer not configured');
         return null;
       }
-      // Worker assigns the object key; fileName is used for extension only.
       final fileName =
-          'os-expense-$expenseId-${DateTime.now().millisecondsSinceEpoch}.jpg';
+          '$fileNamePrefix-${DateTime.now().millisecondsSinceEpoch}.jpg';
       return await uploadObjectToR2(
         data: bytes,
         fileName: fileName,
         contentType: contentType,
       ).timeout(_uploadTimeout);
     } catch (e, st) {
-      appLog('expense receipt upload failed: $e\n$st');
+      appLog('document upload failed: $e\n$st');
       return null;
     }
+  }
+}
+
+/// Expense receipt helper — thin wrapper over [OsDocumentImageUpload].
+class OsExpenseReceiptUpload {
+  OsExpenseReceiptUpload._();
+
+  static Future<XFile?> pick({ImageSource source = ImageSource.gallery}) =>
+      OsDocumentImageUpload.pick(source: source);
+
+  static Future<String?> upload({
+    required String expenseId,
+    required Uint8List bytes,
+    String contentType = 'image/jpeg',
+  }) {
+    return OsDocumentImageUpload.upload(
+      fileNamePrefix: 'os-expense-$expenseId',
+      bytes: bytes,
+      contentType: contentType,
+    );
   }
 }

@@ -19,20 +19,55 @@ String buildOsQuotationPlainText(OsQuotationModel quote) {
       ? template!.footerText.value
       : AppLocaleKeys.osQuotationsTemplateFooterDefault.tr;
 
-  return [
-    AppLocaleKeys.osInvoicesAgencyHeader.tr,
-    '',
-    '${AppLocaleKeys.osQuotationsHeaderLabel.tr}: $header',
-    '${AppLocaleKeys.osQuotationsClient.tr}: ${quote.clientName}',
-    '${AppLocaleKeys.osQuotationsNumber.tr}: $ref',
-    '${AppLocaleKeys.osQuotationsIssueDate.tr}: ${quote.date}',
-    '${AppLocaleKeys.osQuotationsExpires.tr}: ${quote.expiryDate}',
-    '${AppLocaleKeys.osQuotationsTotal.tr}: ${OsFinanceFormat.money(quote.total)}',
-    '${AppLocaleKeys.osQuotationsApprovalStatus.tr}: '
-        '${OsFinanceFormat.quotationStatusLabel(quote.status)}',
-    '',
-    footer,
-  ].join('\n');
+  final buf = StringBuffer()
+    ..writeln(AppLocaleKeys.osInvoicesAgencyHeader.tr)
+    ..writeln('')
+    ..writeln('${AppLocaleKeys.osQuotationsHeaderLabel.tr}: $header')
+    ..writeln('${AppLocaleKeys.osQuotationsClient.tr}: ${quote.clientName}')
+    ..writeln('${AppLocaleKeys.osQuotationsNumber.tr}: $ref')
+    ..writeln('${AppLocaleKeys.osQuotationsIssueDate.tr}: ${quote.date}')
+    ..writeln('${AppLocaleKeys.osQuotationsExpires.tr}: ${quote.expiryDate}')
+    ..writeln('---');
+
+  if (quote.items.isEmpty) {
+    buf.writeln(
+      '1. ${AppLocaleKeys.osInvoicesItemsFallback.tr} — '
+      '${OsFinanceFormat.money(quote.amount > 0 ? quote.amount : quote.total)}',
+    );
+  } else {
+    for (var i = 0; i < quote.items.length; i++) {
+      final it = quote.items[i];
+      buf.writeln(
+        '${i + 1}. ${it.description} × ${it.quantity} @ '
+        '${OsFinanceFormat.money(it.unitPrice)} = '
+        '${OsFinanceFormat.money(it.total)}',
+      );
+    }
+  }
+
+  buf
+    ..writeln('---')
+    ..writeln(
+      '${AppLocaleKeys.osInvoicesAmount.tr}: '
+      '${OsFinanceFormat.money(quote.amount > 0 ? quote.amount : quote.total)}',
+    );
+  if (quote.vat > 0) {
+    buf.writeln(
+      '${AppLocaleKeys.osInvoicesVat.tr}: ${OsFinanceFormat.money(quote.vat)}',
+    );
+  }
+  buf
+    ..writeln(
+      '${AppLocaleKeys.osQuotationsTotal.tr}: ${OsFinanceFormat.money(quote.total)}',
+    )
+    ..writeln(
+      '${AppLocaleKeys.osQuotationsApprovalStatus.tr}: '
+      '${OsFinanceFormat.quotationStatusLabel(quote.status)}',
+    )
+    ..writeln('')
+    ..writeln(footer);
+
+  return buf.toString();
 }
 
 /// Darker status colors for print on white paper (UI colors are too light).
@@ -72,6 +107,35 @@ String buildOsQuotationPrintHtml(OsQuotationModel quote) {
   final statusHex = _hex(_printStatusColor(quote.status));
   final client = escapeHtml(quote.clientName);
   final money = escapeHtml(OsFinanceFormat.money(quote.total));
+  final amount = escapeHtml(
+    OsFinanceFormat.money(quote.amount > 0 ? quote.amount : quote.total),
+  );
+  final vat = escapeHtml(OsFinanceFormat.money(quote.vat));
+
+  final rows = <String>[];
+  if (quote.items.isEmpty) {
+    final amt = quote.amount > 0 ? quote.amount : quote.total;
+    rows.add(
+      '<tr><td>1</td><td>${escapeHtml(AppLocaleKeys.osInvoicesItemsFallback.tr)}</td>'
+      '<td style="text-align:center">1</td>'
+      '<td>${escapeHtml(OsFinanceFormat.money(amt))}</td>'
+      '<td>${escapeHtml(OsFinanceFormat.money(amt))}</td></tr>',
+    );
+  } else {
+    for (var i = 0; i < quote.items.length; i++) {
+      final it = quote.items[i];
+      rows.add(
+        '<tr><td>${i + 1}</td><td>${escapeHtml(it.description)}</td>'
+        '<td style="text-align:center">${it.quantity}</td>'
+        '<td>${escapeHtml(OsFinanceFormat.money(it.unitPrice))}</td>'
+        '<td>${escapeHtml(OsFinanceFormat.money(it.total))}</td></tr>',
+      );
+    }
+  }
+
+  final vatRow = quote.vat > 0
+      ? '<div class="totals-line"><span>${escapeHtml(AppLocaleKeys.osInvoicesVat.tr)}</span><span>$vat</span></div>'
+      : '';
 
   return '''
 <!DOCTYPE html>
@@ -169,26 +233,47 @@ body { padding: 0; background: #fff; }
   color: #0f172a;
 }
 .meta-value.status { color: $statusHex; }
-.total {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 16px 18px;
+table.items {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 16px;
+  font-size: 13px;
+}
+table.items th, table.items td {
+  border: 1px solid #e2e8f0;
+  padding: 8px 10px;
+  text-align: start;
+}
+table.items th {
+  background: #f1f5f9;
+  font-weight: 800;
+  color: #334155;
+  font-size: 11px;
+}
+.totals {
+  padding: 14px 16px;
   background: #f5f3ff;
   border: 1.5px solid #7c6bb8;
   border-radius: 12px;
   margin-bottom: 16px;
 }
-.total-label {
+.totals-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
   font-size: 13px;
   font-weight: 700;
   color: #334155;
+  margin-bottom: 6px;
 }
-.total-value {
-  font-size: 22px;
+.totals-total {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 18px;
   font-weight: 900;
   color: #4338ca;
+  margin-top: 8px;
 }
 .terms {
   display: flex;
@@ -253,9 +338,24 @@ body { padding: 0; background: #fff; }
             <div class="meta-value">${escapeHtml(quote.expiryDate)}</div>
           </div>
         </div>
-        <div class="total">
-          <span class="total-label">${escapeHtml(AppLocaleKeys.osQuotationsTotal.tr)}</span>
-          <span class="total-value">$money</span>
+        <table class="items">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>${escapeHtml(AppLocaleKeys.osInvoicesItemDesc.tr)}</th>
+              <th>${escapeHtml(AppLocaleKeys.osInvoicesQty.tr)}</th>
+              <th>${escapeHtml(AppLocaleKeys.osInvoicesUnitPrice.tr)}</th>
+              <th>${escapeHtml(AppLocaleKeys.osInvoicesLineTotal.tr)}</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.join('\n')}
+          </tbody>
+        </table>
+        <div class="totals">
+          <div class="totals-line"><span>${escapeHtml(AppLocaleKeys.osInvoicesAmount.tr)}</span><span>$amount</span></div>
+          $vatRow
+          <div class="totals-total"><span>${escapeHtml(AppLocaleKeys.osQuotationsTotal.tr)}</span><span>$money</span></div>
         </div>
         <div class="terms">
           <div class="terms-icon">!</div>

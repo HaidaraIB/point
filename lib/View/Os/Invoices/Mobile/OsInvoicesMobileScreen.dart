@@ -239,16 +239,19 @@ class OsInvoicesMobileScreen extends StatelessWidget {
                               style: const TextStyle(fontSize: 14),
                             ),
                           ),
-                          IconButton(
-                            onPressed: () => onDelete(inv),
-                            icon: const Icon(
-                              Icons.delete_outline,
-                              color: Colors.redAccent,
-                            ),
-                          ),
                         ],
                       ),
                     ],
+                    Align(
+                      alignment: AlignmentDirectional.centerEnd,
+                      child: IconButton(
+                        onPressed: () => onDelete(inv),
+                        icon: const Icon(
+                          Icons.delete_outline,
+                          color: Colors.redAccent,
+                        ),
+                      ),
+                    ),
                     DropdownButton<String>(
                       isExpanded: true,
                       value: OsInvoiceStatus.all.contains(inv.status)

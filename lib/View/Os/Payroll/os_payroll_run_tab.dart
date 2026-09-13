@@ -7,6 +7,7 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/EmployeeModel.dart';
 import 'package:point/Models/Os/OsPayslipModel.dart';
 import 'package:point/Models/Os/os_expense_constants.dart';
+import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/firestore/firestore_os_payroll_api.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
@@ -175,6 +176,50 @@ class _OsPayrollRunTabState extends State<OsPayrollRunTab> {
     return selected;
   }
 
+  Future<void> _deleteCurrentRun(
+    BuildContext context,
+    OsPayrollController payroll,
+    String period,
+  ) async {
+    final run = payroll.runForPeriod(period);
+    final runId = run?.id;
+    if (runId == null || runId.isEmpty) {
+      OsSnackbar.error(
+        AppLocaleKeys.osPayrollTitle.tr,
+        AppLocaleKeys.osPayrollRunMissing.tr,
+      );
+      return;
+    }
+    final confirmed = await FunHelper.showDeleteConfirmDialog(
+      context,
+      title: AppLocaleKeys.osCommonDelete.tr,
+      message: AppLocaleKeys.osPayrollRunDeleteConfirm.tr,
+      onTap: () async {
+        try {
+          final ok = await payroll.deletePayrollRun(runId);
+          if (!ok) {
+            OsSnackbar.error(
+              AppLocaleKeys.osPayrollTitle.tr,
+              AppLocaleKeys.osCommonSaveFailed.tr,
+            );
+            throw Exception('delete failed');
+          }
+        } on OsPayrollException catch (e) {
+          OsSnackbar.error(AppLocaleKeys.osPayrollTitle.tr, e.messageKey.tr);
+          rethrow;
+        }
+      },
+    );
+    if (confirmed == true) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        OsSnackbar.success(
+          AppLocaleKeys.osPayrollTitle.tr,
+          AppLocaleKeys.osPayrollRunDeleted.tr,
+        );
+      });
+    }
+  }
+
   Future<void> _pay(
     BuildContext context,
     OsPayrollController payroll,
@@ -263,14 +308,33 @@ class _OsPayrollRunTabState extends State<OsPayrollRunTab> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           OsListFilterBar(
-            leading: FilledButton.icon(
-              style: OsButtonStyles.secondaryCompact(theme),
-              onPressed: () => _pickPeriod(context, payroll, period),
-              icon: const Icon(Icons.calendar_month_outlined, size: 18),
-              label: Text(
-                '${AppLocaleKeys.osPayrollPeriod.tr}: ${_periodLabel(period)}',
-                style: const TextStyle(fontWeight: FontWeight.w800),
-              ),
+            leading: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FilledButton.icon(
+                  style: OsButtonStyles.secondaryCompact(theme),
+                  onPressed: () => _pickPeriod(context, payroll, period),
+                  icon: const Icon(Icons.calendar_month_outlined, size: 18),
+                  label: Text(
+                    '${AppLocaleKeys.osPayrollPeriod.tr}: ${_periodLabel(period)}',
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                if (payroll.runForPeriod(period)?.id != null)
+                  OutlinedButton.icon(
+                    onPressed: () =>
+                        _deleteCurrentRun(context, payroll, period),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFFF43F5E),
+                      side: const BorderSide(color: Color(0xFFF43F5E)),
+                      minimumSize: OsButtonStyles.compactMinSize,
+                      padding: OsButtonStyles.compactPadding,
+                    ),
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    label: Text(AppLocaleKeys.osPayrollRunDelete.tr),
+                  ),
+              ],
             ),
             chips: OsFilterChips(
               value: _status,

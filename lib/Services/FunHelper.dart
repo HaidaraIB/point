@@ -488,6 +488,10 @@ class FunHelper {
   }
 
   /// Shared confirm dialog. Returns `true` if the user confirmed.
+  ///
+  /// Confirm is briefly disarmed after open so the pointer-up from the
+  /// triggering control cannot click through into the confirm button (common
+  /// on Flutter web).
   static Future<bool?> showConfirmDailog(
     BuildContext context, {
     required FutureOr<void> Function() onTap,
@@ -498,6 +502,10 @@ class FunHelper {
     String? cancelText,
     Color cancelColor = const Color(0xFF7A8194),
   }) async {
+    // Let the opening gesture finish before inserting the dialog route.
+    await WidgetsBinding.instance.endOfFrame;
+    if (!context.mounted) return null;
+
     final resolvedTitle = title ?? AppLocaleKeys.funConfirmTitle.tr;
     final resolvedMessage = message ?? AppLocaleKeys.funConfirmMessage.tr;
     final resolvedConfirm = confirmText ?? AppLocaleKeys.commonConfirm.tr;
@@ -506,122 +514,15 @@ class FunHelper {
       context: context,
       barrierDismissible: false,
       builder: (dialogContext) {
-        var loading = false;
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return PopScope(
-              canPop: !loading,
-              child: AlertDialog(
-                backgroundColor: Theme.of(context).colorScheme.surface,
-                insetPadding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-                contentPadding:
-                    const EdgeInsets.fromLTRB(28, 24, 28, 12),
-                actionsPadding: EdgeInsets.zero,
-                actionsAlignment: MainAxisAlignment.center,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
-                ),
-                content: SizedBox(
-                  width: dialogWidth,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.info_outline_rounded,
-                        color: context.appTheme.accentText,
-                        size: 40,
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        resolvedTitle,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 28,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        resolvedMessage,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 16),
-                      ),
-                      if (loading) ...[
-                        const SizedBox(height: 16),
-                        SizedBox(
-                          width: dialogWidth,
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: LinearProgressIndicator(
-                              minHeight: 4,
-                              backgroundColor: AppColors.primary.withValues(
-                                alpha: 0.12,
-                              ),
-                              color: context.appTheme.accentText,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                actions: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 6, 20, 20),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: MainButton(
-                            icon: false,
-                            title: cancelText ?? 'cancel'.tr,
-                            fontColor: Colors.white,
-                            backgroundColor: cancelColor,
-                            margin: EdgeInsets.zero,
-                            width: double.infinity,
-                            borderSize: 12,
-                            height: 56,
-                            enabled: !loading,
-                            onPressed: () {
-                              Navigator.pop(dialogContext, false);
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: MainButton(
-                            icon: false,
-                            title: resolvedConfirm,
-                            fontColor: Colors.white,
-                            backgroundColor:
-                                confirmColor ?? AppColors.primary,
-                            margin: EdgeInsets.zero,
-                            width: double.infinity,
-                            borderSize: 12,
-                            height: 56,
-                            load: loading,
-                            onPressed: () async {
-                              if (loading) return;
-                              setState(() => loading = true);
-                              try {
-                                await Future.sync(onTap);
-                                if (dialogContext.mounted) {
-                                  Navigator.pop(dialogContext, true);
-                                }
-                              } catch (_) {
-                                if (dialogContext.mounted) {
-                                  setState(() => loading = false);
-                                }
-                              }
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
+        return _ArmedConfirmDialog(
+          dialogWidth: dialogWidth,
+          title: resolvedTitle,
+          message: resolvedMessage,
+          confirmText: resolvedConfirm,
+          confirmColor: confirmColor ?? AppColors.primary,
+          cancelText: cancelText ?? 'cancel'.tr,
+          cancelColor: cancelColor,
+          onTap: onTap,
         );
       },
     );
@@ -902,5 +803,158 @@ class TopToast {
     Future.delayed(duration, () {
       entry.remove();
     });
+  }
+}
+
+/// Confirm dialog that ignores confirm taps until briefly after open.
+class _ArmedConfirmDialog extends StatefulWidget {
+  const _ArmedConfirmDialog({
+    required this.dialogWidth,
+    required this.title,
+    required this.message,
+    required this.confirmText,
+    required this.confirmColor,
+    required this.cancelText,
+    required this.cancelColor,
+    required this.onTap,
+  });
+
+  final double dialogWidth;
+  final String title;
+  final String message;
+  final String confirmText;
+  final Color confirmColor;
+  final String cancelText;
+  final Color cancelColor;
+  final FutureOr<void> Function() onTap;
+
+  @override
+  State<_ArmedConfirmDialog> createState() => _ArmedConfirmDialogState();
+}
+
+class _ArmedConfirmDialogState extends State<_ArmedConfirmDialog> {
+  var _loading = false;
+  var _confirmArmed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    Future<void>.delayed(const Duration(milliseconds: 350), () {
+      if (mounted) setState(() => _confirmArmed = true);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: !_loading,
+      child: AlertDialog(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        contentPadding: const EdgeInsets.fromLTRB(28, 24, 28, 12),
+        actionsPadding: EdgeInsets.zero,
+        actionsAlignment: MainAxisAlignment.center,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15),
+        ),
+        content: SizedBox(
+          width: widget.dialogWidth,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.info_outline_rounded,
+                color: context.appTheme.accentText,
+                size: 40,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                widget.title,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 28,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                widget.message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 16),
+              ),
+              if (_loading) ...[
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: widget.dialogWidth,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      minHeight: 4,
+                      backgroundColor: AppColors.primary.withValues(
+                        alpha: 0.12,
+                      ),
+                      color: context.appTheme.accentText,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 6, 20, 20),
+            child: Row(
+              children: [
+                Expanded(
+                  child: MainButton(
+                    icon: false,
+                    title: widget.cancelText,
+                    fontColor: Colors.white,
+                    backgroundColor: widget.cancelColor,
+                    margin: EdgeInsets.zero,
+                    width: double.infinity,
+                    borderSize: 12,
+                    height: 56,
+                    enabled: !_loading,
+                    onPressed: () {
+                      Navigator.pop(context, false);
+                    },
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: MainButton(
+                    icon: false,
+                    title: widget.confirmText,
+                    fontColor: Colors.white,
+                    backgroundColor: widget.confirmColor,
+                    margin: EdgeInsets.zero,
+                    width: double.infinity,
+                    borderSize: 12,
+                    height: 56,
+                    load: _loading,
+                    enabled: _confirmArmed && !_loading,
+                    onPressed: () async {
+                      if (_loading || !_confirmArmed) return;
+                      setState(() => _loading = true);
+                      try {
+                        await Future.sync(widget.onTap);
+                        if (context.mounted) {
+                          Navigator.pop(context, true);
+                        }
+                      } catch (_) {
+                        if (context.mounted) {
+                          setState(() => _loading = false);
+                        }
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:point/Controller/OsPayrollController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsPayslipModel.dart';
 import 'package:point/Models/Os/os_expense_constants.dart';
@@ -6,6 +7,16 @@ import 'package:point/Services/os_stamp_settings.dart';
 import 'package:point/Utils/os_arabic_currency.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_print_a4.dart';
+
+String _nationalIdLabel(OsPayslipModel slip) {
+  if (!Get.isRegistered<OsPayrollController>()) return '';
+  for (final e in Get.find<OsPayrollController>().employees) {
+    if (e.id == slip.employeeId) {
+      return e.nationalIdNumber?.trim() ?? '';
+    }
+  }
+  return '';
+}
 
 String _branchLabel(String? branchId) {
   if (branchId == null || branchId.isEmpty) return AppLocaleKeys.osCommonDash.tr;
@@ -33,6 +44,10 @@ String osPayslipRef(OsPayslipModel slip) {
 
 String buildOsPayslipPlainText(OsPayslipModel slip) {
   final ref = osPayslipRef(slip);
+  final nationalId = _nationalIdLabel(slip);
+  final nationalIdLine = nationalId.isEmpty
+      ? ''
+      : '${AppLocaleKeys.employeesNationalIdNumber.tr}: $nationalId\n';
   return '''
 ${AppLocaleKeys.osPayslipsAgency.tr}
 ${AppLocaleKeys.osPayslipsDept.tr}
@@ -42,7 +57,7 @@ ${AppLocaleKeys.osPayslipsDate.tr}: ${slip.period}
 ----------------------------------------
 ${AppLocaleKeys.osPayslipsEmployee.tr}: ${slip.employeeName}
 ${AppLocaleKeys.osPayslipsJobTitle.tr}: ${slip.jobTitle ?? AppLocaleKeys.osCommonDash.tr}
-${AppLocaleKeys.osPayslipsBranch.tr}: ${_branchLabel(slip.branchId)}
+$nationalIdLine${AppLocaleKeys.osPayslipsBranch.tr}: ${_branchLabel(slip.branchId)}
 ${AppLocaleKeys.osPayslipsHireDate.tr}: ${_hireDateLabel(slip.hireDate)}
 ----------------------------------------
 ${AppLocaleKeys.osPayslipsEarnings.tr}
@@ -245,6 +260,11 @@ body { padding: 0; background: #fff; }
       <span class="k">${escapeHtml(AppLocaleKeys.osPayslipsJobTitle.tr)}</span>
       <span class="v">${escapeHtml(job)}</span>
     </div>
+    ${_nationalIdLabel(slip).isEmpty ? '' : '''
+    <div>
+      <span class="k">${escapeHtml(AppLocaleKeys.employeesNationalIdNumber.tr)}</span>
+      <span class="v">${escapeHtml(_nationalIdLabel(slip))}</span>
+    </div>'''}
     <div>
       <span class="k">${escapeHtml(AppLocaleKeys.osPayslipsBranch.tr)}</span>
       <span class="v">${escapeHtml(_branchLabel(slip.branchId))}</span>

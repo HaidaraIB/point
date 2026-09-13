@@ -10,13 +10,11 @@ import 'package:point/Services/firestore/firestore_os_finance_api.dart';
 import 'package:point/Services/os_stamp_settings.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
-import 'package:point/View/Os/Invoices/os_invoice_service_presets.dart';
-import 'package:point/View/Os/Invoices/os_invoice_share.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_invoice_stamp.dart';
+import 'package:point/View/Os/os_line_items_editor.dart';
 import 'package:point/View/Os/os_snackbar.dart';
-import 'package:uuid/uuid.dart';
 
 Future<void> showOsInvoiceFormDialog(
   BuildContext context, {
@@ -280,9 +278,8 @@ class _OsInvoiceFormDialogState extends State<_OsInvoiceFormDialog> {
   late DateTime _date;
   late DateTime _dueDate;
   late String _status;
-  late double _taxRate;
   late String? _bankAccountId;
-  late List<_LineDraft> _lines;
+  late final OsLineItemsController _lines;
   bool _saving = false;
 
   @override
@@ -298,40 +295,18 @@ class _OsInvoiceFormDialogState extends State<_OsInvoiceFormDialog> {
     if (_status == OsInvoiceStatus.paid) {
       _status = OsInvoiceStatus.sent;
     }
-    _taxRate = (e != null && e.vat > 0) ? 0.05 : 0;
     _bankAccountId = e?.bankAccountId;
-    _lines = (e?.items.isNotEmpty == true)
-        ? e!.items
-            .map(
-              (i) => _LineDraft(
-                id: i.id,
-                description: TextEditingController(text: i.description),
-                qtyCtrl: TextEditingController(text: i.quantity.toString()),
-                priceCtrl: TextEditingController(text: i.unitPrice.toString()),
-              ),
-            )
-            .toList()
-        : [_LineDraft.empty()];
+    _lines = OsLineItemsController(
+      initialItems: e?.items,
+      initialTaxRate: (e != null && e.vat > 0) ? 0.05 : 0,
+    );
   }
 
   @override
   void dispose() {
-    for (final l in _lines) {
-      l.dispose();
-    }
+    _lines.dispose();
     super.dispose();
   }
-
-  double get _subtotal {
-    double sum = 0;
-    for (final l in _lines) {
-      sum += l.lineTotal;
-    }
-    return sum;
-  }
-
-  double get _vat => (_subtotal * _taxRate).roundToDouble();
-  double get _total => _subtotal + _vat;
 
   Future<void> _pickDate({required bool due}) async {
     final initial = due ? _dueDate : _date;
@@ -347,27 +322,6 @@ class _OsInvoiceFormDialogState extends State<_OsInvoiceFormDialog> {
         _dueDate = picked;
       } else {
         _date = picked;
-      }
-    });
-  }
-
-  void _applyServicePreset(OsInvoiceServicePreset srv) {
-    setState(() {
-      final last = _lines.last;
-      final blank = last.description.text.trim().isEmpty && last.unitPrice == 0;
-      if (_lines.length == 1 && blank) {
-        last.description.text = srv.name;
-        last.priceCtrl.text = srv.basePrice.toStringAsFixed(0);
-      } else {
-        _lines.add(
-          _LineDraft(
-            id: const Uuid().v4(),
-            description: TextEditingController(text: srv.name),
-            qtyCtrl: TextEditingController(text: '1'),
-            priceCtrl:
-                TextEditingController(text: srv.basePrice.toStringAsFixed(0)),
-          ),
-        );
       }
     });
   }
@@ -389,28 +343,8 @@ class _OsInvoiceFormDialogState extends State<_OsInvoiceFormDialog> {
       return;
     }
 
-    final items = <OsInvoiceItem>[];
-    for (final l in _lines) {
-      final desc = l.description.text.trim();
-      if (desc.isEmpty && l.lineTotal == 0) continue;
-      if (desc.isEmpty || l.quantity <= 0) {
-        OsSnackbar.error(
-          AppLocaleKeys.osInvoicesTitle.tr,
-          AppLocaleKeys.osInvoicesErrorNoItems.tr,
-        );
-        return;
-      }
-      items.add(
-        OsInvoiceItem(
-          id: l.id,
-          description: desc,
-          quantity: l.quantity,
-          unitPrice: l.unitPrice,
-          total: l.lineTotal,
-        ),
-      );
-    }
-    if (items.isEmpty) {
+    final items = _lines.buildItems();
+    if (items == null) {
       OsSnackbar.error(
         AppLocaleKeys.osInvoicesTitle.tr,
         AppLocaleKeys.osInvoicesErrorNoItems.tr,
@@ -429,9 +363,9 @@ class _OsInvoiceFormDialogState extends State<_OsInvoiceFormDialog> {
       date: OsFinanceFormat.ymd(_date),
       dueDate: OsFinanceFormat.ymd(_dueDate),
       status: _status,
-      amount: _subtotal,
-      vat: _vat,
-      total: _total,
+      amount: _lines.subtotal,
+      vat: _lines.vat,
+      total: _lines.total,
       items: items,
       bankAccountId: _bankAccountId,
       createdAt: widget.existing?.createdAt ?? DateTime.now(),
@@ -606,134 +540,7 @@ class _OsInvoiceFormDialogState extends State<_OsInvoiceFormDialog> {
                       },
                     ),
                     const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: theme.accentText.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: theme.accentText.withValues(alpha: 0.2),
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            AppLocaleKeys.osInvoicesServiceChips.tr,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: theme.accentText,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              for (final srv in osInvoiceServicePresets)
-                                ActionChip(
-                                  avatar: const Icon(Icons.add, size: 16),
-                                  label: Text(
-                                    '${srv.name} (${OsFinanceFormat.money(srv.basePrice)})',
-                                    style: const TextStyle(fontSize: 11),
-                                  ),
-                                  onPressed: () => _applyServicePreset(srv),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Row(
-                      children: [
-                        Text(
-                          AppLocaleKeys.osInvoicesItems.tr,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: theme.primaryText,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Chip(
-                          visualDensity: VisualDensity.compact,
-                          label: Text(
-                            osInvoiceItemsCountLabel(_lines.length),
-                            style: const TextStyle(fontSize: 11),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    for (var i = 0; i < _lines.length; i++) ...[
-                      _buildLineRow(i),
-                      const SizedBox(height: 12),
-                    ],
-                    Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: TextButton.icon(
-                        onPressed: () =>
-                            setState(() => _lines.add(_LineDraft.empty())),
-                        icon: const Icon(Icons.add, size: 20),
-                        label: Text(AppLocaleKeys.osInvoicesAddItem.tr),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SegmentedButton<double>(
-                      segments: [
-                        ButtonSegment(
-                          value: 0,
-                          label: Text(AppLocaleKeys.osInvoicesTaxExempt.tr),
-                        ),
-                        ButtonSegment(
-                          value: 0.05,
-                          label: Text(AppLocaleKeys.osInvoicesTaxStamp.tr),
-                        ),
-                      ],
-                      selected: {_taxRate},
-                      onSelectionChanged: (s) =>
-                          setState(() => _taxRate = s.first),
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: theme.panelTint,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: theme.border),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${AppLocaleKeys.osInvoicesAmount.tr}: ${OsFinanceFormat.money(_subtotal)}',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: theme.secondaryText,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${AppLocaleKeys.osInvoicesVat.tr}: ${OsFinanceFormat.money(_vat)}',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: theme.secondaryText,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            '${AppLocaleKeys.osInvoicesTotal.tr}: ${OsFinanceFormat.money(_total)}',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w800,
-                              color: theme.accentText,
-                              fontSize: 18,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    OsLineItemsEditor(controller: _lines),
                     Obx(() {
                       if (!stamp.stampEnabled.value) {
                         return const SizedBox.shrink();
@@ -810,87 +617,5 @@ class _OsInvoiceFormDialogState extends State<_OsInvoiceFormDialog> {
         ),
       ),
     );
-  }
-
-  Widget _buildLineRow(int index) {
-    final line = _lines[index];
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          flex: 4,
-          child: TextField(
-            controller: line.description,
-            decoration: osFinanceFieldDecoration(
-              AppLocaleKeys.osInvoicesItemDesc.tr,
-            ),
-            onChanged: (_) => setState(() {}),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: TextField(
-            controller: line.qtyCtrl,
-            keyboardType: TextInputType.number,
-            decoration: osFinanceFieldDecoration(AppLocaleKeys.osInvoicesQty.tr),
-            onChanged: (_) => setState(() {}),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          flex: 2,
-          child: TextField(
-            controller: line.priceCtrl,
-            keyboardType: TextInputType.number,
-            decoration: osFinanceFieldDecoration(
-              AppLocaleKeys.osInvoicesUnitPrice.tr,
-            ),
-            onChanged: (_) => setState(() {}),
-          ),
-        ),
-        IconButton(
-          onPressed: _lines.length <= 1
-              ? null
-              : () {
-                  setState(() {
-                    _lines[index].dispose();
-                    _lines.removeAt(index);
-                  });
-                },
-          icon: const Icon(Icons.delete_outline, size: 22),
-        ),
-      ],
-    );
-  }
-}
-
-class _LineDraft {
-  _LineDraft({
-    required this.id,
-    required this.description,
-    required this.qtyCtrl,
-    required this.priceCtrl,
-  });
-
-  factory _LineDraft.empty() => _LineDraft(
-        id: const Uuid().v4(),
-        description: TextEditingController(),
-        qtyCtrl: TextEditingController(text: '1'),
-        priceCtrl: TextEditingController(text: '0'),
-      );
-
-  final String id;
-  final TextEditingController description;
-  final TextEditingController qtyCtrl;
-  final TextEditingController priceCtrl;
-
-  double get quantity => double.tryParse(qtyCtrl.text.trim()) ?? 0;
-  double get unitPrice => double.tryParse(priceCtrl.text.trim()) ?? 0;
-  double get lineTotal => quantity * unitPrice;
-
-  void dispose() {
-    description.dispose();
-    qtyCtrl.dispose();
-    priceCtrl.dispose();
   }
 }

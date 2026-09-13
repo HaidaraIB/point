@@ -270,6 +270,28 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
         json['attendanceLocation'] = FieldValue.delete();
       }
     }
+    if (employee.birthDate == null) {
+      json['birthDate'] = FieldValue.delete();
+    }
+    if (employee.address == null || employee.address!.trim().isEmpty) {
+      json['address'] = FieldValue.delete();
+    }
+    if (employee.nationalIdNumber == null ||
+        employee.nationalIdNumber!.trim().isEmpty) {
+      json['nationalIdNumber'] = FieldValue.delete();
+    }
+    if (employee.nationalIdCardUrl == null ||
+        employee.nationalIdCardUrl!.trim().isEmpty) {
+      json['nationalIdCardUrl'] = FieldValue.delete();
+    }
+    if (employee.residenceCardNumber == null ||
+        employee.residenceCardNumber!.trim().isEmpty) {
+      json['residenceCardNumber'] = FieldValue.delete();
+    }
+    if (employee.residenceCardUrl == null ||
+        employee.residenceCardUrl!.trim().isEmpty) {
+      json['residenceCardUrl'] = FieldValue.delete();
+    }
     return json;
   }
 

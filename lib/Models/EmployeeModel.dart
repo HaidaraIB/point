@@ -44,6 +44,24 @@ class EmployeeModel {
   final String? bankName;
   final String? bankAccountNumber;
 
+  /// Date of birth (HR identity).
+  final DateTime? birthDate;
+
+  /// Free-text residence address.
+  final String? address;
+
+  /// Unified national ID number.
+  final String? nationalIdNumber;
+
+  /// National ID card scan URL (R2), not base64.
+  final String? nationalIdCardUrl;
+
+  /// Residence card / office code number.
+  final String? residenceCardNumber;
+
+  /// Residence card scan URL (R2).
+  final String? residenceCardUrl;
+
   EmployeeModel({
     this.id,
     required this.name,
@@ -71,7 +89,22 @@ class EmployeeModel {
     this.branchId,
     this.bankName,
     this.bankAccountNumber,
+    this.birthDate,
+    this.address,
+    this.nationalIdNumber,
+    this.nationalIdCardUrl,
+    this.residenceCardNumber,
+    this.residenceCardUrl,
   });
+
+  bool get hasIdentityOrResidence {
+    return (birthDate != null) ||
+        (address?.trim().isNotEmpty ?? false) ||
+        (nationalIdNumber?.trim().isNotEmpty ?? false) ||
+        (nationalIdCardUrl?.trim().isNotEmpty ?? false) ||
+        (residenceCardNumber?.trim().isNotEmpty ?? false) ||
+        (residenceCardUrl?.trim().isNotEmpty ?? false);
+  }
 
   /// First department slug, if any (e.g. notifications / legacy single-field UX).
   String? get primaryDepartment =>
@@ -131,6 +164,12 @@ class EmployeeModel {
     String? branchId,
     String? bankName,
     String? bankAccountNumber,
+    DateTime? birthDate,
+    String? address,
+    String? nationalIdNumber,
+    String? nationalIdCardUrl,
+    String? residenceCardNumber,
+    String? residenceCardUrl,
     bool clearAttendanceLocation = false,
     bool clearWorkHours = false,
     bool clearHireDate = false,
@@ -139,6 +178,12 @@ class EmployeeModel {
     bool clearBranchId = false,
     bool clearBankName = false,
     bool clearBankAccountNumber = false,
+    bool clearBirthDate = false,
+    bool clearAddress = false,
+    bool clearNationalIdNumber = false,
+    bool clearNationalIdCardUrl = false,
+    bool clearResidenceCardNumber = false,
+    bool clearResidenceCardUrl = false,
   }) {
     return EmployeeModel(
       id: id ?? this.id,
@@ -172,6 +217,20 @@ class EmployeeModel {
       bankAccountNumber: clearBankAccountNumber
           ? null
           : (bankAccountNumber ?? this.bankAccountNumber),
+      birthDate: clearBirthDate ? null : (birthDate ?? this.birthDate),
+      address: clearAddress ? null : (address ?? this.address),
+      nationalIdNumber: clearNationalIdNumber
+          ? null
+          : (nationalIdNumber ?? this.nationalIdNumber),
+      nationalIdCardUrl: clearNationalIdCardUrl
+          ? null
+          : (nationalIdCardUrl ?? this.nationalIdCardUrl),
+      residenceCardNumber: clearResidenceCardNumber
+          ? null
+          : (residenceCardNumber ?? this.residenceCardNumber),
+      residenceCardUrl: clearResidenceCardUrl
+          ? null
+          : (residenceCardUrl ?? this.residenceCardUrl),
     );
   }
 
@@ -249,6 +308,12 @@ class EmployeeModel {
       branchId: json['branchId']?.toString(),
       bankName: json['bankName']?.toString(),
       bankAccountNumber: json['bankAccountNumber']?.toString(),
+      birthDate: _parseDateTimeLike(json['birthDate']),
+      address: json['address']?.toString(),
+      nationalIdNumber: json['nationalIdNumber']?.toString(),
+      nationalIdCardUrl: json['nationalIdCardUrl']?.toString(),
+      residenceCardNumber: json['residenceCardNumber']?.toString(),
+      residenceCardUrl: json['residenceCardUrl']?.toString(),
     );
   }
 
@@ -302,6 +367,18 @@ class EmployeeModel {
         "bankName": bankName!.trim(),
       if (bankAccountNumber != null && bankAccountNumber!.trim().isNotEmpty)
         "bankAccountNumber": bankAccountNumber!.trim(),
+      if (birthDate != null) "birthDate": birthDate!.toIso8601String(),
+      if (address != null && address!.trim().isNotEmpty)
+        "address": address!.trim(),
+      if (nationalIdNumber != null && nationalIdNumber!.trim().isNotEmpty)
+        "nationalIdNumber": nationalIdNumber!.trim(),
+      if (nationalIdCardUrl != null && nationalIdCardUrl!.trim().isNotEmpty)
+        "nationalIdCardUrl": nationalIdCardUrl!.trim(),
+      if (residenceCardNumber != null &&
+          residenceCardNumber!.trim().isNotEmpty)
+        "residenceCardNumber": residenceCardNumber!.trim(),
+      if (residenceCardUrl != null && residenceCardUrl!.trim().isNotEmpty)
+        "residenceCardUrl": residenceCardUrl!.trim(),
     };
   }
 }

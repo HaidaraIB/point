@@ -9,6 +9,7 @@ import 'package:point/Models/Os/OsPayrollRunModel.dart';
 import 'package:point/Models/Os/OsPayslipModel.dart';
 import 'package:point/Models/Os/os_payroll_enums.dart';
 import 'package:point/Services/NotificationService.dart';
+import 'package:point/Services/firestore/firestore_os_finance_api.dart';
 import 'package:point/Services/firestore/firestore_os_payroll_api.dart';
 import 'package:point/Utils/app_log.dart';
 import 'package:point/View/Os/os_finance_format.dart';
@@ -291,6 +292,19 @@ class OsPayrollController extends GetxController {
     isLoading.value = true;
     try {
       return await FirestoreOsPayrollApi.deletePayslip(id);
+    } on OsPayrollException {
+      rethrow;
+    } on OsFinanceException {
+      rethrow;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<bool> deletePayrollRun(String runId) async {
+    isLoading.value = true;
+    try {
+      return await FirestoreOsPayrollApi.deletePayrollRun(runId);
     } on OsPayrollException {
       rethrow;
     } finally {

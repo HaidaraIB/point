@@ -4,6 +4,7 @@ import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/EmployeeModel.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/View/Employees/employee_identity_residence_fields.dart';
 import 'package:point/View/Shared/app_version_label.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/ReadOnlyAccountEmailField.dart';
@@ -205,6 +206,8 @@ class _EmployeeProfileFormState extends State<EmployeeProfileForm> {
                     label: 'employee.profile.department'.tr,
                     value: departmentsLabel(emp),
                   ),
+                  if (emp != null)
+                    EmployeeIdentityResidenceReadOnly(employee: emp),
                   const SizedBox(height: 32),
                   Obx(
                     () => SizedBox(

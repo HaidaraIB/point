@@ -22,6 +22,8 @@ class OsPayslipModel {
   final String? displayNumber;
   final String? expenseId;
   final String? voucherId;
+  /// Advance repaid when this slip was disbursed (for reverse on delete).
+  final String? advanceId;
   final DateTime? paidAt;
   final DateTime createdAt;
 
@@ -44,6 +46,7 @@ class OsPayslipModel {
     this.displayNumber,
     this.expenseId,
     this.voucherId,
+    this.advanceId,
     this.paidAt,
     required this.createdAt,
   });
@@ -82,6 +85,7 @@ class OsPayslipModel {
       displayNumber: json['displayNumber'] as String?,
       expenseId: json['expenseId'] as String?,
       voucherId: json['voucherId'] as String?,
+      advanceId: json['advanceId'] as String?,
       paidAt: _parseDateTime(json['paidAt']),
       createdAt: _parseDateTime(json['createdAt']) ?? DateTime.now(),
     );
@@ -106,6 +110,7 @@ class OsPayslipModel {
         if (displayNumber != null) 'displayNumber': displayNumber,
         'expenseId': expenseId,
         'voucherId': voucherId,
+        if (advanceId != null) 'advanceId': advanceId,
         'paidAt': paidAt == null ? null : Timestamp.fromDate(paidAt!),
         'createdAt': Timestamp.fromDate(createdAt),
       };
@@ -129,6 +134,7 @@ class OsPayslipModel {
     String? displayNumber,
     String? expenseId,
     String? voucherId,
+    String? advanceId,
     DateTime? paidAt,
     DateTime? createdAt,
     bool clearJobTitle = false,
@@ -136,6 +142,7 @@ class OsPayslipModel {
     bool clearHireDate = false,
     bool clearExpenseId = false,
     bool clearVoucherId = false,
+    bool clearAdvanceId = false,
     bool clearPaidAt = false,
   }) {
     return OsPayslipModel(
@@ -157,6 +164,7 @@ class OsPayslipModel {
       displayNumber: displayNumber ?? this.displayNumber,
       expenseId: clearExpenseId ? null : (expenseId ?? this.expenseId),
       voucherId: clearVoucherId ? null : (voucherId ?? this.voucherId),
+      advanceId: clearAdvanceId ? null : (advanceId ?? this.advanceId),
       paidAt: clearPaidAt ? null : (paidAt ?? this.paidAt),
       createdAt: createdAt ?? this.createdAt,
     );

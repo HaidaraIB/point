@@ -1,7 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:point/Models/Os/OsLineItem.dart';
 import 'package:point/Models/Os/os_finance_enums.dart';
 
-/// Lump-sum price quote (point_os Quotations screen).
+/// Price quote with optional line items (embedded like invoices).
 class OsQuotationModel {
   final String? id;
 
@@ -12,7 +13,11 @@ class OsQuotationModel {
   final String date;
   final String expiryDate;
   final String status;
+  /// Subtotal before VAT (sum of line items, or legacy lump-sum).
+  final double amount;
+  final double vat;
   final double total;
+  final List<OsLineItem> items;
   final DateTime createdAt;
 
   const OsQuotationModel({
@@ -23,7 +28,10 @@ class OsQuotationModel {
     required this.date,
     required this.expiryDate,
     this.status = OsQuotationStatus.sent,
+    this.amount = 0,
+    this.vat = 0,
     required this.total,
+    this.items = const [],
     required this.createdAt,
   });
 
@@ -35,6 +43,13 @@ class OsQuotationModel {
   }
 
   factory OsQuotationModel.fromJson(Map<String, dynamic> json, String docId) {
+    final items = OsLineItem.listFromJson(json['items']);
+    final total = (json['total'] as num?)?.toDouble() ?? 0;
+    final amount = (json['amount'] as num?)?.toDouble();
+    final vat = (json['vat'] as num?)?.toDouble() ?? 0;
+    // Legacy lump-sum quotes: amount missing → treat total as amount.
+    final resolvedAmount = amount ?? (items.isEmpty ? total : total - vat);
+
     return OsQuotationModel(
       id: json['id'] as String? ?? docId,
       displayNumber: json['displayNumber'] as String?,
@@ -43,7 +58,10 @@ class OsQuotationModel {
       date: json['date'] as String? ?? '',
       expiryDate: json['expiryDate'] as String? ?? '',
       status: json['status'] as String? ?? OsQuotationStatus.sent,
-      total: (json['total'] as num?)?.toDouble() ?? 0,
+      amount: resolvedAmount < 0 ? total : resolvedAmount,
+      vat: vat,
+      total: total,
+      items: items,
       createdAt: _parseDateTime(json['createdAt']) ?? DateTime.now(),
     );
   }
@@ -56,7 +74,10 @@ class OsQuotationModel {
         'date': date,
         'expiryDate': expiryDate,
         'status': status,
+        'amount': amount,
+        'vat': vat,
         'total': total,
+        'items': items.map((e) => e.toJson()).toList(),
         'createdAt': Timestamp.fromDate(createdAt),
       };
 
@@ -68,7 +89,10 @@ class OsQuotationModel {
     String? date,
     String? expiryDate,
     String? status,
+    double? amount,
+    double? vat,
     double? total,
+    List<OsLineItem>? items,
     DateTime? createdAt,
   }) {
     return OsQuotationModel(
@@ -79,7 +103,10 @@ class OsQuotationModel {
       date: date ?? this.date,
       expiryDate: expiryDate ?? this.expiryDate,
       status: status ?? this.status,
+      amount: amount ?? this.amount,
+      vat: vat ?? this.vat,
       total: total ?? this.total,
+      items: items ?? this.items,
       createdAt: createdAt ?? this.createdAt,
     );
   }

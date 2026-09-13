@@ -5,10 +5,12 @@ import 'package:point/Controller/OsFinanceController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsQuotationModel.dart';
 import 'package:point/Models/Os/os_finance_enums.dart';
+import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/os_quote_template_settings.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/OsPermissions.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/View/Os/Invoices/os_invoice_share.dart';
 import 'package:point/View/Os/Quotations/os_quotation_form_dialog.dart';
 import 'package:point/View/Os/Quotations/os_quotation_preview_dialog.dart';
 import 'package:point/View/Os/Quotations/os_quotation_share.dart';
@@ -116,6 +118,11 @@ class _OsQuotationsPageState extends State<OsQuotationsPage> {
                         onCopyLink: () => _copyLink(quote),
                         onPreview: () =>
                             showOsQuotationPreviewDialog(context, quote),
+                        onEdit: () => showOsQuotationFormDialog(
+                          context,
+                          existing: quote,
+                        ),
+                        onDelete: () => _confirmDelete(context, finance, quote),
                       ),
                       const SizedBox(height: 12),
                     ],
@@ -149,6 +156,38 @@ class _OsQuotationsPageState extends State<OsQuotationsPage> {
       if (!mounted) return;
       if (_copiedId == quote.id) setState(() => _copiedId = null);
     });
+  }
+
+  Future<void> _confirmDelete(
+    BuildContext context,
+    OsFinanceController finance,
+    OsQuotationModel quote,
+  ) async {
+    final id = quote.id;
+    if (id == null || id.isEmpty) return;
+    final confirmed = await FunHelper.showDeleteConfirmDialog(
+      context,
+      title: AppLocaleKeys.osCommonDelete.tr,
+      message: AppLocaleKeys.osQuotationsDeleteConfirm.tr,
+      onTap: () async {
+        final ok = await finance.deleteQuotation(id);
+        if (!ok) {
+          OsSnackbar.error(
+            AppLocaleKeys.osQuotationsTitle.tr,
+            AppLocaleKeys.osCommonSaveFailed.tr,
+          );
+          throw Exception('delete failed');
+        }
+      },
+    );
+    if (confirmed == true) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        OsSnackbar.success(
+          AppLocaleKeys.osQuotationsTitle.tr,
+          AppLocaleKeys.osQuotationsDeleted.tr,
+        );
+      });
+    }
   }
 }
 
@@ -270,6 +309,8 @@ class _QuoteCard extends StatelessWidget {
     required this.onCycleStatus,
     required this.onCopyLink,
     required this.onPreview,
+    required this.onEdit,
+    required this.onDelete,
   });
 
   final OsQuotationModel quote;
@@ -277,6 +318,8 @@ class _QuoteCard extends StatelessWidget {
   final VoidCallback onCycleStatus;
   final VoidCallback onCopyLink;
   final VoidCallback onPreview;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -284,6 +327,7 @@ class _QuoteCard extends StatelessWidget {
     final color = OsFinanceFormat.quotationStatusColor(quote.status);
     final ref = OsFinanceFormat.quotationRef(quote);
     final narrow = MediaQuery.sizeOf(context).width < 700;
+    final itemCount = quote.items.isEmpty ? 1 : quote.items.length;
 
     final meta =
         '${AppLocaleKeys.osQuotationsNumber.tr}: $ref • '
@@ -332,6 +376,15 @@ class _QuoteCard extends StatelessWidget {
               Text(
                 meta,
                 style: TextStyle(fontSize: 12, color: theme.mutedText),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                osInvoiceItemsCountLabel(itemCount),
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: theme.accentText,
+                ),
               ),
             ],
           ),
@@ -392,6 +445,11 @@ class _QuoteCard extends StatelessWidget {
         alignment: WrapAlignment.end,
         children: [
           FilledButton(
+            onPressed: onEdit,
+            style: actionStyle,
+            child: Text(AppLocaleKeys.osQuotationsEdit.tr),
+          ),
+          FilledButton(
             onPressed: onCopyLink,
             style: copyStyle,
             child: Row(
@@ -411,6 +469,11 @@ class _QuoteCard extends StatelessWidget {
             onPressed: onPreview,
             style: actionStyle,
             child: Text(AppLocaleKeys.osQuotationsPreview.tr),
+          ),
+          IconButton(
+            tooltip: AppLocaleKeys.osCommonDelete.tr,
+            onPressed: onDelete,
+            icon: const Icon(Icons.delete_outline, color: Color(0xFFF43F5E), size: 20),
           ),
         ],
       ),

@@ -569,10 +569,15 @@ class _AccountsTabState extends State<_AccountsTab> {
     OsBankAccountModel a,
   ) async {
     if (a.id == null) return;
+    final hasBalance = a.balance.abs() > 0.0001;
+    final linked = finance.vouchers.any((v) => v.bankAccountId == a.id);
+    final message = (hasBalance || linked)
+        ? AppLocaleKeys.osAccountsDeletePostedConfirm.tr
+        : AppLocaleKeys.osAccountsDeleteConfirm.tr;
     await FunHelper.showDeleteConfirmDialog(
       context,
       title: AppLocaleKeys.osCommonDelete.tr,
-      message: AppLocaleKeys.osAccountsDeleteConfirm.tr,
+      message: message,
       onTap: () => finance.deleteBankAccount(a.id!),
     );
   }

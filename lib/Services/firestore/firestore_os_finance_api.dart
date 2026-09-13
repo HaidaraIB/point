@@ -149,13 +149,66 @@ class FirestoreOsFinanceApi {
     }
   }
 
+  /// Deletes an invoice. If paid, reverses collection (debits account) and
+  /// removes the linked INVOICE receipt voucher first.
   static Future<bool> deleteInvoice(String id) async {
+    final invoiceId = id.trim();
+    if (invoiceId.isEmpty) {
+      throw OsFinanceException('os.invoices.error.missing_ids');
+    }
+
+    final firestore = FirebaseFirestore.instance;
+    final invoiceRef =
+        firestore.collection(invoicesCollection).doc(invoiceId);
+
     try {
-      await FirebaseFirestore.instance
-          .collection(invoicesCollection)
-          .doc(id)
-          .delete();
+      // Collect linked vouchers outside the transaction (query).
+      final voucherSnap = await firestore
+          .collection(vouchersCollection)
+          .where('invoiceId', isEqualTo: invoiceId)
+          .limit(FirestoreQueryLimits.osVouchers)
+          .get();
+
+      await firestore.runTransaction((tx) async {
+        final invoiceSnap = await tx.get(invoiceRef);
+        if (!invoiceSnap.exists) {
+          throw OsFinanceException('os.invoices.error.missing_ids');
+        }
+        final current = OsInvoiceModel.fromJson(
+          invoiceSnap.data()!,
+          invoiceSnap.id,
+        );
+
+        if (current.isPaid) {
+          final accountId = current.bankAccountId?.trim() ?? '';
+          if (accountId.isNotEmpty) {
+            final accountRef =
+                firestore.collection(bankAccountsCollection).doc(accountId);
+            final accountSnap = await tx.get(accountRef);
+            if (accountSnap.exists) {
+              final account = OsBankAccountModel.fromJson(
+                accountSnap.data()!,
+                accountSnap.id,
+              );
+              final nextBalance =
+                  (account.balance - current.total).clamp(0.0, double.infinity);
+              tx.set(
+                accountRef,
+                account.copyWith(balance: nextBalance).toJson(),
+                SetOptions(merge: true),
+              );
+            }
+          }
+        }
+
+        for (final d in voucherSnap.docs) {
+          tx.delete(d.reference);
+        }
+        tx.delete(invoiceRef);
+      });
       return true;
+    } on OsFinanceException {
+      rethrow;
     } catch (e, st) {
       appLog('deleteInvoice failed: $e\n$st');
       return false;
@@ -453,7 +506,9 @@ class FirestoreOsFinanceApi {
     }
   }
 
-  /// Deletes a manually issued voucher and reverses its bank-account effect.
+  /// Deletes a voucher and reverses its bank effect.
+  /// System vouchers route through their parent (invoice / expense) or
+  /// reverse a transfer pair once — never double-debit.
   static Future<bool> deleteVoucher(String id) async {
     final voucherId = id.trim();
     if (voucherId.isEmpty) {
@@ -465,50 +520,170 @@ class FirestoreOsFinanceApi {
         firestore.collection(vouchersCollection).doc(voucherId);
 
     try {
-      await firestore.runTransaction((tx) async {
-        final snap = await tx.get(voucherRef);
-        if (!snap.exists) {
-          throw OsFinanceException('os.vouchers.error.not_found');
-        }
-        final voucher = OsVoucherModel.fromJson(snap.data()!, snap.id);
-        if (!voucher.isManuallyDeletable) {
-          throw OsFinanceException('os.vouchers.error.not_manual');
-        }
+      final snap = await voucherRef.get();
+      if (!snap.exists) {
+        throw OsFinanceException('os.vouchers.error.not_found');
+      }
+      final voucher = OsVoucherModel.fromJson(snap.data()!, snap.id);
+      final source = voucher.source?.trim() ?? '';
 
-        final accountId = voucher.bankAccountId.trim();
-        if (accountId.isEmpty) {
-          throw OsFinanceException('os.vouchers.error.account_required');
+      if (source == OsVoucherSource.invoice ||
+          (voucher.invoiceId != null && voucher.invoiceId!.trim().isNotEmpty)) {
+        final invoiceId = voucher.invoiceId?.trim() ?? '';
+        if (invoiceId.isEmpty) {
+          throw OsFinanceException('os.vouchers.error.missing_id');
         }
-        final accountRef =
-            firestore.collection(bankAccountsCollection).doc(accountId);
-        final accountSnap = await tx.get(accountRef);
-        if (!accountSnap.exists) {
-          throw OsFinanceException('os.invoices.error.account_missing');
+        return deleteInvoice(invoiceId);
+      }
+
+      if (source == OsVoucherSource.expense ||
+          source == OsVoucherSource.payroll) {
+        final expenseSnap = await firestore
+            .collection(expensesCollection)
+            .where('voucherId', isEqualTo: voucherId)
+            .limit(1)
+            .get();
+        if (expenseSnap.docs.isNotEmpty) {
+          return deleteExpense(expenseSnap.docs.first.id);
         }
-        final account = OsBankAccountModel.fromJson(
-          accountSnap.data()!,
-          accountSnap.id,
-        );
+        // Orphan voucher — reverse balance only.
+        return _deleteVoucherReversingBalance(voucherId);
+      }
 
-        // Reverse the createVoucher delta.
-        final reverseDelta = voucher.type == OsVoucherType.payment
-            ? voucher.amount
-            : -voucher.amount;
+      if (source == OsVoucherSource.transfer) {
+        return _deleteTransferPair(voucher);
+      }
 
-        tx.set(
-          accountRef,
-          account.copyWith(balance: account.balance + reverseDelta).toJson(),
-          SetOptions(merge: true),
-        );
-        tx.delete(voucherRef);
-      });
-      return true;
+      // MANUAL / legacy empty source
+      return _deleteVoucherReversingBalance(voucherId);
     } on OsFinanceException {
       rethrow;
     } catch (e, st) {
       appLog('deleteVoucher failed: $e\n$st');
       return false;
     }
+  }
+
+  static Future<bool> _deleteVoucherReversingBalance(String voucherId) async {
+    final firestore = FirebaseFirestore.instance;
+    final voucherRef =
+        firestore.collection(vouchersCollection).doc(voucherId);
+
+    await firestore.runTransaction((tx) async {
+      final snap = await tx.get(voucherRef);
+      if (!snap.exists) {
+        throw OsFinanceException('os.vouchers.error.not_found');
+      }
+      final voucher = OsVoucherModel.fromJson(snap.data()!, snap.id);
+      final accountId = voucher.bankAccountId.trim();
+      if (accountId.isEmpty) {
+        throw OsFinanceException('os.vouchers.error.account_required');
+      }
+      final accountRef =
+          firestore.collection(bankAccountsCollection).doc(accountId);
+      final accountSnap = await tx.get(accountRef);
+      if (!accountSnap.exists) {
+        throw OsFinanceException('os.invoices.error.account_missing');
+      }
+      final account = OsBankAccountModel.fromJson(
+        accountSnap.data()!,
+        accountSnap.id,
+      );
+      final reverseDelta = voucher.type == OsVoucherType.payment
+          ? voucher.amount
+          : -voucher.amount;
+      tx.set(
+        accountRef,
+        account.copyWith(balance: account.balance + reverseDelta).toJson(),
+        SetOptions(merge: true),
+      );
+      tx.delete(voucherRef);
+    });
+    return true;
+  }
+
+  /// Undo a transfer: restore source +, dest − once, delete both audit vouchers.
+  static Future<bool> _deleteTransferPair(OsVoucherModel voucher) async {
+    final firestore = FirebaseFirestore.instance;
+    final amount = voucher.amount;
+    final date = voucher.date;
+    final oppositeType = voucher.type == OsVoucherType.payment
+        ? OsVoucherType.receipt
+        : OsVoucherType.payment;
+
+    final candidates = await firestore
+        .collection(vouchersCollection)
+        .where('source', isEqualTo: OsVoucherSource.transfer)
+        .where('date', isEqualTo: date)
+        .where('amount', isEqualTo: amount)
+        .limit(FirestoreQueryLimits.osVouchers)
+        .get();
+
+    DocumentSnapshot<Map<String, dynamic>>? pairDoc;
+    for (final d in candidates.docs) {
+      if (d.id == voucher.id) continue;
+      final other = OsVoucherModel.fromJson(d.data(), d.id);
+      if (other.type == oppositeType) {
+        pairDoc = d;
+        break;
+      }
+    }
+
+    final payment = voucher.type == OsVoucherType.payment
+        ? voucher
+        : (pairDoc != null
+            ? OsVoucherModel.fromJson(pairDoc.data()!, pairDoc.id)
+            : null);
+    final receipt = voucher.type == OsVoucherType.receipt
+        ? voucher
+        : (pairDoc != null
+            ? OsVoucherModel.fromJson(pairDoc.data()!, pairDoc.id)
+            : null);
+
+    if (payment == null || receipt == null) {
+      // Incomplete pair — reverse this voucher alone.
+      return _deleteVoucherReversingBalance(voucher.id!);
+    }
+
+    // Transfer adjusted balances once at create time (payment −source, receipt +dest).
+    // Undo once: +source, −dest. Do not apply reverseDelta on each voucher.
+    final sourceId = payment.bankAccountId.trim();
+    final destId = receipt.bankAccountId.trim();
+
+    await firestore.runTransaction((tx) async {
+      final sourceRef =
+          firestore.collection(bankAccountsCollection).doc(sourceId);
+      final destRef =
+          firestore.collection(bankAccountsCollection).doc(destId);
+      final sourceSnap = await tx.get(sourceRef);
+      final destSnap = await tx.get(destRef);
+      if (!sourceSnap.exists || !destSnap.exists) {
+        throw OsFinanceException('os.invoices.error.account_missing');
+      }
+      final source = OsBankAccountModel.fromJson(
+        sourceSnap.data()!,
+        sourceSnap.id,
+      );
+      final dest = OsBankAccountModel.fromJson(
+        destSnap.data()!,
+        destSnap.id,
+      );
+      final nextDest =
+          (dest.balance - amount).clamp(0.0, double.infinity);
+      tx.set(
+        sourceRef,
+        source.copyWith(balance: source.balance + amount).toJson(),
+        SetOptions(merge: true),
+      );
+      tx.set(
+        destRef,
+        dest.copyWith(balance: nextDest).toJson(),
+        SetOptions(merge: true),
+      );
+      tx.delete(firestore.collection(vouchersCollection).doc(payment.id));
+      tx.delete(firestore.collection(vouchersCollection).doc(receipt.id));
+    });
+    return true;
   }
 
   /// Moves funds between two accounts and logs paired PAYMENT/RECEIPT vouchers.
@@ -691,13 +866,67 @@ class FirestoreOsFinanceApi {
     }
   }
 
+  /// Deletes an expense and reverses / removes its linked payment voucher.
   static Future<bool> deleteExpense(String id) async {
+    final expenseId = id.trim();
+    if (expenseId.isEmpty) return false;
+
+    final firestore = FirebaseFirestore.instance;
+    final expenseRef =
+        firestore.collection(expensesCollection).doc(expenseId);
+
     try {
-      await FirebaseFirestore.instance
-          .collection(expensesCollection)
-          .doc(id)
-          .delete();
+      final expenseSnap = await expenseRef.get();
+      // Idempotent: already gone counts as success (paid reverse / retries).
+      if (!expenseSnap.exists) return true;
+      final expense = OsDailyExpenseModel.fromJson(
+        expenseSnap.data()!,
+        expenseSnap.id,
+      );
+      final voucherId = expense.voucherId?.trim();
+
+      if (voucherId != null && voucherId.isNotEmpty) {
+        await firestore.runTransaction((tx) async {
+          final voucherRef =
+              firestore.collection(vouchersCollection).doc(voucherId);
+          final voucherSnap = await tx.get(voucherRef);
+          if (voucherSnap.exists) {
+            final voucher = OsVoucherModel.fromJson(
+              voucherSnap.data()!,
+              voucherSnap.id,
+            );
+            final accountId = voucher.bankAccountId.trim();
+            if (accountId.isNotEmpty) {
+              final accountRef =
+                  firestore.collection(bankAccountsCollection).doc(accountId);
+              final accountSnap = await tx.get(accountRef);
+              if (accountSnap.exists) {
+                final account = OsBankAccountModel.fromJson(
+                  accountSnap.data()!,
+                  accountSnap.id,
+                );
+                final reverseDelta = voucher.type == OsVoucherType.payment
+                    ? voucher.amount
+                    : -voucher.amount;
+                tx.set(
+                  accountRef,
+                  account
+                      .copyWith(balance: account.balance + reverseDelta)
+                      .toJson(),
+                  SetOptions(merge: true),
+                );
+              }
+            }
+            tx.delete(voucherRef);
+          }
+          tx.delete(expenseRef);
+        });
+      } else {
+        await expenseRef.delete();
+      }
       return true;
+    } on OsFinanceException {
+      rethrow;
     } catch (e, st) {
       appLog('deleteExpense failed: $e\n$st');
       return false;

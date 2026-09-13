@@ -164,13 +164,19 @@ class _OsContractFormDialogState extends State<_OsContractFormDialog> {
             decoration: osDialogFieldDecoration(context),
             items: emps
                 .map(
-                  (e) => DropdownMenuItem(
-                    value: e.id,
-                    child: Text(
-                      e.name ?? e.id ?? '',
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                  ),
+                  (e) {
+                    final nid = e.nationalIdNumber?.trim() ?? '';
+                    final label = nid.isEmpty
+                        ? (e.name ?? e.id ?? '')
+                        : '${e.name ?? e.id} (${AppLocaleKeys.employeesNationalIdNumber.tr}: $nid)';
+                    return DropdownMenuItem(
+                      value: e.id,
+                      child: Text(
+                        label,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    );
+                  },
                 )
                 .toList(),
             onChanged: (v) => setState(() => _employeeId = v),

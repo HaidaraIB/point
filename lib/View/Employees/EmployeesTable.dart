@@ -21,6 +21,7 @@ import 'package:point/View/Shared/HorizontalScroll.dart';
 import 'package:point/View/Shared/TableCellCenter.dart';
 import 'package:point/View/Employees/Mobile/EmployeeFormMobilePage.dart';
 import 'package:point/View/Employees/Mobile/EmployeesMobileScreen.dart';
+import 'package:point/View/Employees/employee_identity_residence_fields.dart';
 import 'package:point/View/Shared/employee_attendance_config_fields.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Shared/table_actions_menu_row.dart';
@@ -517,6 +518,18 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
   final bankNameController = TextEditingController(text: model?.bankName);
   final bankAccountController =
       TextEditingController(text: model?.bankAccountNumber);
+  final birthDateController = TextEditingController(
+    text: model?.birthDate == null
+        ? ''
+        : '${model!.birthDate!.year.toString().padLeft(4, '0')}-'
+            '${model.birthDate!.month.toString().padLeft(2, '0')}-'
+            '${model.birthDate!.day.toString().padLeft(2, '0')}',
+  );
+  final addressController = TextEditingController(text: model?.address);
+  final nationalIdNumberController =
+      TextEditingController(text: model?.nationalIdNumber);
+  final residenceCardNumberController =
+      TextEditingController(text: model?.residenceCardNumber);
   final hireDateController = TextEditingController(
     text: model?.hireDate == null
         ? ''
@@ -537,6 +550,9 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
   List<String> roles = ["supervisor", "admin", "employee"];
   String? selectedBranchId = model?.branchId;
   DateTime? hireDate = model?.hireDate;
+  DateTime? birthDate = model?.birthDate;
+  String? nationalIdCardUrl = model?.nationalIdCardUrl;
+  String? residenceCardUrl = model?.residenceCardUrl;
   final branchLabelController = TextEditingController();
   final branchLatController = TextEditingController();
   final branchLngController = TextEditingController();
@@ -878,6 +894,31 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                   controller: bankAccountController,
                                   borderRadius: 5,
                                 ),
+                                const SizedBox(height: 16),
+                                EmployeeIdentityResidenceFields(
+                                  birthDateController: birthDateController,
+                                  addressController: addressController,
+                                  nationalIdNumberController:
+                                      nationalIdNumberController,
+                                  residenceCardNumberController:
+                                      residenceCardNumberController,
+                                  nationalIdCardUrl: nationalIdCardUrl,
+                                  residenceCardUrl: residenceCardUrl,
+                                  birthDate: birthDate,
+                                  employeeId: model?.id,
+                                  onBirthDateChanged: (d) {
+                                    birthDate = d;
+                                    newstate(() {});
+                                  },
+                                  onNationalIdCardUrlChanged: (u) {
+                                    nationalIdCardUrl = u;
+                                    newstate(() {});
+                                  },
+                                  onResidenceCardUrlChanged: (u) {
+                                    residenceCardUrl = u;
+                                    newstate(() {});
+                                  },
+                                ),
                                 if (selectedRole == 'employee') ...[
                                   const SizedBox(height: 16),
                                   EmployeeAttendanceConfigFields(
@@ -1027,6 +1068,14 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                               bankNameController.text.trim();
                                           final bankAccount =
                                               bankAccountController.text.trim();
+                                          final address =
+                                              addressController.text.trim();
+                                          final nationalIdNumber =
+                                              nationalIdNumberController.text
+                                                  .trim();
+                                          final residenceCardNumber =
+                                              residenceCardNumberController.text
+                                                  .trim();
                                           if (model == null) {
                                             controller
                                                 .addEmployee(
@@ -1081,6 +1130,24 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                                         bankAccount.isEmpty
                                                             ? null
                                                             : bankAccount,
+                                                    birthDate: birthDate,
+                                                    address: address.isEmpty
+                                                        ? null
+                                                        : address,
+                                                    nationalIdNumber:
+                                                        nationalIdNumber
+                                                                .isEmpty
+                                                            ? null
+                                                            : nationalIdNumber,
+                                                    nationalIdCardUrl:
+                                                        nationalIdCardUrl,
+                                                    residenceCardNumber:
+                                                        residenceCardNumber
+                                                                .isEmpty
+                                                            ? null
+                                                            : residenceCardNumber,
+                                                    residenceCardUrl:
+                                                        residenceCardUrl,
                                                   ),
                                                 )
                                                 .then((v) {
@@ -1158,6 +1225,46 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                                             : bankAccount,
                                                     clearBankAccountNumber:
                                                         bankAccount.isEmpty,
+                                                    birthDate: birthDate,
+                                                    clearBirthDate:
+                                                        birthDate == null,
+                                                    address: address.isEmpty
+                                                        ? null
+                                                        : address,
+                                                    clearAddress:
+                                                        address.isEmpty,
+                                                    nationalIdNumber:
+                                                        nationalIdNumber
+                                                                .isEmpty
+                                                            ? null
+                                                            : nationalIdNumber,
+                                                    clearNationalIdNumber:
+                                                        nationalIdNumber
+                                                            .isEmpty,
+                                                    nationalIdCardUrl:
+                                                        nationalIdCardUrl,
+                                                    clearNationalIdCardUrl:
+                                                        nationalIdCardUrl ==
+                                                            null ||
+                                                        nationalIdCardUrl!
+                                                            .trim()
+                                                            .isEmpty,
+                                                    residenceCardNumber:
+                                                        residenceCardNumber
+                                                                .isEmpty
+                                                            ? null
+                                                            : residenceCardNumber,
+                                                    clearResidenceCardNumber:
+                                                        residenceCardNumber
+                                                            .isEmpty,
+                                                    residenceCardUrl:
+                                                        residenceCardUrl,
+                                                    clearResidenceCardUrl:
+                                                        residenceCardUrl ==
+                                                            null ||
+                                                        residenceCardUrl!
+                                                            .trim()
+                                                            .isEmpty,
                                                   ),
                                                   newPassword:
                                                       !canEditCredentials ||

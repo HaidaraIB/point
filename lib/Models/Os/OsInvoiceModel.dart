@@ -1,57 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:point/Models/Os/OsLineItem.dart';
 import 'package:point/Models/Os/os_finance_enums.dart';
-
-class OsInvoiceItem {
-  final String id;
-  final String description;
-  final double quantity;
-  final double unitPrice;
-  final double total;
-
-  const OsInvoiceItem({
-    required this.id,
-    required this.description,
-    required this.quantity,
-    required this.unitPrice,
-    required this.total,
-  });
-
-  factory OsInvoiceItem.fromJson(Map<String, dynamic> json) {
-    final qty = (json['quantity'] as num?)?.toDouble() ?? 1;
-    final price = (json['unitPrice'] as num?)?.toDouble() ?? 0;
-    return OsInvoiceItem(
-      id: json['id'] as String? ?? '',
-      description: json['description'] as String? ?? '',
-      quantity: qty,
-      unitPrice: price,
-      total: (json['total'] as num?)?.toDouble() ?? (qty * price),
-    );
-  }
-
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'description': description,
-        'quantity': quantity,
-        'unitPrice': unitPrice,
-        'total': total,
-      };
-
-  OsInvoiceItem copyWith({
-    String? id,
-    String? description,
-    double? quantity,
-    double? unitPrice,
-    double? total,
-  }) {
-    return OsInvoiceItem(
-      id: id ?? this.id,
-      description: description ?? this.description,
-      quantity: quantity ?? this.quantity,
-      unitPrice: unitPrice ?? this.unitPrice,
-      total: total ?? this.total,
-    );
-  }
-}
 
 class OsInvoiceModel {
   final String? id;
@@ -65,7 +14,7 @@ class OsInvoiceModel {
   final double amount;
   final double vat;
   final double total;
-  final List<OsInvoiceItem> items;
+  final List<OsLineItem> items;
   final String? bankAccountId;
   final DateTime createdAt;
 
@@ -95,18 +44,6 @@ class OsInvoiceModel {
   }
 
   factory OsInvoiceModel.fromJson(Map<String, dynamic> json, String docId) {
-    final rawItems = json['items'];
-    final items = <OsInvoiceItem>[];
-    if (rawItems is List) {
-      for (final e in rawItems) {
-        if (e is Map<String, dynamic>) {
-          items.add(OsInvoiceItem.fromJson(e));
-        } else if (e is Map) {
-          items.add(OsInvoiceItem.fromJson(Map<String, dynamic>.from(e)));
-        }
-      }
-    }
-
     return OsInvoiceModel(
       id: json['id'] as String? ?? docId,
       displayNumber: json['displayNumber'] as String?,
@@ -118,7 +55,7 @@ class OsInvoiceModel {
       amount: (json['amount'] as num?)?.toDouble() ?? 0,
       vat: (json['vat'] as num?)?.toDouble() ?? 0,
       total: (json['total'] as num?)?.toDouble() ?? 0,
-      items: items,
+      items: OsLineItem.listFromJson(json['items']),
       bankAccountId: json['bankAccountId'] as String?,
       createdAt: _parseDateTime(json['createdAt']) ?? DateTime.now(),
     );
@@ -151,7 +88,7 @@ class OsInvoiceModel {
     double? amount,
     double? vat,
     double? total,
-    List<OsInvoiceItem>? items,
+    List<OsLineItem>? items,
     String? bankAccountId,
     bool clearBankAccountId = false,
     DateTime? createdAt,

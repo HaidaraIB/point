@@ -489,6 +489,24 @@ class AppLocaleKeys {
   static const employeesBankNameHint = 'employees.bank_name_hint';
   static const employeesBankAccount = 'employees.bank_account';
   static const employeesBankAccountHint = 'employees.bank_account_hint';
+  static const employeesIdentitySection = 'employees.identity.section';
+  static const employeesBirthDate = 'employees.identity.birth_date';
+  static const employeesBirthDateHint = 'employees.identity.birth_date_hint';
+  static const employeesAddress = 'employees.identity.address';
+  static const employeesAddressHint = 'employees.identity.address_hint';
+  static const employeesNationalIdNumber =
+      'employees.identity.national_id_number';
+  static const employeesNationalIdNumberHint =
+      'employees.identity.national_id_number_hint';
+  static const employeesNationalIdCard = 'employees.identity.national_id_card';
+  static const employeesResidenceCardNumber =
+      'employees.residence.card_number';
+  static const employeesResidenceCardNumberHint =
+      'employees.residence.card_number_hint';
+  static const employeesResidenceCard = 'employees.residence.card';
+  static const employeesIdentityUpload = 'employees.identity.upload';
+  static const employeesIdentityRemove = 'employees.identity.remove';
+  static const employeesIdentityViewOnly = 'employees.identity.view_only';
 
   static const osSidebar = 'os.sidebar';
   static const osDashboardTitle = 'os.dashboard.title';
@@ -518,6 +536,8 @@ class AppLocaleKeys {
   static const osQuotationsSubtitle = 'os.quotations.subtitle';
   static const osQuotationsAdd = 'os.quotations.add';
   static const osQuotationsCreateTitle = 'os.quotations.create_title';
+  static const osQuotationsEditTitle = 'os.quotations.edit_title';
+  static const osQuotationsEdit = 'os.quotations.edit';
   static const osQuotationsEmpty = 'os.quotations.empty';
   static const osQuotationsClient = 'os.quotations.client';
   static const osQuotationsClientHint = 'os.quotations.client_hint';
@@ -525,6 +545,8 @@ class AppLocaleKeys {
   static const osQuotationsExpiry = 'os.quotations.expiry';
   static const osQuotationsSaveSend = 'os.quotations.save_send';
   static const osQuotationsSaved = 'os.quotations.saved';
+  static const osQuotationsDeleteConfirm = 'os.quotations.delete_confirm';
+  static const osQuotationsDeleted = 'os.quotations.deleted';
   static const osQuotationsNumber = 'os.quotations.number';
   static const osQuotationsIssueDate = 'os.quotations.issue_date';
   static const osQuotationsExpires = 'os.quotations.expires';
@@ -579,6 +601,8 @@ class AppLocaleKeys {
   static const osInvoicesSelectAccount = 'os.invoices.select_account';
   static const osInvoicesSave = 'os.invoices.save';
   static const osInvoicesDeleteConfirm = 'os.invoices.delete_confirm';
+  static const osInvoicesDeletePostedConfirm =
+      'os.invoices.delete_posted_confirm';
   static const osInvoicesSaved = 'os.invoices.saved';
   static const osInvoicesPaidSuccess = 'os.invoices.paid_success';
   static const osInvoicesStatusDraft = 'os.invoices.status.draft';
@@ -681,6 +705,8 @@ class AppLocaleKeys {
   static const osAccountsSearch = 'os.accounts.search';
   static const osAccountsSaved = 'os.accounts.saved';
   static const osAccountsDeleteConfirm = 'os.accounts.delete_confirm';
+  static const osAccountsDeletePostedConfirm =
+      'os.accounts.delete_posted_confirm';
   static const osAccountsSubtitle = 'os.accounts.subtitle';
   static const osAccountsSaveFull = 'os.accounts.save_full';
   static const osAccountsTransfer = 'os.accounts.transfer';
@@ -762,10 +788,13 @@ class AppLocaleKeys {
   static const osVouchersErrorNotManual = 'os.vouchers.error.not_manual';
   static const osVouchersDelete = 'os.vouchers.delete';
   static const osVouchersDeleteConfirm = 'os.vouchers.delete_confirm';
+  static const osVouchersDeletePostedConfirm =
+      'os.vouchers.delete_posted_confirm';
   static const osVouchersDeleted = 'os.vouchers.deleted';
 
   static const osCommonCancel = 'os.common.cancel';
   static const osCommonDelete = 'os.common.delete';
+  static const osCommonDeleteFailed = 'os.common.delete_failed';
   static const osCommonSave = 'os.common.save';
   static const osCommonSaveFailed = 'os.common.save_failed';
   static const osCommonActions = 'os.common.actions';
@@ -789,6 +818,8 @@ class AppLocaleKeys {
   static const osExpensesSaveFull = 'os.expenses.save_full';
   static const osExpensesSaved = 'os.expenses.saved';
   static const osExpensesDeleteConfirm = 'os.expenses.delete_confirm';
+  static const osExpensesDeletePostedConfirm =
+      'os.expenses.delete_posted_confirm';
   static const osExpensesTitleField = 'os.expenses.title_field';
   static const osExpensesTitleHint = 'os.expenses.title_hint';
   static const osExpensesAmount = 'os.expenses.amount';
@@ -908,6 +939,10 @@ class AppLocaleKeys {
   static const osPayrollTabContracts = 'os.payroll.tab.contracts';
   static const osPayrollTabAdvances = 'os.payroll.tab.advances';
   static const osPayrollRunTitle = 'os.payroll.run.title';
+  static const osPayrollRunDelete = 'os.payroll.run.delete';
+  static const osPayrollRunDeleteConfirm = 'os.payroll.run.delete_confirm';
+  static const osPayrollRunDeleted = 'os.payroll.run.deleted';
+  static const osPayrollRunMissing = 'os.payroll.run.missing';
   static const osPayrollRunHint = 'os.payroll.run.hint';
   static const osPayrollPeriod = 'os.payroll.period';
   static const osPayrollAdjustTitle = 'os.payroll.adjust.title';
@@ -947,6 +982,12 @@ class AppLocaleKeys {
   static const osPayrollErrorNoSalary = 'os.payroll.error.no_salary';
 
   static const osPayslipsTitle = 'os.payslips.title';
+  static const osPayslipsDeleteConfirm = 'os.payslips.delete_confirm';
+  static const osPayslipsDeletePostedConfirm =
+      'os.payslips.delete_posted_confirm';
+  static const osPayslipsDeleteNotSaved =
+      'os.payslips.delete_not_saved';
+  static const osPayslipsDeleted = 'os.payslips.deleted';
   static const osPayslipsSelectEmployee = 'os.payslips.select_employee';
   static const osPayslipsPrint = 'os.payslips.print';
   static const osPayslipsCopy = 'os.payslips.copy';

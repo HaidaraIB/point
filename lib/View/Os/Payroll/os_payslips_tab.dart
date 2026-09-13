@@ -6,6 +6,7 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/EmployeeModel.dart';
 import 'package:point/Models/Os/OsPayslipModel.dart';
 import 'package:point/Models/Os/os_expense_constants.dart';
+import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/firestore/firestore_os_finance_api.dart';
 import 'package:point/Services/firestore/firestore_os_payroll_api.dart';
 import 'package:point/Utils/AppColors.dart';
@@ -15,6 +16,7 @@ import 'package:point/View/Os/Payroll/os_payslip_print_text.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
+import 'package:point/View/Os/os_snackbar.dart';
 
 class OsPayslipsTab extends StatefulWidget {
   const OsPayslipsTab({super.key});
@@ -68,6 +70,52 @@ class _OsPayslipsTabState extends State<OsPayslipsTab> {
     Future<void>.delayed(const Duration(seconds: 2), () {
       if (mounted) setState(() => _copied = false);
     });
+  }
+
+  Future<void> _deletePayslip(OsPayslipModel slip) async {
+    final id = slip.id?.trim();
+    if (id == null || id.isEmpty) {
+      OsSnackbar.error(
+        AppLocaleKeys.osPayslipsTitle.tr,
+        AppLocaleKeys.osPayslipsDeleteNotSaved.tr,
+      );
+      return;
+    }
+    final payroll = Get.find<OsPayrollController>();
+    final message = slip.isPaid
+        ? AppLocaleKeys.osPayslipsDeletePostedConfirm.tr
+        : AppLocaleKeys.osPayslipsDeleteConfirm.tr;
+    final confirmed = await FunHelper.showDeleteConfirmDialog(
+      context,
+      title: AppLocaleKeys.osCommonDelete.tr,
+      message: message,
+      onTap: () async {
+        try {
+          final ok = await payroll.deletePayslip(id);
+          if (!ok) {
+            OsSnackbar.error(
+              AppLocaleKeys.osPayslipsTitle.tr,
+              AppLocaleKeys.osCommonDeleteFailed.tr,
+            );
+            throw Exception('delete failed');
+          }
+        } on OsPayrollException catch (e) {
+          OsSnackbar.error(AppLocaleKeys.osPayslipsTitle.tr, e.messageKey.tr);
+          rethrow;
+        } on OsFinanceException catch (e) {
+          OsSnackbar.error(AppLocaleKeys.osPayslipsTitle.tr, e.messageKey.tr);
+          rethrow;
+        }
+      },
+    );
+    if (confirmed == true) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        OsSnackbar.success(
+          AppLocaleKeys.osPayslipsTitle.tr,
+          AppLocaleKeys.osPayslipsDeleted.tr,
+        );
+      });
+    }
   }
 
   DateTime _periodDate(String period) {
@@ -222,6 +270,18 @@ class _OsPayslipsTabState extends State<OsPayslipsTab> {
                         : AppLocaleKeys.osPayslipsCopy.tr,
                   ),
                 ),
+                if ((slip.id ?? '').trim().isNotEmpty)
+                  OutlinedButton.icon(
+                    onPressed: () => _deletePayslip(slip),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFFF43F5E),
+                      side: const BorderSide(color: Color(0xFFF43F5E)),
+                      minimumSize: OsButtonStyles.compactMinSize,
+                      padding: OsButtonStyles.compactPadding,
+                    ),
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    label: Text(AppLocaleKeys.osCommonDelete.tr),
+                  ),
               ],
             ],
           ),
@@ -299,6 +359,17 @@ class _PayslipPreview extends StatelessWidget {
 
   final OsPayslipModel slip;
   final String branchLabel;
+
+  String _nationalIdFor(OsPayslipModel slip) {
+    if (!Get.isRegistered<OsPayrollController>()) return '';
+    final payroll = Get.find<OsPayrollController>();
+    for (final e in payroll.employees) {
+      if (e.id == slip.employeeId) {
+        return e.nationalIdNumber?.trim() ?? '';
+      }
+    }
+    return '';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -394,6 +465,14 @@ class _PayslipPreview extends StatelessWidget {
                     ),
                   ],
                 ),
+                if (_nationalIdFor(slip).isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  _info(
+                    theme,
+                    AppLocaleKeys.employeesNationalIdNumber.tr,
+                    _nationalIdFor(slip),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 Row(
                   children: [

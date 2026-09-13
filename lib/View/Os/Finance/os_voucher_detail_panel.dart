@@ -58,10 +58,14 @@ class _OsVoucherDetailPanelState extends State<OsVoucherDetailPanel> {
 
   Future<void> _confirmDelete() async {
     if (widget.onDelete == null || _deleting) return;
+    final v = widget.voucher;
+    final message = v.isManuallyDeletable
+        ? AppLocaleKeys.osVouchersDeleteConfirm.tr
+        : AppLocaleKeys.osVouchersDeletePostedConfirm.tr;
     await FunHelper.showDeleteConfirmDialog(
       context,
       title: AppLocaleKeys.osVouchersDelete.tr,
-      message: AppLocaleKeys.osVouchersDeleteConfirm.tr,
+      message: message,
       onTap: () async {
         setState(() => _deleting = true);
         try {
@@ -86,8 +90,7 @@ class _OsVoucherDetailPanelState extends State<OsVoucherDetailPanel> {
             ? const Color(0xFFF87171)
             : Colors.redAccent);
     final desc = OsFinanceFormat.displayDescription(v.description);
-    final canDelete =
-        v.isManuallyDeletable && widget.onDelete != null && !_deleting;
+    final canDelete = widget.onDelete != null && !_deleting;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -146,7 +149,7 @@ class _OsVoucherDetailPanelState extends State<OsVoucherDetailPanel> {
                     icon: const Icon(Icons.print_outlined, size: 18),
                     label: Text(AppLocaleKeys.osVouchersPrint.tr),
                   ),
-                  if (v.isManuallyDeletable && widget.onDelete != null)
+                  if (widget.onDelete != null)
                     OutlinedButton.icon(
                       onPressed: canDelete ? _confirmDelete : null,
                       style: OutlinedButton.styleFrom(

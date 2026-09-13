@@ -156,13 +156,29 @@ class OsInvoicesPage extends StatelessWidget {
     OsFinanceController finance,
     OsInvoiceModel inv,
   ) async {
-    if (inv.isPaid) return;
+    final id = inv.id;
+    if (id == null || id.isEmpty) return;
+    final message = inv.isPaid
+        ? AppLocaleKeys.osInvoicesDeletePostedConfirm.tr
+        : AppLocaleKeys.osInvoicesDeleteConfirm.tr;
     await FunHelper.showDeleteConfirmDialog(
       context,
       title: AppLocaleKeys.osCommonDelete.tr,
-      message: AppLocaleKeys.osInvoicesDeleteConfirm.tr,
+      message: message,
       onTap: () async {
-        if (inv.id != null) await finance.deleteInvoice(inv.id!);
+        try {
+          final ok = await finance.deleteInvoice(id);
+          if (!ok) {
+            OsSnackbar.error(
+              AppLocaleKeys.osInvoicesTitle.tr,
+              AppLocaleKeys.osCommonSaveFailed.tr,
+            );
+            throw Exception('delete failed');
+          }
+        } on OsFinanceException catch (e) {
+          OsSnackbar.error(AppLocaleKeys.osInvoicesTitle.tr, e.messageKey.tr);
+          rethrow;
+        }
       },
     );
   }
@@ -569,13 +585,13 @@ class _InvoicesTable extends StatelessWidget {
                         icon: Icons.edit_outlined,
                         onPressed: () => onEdit(inv),
                       ),
-                      _ActionIcon(
-                        tooltip: AppLocaleKeys.osCommonDelete.tr,
-                        icon: Icons.delete_outline,
-                        color: Colors.redAccent,
-                        onPressed: () => onDelete(inv),
-                      ),
                     ],
+                    _ActionIcon(
+                      tooltip: AppLocaleKeys.osCommonDelete.tr,
+                      icon: Icons.delete_outline,
+                      color: Colors.redAccent,
+                      onPressed: () => onDelete(inv),
+                    ),
                   ],
                 ),
               ),

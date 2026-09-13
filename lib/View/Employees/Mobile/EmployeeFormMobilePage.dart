@@ -13,6 +13,7 @@ import 'package:point/View/Shared/CustomDropDown.dart';
 import 'package:point/View/Shared/MultiSelectDropDown.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/ReadOnlyAccountEmailField.dart';
+import 'package:point/View/Employees/employee_identity_residence_fields.dart';
 import 'package:point/View/Shared/employee_attendance_config_fields.dart';
 import 'package:point/Utils/PasswordValidator.dart';
 import 'package:point/Utils/app_theme_extension.dart';
@@ -40,6 +41,10 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
   late final TextEditingController bankNameController;
   late final TextEditingController bankAccountController;
   late final TextEditingController hireDateController;
+  late final TextEditingController birthDateController;
+  late final TextEditingController addressController;
+  late final TextEditingController nationalIdNumberController;
+  late final TextEditingController residenceCardNumberController;
   late final TextEditingController branchLabelController;
   late final TextEditingController branchLatController;
   late final TextEditingController branchLngController;
@@ -50,6 +55,9 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
   List<String> selectedDepartments = [StorageKeys.departmentPromotion];
   String? selectedBranchId;
   DateTime? hireDate;
+  DateTime? birthDate;
+  String? nationalIdCardUrl;
+  String? residenceCardUrl;
   TimeOfDay? workFrom;
   TimeOfDay? workTo;
   bool attendanceRemote = false;
@@ -88,6 +96,21 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
               '${m.hireDate!.month.toString().padLeft(2, '0')}-'
               '${m.hireDate!.day.toString().padLeft(2, '0')}',
     );
+    birthDateController = TextEditingController(
+      text: m?.birthDate == null
+          ? ''
+          : '${m!.birthDate!.year.toString().padLeft(4, '0')}-'
+              '${m.birthDate!.month.toString().padLeft(2, '0')}-'
+              '${m.birthDate!.day.toString().padLeft(2, '0')}',
+    );
+    addressController = TextEditingController(text: m?.address);
+    nationalIdNumberController =
+        TextEditingController(text: m?.nationalIdNumber);
+    residenceCardNumberController =
+        TextEditingController(text: m?.residenceCardNumber);
+    birthDate = m?.birthDate;
+    nationalIdCardUrl = m?.nationalIdCardUrl;
+    residenceCardUrl = m?.residenceCardUrl;
     branchLabelController = TextEditingController();
     branchLatController = TextEditingController();
     branchLngController = TextEditingController();
@@ -129,6 +152,10 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
     bankNameController.dispose();
     bankAccountController.dispose();
     hireDateController.dispose();
+    birthDateController.dispose();
+    addressController.dispose();
+    nationalIdNumberController.dispose();
+    residenceCardNumberController.dispose();
     branchLabelController.dispose();
     branchLatController.dispose();
     branchLngController.dispose();
@@ -197,6 +224,9 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
     final jobTitle = jobTitleController.text.trim();
     final bankName = bankNameController.text.trim();
     final bankAccount = bankAccountController.text.trim();
+    final address = addressController.text.trim();
+    final nationalIdNumber = nationalIdNumberController.text.trim();
+    final residenceCardNumber = residenceCardNumberController.text.trim();
 
     if (model == null) {
       final success = await controller.addEmployee(
@@ -228,6 +258,14 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
           branchId: selectedBranchId,
           bankName: bankName.isEmpty ? null : bankName,
           bankAccountNumber: bankAccount.isEmpty ? null : bankAccount,
+          birthDate: birthDate,
+          address: address.isEmpty ? null : address,
+          nationalIdNumber:
+              nationalIdNumber.isEmpty ? null : nationalIdNumber,
+          nationalIdCardUrl: nationalIdCardUrl,
+          residenceCardNumber:
+              residenceCardNumber.isEmpty ? null : residenceCardNumber,
+          residenceCardUrl: residenceCardUrl,
         ),
       );
       if (!mounted) return;
@@ -271,6 +309,22 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
           clearBankName: bankName.isEmpty,
           bankAccountNumber: bankAccount.isEmpty ? null : bankAccount,
           clearBankAccountNumber: bankAccount.isEmpty,
+          birthDate: birthDate,
+          clearBirthDate: birthDate == null,
+          address: address.isEmpty ? null : address,
+          clearAddress: address.isEmpty,
+          nationalIdNumber:
+              nationalIdNumber.isEmpty ? null : nationalIdNumber,
+          clearNationalIdNumber: nationalIdNumber.isEmpty,
+          nationalIdCardUrl: nationalIdCardUrl,
+          clearNationalIdCardUrl: nationalIdCardUrl == null ||
+              nationalIdCardUrl!.trim().isEmpty,
+          residenceCardNumber:
+              residenceCardNumber.isEmpty ? null : residenceCardNumber,
+          clearResidenceCardNumber: residenceCardNumber.isEmpty,
+          residenceCardUrl: residenceCardUrl,
+          clearResidenceCardUrl: residenceCardUrl == null ||
+              residenceCardUrl!.trim().isEmpty,
         ),
         newPassword:
             !_canEditCredentials || passwordController.text.trim().isEmpty
@@ -550,6 +604,23 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                     height: 48,
                     controller: bankAccountController,
                     borderRadius: 8,
+                  ),
+                  const SizedBox(height: 16),
+                  EmployeeIdentityResidenceFields(
+                    birthDateController: birthDateController,
+                    addressController: addressController,
+                    nationalIdNumberController: nationalIdNumberController,
+                    residenceCardNumberController:
+                        residenceCardNumberController,
+                    nationalIdCardUrl: nationalIdCardUrl,
+                    residenceCardUrl: residenceCardUrl,
+                    birthDate: birthDate,
+                    employeeId: widget.model?.id,
+                    onBirthDateChanged: (d) => setState(() => birthDate = d),
+                    onNationalIdCardUrlChanged: (u) =>
+                        setState(() => nationalIdCardUrl = u),
+                    onResidenceCardUrlChanged: (u) =>
+                        setState(() => residenceCardUrl = u),
                   ),
                   if (selectedRole == 'employee') ...[
                     const SizedBox(height: 16),

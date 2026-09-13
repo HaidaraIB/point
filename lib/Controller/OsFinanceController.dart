@@ -69,6 +69,8 @@ class OsFinanceController extends GetxController {
     isLoading.value = true;
     try {
       return await FirestoreOsFinanceApi.deleteInvoice(id);
+    } on OsFinanceException {
+      rethrow;
     } finally {
       isLoading.value = false;
     }
@@ -251,6 +253,8 @@ class OsFinanceController extends GetxController {
     isLoading.value = true;
     try {
       return await FirestoreOsFinanceApi.deleteExpense(id);
+    } on OsFinanceException {
+      rethrow;
     } finally {
       isLoading.value = false;
     }

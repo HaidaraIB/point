@@ -9,6 +9,7 @@ import 'package:point/View/Os/Invoices/os_invoice_share.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_invoice_stamp.dart';
+import 'package:point/View/Os/os_line_items_table.dart';
 
 Future<void> showOsInvoicePreviewDialog(
   BuildContext context,
@@ -119,7 +120,11 @@ class _OsInvoicePreviewDialog extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
-                    _itemsTable(theme),
+                    OsLineItemsTable(
+                      items: invoice.items,
+                      fallbackAmount:
+                          invoice.amount > 0 ? invoice.amount : invoice.total,
+                    ),
                     const SizedBox(height: 16),
                     _totalsRow(theme),
                   ],
@@ -291,102 +296,6 @@ class _OsInvoicePreviewDialog extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _itemsTable(AppThemeExtension theme) {
-    final items = invoice.items;
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: theme.border),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Table(
-        columnWidths: const {
-          0: FixedColumnWidth(40),
-          1: FlexColumnWidth(3),
-          2: FlexColumnWidth(1),
-          3: FlexColumnWidth(1.4),
-          4: FlexColumnWidth(1.4),
-        },
-        children: [
-          TableRow(
-            decoration: BoxDecoration(color: theme.panelTint),
-            children: [
-              _th(theme, '#'),
-              _th(theme, AppLocaleKeys.osInvoicesItemDesc.tr),
-              _th(theme, AppLocaleKeys.osInvoicesQty.tr),
-              _th(theme, AppLocaleKeys.osInvoicesUnitPrice.tr),
-              _th(theme, AppLocaleKeys.osInvoicesLineTotal.tr),
-            ],
-          ),
-          if (items.isEmpty)
-            TableRow(
-              children: [
-                _td(theme, '1'),
-                _td(theme, AppLocaleKeys.osInvoicesItemsFallback.tr),
-                _td(theme, '1'),
-                _td(
-                  theme,
-                  OsFinanceFormat.money(
-                    invoice.amount > 0 ? invoice.amount : invoice.total,
-                  ),
-                ),
-                _td(
-                  theme,
-                  OsFinanceFormat.money(
-                    invoice.amount > 0 ? invoice.amount : invoice.total,
-                  ),
-                  bold: true,
-                ),
-              ],
-            )
-          else
-            for (var i = 0; i < items.length; i++)
-              TableRow(
-                children: [
-                  _td(theme, '${i + 1}'),
-                  _td(theme, items[i].description),
-                  _td(theme, '${items[i].quantity}'),
-                  _td(theme, OsFinanceFormat.money(items[i].unitPrice)),
-                  _td(
-                    theme,
-                    OsFinanceFormat.money(items[i].total),
-                    bold: true,
-                  ),
-                ],
-              ),
-        ],
-      ),
-    );
-  }
-
-  Widget _th(AppThemeExtension theme, String text) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w800,
-          color: theme.secondaryText,
-        ),
-      ),
-    );
-  }
-
-  Widget _td(AppThemeExtension theme, String text, {bool bold = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: bold ? FontWeight.w800 : FontWeight.w500,
-          color: theme.primaryText,
-        ),
       ),
     );
   }
