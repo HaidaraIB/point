@@ -279,6 +279,13 @@ class _OsInvoiceFormDialogState extends State<_OsInvoiceFormDialog> {
   late DateTime _dueDate;
   late String _status;
   late String? _bankAccountId;
+  late String _paymentMethod;
+  late final TextEditingController _discountCtrl;
+  late final TextEditingController _notesCtrl;
+  late final TextEditingController _phoneCtrl;
+  late final TextEditingController _emailCtrl;
+  late final TextEditingController _addressCtrl;
+  late final TextEditingController _taxCtrl;
   late final OsLineItemsController _lines;
   bool _saving = false;
 
@@ -296,16 +303,62 @@ class _OsInvoiceFormDialogState extends State<_OsInvoiceFormDialog> {
       _status = OsInvoiceStatus.sent;
     }
     _bankAccountId = e?.bankAccountId;
+    _paymentMethod = e?.paymentMethod ?? OsPaymentMethod.bankTransfer;
+    _discountCtrl = TextEditingController(
+      text: (e?.discount ?? 0) > 0 ? e!.discount.toStringAsFixed(0) : '',
+    );
+    _notesCtrl = TextEditingController(text: e?.notes ?? '');
+    _phoneCtrl = TextEditingController(text: e?.clientPhone ?? '');
+    _emailCtrl = TextEditingController(text: e?.clientEmail ?? '');
+    _addressCtrl = TextEditingController(text: e?.clientAddress ?? '');
+    _taxCtrl = TextEditingController(text: e?.clientTaxNumber ?? '');
     _lines = OsLineItemsController(
       initialItems: e?.items,
       initialTaxRate: (e != null && e.vat > 0) ? 0.05 : 0,
     );
+    if (e == null ||
+        ((e.clientPhone == null || e.clientPhone!.isEmpty) &&
+            (e.clientEmail == null || e.clientEmail!.isEmpty))) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _applyClientContact(_clientId);
+      });
+    }
   }
 
   @override
   void dispose() {
+    _discountCtrl.dispose();
+    _notesCtrl.dispose();
+    _phoneCtrl.dispose();
+    _emailCtrl.dispose();
+    _addressCtrl.dispose();
+    _taxCtrl.dispose();
     _lines.dispose();
     super.dispose();
+  }
+
+  void _applyClientContact(String? clientId) {
+    if (clientId == null) return;
+    final clients = Get.find<HomeController>().clients;
+    ClientModel? client;
+    for (final c in clients) {
+      if (c.id == clientId) {
+        client = c;
+        break;
+      }
+    }
+    if (client == null) return;
+    setState(() {
+      if (_phoneCtrl.text.trim().isEmpty) {
+        _phoneCtrl.text = client!.phone?.trim() ?? '';
+      }
+      if (_emailCtrl.text.trim().isEmpty) {
+        _emailCtrl.text = client!.email?.trim() ?? '';
+      }
+      if (_addressCtrl.text.trim().isEmpty) {
+        _addressCtrl.text = client!.address?.trim() ?? '';
+      }
+    });
   }
 
   Future<void> _pickDate({required bool due}) async {
@@ -353,6 +406,8 @@ class _OsInvoiceFormDialogState extends State<_OsInvoiceFormDialog> {
     }
 
     setState(() => _saving = true);
+    final discount =
+        double.tryParse(_discountCtrl.text.trim().replaceAll(',', '')) ?? 0;
     final model = OsInvoiceModel(
       id: widget.existing?.id,
       displayNumber: widget.existing?.displayNumber,
@@ -360,14 +415,27 @@ class _OsInvoiceFormDialogState extends State<_OsInvoiceFormDialog> {
       clientName: client.name?.trim().isNotEmpty == true
           ? client.name!.trim()
           : (client.email ?? client.id!),
+      clientPhone: _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
+      clientEmail: _emailCtrl.text.trim().isEmpty ? null : _emailCtrl.text.trim(),
+      clientAddress:
+          _addressCtrl.text.trim().isEmpty ? null : _addressCtrl.text.trim(),
+      clientTaxNumber:
+          _taxCtrl.text.trim().isEmpty ? null : _taxCtrl.text.trim(),
       date: OsFinanceFormat.ymd(_date),
       dueDate: OsFinanceFormat.ymd(_dueDate),
       status: _status,
       amount: _lines.subtotal,
+      discount: discount < 0 ? 0 : discount,
       vat: _lines.vat,
-      total: _lines.total,
+      total: OsInvoiceModel.computeTotal(
+        amount: _lines.subtotal,
+        discount: discount < 0 ? 0 : discount,
+        vat: _lines.vat,
+      ),
       items: items,
       bankAccountId: _bankAccountId,
+      paymentMethod: _paymentMethod,
+      notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
       createdAt: widget.existing?.createdAt ?? DateTime.now(),
     );
 
@@ -459,7 +527,38 @@ class _OsInvoiceFormDialogState extends State<_OsInvoiceFormDialog> {
                               child: Text(c.name ?? c.email ?? c.id!),
                             ),
                       ],
-                      onChanged: (v) => setState(() => _clientId = v),
+                      onChanged: (v) {
+                        setState(() => _clientId = v);
+                        _applyClientContact(v);
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    TextFormField(
+                      controller: _phoneCtrl,
+                      decoration: osFinanceFieldDecoration(
+                        AppLocaleKeys.osInvoicesClientPhone.tr,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      controller: _emailCtrl,
+                      decoration: osFinanceFieldDecoration(
+                        AppLocaleKeys.osInvoicesClientEmail.tr,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      controller: _addressCtrl,
+                      decoration: osFinanceFieldDecoration(
+                        AppLocaleKeys.osInvoicesClientAddress.tr,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      controller: _taxCtrl,
+                      decoration: osFinanceFieldDecoration(
+                        AppLocaleKeys.osInvoicesClientTax.tr,
+                      ),
                     ),
                     const SizedBox(height: 14),
                     Row(
@@ -490,6 +589,26 @@ class _OsInvoiceFormDialogState extends State<_OsInvoiceFormDialog> {
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 14),
+                    DropdownButtonFormField<String>(
+                      key: ValueKey(_paymentMethod),
+                      initialValue: OsPaymentMethod.all.contains(_paymentMethod)
+                          ? _paymentMethod
+                          : OsPaymentMethod.bankTransfer,
+                      decoration: osFinanceFieldDecoration(
+                        AppLocaleKeys.osInvoicesPaymentMethod.tr,
+                      ),
+                      items: [
+                        for (final m in OsPaymentMethod.all)
+                          DropdownMenuItem(
+                            value: m,
+                            child: Text(OsFinanceFormat.paymentMethodLabel(m)),
+                          ),
+                      ],
+                      onChanged: (v) {
+                        if (v != null) setState(() => _paymentMethod = v);
+                      },
                     ),
                     const SizedBox(height: 14),
                     Obx(() {
@@ -541,6 +660,23 @@ class _OsInvoiceFormDialogState extends State<_OsInvoiceFormDialog> {
                     ),
                     const SizedBox(height: 16),
                     OsLineItemsEditor(controller: _lines),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _discountCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: osFinanceFieldDecoration(
+                        AppLocaleKeys.osInvoicesDiscount.tr,
+                      ),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    const SizedBox(height: 10),
+                    TextFormField(
+                      controller: _notesCtrl,
+                      maxLines: 3,
+                      decoration: osFinanceFieldDecoration(
+                        AppLocaleKeys.osInvoicesNotes.tr,
+                      ),
+                    ),
                     Obx(() {
                       if (!stamp.stampEnabled.value) {
                         return const SizedBox.shrink();

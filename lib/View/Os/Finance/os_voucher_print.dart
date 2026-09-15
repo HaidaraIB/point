@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsVoucherModel.dart';
 import 'package:point/View/Os/Finance/os_voucher_print_text.dart';
+import 'package:point/View/Os/Print/os_print_assets.dart';
 import 'package:point/View/Os/os_print_document.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 
@@ -10,7 +11,8 @@ import 'package:point/View/Os/os_snackbar.dart';
 Future<void> printOsVoucher({
   required OsVoucherModel voucher,
   required String accountName,
-}) {
+}) async {
+  await OsPrintAssets.ensureLoaded();
   return openOsPrintDocument(
     html: buildOsVoucherPrintHtml(
       voucher: voucher,

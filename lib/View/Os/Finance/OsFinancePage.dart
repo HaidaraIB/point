@@ -1245,6 +1245,18 @@ class _VouchersTabState extends State<_VouchersTab> {
     }).toList();
   }
 
+  Future<void> _confirmDeleteVoucher(OsVoucherModel voucher) async {
+    final message = voucher.isManuallyDeletable
+        ? AppLocaleKeys.osVouchersDeleteConfirm.tr
+        : AppLocaleKeys.osVouchersDeletePostedConfirm.tr;
+    await FunHelper.showDeleteConfirmDialog(
+      context,
+      title: AppLocaleKeys.osVouchersDelete.tr,
+      message: message,
+      onTap: () => _deleteVoucher(voucher),
+    );
+  }
+
   Future<void> _deleteVoucher(OsVoucherModel voucher) async {
     final id = voucher.id?.trim() ?? '';
     if (id.isEmpty) {
@@ -1403,7 +1415,8 @@ class _VouchersTabState extends State<_VouchersTab> {
                                         .accountById(selected.bankAccountId)
                                         ?.name ??
                                     AppLocaleKeys.osFinanceUnknownAccount.tr,
-                                onDelete: _deleteVoucher,
+                                onDelete: () =>
+                                    _confirmDeleteVoucher(selected),
                               ),
                             );
 
@@ -1488,8 +1501,8 @@ class _VoucherMasterList extends StatelessWidget {
           itemBuilder: (context, index) {
             final v = vouchers[index];
             final selected = v.id == selectedId;
-            final isReceipt = v.type == OsVoucherType.receipt;
-            final typeTone = isReceipt ? chipTone : payTone;
+            final typeTone =
+                v.type == OsVoucherType.receipt ? chipTone : payTone;
             final desc = OsFinanceFormat.displayDescription(v.description);
             return Material(
               color: Colors.transparent,

@@ -2,12 +2,14 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsQuotationModel.dart';
+import 'package:point/View/Os/Print/os_print_assets.dart';
 import 'package:point/View/Os/Quotations/os_quotation_print_text.dart';
 import 'package:point/View/Os/os_print_document.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 
 /// Opens a print-friendly quote HTML slip (web) or copies plain text (non-web).
-Future<void> printOsQuotation(OsQuotationModel quote) {
+Future<void> printOsQuotation(OsQuotationModel quote) async {
+  await OsPrintAssets.ensureLoaded();
   return openOsPrintDocument(
     html: buildOsQuotationPrintHtml(quote),
     titleKey: AppLocaleKeys.osQuotationsTitle,

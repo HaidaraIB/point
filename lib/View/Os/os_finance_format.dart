@@ -26,6 +26,8 @@ class OsFinanceFormat {
     return '${_iqd.format(value)} ${AppLocaleKeys.osInvoicesCurrency.tr}';
   }
 
+  static String moneyNumber(num value) => _iqd.format(value);
+
   static String accountNumberLabel(String? number) {
     final n = number?.trim() ?? '';
     if (n.isEmpty || n == unsetAccountNumber) {
@@ -227,5 +229,21 @@ class OsFinanceFormat {
     return type == OsVoucherType.payment
         ? AppLocaleKeys.osVouchersTypePayment.tr
         : AppLocaleKeys.osVouchersTypeReceipt.tr;
+  }
+
+  static String paymentMethodLabel(String? method) {
+    switch (method) {
+      case OsPaymentMethod.cash:
+        return AppLocaleKeys.osPrintPayCash.tr;
+      case OsPaymentMethod.cheque:
+        return AppLocaleKeys.osPrintPayCheque.tr;
+      case OsPaymentMethod.card:
+        return AppLocaleKeys.osPrintPayCard.tr;
+      case OsPaymentMethod.other:
+        return AppLocaleKeys.osPrintPayOther.tr;
+      case OsPaymentMethod.bankTransfer:
+      default:
+        return AppLocaleKeys.osPrintPayBank.tr;
+    }
   }
 }

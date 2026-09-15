@@ -148,12 +148,16 @@ class OsLineItemsEditor extends StatelessWidget {
     super.key,
     required this.controller,
     this.compact = false,
+    this.titleKey,
   });
 
   final OsLineItemsController controller;
 
   /// Mobile-friendly stacked layout when true.
   final bool compact;
+
+  /// Section title translation key. Defaults to invoice items label.
+  final String? titleKey;
 
   @override
   Widget build(BuildContext context) {
@@ -207,7 +211,7 @@ class OsLineItemsEditor extends StatelessWidget {
             Row(
               children: [
                 Text(
-                  AppLocaleKeys.osInvoicesItems.tr,
+                  (titleKey ?? AppLocaleKeys.osInvoicesItems).tr,
                   style: TextStyle(
                     fontSize: compact ? 14 : 16,
                     fontWeight: FontWeight.w700,

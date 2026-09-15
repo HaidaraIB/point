@@ -37,6 +37,11 @@ class _OsQuotationFormDialogState extends State<_OsQuotationFormDialog> {
   String? _clientId;
   late DateTime _expiry;
   late final OsLineItemsController _lines;
+  late final TextEditingController _discountCtrl;
+  late final TextEditingController _notesCtrl;
+  late final TextEditingController _phoneCtrl;
+  late final TextEditingController _emailCtrl;
+  late final TextEditingController _addressCtrl;
   var _saving = false;
 
   List<ClientModel> get _clients {
@@ -53,6 +58,13 @@ class _OsQuotationFormDialogState extends State<_OsQuotationFormDialog> {
     _clientId = e?.clientId;
     _expiry = OsFinanceFormat.parseYmd(e?.expiryDate) ??
         DateTime.now().add(const Duration(days: 14));
+    _discountCtrl = TextEditingController(
+      text: (e?.discount ?? 0) > 0 ? e!.discount.toStringAsFixed(0) : '',
+    );
+    _notesCtrl = TextEditingController(text: e?.notes ?? '');
+    _phoneCtrl = TextEditingController(text: e?.clientPhone ?? '');
+    _emailCtrl = TextEditingController(text: e?.clientEmail ?? '');
+    _addressCtrl = TextEditingController(text: e?.clientAddress ?? '');
     _lines = OsLineItemsController(
       initialItems: e?.items,
       initialTaxRate: (e != null && e.vat > 0) ? 0.05 : 0,
@@ -65,12 +77,47 @@ class _OsQuotationFormDialogState extends State<_OsQuotationFormDialog> {
       draft.priceCtrl.text =
           (e.amount > 0 ? e.amount : e.total).toStringAsFixed(0);
     }
+    if (e == null ||
+        ((e.clientPhone == null || e.clientPhone!.isEmpty) &&
+            (e.clientEmail == null || e.clientEmail!.isEmpty))) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _applyClientContact(_clientId);
+      });
+    }
   }
 
   @override
   void dispose() {
+    _discountCtrl.dispose();
+    _notesCtrl.dispose();
+    _phoneCtrl.dispose();
+    _emailCtrl.dispose();
+    _addressCtrl.dispose();
     _lines.dispose();
     super.dispose();
+  }
+
+  void _applyClientContact(String? clientId) {
+    if (clientId == null) return;
+    ClientModel? client;
+    for (final c in _clients) {
+      if (c.id == clientId) {
+        client = c;
+        break;
+      }
+    }
+    if (client == null) return;
+    setState(() {
+      if (_phoneCtrl.text.trim().isEmpty) {
+        _phoneCtrl.text = client!.phone?.trim() ?? '';
+      }
+      if (_emailCtrl.text.trim().isEmpty) {
+        _emailCtrl.text = client!.email?.trim() ?? '';
+      }
+      if (_addressCtrl.text.trim().isEmpty) {
+        _addressCtrl.text = client!.address?.trim() ?? '';
+      }
+    });
   }
 
   Widget _label(String text) {
@@ -131,19 +178,34 @@ class _OsQuotationFormDialogState extends State<_OsQuotationFormDialog> {
     try {
       final now = DateTime.now();
       final existing = widget.existing;
+      final discount =
+          double.tryParse(_discountCtrl.text.trim().replaceAll(',', '')) ?? 0;
       final ok = await finance.saveQuotation(
         OsQuotationModel(
           id: existing?.id,
           displayNumber: existing?.displayNumber,
           clientId: client.id!,
           clientName: (client.name ?? client.email ?? client.id!).trim(),
+          clientPhone:
+              _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
+          clientEmail:
+              _emailCtrl.text.trim().isEmpty ? null : _emailCtrl.text.trim(),
+          clientAddress: _addressCtrl.text.trim().isEmpty
+              ? null
+              : _addressCtrl.text.trim(),
           date: existing?.date ?? OsFinanceFormat.ymd(now),
           expiryDate: OsFinanceFormat.ymd(_expiry),
           status: existing?.status ?? OsQuotationStatus.sent,
           amount: _lines.subtotal,
+          discount: discount < 0 ? 0 : discount,
           vat: _lines.vat,
-          total: _lines.total,
+          total: OsQuotationModel.computeTotal(
+            amount: _lines.subtotal,
+            discount: discount < 0 ? 0 : discount,
+            vat: _lines.vat,
+          ),
           items: items,
+          notes: _notesCtrl.text.trim().isEmpty ? null : _notesCtrl.text.trim(),
           createdAt: existing?.createdAt ?? now,
         ),
       );
@@ -243,7 +305,28 @@ class _OsQuotationFormDialogState extends State<_OsQuotationFormDialog> {
                             ),
                           ),
                       ],
-                      onChanged: (v) => setState(() => _clientId = v),
+                      onChanged: (v) {
+                        setState(() => _clientId = v);
+                        _applyClientContact(v);
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    _label(AppLocaleKeys.osInvoicesClientPhone.tr),
+                    TextFormField(
+                      controller: _phoneCtrl,
+                      decoration: osDialogFieldDecoration(context),
+                    ),
+                    const SizedBox(height: 12),
+                    _label(AppLocaleKeys.osInvoicesClientEmail.tr),
+                    TextFormField(
+                      controller: _emailCtrl,
+                      decoration: osDialogFieldDecoration(context),
+                    ),
+                    const SizedBox(height: 12),
+                    _label(AppLocaleKeys.osInvoicesClientAddress.tr),
+                    TextFormField(
+                      controller: _addressCtrl,
+                      decoration: osDialogFieldDecoration(context),
                     ),
                     const SizedBox(height: 16),
                     _label(AppLocaleKeys.osQuotationsExpiry.tr),
@@ -270,7 +353,24 @@ class _OsQuotationFormDialogState extends State<_OsQuotationFormDialog> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    OsLineItemsEditor(controller: _lines),
+                    OsLineItemsEditor(
+                      controller: _lines,
+                      titleKey: AppLocaleKeys.osQuotationsItems,
+                    ),
+                    const SizedBox(height: 12),
+                    _label(AppLocaleKeys.osInvoicesDiscount.tr),
+                    TextFormField(
+                      controller: _discountCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: osDialogFieldDecoration(context),
+                    ),
+                    const SizedBox(height: 12),
+                    _label(AppLocaleKeys.osInvoicesNotes.tr),
+                    TextFormField(
+                      controller: _notesCtrl,
+                      maxLines: 3,
+                      decoration: osDialogFieldDecoration(context),
+                    ),
                     const SizedBox(height: 24),
                     OsFormDialogActions(
                       saveLabel: AppLocaleKeys.osQuotationsSaveSend.tr,

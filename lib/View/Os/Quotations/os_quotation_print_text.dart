@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsQuotationModel.dart';
-import 'package:point/Models/Os/os_finance_enums.dart';
 import 'package:point/Services/os_quote_template_settings.dart';
+import 'package:point/View/Os/Print/os_brand_print.dart';
+import 'package:point/View/Os/Print/os_print_codes.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_print_a4.dart';
 
@@ -20,7 +20,7 @@ String buildOsQuotationPlainText(OsQuotationModel quote) {
       : AppLocaleKeys.osQuotationsTemplateFooterDefault.tr;
 
   final buf = StringBuffer()
-    ..writeln(AppLocaleKeys.osInvoicesAgencyHeader.tr)
+    ..writeln(AppLocaleKeys.osPrintAgencyAr.tr)
     ..writeln('')
     ..writeln('${AppLocaleKeys.osQuotationsHeaderLabel.tr}: $header')
     ..writeln('${AppLocaleKeys.osQuotationsClient.tr}: ${quote.clientName}')
@@ -38,8 +38,7 @@ String buildOsQuotationPlainText(OsQuotationModel quote) {
     for (var i = 0; i < quote.items.length; i++) {
       final it = quote.items[i];
       buf.writeln(
-        '${i + 1}. ${it.description} × ${it.quantity} @ '
-        '${OsFinanceFormat.money(it.unitPrice)} = '
+        '${i + 1}. ${it.description} — '
         '${OsFinanceFormat.money(it.total)}',
       );
     }
@@ -48,9 +47,14 @@ String buildOsQuotationPlainText(OsQuotationModel quote) {
   buf
     ..writeln('---')
     ..writeln(
-      '${AppLocaleKeys.osInvoicesAmount.tr}: '
+      '${AppLocaleKeys.osPrintSubtotal.tr}: '
       '${OsFinanceFormat.money(quote.amount > 0 ? quote.amount : quote.total)}',
     );
+  if (quote.discount > 0) {
+    buf.writeln(
+      '${AppLocaleKeys.osPrintDiscount.tr}: ${OsFinanceFormat.money(quote.discount)}',
+    );
+  }
   if (quote.vat > 0) {
     buf.writeln(
       '${AppLocaleKeys.osInvoicesVat.tr}: ${OsFinanceFormat.money(quote.vat)}',
@@ -63,307 +67,228 @@ String buildOsQuotationPlainText(OsQuotationModel quote) {
     ..writeln(
       '${AppLocaleKeys.osQuotationsApprovalStatus.tr}: '
       '${OsFinanceFormat.quotationStatusLabel(quote.status)}',
-    )
+    );
+  final notes = quote.notes?.trim() ?? '';
+  if (notes.isNotEmpty) {
+    buf
+      ..writeln('')
+      ..writeln('${AppLocaleKeys.osPrintNotes.tr}: $notes');
+  }
+  buf
     ..writeln('')
     ..writeln(footer);
 
   return buf.toString();
 }
 
-/// Darker status colors for print on white paper (UI colors are too light).
-Color _printStatusColor(String status) {
-  switch (status) {
-    case OsQuotationStatus.approved:
-      return const Color(0xFF047857);
-    case OsQuotationStatus.rejected:
-      return const Color(0xFFBE123C);
-    default:
-      return const Color(0xFF4338CA);
-  }
-}
-
-String _hex(Color c) =>
-    '#${c.toARGB32().toRadixString(16).substring(2)}';
-
 String buildOsQuotationPrintHtml(OsQuotationModel quote) {
   final ref = OsFinanceFormat.quotationRef(quote);
-  final agency = escapeHtml(AppLocaleKeys.osInvoicesAgencyHeader.tr);
-  final template = Get.isRegistered<OsQuoteTemplateController>()
-      ? Get.find<OsQuoteTemplateController>()
-      : null;
-  final header = escapeHtml(
-    template?.headerText.value.trim().isNotEmpty == true
-        ? template!.headerText.value
-        : AppLocaleKeys.osQuotationsTemplateHeaderDefault.tr,
-  );
-  final footer = escapeHtml(
-    template?.footerText.value.trim().isNotEmpty == true
-        ? template!.footerText.value
-        : AppLocaleKeys.osQuotationsTemplateFooterDefault.tr,
-  );
-  final status = escapeHtml(
-    OsFinanceFormat.quotationStatusLabel(quote.status),
-  );
-  final statusHex = _hex(_printStatusColor(quote.status));
-  final client = escapeHtml(quote.clientName);
-  final money = escapeHtml(OsFinanceFormat.money(quote.total));
-  final amount = escapeHtml(
-    OsFinanceFormat.money(quote.amount > 0 ? quote.amount : quote.total),
-  );
-  final vat = escapeHtml(OsFinanceFormat.money(quote.vat));
+
+  final notesRaw = (quote.notes?.trim().isNotEmpty == true)
+      ? quote.notes!.trim()
+      : AppLocaleKeys.osPrintQuoteNotesDefault.tr;
 
   final rows = <String>[];
   if (quote.items.isEmpty) {
     final amt = quote.amount > 0 ? quote.amount : quote.total;
     rows.add(
-      '<tr><td>1</td><td>${escapeHtml(AppLocaleKeys.osInvoicesItemsFallback.tr)}</td>'
-      '<td style="text-align:center">1</td>'
-      '<td>${escapeHtml(OsFinanceFormat.money(amt))}</td>'
-      '<td>${escapeHtml(OsFinanceFormat.money(amt))}</td></tr>',
+      '<tr>'
+      '<td>1</td>'
+      '<td class="desc">${escapeHtml(AppLocaleKeys.osInvoicesItemsFallback.tr)}</td>'
+      '<td>${OsBrandPrint.moneyHtml(amt)}</td>'
+      '</tr>',
     );
   } else {
     for (var i = 0; i < quote.items.length; i++) {
       final it = quote.items[i];
       rows.add(
-        '<tr><td>${i + 1}</td><td>${escapeHtml(it.description)}</td>'
-        '<td style="text-align:center">${it.quantity}</td>'
-        '<td>${escapeHtml(OsFinanceFormat.money(it.unitPrice))}</td>'
-        '<td>${escapeHtml(OsFinanceFormat.money(it.total))}</td></tr>',
+        '<tr>'
+        '<td>${i + 1}</td>'
+        '<td class="desc">${escapeHtml(it.description)}</td>'
+        '<td>${OsBrandPrint.moneyHtml(it.total)}</td>'
+        '</tr>',
       );
     }
   }
+  final padded = OsBrandPrint.padItemRows(rows, columnCount: 3);
 
-  final vatRow = quote.vat > 0
-      ? '<div class="totals-line"><span>${escapeHtml(AppLocaleKeys.osInvoicesVat.tr)}</span><span>$vat</span></div>'
-      : '';
+  final phone = quote.clientPhone?.trim() ?? '';
+  final email = quote.clientEmail?.trim() ?? '';
+  final address = quote.clientAddress?.trim() ?? '';
+  final clientName = quote.clientName.trim().isEmpty
+      ? AppLocaleKeys.osPrintQuoteClientPlaceholder.tr
+      : quote.clientName.trim();
+
+  final validity = AppLocaleKeys.osPrintQuoteValidity.trParams({
+    'days': '30',
+  });
+
+  final notesLines = notesRaw
+      .split(RegExp(r'[\n•]+'))
+      .map((e) => e.replaceFirst(RegExp(r'^[-–—]\s*'), '').trim())
+      .where((e) => e.isNotEmpty)
+      .toList();
+  final notesHtml = notesLines.isEmpty
+      ? '<p></p>'
+      : '<ul>${notesLines.map((l) => '<li>${escapeHtml(l)}</li>').join()}</ul>';
+
+  final qr = OsPrintCodes.qrSvg(OsBrandPrint.agencySiteUrl);
+  final totals = OsBrandPrint.totalsHtml(
+    subtotal: OsBrandPrint.moneyHtml(quote.amount),
+    discount: OsBrandPrint.moneyHtml(quote.discount),
+    tax: OsBrandPrint.moneyHtml(quote.vat),
+    grandTotal: OsBrandPrint.moneyHtml(quote.total),
+    taxLabel: AppLocaleKeys.osPrintTaxIfAny.tr,
+  );
 
   return '''
 <!DOCTYPE html>
 <html dir="rtl" lang="ar">
 <head>
 <meta charset="utf-8"/>
-<title>$agency — ${escapeHtml(ref)}</title>
+<title>${escapeHtml(AppLocaleKeys.osPrintQuoteTitle.tr)} — ${escapeHtml(ref)}</title>
 <style>
 $osPrintA4Css
-body { padding: 0; background: #fff; }
-.sheet {
-  border: 1px solid #cbd5e1;
-  border-radius: 12px;
-  overflow: hidden;
+${OsBrandPrint.brandCss()}
+@page { size: A4 portrait; margin: 10mm 12mm; }
+.quote-print.sheet { min-height: 277mm; }
+.quote-print .brand-header { margin-bottom: 12px; }
+.quote-print .brand-comp {
+  max-height: 32mm;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
 }
-.band {
-  background: #514091;
-  color: #fff;
-  padding: 18px 20px 16px;
-}
-.band-row {
+.quote-print .quote-client-col .panel { min-height: 0; }
+.quote-print .items-wrap {
+  flex: 1 1 auto;
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
+  margin: 6px 0;
 }
-.mark {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: rgba(255,255,255,0.18);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 900;
-  font-size: 16px;
+.quote-print table.items {
+  font-size: 10px;
+  flex: 1;
+  height: 100%;
+}
+.quote-print table.items th { padding: 5px 4px; }
+.quote-print table.items td {
+  padding: 3px 4px;
+  height: auto;
+}
+.quote-print .notes-totals { margin-top: 6px; gap: 10px; }
+.quote-print .notes-box { min-height: 64px; padding: 6px 8px; }
+.quote-print .totals-table td { padding: 5px 8px; }
+.quote-print .brand-footer {
+  margin-top: 8px;
+  padding-top: 8px;
+}
+.quote-print .brand-footer-top { margin-bottom: 8px; }
+.quote-print .qr-block .qr-svg,
+.quote-print .qr-block .qr-svg svg {
+  width: 56px;
+  height: 56px;
+}
+.quote-print .sign-agency { margin-bottom: 8px; }
+.quote-print .panel { padding: 7px 10px; }
+.quote-print .meta-row,
+.quote-print .client-row {
+  margin-bottom: 3px;
+  font-size: 10px;
+}
+.quote-print .brand-header,
+.quote-print .quote-top,
+.quote-print .notes-totals,
+.quote-print .brand-footer {
   flex-shrink: 0;
 }
-.band h1 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 800;
-  color: #fff;
-  flex: 1;
+.quote-print .items-wrap { min-height: 0; }
+.quote-print .greeting {
+  font-size: 10px;
+  line-height: 1.5;
+  overflow-wrap: break-word;
 }
-.badge {
-  display: inline-block;
-  padding: 5px 12px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 800;
-  color: $statusHex;
-  background: #fff;
-  border: 1.5px solid $statusHex;
-  white-space: nowrap;
-}
-.band-sub {
-  margin-top: 12px;
-  font-size: 13px;
-  line-height: 1.45;
-  color: rgba(255,255,255,0.92);
-}
-.body { padding: 20px; }
-.client {
-  font-size: 22px;
-  font-weight: 900;
-  color: #0f172a;
-  margin: 0 0 4px;
-}
-.client-label {
-  font-size: 12px;
-  font-weight: 700;
-  color: #334155;
-  margin-bottom: 16px;
-}
-.meta {
+.quote-top {
+  direction: ltr;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px 16px;
-  padding: 14px 16px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  margin-bottom: 16px;
-}
-.meta-label {
-  display: block;
-  font-size: 11px;
-  font-weight: 700;
-  color: #475569;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: 14px;
+  align-items: start;
   margin-bottom: 4px;
 }
-.meta-value {
-  font-size: 14px;
-  font-weight: 800;
-  color: #0f172a;
-}
-.meta-value.status { color: $statusHex; }
-table.items {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 16px;
-  font-size: 13px;
-}
-table.items th, table.items td {
-  border: 1px solid #e2e8f0;
-  padding: 8px 10px;
-  text-align: start;
-}
-table.items th {
-  background: #f1f5f9;
-  font-weight: 800;
-  color: #334155;
-  font-size: 11px;
-}
-.totals {
-  padding: 14px 16px;
-  background: #f5f3ff;
-  border: 1.5px solid #7c6bb8;
-  border-radius: 12px;
-  margin-bottom: 16px;
-}
-.totals-line {
+.quote-client-col, .quote-meta-col {
+  direction: rtl;
   display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 13px;
-  font-weight: 700;
-  color: #334155;
-  margin-bottom: 6px;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
 }
-.totals-total {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  font-size: 18px;
-  font-weight: 900;
-  color: #4338ca;
-  margin-top: 8px;
-}
-.terms {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  padding: 14px 16px;
-  background: #f1f5f9;
-  border: 1px solid #cbd5e1;
-  border-radius: 12px;
-}
-.terms-icon {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #514091;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 900;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-.terms-text {
-  font-size: 13px;
-  line-height: 1.6;
-  color: #1e293b;
-  font-weight: 500;
-}
+.quote-meta-col .doc-title,
+.quote-meta-col .doc-title-en { text-align: right; }
+.quote-print .doc-title { font-size: 28px; }
+.quote-meta-col .val.ltr { direction: ltr; unicode-bidi: isolate; }
+.quote-meta-col .val.rtl-val { direction: rtl; }
+.greeting { margin: 0; }
 </style>
 </head>
 <body>
-  <div class="a4">
-    <div class="sheet no-split">
-      <div class="band">
-        <div class="band-row">
-          <div class="mark">ن</div>
-          <h1>$agency</h1>
-          <span class="badge">$status</span>
+'''
+      '${osPrintTwoCopies(sheetClass: 'quote-print', innerHtml: '''
+    ${OsBrandPrint.headerHtml()}
+    <div class="content-layer">
+      <div class="quote-top no-split">
+        <div class="quote-client-col">
+          <div class="panel">
+            <div class="client-row"><span class="lbl">${escapeHtml(AppLocaleKeys.osPrintQuoteTo.tr)} :</span><span class="val">${escapeHtml(clientName)}</span></div>
+            <div class="client-row"><span class="lbl">${escapeHtml(AppLocaleKeys.osPrintClientAddress.tr)} :</span><span class="val">${escapeHtml(address)}</span></div>
+            <div class="client-row"><span class="lbl">${escapeHtml(AppLocaleKeys.osPrintClientPhone.tr)} :</span><span class="val">${escapeHtml(phone)}</span></div>
+            <div class="client-row"><span class="lbl">${escapeHtml(AppLocaleKeys.osPrintClientEmail.tr)} :</span><span class="val">${escapeHtml(email)}</span></div>
+          </div>
+          <div class="greeting">${escapeHtml(AppLocaleKeys.osPrintQuoteGreeting.tr)}</div>
         </div>
-        <div class="band-sub">$header</div>
+        <div class="quote-meta-col">
+          <div>
+            <h1 class="doc-title">${escapeHtml(AppLocaleKeys.osPrintQuoteAr.tr)}</h1>
+            <div class="doc-title-en">QUOTATION</div>
+          </div>
+          <div class="panel">
+            <div class="meta-row"><span class="lbl">${escapeHtml(AppLocaleKeys.osPrintQuoteNo.tr)} :</span><span class="val ltr">${escapeHtml(ref)}</span></div>
+            <div class="meta-row"><span class="lbl">${escapeHtml(AppLocaleKeys.osPrintDate.tr)} :</span><span class="val ltr">${escapeHtml(quote.date)}</span></div>
+            <div class="meta-row"><span class="lbl">${escapeHtml(AppLocaleKeys.osPrintQuoteValidityLabel.tr)} :</span><span class="val rtl-val">${escapeHtml(validity)}</span></div>
+          </div>
+        </div>
       </div>
-      <div class="body">
-        <div class="client">$client</div>
-        <div class="client-label">${escapeHtml(AppLocaleKeys.osQuotationsClient.tr)}</div>
-        <div class="meta">
-          <div>
-            <span class="meta-label">${escapeHtml(AppLocaleKeys.osQuotationsNumber.tr)}</span>
-            <div class="meta-value">${escapeHtml(ref)}</div>
-          </div>
-          <div>
-            <span class="meta-label">${escapeHtml(AppLocaleKeys.osQuotationsApprovalStatus.tr)}</span>
-            <div class="meta-value status">$status</div>
-          </div>
-          <div>
-            <span class="meta-label">${escapeHtml(AppLocaleKeys.osQuotationsIssueDate.tr)}</span>
-            <div class="meta-value">${escapeHtml(quote.date)}</div>
-          </div>
-          <div>
-            <span class="meta-label">${escapeHtml(AppLocaleKeys.osQuotationsExpires.tr)}</span>
-            <div class="meta-value">${escapeHtml(quote.expiryDate)}</div>
-          </div>
-        </div>
-        <table class="items">
+
+      <div class="items-wrap">
+        <table class="items quote">
+          <colgroup>
+            <col class="col-n"/><col class="col-desc"/><col class="col-total"/>
+          </colgroup>
           <thead>
             <tr>
-              <th>#</th>
-              <th>${escapeHtml(AppLocaleKeys.osInvoicesItemDesc.tr)}</th>
-              <th>${escapeHtml(AppLocaleKeys.osInvoicesQty.tr)}</th>
-              <th>${escapeHtml(AppLocaleKeys.osInvoicesUnitPrice.tr)}</th>
-              <th>${escapeHtml(AppLocaleKeys.osInvoicesLineTotal.tr)}</th>
+              <th>${escapeHtml(AppLocaleKeys.osPrintColIndex.tr)}</th>
+              <th>${escapeHtml(AppLocaleKeys.osPrintColDesc.tr)}</th>
+              <th>${escapeHtml(AppLocaleKeys.osPrintColTotalPrice.tr)}</th>
             </tr>
           </thead>
           <tbody>
-            ${rows.join('\n')}
+            ${padded.join('\n')}
           </tbody>
         </table>
-        <div class="totals">
-          <div class="totals-line"><span>${escapeHtml(AppLocaleKeys.osInvoicesAmount.tr)}</span><span>$amount</span></div>
-          $vatRow
-          <div class="totals-total"><span>${escapeHtml(AppLocaleKeys.osQuotationsTotal.tr)}</span><span>$money</span></div>
-        </div>
-        <div class="terms">
-          <div class="terms-icon">!</div>
-          <div class="terms-text">$footer</div>
-        </div>
       </div>
+
+      <div class="notes-totals no-split">
+        <div class="notes-box">
+          <h4>${escapeHtml(AppLocaleKeys.osPrintNotes.tr)}:</h4>
+          $notesHtml
+        </div>
+        $totals
+      </div>
+
+      ${OsBrandPrint.quotationFooterHtml(qrSvg: qr)}
     </div>
-  </div>
+''')}'
+      '''
 </body>
 </html>
 ''';

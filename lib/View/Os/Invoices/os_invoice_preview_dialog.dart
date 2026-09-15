@@ -161,11 +161,6 @@ class _OsInvoicePreviewDialog extends StatelessWidget {
                           fg: Colors.white,
                           onTap: () => shareOsInvoiceWhatsApp(invoice),
                         ),
-                        const SizedBox(height: 8),
-                        OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text(AppLocaleKeys.osCommonClose.tr),
-                        ),
                       ],
                     )
                   : Row(
@@ -202,11 +197,6 @@ class _OsInvoicePreviewDialog extends StatelessWidget {
                             onTap: () => shareOsInvoiceWhatsApp(invoice),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text(AppLocaleKeys.osCommonClose.tr),
-                        ),
                       ],
                     ),
             ),
@@ -233,6 +223,18 @@ class _OsInvoicePreviewDialog extends StatelessWidget {
             AppLocaleKeys.osInvoicesClient.tr,
             invoice.clientName,
           ),
+          if ((invoice.clientPhone ?? '').isNotEmpty)
+            _metaCell(
+              theme,
+              AppLocaleKeys.osInvoicesClientPhone.tr,
+              invoice.clientPhone!,
+            ),
+          if ((invoice.clientEmail ?? '').isNotEmpty)
+            _metaCell(
+              theme,
+              AppLocaleKeys.osInvoicesClientEmail.tr,
+              invoice.clientEmail!,
+            ),
           _metaCell(
             theme,
             AppLocaleKeys.osInvoicesDate.tr,
@@ -242,6 +244,11 @@ class _OsInvoicePreviewDialog extends StatelessWidget {
             theme,
             AppLocaleKeys.osInvoicesDueDate.tr,
             invoice.dueDate,
+          ),
+          _metaCell(
+            theme,
+            AppLocaleKeys.osInvoicesPaymentMethod.tr,
+            OsFinanceFormat.paymentMethodLabel(invoice.paymentMethod),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -319,11 +326,25 @@ class _OsInvoicePreviewDialog extends StatelessWidget {
                   '${AppLocaleKeys.osInvoicesAmount.tr}: ${OsFinanceFormat.money(invoice.amount)}',
                   style: TextStyle(fontSize: 13, color: theme.secondaryText),
                 ),
+                if (invoice.discount > 0) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    '${AppLocaleKeys.osInvoicesDiscount.tr}: ${OsFinanceFormat.money(invoice.discount)}',
+                    style: TextStyle(fontSize: 13, color: theme.secondaryText),
+                  ),
+                ],
                 if (invoice.vat > 0) ...[
                   const SizedBox(height: 4),
                   Text(
                     '${AppLocaleKeys.osInvoicesVat.tr}: ${OsFinanceFormat.money(invoice.vat)}',
                     style: TextStyle(fontSize: 13, color: theme.secondaryText),
+                  ),
+                ],
+                if ((invoice.notes ?? '').trim().isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    '${AppLocaleKeys.osInvoicesNotes.tr}: ${invoice.notes!.trim()}',
+                    style: TextStyle(fontSize: 12, color: theme.mutedText),
                   ),
                 ],
                 const SizedBox(height: 8),

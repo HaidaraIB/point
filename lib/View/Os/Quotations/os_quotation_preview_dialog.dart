@@ -105,7 +105,7 @@ class _OsQuotationPreviewDialog extends StatelessWidget {
             const SizedBox(height: 8),
             Flexible(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                 child: Container(
                   decoration: BoxDecoration(
                     color: theme.cardSurface,
@@ -256,7 +256,7 @@ class _OsQuotationPreviewDialog extends StatelessWidget {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              AppLocaleKeys.osInvoicesItems.tr,
+                              AppLocaleKeys.osQuotationsItems.tr,
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w800,
@@ -288,6 +288,16 @@ class _OsQuotationPreviewDialog extends StatelessWidget {
                                       color: theme.secondaryText,
                                     ),
                                   ),
+                                  if (quote.discount > 0) ...[
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '${AppLocaleKeys.osInvoicesDiscount.tr}: ${OsFinanceFormat.money(quote.discount)}',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: theme.secondaryText,
+                                      ),
+                                    ),
+                                  ],
                                   if (quote.vat > 0) ...[
                                     const SizedBox(height: 4),
                                     Text(
@@ -295,6 +305,16 @@ class _OsQuotationPreviewDialog extends StatelessWidget {
                                       style: TextStyle(
                                         fontSize: 13,
                                         color: theme.secondaryText,
+                                      ),
+                                    ),
+                                  ],
+                                  if ((quote.notes ?? '').trim().isNotEmpty) ...[
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      '${AppLocaleKeys.osInvoicesNotes.tr}: ${quote.notes!.trim()}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: theme.mutedText,
                                       ),
                                     ),
                                   ],
@@ -359,24 +379,6 @@ class _OsQuotationPreviewDialog extends StatelessWidget {
                       ),
                     ],
                   ),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-              child: Align(
-                alignment: AlignmentDirectional.centerEnd,
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: theme.primaryText,
-                    side: BorderSide(color: theme.border),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 10,
-                    ),
-                  ),
-                  child: Text(AppLocaleKeys.osCommonClose.tr),
                 ),
               ),
             ),

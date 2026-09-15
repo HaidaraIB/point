@@ -2,8 +2,10 @@ import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsVoucherModel.dart';
 import 'package:point/Models/Os/os_finance_enums.dart';
-import 'package:point/Services/os_stamp_settings.dart';
 import 'package:point/Utils/os_arabic_currency.dart';
+import 'package:point/View/Os/Print/os_brand_print.dart';
+import 'package:point/View/Os/Print/os_print_assets.dart';
+import 'package:point/View/Os/Print/os_print_codes.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_print_a4.dart';
 
@@ -35,6 +37,39 @@ ${AppLocaleKeys.osVouchersSignAccountant.tr}
 '''.trim();
 }
 
+String _voucherHeaderHtml() {
+  String img(String src, String alt) => src.isEmpty
+      ? ''
+      : '<img class="brand-comp" src="$src" alt="${escapeHtml(alt)}"/>';
+
+  return '''
+<div class="voucher-header no-split">
+  <div class="voucher-brand">
+    ${img(OsPrintAssets.voucherBrandDataUri, 'POINT AGENCY')}
+  </div>
+  <div class="voucher-info">
+    ${img(OsPrintAssets.voucherInfoDataUri, '')}
+  </div>
+</div>''';
+}
+
+String _metaCell(String label, String value) {
+  return '''
+<div class="vm-cell">
+  <span class="vm-lbl">${escapeHtml(label)}</span>
+  <span class="vm-val">${escapeHtml(value)}</span>
+</div>''';
+}
+
+String _statementRow(String label, String value, {bool bold = false}) {
+  final weight = bold ? ' bold' : '';
+  return '''
+<div class="st-row">
+  <div class="lbl">${escapeHtml(label)}</div>
+  <div class="val$weight">${escapeHtml(value)}</div>
+</div>''';
+}
+
 String buildOsVoucherPrintHtml({
   required OsVoucherModel voucher,
   required String accountName,
@@ -42,213 +77,273 @@ String buildOsVoucherPrintHtml({
   final ref = OsFinanceFormat.voucherRef(voucher);
   final isReceipt = voucher.type == OsVoucherType.receipt;
   final desc = OsFinanceFormat.displayDescription(voucher.description);
-  final title = isReceipt
-      ? AppLocaleKeys.osVouchersTitleReceipt.tr
-      : AppLocaleKeys.osVouchersTitlePayment.tr;
+  final titleAr = isReceipt
+      ? AppLocaleKeys.osPrintVoucherReceiptAr.tr
+      : AppLocaleKeys.osPrintVoucherPaymentAr.tr;
+  final titleEn = isReceipt
+      ? AppLocaleKeys.osPrintVoucherReceiptEn.tr
+      : AppLocaleKeys.osPrintVoucherPaymentEn.tr;
+  final typeLabel = isReceipt
+      ? AppLocaleKeys.osVouchersTypeReceipt.tr
+      : AppLocaleKeys.osVouchersTypePayment.tr;
   final partyLabel = isReceipt
       ? AppLocaleKeys.osVouchersFrom.tr
       : AppLocaleKeys.osVouchersTo.tr;
-  final accent = isReceipt ? '#16a34a' : '#e11d48';
   final about = desc.isEmpty
       ? AppLocaleKeys.osVouchersDefaultDesc.tr
       : desc;
 
-  var stampBlock = '';
-  if (Get.isRegistered<OsStampSettingsController>()) {
-    final stamp = Get.find<OsStampSettingsController>();
-    if (stamp.stampEnabled.value) {
-      final hex =
-          '#${stamp.stampColor.toARGB32().toRadixString(16).padLeft(8, '0').substring(2)}';
-      stampBlock = '''
-<div class="stamp" style="border-color:$hex;color:$hex">
-  <div class="stamp-cert">${escapeHtml(AppLocaleKeys.osVouchersStampCertified.tr)}</div>
-  <div class="stamp-text">${escapeHtml(stamp.stampText.value)}</div>
-  <div class="stamp-ref">REF: ${escapeHtml(ref)}</div>
-  <div class="stamp-dept">${escapeHtml(AppLocaleKeys.osVouchersStampDept.tr)}</div>
-</div>''';
-    }
-  }
+  final qr = OsPrintCodes.qrSvg('${OsBrandPrint.agencySiteUrl}?v=$ref');
+  final barcode = OsPrintCodes.code128Svg(ref);
 
   return '''
 <!DOCTYPE html>
 <html dir="rtl" lang="ar">
 <head>
 <meta charset="utf-8"/>
-<title>${escapeHtml(title)} — ${escapeHtml(ref)}</title>
+<title>${escapeHtml(titleAr)} — ${escapeHtml(ref)}</title>
 <style>
 $osPrintA4Css
-body {
-  padding: 16px;
-  background: #fff;
+${OsBrandPrint.brandCss()}
+.voucher-print.sheet { min-height: 0; }
+.voucher-print .watermark-logo {
+  left: 4%;
+  top: 46%;
+  transform: translate(0, -50%);
+  width: 46%;
+  opacity: 0.95;
 }
-.sheet {
-  border: 2px solid #cbd5e1;
-  border-radius: 20px;
-  padding: 24px;
+.voucher-header {
+  direction: ltr;
+  display: grid;
+  grid-template-columns: 1.75fr 0.72fr;
+  align-items: center;
+  column-gap: 10px;
+  margin-bottom: 14px;
+}
+.voucher-brand,
+.voucher-info {
+  min-width: 0;
+}
+.voucher-brand .brand-comp {
   width: 100%;
-  box-sizing: border-box;
+  height: auto;
+  display: block;
 }
-.header {
+.voucher-info {
+  border-left: 1.5px solid var(--navy);
+  padding-left: 10px;
+  align-self: stretch;
   display: flex;
-  justify-content: space-between;
+  align-items: center;
+}
+.voucher-info .brand-comp {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.voucher-title-row {
+  direction: ltr;
+  display: grid;
+  grid-template-columns: 1.35fr 0.65fr;
   gap: 16px;
-  align-items: flex-start;
-  border-bottom: 2px solid #e2e8f0;
-  padding-bottom: 16px;
-  margin-bottom: 16px;
+  align-items: center;
+  margin: 4px 0 16px;
 }
-.agency { font-size: 16px; font-weight: 900; margin: 0 0 4px; }
-.muted { color: #64748b; font-size: 11px; font-weight: 600; }
-.meta {
-  font-family: 'Almarai', sans-serif;
-  font-size: 11px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  padding: 10px 12px;
-  min-width: 140px;
-}
-.meta strong { color: #4f46e5; }
-.badge {
-  display: inline-block;
-  padding: 6px 14px;
-  border-radius: 999px;
-  border: 2px solid $accent;
-  color: $accent;
-  font-size: 12px;
-  font-weight: 800;
-  margin: 8px auto 18px;
-}
-.badge-wrap { text-align: center; }
-.grid {
+.voucher-meta {
+  direction: rtl;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 12px 28px;
+  border: 1px solid #d8d4ea;
+  border-radius: 16px;
+  padding: 14px 18px;
+  background: rgba(255,255,255,0.72);
 }
-.tile {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  padding: 12px;
-  text-align: center;
-}
-.tile .lbl { font-size: 10px; color: #94a3b8; font-weight: 700; }
-.tile .val { font-size: 15px; font-weight: 900; color: #4f46e5; margin-top: 4px; }
-.box {
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  padding: 14px 16px;
-  margin-bottom: 20px;
-}
-.row { margin: 8px 0; font-size: 13px; }
-.row .lbl { color: #64748b; font-weight: 700; display: block; margin-bottom: 2px; }
-.row .val { font-weight: 700; color: #0f172a; }
-.row .val.bold { font-weight: 900; font-size: 14px; }
-hr { border: none; border-top: 1px solid #e2e8f0; margin: 10px 0; }
-.sigs {
+.vm-cell {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
-  margin-top: 8px;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 8px;
 }
-.sig {
+.vm-lbl {
+  white-space: nowrap;
+  color: var(--navy);
+  font-weight: 700;
+  font-size: 12px;
+}
+.vm-val {
   flex: 1;
+  min-width: 0;
+  border-bottom: 1px solid #c5c0dc;
   text-align: center;
-  font-size: 11px;
+  font-weight: 700;
+  font-size: 12px;
+  color: var(--text);
+  padding: 0 4px 2px;
 }
-.sig .line {
-  margin-top: 36px;
-  border-top: 1px dashed #94a3b8;
+.voucher-heading {
+  text-align: right;
+}
+.voucher-heading h1 {
+  font-size: 34px;
+  font-weight: 900;
+  color: var(--navy);
+  margin: 0;
+  line-height: 1.05;
+}
+.voucher-heading .en {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 6px;
+  color: var(--navy);
+  margin-top: 4px;
+}
+.voucher-statement {
+  border: 1px solid #d7e3ec;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.86);
+  padding: 16px 20px;
+}
+.st-row + .st-row {
+  border-top: 1px solid #e4edf3;
+  margin-top: 12px;
+  padding-top: 12px;
+}
+.st-row .lbl {
+  color: #7b8b99;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+  margin-bottom: 4px;
+}
+.st-row .val {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: right;
+}
+.st-row .val.bold {
+  font-weight: 900;
+  font-size: 14px;
+}
+.voucher-print .brand-footer {
+  margin-top: 16px;
   padding-top: 8px;
-  font-weight: 800;
 }
-.sig .sub { color: #94a3b8; font-size: 10px; margin-top: 2px; }
-.stamp {
-  width: 112px;
-  height: 112px;
-  border-radius: 50%;
-  border: 2.5px solid;
+.voucher-footer-top {
+  direction: ltr;
+  display: grid;
+  grid-template-columns: 1.15fr 0.7fr 1.15fr 0.55fr;
+  gap: 8px;
+  align-items: end;
+  margin-bottom: 14px;
+}
+.voucher-sign {
+  text-align: center;
+  padding: 0 10px 6px;
+  border-right: 1px solid var(--border);
+}
+.voucher-sign-line {
+  border-bottom: 1.5px solid var(--navy);
+  margin: 0 8px 8px;
+  height: 28px;
+}
+.voucher-sign-lbl {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--navy);
+}
+.voucher-seal-wrap {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
+}
+.voucher-seal {
+  width: 78px;
+  height: 78px;
+  object-fit: contain;
+  display: block;
+}
+.voucher-barcode {
   text-align: center;
-  transform: rotate(6deg);
+  min-width: 0;
+}
+.voucher-barcode .bc-svg svg {
+  width: 100%;
+  max-width: 170px;
+  height: 36px;
+  display: block;
+  margin: 0 auto;
+}
+.voucher-print .qr-block .qr-svg,
+.voucher-print .qr-block .qr-svg svg {
+  width: 64px;
+  height: 64px;
+}
+.voucher-bar {
+  padding: 8px 22px;
+}
+.voucher-bar .en-wrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+}
+.voucher-bar .en {
+  font-size: 8px;
+  font-weight: 400;
+  letter-spacing: 3.6px;
+  white-space: nowrap;
+}
+.voucher-bar .rule {
+  display: block;
+  width: 72px;
+  height: 1px;
+  background: rgba(255,255,255,0.85);
   flex-shrink: 0;
-  padding: 8px;
-  box-sizing: border-box;
 }
-.stamp-cert { font-size: 8px; font-weight: 800; }
-.stamp-text { font-size: 10px; font-weight: 700; margin: 2px 0; }
-.stamp-ref, .stamp-dept { font-size: 8px; font-weight: 700; }
-.footer {
-  text-align: center;
-  font-size: 10px;
-  color: #64748b;
-  margin-top: 18px;
-}
-@media print {
-  .sheet { border-radius: 0; }
+.voucher-bar .ar {
+  font-size: 12px;
+  letter-spacing: 1.2px;
 }
 </style>
 </head>
 <body>
-  <div class="a4">
-    <div class="sheet">
-      <div class="header">
-        <div>
-          <p class="agency">${escapeHtml(AppLocaleKeys.osVouchersAgency.tr)}</p>
-          <div class="muted">${escapeHtml(AppLocaleKeys.osVouchersDept.tr)}</div>
-          <div class="muted">${escapeHtml(AppLocaleKeys.osVouchersLocation.tr)}</div>
+'''
+      '${osPrintTwoCopies(sheetClass: 'voucher-print', innerHtml: '''
+      ${OsBrandPrint.watermarkHtml()}
+      <div class="content-layer">
+        ${_voucherHeaderHtml()}
+        <div class="voucher-title-row no-split">
+          <div class="voucher-meta">
+            ${_metaCell(AppLocaleKeys.osPrintVoucherNo.tr, ref)}
+            ${_metaCell(AppLocaleKeys.osPrintPaymentType.tr, typeLabel)}
+            ${_metaCell(AppLocaleKeys.osPrintDate.tr, voucher.date)}
+            ${_metaCell(AppLocaleKeys.osPrintPaymentMethod.tr, accountName)}
+          </div>
+          <div class="voucher-heading">
+            <h1>${escapeHtml(titleAr)}</h1>
+            <div class="en">${escapeHtml(titleEn)}</div>
+          </div>
         </div>
-        <div class="meta">
-          <div>${escapeHtml(AppLocaleKeys.osVouchersRef.tr)}: <strong>${escapeHtml(ref)}</strong></div>
-          <div>${escapeHtml(AppLocaleKeys.osVouchersDate.tr)}: ${escapeHtml(voucher.date)}</div>
+        <div class="voucher-statement no-split">
+          ${_statementRow(partyLabel, voucher.payeeOrPayer, bold: true)}
+          ${_statementRow(
+            AppLocaleKeys.osVouchersAmountWordsLabel.tr,
+            OsArabicCurrency.formatIqd(voucher.amount),
+          )}
+          ${_statementRow(AppLocaleKeys.osVouchersAboutLabel.tr, about)}
         </div>
+        ${OsBrandPrint.voucherFooterHtml(
+          qrSvg: qr,
+          barcodeSvg: barcode,
+          documentRef: ref,
+        )}
       </div>
-      <div class="badge-wrap"><span class="badge">${escapeHtml(title)}</span></div>
-      <div class="grid">
-        <div class="tile">
-          <div class="lbl">${escapeHtml(AppLocaleKeys.osVouchersAmountDigits.tr)}</div>
-          <div class="val">${escapeHtml(OsFinanceFormat.money(voucher.amount))}</div>
-        </div>
-        <div class="tile">
-          <div class="lbl">${escapeHtml(AppLocaleKeys.osVouchersAccountLinked.tr)}</div>
-          <div class="val" style="color:#0f172a;font-size:13px">${escapeHtml(accountName)}</div>
-        </div>
-      </div>
-      <div class="box">
-        <div class="row">
-          <span class="lbl">${escapeHtml(partyLabel)}</span>
-          <span class="val bold">${escapeHtml(voucher.payeeOrPayer)}</span>
-        </div>
-        <hr/>
-        <div class="row">
-          <span class="lbl">${escapeHtml(AppLocaleKeys.osVouchersAmountWordsLabel.tr)}</span>
-          <span class="val">${escapeHtml(OsArabicCurrency.formatIqd(voucher.amount))}</span>
-        </div>
-        <hr/>
-        <div class="row">
-          <span class="lbl">${escapeHtml(AppLocaleKeys.osVouchersAboutLabel.tr)}</span>
-          <span class="val">${escapeHtml(about)}</span>
-        </div>
-      </div>
-      <div class="sigs no-split">
-        <div class="sig">
-          <div class="line">${escapeHtml(AppLocaleKeys.osVouchersSignPayee.tr)}</div>
-          <div class="sub">${escapeHtml(AppLocaleKeys.osVouchersSignPayeeSub.tr)}</div>
-        </div>
-        $stampBlock
-        <div class="sig">
-          <div class="line">${escapeHtml(AppLocaleKeys.osVouchersSignAccountant.tr)}</div>
-          <div class="sub">${escapeHtml(AppLocaleKeys.osVouchersSignAccountantSub.tr)}</div>
-        </div>
-      </div>
-      <div class="footer">${escapeHtml(AppLocaleKeys.osVouchersFooter.tr)}</div>
-    </div>
-  </div>
+''')}'
+      '''
 </body>
 </html>
 ''';

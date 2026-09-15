@@ -65,6 +65,19 @@ class OsVoucherStatus {
   static const completed = 'COMPLETED';
 }
 
+/// Invoice payment method labels stored on the document.
+class OsPaymentMethod {
+  OsPaymentMethod._();
+
+  static const bankTransfer = 'BANK_TRANSFER';
+  static const cash = 'CASH';
+  static const cheque = 'CHEQUE';
+  static const card = 'CARD';
+  static const other = 'OTHER';
+
+  static const all = [bankTransfer, cash, cheque, card, other];
+}
+
 /// How a voucher was created — used to gate manual delete.
 class OsVoucherSource {
   OsVoucherSource._();
