@@ -1,13 +1,17 @@
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsBankAccountModel.dart';
+import 'package:point/Models/Os/OsBranchModel.dart';
 import 'package:point/Models/Os/OsDailyExpenseModel.dart';
 import 'package:point/Models/Os/OsInvoiceModel.dart';
 import 'package:point/Models/Os/OsQuotationModel.dart';
+import 'package:point/Models/Os/OsServiceModel.dart';
 import 'package:point/Models/Os/OsVoucherModel.dart';
 import 'package:point/Models/Os/os_finance_enums.dart';
 import 'package:point/Services/NotificationService.dart';
+import 'package:point/Services/firestore/firestore_os_branches_api.dart';
 import 'package:point/Services/firestore/firestore_os_finance_api.dart';
+import 'package:point/Services/firestore/firestore_os_services_api.dart';
 import 'package:point/Utils/app_log.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 
@@ -17,12 +21,22 @@ class OsFinanceController extends GetxController {
   final bankAccounts = <OsBankAccountModel>[].obs;
   final vouchers = <OsVoucherModel>[].obs;
   final expenses = <OsDailyExpenseModel>[].obs;
+  final branches = <OsBranchModel>[].obs;
+  final services = <OsServiceModel>[].obs;
   final isLoading = false.obs;
 
   @override
   void onInit() {
     super.onInit();
     _bindStreams();
+    _seedOsCatalog();
+  }
+
+  Future<void> _seedOsCatalog() async {
+    await Future.wait([
+      FirestoreOsBranchesApi.ensureSeeded(),
+      FirestoreOsServicesApi.ensureSeeded(),
+    ]);
   }
 
   void _bindStreams() {
@@ -31,6 +45,8 @@ class OsFinanceController extends GetxController {
     bankAccounts.bindStream(FirestoreOsFinanceApi.streamBankAccounts());
     vouchers.bindStream(FirestoreOsFinanceApi.streamVouchers());
     expenses.bindStream(FirestoreOsFinanceApi.streamExpenses());
+    branches.bindStream(FirestoreOsBranchesApi.streamBranches());
+    services.bindStream(FirestoreOsServicesApi.streamServices());
   }
 
   double get totalInvoiced =>
@@ -54,6 +70,77 @@ class OsFinanceController extends GetxController {
       if (a.id == id) return a;
     }
     return null;
+  }
+
+  OsBranchModel? branchById(String? id) {
+    if (id == null || id.isEmpty) return null;
+    for (final b in branches) {
+      if (b.id == id) return b;
+    }
+    return null;
+  }
+
+  /// Display name for a branch id; falls back to the raw id.
+  String branchName(String? id) {
+    if (id == null || id.isEmpty) return '';
+    return branchById(id)?.name ?? id;
+  }
+
+  /// Prefer first active branch; otherwise first overall (for expense defaults).
+  String? get defaultBranchId {
+    for (final b in branches) {
+      if (b.isActive && (b.id?.isNotEmpty ?? false)) return b.id;
+    }
+    for (final b in branches) {
+      if (b.id?.isNotEmpty ?? false) return b.id;
+    }
+    return null;
+  }
+
+  OsServiceModel? serviceById(String? id) {
+    if (id == null || id.isEmpty) return null;
+    for (final s in services) {
+      if (s.id == id) return s;
+    }
+    return null;
+  }
+
+  Future<bool> saveBranch(OsBranchModel branch) async {
+    isLoading.value = true;
+    try {
+      return await FirestoreOsBranchesApi.upsertBranch(branch);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<bool> deleteBranch(String id) async {
+    isLoading.value = true;
+    try {
+      return await FirestoreOsBranchesApi.deleteBranch(id);
+    } on OsBranchesException {
+      rethrow;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<bool> saveService(OsServiceModel service) async {
+    isLoading.value = true;
+    try {
+      return await FirestoreOsServicesApi.upsertService(service);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<bool> deleteService(String id) async {
+    isLoading.value = true;
+    try {
+      return await FirestoreOsServicesApi.deleteService(id);
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   Future<bool> saveInvoice(OsInvoiceModel invoice) async {

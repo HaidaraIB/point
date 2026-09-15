@@ -60,20 +60,6 @@ class OsExpenseStatus {
   static const rejected = 'REJECTED';
 }
 
-/// Seed branches until Branches module ships (point_os MOCK_BRANCHES).
-class OsExpenseBranch {
-  const OsExpenseBranch({required this.id, required this.nameKey});
-
-  final String id;
-  final String nameKey;
-}
-
-const osExpenseBranches = <OsExpenseBranch>[
-  OsExpenseBranch(id: 'BR-01', nameKey: AppLocaleKeys.osExpensesBranchBaghdad),
-  OsExpenseBranch(id: 'BR-02', nameKey: AppLocaleKeys.osExpensesBranchErbil),
-  OsExpenseBranch(id: 'BR-03', nameKey: AppLocaleKeys.osExpensesBranchBasra),
-];
-
 class OsExpensePaidByExtras {
   OsExpensePaidByExtras._();
 

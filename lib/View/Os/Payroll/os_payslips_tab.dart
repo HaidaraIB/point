@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:point/Controller/OsPayrollController.dart';
+import 'package:point/Controller/OsFinanceController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/EmployeeModel.dart';
 import 'package:point/Models/Os/OsPayslipModel.dart';
-import 'package:point/Models/Os/os_expense_constants.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/firestore/firestore_os_finance_api.dart';
 import 'package:point/Services/firestore/firestore_os_payroll_api.dart';
@@ -33,8 +33,9 @@ class _OsPayslipsTabState extends State<OsPayslipsTab> {
     if (branchId == null || branchId.isEmpty) {
       return AppLocaleKeys.osCommonDash.tr;
     }
-    for (final b in osExpenseBranches) {
-      if (b.id == branchId) return b.nameKey.tr;
+    if (Get.isRegistered<OsFinanceController>()) {
+      final name = Get.find<OsFinanceController>().branchName(branchId);
+      if (name.isNotEmpty) return name;
     }
     return branchId;
   }

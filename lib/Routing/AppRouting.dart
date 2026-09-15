@@ -37,6 +37,8 @@ import 'package:point/View/AdminSettings/AdminSettingsPage.dart';
 import 'package:point/View/Attendance/AttendancePage.dart';
 import 'package:point/View/Attendance/AttendanceReportsPage.dart';
 import 'package:point/View/Os/OsDashboardPage.dart';
+import 'package:point/View/Os/Branches/OsBranchesPage.dart';
+import 'package:point/View/Os/Services/OsServicesPage.dart';
 import 'package:point/View/Os/Finance/OsFinancePage.dart';
 import 'package:point/View/Os/Invoices/OsInvoicesPage.dart';
 import 'package:point/View/Os/Expenses/OsExpensesPage.dart';
@@ -257,6 +259,16 @@ class AppRouting {
         GetPage(
           name: '/os/payroll',
           page: () => const OsPayrollPage(),
+          middlewares: [AuthMiddleware()],
+        ),
+        GetPage(
+          name: '/os/branches',
+          page: () => const OsBranchesPage(),
+          middlewares: [AuthMiddleware()],
+        ),
+        GetPage(
+          name: '/os/services',
+          page: () => const OsServicesPage(),
           middlewares: [AuthMiddleware()],
         ),
         GetPage(

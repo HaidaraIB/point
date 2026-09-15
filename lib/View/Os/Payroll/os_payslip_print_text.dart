@@ -1,8 +1,8 @@
 import 'package:get/get.dart';
+import 'package:point/Controller/OsFinanceController.dart';
 import 'package:point/Controller/OsPayrollController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsPayslipModel.dart';
-import 'package:point/Models/Os/os_expense_constants.dart';
 import 'package:point/Services/os_stamp_settings.dart';
 import 'package:point/Utils/os_arabic_currency.dart';
 import 'package:point/View/Os/os_finance_format.dart';
@@ -20,8 +20,9 @@ String _nationalIdLabel(OsPayslipModel slip) {
 
 String _branchLabel(String? branchId) {
   if (branchId == null || branchId.isEmpty) return AppLocaleKeys.osCommonDash.tr;
-  for (final b in osExpenseBranches) {
-    if (b.id == branchId) return b.nameKey.tr;
+  if (Get.isRegistered<OsFinanceController>()) {
+    final name = Get.find<OsFinanceController>().branchName(branchId);
+    if (name.isNotEmpty) return name;
   }
   return branchId;
 }

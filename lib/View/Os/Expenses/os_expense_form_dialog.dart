@@ -85,7 +85,7 @@ class _OsExpenseFormDialogState extends State<_OsExpenseFormDialog> {
         existing?.paymentMethod ?? OsExpensePaymentMethod.cash;
     _bankAccountId = existing?.bankAccountId ??
         (finance.bankAccounts.isNotEmpty ? finance.bankAccounts.first.id : null);
-    _branchId = existing?.branchId ?? osExpenseBranches.first.id;
+    _branchId = existing?.branchId ?? finance.defaultBranchId ?? '';
     _paidBy = existing?.paidBy ??
         (home.employees.isNotEmpty
             ? (home.employees.first.name?.trim() ?? '')
@@ -323,6 +323,7 @@ class _OsExpenseFormDialogState extends State<_OsExpenseFormDialog> {
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
+    final finance = Get.find<OsFinanceController>();
     final narrow = MediaQuery.sizeOf(context).width < 640;
     final currency = AppLocaleKeys.osInvoicesCurrency.tr;
     final hasReceipt =
@@ -674,17 +675,29 @@ class _OsExpenseFormDialogState extends State<_OsExpenseFormDialog> {
                         ),
                         DropdownButtonFormField<String>(
                           key: ValueKey(_branchId),
-                          initialValue: _branchId,
+                          initialValue: _branchId.isEmpty
+                              ? null
+                              : _branchId,
                           isExpanded: true,
                           decoration: _dec(
                             AppLocaleKeys.osExpensesBranchLinked.tr,
                           ),
                           items: [
-                            for (final b in osExpenseBranches)
+                            for (final b in finance.branches)
+                              if (b.id != null && b.id!.isNotEmpty)
+                                DropdownMenuItem(
+                                  value: b.id,
+                                  child: Text(
+                                    b.name,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                            if (_branchId.isNotEmpty &&
+                                finance.branchById(_branchId) == null)
                               DropdownMenuItem(
-                                value: b.id,
+                                value: _branchId,
                                 child: Text(
-                                  b.nameKey.tr,
+                                  _branchId,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),

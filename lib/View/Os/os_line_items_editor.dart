@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:point/Controller/OsFinanceController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsLineItem.dart';
+import 'package:point/Models/Os/OsServiceModel.dart';
 import 'package:point/Utils/app_theme_extension.dart';
-import 'package:point/View/Os/Invoices/os_invoice_service_presets.dart';
 import 'package:point/View/Os/Invoices/os_invoice_share.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
@@ -89,7 +90,7 @@ class OsLineItemsController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void applyServicePreset(OsInvoiceServicePreset srv) {
+  void applyService(OsServiceModel srv) {
     final last = _lines.last;
     final blank =
         last.description.text.trim().isEmpty && last.unitPrice == 0;
@@ -168,46 +169,57 @@ class OsLineItemsEditor extends StatelessWidget {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: theme.accentText.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: theme.accentText.withValues(alpha: 0.2),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            Obx(() {
+              final services = Get.isRegistered<OsFinanceController>()
+                  ? Get.find<OsFinanceController>().services.toList()
+                  : const <OsServiceModel>[];
+              if (services.isEmpty) return const SizedBox.shrink();
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    AppLocaleKeys.osInvoicesServiceChips.tr,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: theme.accentText,
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: theme.accentText.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: theme.accentText.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          AppLocaleKeys.osInvoicesServiceChips.tr,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: theme.accentText,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final srv in services)
+                              ActionChip(
+                                avatar: const Icon(Icons.add, size: 16),
+                                label: Text(
+                                  '${srv.name} (${OsFinanceFormat.money(srv.basePrice)})',
+                                  style: const TextStyle(fontSize: 11),
+                                ),
+                                onPressed: () => controller.applyService(srv),
+                              ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final srv in osInvoiceServicePresets)
-                        ActionChip(
-                          avatar: const Icon(Icons.add, size: 16),
-                          label: Text(
-                            '${srv.name} (${OsFinanceFormat.money(srv.basePrice)})',
-                            style: const TextStyle(fontSize: 11),
-                          ),
-                          onPressed: () => controller.applyServicePreset(srv),
-                        ),
-                    ],
-                  ),
+                  const SizedBox(height: 18),
                 ],
-              ),
-            ),
-            const SizedBox(height: 18),
+              );
+            }),
             Row(
               children: [
                 Text(

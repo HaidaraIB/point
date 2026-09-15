@@ -495,10 +495,7 @@ class _OsExpensesPageState extends State<OsExpensesPage> {
                                             return AppLocaleKeys
                                                 .osExpensesFilterBranchAll.tr;
                                           }
-                                          for (final b in osExpenseBranches) {
-                                            if (b.id == v) return b.nameKey.tr;
-                                          }
-                                          return v;
+                                          return finance.branchName(v);
                                         },
                                         entries: [
                                           (
@@ -506,8 +503,10 @@ class _OsExpensesPageState extends State<OsExpensesPage> {
                                             AppLocaleKeys
                                                 .osExpensesFilterBranchAll.tr
                                           ),
-                                          for (final b in osExpenseBranches)
-                                            (b.id, b.nameKey.tr),
+                                          for (final b in finance.branches)
+                                            if (b.id != null &&
+                                                b.id!.isNotEmpty)
+                                              (b.id!, b.name),
                                         ],
                                         onChanged: (v) =>
                                             setState(() => _branch = v),

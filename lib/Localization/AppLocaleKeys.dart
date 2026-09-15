@@ -532,6 +532,77 @@ class AppLocaleKeys {
   static const osBackToHub = 'os.back_to_hub';
   static const osNavHub = 'os.nav.hub';
 
+  // --- Branches ---
+  static const osBranchesTitle = 'os.branches.title';
+  static const osBranchesSubtitle = 'os.branches.subtitle';
+  static const osBranchesAdd = 'os.branches.add';
+  static const osBranchesAddTitle = 'os.branches.add_title';
+  static const osBranchesEditTitle = 'os.branches.edit_title';
+  static const osBranchesSearch = 'os.branches.search';
+  static const osBranchesEmpty = 'os.branches.empty';
+  static const osBranchesEmptyFilter = 'os.branches.empty_filter';
+  static const osBranchesAddCard = 'os.branches.add_card';
+  static const osBranchesName = 'os.branches.name';
+  static const osBranchesNameHint = 'os.branches.name_hint';
+  static const osBranchesManager = 'os.branches.manager';
+  static const osBranchesManagerHint = 'os.branches.manager_hint';
+  static const osBranchesLocation = 'os.branches.location';
+  static const osBranchesLocationHint = 'os.branches.location_hint';
+  static const osBranchesPhone = 'os.branches.phone';
+  static const osBranchesStatus = 'os.branches.status';
+  static const osBranchesStatusActive = 'os.branches.status.active';
+  static const osBranchesStatusInactive = 'os.branches.status.inactive';
+  static const osBranchesFilterActive = 'os.branches.filter.active';
+  static const osBranchesFilterInactive = 'os.branches.filter.inactive';
+  static const osBranchesStaff = 'os.branches.staff';
+  static const osBranchesStaffCount = 'os.branches.staff_count';
+  static const osBranchesKpiTotal = 'os.branches.kpi.total';
+  static const osBranchesKpiActive = 'os.branches.kpi.active';
+  static const osBranchesKpiStaff = 'os.branches.kpi.staff';
+  static const osBranchesKpiProvinces = 'os.branches.kpi.provinces';
+  static const osBranchesMap = 'os.branches.map';
+  static const osBranchesCall = 'os.branches.call';
+  static const osBranchesSaved = 'os.branches.saved';
+  static const osBranchesDeleted = 'os.branches.deleted';
+  static const osBranchesDeleteConfirm = 'os.branches.delete_confirm';
+  static const osBranchesNameRequired = 'os.branches.name_required';
+  static const osBranchesLocationRequired = 'os.branches.location_required';
+  static const errorsOsBranchesInUse = 'errors.osBranches.in_use';
+  static const errorsOsBranchesSave = 'errors.osBranches.save';
+  static const errorsOsBranchesDelete = 'errors.osBranches.delete';
+  static const errorsOsBranchesOpenMap = 'errors.osBranches.open_map';
+  static const errorsOsBranchesOpenPhone = 'errors.osBranches.open_phone';
+
+  // --- Services ---
+  static const osServicesTitle = 'os.services.title';
+  static const osServicesSubtitle = 'os.services.subtitle';
+  static const osServicesAdd = 'os.services.add';
+  static const osServicesAddTitle = 'os.services.add_title';
+  static const osServicesEditTitle = 'os.services.edit_title';
+  static const osServicesSearch = 'os.services.search';
+  static const osServicesEmpty = 'os.services.empty';
+  static const osServicesEmptyFilter = 'os.services.empty_filter';
+  static const osServicesName = 'os.services.name';
+  static const osServicesNameHint = 'os.services.name_hint';
+  static const osServicesCategory = 'os.services.category';
+  static const osServicesBasePrice = 'os.services.base_price';
+  static const osServicesPriceType = 'os.services.price_type';
+  static const osServicesCatArtistic = 'os.services.cat.artistic';
+  static const osServicesCatVisual = 'os.services.cat.visual';
+  static const osServicesCatPost = 'os.services.cat.post';
+  static const osServicesCatDigital = 'os.services.cat.digital';
+  static const osServicesCatCreative = 'os.services.cat.creative';
+  static const osServicesPriceFixed = 'os.services.price.fixed';
+  static const osServicesPriceHourly = 'os.services.price.hourly';
+  static const osServicesPricePackage = 'os.services.price.package';
+  static const osServicesSaved = 'os.services.saved';
+  static const osServicesDeleted = 'os.services.deleted';
+  static const osServicesDeleteConfirm = 'os.services.delete_confirm';
+  static const osServicesNameRequired = 'os.services.name_required';
+  static const osServicesPriceRequired = 'os.services.price_required';
+  static const errorsOsServicesSave = 'errors.osServices.save';
+  static const errorsOsServicesDelete = 'errors.osServices.delete';
+
   static const osQuotationsTitle = 'os.quotations.title';
   static const osQuotationsSubtitle = 'os.quotations.subtitle';
   static const osQuotationsAdd = 'os.quotations.add';
@@ -993,9 +1064,6 @@ class AppLocaleKeys {
   static const osExpensesPayQi = 'os.expenses.pay.qi';
   static const osExpensesPayTransfer = 'os.expenses.pay.transfer';
   static const osExpensesPayCard = 'os.expenses.pay.card';
-  static const osExpensesBranchBaghdad = 'os.expenses.branch.baghdad';
-  static const osExpensesBranchErbil = 'os.expenses.branch.erbil';
-  static const osExpensesBranchBasra = 'os.expenses.branch.basra';
   static const osExpensesPaidByAccountant =
       'os.expenses.paid_by.accountant';
   static const osExpensesPaidByManagement =

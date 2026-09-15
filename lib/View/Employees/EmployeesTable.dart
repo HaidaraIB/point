@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Controller/OsFinanceController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/EmployeeAttendanceLocation.dart';
 import 'package:point/Models/EmployeeModel.dart';
-import 'package:point/Models/Os/os_expense_constants.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Utils/AppColors.dart';
@@ -111,6 +111,23 @@ Widget _employeeTableMetaText(String text) {
       color: resolveAppTheme().secondaryText,
     ),
   );
+}
+
+List<DropdownMenuItem<String>> _employeeBranchMenuItems(String? selectedId) {
+  final branches = Get.isRegistered<OsFinanceController>()
+      ? Get.find<OsFinanceController>().branches.toList()
+      : const [];
+  final items = <DropdownMenuItem<String>>[
+    for (final b in branches)
+      if (b.id != null && b.id!.isNotEmpty)
+        DropdownMenuItem(value: b.id, child: Text(b.name)),
+  ];
+  if (selectedId != null &&
+      selectedId.isNotEmpty &&
+      !branches.any((b) => b.id == selectedId)) {
+    items.add(DropdownMenuItem(value: selectedId, child: Text(selectedId)));
+  }
+  return items;
 }
 
 class EmployeeTable extends StatefulWidget {
@@ -827,11 +844,8 @@ void showAddEmployeeDialog(BuildContext context, {EmployeeModel? model}) {
                                         AppLocaleKeys.employeesBranchUnset.tr,
                                       ),
                                     ),
-                                    ...osExpenseBranches.map(
-                                      (b) => DropdownMenuItem(
-                                        value: b.id,
-                                        child: Text(b.nameKey.tr),
-                                      ),
+                                    ..._employeeBranchMenuItems(
+                                      selectedBranchId,
                                     ),
                                   ],
                                   value: selectedBranchId ?? '',

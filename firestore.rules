@@ -1287,6 +1287,16 @@ service cloud.firestore {
         if isSignedIn() && hasAuthRole() && isAdmin();
     }
 
+    match /os_branches/{branchId} {
+      allow read, create, update, delete:
+        if isSignedIn() && hasAuthRole() && isAdmin();
+    }
+
+    match /os_services/{serviceId} {
+      allow read, create, update, delete:
+        if isSignedIn() && hasAuthRole() && isAdmin();
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

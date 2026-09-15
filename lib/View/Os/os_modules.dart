@@ -67,10 +67,12 @@ const osModules = <OsModule>[
   OsModule(
     titleKey: AppLocaleKeys.osModuleServices,
     icon: Icons.design_services_outlined,
+    route: '/os/services',
   ),
   OsModule(
     titleKey: AppLocaleKeys.osModuleBranches,
     icon: Icons.apartment_outlined,
+    route: '/os/branches',
   ),
 ];
 

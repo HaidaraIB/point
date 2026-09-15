@@ -2,9 +2,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Controller/OsFinanceController.dart';
 import 'package:point/Models/EmployeeAttendanceLocation.dart';
 import 'package:point/Models/EmployeeModel.dart';
-import 'package:point/Models/Os/os_expense_constants.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
@@ -63,6 +63,28 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
   bool attendanceRemote = false;
   bool attendanceFlexibleHours = false;
   static const List<String> _roles = ["supervisor", "admin", "employee"];
+
+  List<DropdownMenuItem<String>> _branchMenuItems() {
+    final branches = Get.isRegistered<OsFinanceController>()
+        ? Get.find<OsFinanceController>().branches.toList()
+        : const [];
+    final items = <DropdownMenuItem<String>>[
+      for (final b in branches)
+        if (b.id != null && b.id!.isNotEmpty)
+          DropdownMenuItem(value: b.id, child: Text(b.name)),
+    ];
+    if (selectedBranchId != null &&
+        selectedBranchId!.isNotEmpty &&
+        !branches.any((b) => b.id == selectedBranchId)) {
+      items.add(
+        DropdownMenuItem(
+          value: selectedBranchId!,
+          child: Text(selectedBranchId!),
+        ),
+      );
+    }
+    return items;
+  }
 
   bool get _canEditCredentials {
     final m = widget.model;
@@ -539,12 +561,7 @@ class _EmployeeFormMobilePageState extends State<EmployeeFormMobilePage> {
                         value: '',
                         child: Text(AppLocaleKeys.employeesBranchUnset.tr),
                       ),
-                      ...osExpenseBranches.map(
-                        (b) => DropdownMenuItem(
-                          value: b.id,
-                          child: Text(b.nameKey.tr),
-                        ),
-                      ),
+                      ..._branchMenuItems(),
                     ],
                     value: selectedBranchId ?? '',
                     label: AppLocaleKeys.employeesBranch.tr,
