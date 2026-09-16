@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Controller/OsCrmController.dart';
 import 'package:point/Controller/OsFinanceController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Models/Os/os_crm_enums.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/View/Os/Crm/os_crm_labels.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_modules.dart';
 
@@ -14,6 +17,7 @@ class OsDashboardBody extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.appTheme;
     final finance = Get.find<OsFinanceController>();
+    final crm = Get.find<OsCrmController>();
 
     return GetBuilder<HomeController>(
       builder: (controller) {
@@ -21,6 +25,11 @@ class OsDashboardBody extends StatelessWidget {
           final clientsCount = controller.clients.length;
           final employeesCount = controller.employees.length;
           final invoiceTotal = finance.totalInvoiced;
+          final pipelineActive = crm.pipelineActiveCount;
+          final newLeads = crm.newLeadsCount;
+          final wonClients = crm.wonClientsCount;
+          final conversionRate = crm.conversionRatePercent;
+          final stageCounts = crm.pipelineCountsByStage();
 
           return LayoutBuilder(
             builder: (context, constraints) {
@@ -82,13 +91,65 @@ class OsDashboardBody extends StatelessWidget {
                         ),
                         _KpiCard(
                           title: AppLocaleKeys.osKpiConversion.tr,
-                          value: AppLocaleKeys.osKpiConversionZero.tr,
-                          subtitle: AppLocaleKeys.osKpiNotConnected.tr,
+                          value: clientsCount == 0
+                              ? AppLocaleKeys.osKpiConversionZero.tr
+                              : AppLocaleKeys.osKpiConversionRate.trParams({
+                                  'rate': '$conversionRate',
+                                }),
+                          subtitle: clientsCount == 0
+                              ? AppLocaleKeys.osKpiNotConnected.tr
+                              : null,
                           icon: Icons.trending_up_outlined,
                           color: Colors.orange,
                         ),
                       ],
                     ),
+                    const SizedBox(height: 20),
+                    GridView.count(
+                      crossAxisCount: kpiCrossAxisCount,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      childAspectRatio: wide ? 1.7 : 2.2,
+                      children: [
+                        _KpiCard(
+                          title: AppLocaleKeys.osKpiPipeline.tr,
+                          value: '$pipelineActive',
+                          icon: Icons.view_kanban_outlined,
+                          color: Colors.deepPurple,
+                        ),
+                        _KpiCard(
+                          title: AppLocaleKeys.osKpiNewLeads.tr,
+                          value: '$newLeads',
+                          icon: Icons.person_add_alt_1_outlined,
+                          color: Colors.indigo,
+                        ),
+                        _KpiCard(
+                          title: AppLocaleKeys.osKpiWonClients.tr,
+                          value: '$wonClients',
+                          icon: Icons.emoji_events_outlined,
+                          color: Colors.green,
+                        ),
+                        _KpiCard(
+                          title: AppLocaleKeys.osCrmStageInProgress.tr,
+                          value: '${crm.countInStage(OsCrmStage.inProgress)}',
+                          icon: Icons.autorenew_rounded,
+                          color: Colors.blue,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      AppLocaleKeys.osDashboardPipelineTitle.tr,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: theme.primaryText,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    _PipelineFunnel(stageCounts: stageCounts),
                     const SizedBox(height: 28),
                     Text(
                       AppLocaleKeys.osModulesTitle.tr,
@@ -198,6 +259,103 @@ class _KpiCard extends StatelessWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+class _PipelineFunnel extends StatelessWidget {
+  const _PipelineFunnel({required this.stageCounts});
+
+  final Map<String, int> stageCounts;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.appTheme;
+    final total = stageCounts.values.fold<int>(0, (sum, n) => sum + n);
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: theme.cardSurface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.border),
+      ),
+      child: Column(
+        children: [
+          for (final stage in OsCrmStage.ordered) ...[
+            _PipelineRow(
+              label: osCrmStageLabel(stage),
+              count: stageCounts[stage] ?? 0,
+              total: total,
+              color: osCrmStageColor(stage),
+            ),
+            if (stage != OsCrmStage.ordered.last) const SizedBox(height: 8),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _PipelineRow extends StatelessWidget {
+  const _PipelineRow({
+    required this.label,
+    required this.count,
+    required this.total,
+    required this.color,
+  });
+
+  final String label;
+  final int count;
+  final int total;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.appTheme;
+    final fraction = total == 0 ? 0.0 : count / total;
+
+    return Row(
+      children: [
+        SizedBox(
+          width: 132,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: theme.secondaryText,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: fraction,
+              minHeight: 8,
+              backgroundColor: theme.inputFill,
+              color: color,
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        SizedBox(
+          width: 28,
+          child: Text(
+            '$count',
+            textAlign: TextAlign.end,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

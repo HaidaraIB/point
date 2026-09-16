@@ -146,16 +146,52 @@ String buildOsInvoicePrintHtml(OsInvoiceModel invoice) {
 <style>
 $osPrintA4Css
 ${OsBrandPrint.brandCss()}
+.invoice-print .brand-header {
+  grid-template-columns: 2.17fr 1.76fr;
+  column-gap: 0;
+  align-items: stretch;
+  margin-bottom: 4px;
+}
+.invoice-print .brand-primary-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.invoice-print .brand-lockup {
+  width: 100%;
+  overflow: visible;
+}
+.invoice-print .brand-lockup .brand-comp {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  object-fit: fill;
+}
+.invoice-print .brand-header-end {
+  align-self: stretch;
+}
+.invoice-print .brand-comp-info {
+  margin: 0;
+  padding: 0 6px;
+}
+.invoice-print .brand-comp-slogan {
+  object-position: right center;
+  height: auto;
+  max-height: 32mm;
+  width: auto;
+  justify-self: end;
+}
 .invoice-services {
-  grid-column: 1;
   direction: ltr;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   width: 100%;
-  margin: 4px 0 0;
+  margin: 2px 0 0;
   padding: 0;
   color: var(--navy);
+  box-sizing: border-box;
 }
 .invoice-services .svc {
   text-align: center;
@@ -182,42 +218,6 @@ ${OsBrandPrint.brandCss()}
   color: var(--muted);
   direction: ltr;
   unicode-bidi: isolate;
-}
-.invoice-print .brand-header {
-  grid-template-columns: 1.15fr 0.85fr;
-  column-gap: 14px;
-  align-items: start;
-  margin-bottom: 4px;
-}
-.invoice-print .brand-lockup {
-  max-height: 34mm;
-}
-.invoice-print .brand-lockup .brand-comp {
-  object-position: left center;
-  height: 38mm;
-  width: auto;
-  max-width: none;
-  margin-left: -3.2mm;
-}
-.invoice-print .brand-header-end {
-  grid-template-columns: minmax(0, 1fr) max-content;
-  align-self: stretch;
-  max-height: 34mm;
-}
-.invoice-print .brand-comp-info .brand-comp {
-  height: 34mm;
-  width: auto;
-}
-.invoice-print .brand-comp-slogan {
-  object-position: right center;
-  width: auto;
-  height: 34mm;
-  max-height: 34mm;
-  justify-self: end;
-}
-.invoice-print .brand-comp-info {
-  margin: 0;
-  padding: 0 8px;
 }
 .invoice-print .doc-title { font-size: 28px; }
 .invoice-print .panel { padding: 7px 10px; }
@@ -271,7 +271,8 @@ ${OsBrandPrint.brandCss()}
   width: 56px;
   height: 56px;
 }
-.invoice-print .invoice-sign-text .sign-agency { margin-bottom: 8px; }
+.invoice-print .sign-block .sign-agency { margin-bottom: 8px; }
+.invoice-print .sign-block .sign-agency-name { margin-bottom: 12px; }
 .invoice-heading {
   text-align: right;
   margin-bottom: 8px;
@@ -307,14 +308,25 @@ ${OsBrandPrint.brandCss()}
   min-width: 0;
 }
 .invoice-client {
+  direction: rtl;
   margin-bottom: 0;
 }
+.invoice-client .panel-body {
+  direction: rtl;
+  text-align: right;
+}
 .invoice-client .client-row {
-  justify-content: space-between;
-  gap: 10px;
+  direction: rtl;
+  justify-content: flex-start;
+  gap: 8px;
+}
+.invoice-client .client-row .lbl {
+  text-align: right;
 }
 .invoice-client .client-row .val {
-  text-align: left;
+  text-align: right;
+  direction: rtl;
+  unicode-bidi: plaintext;
   flex: 1;
   min-width: 0;
 }
@@ -340,24 +352,25 @@ ${OsBrandPrint.brandCss()}
   margin: 0 auto;
 }
 .invoice-sign {
-  direction: ltr;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  direction: rtl;
+  display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
+  gap: 12px;
   min-width: 0;
 }
-.invoice-sign-text {
-  direction: rtl;
-  text-align: right;
+.invoice-sign .sign-block {
+  flex: 0 1 auto;
+  min-width: 0;
 }
-.invoice-sign-text .sign-agency { margin-bottom: 8px; }
 .invoice-seal {
   display: block;
-  width: 72px;
+  width: 64px;
   height: auto;
   max-width: 100%;
   object-fit: contain;
+  flex-shrink: 0;
 }
 .invoice-footer-top {
   margin-bottom: 8px;

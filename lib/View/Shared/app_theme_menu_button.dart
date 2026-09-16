@@ -34,11 +34,14 @@ class AppThemeMenuButton extends StatelessWidget {
         child: Row(
           children: [
             if (mode == selected)
-              const Icon(Icons.check, size: 18)
+              Icon(Icons.check, size: 18, color: resolveAppTheme().primaryText)
             else
               const SizedBox(width: 18),
             const SizedBox(width: 8),
-            Text(_labelFor(mode)),
+            Text(
+              _labelFor(mode),
+              style: TextStyle(color: resolveAppTheme().primaryText),
+            ),
           ],
         ),
       );
@@ -57,6 +60,8 @@ class AppThemeMenuButton extends StatelessWidget {
         return PopupMenuButton<ThemeMode>(
           tooltip: AppLocaleKeys.appTheme.tr,
           padding: EdgeInsets.zero,
+          color: context.appTheme.elevatedSurface,
+          surfaceTintColor: Colors.transparent,
           icon: Icon(Icons.brightness_6, color: resolvedIconColor),
           onSelected: tc.setThemeMode,
           itemBuilder: (context) => _buildItems(selected),
@@ -97,7 +102,8 @@ class AppThemeMenuButton extends StatelessWidget {
             PopupMenuButton<ThemeMode>(
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-              color: Theme.of(context).colorScheme.surface,
+              color: context.appTheme.elevatedSurface,
+              surfaceTintColor: Colors.transparent,
               icon: Icon(Icons.arrow_drop_down, color: resolvedIconColor),
               onSelected: tc.setThemeMode,
               itemBuilder: (context) => _buildItems(selected),

@@ -20,6 +20,7 @@ class FirestoreQueryLimits {
   static const int osPayrollRuns = 200;
   static const int osPayslips = 500;
   static const int osContracts = 500;
+  static const int osLegalContracts = 500;
   static const int osAdvances = 500;
   static const int osBranches = 50;
   static const int osServices = 100;

@@ -30,6 +30,7 @@ const osModules = <OsModule>[
   OsModule(
     titleKey: AppLocaleKeys.osModuleCrm,
     icon: Icons.people_outline,
+    route: '/os/crm',
   ),
   OsModule(
     titleKey: AppLocaleKeys.osModuleInvoices,
@@ -59,6 +60,7 @@ const osModules = <OsModule>[
   OsModule(
     titleKey: AppLocaleKeys.osModuleContracts,
     icon: Icons.description_outlined,
+    route: '/os/contracts',
   ),
   OsModule(
     titleKey: AppLocaleKeys.osModuleEmailHub,

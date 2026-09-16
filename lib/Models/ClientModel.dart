@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:point/Models/Os/os_crm_activity.dart';
 
 class ClientModel {
   final String? id;
@@ -22,6 +23,17 @@ class ClientModel {
   final String? metaInstagramUserName;
   final DateTime createdAt;
 
+  // CRM pipeline fields (Point OS)
+  final String? company;
+  final String? crmStage;
+  final String? leadSource;
+  final String? assignedTo;
+  final String? assignedEmployeeId;
+  final double? balance;
+  final double? totalRevenue;
+  final String? crmNotes;
+  final List<OsCrmActivity>? crmActivities;
+
   ClientModel({
     this.id,
     this.name,
@@ -43,6 +55,15 @@ class ClientModel {
     this.metaInstagramUserId,
     this.metaInstagramUserName,
     required this.createdAt,
+    this.company,
+    this.crmStage,
+    this.leadSource,
+    this.assignedTo,
+    this.assignedEmployeeId,
+    this.balance,
+    this.totalRevenue,
+    this.crmNotes,
+    this.crmActivities,
   });
 
   ClientModel copyWith({
@@ -66,6 +87,15 @@ class ClientModel {
     String? metaInstagramUserId,
     String? metaInstagramUserName,
     DateTime? createdAt,
+    String? company,
+    String? crmStage,
+    String? leadSource,
+    String? assignedTo,
+    String? assignedEmployeeId,
+    double? balance,
+    double? totalRevenue,
+    String? crmNotes,
+    List<OsCrmActivity>? crmActivities,
   }) {
     return ClientModel(
       id: id ?? this.id,
@@ -85,9 +115,19 @@ class ClientModel {
       metaPageName: metaPageName ?? this.metaPageName,
       metaPageAccessToken: metaPageAccessToken ?? this.metaPageAccessToken,
       metaInstagramUserId: metaInstagramUserId ?? this.metaInstagramUserId,
-      metaInstagramUserName: metaInstagramUserName ?? this.metaInstagramUserName,
+      metaInstagramUserName:
+          metaInstagramUserName ?? this.metaInstagramUserName,
       createdAt: createdAt ?? this.createdAt,
       onesignal: onesignal ?? this.onesignal,
+      company: company ?? this.company,
+      crmStage: crmStage ?? this.crmStage,
+      leadSource: leadSource ?? this.leadSource,
+      assignedTo: assignedTo ?? this.assignedTo,
+      assignedEmployeeId: assignedEmployeeId ?? this.assignedEmployeeId,
+      balance: balance ?? this.balance,
+      totalRevenue: totalRevenue ?? this.totalRevenue,
+      crmNotes: crmNotes ?? this.crmNotes,
+      crmActivities: crmActivities ?? this.crmActivities,
     );
   }
 
@@ -95,6 +135,14 @@ class ClientModel {
     if (value == null) return null;
     if (value is DateTime) return value;
     if (value is Timestamp) return value.toDate();
+    return null;
+  }
+
+  static double? _parseDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is num) return value.toDouble();
     return null;
   }
 
@@ -120,7 +168,29 @@ class ClientModel {
       metaInstagramUserName: json['metaInstagramUserName'] as String?,
       createdAt: _parseDateTime(json['createdAt']) ?? DateTime.now(),
       onesignal: json['onesignal'] as String?,
+      company: json['company'] as String?,
+      crmStage: json['crmStage'] as String?,
+      leadSource: json['leadSource'] as String?,
+      assignedTo: json['assignedTo'] as String?,
+      assignedEmployeeId: json['assignedEmployeeId'] as String?,
+      balance: _parseDouble(json['balance']),
+      totalRevenue: _parseDouble(json['totalRevenue']),
+      crmNotes: json['crmNotes'] as String?,
+      crmActivities: _parseActivities(json['crmActivities']),
     );
+  }
+
+  static List<OsCrmActivity>? _parseActivities(dynamic raw) {
+    if (raw is! List) return null;
+    final out = <OsCrmActivity>[];
+    for (final item in raw) {
+      if (item is Map<String, dynamic>) {
+        out.add(OsCrmActivity.fromJson(item));
+      } else if (item is Map) {
+        out.add(OsCrmActivity.fromJson(Map<String, dynamic>.from(item)));
+      }
+    }
+    return out.isEmpty ? null : out;
   }
 
   Map<String, dynamic> toJson() {
@@ -145,6 +215,16 @@ class ClientModel {
       "metaInstagramUserName": metaInstagramUserName,
       "createdAt": createdAt,
       'onesignal': onesignal,
+      if (company != null) 'company': company,
+      if (crmStage != null) 'crmStage': crmStage,
+      if (leadSource != null) 'leadSource': leadSource,
+      if (assignedTo != null) 'assignedTo': assignedTo,
+      if (assignedEmployeeId != null) 'assignedEmployeeId': assignedEmployeeId,
+      if (balance != null) 'balance': balance,
+      if (totalRevenue != null) 'totalRevenue': totalRevenue,
+      if (crmNotes != null) 'crmNotes': crmNotes,
+      if (crmActivities != null && crmActivities!.isNotEmpty)
+        'crmActivities': crmActivities!.map((a) => a.toJson()).toList(),
     };
   }
 }

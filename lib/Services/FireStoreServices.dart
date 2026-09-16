@@ -337,6 +337,8 @@ class FirestoreServices extends FirestoreServicesBase
     bool? sendEmail,
     Set<String>? batchSeenTokens,
     Set<String>? batchSeenEmails,
+    bool excludeCurrentActor = true,
+    Set<String>? excludeUserIds,
   }) =>
       FirestoreFcmApi.sendFcmForClient(
         userId: userId,
@@ -353,6 +355,8 @@ class FirestoreServices extends FirestoreServicesBase
         sendEmail: sendEmail,
         batchSeenTokens: batchSeenTokens,
         batchSeenEmails: batchSeenEmails,
+        excludeCurrentActor: excludeCurrentActor,
+        excludeUserIds: excludeUserIds,
       );
 
   static Future<void> sendFcmTopic({
@@ -390,6 +394,12 @@ class FirestoreServices extends FirestoreServicesBase
   static void setSessionEmployeeId(String? employeeId) {
     final id = employeeId?.trim() ?? '';
     FirestoreFcmApi.sessionEmployeeId = id.isEmpty ? null : id;
+  }
+
+  /// Tracks the signed-in client so FCM can skip self-notifications.
+  static void setSessionClientId(String? clientId) {
+    final id = clientId?.trim() ?? '';
+    FirestoreFcmApi.sessionClientId = id.isEmpty ? null : id;
   }
 
   static Future<void> sendFcmToEmployees({

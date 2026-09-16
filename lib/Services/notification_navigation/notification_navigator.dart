@@ -284,7 +284,12 @@ class NotificationNavigator {
         _snackMissing();
         return;
       }
-      Get.to(() => Clientcontentdetails(model: content));
+      final ctx = Get.context;
+      if (ctx != null) {
+        await openClientContentDetails(ctx, content);
+      } else {
+        await Get.to(() => Clientcontentdetails(model: content));
+      }
       return;
     }
 

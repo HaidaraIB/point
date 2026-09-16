@@ -123,6 +123,24 @@ class FirestoreOsFinanceApi {
 
   // --- Invoices ---
 
+  /// Returns an existing invoice id linked to [quotationId], if any.
+  static Future<String?> findInvoiceIdByQuotationId(String quotationId) async {
+    final qid = quotationId.trim();
+    if (qid.isEmpty) return null;
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection(invoicesCollection)
+          .where('quotationId', isEqualTo: qid)
+          .limit(1)
+          .get();
+      if (snap.docs.isEmpty) return null;
+      return snap.docs.first.id;
+    } catch (e, st) {
+      appLog('findInvoiceIdByQuotationId failed: $e\n$st');
+      return null;
+    }
+  }
+
   static Future<bool> upsertInvoice(OsInvoiceModel invoice) async {
     try {
       final isNew = invoice.id == null || invoice.id!.trim().isEmpty;

@@ -20,6 +20,8 @@ class AppDataTable extends StatelessWidget {
     this.horizontalMargin = 24,
     this.dataRowMinHeight = 60,
     this.dataRowMaxHeight = 60,
+    this.onSelectAll,
+    this.showCheckboxColumn = true,
   });
 
   final List<DataColumn> columns;
@@ -29,6 +31,11 @@ class AppDataTable extends StatelessWidget {
   final double horizontalMargin;
   final double dataRowMinHeight;
   final double dataRowMaxHeight;
+  final ValueChanged<bool?>? onSelectAll;
+
+  /// When false, rows must not set [DataRow.onSelectChanged] — use an explicit
+  /// checkbox column instead so only the box toggles selection.
+  final bool showCheckboxColumn;
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +57,8 @@ class AppDataTable extends StatelessWidget {
                 dataRowColor: context.tableDataRowColor,
                 headingRowColor: context.tableHeadingRowColor,
                 dividerThickness: 0.5,
+                showCheckboxColumn: showCheckboxColumn,
+                onSelectAll: showCheckboxColumn ? onSelectAll : null,
                 columns: columns,
                 rows: rows,
               ),

@@ -38,6 +38,8 @@ import 'package:point/View/Attendance/AttendancePage.dart';
 import 'package:point/View/Attendance/AttendanceReportsPage.dart';
 import 'package:point/View/Os/OsDashboardPage.dart';
 import 'package:point/View/Os/Branches/OsBranchesPage.dart';
+import 'package:point/View/Os/Contracts/OsContractsPage.dart';
+import 'package:point/View/Os/Crm/OsCrmPage.dart';
 import 'package:point/View/Os/Services/OsServicesPage.dart';
 import 'package:point/View/Os/Finance/OsFinancePage.dart';
 import 'package:point/View/Os/Invoices/OsInvoicesPage.dart';
@@ -262,8 +264,18 @@ class AppRouting {
           middlewares: [AuthMiddleware()],
         ),
         GetPage(
+          name: '/os/crm',
+          page: () => const OsCrmPage(),
+          middlewares: [AuthMiddleware()],
+        ),
+        GetPage(
           name: '/os/branches',
           page: () => const OsBranchesPage(),
+          middlewares: [AuthMiddleware()],
+        ),
+        GetPage(
+          name: '/os/contracts',
+          page: () => const OsContractsPage(),
           middlewares: [AuthMiddleware()],
         ),
         GetPage(

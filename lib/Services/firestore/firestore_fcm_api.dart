@@ -531,6 +531,9 @@ class FirestoreFcmApi {
   /// Used as a fallback when recipient `authUid` is missing.
   static String? sessionEmployeeId;
 
+  /// Signed-in client document id (maintained by [ClientController]).
+  static String? sessionClientId;
+
   /// Skips notifying the signed-in employee about their own action.
   /// Prefer [excludeUserIds]; also matches session id / recipient `authUid`.
   static bool _shouldExcludeEmployeeRecipient({
@@ -545,6 +548,26 @@ class FirestoreFcmApi {
     if (excluded.contains(trimmed)) return true;
     if (!excludeCurrentActor) return false;
     final sessionId = sessionEmployeeId?.trim() ?? '';
+    if (sessionId.isNotEmpty && sessionId == trimmed) return true;
+    final authUid = _signedInAuthUid();
+    if (authUid == null) return false;
+    final recipientAuth = data?['authUid']?.toString().trim() ?? '';
+    return recipientAuth.isNotEmpty && recipientAuth == authUid;
+  }
+
+  /// Skips notifying the signed-in client about their own action.
+  static bool _shouldExcludeClientRecipient({
+    required String recipientId,
+    required Map<String, dynamic>? data,
+    required bool excludeCurrentActor,
+    Set<String>? excludeUserIds,
+  }) {
+    final trimmed = recipientId.trim();
+    if (trimmed.isEmpty) return true;
+    final excluded = _normalizedExcludeUserIds(excludeUserIds);
+    if (excluded.contains(trimmed)) return true;
+    if (!excludeCurrentActor) return false;
+    final sessionId = sessionClientId?.trim() ?? '';
     if (sessionId.isNotEmpty && sessionId == trimmed) return true;
     final authUid = _signedInAuthUid();
     if (authUid == null) return false;
@@ -793,6 +816,8 @@ class FirestoreFcmApi {
     bool? sendEmail,
     Set<String>? batchSeenTokens,
     Set<String>? batchSeenEmails,
+    bool excludeCurrentActor = true,
+    Set<String>? excludeUserIds,
   }) async {
     try {
       final effectiveSendEmail =
@@ -800,9 +825,10 @@ class FirestoreFcmApi {
           NotificationEmailPolicy.shouldSendEmail(notificationType);
 
       // 1. هات بيانات المستخدم من Firestore
+      final trimmedUserId = userId.trim();
       final doc = await FirebaseFirestore.instance
           .collection("clients")
-          .doc(userId)
+          .doc(trimmedUserId)
           .get();
 
       if (!doc.exists) {
@@ -811,6 +837,18 @@ class FirestoreFcmApi {
       }
 
       final data = doc.data();
+      if (_shouldExcludeClientRecipient(
+        recipientId: trimmedUserId,
+        data: data,
+        excludeCurrentActor: excludeCurrentActor,
+        excludeUserIds: excludeUserIds,
+      )) {
+        appLog(
+          '↩️ Skipping self-notification for client $trimmedUserId '
+          '(type=${notificationType ?? "null"})',
+        );
+        return;
+      }
       final email = data?['email']?.toString().trim();
       final tokens = _extractFcmTokens(data);
       final rawRecipientName = data?['name']?.toString().trim();
@@ -828,7 +866,6 @@ class FirestoreFcmApi {
       final resolvedAction = resolved?.actionText ?? actionText;
       final resolvedEmailDetails = resolved?.emailDetails ?? emailDetails;
 
-      final trimmedUserId = userId.trim();
       if (_shouldPersistFcmToNotificationInbox(notificationType)) {
         await FirestoreNotificationApi.addNotification(
           NotificationModel(

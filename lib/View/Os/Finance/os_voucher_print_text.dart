@@ -254,17 +254,6 @@ ${OsBrandPrint.brandCss()}
   font-weight: 700;
   color: var(--navy);
 }
-.voucher-seal-wrap {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.voucher-seal {
-  width: 78px;
-  height: 78px;
-  object-fit: contain;
-  display: block;
-}
 .voucher-barcode {
   text-align: center;
   min-width: 0;

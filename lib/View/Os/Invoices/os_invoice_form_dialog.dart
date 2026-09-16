@@ -19,11 +19,15 @@ import 'package:point/View/Os/os_snackbar.dart';
 Future<void> showOsInvoiceFormDialog(
   BuildContext context, {
   OsInvoiceModel? existing,
+  String? initialClientId,
 }) async {
   await showDialog<void>(
     context: context,
     barrierDismissible: false,
-    builder: (_) => _OsInvoiceFormDialog(existing: existing),
+    builder: (_) => _OsInvoiceFormDialog(
+      existing: existing,
+      initialClientId: initialClientId,
+    ),
   );
 }
 
@@ -265,9 +269,10 @@ Future<void> showOsInvoiceLinkAccountDialog(
 }
 
 class _OsInvoiceFormDialog extends StatefulWidget {
-  const _OsInvoiceFormDialog({this.existing});
+  const _OsInvoiceFormDialog({this.existing, this.initialClientId});
 
   final OsInvoiceModel? existing;
+  final String? initialClientId;
 
   @override
   State<_OsInvoiceFormDialog> createState() => _OsInvoiceFormDialogState();
@@ -294,7 +299,7 @@ class _OsInvoiceFormDialogState extends State<_OsInvoiceFormDialog> {
     super.initState();
     final e = widget.existing;
     final now = DateTime.now();
-    _clientId = e?.clientId;
+    _clientId = widget.initialClientId ?? e?.clientId;
     _date = OsFinanceFormat.parseYmd(e?.date) ?? now;
     _dueDate =
         OsFinanceFormat.parseYmd(e?.dueDate) ?? now.add(const Duration(days: 14));
@@ -506,7 +511,7 @@ class _OsInvoiceFormDialogState extends State<_OsInvoiceFormDialog> {
             const Divider(height: 16),
             Flexible(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [

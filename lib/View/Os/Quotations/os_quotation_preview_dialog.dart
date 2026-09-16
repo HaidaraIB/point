@@ -12,8 +12,10 @@ import 'package:point/View/Os/os_line_items_table.dart';
 
 Future<void> showOsQuotationPreviewDialog(
   BuildContext context,
-  OsQuotationModel quote,
-) async {
+  OsQuotationModel quote, {
+  VoidCallback? onApprove,
+  VoidCallback? onReject,
+}) async {
   final narrow = MediaQuery.sizeOf(context).width < 600;
   await showDialog<void>(
     context: context,
@@ -21,6 +23,8 @@ Future<void> showOsQuotationPreviewDialog(
     builder: (ctx) => _OsQuotationPreviewDialog(
       quote: quote,
       narrow: narrow,
+      onApprove: onApprove,
+      onReject: onReject,
     ),
   );
 }
@@ -29,10 +33,14 @@ class _OsQuotationPreviewDialog extends StatelessWidget {
   const _OsQuotationPreviewDialog({
     required this.quote,
     required this.narrow,
+    this.onApprove,
+    this.onReject,
   });
 
   final OsQuotationModel quote;
   final bool narrow;
+  final VoidCallback? onApprove;
+  final VoidCallback? onReject;
 
   @override
   Widget build(BuildContext context) {
@@ -382,6 +390,40 @@ class _OsQuotationPreviewDialog extends StatelessWidget {
                 ),
               ),
             ),
+            if (onApprove != null || onReject != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Row(
+                  children: [
+                    if (onReject != null)
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            onReject!();
+                          },
+                          style: OsButtonStyles.inlineCaution(),
+                          icon: const Icon(Icons.cancel_outlined, size: 18),
+                          label: Text(AppLocaleKeys.osQuotationsReject.tr),
+                        ),
+                      ),
+                    if (onReject != null && onApprove != null)
+                      const SizedBox(width: 10),
+                    if (onApprove != null)
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            onApprove!();
+                          },
+                          style: OsButtonStyles.inlinePrimary(),
+                          icon: const Icon(Icons.check_circle_outline, size: 18),
+                          label: Text(AppLocaleKeys.osQuotationsApprove.tr),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
           ],
         ),
       ),

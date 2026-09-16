@@ -1297,6 +1297,17 @@ service cloud.firestore {
         if isSignedIn() && hasAuthRole() && isAdmin();
     }
 
+    // Point OS legal / client contracts (admin-only; distinct from os_employee_contracts)
+    match /os_legal_contracts/{contractId} {
+      allow read, create, update, delete:
+        if isSignedIn() && hasAuthRole() && isAdmin();
+    }
+
+    match /os_legal_contract_settings/{settingsId} {
+      allow read, create, update, delete:
+        if isSignedIn() && hasAuthRole() && isAdmin();
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

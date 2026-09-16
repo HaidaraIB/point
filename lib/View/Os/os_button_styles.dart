@@ -113,19 +113,53 @@ class OsButtonStyles {
     );
   }
 
-  /// Dense in-row actions (quote cards) — contrast without header-sized padding.
-  static ButtonStyle inline(
-    AppThemeExtension theme, {
-    bool active = false,
-  }) {
-    return secondary(
-      theme,
-      active: active,
-      padding: inlinePadding,
-      minimumSize: const Size(0, 32),
-      textStyle: inlineTextStyle,
-      visualDensity: VisualDensity.compact,
+  /// Muted tool chip — matches OS secondary buttons on dark cards.
+  static ButtonStyle inlineTool(AppThemeExtension theme) {
+    return FilledButton.styleFrom(
+      foregroundColor: theme.secondaryText,
+      backgroundColor: theme.inputFill,
+      disabledForegroundColor: theme.mutedText,
+      disabledBackgroundColor: theme.unselected,
+      side: BorderSide(color: theme.border),
+      minimumSize: const Size(0, 36),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      textStyle: inlineTextStyle.copyWith(color: theme.secondaryText),
+      visualDensity: VisualDensity.standard,
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      iconSize: 16,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    );
+  }
+
+  /// Compact filled CTA that matches [inline] height.
+  static ButtonStyle inlinePrimary({Color? backgroundColor}) {
+    final bg = backgroundColor ?? AppColors.primary;
+    return FilledButton.styleFrom(
+      backgroundColor: bg,
+      foregroundColor: Colors.white,
+      minimumSize: const Size(0, 36),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      textStyle: inlineTextStyle.copyWith(color: Colors.white),
+      visualDensity: VisualDensity.standard,
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      iconSize: 16,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    );
+  }
+
+  /// Secondary decision (reject) — palette caution, soft fill.
+  static ButtonStyle inlineCaution() {
+    return FilledButton.styleFrom(
+      backgroundColor: AppColors.caution.withValues(alpha: 0.12),
+      foregroundColor: AppColors.caution,
+      minimumSize: const Size(0, 36),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      textStyle: inlineTextStyle.copyWith(color: AppColors.caution),
+      visualDensity: VisualDensity.standard,
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      iconSize: 16,
+      side: BorderSide(color: AppColors.caution.withValues(alpha: 0.45)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     );
   }
 }

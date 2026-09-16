@@ -98,7 +98,7 @@ Future<bool?> showOsFormDialog({
                     const Divider(height: 20),
                     Flexible(
                       child: SingleChildScrollView(
-                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
                         child: builder(context, setLocal),
                       ),
                     ),

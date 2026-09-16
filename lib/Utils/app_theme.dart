@@ -24,6 +24,10 @@ class AppTheme {
       onPrimary: Colors.white,
       surface: ext.cardSurface,
       onSurface: ext.primaryText,
+      surfaceContainerLowest: ext.pageBackground,
+      surfaceContainerLow: ext.cardSurface,
+      surfaceContainer: ext.elevatedSurface,
+      surfaceContainerHigh: ext.elevatedSurface,
       surfaceContainerHighest: ext.elevatedSurface,
       outline: ext.border,
       outlineVariant: ext.border,
@@ -86,13 +90,16 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
       ),
       popupMenuTheme: PopupMenuThemeData(
-        color: ext.cardSurface,
+        color: ext.elevatedSurface,
         surfaceTintColor: Colors.transparent,
         textStyle: almaraiTextTheme.bodyMedium?.copyWith(color: ext.primaryText),
+        labelTextStyle: WidgetStatePropertyAll(
+          almaraiTextTheme.bodyMedium?.copyWith(color: ext.primaryText),
+        ),
       ),
       menuTheme: MenuThemeData(
         style: MenuStyle(
-          backgroundColor: WidgetStatePropertyAll(ext.cardSurface),
+          backgroundColor: WidgetStatePropertyAll(ext.elevatedSurface),
           surfaceTintColor: WidgetStatePropertyAll(Colors.transparent),
         ),
       ),

@@ -164,11 +164,13 @@ class ClientController extends GetxController {
           );
           final cl = _mergeClientWithPrevious(raw, currentClient.value);
           currentClient.value = cl;
+          FirestoreServices.setSessionClientId(cl.id);
           unawaited(FirestoreServices.syncAuthRoleForClient(cl));
           getFCMToken(currentClient.value);
           fetchContents();
         } else {
           currentClient.value = null;
+          FirestoreServices.setSessionClientId(null);
         }
       },
       onError: (Object e, StackTrace st) {
@@ -287,6 +289,7 @@ class ClientController extends GetxController {
           _clientDocSub?.cancel();
           _clientDocSub = null;
           currentClient.value = null;
+          FirestoreServices.setSessionClientId(null);
           clients.bindStream(Stream<List<ClientModel>>.value(const []));
           update();
         });

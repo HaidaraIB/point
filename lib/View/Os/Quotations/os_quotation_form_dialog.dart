@@ -16,18 +16,23 @@ import 'package:point/View/Os/os_snackbar.dart';
 Future<void> showOsQuotationFormDialog(
   BuildContext context, {
   OsQuotationModel? existing,
+  String? initialClientId,
 }) {
   return showDialog<void>(
     context: context,
     barrierDismissible: false,
-    builder: (_) => _OsQuotationFormDialog(existing: existing),
+    builder: (_) => _OsQuotationFormDialog(
+      existing: existing,
+      initialClientId: initialClientId,
+    ),
   );
 }
 
 class _OsQuotationFormDialog extends StatefulWidget {
-  const _OsQuotationFormDialog({this.existing});
+  const _OsQuotationFormDialog({this.existing, this.initialClientId});
 
   final OsQuotationModel? existing;
+  final String? initialClientId;
 
   @override
   State<_OsQuotationFormDialog> createState() => _OsQuotationFormDialogState();
@@ -35,6 +40,7 @@ class _OsQuotationFormDialog extends StatefulWidget {
 
 class _OsQuotationFormDialogState extends State<_OsQuotationFormDialog> {
   String? _clientId;
+  late String _status;
   late DateTime _expiry;
   late final OsLineItemsController _lines;
   late final TextEditingController _discountCtrl;
@@ -55,7 +61,10 @@ class _OsQuotationFormDialogState extends State<_OsQuotationFormDialog> {
   void initState() {
     super.initState();
     final e = widget.existing;
-    _clientId = e?.clientId;
+    _clientId = widget.initialClientId ?? e?.clientId;
+    _status = OsQuotationStatus.all.contains(e?.status)
+        ? e!.status
+        : OsQuotationStatus.sent;
     _expiry = OsFinanceFormat.parseYmd(e?.expiryDate) ??
         DateTime.now().add(const Duration(days: 14));
     _discountCtrl = TextEditingController(
@@ -195,7 +204,7 @@ class _OsQuotationFormDialogState extends State<_OsQuotationFormDialog> {
               : _addressCtrl.text.trim(),
           date: existing?.date ?? OsFinanceFormat.ymd(now),
           expiryDate: OsFinanceFormat.ymd(_expiry),
-          status: existing?.status ?? OsQuotationStatus.sent,
+          status: _status,
           amount: _lines.subtotal,
           discount: discount < 0 ? 0 : discount,
           vat: _lines.vat,
@@ -281,7 +290,7 @@ class _OsQuotationFormDialogState extends State<_OsQuotationFormDialog> {
             const Divider(height: 16),
             Flexible(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -327,6 +336,27 @@ class _OsQuotationFormDialogState extends State<_OsQuotationFormDialog> {
                     TextFormField(
                       controller: _addressCtrl,
                       decoration: osDialogFieldDecoration(context),
+                    ),
+                    const SizedBox(height: 16),
+                    _label(AppLocaleKeys.osQuotationsApprovalStatus.tr),
+                    DropdownButtonFormField<String>(
+                      initialValue: _status,
+                      decoration: osDialogFieldDecoration(context),
+                      items: [
+                        for (final s in OsQuotationStatus.all)
+                          DropdownMenuItem(
+                            value: s,
+                            child: Text(
+                              OsFinanceFormat.quotationStatusLabel(s),
+                              style:
+                                  const TextStyle(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                      ],
+                      onChanged: (v) {
+                        if (v == null) return;
+                        setState(() => _status = v);
+                      },
                     ),
                     const SizedBox(height: 16),
                     _label(AppLocaleKeys.osQuotationsExpiry.tr),

@@ -48,6 +48,9 @@ body {
   column-gap: 0;
   margin-bottom: 10px;
 }
+.brand-primary-col {
+  min-width: 0;
+}
 .brand-lockup {
   min-width: 0;
   overflow: hidden;
@@ -339,6 +342,11 @@ table.items.quote col.col-total { width: 25%; }
   color: var(--navy);
   margin-bottom: 18px;
 }
+.sign-agency-name {
+  margin-bottom: 14px;
+  font-weight: 700;
+  font-size: 9px;
+}
 .sign-line {
   border-bottom: 1.5px dotted var(--navy);
   margin: 0 12px 4px;
@@ -348,6 +356,11 @@ table.items.quote col.col-total { width: 25%; }
   font-size: 9px;
   color: var(--navy);
   font-weight: 600;
+}
+.seal-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .seal-img {
   width: 78px;
@@ -412,7 +425,7 @@ table.items.quote col.col-total { width: 25%; }
 ''';
 
   /// Three-column brand header from the print comps in `assets/print/`.
-  /// [belowBrand] is extra markup in the first column under the lockup (invoice services).
+  /// [belowBrand] sits under the lockup in the first column (invoice services).
   static String headerHtml({String belowBrand = ''}) {
     String img(String src, String alt, [String extra = '']) => src.isEmpty
         ? ''
@@ -420,8 +433,11 @@ table.items.quote col.col-total { width: 25%; }
 
     return '''
 <div class="brand-header no-split">
-  <div class="brand-lockup">
-    ${img(OsPrintAssets.headerBrandDataUri, 'POINT AGENCY')}
+  <div class="brand-primary-col">
+    <div class="brand-lockup">
+      ${img(OsPrintAssets.headerBrandDataUri, 'POINT AGENCY')}
+    </div>
+    $belowBrand
   </div>
   <div class="brand-header-end">
     <div class="brand-comp-info">
@@ -429,7 +445,6 @@ table.items.quote col.col-total { width: 25%; }
     </div>
     ${img(OsPrintAssets.headerSloganDataUri, '', 'brand-comp-slogan')}
   </div>
-  $belowBrand
 </div>''';
   }
 
@@ -488,8 +503,9 @@ table.items.quote col.col-total { width: 25%; }
       <div class="barcode-ref">${escapeHtml(documentRef)}</div>
     </div>
     <div class="invoice-sign">
-      <div class="invoice-sign-text">
-        <div class="sign-agency">${escapeHtml(AppLocaleKeys.osPrintAgencyAr.tr)}</div>
+      <div class="sign-block">
+        <div class="sign-agency">${escapeHtml(AppLocaleKeys.osPrintThanks.tr)}</div>
+        <div class="sign-agency sign-agency-name">${escapeHtml(AppLocaleKeys.osPrintAgencyAr.tr)}</div>
         <div class="sign-line"></div>
         <div class="sign-label">${escapeHtml(AppLocaleKeys.osPrintSignature.tr)}</div>
       </div>
@@ -542,10 +558,10 @@ table.items.quote col.col-total { width: 25%; }
     required String barcodeSvg,
     required String documentRef,
   }) {
-    final seal = OsPrintAssets.voucherSealDataUri;
+    final seal = OsPrintAssets.sealDataUri;
     final sealImg = seal.isEmpty
         ? ''
-        : '<img class="voucher-seal" src="$seal" alt=""/>';
+        : '<img class="seal-img" src="$seal" alt=""/>';
 
     return '''
 <div class="brand-footer no-split">
@@ -554,7 +570,7 @@ table.items.quote col.col-total { width: 25%; }
       <div class="voucher-sign-line"></div>
       <div class="voucher-sign-lbl">${escapeHtml(AppLocaleKeys.osPrintEmployeeSign.tr)}</div>
     </div>
-    <div class="voucher-seal-wrap">
+    <div class="seal-wrap">
       $sealImg
     </div>
     <div class="voucher-barcode">

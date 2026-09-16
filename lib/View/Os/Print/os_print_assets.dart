@@ -16,7 +16,6 @@ class OsPrintAssets {
   static const sealAsset = 'assets/print/seal.png';
   static const voucherBrandAsset = 'assets/print/voucher_brand.png';
   static const voucherInfoAsset = 'assets/print/voucher_info.png';
-  static const voucherSealAsset = 'assets/print/voucher_seal.png';
 
   static String? _headerBrandDataUri;
   static String? _headerInfoDataUri;
@@ -26,7 +25,6 @@ class OsPrintAssets {
   static String? _sealDataUri;
   static String? _voucherBrandDataUri;
   static String? _voucherInfoDataUri;
-  static String? _voucherSealDataUri;
   static Future<void>? _loading;
   static bool _ready = false;
 
@@ -38,7 +36,6 @@ class OsPrintAssets {
   static String get sealDataUri => _sealDataUri ?? '';
   static String get voucherBrandDataUri => _voucherBrandDataUri ?? '';
   static String get voucherInfoDataUri => _voucherInfoDataUri ?? '';
-  static String get voucherSealDataUri => _voucherSealDataUri ?? '';
 
   static bool get isLoaded => _ready;
 
@@ -110,12 +107,6 @@ class OsPrintAssets {
       _voucherInfoDataUri = await _pngDataUri(voucherInfoAsset);
     } catch (_) {
       _voucherInfoDataUri = '';
-    }
-
-    try {
-      _voucherSealDataUri = await _pngDataUri(voucherSealAsset);
-    } catch (_) {
-      _voucherSealDataUri = '';
     }
   }
 }

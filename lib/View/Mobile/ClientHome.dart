@@ -3,27 +3,33 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:get/get.dart';
 import 'package:point/Controller/ClientController.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Controller/ThemeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Localization/LanguageController.dart';
+import 'package:point/Models/ContentModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/View/Mobile/ClientContentDetails.dart';
+import 'package:point/View/Mobile/ClientContentGridCard.dart';
 import 'package:point/View/Mobile/ContentStatusCard.dart';
 import 'package:point/Utils/AppConstants.dart';
 import 'package:point/View/ClientDashboard/client_profile_form.dart';
 import 'package:point/View/Shared/CustomHeader.dart';
 import 'package:point/View/Shared/app_theme_menu_button.dart';
 import 'package:point/View/Shared/app_version_label.dart';
+import 'package:point/View/Shared/responsive.dart';
 import 'package:point/Utils/AppNotificationInbox.dart';
+import 'package:point/Utils/app_theme.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 
 class TabsController extends GetxController {
-  RxInt selectedIndex =
-      0.obs; // القيمة الافتراضية "الموافقة" (تقدر تخليها 0 لو عايزها "الكل")
+  RxInt selectedIndex = 0.obs;
 }
 
 class ClientHome extends StatelessWidget {
   final LanguageController _languageController = Get.find<LanguageController>();
+
+  static const double _maxContentWidth = 1240;
 
   @override
   Widget build(BuildContext context) {
@@ -31,299 +37,198 @@ class ClientHome extends StatelessWidget {
 
     return GetBuilder<ClientController>(
       builder: (controller) {
-        return Obx(
-          () => Scaffold(
-            backgroundColor: resolveAppTheme().cardSurface,
-            appBar: _buildClientAppBar(controller),
-            body: RefreshIndicator(
-              onRefresh: () async {
-                controller.fetchContents();
-                await Future.delayed(const Duration(seconds: 1));
-              },
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 16),
+        return Obx(() {
+          final themeController = Get.find<ThemeController>();
+          final _ = themeController.themeMode.value;
+          final appTheme = themeController.extension;
+          final themeData =
+              themeController.effectiveBrightness == Brightness.dark
+                  ? AppTheme.dark()
+                  : AppTheme.light();
+          final isWide = !Responsive.isMobile(context);
 
-                  Obx(() {
-                    final tabs = [
-                      'client.status_tab.all'.tr,
-                      'client.status_tab.approved'.tr,
-                      'client.status_tab.revision'.tr,
-                      'client.status_tab.rejected'.tr,
-                    ];
-                    return Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 20),
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF3F0F9),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        children: List.generate(tabs.length, (index) {
-                          final isSelected =
-                              tabsController.selectedIndex.value == index;
+          return Theme(
+            data: themeData,
+            child: Scaffold(
+              backgroundColor:
+                  isWide ? appTheme.pageBackground : appTheme.cardSurface,
+              appBar: _buildClientAppBar(controller, appTheme),
+              body: RefreshIndicator(
+                onRefresh: () async {
+                  controller.fetchContents();
+                  await Future.delayed(const Duration(seconds: 1));
+                },
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return CustomScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      slivers: [
+                        SliverToBoxAdapter(
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(
+                                maxWidth: _maxContentWidth,
+                              ),
+                              child: Padding(
+                                padding: EdgeInsets.fromLTRB(
+                                  isWide ? 32 : 20,
+                                  isWide ? 28 : 16,
+                                  isWide ? 32 : 20,
+                                  0,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    if (isWide) ...[
+                                      Text(
+                                        'client.home.items_count'.trParams({
+                                          'count':
+                                              '${_filteredContents(controller, tabsController.selectedIndex.value).length}',
+                                        }),
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: appTheme.mutedText,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                    ],
+                                    _ClientStatusTabs(
+                                      tabsController: tabsController,
+                                      appTheme: appTheme,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Obx(() {
+                          final items = _filteredContents(
+                            controller,
+                            tabsController.selectedIndex.value,
+                          );
 
-                          return Expanded(
-                            child: MouseRegion(
-                              cursor: SystemMouseCursors.click,
-                              child: GestureDetector(
-                                onTap: () =>
-                                    tabsController.selectedIndex.value = index,
-                                behavior: HitTestBehavior.opaque,
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 200),
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 8,
-                                    horizontal: 6,
+                          if (items.isEmpty) {
+                            return SliverFillRemaining(
+                              hasScrollBody: false,
+                              child: Center(
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    maxWidth: _maxContentWidth,
                                   ),
-                                  alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                    color:
-                                        isSelected
-                                            ? const Color(0xFF62529A)
-                                            : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(8),
+                                  child: _ClientHomeEmptyState(
+                                    appTheme: appTheme,
+                                    isWide: isWide,
                                   ),
-                                  child: Text(
-                                    tabs[index],
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color:
-                                          isSelected
-                                              ? Colors.white
-                                              : Colors.black87,
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 14,
+                                ),
+                              ),
+                            );
+                          }
+
+                          if (isWide) {
+                            const gap = 16.0;
+                            final crossAxisCount =
+                                constraints.maxWidth >= 1100 ? 3 : 2;
+                            final gridWidth = (_maxContentWidth).clamp(
+                              0.0,
+                              constraints.maxWidth - 64,
+                            );
+                            final cardWidth =
+                                (gridWidth - gap * (crossAxisCount - 1)) /
+                                crossAxisCount;
+                            return SliverPadding(
+                              padding: const EdgeInsets.fromLTRB(32, 20, 32, 0),
+                              sliver: SliverToBoxAdapter(
+                                child: Center(
+                                  child: SizedBox(
+                                    width: gridWidth,
+                                    child: Wrap(
+                                      spacing: gap,
+                                      runSpacing: gap,
+                                      children:
+                                          items.map((model) {
+                                            return SizedBox(
+                                              width: cardWidth,
+                                              child: ClientContentGridCard(
+                                                model: model,
+                                                onTap:
+                                                    () =>
+                                                        openClientContentDetails(
+                                                          context,
+                                                          model,
+                                                        ),
+                                              ),
+                                            );
+                                          }).toList(),
                                     ),
                                   ),
                                 ),
                               ),
+                            );
+                          }
+
+                          return SliverPadding(
+                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                            sliver: SliverList.separated(
+                              itemCount: items.length,
+                              separatorBuilder:
+                                  (_, __) => const SizedBox(height: 10),
+                              itemBuilder: (context, index) {
+                                final model = items[index];
+                                return ContentStatusCard(
+                                  index: index,
+                                  model: model,
+                                  onTap:
+                                      () => openClientContentDetails(
+                                        context,
+                                        model,
+                                      ),
+                                );
+                              },
                             ),
                           );
                         }),
-                      ),
+                        SliverToBoxAdapter(
+                          child: Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(
+                                maxWidth: _maxContentWidth,
+                              ),
+                              child: AppVersionLabel(
+                                padding: EdgeInsets.fromLTRB(
+                                  isWide ? 32 : 20,
+                                  24,
+                                  isWide ? 32 : 20,
+                                  16,
+                                ),
+                                textStyle: TextStyle(
+                                  fontSize: 12,
+                                  height: 1.25,
+                                  color: appTheme.mutedText,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     );
-                  }),
-                  tabsController.selectedIndex.value == 0
-                      ? Obx(() {
-                        return controller.contents.isEmpty
-                            ? Padding(
-                              padding: EdgeInsets.all(20.0),
-                              child: Text('content.empty_display'.tr),
-                            )
-                            : ListView.builder(
-                              physics: NeverScrollableScrollPhysics(),
-
-                              shrinkWrap: true,
-                              itemCount: controller.contents.length,
-                              itemBuilder: (context, index) {
-                                return ContentStatusCard(
-                                  index: index,
-                                  model: controller.contents[index],
-                                  onTap: () async {
-                                    // try {
-                                    // } catch (e) {
-                                    //   log(e.toString());
-                                    // }
-                                    Get.to(
-                                      () => Clientcontentdetails(
-                                        model: controller.contents[index],
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
-                            );
-                      })
-                      : tabsController.selectedIndex.value == 1
-                      ? Obx(() {
-                        return controller.contents
-                                .where(
-                                  (a) =>
-                                      a.status == StorageKeys.status_approved,
-                                )
-                                .isEmpty
-                            ? Padding(
-                              padding: EdgeInsets.all(20.0),
-                              child: Text('content.empty_display'.tr),
-                            )
-                            : ListView.builder(
-                              shrinkWrap: true,
-                              physics: NeverScrollableScrollPhysics(),
-                              itemCount:
-                                  controller.contents
-                                      .where(
-                                        (a) =>
-                                            a.status ==
-                                            StorageKeys.status_approved,
-                                      )
-                                      .length,
-                              itemBuilder: (context, index) {
-                                return ContentStatusCard(
-                                  index: index,
-                                  model:
-                                      controller.contents
-                                          .where(
-                                            (a) =>
-                                                a.status ==
-                                                StorageKeys.status_approved,
-                                          )
-                                          .toList()[index],
-                                  onTap: () {
-                                    Get.to(
-                                      () => Clientcontentdetails(
-                                        model:
-                                            controller.contents
-                                                .where(
-                                                  (a) =>
-                                                      a.status ==
-                                                      StorageKeys
-                                                          .status_approved,
-                                                )
-                                                .toList()[index],
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
-                            );
-                      })
-                      : tabsController.selectedIndex.value == 2
-                      ? Obx(() {
-                        return controller.contents
-                                .where(
-                                  (a) =>
-                                      a.status ==
-                                      StorageKeys.status_edit_requested,
-                                )
-                                .isEmpty
-                            ? Padding(
-                              padding: EdgeInsets.all(20.0),
-                              child: Text('content.empty_display'.tr),
-                            )
-                            : ListView.builder(
-                              shrinkWrap: true,
-                              physics: NeverScrollableScrollPhysics(),
-
-                              itemCount:
-                                  controller.contents
-                                      .where(
-                                        (a) =>
-                                            a.status ==
-                                            StorageKeys.status_edit_requested,
-                                      )
-                                      .length,
-                              itemBuilder: (context, index) {
-                                return ContentStatusCard(
-                                  index: index,
-                                  model:
-                                      controller.contents
-                                          .where(
-                                            (a) =>
-                                                a.status ==
-                                                StorageKeys
-                                                    .status_edit_requested,
-                                          )
-                                          .toList()[index],
-                                  onTap: () {
-                                    Get.to(
-                                      () => Clientcontentdetails(
-                                        model:
-                                            controller.contents
-                                                .where(
-                                                  (a) =>
-                                                      a.status ==
-                                                      StorageKeys
-                                                          .status_edit_requested,
-                                                )
-                                                .toList()[index],
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
-                            );
-                      })
-                      : Obx(() {
-                        return controller.contents
-                                .where(
-                                  (a) =>
-                                      a.status == StorageKeys.status_rejected,
-                                )
-                                .isEmpty
-                            ? Padding(
-                              padding: EdgeInsets.all(20.0),
-                              child: Text('content.empty_display'.tr),
-                            )
-                            : ListView.builder(
-                              physics: NeverScrollableScrollPhysics(),
-
-                              shrinkWrap: true,
-                              itemCount:
-                                  controller.contents
-                                      .where(
-                                        (a) =>
-                                            a.status ==
-                                            StorageKeys.status_rejected,
-                                      )
-                                      .length,
-                              itemBuilder: (context, index) {
-                                return ContentStatusCard(
-                                  index: index,
-                                  model:
-                                      controller.contents
-                                          .where(
-                                            (a) =>
-                                                a.status ==
-                                                StorageKeys.status_rejected,
-                                          )
-                                          .toList()[index],
-                                  onTap: () {
-                                    Get.to(
-                                      () => Clientcontentdetails(
-                                        model:
-                                            controller.contents
-                                                .where(
-                                                  (a) =>
-                                                      a.status ==
-                                                      StorageKeys
-                                                          .status_rejected,
-                                                )
-                                                .toList()[index],
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
-                            );
-                      }),
-                  AppVersionLabel(
-                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
-                    textStyle: TextStyle(
-                      fontSize: 12,
-                      height: 1.25,
-                      color: Color(0xFF888888),
-                    ),
-                  ),
-                ],
-              ),
+                  },
+                ),
               ),
             ),
-          ),
-        );
+          );
+        });
       },
     );
   }
 
-  PreferredSizeWidget _buildClientAppBar(ClientController controller) {
+  PreferredSizeWidget _buildClientAppBar(
+    ClientController controller,
+    AppThemeExtension appTheme,
+  ) {
     return AppBar(
-      backgroundColor: resolveAppTheme().cardSurface,
+      backgroundColor: appTheme.cardSurface,
       surfaceTintColor: Colors.transparent,
       elevation: 0.5,
       titleSpacing: 10,
@@ -345,17 +250,26 @@ class ClientHome extends StatelessWidget {
                     child: PopupMenuButton<String>(
                       tooltip: AppLocaleKeys.appLanguage.tr,
                       padding: EdgeInsets.zero,
-                      icon: Icon(Icons.language, color: resolveAppTheme().accentText),
-                      onSelected: (value) => _languageController.changeLanguage(value),
+                      color: appTheme.elevatedSurface,
+                      surfaceTintColor: Colors.transparent,
+                      icon: Icon(Icons.language, color: appTheme.accentText),
+                      onSelected:
+                          (value) => _languageController.changeLanguage(value),
                       itemBuilder:
                           (context) => [
                             PopupMenuItem(
                               value: 'ar',
-                              child: Text(AppLocaleKeys.appLanguageArabic.tr),
+                              child: Text(
+                                AppLocaleKeys.appLanguageArabic.tr,
+                                style: TextStyle(color: appTheme.primaryText),
+                              ),
                             ),
                             PopupMenuItem(
                               value: 'en',
-                              child: Text(AppLocaleKeys.appLanguageEnglish.tr),
+                              child: Text(
+                                AppLocaleKeys.appLanguageEnglish.tr,
+                                style: TextStyle(color: appTheme.primaryText),
+                              ),
                             ),
                           ],
                     ),
@@ -377,7 +291,7 @@ class ClientHome extends StatelessWidget {
                           ),
                           icon: Icon(
                             Icons.notifications_outlined,
-                            color: resolveAppTheme().accentText,
+                            color: appTheme.accentText,
                           ),
                           onPressed: () {
                             final ctx = Get.context;
@@ -409,7 +323,7 @@ class ClientHome extends StatelessWidget {
                             style: TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: 13,
-                              color: resolveAppTheme().primaryText,
+                              color: appTheme.primaryText,
                             ),
                           ),
                           Text(
@@ -420,7 +334,7 @@ class ClientHome extends StatelessWidget {
                             style: TextStyle(
                               fontWeight: FontWeight.w500,
                               fontSize: 11,
-                              color: Color(0xFF6E6E6E),
+                              color: appTheme.mutedText,
                             ),
                           ),
                         ],
@@ -435,7 +349,8 @@ class ClientHome extends StatelessWidget {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      color: Colors.white,
+                      color: appTheme.elevatedSurface,
+                      surfaceTintColor: Colors.transparent,
                       elevation: 4,
                       onSelected: (value) async {
                         if (value == 0) {
@@ -465,12 +380,13 @@ class ClientHome extends StatelessWidget {
                                     'client.profile.menu'.tr,
                                     style: TextStyle(
                                       fontWeight: FontWeight.w500,
+                                      color: appTheme.primaryText,
                                     ),
                                   ),
                                   const SizedBox(width: 8),
                                   Icon(
                                     Icons.person_outline,
-                                    color: resolveAppTheme().accentText,
+                                    color: appTheme.accentText,
                                   ),
                                 ],
                               ),
@@ -483,12 +399,13 @@ class ClientHome extends StatelessWidget {
                                     'resetpassword'.tr,
                                     style: TextStyle(
                                       fontWeight: FontWeight.w500,
+                                      color: appTheme.primaryText,
                                     ),
                                   ),
                                   const SizedBox(width: 8),
                                   Icon(
                                     Icons.lock_reset,
-                                    color: resolveAppTheme().accentText,
+                                    color: appTheme.accentText,
                                   ),
                                 ],
                               ),
@@ -501,6 +418,7 @@ class ClientHome extends StatelessWidget {
                                     'logout'.tr,
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
+                                      color: appTheme.primaryText,
                                     ),
                                   ),
                                   const SizedBox(width: 8),
@@ -521,7 +439,7 @@ class ClientHome extends StatelessWidget {
                           Icon(
                             Icons.expand_more,
                             size: 22,
-                            color: resolveAppTheme().primaryText,
+                            color: appTheme.primaryText,
                           ),
                         ],
                       ),
@@ -535,25 +453,178 @@ class ClientHome extends StatelessWidget {
       ),
     );
   }
+}
 
+List<ContentModel> _filteredContents(
+  ClientController controller,
+  int tabIndex,
+) {
+  final all = controller.contents;
+  switch (tabIndex) {
+    case 1:
+      return all
+          .where((c) => c.status == StorageKeys.status_approved)
+          .toList();
+    case 2:
+      return all
+          .where((c) => c.status == StorageKeys.status_edit_requested)
+          .toList();
+    case 3:
+      return all
+          .where((c) => c.status == StorageKeys.status_rejected)
+          .toList();
+    default:
+      return all.toList();
+  }
+}
+
+class _ClientStatusTabs extends StatelessWidget {
+  const _ClientStatusTabs({
+    required this.tabsController,
+    required this.appTheme,
+  });
+
+  static const Color _selectedTabColor = Color(0xFF62529A);
+
+  final TabsController tabsController;
+  final AppThemeExtension appTheme;
+
+  @override
+  Widget build(BuildContext context) {
+    final tabs = [
+      'client.status_tab.all'.tr,
+      'client.status_tab.approved'.tr,
+      'client.status_tab.revision'.tr,
+      'client.status_tab.rejected'.tr,
+    ];
+
+    return Obx(() {
+      return Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: appTheme.unselected,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: List.generate(tabs.length, (index) {
+            final isSelected = tabsController.selectedIndex.value == index;
+            return Expanded(
+              child: MouseRegion(
+                cursor: SystemMouseCursors.click,
+                child: GestureDetector(
+                  onTap: () => tabsController.selectedIndex.value = index,
+                  behavior: HitTestBehavior.opaque,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 10,
+                      horizontal: 8,
+                    ),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color:
+                          isSelected
+                              ? _selectedTabColor
+                              : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      tabs[index],
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color:
+                            isSelected ? Colors.white : appTheme.primaryText,
+                        fontWeight:
+                            isSelected ? FontWeight.w600 : FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      );
+    });
+  }
+}
+
+class _ClientHomeEmptyState extends StatelessWidget {
+  const _ClientHomeEmptyState({
+    required this.appTheme,
+    required this.isWide,
+  });
+
+  final AppThemeExtension appTheme;
+  final bool isWide;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: isWide ? 32 : 20,
+        vertical: isWide ? 48 : 32,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: appTheme.panelTint,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.inbox_outlined,
+              size: 36,
+              color: appTheme.mutedText,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'content.empty_display'.tr,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: isWide ? 16 : 14,
+              fontWeight: FontWeight.w600,
+              color: appTheme.primaryText,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 Future<bool> _confirmClientLogoutDialog(BuildContext context) async {
   final isArabic = Get.locale?.languageCode == 'ar';
+  final theme = resolveAppTheme();
   final result = await showDialog<bool>(
     context: context,
     builder:
         (ctx) => AlertDialog(
-          title: Text('logout'.tr),
+          backgroundColor: theme.elevatedSurface,
+          title: Text(
+            'logout'.tr,
+            style: TextStyle(color: theme.primaryText),
+          ),
           content: Text(
             isArabic
                 ? 'هل أنت متأكد أنك تريد تسجيل الخروج؟'
                 : 'Are you sure you want to log out?',
+            style: TextStyle(color: theme.secondaryText),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
-              child: Text('cancel'.tr),
+              child: Text(
+                'cancel'.tr,
+                style: TextStyle(color: theme.secondaryText),
+              ),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),

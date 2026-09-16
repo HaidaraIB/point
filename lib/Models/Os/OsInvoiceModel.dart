@@ -25,6 +25,8 @@ class OsInvoiceModel {
   /// See [OsPaymentMethod].
   final String? paymentMethod;
   final String? notes;
+  /// Source quotation when created via quote → invoice.
+  final String? quotationId;
   final DateTime createdAt;
 
   const OsInvoiceModel({
@@ -47,6 +49,7 @@ class OsInvoiceModel {
     this.bankAccountId,
     this.paymentMethod,
     this.notes,
+    this.quotationId,
     required this.createdAt,
   });
 
@@ -90,6 +93,7 @@ class OsInvoiceModel {
       bankAccountId: json['bankAccountId'] as String?,
       paymentMethod: json['paymentMethod'] as String?,
       notes: json['notes'] as String?,
+      quotationId: json['quotationId'] as String?,
       createdAt: _parseDateTime(json['createdAt']) ?? DateTime.now(),
     );
   }
@@ -114,6 +118,8 @@ class OsInvoiceModel {
         'bankAccountId': bankAccountId,
         if (paymentMethod != null) 'paymentMethod': paymentMethod,
         if (notes != null) 'notes': notes,
+        if (quotationId != null && quotationId!.isNotEmpty)
+          'quotationId': quotationId,
         'createdAt': Timestamp.fromDate(createdAt),
       };
 
@@ -138,6 +144,8 @@ class OsInvoiceModel {
     bool clearBankAccountId = false,
     String? paymentMethod,
     String? notes,
+    String? quotationId,
+    bool clearQuotationId = false,
     DateTime? createdAt,
   }) {
     return OsInvoiceModel(
@@ -161,6 +169,8 @@ class OsInvoiceModel {
           clearBankAccountId ? null : (bankAccountId ?? this.bankAccountId),
       paymentMethod: paymentMethod ?? this.paymentMethod,
       notes: notes ?? this.notes,
+      quotationId:
+          clearQuotationId ? null : (quotationId ?? this.quotationId),
       createdAt: createdAt ?? this.createdAt,
     );
   }

@@ -64,7 +64,10 @@ class VideoCard extends StatelessWidget {
             //     ],
             //   ),
             // ),
-            FilesPreviewWidget(files: model.attachmentUrls),
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              child: FilesPreviewWidget(files: model.attachmentUrls),
+            ),
 
             const SizedBox(height: 12),
 
@@ -74,8 +77,9 @@ class VideoCard extends StatelessWidget {
                 'title'.tr,
                 textAlign: TextAlign.start,
                 style: TextStyle(
-                  color: Colors.blueAccent,
-                  fontWeight: FontWeight.bold,
+                  color: context.appTheme.accentText,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
                 ),
               ),
             ),
@@ -99,8 +103,9 @@ class VideoCard extends StatelessWidget {
                   'notes'.tr,
                   textAlign: TextAlign.start,
                   style: TextStyle(
-                    color: Colors.blueAccent,
-                    fontWeight: FontWeight.bold,
+                    color: context.appTheme.accentText,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
                   ),
                 ),
               ),
@@ -706,10 +711,8 @@ class _FilesPreviewWidgetState extends State<FilesPreviewWidget> {
                   margin: const EdgeInsets.symmetric(horizontal: 8),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(10),
-                    color: context.appTheme.cardSurface,
-                    boxShadow: [
-                      BoxShadow(color: Colors.grey.shade200, blurRadius: 5),
-                    ],
+                    color: context.appTheme.inputFill,
+                    border: Border.all(color: context.appTheme.border),
                   ),
                   child: buildFilePreview(url),
                 ),
@@ -726,8 +729,8 @@ class _FilesPreviewWidgetState extends State<FilesPreviewWidget> {
             activeShape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(5.0),
             ),
-            activeColor: Colors.blue,
-            color: Colors.grey.shade400,
+            activeColor: context.appTheme.accentText,
+            color: context.appTheme.mutedText,
           ),
         ),
       ],

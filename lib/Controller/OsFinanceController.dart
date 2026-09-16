@@ -4,6 +4,7 @@ import 'package:point/Models/Os/OsBankAccountModel.dart';
 import 'package:point/Models/Os/OsBranchModel.dart';
 import 'package:point/Models/Os/OsDailyExpenseModel.dart';
 import 'package:point/Models/Os/OsInvoiceModel.dart';
+import 'package:point/Models/Os/OsLineItem.dart';
 import 'package:point/Models/Os/OsQuotationModel.dart';
 import 'package:point/Models/Os/OsServiceModel.dart';
 import 'package:point/Models/Os/OsVoucherModel.dart';
@@ -172,6 +173,82 @@ class OsFinanceController extends GetxController {
     }
   }
 
+  /// Creates a draft invoice from an approved quotation (idempotent per quote).
+  /// Returns the new or existing invoice id, or null on failure.
+  Future<String?> createInvoiceFromQuotation(OsQuotationModel quote) async {
+    final quoteId = quote.id?.trim() ?? '';
+    if (quoteId.isEmpty) {
+      throw OsFinanceException(AppLocaleKeys.osQuotationsConvertMissing);
+    }
+    if (quote.status != OsQuotationStatus.approved) {
+      throw OsFinanceException(AppLocaleKeys.osQuotationsConvertNeedApproved);
+    }
+
+    for (final inv in invoices) {
+      if (inv.quotationId == quoteId && (inv.id?.isNotEmpty ?? false)) {
+        return inv.id;
+      }
+    }
+
+    isLoading.value = true;
+    try {
+      final existingId =
+          await FirestoreOsFinanceApi.findInvoiceIdByQuotationId(quoteId);
+      if (existingId != null && existingId.isNotEmpty) {
+        return existingId;
+      }
+
+      final now = DateTime.now();
+      final today = OsFinanceFormat.ymd(now);
+      final due = OsFinanceFormat.ymd(now.add(const Duration(days: 14)));
+
+      var items = List<OsLineItem>.from(quote.items);
+      if (items.isEmpty) {
+        final unit = quote.amount > 0 ? quote.amount : quote.total;
+        if (unit > 0) {
+          items = [
+            OsLineItem(
+              id: FirestoreOsFinanceApi.newId(),
+              description: AppLocaleKeys.osInvoicesItemsFallback.tr,
+              quantity: 1,
+              unitPrice: unit,
+              total: unit,
+            ),
+          ];
+        }
+      }
+
+      final invoiceId = FirestoreOsFinanceApi.newId();
+      final invoice = OsInvoiceModel(
+        id: invoiceId,
+        clientId: quote.clientId,
+        clientName: quote.clientName,
+        clientPhone: quote.clientPhone,
+        clientEmail: quote.clientEmail,
+        clientAddress: quote.clientAddress,
+        date: today,
+        dueDate: due,
+        status: OsInvoiceStatus.draft,
+        amount: quote.amount > 0
+            ? quote.amount
+            : items.fold<double>(0, (s, i) => s + i.total),
+        discount: quote.discount,
+        vat: quote.vat,
+        total: quote.total,
+        items: items,
+        notes: quote.notes,
+        quotationId: quoteId,
+        createdAt: now,
+      );
+
+      final ok = await FirestoreOsFinanceApi.upsertInvoice(invoice);
+      if (!ok) return null;
+      return invoiceId;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   Future<bool> deleteQuotation(String id) async {
     isLoading.value = true;
     try {
@@ -181,8 +258,13 @@ class OsFinanceController extends GetxController {
     }
   }
 
-  Future<bool> cycleQuotationStatus(OsQuotationModel quotation) async {
-    return saveQuotation(quotation.copyWith(status: quotation.nextStatus));
+  Future<bool> setQuotationStatus(
+    OsQuotationModel quotation,
+    String status,
+  ) async {
+    if (status == quotation.status) return true;
+    if (!OsQuotationStatus.all.contains(status)) return false;
+    return saveQuotation(quotation.copyWith(status: status));
   }
 
   Future<bool> markInvoicePaid({

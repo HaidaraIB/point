@@ -517,6 +517,11 @@ class AppLocaleKeys {
   static const osKpiConversion = 'os.kpi.conversion';
   static const osKpiConversionZero = 'os.kpi.conversion_zero';
   static const osKpiNotConnected = 'os.kpi.not_connected';
+  static const osKpiPipeline = 'os.kpi.pipeline';
+  static const osKpiNewLeads = 'os.kpi.new_leads';
+  static const osKpiWonClients = 'os.kpi.won_clients';
+  static const osKpiConversionRate = 'os.kpi.conversion_rate';
+  static const osDashboardPipelineTitle = 'os.dashboard.pipeline_title';
   static const osModulesTitle = 'os.modules.title';
   static const osModuleComingSoon = 'os.module.coming_soon';
   static const osModuleCrm = 'os.module.crm';
@@ -531,6 +536,80 @@ class AppLocaleKeys {
   static const osModuleBranches = 'os.module.branches';
   static const osBackToHub = 'os.back_to_hub';
   static const osNavHub = 'os.nav.hub';
+
+  // --- CRM ---
+  static const osCrmTitle = 'os.crm.title';
+  static const osCrmSubtitle = 'os.crm.subtitle';
+  static const osCrmViewKanban = 'os.crm.view.kanban';
+  static const osCrmViewList = 'os.crm.view.list';
+  static const osCrmKanbanEmpty = 'os.crm.kanban.empty';
+  static const osCrmAdd = 'os.crm.add';
+  static const osCrmAddTitle = 'os.crm.add_title';
+  static const osCrmEditTitle = 'os.crm.edit_title';
+  static const osCrmEdit = 'os.crm.edit';
+  static const osCrmCompany = 'os.crm.company';
+  static const osCrmContactName = 'os.crm.contact_name';
+  static const osCrmPhone = 'os.crm.phone';
+  static const osCrmEmail = 'os.crm.email';
+  static const osCrmStage = 'os.crm.stage';
+  static const osCrmAssignee = 'os.crm.assignee';
+  static const osCrmLeadSource = 'os.crm.lead_source';
+  static const osCrmSaved = 'os.crm.saved';
+  static const osCrmSearch = 'os.crm.search';
+  static const osCrmEmpty = 'os.crm.empty';
+  static const osCrmEmptyFilter = 'os.crm.empty_filter';
+  static const osCrmBack = 'os.crm.back';
+  static const osCrmBalance = 'os.crm.balance';
+  static const osCrmRevenue = 'os.crm.revenue';
+  static const osCrmNotes = 'os.crm.notes';
+  static const osCrmNotesEmpty = 'os.crm.notes_empty';
+  static const osCrmNotesSave = 'os.crm.notes_save';
+  static const osCrmCall = 'os.crm.call';
+  static const osCrmWhatsapp = 'os.crm.whatsapp';
+  static const osCrmEmailAction = 'os.crm.email_action';
+  static const osCrmActivityTitle = 'os.crm.activity.title';
+  static const osCrmActivityEmpty = 'os.crm.activity.empty';
+  static const osCrmActivityStageChange = 'os.crm.activity.stage_change';
+  static const osCrmActivityLogCall = 'os.crm.activity.log_call';
+  static const osCrmActivityLogWhatsapp = 'os.crm.activity.log_whatsapp';
+  static const osCrmConfirmWonTitle = 'os.crm.confirm_won_title';
+  static const osCrmConfirmWonMessage = 'os.crm.confirm_won_message';
+  static const osCrmConfirmLostTitle = 'os.crm.confirm_lost_title';
+  static const osCrmConfirmLostMessage = 'os.crm.confirm_lost_message';
+  static const osCrmColCompany = 'os.crm.col.company';
+  static const osCrmColContact = 'os.crm.col.contact';
+  static const osCrmColPhone = 'os.crm.col.phone';
+  static const osCrmColStage = 'os.crm.col.stage';
+  static const osCrmColLeadSource = 'os.crm.col.lead_source';
+  static const osCrmColRevenue = 'os.crm.col.revenue';
+  static const osCrmColActions = 'os.crm.col.actions';
+  static const osCrmViewDetails = 'os.crm.view_details';
+  static const osCrmCreateQuotation = 'os.crm.create_quotation';
+  static const osCrmCreateInvoice = 'os.crm.create_invoice';
+  static const osCrmCreateContract = 'os.crm.create_contract';
+  static const osCrmWonBanner = 'os.crm.won_banner';
+  static const osCrmOpenInClients = 'os.crm.open_in_clients';
+  static const osCrmBulkSelected = 'os.crm.bulk_selected';
+  static const osCrmBulkMoveStage = 'os.crm.bulk_move_stage';
+  static const osCrmBulkApply = 'os.crm.bulk_apply';
+  static const osCrmBulkClear = 'os.crm.bulk_clear';
+  static const osCrmQuotationsCount = 'os.crm.quotations_count';
+  static const osCrmInvoicesCount = 'os.crm.invoices_count';
+  static const osCrmCompanyRequired = 'os.crm.company_required';
+  static const osCrmContactRequired = 'os.crm.contact_required';
+  static const osCrmChangeStage = 'os.crm.change_stage';
+  static const osCrmStageNewLead = 'os.crm.stage.NEW_LEAD';
+  static const osCrmStageContacted = 'os.crm.stage.CONTACTED';
+  static const osCrmStageQuotationSent = 'os.crm.stage.QUOTATION_SENT';
+  static const osCrmStageNegotiation = 'os.crm.stage.NEGOTIATION';
+  static const osCrmStageWon = 'os.crm.stage.WON';
+  static const osCrmStageInProgress = 'os.crm.stage.IN_PROGRESS';
+  static const osCrmStageLost = 'os.crm.stage.LOST';
+  static const osCrmSourceWhatsapp = 'os.crm.source.WHATSAPP';
+  static const osCrmSourceInstagram = 'os.crm.source.INSTAGRAM';
+  static const osCrmSourceReferral = 'os.crm.source.REFERRAL';
+  static const osCrmSourceWebsite = 'os.crm.source.WEBSITE';
+  static const osCrmSourceAds = 'os.crm.source.ADS';
 
   // --- Branches ---
   static const osBranchesTitle = 'os.branches.title';
@@ -625,6 +704,13 @@ class AppLocaleKeys {
   static const osQuotationsStatusPending = 'os.quotations.status.pending';
   static const osQuotationsStatusRejected = 'os.quotations.status.rejected';
   static const osQuotationsCycleStatusHint = 'os.quotations.cycle_status_hint';
+  static const osQuotationsApprove = 'os.quotations.approve';
+  static const osQuotationsReject = 'os.quotations.reject';
+  static const osQuotationsReopen = 'os.quotations.reopen';
+  static const osQuotationsApproveConfirm = 'os.quotations.approve_confirm';
+  static const osQuotationsRejectConfirm = 'os.quotations.reject_confirm';
+  static const osQuotationsReopenConfirm = 'os.quotations.reopen_confirm';
+  static const osQuotationsStatusUpdated = 'os.quotations.status_updated';
   static const osQuotationsCopyLink = 'os.quotations.copy_link';
   static const osQuotationsCopied = 'os.quotations.copied';
   static const osQuotationsLinkCopied = 'os.quotations.link_copied';
@@ -648,6 +734,13 @@ class AppLocaleKeys {
   static const osQuotationsErrorAmount = 'os.quotations.error.amount';
   static const osQuotationsErrorExpiry = 'os.quotations.error.expiry';
   static const osQuotationsItems = 'os.quotations.items';
+  static const osQuotationsConvertToInvoice =
+      'os.quotations.convert_to_invoice';
+  static const osQuotationsConvertSuccess = 'os.quotations.convert_success';
+  static const osQuotationsConvertExists = 'os.quotations.convert_exists';
+  static const osQuotationsConvertMissing = 'os.quotations.convert_missing';
+  static const osQuotationsConvertNeedApproved =
+      'os.quotations.convert_need_approved';
 
   static const osInvoicesTitle = 'os.invoices.title';
   static const osInvoicesAdd = 'os.invoices.add';
@@ -786,6 +879,7 @@ class AppLocaleKeys {
   static const osPrintSignature = 'os.print.signature';
   static const osPrintThanks = 'os.print.thanks';
   static const osPrintQuoteTitle = 'os.print.quote_title';
+  static const osPrintContractTitle = 'os.print.contract_title';
   static const osPrintQuoteAr = 'os.print.quote_ar';
   static const osPrintQuoteNo = 'os.print.quote_no';
   static const osPrintQuoteValidityLabel = 'os.print.quote_validity_label';
@@ -1184,6 +1278,84 @@ class AppLocaleKeys {
   static const osContractsColActions = 'os.contracts.col.actions';
   static const osContractsErrorEmployee = 'os.contracts.error.employee';
   static const osContractsErrorType = 'os.contracts.error.type';
+
+  // --- Legal / client contracts (Point OS) ---
+  static const osLegalContractTitle = 'os.legal_contract.title';
+  static const osLegalContractSubtitle = 'os.legal_contract.subtitle';
+  static const osLegalContractAdd = 'os.legal_contract.add';
+  static const osLegalContractAddTitle = 'os.legal_contract.add_title';
+  static const osLegalContractEditTitle = 'os.legal_contract.edit_title';
+  static const osLegalContractEdit = 'os.legal_contract.edit';
+  static const osLegalContractView = 'os.legal_contract.view';
+  static const osLegalContractSave = 'os.legal_contract.save';
+  static const osLegalContractSaved = 'os.legal_contract.saved';
+  static const osLegalContractDeleted = 'os.legal_contract.deleted';
+  static const osLegalContractDeleteConfirm = 'os.legal_contract.delete_confirm';
+  static const osLegalContractEmpty = 'os.legal_contract.empty';
+  static const osLegalContractEmptyFilter = 'os.legal_contract.empty_filter';
+  static const osLegalContractSearch = 'os.legal_contract.search';
+  static const osLegalContractNumber = 'os.legal_contract.number';
+  static const osLegalContractFieldTitle = 'os.legal_contract.field_title';
+  static const osLegalContractTargetType = 'os.legal_contract.target_type';
+  static const osLegalContractTargetClient = 'os.legal_contract.target.client';
+  static const osLegalContractTargetEmployee = 'os.legal_contract.target.employee';
+  static const osLegalContractTargetFreelancer =
+      'os.legal_contract.target.freelancer';
+  static const osLegalContractStatus = 'os.legal_contract.status';
+  static const osLegalContractStatusActive = 'os.legal_contract.status.active';
+  static const osLegalContractStatusPending = 'os.legal_contract.status.pending';
+  static const osLegalContractStatusDraft = 'os.legal_contract.status.draft';
+  static const osLegalContractStatusExpired = 'os.legal_contract.status.expired';
+  static const osLegalContractStatusTerminated =
+      'os.legal_contract.status.terminated';
+  static const osLegalContractClient = 'os.legal_contract.client';
+  static const osLegalContractPartyName = 'os.legal_contract.party_name';
+  static const osLegalContractStart = 'os.legal_contract.start';
+  static const osLegalContractEnd = 'os.legal_contract.end';
+  static const osLegalContractDuration = 'os.legal_contract.duration';
+  static const osLegalContractValue = 'os.legal_contract.value';
+  static const osLegalContractCurrency = 'os.legal_contract.currency';
+  static const osLegalContractCurrencyIqd = 'os.legal_contract.currency.iqd';
+  static const osLegalContractCurrencyUsd = 'os.legal_contract.currency.usd';
+  static const osLegalContractGoverningLaw = 'os.legal_contract.governing_law';
+  static const osLegalContractJurisdiction = 'os.legal_contract.jurisdiction';
+  static const osLegalContractClauses = 'os.legal_contract.clauses';
+  static const osLegalContractNotes = 'os.legal_contract.notes';
+  static const osLegalContractErrorRequired = 'os.legal_contract.error.required';
+  static const osLegalContractTabRegistry = 'os.legal_contract.tab.registry';
+  static const osLegalContractTabTemplates = 'os.legal_contract.tab.templates';
+  static const osLegalContractTabSettings = 'os.legal_contract.tab.settings';
+  static const osLegalContractKpiTotal = 'os.legal_contract.kpi.total';
+  static const osLegalContractKpiActive = 'os.legal_contract.kpi.active';
+  static const osLegalContractKpiPending = 'os.legal_contract.kpi.pending';
+  static const osLegalContractKpiValue = 'os.legal_contract.kpi.value';
+  static const osLegalContractFilterAllTypes = 'os.legal_contract.filter.all_types';
+  static const osLegalContractUseTemplate = 'os.legal_contract.use_template';
+  static const osLegalContractClausesCount = 'os.legal_contract.clauses_count';
+  static const osLegalContractSettingsAgency = 'os.legal_contract.settings.agency';
+  static const osLegalContractSettingsLegalName =
+      'os.legal_contract.settings.legal_name';
+  static const osLegalContractSettingsSignatory =
+      'os.legal_contract.settings.signatory';
+  static const osLegalContractSettingsSignatoryTitle =
+      'os.legal_contract.settings.signatory_title';
+  static const osLegalContractSettingsHeadquarters =
+      'os.legal_contract.settings.headquarters';
+  static const osLegalContractSettingsPrefix = 'os.legal_contract.settings.prefix';
+  static const osLegalContractSettingsJurisdiction =
+      'os.legal_contract.settings.jurisdiction';
+  static const osLegalContractSettingsDigitalStamp =
+      'os.legal_contract.settings.digital_stamp';
+  static const osLegalContractSettingsSave = 'os.legal_contract.settings.save';
+  static const osLegalContractSettingsSaved = 'os.legal_contract.settings.saved';
+  static const osLegalContractPreviewOfficial = 'os.legal_contract.preview.official';
+  static const osLegalContractPreviewPartyOne = 'os.legal_contract.preview.party_one';
+  static const osLegalContractPreviewPartyTwo = 'os.legal_contract.preview.party_two';
+  static const osLegalContractMarkSigned = 'os.legal_contract.mark_signed';
+  static const osLegalContractPrint = 'os.legal_contract.print';
+  static const osLegalContractPrintHint = 'os.legal_contract.print_hint';
+  static const errorsOsLegalContractsSave = 'errors.osLegalContracts.save';
+  static const errorsOsLegalContractsDelete = 'errors.osLegalContracts.delete';
 
   static const osAdvancesTitle = 'os.advances.title';
   static const osAdvancesAdd = 'os.advances.add';
