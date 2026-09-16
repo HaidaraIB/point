@@ -4,6 +4,7 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Utils/AppFonts.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/os_module_nav.dart';
+import 'package:point/View/Os/os_settings_gear_button.dart';
 
 /// Shared header for OS sub-routes: back to `/os` + title + optional actions.
 class OsPageHeader extends StatelessWidget {
@@ -13,6 +14,7 @@ class OsPageHeader extends StatelessWidget {
     this.actions,
     this.subtitle,
     this.showModuleNav = true,
+    this.showSettingsGear = true,
     this.currentRoute,
   });
 
@@ -25,6 +27,9 @@ class OsPageHeader extends StatelessWidget {
 
   /// Highlighted nav route; defaults to [Get.currentRoute].
   final String? currentRoute;
+
+  /// Gear shortcut to `/os/settings` on the far side of the title row.
+  final bool showSettingsGear;
 
   void _goBackToOs() {
     if (Get.previousRoute == '/os') {
@@ -98,6 +103,7 @@ class OsPageHeader extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Expanded(child: titleBlock),
+                        if (showSettingsGear) const OsSettingsGearButton(),
                       ],
                     ),
                     if (actionsRow != null) ...[
@@ -123,6 +129,7 @@ class OsPageHeader extends StatelessWidget {
                     ),
                     const SizedBox(width: 16),
                     Expanded(child: titleBlock),
+                    if (showSettingsGear) const OsSettingsGearButton(),
                     if (actionsRow != null) ...[
                       const SizedBox(width: 16),
                       actionsRow,

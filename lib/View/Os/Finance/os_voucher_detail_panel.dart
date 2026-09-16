@@ -289,6 +289,12 @@ class _OsVoucherDetailPanelState extends State<OsVoucherDetailPanel> {
                     ),
                     const Divider(height: 20),
                     _ReceiptRow(
+                      label: AppLocaleKeys.osVouchersAmountDigits.tr,
+                      value: OsFinanceFormat.money(v.amount),
+                      bold: true,
+                    ),
+                    const Divider(height: 20),
+                    _ReceiptRow(
                       label: AppLocaleKeys.osVouchersAmountWordsLabel.tr,
                       value: OsArabicCurrency.formatIqd(v.amount),
                     ),

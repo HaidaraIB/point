@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:point/Controller/OsFinanceController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsLineItem.dart';
+import 'package:point/Models/Os/OsServiceModel.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/os_finance_format.dart';
+import 'package:point/View/Os/os_line_item_print_format.dart';
 
 /// Shared preview table for invoice / quotation line items.
 class OsLineItemsTable extends StatelessWidget {
@@ -21,6 +24,10 @@ class OsLineItemsTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
+    final List<OsServiceModel> catalog = Get.isRegistered<OsFinanceController>()
+        ? Get.find<OsFinanceController>().services
+        : const <OsServiceModel>[];
+    final resolvedItems = OsLineItem.withResolvedMarketing(items, catalog);
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
@@ -61,16 +68,22 @@ class OsLineItemsTable extends StatelessWidget {
               ],
             )
           else
-            for (var i = 0; i < items.length; i++)
+            for (var i = 0; i < resolvedItems.length; i++)
               TableRow(
                 children: [
                   _td(theme, '${i + 1}'),
-                  _td(theme, items[i].description),
-                  _td(theme, '${items[i].quantity}'),
-                  _td(theme, OsFinanceFormat.money(items[i].unitPrice)),
+                  OsLineItemPrintFormat.descriptionCell(
+                    theme,
+                    resolvedItems[i],
+                  ),
+                  _td(theme, '${resolvedItems[i].quantity}'),
                   _td(
                     theme,
-                    OsFinanceFormat.money(items[i].total),
+                    OsFinanceFormat.money(resolvedItems[i].unitPrice),
+                  ),
+                  _td(
+                    theme,
+                    OsFinanceFormat.money(resolvedItems[i].total),
                     bold: true,
                   ),
                 ],

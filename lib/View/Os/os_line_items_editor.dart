@@ -17,6 +17,8 @@ class OsLineDraft {
     required this.description,
     required this.qtyCtrl,
     required this.priceCtrl,
+    this.serviceId,
+    this.serviceMarketingDescription,
   });
 
   factory OsLineDraft.empty() => OsLineDraft(
@@ -31,12 +33,16 @@ class OsLineDraft {
         description: TextEditingController(text: item.description),
         qtyCtrl: TextEditingController(text: item.quantity.toString()),
         priceCtrl: TextEditingController(text: item.unitPrice.toString()),
+        serviceId: item.serviceId,
+        serviceMarketingDescription: item.serviceMarketingDescription,
       );
 
   final String id;
   final TextEditingController description;
   final TextEditingController qtyCtrl;
   final TextEditingController priceCtrl;
+  String? serviceId;
+  String? serviceMarketingDescription;
 
   double get quantity => double.tryParse(qtyCtrl.text.trim()) ?? 0;
   double get unitPrice => double.tryParse(priceCtrl.text.trim()) ?? 0;
@@ -91,12 +97,15 @@ class OsLineItemsController extends ChangeNotifier {
   }
 
   void applyService(OsServiceModel srv) {
+    final marketing = srv.marketingDescription?.trim();
     final last = _lines.last;
     final blank =
         last.description.text.trim().isEmpty && last.unitPrice == 0;
     if (_lines.length == 1 && blank) {
       last.description.text = srv.name;
       last.priceCtrl.text = srv.basePrice.toStringAsFixed(0);
+      last.serviceId = srv.id;
+      last.serviceMarketingDescription = marketing;
     } else {
       _lines.add(
         OsLineDraft(
@@ -105,10 +114,25 @@ class OsLineItemsController extends ChangeNotifier {
           qtyCtrl: TextEditingController(text: '1'),
           priceCtrl:
               TextEditingController(text: srv.basePrice.toStringAsFixed(0)),
+          serviceId: srv.id,
+          serviceMarketingDescription: marketing,
         ),
       );
     }
     notifyListeners();
+  }
+
+  String? _marketingForDraft(OsLineDraft line) {
+    final snap = line.serviceMarketingDescription?.trim();
+    if (snap != null && snap.isNotEmpty) return snap;
+    final sid = line.serviceId?.trim();
+    if (sid == null || sid.isEmpty || !Get.isRegistered<OsFinanceController>()) {
+      return null;
+    }
+    final svc = Get.find<OsFinanceController>().serviceById(sid);
+    final marketing = svc?.marketingDescription?.trim();
+    if (marketing == null || marketing.isEmpty) return null;
+    return marketing;
   }
 
   void onLineChanged() => notifyListeners();
@@ -127,6 +151,8 @@ class OsLineItemsController extends ChangeNotifier {
           quantity: l.quantity,
           unitPrice: l.unitPrice,
           total: l.lineTotal,
+          serviceId: l.serviceId,
+          serviceMarketingDescription: _marketingForDraft(l),
         ),
       );
     }

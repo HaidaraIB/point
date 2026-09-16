@@ -8,7 +8,9 @@ import 'package:point/Models/Os/os_crm_enums.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Crm/os_crm_labels.dart';
 import 'package:point/View/Os/os_finance_format.dart';
+import 'package:point/View/Os/os_ai_insight_panel.dart';
 import 'package:point/View/Os/os_modules.dart';
+import 'package:point/View/Os/os_settings_gear_button.dart';
 
 class OsDashboardBody extends StatelessWidget {
   const OsDashboardBody({super.key});
@@ -46,21 +48,34 @@ class OsDashboardBody extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      AppLocaleKeys.osDashboardTitle.tr,
-                      style: TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
-                        color: theme.primaryText,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      AppLocaleKeys.osDashboardSubtitle.tr,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: theme.secondaryText,
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                AppLocaleKeys.osDashboardTitle.tr,
+                                style: TextStyle(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w800,
+                                  color: theme.primaryText,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                AppLocaleKeys.osDashboardSubtitle.tr,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: theme.secondaryText,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const OsSettingsGearButton(),
+                      ],
                     ),
                     const SizedBox(height: 20),
                     GridView.count(
@@ -139,6 +154,8 @@ class OsDashboardBody extends StatelessWidget {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 20),
+                    const OsAiInsightPanel(),
                     const SizedBox(height: 20),
                     Text(
                       AppLocaleKeys.osDashboardPipelineTitle.tr,

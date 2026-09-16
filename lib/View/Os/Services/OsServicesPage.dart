@@ -5,7 +5,6 @@ import 'package:point/Controller/OsFinanceController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsServiceModel.dart';
 import 'package:point/Services/FunHelper.dart';
-import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/OsPermissions.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Services/os_service_form_dialog.dart';
@@ -13,6 +12,8 @@ import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_list_filters.dart';
 import 'package:point/View/Os/os_page_header.dart';
+import 'package:point/Services/os_ai_service.dart';
+import 'package:point/View/Os/os_ai_suggestion_block.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 
@@ -26,6 +27,8 @@ class OsServicesPage extends StatefulWidget {
 class _OsServicesPageState extends State<OsServicesPage> {
   final _search = TextEditingController();
   var _category = 'ALL';
+  final _aiDescriptions = <String, String>{};
+  String? _loadingServiceId;
 
   @override
   void dispose() {
@@ -61,6 +64,29 @@ class _OsServicesPageState extends State<OsServicesPage> {
       case OsServiceCategory.artisticProduction:
       default:
         return Icons.camera_alt_outlined;
+    }
+  }
+
+  Future<void> _generateAiDescription(
+    OsServiceModel service,
+    OsFinanceController finance,
+  ) async {
+    final id = service.id;
+    if (id == null || id.isEmpty || _loadingServiceId != null) return;
+
+    setState(() => _loadingServiceId = id);
+    try {
+      final text = await OsAiService.instance.generateServiceDescription(
+        serviceName: service.name,
+        categoryLabel: OsServiceCategory.labelKey(service.category).tr,
+      );
+      if (!mounted) return;
+      setState(() => _aiDescriptions[id] = text);
+      await finance.saveService(
+        service.copyWith(marketingDescription: text),
+      );
+    } finally {
+      if (mounted) setState(() => _loadingServiceId = null);
     }
   }
 
@@ -210,14 +236,24 @@ class _OsServicesPageState extends State<OsServicesPage> {
                                   crossAxisCount: crossAxis,
                                   mainAxisSpacing: 14,
                                   crossAxisSpacing: 14,
-                                  childAspectRatio:
-                                      wide ? 1.15 : (mid ? 1.05 : 1.35),
+                                  mainAxisExtent:
+                                      wide ? 340 : (mid ? 360 : 380),
                                 ),
                                 itemBuilder: (context, index) {
                                   final service = list[index];
+                                  final serviceId = service.id ?? '';
                                   return _ServiceCard(
                                     service: service,
                                     icon: _categoryIcon(service.category),
+                                    aiDescription: _aiDescriptions[serviceId] ??
+                                        service.marketingDescription ??
+                                        '',
+                                    isGeneratingAi: _loadingServiceId == serviceId,
+                                    isAiDisabled: _loadingServiceId != null,
+                                    onGenerateAi: () => _generateAiDescription(
+                                      service,
+                                      finance,
+                                    ),
                                     onEdit: () => showOsServiceFormDialog(
                                       context,
                                       existing: service,
@@ -247,12 +283,20 @@ class _ServiceCard extends StatelessWidget {
   const _ServiceCard({
     required this.service,
     required this.icon,
+    required this.aiDescription,
+    required this.isGeneratingAi,
+    required this.isAiDisabled,
+    required this.onGenerateAi,
     required this.onEdit,
     required this.onDelete,
   });
 
   final OsServiceModel service;
   final IconData icon;
+  final String aiDescription;
+  final bool isGeneratingAi;
+  final bool isAiDisabled;
+  final VoidCallback onGenerateAi;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
@@ -260,28 +304,29 @@ class _ServiceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = context.appTheme;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.cardSurface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.border),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+    return SizedBox.expand(
+      child: Container(
+        decoration: BoxDecoration(
+          color: theme.cardSurface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: theme.border),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
+                    color: theme.accentText.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(icon, color: AppColors.primary, size: 22),
+                  child: Icon(icon, color: theme.accentText, size: 22),
                 ),
                 const Spacer(),
                 IconButton(
@@ -330,8 +375,20 @@ class _ServiceCard extends StatelessWidget {
                 ),
               ),
             ),
-            const Spacer(),
-            Divider(height: 20, color: theme.border),
+            const SizedBox(height: 12),
+            Expanded(
+              child: OsAiSuggestionBlock(
+                description: aiDescription,
+                isLoading: isGeneratingAi,
+                isDisabled: isAiDisabled,
+                onGenerate: onGenerateAi,
+                expandToFill: true,
+                maxDescriptionLines: 5,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Divider(height: 1, color: theme.border),
+            const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(
@@ -352,7 +409,7 @@ class _ServiceCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w900,
-                          color: AppColors.primary,
+                          color: theme.accentText,
                         ),
                       ),
                     ],
@@ -370,6 +427,7 @@ class _ServiceCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }

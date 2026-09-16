@@ -6,6 +6,7 @@ import 'package:point/View/Os/Invoices/os_invoice_share.dart';
 import 'package:point/View/Os/Print/os_brand_print.dart';
 import 'package:point/View/Os/Print/os_print_codes.dart';
 import 'package:point/View/Os/os_finance_format.dart';
+import 'package:point/View/Os/os_line_item_print_format.dart';
 import 'package:point/View/Os/os_print_a4.dart';
 
 String buildOsInvoicePlainText(OsInvoiceModel invoice) {
@@ -35,7 +36,8 @@ String buildOsInvoicePlainText(OsInvoiceModel invoice) {
     for (var i = 0; i < invoice.items.length; i++) {
       final it = invoice.items[i];
       buf.writeln(
-        '${i + 1}. ${it.description} × ${it.quantity} @ '
+        '${i + 1}. ${OsLineItemPrintFormat.plainDescription(it)} × '
+        '${it.quantity} @ '
         '${OsFinanceFormat.money(it.unitPrice)} = '
         '${OsFinanceFormat.money(it.total)}',
       );
@@ -100,7 +102,7 @@ String buildOsInvoicePrintHtml(OsInvoiceModel invoice) {
       rows.add(
         '<tr>'
         '<td>${i + 1}</td>'
-        '<td class="desc">${escapeHtml(it.description)}</td>'
+        '${OsLineItemPrintFormat.descHtml(it)}'
         '<td>${OsBrandPrint.moneyHtml(it.unitPrice)}</td>'
         '<td>${OsBrandPrint.moneyHtml(it.total)}</td>'
         '</tr>',
@@ -244,6 +246,7 @@ ${OsBrandPrint.brandCss()}
   padding: 3px 4px;
   height: auto;
 }
+${OsLineItemPrintFormat.itemMarketingCss()}
 .invoice-print .notes-totals { margin-top: 6px; gap: 10px; }
 .invoice-print .notes-box { min-height: 64px; padding: 6px 8px; }
 .invoice-print .totals-table td { padding: 5px 8px; }

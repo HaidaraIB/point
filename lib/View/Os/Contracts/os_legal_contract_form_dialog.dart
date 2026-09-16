@@ -9,7 +9,9 @@ import 'package:point/Models/Os/OsContractTemplate.dart';
 import 'package:point/Models/Os/OsLegalContractModel.dart';
 import 'package:point/Models/Os/os_legal_contract_enums.dart';
 import 'package:point/Services/firestore/firestore_os_finance_api.dart';
+import 'package:point/Services/os_ai_service.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/View/Os/os_ai_suggestion_block.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 
@@ -64,6 +66,7 @@ class _OsLegalContractFormDialogState extends State<_OsLegalContractFormDialog> 
   late List<OsContractClause> _clauses;
   var _saving = false;
   var _loadingNumber = false;
+  String? _loadingAiKey;
 
   List<ClientModel> get _clients {
     return Get.find<HomeController>()
@@ -206,6 +209,75 @@ class _OsLegalContractFormDialogState extends State<_OsLegalContractFormDialog> 
     );
   }
 
+  OsAiContractInput _contractAiInput({String? clauseTitle, String? clauseContent}) {
+    final value = double.tryParse(_valueCtrl.text.replaceAll(',', '')) ?? 0;
+    final tpl = widget.template;
+    return OsAiContractInput(
+      contractTitle: _titleCtrl.text.trim(),
+      targetType: _targetType,
+      targetName: _targetNameCtrl.text.trim(),
+      templateTitle: tpl?.suggestedTitle.trim().isNotEmpty == true
+          ? tpl!.suggestedTitle
+          : (tpl?.name ?? ''),
+      totalValue: value,
+      currency: _currency,
+      clauseTitle: clauseTitle ?? '',
+      clauseContent: clauseContent ?? '',
+      startDate: FirestoreOsFinanceApi.formatDate(_startDate),
+      endDate: _endDate == null
+          ? ''
+          : FirestoreOsFinanceApi.formatDate(_endDate!),
+    );
+  }
+
+  Future<void> _generateContractTitle() async {
+    if (_loadingAiKey != null) return;
+    setState(() => _loadingAiKey = 'title');
+    try {
+      final text = await OsAiService.instance.generateContractTitle(
+        input: _contractAiInput(),
+      );
+      if (mounted) _titleCtrl.text = text;
+    } finally {
+      if (mounted) setState(() => _loadingAiKey = null);
+    }
+  }
+
+  Future<void> _generateContractScope() async {
+    if (_loadingAiKey != null) return;
+    setState(() => _loadingAiKey = 'scope');
+    try {
+      final text = await OsAiService.instance.generateContractScope(
+        input: _contractAiInput(),
+      );
+      if (mounted) _notesCtrl.text = text;
+    } finally {
+      if (mounted) setState(() => _loadingAiKey = null);
+    }
+  }
+
+  Future<void> _generateClause(int index) async {
+    if (_loadingAiKey != null || index < 0 || index >= _clauses.length) return;
+    final key = 'clause-$index';
+    setState(() => _loadingAiKey = key);
+    try {
+      final clause = _clauses[index];
+      final text = await OsAiService.instance.generateContractClause(
+        input: _contractAiInput(
+          clauseTitle: clause.title,
+          clauseContent: clause.content,
+        ),
+      );
+      if (mounted) {
+        setState(() {
+          _clauses[index] = clause.copyWith(content: text);
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _loadingAiKey = null);
+    }
+  }
+
   Future<void> _pickDate(bool isStart) async {
     final initial = isStart ? _startDate : (_endDate ?? _startDate);
     final picked = await showDatePicker(
@@ -308,7 +380,22 @@ class _OsLegalContractFormDialogState extends State<_OsLegalContractFormDialog> 
             ),
           ),
           const SizedBox(height: 14),
-          _label(AppLocaleKeys.osLegalContractFieldTitle.tr),
+          Row(
+            children: [
+              Expanded(child: _label(AppLocaleKeys.osLegalContractFieldTitle.tr)),
+              TextButton.icon(
+                onPressed: _loadingAiKey != null ? null : _generateContractTitle,
+                icon: _loadingAiKey == 'title'
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.auto_awesome, size: 16),
+                label: Text(AppLocaleKeys.osAiGenerate.tr),
+              ),
+            ],
+          ),
           TextField(
             controller: _titleCtrl,
             decoration: osDialogFieldDecoration(context),
@@ -529,18 +616,32 @@ class _OsLegalContractFormDialogState extends State<_OsLegalContractFormDialog> 
             for (var i = 0; i < _clauses.length; i++)
               _ClauseTile(
                 clause: _clauses[i],
+                isGenerating: _loadingAiKey == 'clause-$i',
+                aiDisabled: _loadingAiKey != null,
                 onToggle: (enabled) {
                   setState(() {
                     _clauses[i] = _clauses[i].copyWith(isEnabled: enabled);
                   });
                 },
+                onGenerate: () => _generateClause(i),
               ),
           ],
           const SizedBox(height: 14),
           _label(AppLocaleKeys.osLegalContractNotes.tr),
+          const SizedBox(height: 8),
+          OsAiSuggestionBlock(
+            title: AppLocaleKeys.osAiContractScopeTitle.tr,
+            placeholder: AppLocaleKeys.osAiContractScopePlaceholder.tr,
+            description: _notesCtrl.text,
+            isLoading: _loadingAiKey == 'scope',
+            isDisabled: _loadingAiKey != null,
+            onGenerate: _generateContractScope,
+          ),
+          const SizedBox(height: 8),
           TextField(
             controller: _notesCtrl,
-            maxLines: 3,
+            maxLines: 4,
+            onChanged: (_) => setState(() {}),
             decoration: osDialogFieldDecoration(context),
           ),
           const SizedBox(height: 20),
@@ -583,10 +684,19 @@ class _OsLegalContractFormDialogState extends State<_OsLegalContractFormDialog> 
 }
 
 class _ClauseTile extends StatelessWidget {
-  const _ClauseTile({required this.clause, required this.onToggle});
+  const _ClauseTile({
+    required this.clause,
+    required this.onToggle,
+    required this.onGenerate,
+    required this.isGenerating,
+    required this.aiDisabled,
+  });
 
   final OsContractClause clause;
   final ValueChanged<bool> onToggle;
+  final VoidCallback onGenerate;
+  final bool isGenerating;
+  final bool aiDisabled;
 
   @override
   Widget build(BuildContext context) {
@@ -610,6 +720,16 @@ class _ClauseTile extends StatelessWidget {
                     ),
                   ),
                 ),
+                TextButton(
+                  onPressed: aiDisabled ? null : onGenerate,
+                  child: isGenerating
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(AppLocaleKeys.osAiGenerate.tr),
+                ),
                 Switch(
                   value: clause.isEnabled,
                   onChanged: clause.isMandatory ? null : onToggle,
@@ -619,8 +739,6 @@ class _ClauseTile extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               clause.content,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
               style: TextStyle(fontSize: 12, color: theme.secondaryText),
             ),
           ],

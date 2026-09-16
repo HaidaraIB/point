@@ -36,7 +36,7 @@ class OsFinanceFormat {
     return n;
   }
 
-  /// Prefer human `V-101` / `INV-001`; never show raw UUIDs.
+  /// Prefer human `V-101` / `INV-601`; never show raw UUIDs.
   static String voucherRef(OsVoucherModel v) {
     final display = v.displayNumber?.trim();
     if (display != null && display.isNotEmpty) return display;
@@ -84,7 +84,7 @@ class OsFinanceFormat {
   }
 
   static String nextInvoiceDisplayNumber(Iterable<String?> existing) {
-    var maxN = 0;
+    var maxN = 600;
     for (final raw in existing) {
       final m = _invoiceNum.firstMatch((raw ?? '').trim());
       if (m != null) {
@@ -96,13 +96,13 @@ class OsFinanceFormat {
     return 'INV-${next.toString().padLeft(3, '0')}';
   }
 
-  /// Human refs like `Q-2024-001` (point_os). Sequence resets per calendar year.
+  /// Human refs like `Q-2026-601` (point_os). Sequence resets per calendar year.
   static String nextQuotationDisplayNumber(
     Iterable<String?> existing, {
     DateTime? now,
   }) {
     final year = (now ?? DateTime.now()).year;
-    var maxN = 0;
+    var maxN = 600;
     for (final raw in existing) {
       final m = _quotationNum.firstMatch((raw ?? '').trim());
       if (m != null) {

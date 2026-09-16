@@ -10,7 +10,7 @@ class OsSearchField extends StatelessWidget {
     super.key,
     required this.controller,
     required this.hint,
-    this.width = 240,
+    this.width = double.infinity,
     this.onChanged,
   });
 
@@ -22,47 +22,46 @@ class OsSearchField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
-    return SizedBox(
-      width: width,
-      child: TextField(
-        controller: controller,
-        onChanged: onChanged,
-        style: TextStyle(fontSize: 13, color: theme.primaryText),
-        decoration: InputDecoration(
-          hintText: hint,
-          hintMaxLines: 1,
-          prefixIcon: Icon(Icons.search, size: 18, color: theme.mutedText),
-          suffixIcon: controller.text.isEmpty
-              ? null
-              : IconButton(
-                  icon: const Icon(Icons.close, size: 16),
-                  onPressed: () {
-                    controller.clear();
-                    onChanged?.call('');
-                  },
-                ),
-          filled: true,
-          fillColor: theme.inputFill,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: theme.border),
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: theme.border),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.primary),
-          ),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 14,
-            vertical: 12,
-          ),
-          isDense: true,
+    final field = TextField(
+      controller: controller,
+      onChanged: onChanged,
+      style: TextStyle(fontSize: 13, color: theme.primaryText),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintMaxLines: 1,
+        prefixIcon: Icon(Icons.search, size: 18, color: theme.mutedText),
+        suffixIcon: controller.text.isEmpty
+            ? null
+            : IconButton(
+                icon: const Icon(Icons.close, size: 16),
+                onPressed: () {
+                  controller.clear();
+                  onChanged?.call('');
+                },
+              ),
+        filled: true,
+        fillColor: theme.inputFill,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: theme.border),
         ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: theme.border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.primary),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 12,
+        ),
+        isDense: true,
       ),
     );
+    if (!width.isFinite) return field;
+    return SizedBox(width: width, child: field);
   }
 }
 
@@ -108,8 +107,8 @@ class OsFilterChips extends StatelessWidget {
 }
 
 /// Filter bar layout:
-/// 1) leading + chips with Add actions on one row (actions at the end / far left in RTL)
-/// 2) search alone on the next row, under the filters
+/// 1) leading (context) + chips (filters) on one row; actions isolated at the end
+/// 2) full-width search on the next row with optional inline match count
 class OsListFilterBar extends StatelessWidget {
   const OsListFilterBar({
     super.key,
@@ -126,40 +125,42 @@ class OsListFilterBar extends StatelessWidget {
   final List<Widget> actions;
   final int? matchCount;
 
+  Widget _divider(AppThemeExtension theme) {
+    return Container(
+      width: 1,
+      height: 28,
+      margin: const EdgeInsetsDirectional.symmetric(horizontal: 12),
+      color: theme.border,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
     final hasTopRow = leading != null || chips != null || actions.isNotEmpty;
-
-    final topControls = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (leading != null) ...[
-          leading!,
-          if (chips != null) const SizedBox(width: 12),
-        ],
-        if (chips != null) chips!,
-      ],
-    );
+    final hasSearchRow = search != null || matchCount != null;
 
     final topRow = !hasTopRow
         ? null
         : Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Expanded(
-                child: Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    clipBehavior: Clip.none,
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: topControls,
+              if (leading != null) leading!,
+              if (leading != null && chips != null) _divider(theme),
+              if (chips != null)
+                Expanded(
+                  child: Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      clipBehavior: Clip.none,
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: chips!,
+                    ),
                   ),
                 ),
-              ),
               if (actions.isNotEmpty) ...[
-                const SizedBox(width: 12),
+                if (leading != null || chips != null) const SizedBox(width: 12),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -177,23 +178,26 @@ class OsListFilterBar extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (topRow != null) topRow,
-          if (search != null) ...[
+          if (hasSearchRow) ...[
             if (topRow != null) const SizedBox(height: 10),
-            Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: search!,
-            ),
-          ],
-          if (matchCount != null) ...[
-            const SizedBox(height: 8),
-            Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: Text(
-                AppLocaleKeys.osCommonMatchCount.trParams({
-                  'count': '$matchCount',
-                }),
-                style: TextStyle(fontSize: 12, color: theme.mutedText),
-              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                if (search != null) Expanded(child: search!),
+                if (matchCount != null) ...[
+                  if (search != null) const SizedBox(width: 12),
+                  Text(
+                    AppLocaleKeys.osCommonMatchCount.trParams({
+                      'count': '$matchCount',
+                    }),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: theme.mutedText,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ],
         ],

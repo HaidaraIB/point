@@ -64,6 +64,7 @@ class OsServiceModel {
   final String category;
   final double basePrice;
   final String priceType;
+  final String? marketingDescription;
   final DateTime createdAt;
 
   const OsServiceModel({
@@ -72,6 +73,7 @@ class OsServiceModel {
     required this.category,
     required this.basePrice,
     this.priceType = OsServicePriceType.fixed,
+    this.marketingDescription,
     required this.createdAt,
   });
 
@@ -93,6 +95,7 @@ class OsServiceModel {
           OsServiceCategory.artisticProduction,
       basePrice: (json['basePrice'] as num?)?.toDouble() ?? 0,
       priceType: json['priceType'] as String? ?? OsServicePriceType.fixed,
+      marketingDescription: json['marketingDescription'] as String?,
       createdAt: _parseDateTime(json['createdAt']) ?? DateTime.now(),
     );
   }
@@ -103,6 +106,9 @@ class OsServiceModel {
         'category': category,
         'basePrice': basePrice,
         'priceType': priceType,
+        if (marketingDescription != null &&
+            marketingDescription!.trim().isNotEmpty)
+          'marketingDescription': marketingDescription!.trim(),
         'createdAt': Timestamp.fromDate(createdAt),
       };
 
@@ -112,6 +118,7 @@ class OsServiceModel {
     String? category,
     double? basePrice,
     String? priceType,
+    String? marketingDescription,
     DateTime? createdAt,
   }) {
     return OsServiceModel(
@@ -120,6 +127,7 @@ class OsServiceModel {
       category: category ?? this.category,
       basePrice: basePrice ?? this.basePrice,
       priceType: priceType ?? this.priceType,
+      marketingDescription: marketingDescription ?? this.marketingDescription,
       createdAt: createdAt ?? this.createdAt,
     );
   }

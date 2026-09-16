@@ -1,3 +1,5 @@
+import 'package:point/Models/Os/OsServiceModel.dart';
+
 /// Shared line item for OS invoices and quotations.
 class OsLineItem {
   final String id;
@@ -5,6 +7,8 @@ class OsLineItem {
   final double quantity;
   final double unitPrice;
   final double total;
+  final String? serviceId;
+  final String? serviceMarketingDescription;
 
   const OsLineItem({
     required this.id,
@@ -12,6 +16,8 @@ class OsLineItem {
     required this.quantity,
     required this.unitPrice,
     required this.total,
+    this.serviceId,
+    this.serviceMarketingDescription,
   });
 
   factory OsLineItem.fromJson(Map<String, dynamic> json) {
@@ -23,6 +29,9 @@ class OsLineItem {
       quantity: qty,
       unitPrice: price,
       total: (json['total'] as num?)?.toDouble() ?? (qty * price),
+      serviceId: json['serviceId'] as String?,
+      serviceMarketingDescription:
+          json['serviceMarketingDescription'] as String?,
     );
   }
 
@@ -32,7 +41,19 @@ class OsLineItem {
         'quantity': quantity,
         'unitPrice': unitPrice,
         'total': total,
+        if (serviceId != null && serviceId!.trim().isNotEmpty)
+          'serviceId': serviceId!.trim(),
+        if (serviceMarketingDescription != null &&
+            serviceMarketingDescription!.trim().isNotEmpty)
+          'serviceMarketingDescription':
+              serviceMarketingDescription!.trim(),
       };
+
+  String? get effectiveMarketingDescription {
+    final snap = serviceMarketingDescription?.trim();
+    if (snap != null && snap.isNotEmpty) return snap;
+    return null;
+  }
 
   OsLineItem copyWith({
     String? id,
@@ -40,6 +61,8 @@ class OsLineItem {
     double? quantity,
     double? unitPrice,
     double? total,
+    String? serviceId,
+    String? serviceMarketingDescription,
   }) {
     return OsLineItem(
       id: id ?? this.id,
@@ -47,7 +70,46 @@ class OsLineItem {
       quantity: quantity ?? this.quantity,
       unitPrice: unitPrice ?? this.unitPrice,
       total: total ?? this.total,
+      serviceId: serviceId ?? this.serviceId,
+      serviceMarketingDescription:
+          serviceMarketingDescription ?? this.serviceMarketingDescription,
     );
+  }
+
+  /// Fills marketing copy from the catalog when a line is linked to a service.
+  static List<OsLineItem> withResolvedMarketing(
+    List<OsLineItem> items,
+    List<OsServiceModel> services,
+  ) {
+    if (items.isEmpty || services.isEmpty) return items;
+    return items
+        .map((item) => item._resolveMarketing(services))
+        .toList(growable: false);
+  }
+
+  OsLineItem _resolveMarketing(List<OsServiceModel> services) {
+    final existing = effectiveMarketingDescription;
+    if (existing != null) return this;
+
+    final svc = _linkedService(services);
+    final marketing = svc?.marketingDescription?.trim();
+    if (marketing == null || marketing.isEmpty) return this;
+    return copyWith(serviceMarketingDescription: marketing);
+  }
+
+  OsServiceModel? _linkedService(List<OsServiceModel> services) {
+    final sid = serviceId?.trim();
+    if (sid != null && sid.isNotEmpty) {
+      for (final s in services) {
+        if (s.id == sid) return s;
+      }
+    }
+    final desc = description.trim();
+    if (desc.isEmpty) return null;
+    for (final s in services) {
+      if (s.name.trim() == desc) return s;
+    }
+    return null;
   }
 
   static List<OsLineItem> listFromJson(dynamic rawItems) {

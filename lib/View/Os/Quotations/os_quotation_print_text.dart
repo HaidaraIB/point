@@ -5,6 +5,7 @@ import 'package:point/Services/os_quote_template_settings.dart';
 import 'package:point/View/Os/Print/os_brand_print.dart';
 import 'package:point/View/Os/Print/os_print_codes.dart';
 import 'package:point/View/Os/os_finance_format.dart';
+import 'package:point/View/Os/os_line_item_print_format.dart';
 import 'package:point/View/Os/os_print_a4.dart';
 
 String buildOsQuotationPlainText(OsQuotationModel quote) {
@@ -38,7 +39,7 @@ String buildOsQuotationPlainText(OsQuotationModel quote) {
     for (var i = 0; i < quote.items.length; i++) {
       final it = quote.items[i];
       buf.writeln(
-        '${i + 1}. ${it.description} — '
+        '${i + 1}. ${OsLineItemPrintFormat.plainDescription(it)} — '
         '${OsFinanceFormat.money(it.total)}',
       );
     }
@@ -104,7 +105,7 @@ String buildOsQuotationPrintHtml(OsQuotationModel quote) {
       rows.add(
         '<tr>'
         '<td>${i + 1}</td>'
-        '<td class="desc">${escapeHtml(it.description)}</td>'
+        '${OsLineItemPrintFormat.descHtml(it)}'
         '<td>${OsBrandPrint.moneyHtml(it.total)}</td>'
         '</tr>',
       );
@@ -176,6 +177,7 @@ ${OsBrandPrint.brandCss()}
   padding: 3px 4px;
   height: auto;
 }
+${OsLineItemPrintFormat.itemMarketingCss()}
 .quote-print .notes-totals { margin-top: 6px; gap: 10px; }
 .quote-print .notes-box { min-height: 64px; padding: 6px 8px; }
 .quote-print .totals-table td { padding: 5px 8px; }

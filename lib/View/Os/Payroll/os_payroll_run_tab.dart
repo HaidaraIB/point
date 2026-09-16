@@ -308,33 +308,14 @@ class _OsPayrollRunTabState extends State<OsPayrollRunTab> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           OsListFilterBar(
-            leading: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                FilledButton.icon(
-                  style: OsButtonStyles.secondaryCompact(theme),
-                  onPressed: () => _pickPeriod(context, payroll, period),
-                  icon: const Icon(Icons.calendar_month_outlined, size: 18),
-                  label: Text(
-                    '${AppLocaleKeys.osPayrollPeriod.tr}: ${_periodLabel(period)}',
-                    style: const TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                if (payroll.runForPeriod(period)?.id != null)
-                  OutlinedButton.icon(
-                    onPressed: () =>
-                        _deleteCurrentRun(context, payroll, period),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFFF43F5E),
-                      side: const BorderSide(color: Color(0xFFF43F5E)),
-                      minimumSize: OsButtonStyles.compactMinSize,
-                      padding: OsButtonStyles.compactPadding,
-                    ),
-                    icon: const Icon(Icons.delete_outline, size: 18),
-                    label: Text(AppLocaleKeys.osPayrollRunDelete.tr),
-                  ),
-              ],
+            leading: FilledButton.icon(
+              style: OsButtonStyles.secondaryCompact(theme),
+              onPressed: () => _pickPeriod(context, payroll, period),
+              icon: const Icon(Icons.calendar_month_outlined, size: 18),
+              label: Text(
+                '${AppLocaleKeys.osPayrollPeriod.tr}: ${_periodLabel(period)}',
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
             ),
             chips: OsFilterChips(
               value: _status,
@@ -358,6 +339,23 @@ class _OsPayrollRunTabState extends State<OsPayrollRunTab> {
                 ),
               ],
             ),
+            actions: [
+              if (payroll.runForPeriod(period)?.id != null)
+                OutlinedButton.icon(
+                  onPressed: () =>
+                      _deleteCurrentRun(context, payroll, period),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFFF43F5E),
+                    side: BorderSide(
+                      color: const Color(0xFFF43F5E).withValues(alpha: 0.55),
+                    ),
+                    minimumSize: OsButtonStyles.compactMinSize,
+                    padding: OsButtonStyles.compactPadding,
+                  ),
+                  icon: const Icon(Icons.delete_outline, size: 18),
+                  label: Text(AppLocaleKeys.osPayrollRunDelete.tr),
+                ),
+            ],
             search: OsSearchField(
               controller: _search,
               hint: AppLocaleKeys.osPayrollSearch.tr,

@@ -320,6 +320,11 @@ ${OsBrandPrint.brandCss()}
         <div class="voucher-statement no-split">
           ${_statementRow(partyLabel, voucher.payeeOrPayer, bold: true)}
           ${_statementRow(
+            AppLocaleKeys.osVouchersAmountDigits.tr,
+            OsFinanceFormat.money(voucher.amount),
+            bold: true,
+          )}
+          ${_statementRow(
             AppLocaleKeys.osVouchersAmountWordsLabel.tr,
             OsArabicCurrency.formatIqd(voucher.amount),
           )}
