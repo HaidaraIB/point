@@ -8,7 +8,10 @@ import 'package:point/View/Os/os_electronic_stamp.dart';
 
 /// Polished stamp settings card (text, color picker, enable, live preview).
 class OsStampSettingsPanel extends StatefulWidget {
-  const OsStampSettingsPanel({super.key});
+  const OsStampSettingsPanel({super.key, this.embedded = false});
+
+  /// When true, omits outer card chrome (for use inside [OsSettingsPage]).
+  final bool embedded;
 
   @override
   State<OsStampSettingsPanel> createState() => _OsStampSettingsPanelState();
@@ -208,16 +211,10 @@ class _OsStampSettingsPanelState extends State<OsStampSettingsPanel> {
 
     return Obx(() {
       final enabled = stamp.stampEnabled.value;
-      return Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: theme.cardSurface,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: theme.border),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+      final content = Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (!widget.embedded) ...[
             Text(
               AppLocaleKeys.osInvoicesStampSection.tr,
               style: TextStyle(
@@ -227,7 +224,8 @@ class _OsStampSettingsPanelState extends State<OsStampSettingsPanel> {
               ),
             ),
             const SizedBox(height: 16),
-            LayoutBuilder(
+          ],
+          LayoutBuilder(
               builder: (context, constraints) {
                 final wide = constraints.maxWidth >= 820;
                 final textField = TextField(
@@ -448,8 +446,19 @@ class _OsStampSettingsPanelState extends State<OsStampSettingsPanel> {
                 );
               },
             ),
-          ],
+        ],
+      );
+
+      if (widget.embedded) return content;
+
+      return Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: theme.cardSurface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: theme.border),
         ),
+        child: content,
       );
     });
   }

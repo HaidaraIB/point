@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Controller/OsGeneralSettingsController.dart';
+import 'package:point/Controller/OsLegalContractsController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsAiSettingsStatus.dart';
 import 'package:point/Services/os_ai_service.dart';
 import 'package:point/Utils/OsPermissions.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/Utils/os_currency.dart';
+import 'package:point/View/Os/Contracts/os_legal_contracts_settings_tab.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_page_header.dart';
 import 'package:point/View/Os/os_snackbar.dart';
+import 'package:point/View/Os/os_stamp_settings_panel.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 
 class OsSettingsPage extends StatefulWidget {
@@ -29,6 +35,8 @@ class _OsSettingsPageState extends State<OsSettingsPage> {
   @override
   void initState() {
     super.initState();
+    Get.find<OsGeneralSettingsController>();
+    Get.find<OsLegalContractsController>();
     _load();
   }
 
@@ -138,6 +146,7 @@ class _OsSettingsPageState extends State<OsSettingsPage> {
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                     children: [
                       _SettingsCard(
+                        icon: Icons.auto_awesome,
                         title: AppLocaleKeys.osSettingsAiSection.tr,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -167,7 +176,8 @@ class _OsSettingsPageState extends State<OsSettingsPage> {
                                   child: Text(
                                     _status.hasGeminiKey
                                         ? AppLocaleKeys.osSettingsAiConfigured.tr
-                                        : AppLocaleKeys.osSettingsAiNotConfigured.tr,
+                                        : AppLocaleKeys
+                                            .osSettingsAiNotConfigured.tr,
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w700,
@@ -186,7 +196,6 @@ class _OsSettingsPageState extends State<OsSettingsPage> {
                                 }),
                                 style: TextStyle(
                                   fontSize: 12,
-                                  fontFamily: 'monospace',
                                   color: theme.mutedText,
                                 ),
                               ),
@@ -204,9 +213,9 @@ class _OsSettingsPageState extends State<OsSettingsPage> {
                             TextField(
                               controller: _apiKeyCtrl,
                               obscureText: _obscureKey,
-                              decoration: osDialogFieldDecoration(context).copyWith(
-                                hintText:
-                                    AppLocaleKeys.osSettingsAiKeyHint.tr,
+                              decoration:
+                                  osDialogFieldDecoration(context).copyWith(
+                                hintText: AppLocaleKeys.osSettingsAiKeyHint.tr,
                                 suffixIcon: IconButton(
                                   onPressed: () => setState(
                                     () => _obscureKey = !_obscureKey,
@@ -236,13 +245,17 @@ class _OsSettingsPageState extends State<OsSettingsPage> {
                                             strokeWidth: 2,
                                           ),
                                         )
-                                      : const Icon(Icons.save_outlined, size: 18),
-                                  label: Text(AppLocaleKeys.osSettingsAiSave.tr),
+                                      : const Icon(Icons.save_outlined,
+                                          size: 18),
+                                  label:
+                                      Text(AppLocaleKeys.osSettingsAiSave.tr),
                                 ),
                                 if (_status.configuredInFirestore)
                                   OutlinedButton.icon(
-                                    onPressed: _saving ? null : _clearStoredKey,
-                                    icon: const Icon(Icons.delete_outline, size: 18),
+                                    onPressed:
+                                        _saving ? null : _clearStoredKey,
+                                    icon: const Icon(Icons.delete_outline,
+                                        size: 18),
                                     label: Text(
                                       AppLocaleKeys.osSettingsAiClear.tr,
                                     ),
@@ -252,8 +265,238 @@ class _OsSettingsPageState extends State<OsSettingsPage> {
                           ],
                         ),
                       ),
+                      const SizedBox(height: 16),
+                      const _OsFinanceSettingsSection(),
+                      const SizedBox(height: 16),
+                      _SettingsCard(
+                        icon: Icons.verified_outlined,
+                        title: AppLocaleKeys.osInvoicesStampSection.tr,
+                        child: const OsStampSettingsPanel(embedded: true),
+                      ),
+                      const SizedBox(height: 16),
+                      _SettingsCard(
+                        icon: Icons.gavel_outlined,
+                        title: AppLocaleKeys.osLegalContractTabSettings.tr,
+                        child: const OsLegalContractsSettingsTab(embedded: true),
+                      ),
                     ],
                   ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OsFinanceSettingsSection extends StatefulWidget {
+  const _OsFinanceSettingsSection();
+
+  @override
+  State<_OsFinanceSettingsSection> createState() =>
+      _OsFinanceSettingsSectionState();
+}
+
+class _OsFinanceSettingsSectionState extends State<_OsFinanceSettingsSection> {
+  final _rateCtrl = TextEditingController();
+  var _saving = false;
+  var _dirty = false;
+
+  OsGeneralSettingsController get _ctrl =>
+      Get.find<OsGeneralSettingsController>();
+
+  @override
+  void initState() {
+    super.initState();
+    _syncFromController();
+    ever(_ctrl.settings, (_) {
+      if (!_dirty && mounted) _syncFromController();
+    });
+  }
+
+  @override
+  void dispose() {
+    _rateCtrl.dispose();
+    super.dispose();
+  }
+
+  void _syncFromController() {
+    _rateCtrl.text = _formatRate(_ctrl.usdToIqdRate);
+  }
+
+  String _formatRate(double rate) {
+    if (rate == rate.roundToDouble()) return rate.toInt().toString();
+    return rate.toString();
+  }
+
+  Future<void> _save() async {
+    final parsed = double.tryParse(_rateCtrl.text.trim());
+    if (parsed == null || !isValidUsdToIqdRate(parsed)) {
+      OsSnackbar.error(
+        AppLocaleKeys.osSettingsFinanceSection.tr,
+        AppLocaleKeys.osSettingsFinanceRateInvalid.tr,
+      );
+      return;
+    }
+
+    setState(() => _saving = true);
+    try {
+      final ok = await _ctrl.saveUsdToIqdRate(parsed);
+      if (!mounted) return;
+      if (!ok) {
+        OsSnackbar.error(
+          AppLocaleKeys.osSettingsFinanceSection.tr,
+          AppLocaleKeys.errorsServer.tr,
+        );
+        return;
+      }
+      setState(() => _dirty = false);
+      _syncFromController();
+      OsSnackbar.success(
+        AppLocaleKeys.osSettingsFinanceSection.tr,
+        AppLocaleKeys.osSettingsFinanceSaved.tr,
+      );
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.appTheme;
+
+    return _SettingsCard(
+      icon: Icons.payments_outlined,
+      title: AppLocaleKeys.osSettingsFinanceSection.tr,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            AppLocaleKeys.osSettingsFinanceDescription.tr,
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.5,
+              color: theme.secondaryText,
+            ),
+          ),
+          const SizedBox(height: 16),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final narrow = constraints.maxWidth < 640;
+              final currencyTile = _CurrencyReadOnlyTile(
+                label: AppLocaleKeys.osSettingsFinanceBaseCurrency.tr,
+                value: AppLocaleKeys.osSettingsFinanceCurrencyIqd.tr,
+              );
+              final secondaryTile = _CurrencyReadOnlyTile(
+                label: AppLocaleKeys.osSettingsFinanceSecondaryCurrency.tr,
+                value: AppLocaleKeys.osSettingsFinanceCurrencyUsd.tr,
+              );
+              if (narrow) {
+                return Column(
+                  children: [
+                    currencyTile,
+                    const SizedBox(height: 12),
+                    secondaryTile,
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  Expanded(child: currencyTile),
+                  const SizedBox(width: 12),
+                  Expanded(child: secondaryTile),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          Text(
+            AppLocaleKeys.osSettingsFinanceRateLabel.tr,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: theme.secondaryText,
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _rateCtrl,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+            ],
+            onChanged: (_) => setState(() => _dirty = true),
+            decoration: osDialogFieldDecoration(context).copyWith(
+              hintText: AppLocaleKeys.osSettingsFinanceRateHint.tr,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: FilledButton.icon(
+              onPressed: _saving ? null : _save,
+              style: OsButtonStyles.primaryCompact(),
+              icon: _saving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.save_outlined, size: 18),
+              label: Text(AppLocaleKeys.osSettingsFinanceSave.tr),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CurrencyReadOnlyTile extends StatelessWidget {
+  const _CurrencyReadOnlyTile({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = context.appTheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: theme.panelTint,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: theme.mutedText,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: theme.primaryText,
+                  ),
+                ),
+              ),
+              Icon(Icons.check_circle_outline,
+                  size: 18, color: theme.accentText),
+            ],
           ),
         ],
       ),
@@ -265,10 +508,12 @@ class _SettingsCard extends StatelessWidget {
   const _SettingsCard({
     required this.title,
     required this.child,
+    required this.icon,
   });
 
   final String title;
   final Widget child;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
@@ -285,14 +530,16 @@ class _SettingsCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.auto_awesome, size: 18, color: theme.accentText),
+              Icon(icon, size: 18, color: theme.accentText),
               const SizedBox(width: 8),
-              Text(
-                title,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: theme.primaryText,
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: theme.primaryText,
+                  ),
                 ),
               ),
             ],

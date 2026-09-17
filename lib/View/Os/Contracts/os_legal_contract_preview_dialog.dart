@@ -53,7 +53,6 @@ class _OsLegalContractPreviewDialog extends StatelessWidget {
                 child: Text(
                   contract.contractNumber,
                   style: TextStyle(
-                    fontFamily: 'monospace',
                     fontSize: 13,
                     color: context.appTheme.accentText,
                   ),

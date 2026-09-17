@@ -106,8 +106,8 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: ext.inputFill,
-        hintStyle: TextStyle(color: ext.mutedText),
-        labelStyle: TextStyle(color: ext.secondaryText),
+        hintStyle: almaraiTextTheme.bodyMedium?.copyWith(color: ext.mutedText),
+        labelStyle: almaraiTextTheme.bodyMedium?.copyWith(color: ext.secondaryText),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: ext.border),

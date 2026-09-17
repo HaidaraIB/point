@@ -1308,6 +1308,21 @@ service cloud.firestore {
         if isSignedIn() && hasAuthRole() && isAdmin();
     }
 
+    match /os_general_settings/{settingsId} {
+      allow read, create, update, delete:
+        if isSignedIn() && hasAuthRole() && isAdmin();
+    }
+
+    match /os_email_settings/{settingsId} {
+      allow read, create, update, delete:
+        if isSignedIn() && hasAuthRole() && isAdmin();
+    }
+
+    match /os_email_logs/{logId} {
+      allow read, create, update, delete:
+        if isSignedIn() && hasAuthRole() && isAdmin();
+    }
+
     // Server-only OS settings (Gemini API key via Edge Function service account)
     match /os_settings/{settingsId} {
       allow read, write: if false;

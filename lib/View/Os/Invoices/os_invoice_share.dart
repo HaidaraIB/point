@@ -7,7 +7,9 @@ import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/ClientModel.dart';
 import 'package:point/Models/Os/OsInvoiceModel.dart';
-import 'package:point/Services/EmailNotificationService.dart';
+import 'package:point/Services/firestore/firestore_os_email_api.dart';
+import 'package:point/Services/os_email_hub_service.dart';
+import 'package:point/Models/Os/os_email_enums.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/os_finance_format.dart';
@@ -222,15 +224,28 @@ Future<void> sendOsInvoiceEmail(OsInvoiceModel invoice) async {
   });
 
   try {
-    await EmailNotificationService.send(
+    final settings = await FirestoreOsEmailApi.loadSettings();
+    final ok = await OsEmailHubService.sendAndLog(
+      type: OsEmailCategory.invoice,
       toEmail: email,
+      recipientName: invoice.clientName,
       subject: subject,
-      body: body,
+      content: body,
+      settings: settings,
+      referenceId: ref,
+      attachmentsCount: 1,
     );
-    OsSnackbar.success(
-      AppLocaleKeys.osInvoicesTitle.tr,
-      AppLocaleKeys.osInvoicesEmailSent.trParams({'email': email}),
-    );
+    if (ok) {
+      OsSnackbar.success(
+        AppLocaleKeys.osInvoicesTitle.tr,
+        AppLocaleKeys.osInvoicesEmailSent.trParams({'email': email}),
+      );
+    } else {
+      OsSnackbar.error(
+        AppLocaleKeys.osInvoicesTitle.tr,
+        AppLocaleKeys.osInvoicesErrorEmailFailed.tr,
+      );
+    }
   } catch (_) {
     OsSnackbar.error(
       AppLocaleKeys.osInvoicesTitle.tr,

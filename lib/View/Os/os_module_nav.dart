@@ -6,7 +6,7 @@ import 'package:point/View/Os/os_modules.dart';
 
 /// Compact jump links for OS *subpages* only (not the hub).
 /// Shows Hub + live modules so you can switch without going back to the grid.
-class OsModuleNav extends StatelessWidget {
+class OsModuleNav extends StatefulWidget {
   const OsModuleNav({
     super.key,
     this.currentRoute,
@@ -14,8 +14,16 @@ class OsModuleNav extends StatelessWidget {
 
   final String? currentRoute;
 
+  @override
+  State<OsModuleNav> createState() => _OsModuleNavState();
+}
+
+class _OsModuleNavState extends State<OsModuleNav> {
+  final _scrollController = ScrollController();
+  final _selectedKey = GlobalKey();
+
   String get _active {
-    final raw = currentRoute ?? Get.currentRoute;
+    final raw = widget.currentRoute ?? Get.currentRoute;
     final q = raw.indexOf('?');
     return q >= 0 ? raw.substring(0, q) : raw;
   }
@@ -28,10 +36,44 @@ class OsModuleNav extends StatelessWidget {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _scheduleScrollToSelected();
+  }
+
+  @override
+  void didUpdateWidget(covariant OsModuleNav oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentRoute != widget.currentRoute) {
+      _scheduleScrollToSelected();
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scheduleScrollToSelected() {
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToSelected());
+  }
+
+  void _scrollToSelected() {
+    final ctx = _selectedKey.currentContext;
+    if (ctx == null || !ctx.mounted) return;
+    Scrollable.ensureVisible(
+      ctx,
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
     final active = _active;
-    // Hub + live modules only — no coming-soon clutter / clipping.
     final modules = <OsModule>[
       osHubModule,
       ...osModules.where((m) => m.isLive),
@@ -39,21 +81,42 @@ class OsModuleNav extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-      child: Align(
-        alignment: AlignmentDirectional.centerStart,
-        child: Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final m in modules)
-              _NavPill(
+      child: Scrollbar(
+        controller: _scrollController,
+        thumbVisibility: true,
+        interactive: true,
+        scrollbarOrientation: ScrollbarOrientation.bottom,
+        radius: const Radius.circular(999),
+        thickness: 4,
+        child: SizedBox(
+          height: 44,
+          child: ListView.separated(
+            controller: _scrollController,
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics(),
+            ),
+            clipBehavior: Clip.none,
+            padding: const EdgeInsetsDirectional.only(
+              start: 8,
+              end: 8,
+              bottom: 6,
+            ),
+            itemCount: modules.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 8),
+            itemBuilder: (context, index) {
+              final m = modules[index];
+              final selected = m.route == active;
+              return _NavPill(
+                key: selected ? _selectedKey : null,
                 label: m.titleKey.tr,
                 icon: m.icon,
-                selected: m.route == active,
+                selected: selected,
                 onTap: () => _open(m),
                 theme: theme,
-              ),
-          ],
+              );
+            },
+          ),
         ),
       ),
     );
@@ -62,6 +125,7 @@ class OsModuleNav extends StatelessWidget {
 
 class _NavPill extends StatelessWidget {
   const _NavPill({
+    super.key,
     required this.label,
     required this.icon,
     required this.selected,
@@ -77,35 +141,33 @@ class _NavPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final fg = selected ? Colors.white : theme.primaryText;
+    final bg = selected ? AppColors.primary : theme.cardSurface;
+    final border = selected ? AppColors.primary : theme.border;
+
     return Material(
-      color: selected ? AppColors.primary : theme.cardSurface,
+      color: bg,
       borderRadius: BorderRadius.circular(999),
       child: InkWell(
-        onTap: selected ? null : onTap,
+        onTap: onTap,
         borderRadius: BorderRadius.circular(999),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: selected ? AppColors.primary : theme.border,
-            ),
+            border: Border.all(color: border),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                icon,
-                size: 16,
-                color: selected ? Colors.white : theme.primaryText,
-              ),
-              const SizedBox(width: 8),
+              Icon(icon, size: 16, color: fg),
+              const SizedBox(width: 6),
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  color: selected ? Colors.white : theme.primaryText,
+                  color: fg,
                 ),
               ),
             ],

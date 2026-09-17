@@ -65,7 +65,7 @@ function renderEmailShell(args: {
   </style>
 </head>
 
-<body style="margin:0;padding:0;background-color:#F2F3F5;font-family:'Almarai', Tahoma, Geneva, Verdana, sans-serif;">
+<body style="margin:0;padding:0;background-color:#F2F3F5;font-family:'Almarai';">
 
   <!-- Preheader -->
   <div class="preheader">

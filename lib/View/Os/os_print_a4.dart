@@ -13,7 +13,7 @@ html, body {
   padding: 0;
   background: #fff;
   color: #0f172a;
-  font-family: 'Almarai', sans-serif;
+  font-family: 'Almarai';
 }
 .a4 {
   width: 186mm;

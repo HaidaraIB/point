@@ -5,6 +5,7 @@ import 'package:point/Models/Os/OsContractTemplate.dart';
 import 'package:point/Models/Os/OsLegalContractModel.dart';
 import 'package:point/Models/Os/os_legal_contract_enums.dart';
 import 'package:point/Services/firestore/firestore_os_legal_contracts_api.dart';
+import 'package:point/Utils/os_currency.dart';
 
 class OsLegalContractsController extends GetxController {
   final contracts = <OsLegalContractModel>[].obs;
@@ -44,12 +45,14 @@ class OsLegalContractsController extends GetxController {
       contracts.where((c) => c.status == status).length;
 
   double activeValueIqd() {
-    const usdRate = 1530.0;
+    final usdRate = osCurrentUsdToIqdRate();
     return contracts
         .where((c) => c.status == OsLegalContractStatus.active)
         .fold<double>(0, (sum, c) {
       final v = c.totalValue;
-      if (c.currency == OsLegalContractCurrency.usd) return sum + v * usdRate;
+      if (c.currency == OsLegalContractCurrency.usd) {
+        return sum + convertUsdToIqd(v, rate: usdRate);
+      }
       return sum + v;
     });
   }

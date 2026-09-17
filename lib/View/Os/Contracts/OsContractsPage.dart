@@ -8,7 +8,6 @@ import 'package:point/Utils/OsPermissions.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Contracts/os_legal_contract_form_dialog.dart';
 import 'package:point/View/Os/Contracts/os_legal_contracts_registry_tab.dart';
-import 'package:point/View/Os/Contracts/os_legal_contracts_settings_tab.dart';
 import 'package:point/View/Os/Contracts/os_legal_contracts_templates_tab.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_page_header.dart';
@@ -29,7 +28,7 @@ class _OsContractsPageState extends State<OsContractsPage>
   void initState() {
     super.initState();
     Get.find<OsLegalContractsController>();
-    _tabs = TabController(length: 3, vsync: this);
+    _tabs = TabController(length: 2, vsync: this);
   }
 
   @override
@@ -89,7 +88,6 @@ class _OsContractsPageState extends State<OsContractsPage>
               tabs: [
                 Tab(text: AppLocaleKeys.osLegalContractTabRegistry.tr),
                 Tab(text: AppLocaleKeys.osLegalContractTabTemplates.tr),
-                Tab(text: AppLocaleKeys.osLegalContractTabSettings.tr),
               ],
             ),
           ),
@@ -99,7 +97,6 @@ class _OsContractsPageState extends State<OsContractsPage>
               children: const [
                 OsLegalContractsRegistryTab(),
                 OsLegalContractsTemplatesTab(),
-                OsLegalContractsSettingsTab(),
               ],
             ),
           ),

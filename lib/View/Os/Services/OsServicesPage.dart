@@ -419,7 +419,6 @@ class _ServiceCard extends StatelessWidget {
                   service.id ?? '',
                   style: TextStyle(
                     fontSize: 10,
-                    fontFamily: 'monospace',
                     color: theme.mutedText,
                   ),
                 ),

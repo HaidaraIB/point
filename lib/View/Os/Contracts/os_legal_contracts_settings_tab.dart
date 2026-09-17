@@ -9,7 +9,10 @@ import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 
 class OsLegalContractsSettingsTab extends StatefulWidget {
-  const OsLegalContractsSettingsTab({super.key});
+  const OsLegalContractsSettingsTab({super.key, this.embedded = false});
+
+  /// When true, renders as a non-scrolling column for [OsSettingsPage].
+  final bool embedded;
 
   @override
   State<OsLegalContractsSettingsTab> createState() =>
@@ -116,9 +119,8 @@ class _OsLegalContractsSettingsTabState
   Widget build(BuildContext context) {
     final theme = context.appTheme;
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-      children: [
+    final children = <Widget>[
+      if (!widget.embedded) ...[
         Text(
           AppLocaleKeys.osLegalContractSettingsAgency.tr,
           style: TextStyle(
@@ -128,7 +130,8 @@ class _OsLegalContractsSettingsTabState
           ),
         ),
         const SizedBox(height: 12),
-        _field(
+      ],
+      _field(
           AppLocaleKeys.osLegalContractSettingsLegalName.tr,
           _legalNameCtrl,
           (v) => _local = _local.copyWith(agencyLegalName: v),
@@ -180,7 +183,19 @@ class _OsLegalContractsSettingsTabState
               : const Icon(Icons.save_outlined, size: 18),
           label: Text(AppLocaleKeys.osLegalContractSettingsSave.tr),
         ),
-      ],
+    ];
+
+    if (widget.embedded) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: children,
+      );
+    }
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      children: children,
     );
   }
 }

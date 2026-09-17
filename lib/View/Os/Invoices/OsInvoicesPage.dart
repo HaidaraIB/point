@@ -17,7 +17,6 @@ import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_list_filters.dart';
 import 'package:point/View/Os/os_page_header.dart';
 import 'package:point/View/Os/os_snackbar.dart';
-import 'package:point/View/Os/os_stamp_settings_panel.dart';
 import 'package:point/Services/firestore/firestore_os_finance_api.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 import 'package:point/View/Shared/app_data_table.dart';
@@ -216,7 +215,6 @@ class _DesktopInvoicesBody extends StatefulWidget {
 }
 
 class _DesktopInvoicesBodyState extends State<_DesktopInvoicesBody> {
-  var _showStampSettings = false;
   final _search = TextEditingController();
   var _status = 'ALL';
 
@@ -238,7 +236,6 @@ class _DesktopInvoicesBodyState extends State<_DesktopInvoicesBody> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = context.appTheme;
     final invoices = widget.invoices;
     final filtered = _filtered(invoices);
     final paid = invoices.where((i) => i.isPaid).length;
@@ -256,16 +253,6 @@ class _DesktopInvoicesBodyState extends State<_DesktopInvoicesBody> {
           currentRoute: '/os/invoices',
           actions: [
             FilledButton.icon(
-              onPressed: () =>
-                  setState(() => _showStampSettings = !_showStampSettings),
-              style: OsButtonStyles.secondaryCompact(
-                theme,
-                active: _showStampSettings,
-              ),
-              icon: const Icon(Icons.tune, size: 18),
-              label: Text(AppLocaleKeys.osInvoicesCustomizeStamp.tr),
-            ),
-            FilledButton.icon(
               onPressed: widget.onAdd,
               style: OsButtonStyles.primaryCompact(),
               icon: const Icon(Icons.add, size: 18),
@@ -279,17 +266,6 @@ class _DesktopInvoicesBodyState extends State<_DesktopInvoicesBody> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (_showStampSettings) ...[
-                  const SizedBox(height: 8),
-                  ConstrainedBox(
-                    constraints: BoxConstraints(
-                      maxHeight: MediaQuery.sizeOf(context).height * 0.34,
-                    ),
-                    child: const SingleChildScrollView(
-                      child: OsStampSettingsPanel(),
-                    ),
-                  ),
-                ],
                 const SizedBox(height: 12),
                 LayoutBuilder(
                   builder: (context, constraints) {

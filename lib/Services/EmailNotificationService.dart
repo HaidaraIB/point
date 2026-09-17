@@ -60,8 +60,25 @@ class EmailNotificationService {
     bool isHtml = false,
     String? languageCode,
   }) async {
+    await sendWithResult(
+      toEmail: toEmail,
+      subject: subject,
+      body: body,
+      isHtml: isHtml,
+      languageCode: languageCode,
+    );
+  }
+
+  /// Same as [send] but returns whether delivery succeeded.
+  static Future<bool> sendWithResult({
+    required String toEmail,
+    required String subject,
+    required String body,
+    bool isHtml = false,
+    String? languageCode,
+  }) async {
     final trimmedEmail = toEmail.trim();
-    if (trimmedEmail.isEmpty) return;
+    if (trimmedEmail.isEmpty) return false;
 
     try {
       if (AppConfig.isMockEmailMode) {
@@ -72,7 +89,7 @@ class EmailNotificationService {
           isHtml: isHtml,
           languageCode: languageCode,
         );
-        return;
+        return true;
       }
 
       final client = Supabase.instance.client;
@@ -93,15 +110,17 @@ class EmailNotificationService {
         final data = res.data as Map<String, dynamic>?;
         if (data?['ok'] == true) {
           appLog("✅ Email sent to $trimmedEmail");
-          return;
+          return true;
         }
       }
       appLog(
         "❌ Email edge invoke failed for $trimmedEmail. status=${res.status}, data=${res.data}",
       );
+      return false;
     } catch (e, st) {
       appLog("❌ EmailNotificationService error for $trimmedEmail: $e");
       appLog("StackTrace: $st");
+      return false;
     }
   }
 
@@ -432,7 +451,7 @@ class EmailNotificationService {
     <title>$safeTitle</title>
     <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&display=swap" rel="stylesheet">
   </head>
-  <body style="margin:0;padding:0;background:#F2F3F5;font-family:'Almarai',Tahoma,Arial,sans-serif;color:#111827;">
+  <body style="margin:0;padding:0;background:#F2F3F5;font-family:'Almarai';color:#111827;">
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:24px 12px;">
       <tr>
         <td align="center">

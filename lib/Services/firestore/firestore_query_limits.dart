@@ -24,4 +24,5 @@ class FirestoreQueryLimits {
   static const int osAdvances = 500;
   static const int osBranches = 50;
   static const int osServices = 100;
+  static const int osEmailLogs = 200;
 }

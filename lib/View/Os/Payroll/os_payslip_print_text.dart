@@ -150,7 +150,7 @@ body { padding: 0; background: #fff; }
 }
 .agency { font-size: 16px; font-weight: 900; margin: 0 0 4px; color: var(--brand-dark); }
 .dept { font-size: 11px; color: var(--muted); margin: 0; }
-.meta { text-align: left; font-size: 11px; color: var(--muted); font-family: 'Almarai', sans-serif; line-height: 1.7; }
+.meta { text-align: left; font-size: 11px; color: var(--muted); line-height: 1.7; }
 .info {
   background: var(--fill);
   border-radius: 12px;

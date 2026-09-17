@@ -546,6 +546,144 @@ class AppLocaleKeys {
   static const osModuleServices = 'os.module.services';
   static const osModuleBranches = 'os.module.branches';
   static const osModuleSettings = 'os.module.settings';
+  static const osEmailHubTitle = 'os.email_hub.title';
+  static const osEmailHubSubtitle = 'os.email_hub.subtitle';
+  static const osEmailHubTabInvoices = 'os.email_hub.tab.invoices';
+  static const osEmailHubTabQuotations = 'os.email_hub.tab.quotations';
+  static const osEmailHubTabPayslips = 'os.email_hub.tab.payslips';
+  static const osEmailHubTabAppreciation = 'os.email_hub.tab.appreciation';
+  static const osEmailHubTabPenalties = 'os.email_hub.tab.penalties';
+  static const osEmailHubTabLogs = 'os.email_hub.tab.logs';
+  static const osEmailHubTabSettings = 'os.email_hub.tab.settings';
+  static const osEmailHubHeaderLogs = 'os.email_hub.header.logs';
+  static const osEmailHubSend = 'os.email_hub.send';
+  static const osEmailHubSendConfirmTitle = 'os.email_hub.send_confirm_title';
+  static const osEmailHubSendConfirmMessage = 'os.email_hub.send_confirm_message';
+  static const osEmailHubSentSuccess = 'os.email_hub.sent_success';
+  static const osEmailHubRecipientEmail = 'os.email_hub.recipient_email';
+  static const osEmailHubCustomNote = 'os.email_hub.custom_note';
+  static const osEmailHubIncludeBankDetails = 'os.email_hub.include_bank_details';
+  static const osEmailHubBankDetails = 'os.email_hub.bank_details';
+  static const osEmailHubPaymentLink = 'os.email_hub.payment_link';
+  static const osEmailHubAcceptLink = 'os.email_hub.accept_link';
+  static const osEmailHubInvoiceSubtitle = 'os.email_hub.invoice_subtitle';
+  static const osEmailHubQuoteSubtitle = 'os.email_hub.quote_subtitle';
+  static const osEmailHubPayslipSubtitle = 'os.email_hub.payslip_subtitle';
+  static const osEmailHubSelectInvoice = 'os.email_hub.select_invoice';
+  static const osEmailHubSelectQuotation = 'os.email_hub.select_quotation';
+  static const osEmailHubSelectPayslip = 'os.email_hub.select_payslip';
+  static const osEmailHubNoInvoices = 'os.email_hub.no_invoices';
+  static const osEmailHubNoQuotations = 'os.email_hub.no_quotations';
+  static const osEmailHubNoPayslips = 'os.email_hub.no_payslips';
+  static const osEmailHubNoEmployeeEmail = 'os.email_hub.no_employee_email';
+  static const osEmailHubInvoiceDefaultNote = 'os.email_hub.invoice_default_note';
+  static const osEmailHubQuoteDefaultIntro = 'os.email_hub.quote_default_intro';
+  static const osEmailHubPayslipDefaultNote = 'os.email_hub.payslip_default_note';
+  static const osEmailHubQuoteIntro = 'os.email_hub.quote_intro';
+  static const osEmailHubQuoteSubject = 'os.email_hub.quote_subject';
+  static const osEmailHubQuoteBody = 'os.email_hub.quote_body';
+  static const osEmailHubPayslipSubject = 'os.email_hub.payslip_subject';
+  static const osEmailHubPayslipBody = 'os.email_hub.payslip_body';
+  static const osEmailHubLogsSearch = 'os.email_hub.logs.search';
+  static const osEmailHubLogsFilter = 'os.email_hub.logs.filter';
+  static const osEmailHubLogsFilterAll = 'os.email_hub.logs.filter_all';
+  static const osEmailHubLogsFilterActive = 'os.email_hub.logs.filter_active';
+  static const osEmailHubLogsEmpty = 'os.email_hub.logs.empty';
+  static const osEmailHubLogsClearTitle = 'os.email_hub.logs.clear_title';
+  static const osEmailHubLogsClearMessage = 'os.email_hub.logs.clear_message';
+  static const osEmailHubLogsDeleteTitle = 'os.email_hub.logs.delete_title';
+  static const osEmailHubLogsDeleteMessage = 'os.email_hub.logs.delete_message';
+  static const osEmailHubLogsResendConfirmTitle =
+      'os.email_hub.logs.resend_confirm_title';
+  static const osEmailHubLogsResendConfirmMessage =
+      'os.email_hub.logs.resend_confirm_message';
+  static const osEmailHubLogsCleared = 'os.email_hub.logs.cleared';
+  static const osEmailHubCategoryInvoice = 'os.email_hub.category.invoice';
+  static const osEmailHubCategoryQuotation = 'os.email_hub.category.quotation';
+  static const osEmailHubCategoryPayslip = 'os.email_hub.category.payslip';
+  static const osEmailHubCategoryAppreciation = 'os.email_hub.category.appreciation';
+  static const osEmailHubCategoryPenalty = 'os.email_hub.category.penalty';
+  static const osEmailHubCategoryOther = 'os.email_hub.category.other';
+  static const osEmailHubAppreciationSubtitle = 'os.email_hub.appreciation_subtitle';
+  static const osEmailHubAppreciationSelectEmployee = 'os.email_hub.appreciation.select_employee';
+  static const osEmailHubAppreciationType = 'os.email_hub.appreciation.type';
+  static const osEmailHubAppreciationTypeExcellence = 'os.email_hub.appreciation.type_excellence';
+  static const osEmailHubAppreciationTypeSpeed = 'os.email_hub.appreciation.type_speed';
+  static const osEmailHubAppreciationTypeEmployeeOfMonth =
+      'os.email_hub.appreciation.type_employee_of_month';
+  static const osEmailHubAppreciationTypeLoyalty = 'os.email_hub.appreciation.type_loyalty';
+  static const osEmailHubAppreciationBonus = 'os.email_hub.appreciation.bonus';
+  static const osEmailHubAppreciationReason = 'os.email_hub.appreciation.reason';
+  static const osEmailHubAppreciationDefaultReason = 'os.email_hub.appreciation.default_reason';
+  static const osEmailHubAppreciationSubject = 'os.email_hub.appreciation.subject';
+  static const osEmailHubAppreciationBody = 'os.email_hub.appreciation.body';
+  static const osEmailHubAppreciationBonusLine = 'os.email_hub.appreciation.bonus_line';
+  static const osEmailHubNoEmployees = 'os.email_hub.no_employees';
+  static const osEmailHubPenaltiesSubtitle = 'os.email_hub.penalties_subtitle';
+  static const osEmailHubPenaltiesSelectEmployee = 'os.email_hub.penalties.select_employee';
+  static const osEmailHubPenaltiesSeverity = 'os.email_hub.penalties.severity';
+  static const osEmailHubPenaltiesSeverityNotice = 'os.email_hub.penalties.severity_notice';
+  static const osEmailHubPenaltiesSeverityFirstWarning =
+      'os.email_hub.penalties.severity_first_warning';
+  static const osEmailHubPenaltiesSeverityFinalWarning =
+      'os.email_hub.penalties.severity_final_warning';
+  static const osEmailHubPenaltiesSeveritySalaryDeduction =
+      'os.email_hub.penalties.severity_salary_deduction';
+  static const osEmailHubPenaltiesSeverityNoticeShort =
+      'os.email_hub.penalties.severity_notice_short';
+  static const osEmailHubPenaltiesSeverityFirstWarningShort =
+      'os.email_hub.penalties.severity_first_warning_short';
+  static const osEmailHubPenaltiesSeverityFinalWarningShort =
+      'os.email_hub.penalties.severity_final_warning_short';
+  static const osEmailHubPenaltiesSeveritySalaryDeductionShort =
+      'os.email_hub.penalties.severity_salary_deduction_short';
+  static const osEmailHubPenaltiesDeductionAmount = 'os.email_hub.penalties.deduction_amount';
+  static const osEmailHubPenaltiesReason = 'os.email_hub.penalties.reason';
+  static const osEmailHubPenaltiesDefaultReason = 'os.email_hub.penalties.default_reason';
+  static const osEmailHubPenaltiesGracePeriod = 'os.email_hub.penalties.grace_period';
+  static const osEmailHubPenaltiesDefaultGrace = 'os.email_hub.penalties.default_grace';
+  static const osEmailHubPenaltiesSubject = 'os.email_hub.penalties.subject';
+  static const osEmailHubPenaltiesBody = 'os.email_hub.penalties.body';
+  static const osEmailHubPenaltiesDeductionLine = 'os.email_hub.penalties.deduction_line';
+  static const osEmailHubInvalidEmail = 'os.email_hub.invalid_email';
+  static const osEmailHubSettingsSenderName = 'os.email_hub.settings.sender_name';
+  static const osEmailHubSettingsSenderEmail = 'os.email_hub.settings.sender_email';
+  static const osEmailHubSettingsReplyTo = 'os.email_hub.settings.reply_to';
+  static const osEmailHubSettingsSignature = 'os.email_hub.settings.signature';
+  static const osEmailHubSettingsEnableBcc = 'os.email_hub.settings.enable_bcc';
+  static const osEmailHubSettingsBccEmail = 'os.email_hub.settings.bcc_email';
+  static const osEmailHubSettingsAddress = 'os.email_hub.settings.address';
+  static const osEmailHubSettingsPhone = 'os.email_hub.settings.phone';
+  static const osEmailHubSettingsWebsite = 'os.email_hub.settings.website';
+  static const osEmailHubSettingsSaved = 'os.email_hub.settings.saved';
+  static const osEmailHubPreviewTitle = 'os.email_hub.preview.title';
+  static const osEmailHubPreviewBadge = 'os.email_hub.preview.badge';
+  static const osEmailHubPayslipDefaultBonusNote = 'os.email_hub.payslip.default_bonus_note';
+  static const osEmailHubPayslipSelectEmployee = 'os.email_hub.payslip.select_employee';
+  static const osEmailHubPayslipMonth = 'os.email_hub.payslip.month';
+  static const osEmailHubPayslipPaymentMethod = 'os.email_hub.payslip.payment_method';
+  static const osEmailHubPayslipNoAccounts = 'os.email_hub.payslip.no_accounts';
+  static const osEmailHubPayslipAllowances = 'os.email_hub.payslip.allowances';
+  static const osEmailHubPayslipDeductions = 'os.email_hub.payslip.deductions';
+  static const osEmailHubPayslipBonusNote = 'os.email_hub.payslip.bonus_note';
+  static const osEmailHubPayslipSendBatch = 'os.email_hub.payslip.send_batch';
+  static const osEmailHubPayslipBatchConfirmTitle =
+      'os.email_hub.payslip.batch_confirm_title';
+  static const osEmailHubPayslipBatchConfirmMessage =
+      'os.email_hub.payslip.batch_confirm_message';
+  static const osEmailHubPayslipBatchResult = 'os.email_hub.payslip.batch_result';
+  static const osEmailHubPayslipBodyDetailed = 'os.email_hub.payslip.body_detailed';
+  static const osEmailHubLogsResend = 'os.email_hub.logs.resend';
+  static const osEmailHubLogsDetailTitle = 'os.email_hub.logs.detail_title';
+  static const osEmailHubLogsStatusSent = 'os.email_hub.logs.status_sent';
+  static const osEmailHubLogsStatusFailed = 'os.email_hub.logs.status_failed';
+  static const osEmailHubLogsColType = 'os.email_hub.logs.col_type';
+  static const osEmailHubLogsColRecipient = 'os.email_hub.logs.col_recipient';
+  static const osEmailHubLogsColSubject = 'os.email_hub.logs.col_subject';
+  static const osEmailHubLogsColDate = 'os.email_hub.logs.col_date';
+  static const osEmailHubLogsColStatus = 'os.email_hub.logs.col_status';
+  static const osEmailHubSettingsSenderSection = 'os.email_hub.settings.sender_section';
+  static const osEmailHubSettingsSenderSectionHint = 'os.email_hub.settings.sender_section_hint';
   static const osSettingsTitle = 'os.settings.title';
   static const osSettingsSubtitle = 'os.settings.subtitle';
   static const osSettingsAiSection = 'os.settings.ai.section';
@@ -566,6 +704,18 @@ class AppLocaleKeys {
   static const osSettingsAiSaved = 'os.settings.ai.saved';
   static const osSettingsAiClear = 'os.settings.ai.clear';
   static const osSettingsAiCleared = 'os.settings.ai.cleared';
+  static const osSettingsFinanceSection = 'os.settings.finance.section';
+  static const osSettingsFinanceDescription = 'os.settings.finance.description';
+  static const osSettingsFinanceBaseCurrency = 'os.settings.finance.base_currency';
+  static const osSettingsFinanceSecondaryCurrency =
+      'os.settings.finance.secondary_currency';
+  static const osSettingsFinanceCurrencyIqd = 'os.settings.finance.currency_iqd';
+  static const osSettingsFinanceCurrencyUsd = 'os.settings.finance.currency_usd';
+  static const osSettingsFinanceRateLabel = 'os.settings.finance.rate_label';
+  static const osSettingsFinanceRateHint = 'os.settings.finance.rate_hint';
+  static const osSettingsFinanceRateInvalid = 'os.settings.finance.rate_invalid';
+  static const osSettingsFinanceSave = 'os.settings.finance.save';
+  static const osSettingsFinanceSaved = 'os.settings.finance.saved';
   static const osBackToHub = 'os.back_to_hub';
   static const osNavHub = 'os.nav.hub';
 

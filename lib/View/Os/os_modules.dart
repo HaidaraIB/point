@@ -65,6 +65,7 @@ const osModules = <OsModule>[
   OsModule(
     titleKey: AppLocaleKeys.osModuleEmailHub,
     icon: Icons.mail_outline,
+    route: '/os/email-hub',
   ),
   OsModule(
     titleKey: AppLocaleKeys.osModuleServices,
