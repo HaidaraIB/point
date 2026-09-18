@@ -55,6 +55,7 @@ class _ReviewContentWidgetState extends State<ReviewContentWidget> {
     final minTouchTarget = isMobile ? 48.0 : 40.0;
 
     return GetBuilder<HomeController>(
+      id: HomeController.homeDashboardUpdateId,
       builder: (controller) {
         final titleWidget = Padding(
           padding: EdgeInsets.only(

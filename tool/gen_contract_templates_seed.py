@@ -77,12 +77,22 @@ lines: list[str] = [
     "  static List<OsContractTemplate> presets() => [",
 ]
 
+def parse_tags(block: str):
+    m = re.search(r"tags: \[(.*?)\]", block, re.DOTALL)
+    if not m:
+        return []
+    return re.findall(r"'([^']*)'", m.group(1))
+
+
 for tpl_id in template_ids:
     block = extract_template(tpl_id)
     title = parse_field(block, "title") or ""
     category = parse_field(block, "category") or "CLIENT"
+    sub_type = parse_field(block, "subType") or ""
+    governing_law = parse_field(block, "governingLaw") or ""
     desc = parse_field(block, "description") or ""
     months = parse_field(block, "defaultDurationMonths")
+    tags = parse_tags(block)
     clauses = parse_clauses(block)
     target = f"OsLegalContractTargetType.{CAT_MAP.get(category, 'client')}"
     name = re.sub(r"\s*\([^)]*\)\s*$", "", title).strip()
@@ -93,6 +103,13 @@ for tpl_id in template_ids:
     lines.append(f"          description: {dart_triple(desc)},")
     lines.append(f"          targetType: {target},")
     lines.append(f"          suggestedTitle: {dart_triple(title)},")
+    if sub_type:
+        lines.append(f"          subType: {dart_triple(sub_type)},")
+    if governing_law:
+        lines.append(f"          governingLaw: {dart_triple(governing_law)},")
+    if tags:
+        tag_items = ", ".join(dart_triple(t) for t in tags)
+        lines.append(f"          tags: [{tag_items}],")
     if months:
         lines.append(f"          defaultDurationMonths: {months},")
     lines.append("          clauses: [")

@@ -30,11 +30,16 @@ class FirestoreOsGeneralSettingsApi {
   }
 
   static Future<bool> saveSettings(OsGeneralSettings settings) async {
+    return patchSettings(settings.toJson());
+  }
+
+  /// Merges only the given fields so unrelated settings are not overwritten.
+  static Future<bool> patchSettings(Map<String, dynamic> fields) async {
     try {
       await FirebaseFirestore.instance
           .collection(collection)
           .doc(settingsDocId)
-          .set(settings.toJson(), SetOptions(merge: true));
+          .set(fields, SetOptions(merge: true));
       return true;
     } catch (e, st) {
       appLog('saveGeneralSettings failed: $e\n$st');

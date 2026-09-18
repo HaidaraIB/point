@@ -2,7 +2,6 @@ import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsInvoiceModel.dart';
 import 'package:point/Services/os_stamp_settings.dart';
-import 'package:point/View/Os/Invoices/os_invoice_share.dart';
 import 'package:point/View/Os/Print/os_brand_print.dart';
 import 'package:point/View/Os/Print/os_print_codes.dart';
 import 'package:point/View/Os/os_finance_format.dart';
@@ -81,7 +80,10 @@ String buildOsInvoicePlainText(OsInvoiceModel invoice) {
   return buf.toString();
 }
 
-String buildOsInvoicePrintHtml(OsInvoiceModel invoice) {
+String buildOsInvoicePrintHtml(
+  OsInvoiceModel invoice, {
+  String? paymentLink,
+}) {
   final ref = OsFinanceFormat.invoiceRef(invoice);
   final title = escapeHtml(AppLocaleKeys.osPrintInvoiceTitle.tr);
 
@@ -119,7 +121,7 @@ String buildOsInvoicePrintHtml(OsInvoiceModel invoice) {
   final payLabel =
       OsFinanceFormat.paymentMethodLabel(invoice.paymentMethod);
 
-  final qrData = osInvoicePaymentLink(invoice);
+  final qrData = paymentLink?.trim().isNotEmpty == true ? paymentLink!.trim() : '';
   final qr = OsPrintCodes.qrSvg(qrData);
   final barcode = OsPrintCodes.code128Svg(ref);
 
@@ -131,14 +133,6 @@ String buildOsInvoicePrintHtml(OsInvoiceModel invoice) {
     taxLabel: AppLocaleKeys.osPrintTaxVat.tr,
   );
 
-  final services = '''
-<div class="invoice-services">
-  <span class="svc"><span class="svc-ar">${escapeHtml(AppLocaleKeys.osPrintSvcSolutionsAr.tr)}</span><span class="svc-en">Digital Solutions</span></span>
-  <span class="svc"><span class="svc-ar">${escapeHtml(AppLocaleKeys.osPrintSvcCreativeAr.tr)}</span><span class="svc-en">Creative Consulting</span></span>
-  <span class="svc"><span class="svc-ar">${escapeHtml(AppLocaleKeys.osPrintSvcFilmAr.tr)}</span><span class="svc-en">Film Production</span></span>
-  <span class="svc"><span class="svc-ar">${escapeHtml(AppLocaleKeys.osPrintSvcDigitalAr.tr)}</span><span class="svc-en">Digital Marketing</span></span>
-</div>''';
-
   return '''
 <!DOCTYPE html>
 <html dir="rtl" lang="ar">
@@ -149,77 +143,7 @@ String buildOsInvoicePrintHtml(OsInvoiceModel invoice) {
 $osPrintA4Css
 ${OsBrandPrint.brandCss()}
 .invoice-print .brand-header {
-  grid-template-columns: 2.17fr 1.76fr;
-  column-gap: 0;
-  align-items: stretch;
   margin-bottom: 4px;
-}
-.invoice-print .brand-primary-col {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-.invoice-print .brand-lockup {
-  width: 100%;
-  overflow: visible;
-}
-.invoice-print .brand-lockup .brand-comp {
-  display: block;
-  width: 100%;
-  max-width: 100%;
-  height: auto;
-  object-fit: fill;
-}
-.invoice-print .brand-header-end {
-  align-self: stretch;
-}
-.invoice-print .brand-comp-info {
-  margin: 0;
-  padding: 0 6px;
-}
-.invoice-print .brand-comp-slogan {
-  object-position: right center;
-  height: auto;
-  max-height: 32mm;
-  width: auto;
-  justify-self: end;
-}
-.invoice-services {
-  direction: ltr;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  width: 100%;
-  margin: 2px 0 0;
-  padding: 0;
-  color: var(--navy);
-  box-sizing: border-box;
-}
-.invoice-services .svc {
-  text-align: center;
-  flex: 1 1 0;
-  min-width: 0;
-  font-size: 7.5px;
-  font-weight: 700;
-  line-height: 1.25;
-  padding: 0 4px;
-}
-.invoice-services .svc + .svc {
-  border-left: 1px solid rgba(43, 42, 107, 0.28);
-}
-.invoice-services .svc-ar {
-  display: block;
-  direction: rtl;
-  unicode-bidi: isolate;
-}
-.invoice-services .svc-en {
-  display: block;
-  margin-top: 1px;
-  font-size: 6px;
-  font-weight: 500;
-  color: var(--muted);
-  direction: ltr;
-  unicode-bidi: isolate;
 }
 .invoice-print .doc-title { font-size: 28px; }
 .invoice-print .panel { padding: 7px 10px; }
@@ -379,19 +303,12 @@ ${OsLineItemPrintFormat.itemMarketingCss()}
   margin-bottom: 8px;
 }
 @page { size: A4 portrait; margin: 10mm 12mm; }
-.footer-bar.invoice-bar {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  gap: 12px;
-}
-.footer-bar.invoice-bar .ar { justify-self: start; }
-.footer-bar.invoice-bar .en { grid-column: 2; justify-self: center; }
 </style>
 </head>
 <body>
 '''
       '${osPrintTwoCopies(sheetClass: 'invoice-print', innerHtml: '''
-    ${OsBrandPrint.headerHtml(belowBrand: services)}
+    ${OsBrandPrint.headerHtml()}
     ${OsBrandPrint.watermarkHtml()}
     <div class="content-layer">
       <div class="no-split">

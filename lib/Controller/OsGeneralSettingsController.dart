@@ -19,8 +19,32 @@ class OsGeneralSettingsController extends GetxController {
     if (!isValidUsdToIqdRate(rate)) return false;
     isLoading.value = true;
     try {
-      return await FirestoreOsGeneralSettingsApi.saveSettings(
-        settings.value.copyWith(usdToIqdRate: rate),
+      return await FirestoreOsGeneralSettingsApi.patchSettings({
+        'usdToIqdRate': rate,
+      });
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<bool> savePrintContact({
+    required String addressAr,
+    required String addressEn,
+    required String phone,
+    required String email,
+    required String website,
+  }) async {
+    isLoading.value = true;
+    try {
+      final next = settings.value.copyWith(
+        printAddressAr: addressAr.trim(),
+        printAddressEn: addressEn.trim(),
+        printPhone: phone.trim(),
+        printEmail: email.trim(),
+        printWebsite: website.trim(),
+      );
+      return await FirestoreOsGeneralSettingsApi.patchSettings(
+        next.printContactToJson(),
       );
     } finally {
       isLoading.value = false;

@@ -66,10 +66,15 @@ class OsSearchField extends StatelessWidget {
 }
 
 class OsFilterChipOption {
-  const OsFilterChipOption({required this.value, required this.label});
+  const OsFilterChipOption({
+    required this.value,
+    required this.label,
+    this.color,
+  });
 
   final String value;
   final String label;
+  final Color? color;
 }
 
 /// Horizontal ChoiceChip row (ALL + page options), same pattern as vouchers.
@@ -87,18 +92,40 @@ class OsFilterChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = context.appTheme;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         for (final opt in options)
           Padding(
             padding: const EdgeInsetsDirectional.only(end: 8),
-            child: ChoiceChip(
-              label: Text(opt.label),
-              selected: value == opt.value,
-              visualDensity: VisualDensity.standard,
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              onSelected: (_) => onChanged(opt.value),
+            child: Builder(
+              builder: (context) {
+                final selected = value == opt.value;
+                final accent = opt.color ?? AppColors.primary;
+                return FilterChip(
+                  label: Text(
+                    opt.label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+                      color: selected ? Colors.white : theme.secondaryText,
+                    ),
+                  ),
+                  selected: selected,
+                  showCheckmark: false,
+                  selectedColor: accent,
+                  backgroundColor: theme.inputFill,
+                  side: BorderSide(
+                    color: selected ? accent : theme.border,
+                    width: selected ? 1.5 : 1,
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  onSelected: (_) => onChanged(opt.value),
+                );
+              },
             ),
           ),
       ],

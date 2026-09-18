@@ -95,6 +95,7 @@ class Home extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GetBuilder<HomeController>(
+      id: HomeController.homeDashboardUpdateId,
       builder: (controller) {
         final isMobile = Responsive.isMobile(context);
         return Scaffold(

@@ -4,7 +4,6 @@ import 'package:point/Models/Os/OsVoucherModel.dart';
 import 'package:point/Models/Os/os_finance_enums.dart';
 import 'package:point/Utils/os_arabic_currency.dart';
 import 'package:point/View/Os/Print/os_brand_print.dart';
-import 'package:point/View/Os/Print/os_print_assets.dart';
 import 'package:point/View/Os/Print/os_print_codes.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_print_a4.dart';
@@ -35,22 +34,6 @@ ${desc.isEmpty ? AppLocaleKeys.osVouchersDefaultDesc.tr : desc}
 ${AppLocaleKeys.osVouchersSignAccountant.tr}
 ========================================
 '''.trim();
-}
-
-String _voucherHeaderHtml() {
-  String img(String src, String alt) => src.isEmpty
-      ? ''
-      : '<img class="brand-comp" src="$src" alt="${escapeHtml(alt)}"/>';
-
-  return '''
-<div class="voucher-header no-split">
-  <div class="voucher-brand">
-    ${img(OsPrintAssets.voucherBrandDataUri, 'POINT AGENCY')}
-  </div>
-  <div class="voucher-info">
-    ${img(OsPrintAssets.voucherInfoDataUri, '')}
-  </div>
-</div>''';
 }
 
 String _metaCell(String label, String value) {
@@ -113,34 +96,8 @@ ${OsBrandPrint.brandCss()}
   width: 46%;
   opacity: 0.95;
 }
-.voucher-header {
-  direction: ltr;
-  display: grid;
-  grid-template-columns: 1.75fr 0.72fr;
-  align-items: center;
-  column-gap: 10px;
+.voucher-print .brand-header {
   margin-bottom: 14px;
-}
-.voucher-brand,
-.voucher-info {
-  min-width: 0;
-}
-.voucher-brand .brand-comp {
-  width: 100%;
-  height: auto;
-  display: block;
-}
-.voucher-info {
-  border-left: 1.5px solid var(--navy);
-  padding-left: 10px;
-  align-self: stretch;
-  display: flex;
-  align-items: center;
-}
-.voucher-info .brand-comp {
-  width: 100%;
-  height: auto;
-  display: block;
 }
 .voucher-title-row {
   direction: ltr;
@@ -304,7 +261,7 @@ ${OsBrandPrint.brandCss()}
       '${osPrintTwoCopies(sheetClass: 'voucher-print', innerHtml: '''
       ${OsBrandPrint.watermarkHtml()}
       <div class="content-layer">
-        ${_voucherHeaderHtml()}
+        ${OsBrandPrint.headerHtml()}
         <div class="voucher-title-row no-split">
           <div class="voucher-meta">
             ${_metaCell(AppLocaleKeys.osPrintVoucherNo.tr, ref)}

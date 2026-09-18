@@ -603,6 +603,7 @@ class AppLocaleKeys {
   static const osEmailHubCategoryPayslip = 'os.email_hub.category.payslip';
   static const osEmailHubCategoryAppreciation = 'os.email_hub.category.appreciation';
   static const osEmailHubCategoryPenalty = 'os.email_hub.category.penalty';
+  static const osEmailHubCategoryContract = 'os.email_hub.category.contract';
   static const osEmailHubCategoryOther = 'os.email_hub.category.other';
   static const osEmailHubAppreciationSubtitle = 'os.email_hub.appreciation_subtitle';
   static const osEmailHubAppreciationSelectEmployee = 'os.email_hub.appreciation.select_employee';
@@ -716,6 +717,50 @@ class AppLocaleKeys {
   static const osSettingsFinanceRateInvalid = 'os.settings.finance.rate_invalid';
   static const osSettingsFinanceSave = 'os.settings.finance.save';
   static const osSettingsFinanceSaved = 'os.settings.finance.saved';
+  static const osSettingsPaytabsSection = 'os.settings.paytabs.section';
+  static const osSettingsPaytabsDescription = 'os.settings.paytabs.description';
+  static const osSettingsPaytabsConfigured = 'os.settings.paytabs.configured';
+  static const osSettingsPaytabsNotConfigured = 'os.settings.paytabs.not_configured';
+  static const osSettingsPaytabsServerKeyPreview =
+      'os.settings.paytabs.server_key_preview';
+  static const osSettingsPaytabsProfileId = 'os.settings.paytabs.profile_id';
+  static const osSettingsPaytabsProfileIdHint =
+      'os.settings.paytabs.profile_id_hint';
+  static const osSettingsPaytabsServerKey = 'os.settings.paytabs.server_key';
+  static const osSettingsPaytabsServerKeyHint =
+      'os.settings.paytabs.server_key_hint';
+  static const osSettingsPaytabsClientKey = 'os.settings.paytabs.client_key';
+  static const osSettingsPaytabsClientKeyHint =
+      'os.settings.paytabs.client_key_hint';
+  static const osSettingsPaytabsRegion = 'os.settings.paytabs.region';
+  static const osSettingsPaytabsCurrency = 'os.settings.paytabs.currency';
+  static const osSettingsPaytabsDefaultAccount =
+      'os.settings.paytabs.default_account';
+  static const osSettingsPaytabsEnabled = 'os.settings.paytabs.enabled';
+  static const osSettingsPaytabsSave = 'os.settings.paytabs.save';
+  static const osSettingsPaytabsSaved = 'os.settings.paytabs.saved';
+  static const osSettingsPaytabsProfileRequired =
+      'os.settings.paytabs.profile_required';
+  static const osSettingsPaytabsServerKeyRequired =
+      'os.settings.paytabs.server_key_required';
+  static const osSettingsPaytabsBankRequired =
+      'os.settings.paytabs.bank_required';
+  static const osSettingsPrintContactSection =
+      'os.settings.print_contact.section';
+  static const osSettingsPrintContactDescription =
+      'os.settings.print_contact.description';
+  static const osSettingsPrintContactAddressAr =
+      'os.settings.print_contact.address_ar';
+  static const osSettingsPrintContactAddressEn =
+      'os.settings.print_contact.address_en';
+  static const osSettingsPrintContactPhone = 'os.settings.print_contact.phone';
+  static const osSettingsPrintContactEmail = 'os.settings.print_contact.email';
+  static const osSettingsPrintContactWebsite =
+      'os.settings.print_contact.website';
+  static const osSettingsPrintContactSave = 'os.settings.print_contact.save';
+  static const osSettingsPrintContactSaved = 'os.settings.print_contact.saved';
+  static const osSettingsPrintContactPreview =
+      'os.settings.print_contact.preview';
   static const osBackToHub = 'os.back_to_hub';
   static const osNavHub = 'os.nav.hub';
 
@@ -994,6 +1039,10 @@ class AppLocaleKeys {
   static const osInvoicesPaymentLinkTitle = 'os.invoices.payment_link_title';
   static const osInvoicesPaymentLinkHint = 'os.invoices.payment_link_hint';
   static const osInvoicesPaymentLinkCopied = 'os.invoices.payment_link_copied';
+  static const osInvoicesPaymentLinkUnavailable =
+      'os.invoices.payment_link_unavailable';
+  static const osInvoicesPaymentLinkPreparing =
+      'os.invoices.payment_link_preparing';
   static const osInvoicesWhatsapp = 'os.invoices.whatsapp';
   static const osInvoicesWhatsappBody = 'os.invoices.whatsapp_body';
   static const osInvoicesEmail = 'os.invoices.email';
@@ -1217,6 +1266,7 @@ class AppLocaleKeys {
   static const osCommonActions = 'os.common.actions';
   static const osCommonClose = 'os.common.close';
   static const osCommonNa = 'os.common.na';
+  static const osCommonUndefined = 'os.common.undefined';
   static const osCommonDash = 'os.common.dash';
   static const osCommonFilterAll = 'os.common.filter_all';
   static const osCommonMatchCount = 'os.common.match_count';
@@ -1531,11 +1581,158 @@ class AppLocaleKeys {
   static const osLegalContractSettingsSave = 'os.legal_contract.settings.save';
   static const osLegalContractSettingsSaved = 'os.legal_contract.settings.saved';
   static const osLegalContractPreviewOfficial = 'os.legal_contract.preview.official';
+  static const osLegalContractPreviewViewerTitle =
+      'os.legal_contract.preview.viewer_title';
+  static const osLegalContractPreviewCertifiedPer =
+      'os.legal_contract.preview.certified_per';
+  static const osLegalContractPreviewPartiesSection =
+      'os.legal_contract.preview.parties_section';
+  static const osLegalContractPreviewPreambleIntro =
+      'os.legal_contract.preview.preamble_intro';
+  static const osLegalContractPreviewDocNumber =
+      'os.legal_contract.preview.doc_number';
+  static const osLegalContractPreviewTimelineStart =
+      'os.legal_contract.preview.timeline_start';
+  static const osLegalContractPreviewTimelineEnd =
+      'os.legal_contract.preview.timeline_end';
+  static const osLegalContractPreviewFinancialSection =
+      'os.legal_contract.preview.financial_section';
+  static const osLegalContractPreviewClausesSection =
+      'os.legal_contract.preview.clauses_section';
+  static const osLegalContractPreviewCustomSection =
+      'os.legal_contract.preview.custom_section';
+  static const osLegalContractPreviewJurisdictionSection =
+      'os.legal_contract.preview.jurisdiction_section';
+  static const osLegalContractPreviewJurisdictionBody =
+      'os.legal_contract.preview.jurisdiction_body';
+  static const osLegalContractPreviewJurisdictionCopies =
+      'os.legal_contract.preview.jurisdiction_copies';
+  static const osLegalContractPreviewCopyText =
+      'os.legal_contract.preview.copy_text';
+  static const osLegalContractPreviewCopyDone =
+      'os.legal_contract.preview.copy_done';
+  static const osLegalContractEmailSend = 'os.legal_contract.email.send';
+  static const osLegalContractEmailSending = 'os.legal_contract.email.sending';
+  static const osLegalContractEmailSentShort =
+      'os.legal_contract.email.sent_short';
+  static const osLegalContractEmailSubject = 'os.legal_contract.email.subject';
+  static const osLegalContractEmailBody = 'os.legal_contract.email.body';
+  static const osLegalContractEmailSent = 'os.legal_contract.email.sent';
+  static const osLegalContractErrorNoEmail = 'os.legal_contract.error.no_email';
+  static const osLegalContractErrorEmailFailed =
+      'os.legal_contract.error.email_failed';
+  static const osLegalContractPreviewPrintOfficial =
+      'os.legal_contract.preview.print_official';
   static const osLegalContractPreviewPartyOne = 'os.legal_contract.preview.party_one';
   static const osLegalContractPreviewPartyTwo = 'os.legal_contract.preview.party_two';
+  static const osLegalContractPartyOneRole = 'os.legal_contract.party_one.role';
+  static const osLegalContractPartyTwoRoleClient =
+      'os.legal_contract.party_two.role_client';
+  static const osLegalContractPartyTwoRoleEmployee =
+      'os.legal_contract.party_two.role_employee';
+  static const osLegalContractPartyTwoRoleFreelancer =
+      'os.legal_contract.party_two.role_freelancer';
+  static const osLegalContractPartyCommercialName =
+      'os.legal_contract.party.commercial_name';
+  static const osLegalContractPartyRepresents = 'os.legal_contract.party.represents';
+  static const osLegalContractPartyHeadquarters =
+      'os.legal_contract.party.headquarters';
+  static const osLegalContractPaymentStatusPaid =
+      'os.legal_contract.payment.status_paid';
+  static const osLegalContractPaymentStatusDue =
+      'os.legal_contract.payment.status_due';
+  static const osLegalContractSalaryMonthlyNote =
+      'os.legal_contract.salary_monthly_note';
+  static const osLegalContractDateTo = 'os.legal_contract.date_to';
   static const osLegalContractMarkSigned = 'os.legal_contract.mark_signed';
   static const osLegalContractPrint = 'os.legal_contract.print';
   static const osLegalContractPrintHint = 'os.legal_contract.print_hint';
+  static const osLegalContractWizardTitle = 'os.legal_contract.wizard.title';
+  static const osLegalContractWizardSubtitle = 'os.legal_contract.wizard.subtitle';
+  static const osLegalContractStepOf = 'os.legal_contract.wizard.step_of';
+  static const osLegalContractStepTemplate = 'os.legal_contract.wizard.step.template';
+  static const osLegalContractStepParties = 'os.legal_contract.wizard.step.parties';
+  static const osLegalContractStepFinancials = 'os.legal_contract.wizard.step.financials';
+  static const osLegalContractStepClauses = 'os.legal_contract.wizard.step.clauses';
+  static const osLegalContractNextParties = 'os.legal_contract.wizard.next.parties';
+  static const osLegalContractNextFinancials = 'os.legal_contract.wizard.next.financials';
+  static const osLegalContractNextClauses = 'os.legal_contract.wizard.next.clauses';
+  static const osLegalContractApproveSave = 'os.legal_contract.wizard.approve_save';
+  static const osLegalContractPrevious = 'os.legal_contract.wizard.previous';
+  static const osLegalContractTemplateHelp = 'os.legal_contract.wizard.template_help';
+  static const osLegalContractTemplateLawNote = 'os.legal_contract.wizard.template_law_note';
+  static const osLegalContractPartyOneTitle = 'os.legal_contract.party_one.title';
+  static const osLegalContractPartyOneAuto = 'os.legal_contract.party_one.auto';
+  static const osLegalContractPartyTwoTitle = 'os.legal_contract.party_two.title';
+  static const osLegalContractQuickSelectClient = 'os.legal_contract.quick_select.client';
+  static const osLegalContractQuickSelectEmployee = 'os.legal_contract.quick_select.employee';
+  static const osLegalContractPartyCompany = 'os.legal_contract.party.company';
+  static const osLegalContractPartyNationalId = 'os.legal_contract.party.national_id';
+  static const osLegalContractPartyAddress = 'os.legal_contract.party.address';
+  static const osLegalContractPartyPhone = 'os.legal_contract.party.phone';
+  static const osLegalContractPartyEmail = 'os.legal_contract.party.email';
+  static const osLegalContractPartyJobTitle = 'os.legal_contract.party.job_title';
+  static const osLegalContractOfficialTitle = 'os.legal_contract.official_title';
+  static const osLegalContractContractualNumber = 'os.legal_contract.contractual_number';
+  static const osLegalContractInitialStatus = 'os.legal_contract.initial_status';
+  static const osLegalContractTotalValue = 'os.legal_contract.total_value';
+  static const osLegalContractPenaltyDaily = 'os.legal_contract.penalty_daily';
+  static const osLegalContractSalaryMonthly = 'os.legal_contract.salary_monthly';
+  static const osLegalContractProbationDays = 'os.legal_contract.probation_days';
+  static const osLegalContractNoticeDays = 'os.legal_contract.notice_days';
+  static const osLegalContractEffectiveDate = 'os.legal_contract.effective_date';
+  static const osLegalContractPaymentSchedule = 'os.legal_contract.payment_schedule';
+  static const osLegalContractPaymentTotalPercent = 'os.legal_contract.payment_total_percent';
+  static const osLegalContractAddPayment = 'os.legal_contract.add_payment';
+  static const osLegalContractPaymentMilestone = 'os.legal_contract.payment_milestone';
+  static const osLegalContractPaymentPercent = 'os.legal_contract.payment_percent';
+  static const osLegalContractPaymentDue = 'os.legal_contract.payment_due';
+  static const osLegalContractScopeOfWork = 'os.legal_contract.scope_of_work';
+  static const osLegalContractCustomTerms = 'os.legal_contract.custom_terms';
+  static const osLegalContractAddClause = 'os.legal_contract.add_clause';
+  static const osLegalContractLegalArticles = 'os.legal_contract.legal_articles';
+  static const osLegalContractLegalBasis = 'os.legal_contract.legal_basis';
+  static const osLegalContractStartDraft = 'os.legal_contract.start_draft';
+  static const osLegalContractPreviewPrint = 'os.legal_contract.preview_print';
+  static const osLegalContractSettingsButton = 'os.legal_contract.settings_button';
+  static const osLegalContractTabRegistryFull = 'os.legal_contract.tab.registry_full';
+  static const osLegalContractTabTemplatesFull = 'os.legal_contract.tab.templates_full';
+  static const osLegalContractKpiTotalHint = 'os.legal_contract.kpi.total_hint';
+  static const osLegalContractKpiActiveHint = 'os.legal_contract.kpi.active_hint';
+  static const osLegalContractKpiPendingHint = 'os.legal_contract.kpi.pending_hint';
+  static const osLegalContractKpiValueHint = 'os.legal_contract.kpi.value_hint';
+  static const osLegalContractFilterAllStatus = 'os.legal_contract.filter.all_status';
+  static const osLegalContractFilterClientContracts = 'os.legal_contract.filter.client';
+  static const osLegalContractFilterEmployeeContracts = 'os.legal_contract.filter.employee';
+  static const osLegalContractFilterFreelancerContracts = 'os.legal_contract.filter.freelancer';
+  static const osLegalContractLawBannerTitle = 'os.legal_contract.law_banner.title';
+  static const osLegalContractLawLabor = 'os.legal_contract.law.labor';
+  static const osLegalContractLawCivil = 'os.legal_contract.law.civil';
+  static const osLegalContractLawCopyright = 'os.legal_contract.law.copyright';
+  static const osLegalContractTemplateCatalog = 'os.legal_contract.template_catalog';
+  static const osLegalContractTypicalDuration = 'os.legal_contract.typical_duration';
+  static const osLegalContractMoreArticles = 'os.legal_contract.more_articles';
+  static const osLegalContractSettingsLegalRefs = 'os.legal_contract.settings.legal_refs';
+  static const osLegalContractSettingsDefaults = 'os.legal_contract.settings.defaults';
+  static const osLegalContractSettingsCommercialReg = 'os.legal_contract.settings.commercial_reg';
+  static const osLegalContractSettingsTax = 'os.legal_contract.settings.tax';
+  static const osLegalContractSettingsPhone = 'os.legal_contract.settings.phone';
+  static const osLegalContractSettingsEmail = 'os.legal_contract.settings.email';
+  static const osLegalContractSettingsLaborRef = 'os.legal_contract.settings.labor_ref';
+  static const osLegalContractSettingsCivilRef = 'os.legal_contract.settings.civil_ref';
+  static const osLegalContractSettingsCopyrightRef = 'os.legal_contract.settings.copyright_ref';
+  static const osLegalContractSettingsProbation = 'os.legal_contract.settings.probation';
+  static const osLegalContractSettingsWorkHours = 'os.legal_contract.settings.work_hours';
+  static const osLegalContractSettingsAnnualLeave = 'os.legal_contract.settings.annual_leave';
+  static const osLegalContractSettingsLatePenalty = 'os.legal_contract.settings.late_penalty';
+  static const osLegalContractSaveLegalSettings = 'os.legal_contract.settings.save_legal';
+  static const osLegalContractDurationValidity = 'os.legal_contract.duration_validity';
+  static const osLegalContractEmptyNoMatch = 'os.legal_contract.empty_no_match';
+  static const osLegalContractTemplatesCount = 'os.legal_contract.templates_count';
+  static const osLegalContractCategoryClients = 'os.legal_contract.category.clients';
+  static const osLegalContractCategoryEmployees = 'os.legal_contract.category.employees';
+  static const osLegalContractCategoryFreelancers = 'os.legal_contract.category.freelancers';
+  static const osLegalContractPaymentAmount = 'os.legal_contract.payment_amount';
   static const errorsOsLegalContractsSave = 'errors.osLegalContracts.save';
   static const errorsOsLegalContractsDelete = 'errors.osLegalContracts.delete';
 

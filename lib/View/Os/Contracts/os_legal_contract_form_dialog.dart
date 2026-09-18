@@ -2,16 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Controller/OsLegalContractsController.dart';
+import 'package:point/Data/os_contract_templates_seed.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/ClientModel.dart';
+import 'package:point/Models/EmployeeModel.dart';
 import 'package:point/Models/Os/OsContractClause.dart';
+import 'package:point/Models/Os/OsContractPaymentTerm.dart';
+import 'package:point/Models/Os/OsContractSettings.dart';
 import 'package:point/Models/Os/OsContractTemplate.dart';
 import 'package:point/Models/Os/OsLegalContractModel.dart';
 import 'package:point/Models/Os/os_legal_contract_enums.dart';
 import 'package:point/Services/firestore/firestore_os_finance_api.dart';
 import 'package:point/Services/os_ai_service.dart';
+import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
-import 'package:point/View/Os/os_ai_suggestion_block.dart';
+import 'package:point/View/Os/Contracts/os_legal_contract_labels.dart';
+import 'package:point/View/Os/os_button_styles.dart';
+import 'package:point/View/Os/os_finance_status_widgets.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 
@@ -24,7 +31,7 @@ Future<void> showOsLegalContractFormDialog(
   return showDialog<void>(
     context: context,
     barrierDismissible: false,
-    builder: (_) => _OsLegalContractFormDialog(
+    builder: (_) => _OsLegalContractDrafterDialog(
       existing: existing,
       template: template,
       initialClientId: initialClientId,
@@ -32,8 +39,8 @@ Future<void> showOsLegalContractFormDialog(
   );
 }
 
-class _OsLegalContractFormDialog extends StatefulWidget {
-  const _OsLegalContractFormDialog({
+class _OsLegalContractDrafterDialog extends StatefulWidget {
+  const _OsLegalContractDrafterDialog({
     this.existing,
     this.template,
     this.initialClientId,
@@ -44,68 +51,82 @@ class _OsLegalContractFormDialog extends StatefulWidget {
   final String? initialClientId;
 
   @override
-  State<_OsLegalContractFormDialog> createState() =>
-      _OsLegalContractFormDialogState();
+  State<_OsLegalContractDrafterDialog> createState() =>
+      _OsLegalContractDrafterDialogState();
 }
 
-class _OsLegalContractFormDialogState extends State<_OsLegalContractFormDialog> {
+class _OsLegalContractDrafterDialogState
+    extends State<_OsLegalContractDrafterDialog> {
   final _ctrl = Get.find<OsLegalContractsController>();
-  late final TextEditingController _numberCtrl;
-  late final TextEditingController _titleCtrl;
-  late final TextEditingController _targetNameCtrl;
-  late final TextEditingController _valueCtrl;
-  late final TextEditingController _governingLawCtrl;
-  late final TextEditingController _jurisdictionCtrl;
-  late final TextEditingController _notesCtrl;
+  static const _totalSteps = 4;
+
+  late int _step;
   late String _targetType;
   late String _status;
   late String _currency;
-  String? _clientId;
+  late String? _selectedTemplateId;
+  late String? _partyTwoSourceId;
   late DateTime _startDate;
   DateTime? _endDate;
   late List<OsContractClause> _clauses;
+  late List<OsContractPaymentTerm> _paymentTerms;
+
+  late final TextEditingController _numberCtrl;
+  late final TextEditingController _titleCtrl;
+  late final TextEditingController _partyTwoNameCtrl;
+  late final TextEditingController _partyTwoCompanyCtrl;
+  late final TextEditingController _partyTwoNationalIdCtrl;
+  late final TextEditingController _partyTwoAddressCtrl;
+  late final TextEditingController _partyTwoPhoneCtrl;
+  late final TextEditingController _partyTwoEmailCtrl;
+  late final TextEditingController _partyTwoJobTitleCtrl;
+  late final TextEditingController _valueCtrl;
+  late final TextEditingController _salaryCtrl;
+  late final TextEditingController _penaltyCtrl;
+  late final TextEditingController _probationCtrl;
+  late final TextEditingController _noticeCtrl;
+  late final TextEditingController _governingLawCtrl;
+  late final TextEditingController _jurisdictionCtrl;
+  late final TextEditingController _scopeCtrl;
+  late final TextEditingController _customTermsCtrl;
+
   var _saving = false;
   var _loadingNumber = false;
   String? _loadingAiKey;
 
-  List<ClientModel> get _clients {
-    return Get.find<HomeController>()
-        .clients
-        .where((c) => (c.id ?? '').isNotEmpty)
-        .toList();
-  }
+  List<ClientModel> get _clients => Get.find<HomeController>()
+      .clients
+      .where((c) => (c.id ?? '').isNotEmpty)
+      .toList();
 
-  String? _resolveClientDropdownValue(String? raw) {
-    final id = raw?.trim();
-    if (id == null || id.isEmpty) return null;
-    if (!_clients.any((c) => c.id == id)) return null;
-    return id;
-  }
+  List<EmployeeModel> get _employees => Get.find<HomeController>()
+      .employees
+      .where((e) => (e.id ?? '').isNotEmpty)
+      .toList();
+
+  OsContractSettings get _settings => _ctrl.settings.value;
 
   @override
   void initState() {
     super.initState();
     final e = widget.existing;
     final tpl = widget.template;
-    final settings = _ctrl.settings.value;
+    final settings = _settings;
+
+    _step = e != null
+        ? 2
+        : (tpl != null || widget.initialClientId != null ? 2 : 1);
 
     _targetType = e?.targetType ??
         tpl?.targetType ??
         OsLegalContractTargetType.client;
-    if (!OsLegalContractTargetType.ordered.contains(_targetType)) {
-      _targetType = OsLegalContractTargetType.client;
-    }
     _status = e?.status ?? OsLegalContractStatus.draft;
-    if (!OsLegalContractStatus.ordered.contains(_status)) {
-      _status = OsLegalContractStatus.draft;
-    }
     _currency = e?.currency ?? OsLegalContractCurrency.iqd;
-    if (!OsLegalContractCurrency.ordered.contains(_currency)) {
-      _currency = OsLegalContractCurrency.iqd;
-    }
-    _clientId = _resolveClientDropdownValue(
-      widget.initialClientId ?? e?.targetId,
-    );
+    _selectedTemplateId = e?.templateId ?? tpl?.id;
+    _partyTwoSourceId = e?.targetId.isNotEmpty == true
+        ? e!.targetId
+        : widget.initialClientId;
+
     _startDate = e?.startDate ?? DateTime.now();
     if (e?.endDate != null) {
       _endDate = e!.endDate;
@@ -115,7 +136,14 @@ class _OsLegalContractFormDialogState extends State<_OsLegalContractFormDialog> 
         _startDate.month + tpl!.defaultDurationMonths!,
         _startDate.day,
       );
+    } else {
+      _endDate = DateTime(
+        _startDate.year,
+        _startDate.month + 6,
+        _startDate.day,
+      );
     }
+
     _clauses = e != null
         ? List<OsContractClause>.from(e.clauses)
         : tpl != null
@@ -132,30 +160,106 @@ class _OsLegalContractFormDialogState extends State<_OsLegalContractFormDialog> 
                 .toList()
             : <OsContractClause>[];
 
+    final totalValue = e?.totalValue ?? 6000000;
+    _paymentTerms = e != null && e.paymentTerms.isNotEmpty
+        ? List<OsContractPaymentTerm>.from(e.paymentTerms)
+        : OsContractPaymentTerm.defaultClientSchedule(totalValue);
+
     _numberCtrl = TextEditingController(text: e?.contractNumber ?? '');
     _titleCtrl = TextEditingController(
-      text: e?.title ?? tpl?.suggestedTitle ?? tpl?.name ?? '',
+      text: e?.title ??
+          tpl?.suggestedTitle ??
+          tpl?.name ??
+          AppLocaleKeys.osLegalContractAdd.tr,
     );
-    _targetNameCtrl = TextEditingController(text: e?.targetName ?? '');
+    _partyTwoNameCtrl = TextEditingController(text: e?.targetName ?? '');
+    _partyTwoCompanyCtrl =
+        TextEditingController(text: e?.partyTwoCompany ?? '');
+    _partyTwoNationalIdCtrl =
+        TextEditingController(text: e?.partyTwoNationalId ?? '');
+    _partyTwoAddressCtrl = TextEditingController(
+      text: e?.partyTwoAddress.isNotEmpty == true
+          ? e!.partyTwoAddress
+          : 'بغداد - جمهورية العراق',
+    );
+    _partyTwoPhoneCtrl =
+        TextEditingController(text: e?.partyTwoPhone ?? '');
+    _partyTwoEmailCtrl =
+        TextEditingController(text: e?.partyTwoEmail ?? '');
+    _partyTwoJobTitleCtrl =
+        TextEditingController(text: e?.partyTwoJobTitle ?? '');
     _valueCtrl = TextEditingController(
-      text: e != null && e.totalValue > 0
-          ? e.totalValue.toStringAsFixed(0)
+      text: totalValue > 0 ? totalValue.toStringAsFixed(0) : '',
+    );
+    _salaryCtrl = TextEditingController(
+      text: e?.salaryMonthly != null && e!.salaryMonthly! > 0
+          ? e.salaryMonthly!.toStringAsFixed(0)
           : '',
     );
+    _penaltyCtrl = TextEditingController(
+      text: (e?.penaltyDailyRate ?? settings.defaultLatePenaltyRate)
+          .toString(),
+    );
+    _probationCtrl = TextEditingController(
+      text: '${e?.probationPeriodDays ?? (_targetType == OsLegalContractTargetType.employee ? settings.defaultProbationDays : 0)}',
+    );
+    _noticeCtrl = TextEditingController(
+      text: '${e?.noticePeriodDays ?? 30}',
+    );
     _governingLawCtrl = TextEditingController(
-      text: e?.governingLaw ?? settings.defaultCivilLawRef,
+      text: e?.governingLaw ??
+          tpl?.governingLaw ??
+          settings.defaultCivilLawRef,
     );
     _jurisdictionCtrl = TextEditingController(
-      text: e?.jurisdiction ?? settings.defaultJurisdiction,
+      text: e?.jurisdiction ??
+          (_targetType == OsLegalContractTargetType.employee
+              ? 'محكمة عمل بغداد المختصة'
+              : settings.defaultJurisdiction),
     );
-    _notesCtrl = TextEditingController(text: e?.notes ?? '');
+    _scopeCtrl = TextEditingController(
+      text: e?.scopeOfWork.isNotEmpty == true
+          ? e!.scopeOfWork
+          : 'تقديم خدمات الإنتاج والتسويق الرقمي وإدارة الحملات الإعلانية وصناعة المحتوى الإبداعي وفق المواصفات المعتمدة.',
+    );
+    _customTermsCtrl =
+        TextEditingController(text: e?.customTerms ?? '');
 
     if (e == null && _numberCtrl.text.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _loadNumber());
     }
-    if (e == null && _clientId != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _applyClient(_clientId));
+    if (e == null && _partyTwoSourceId != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_targetType == OsLegalContractTargetType.employee) {
+          _applyEmployee(_partyTwoSourceId);
+        } else {
+          _applyClient(_partyTwoSourceId);
+        }
+      });
     }
+  }
+
+  @override
+  void dispose() {
+    _numberCtrl.dispose();
+    _titleCtrl.dispose();
+    _partyTwoNameCtrl.dispose();
+    _partyTwoCompanyCtrl.dispose();
+    _partyTwoNationalIdCtrl.dispose();
+    _partyTwoAddressCtrl.dispose();
+    _partyTwoPhoneCtrl.dispose();
+    _partyTwoEmailCtrl.dispose();
+    _partyTwoJobTitleCtrl.dispose();
+    _valueCtrl.dispose();
+    _salaryCtrl.dispose();
+    _penaltyCtrl.dispose();
+    _probationCtrl.dispose();
+    _noticeCtrl.dispose();
+    _governingLawCtrl.dispose();
+    _jurisdictionCtrl.dispose();
+    _scopeCtrl.dispose();
+    _customTermsCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _loadNumber() async {
@@ -170,56 +274,106 @@ class _OsLegalContractFormDialogState extends State<_OsLegalContractFormDialog> 
 
   void _applyClient(String? clientId) {
     if (clientId == null) return;
-    ClientModel? client;
-    for (final c in _clients) {
-      if (c.id == clientId) {
-        client = c;
-        break;
-      }
-    }
+    final client = _clients.cast<ClientModel?>().firstWhere(
+          (c) => c?.id == clientId,
+          orElse: () => null,
+        );
     if (client == null) return;
-    final company = (client.company ?? '').trim();
-    _targetNameCtrl.text =
-        company.isNotEmpty ? company : (client.name ?? '').trim();
+    _partyTwoNameCtrl.text = (client.name ?? '').trim();
+    _partyTwoCompanyCtrl.text = (client.company ?? '').trim();
+    _partyTwoPhoneCtrl.text = (client.phone ?? '').trim();
+    _partyTwoEmailCtrl.text = (client.email ?? '').trim();
+    _partyTwoAddressCtrl.text =
+        (client.address ?? '').trim().isNotEmpty
+            ? client.address!.trim()
+            : _partyTwoAddressCtrl.text;
+    _partyTwoNationalIdCtrl.text = client.id ?? '';
   }
 
-  @override
-  void dispose() {
-    _numberCtrl.dispose();
-    _titleCtrl.dispose();
-    _targetNameCtrl.dispose();
-    _valueCtrl.dispose();
-    _governingLawCtrl.dispose();
-    _jurisdictionCtrl.dispose();
-    _notesCtrl.dispose();
-    super.dispose();
+  void _applyEmployee(String? employeeId) {
+    if (employeeId == null) return;
+    final employee = _employees.cast<EmployeeModel?>().firstWhere(
+          (e) => e?.id == employeeId,
+          orElse: () => null,
+        );
+    if (employee == null) return;
+    _partyTwoNameCtrl.text = (employee.name ?? '').trim();
+    _partyTwoJobTitleCtrl.text = (employee.jobTitle ?? '').trim();
+    _partyTwoPhoneCtrl.text = (employee.phone ?? '').trim();
+    _partyTwoEmailCtrl.text = (employee.email ?? '').trim();
+    final salary = employee.salary ?? 1500000;
+    _salaryCtrl.text = salary.toStringAsFixed(0);
+    _valueCtrl.text = (salary * 12).toStringAsFixed(0);
+    _recalcPaymentAmounts();
   }
 
-  Widget _label(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          color: context.appTheme.secondaryText,
-        ),
-      ),
-    );
+  void _selectTemplate(OsContractTemplate tpl) {
+    setState(() {
+      _selectedTemplateId = tpl.id;
+      _targetType = tpl.targetType;
+      _titleCtrl.text = tpl.suggestedTitle.isNotEmpty
+          ? tpl.suggestedTitle
+          : tpl.name;
+      _governingLawCtrl.text = tpl.governingLaw.isNotEmpty
+          ? tpl.governingLaw
+          : _settings.defaultCivilLawRef;
+      _clauses = tpl.clauses
+          .map(
+            (c) => OsContractClause(
+              id: c.id,
+              title: c.title,
+              content: c.content,
+              isMandatory: c.isMandatory,
+              isEnabled: c.isEnabled,
+            ),
+          )
+          .toList();
+      if (tpl.defaultDurationMonths != null) {
+        _endDate = DateTime(
+          _startDate.year,
+          _startDate.month + tpl.defaultDurationMonths!,
+          _startDate.day,
+        );
+      }
+      if (tpl.targetType == OsLegalContractTargetType.employee) {
+        _probationCtrl.text = '${_settings.defaultProbationDays}';
+        _jurisdictionCtrl.text = 'محكمة عمل بغداد المختصة';
+      } else {
+        _probationCtrl.text = '0';
+        _jurisdictionCtrl.text = _settings.defaultJurisdiction;
+      }
+    });
+  }
+
+  double get _totalValue =>
+      double.tryParse(_valueCtrl.text.replaceAll(',', '')) ?? 0;
+
+  void _recalcPaymentAmounts() {
+    final total = _totalValue;
+    _paymentTerms = _paymentTerms
+        .map(
+          (p) => p.copyWith(
+            amount: ((total * p.percentage) / 100).roundToDouble(),
+          ),
+        )
+        .toList();
+  }
+
+  void _onTotalValueChanged(String raw) {
+    _recalcPaymentAmounts();
+    setState(() {});
   }
 
   OsAiContractInput _contractAiInput({String? clauseTitle, String? clauseContent}) {
-    final value = double.tryParse(_valueCtrl.text.replaceAll(',', '')) ?? 0;
-    final tpl = widget.template;
+    final tpl = OsContractTemplatesSeed.byId(_selectedTemplateId);
     return OsAiContractInput(
       contractTitle: _titleCtrl.text.trim(),
       targetType: _targetType,
-      targetName: _targetNameCtrl.text.trim(),
+      targetName: _partyTwoNameCtrl.text.trim(),
       templateTitle: tpl?.suggestedTitle.trim().isNotEmpty == true
           ? tpl!.suggestedTitle
           : (tpl?.name ?? ''),
-      totalValue: value,
+      totalValue: _totalValue,
       currency: _currency,
       clauseTitle: clauseTitle ?? '',
       clauseContent: clauseContent ?? '',
@@ -250,7 +404,7 @@ class _OsLegalContractFormDialogState extends State<_OsLegalContractFormDialog> 
       final text = await OsAiService.instance.generateContractScope(
         input: _contractAiInput(),
       );
-      if (mounted) _notesCtrl.text = text;
+      if (mounted) _scopeCtrl.text = text;
     } finally {
       if (mounted) setState(() => _loadingAiKey = null);
     }
@@ -296,30 +450,60 @@ class _OsLegalContractFormDialogState extends State<_OsLegalContractFormDialog> 
     });
   }
 
-  Future<void> _save() async {
-    final title = _titleCtrl.text.trim();
-    final number = _numberCtrl.text.trim();
-    final targetName = _targetNameCtrl.text.trim();
-    if (title.isEmpty || number.isEmpty || targetName.isEmpty) {
+  bool _validateStep(int step) {
+    if (step == 1 && (_selectedTemplateId == null || _selectedTemplateId!.isEmpty)) {
       OsSnackbar.error(
         AppLocaleKeys.osLegalContractTitle.tr,
         AppLocaleKeys.osLegalContractErrorRequired.tr,
       );
+      return false;
+    }
+    if (step == 2) {
+      if (_titleCtrl.text.trim().isEmpty ||
+          _numberCtrl.text.trim().isEmpty ||
+          _partyTwoNameCtrl.text.trim().isEmpty) {
+        OsSnackbar.error(
+          AppLocaleKeys.osLegalContractTitle.tr,
+          AppLocaleKeys.osLegalContractErrorRequired.tr,
+        );
+        return false;
+      }
+    }
+    return true;
+  }
+
+  void _goNext() {
+    if (!_validateStep(_step)) return;
+    if (_step < _totalSteps) setState(() => _step++);
+  }
+
+  void _goPrevious() {
+    if (_step > 1) setState(() => _step--);
+  }
+
+  Future<void> _save() async {
+    if (!_validateStep(2)) {
+      setState(() => _step = 2);
       return;
     }
-    final value = double.tryParse(_valueCtrl.text.replaceAll(',', '')) ?? 0;
+    final settings = _settings;
+    final existing = widget.existing;
+    final value = _totalValue;
+    final signedAt = _status == OsLegalContractStatus.active
+        ? (existing?.signedAt ?? DateTime.now())
+        : existing?.signedAt;
+    final emp = Get.find<HomeController>().effectiveEmployee;
 
     setState(() => _saving = true);
     try {
-      final existing = widget.existing;
       final ok = await _ctrl.saveContract(
         OsLegalContractModel(
           id: existing?.id ?? '',
-          contractNumber: number,
-          title: title,
+          contractNumber: _numberCtrl.text.trim(),
+          title: _titleCtrl.text.trim(),
           targetType: _targetType,
-          targetId: _clientId ?? '',
-          targetName: targetName,
+          targetId: _partyTwoSourceId ?? '',
+          targetName: _partyTwoNameCtrl.text.trim(),
           status: _status,
           startDate: _startDate,
           endDate: _endDate,
@@ -327,11 +511,31 @@ class _OsLegalContractFormDialogState extends State<_OsLegalContractFormDialog> 
           currency: _currency,
           governingLaw: _governingLawCtrl.text.trim(),
           jurisdiction: _jurisdictionCtrl.text.trim(),
-          clauses: _clauses.where((c) => c.isEnabled).toList(),
-          notes: _notesCtrl.text.trim(),
-          signedAt: existing?.signedAt,
+          clauses: _clauses,
+          templateId: _selectedTemplateId,
+          partyOneName: settings.agencyLegalName,
+          partyOneRep: settings.agencyAuthorizedSignatory,
+          partyOneTitle: settings.agencySignatoryTitle,
+          partyOneAddress: settings.agencyHeadquarters,
+          partyOnePhone: settings.agencyPhone,
+          partyOneEmail: settings.agencyEmail,
+          partyOneRegistrationNo: settings.agencyCommercialReg,
+          partyTwoCompany: _partyTwoCompanyCtrl.text.trim(),
+          partyTwoNationalId: _partyTwoNationalIdCtrl.text.trim(),
+          partyTwoAddress: _partyTwoAddressCtrl.text.trim(),
+          partyTwoPhone: _partyTwoPhoneCtrl.text.trim(),
+          partyTwoEmail: _partyTwoEmailCtrl.text.trim(),
+          partyTwoJobTitle: _partyTwoJobTitleCtrl.text.trim(),
+          probationPeriodDays: int.tryParse(_probationCtrl.text.trim()),
+          noticePeriodDays: int.tryParse(_noticeCtrl.text.trim()),
+          salaryMonthly: double.tryParse(_salaryCtrl.text.replaceAll(',', '')),
+          penaltyDailyRate: double.tryParse(_penaltyCtrl.text.trim()),
+          paymentTerms: _paymentTerms,
+          scopeOfWork: _scopeCtrl.text.trim(),
+          customTerms: _customTermsCtrl.text.trim(),
+          signedAt: signedAt,
           createdAt: existing?.createdAt,
-          createdBy: existing?.createdBy,
+          createdBy: existing?.createdBy ?? emp?.id,
         ),
       );
       if (!mounted) return;
@@ -354,112 +558,608 @@ class _OsLegalContractFormDialogState extends State<_OsLegalContractFormDialog> 
     }
   }
 
+  Widget _label(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: context.appTheme.secondaryText,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
+    final narrow = MediaQuery.sizeOf(context).width < 600;
+    final size = MediaQuery.sizeOf(context);
+    final viewInsets = MediaQuery.viewInsetsOf(context);
+    final maxH = size.height * (narrow ? 0.94 : 0.9) - viewInsets.bottom;
     final isEdit = widget.existing != null;
 
-    return OsDialogFrame(
-      title: isEdit
-          ? AppLocaleKeys.osLegalContractEditTitle.tr
-          : AppLocaleKeys.osLegalContractAddTitle.tr,
-      icon: Icons.description_outlined,
-      maxWidth: 720,
-      closeEnabled: !_saving,
-      onClose: () => Navigator.pop(context),
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Dialog(
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: narrow ? 8 : 24,
+        vertical: narrow ? 12 : 24,
+      ),
+      backgroundColor: theme.cardSurface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      child: AnimatedPadding(
+        duration: const Duration(milliseconds: 100),
+        padding: EdgeInsets.only(bottom: viewInsets.bottom),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: 960,
+            maxHeight: maxH.clamp(320, size.height),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildHeader(theme, isEdit),
+              _buildStepper(theme),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                  child: _buildStepBody(theme),
+                ),
+              ),
+              _buildFooter(theme),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(AppThemeExtension theme, bool isEdit) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 16, 8, 12),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: theme.border)),
+        color: theme.elevatedSurface.withValues(alpha: 0.5),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Row(
         children: [
-          _label(AppLocaleKeys.osLegalContractNumber.tr),
-          TextField(
-            controller: _numberCtrl,
-            readOnly: _loadingNumber,
-            decoration: osDialogFieldDecoration(
-              context,
-              suffixText: _loadingNumber ? '…' : null,
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.balance, color: Colors.white, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isEdit
+                      ? AppLocaleKeys.osLegalContractEditTitle.tr
+                      : AppLocaleKeys.osLegalContractWizardTitle.tr,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 15,
+                    color: theme.primaryText,
+                  ),
+                ),
+                Text(
+                  AppLocaleKeys.osLegalContractWizardSubtitle.tr,
+                  style: TextStyle(fontSize: 11, color: theme.mutedText),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 14),
-          Row(
+          IconButton(
+            onPressed: _saving ? null : () => Navigator.pop(context),
+            icon: Icon(Icons.close, color: theme.secondaryText),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStepper(AppThemeExtension theme) {
+    final steps = [
+      AppLocaleKeys.osLegalContractStepTemplate.tr,
+      AppLocaleKeys.osLegalContractStepParties.tr,
+      AppLocaleKeys.osLegalContractStepFinancials.tr,
+      AppLocaleKeys.osLegalContractStepClauses.tr,
+    ];
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: theme.border)),
+        color: theme.elevatedSurface.withValues(alpha: 0.35),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (var i = 0; i < steps.length; i++) ...[
+                    if (i > 0)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Text('/', style: TextStyle(color: theme.border)),
+                      ),
+                    _stepPill(theme, i + 1, steps[i]),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            AppLocaleKeys.osLegalContractStepOf.trParams({
+              'step': '$_step',
+              'total': '$_totalSteps',
+            }),
+            style: TextStyle(
+              fontSize: 11,
+              fontFamily: 'monospace',
+              color: theme.mutedText,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _stepPill(AppThemeExtension theme, int stepNum, String label) {
+    final active = _step == stepNum;
+    return Material(
+      color: active ? AppColors.primary : Colors.transparent,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        onTap: _saving ? null : () => setState(() => _step = stepNum),
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Expanded(child: _label(AppLocaleKeys.osLegalContractFieldTitle.tr)),
-              TextButton.icon(
-                onPressed: _loadingAiKey != null ? null : _generateContractTitle,
-                icon: _loadingAiKey == 'title'
-                    ? const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.auto_awesome, size: 16),
-                label: Text(AppLocaleKeys.osAiGenerate.tr),
+              Container(
+                width: 20,
+                height: 20,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: active
+                      ? Colors.white.withValues(alpha: 0.25)
+                      : theme.border,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  '$stepNum',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                    color: active ? Colors.white : theme.secondaryText,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: active ? Colors.white : theme.secondaryText,
+                ),
               ),
             ],
           ),
-          TextField(
-            controller: _titleCtrl,
-            decoration: osDialogFieldDecoration(context),
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _label(AppLocaleKeys.osLegalContractTargetType.tr),
-                    DropdownButtonFormField<String>(
-                      initialValue: _targetType,
-                      decoration: osDialogFieldDecoration(context),
-                      items: OsLegalContractTargetType.ordered
-                          .map(
-                            (t) => DropdownMenuItem(
-                              value: t,
-                              child: Text(_targetTypeLabel(t)),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (v) {
-                        if (v == null) return;
-                        setState(() => _targetType = v);
-                      },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStepBody(AppThemeExtension theme) {
+    switch (_step) {
+      case 1:
+        return _buildStep1(theme);
+      case 2:
+        return _buildStep2(theme);
+      case 3:
+        return _buildStep3(theme);
+      case 4:
+        return _buildStep4(theme);
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  Widget _buildStep1(AppThemeExtension theme) {
+    final templates = _ctrl.templates
+        .where((t) => t.targetType == _targetType)
+        .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    AppLocaleKeys.osLegalContractTemplateHelp.tr,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 14,
+                      color: theme.primaryText,
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    AppLocaleKeys.osLegalContractTemplateLawNote.tr,
+                    style: TextStyle(fontSize: 12, color: theme.mutedText),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _label(AppLocaleKeys.osLegalContractStatus.tr),
-                    DropdownButtonFormField<String>(
-                      initialValue: _status,
-                      decoration: osDialogFieldDecoration(context),
-                      items: OsLegalContractStatus.ordered
-                          .map(
-                            (s) => DropdownMenuItem(
-                              value: s,
-                              child: Text(_statusLabel(s)),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (v) {
-                        if (v == null) return;
-                        setState(() => _status = v);
-                      },
+            ),
+            const SizedBox(width: 12),
+            _categoryPills(theme),
+          ],
+        ),
+        const SizedBox(height: 16),
+        LayoutBuilder(
+          builder: (context, c) {
+            final twoCol = c.maxWidth >= 700;
+            const spacing = 12.0;
+            final itemWidth =
+                twoCol ? (c.maxWidth - spacing) / 2 : c.maxWidth;
+            return Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              children: [
+                for (final tpl in templates)
+                  SizedBox(
+                    width: itemWidth,
+                    child: _templateCard(
+                      theme,
+                      tpl,
+                      _selectedTemplateId == tpl.id,
                     ),
-                  ],
-                ),
+                  ),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _categoryPills(AppThemeExtension theme) {
+    Widget pill(String type, String label) {
+      final selected = _targetType == type;
+      return Material(
+        color: selected ? AppColors.primary : Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          onTap: () => setState(() {
+            _targetType = type;
+            _selectedTemplateId = null;
+          }),
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: selected ? Colors.white : theme.secondaryText,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: theme.elevatedSurface,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          pill(
+            OsLegalContractTargetType.client,
+            AppLocaleKeys.osLegalContractCategoryClients.tr,
+          ),
+          pill(
+            OsLegalContractTargetType.employee,
+            AppLocaleKeys.osLegalContractCategoryEmployees.tr,
+          ),
+          pill(
+            OsLegalContractTargetType.freelancer,
+            AppLocaleKeys.osLegalContractCategoryFreelancers.tr,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _templateCard(AppThemeExtension theme, OsContractTemplate tpl, bool selected) {
+    return Material(
+      color: selected
+          ? AppColors.primary.withValues(alpha: 0.08)
+          : theme.cardSurface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(
+          color: selected ? AppColors.primary : theme.border,
+          width: selected ? 2 : 1,
+        ),
+      ),
+      child: InkWell(
+        onTap: () => _selectTemplate(tpl),
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (tpl.subType.isNotEmpty)
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              tpl.subType,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        Text(
+                          tpl.suggestedTitle.isNotEmpty
+                              ? tpl.suggestedTitle
+                              : tpl.name,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13,
+                            color: theme.primaryText,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (selected)
+                    const Icon(Icons.check_circle, color: AppColors.primary, size: 20),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                tpl.description,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 11, color: theme.secondaryText),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                tpl.governingLaw,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 10, color: theme.secondaryText),
+              ),
+              Text(
+                AppLocaleKeys.osLegalContractClausesCount.trParams({
+                  'count': '${tpl.clauses.length}',
+                }),
+                style: TextStyle(fontSize: 10, color: theme.secondaryText),
               ),
             ],
           ),
-          if (_targetType == OsLegalContractTargetType.client &&
-              _clients.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            _label(AppLocaleKeys.osLegalContractClient.tr),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStep2(AppThemeExtension theme) {
+    final settings = _settings;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _label(AppLocaleKeys.osLegalContractOfficialTitle.tr),
+                  TextField(
+                    controller: _titleCtrl,
+                    decoration: osDialogFieldDecoration(context),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            TextButton.icon(
+              onPressed: _loadingAiKey != null ? null : _generateContractTitle,
+              icon: const Icon(Icons.auto_awesome, size: 16),
+              label: Text(AppLocaleKeys.osAiGenerate.tr),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        _label(AppLocaleKeys.osLegalContractContractualNumber.tr),
+        TextField(
+          controller: _numberCtrl,
+          readOnly: _loadingNumber,
+          decoration: osDialogFieldDecoration(
+            context,
+            suffixText: _loadingNumber ? '…' : null,
+          ),
+        ),
+        const SizedBox(height: 16),
+        _partyOneBox(theme, settings),
+        const SizedBox(height: 16),
+        _partyTwoForm(theme),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _label(AppLocaleKeys.osLegalContractGoverningLaw.tr),
+                  TextField(
+                    controller: _governingLawCtrl,
+                    maxLines: 2,
+                    decoration: osDialogFieldDecoration(context),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _label(AppLocaleKeys.osLegalContractInitialStatus.tr),
+                  DropdownButtonFormField<String>(
+                    initialValue: _status,
+                    decoration: osDialogFieldDecoration(context),
+                    items: osLegalContractStatusDropdownItems(),
+                    onChanged: (v) {
+                      if (v == null) return;
+                      setState(() => _status = v);
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _partyOneBox(AppThemeExtension theme, OsContractSettings settings) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        border: Border.all(color: theme.border),
+        borderRadius: BorderRadius.circular(14),
+        color: theme.elevatedSurface.withValues(alpha: 0.4),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  AppLocaleKeys.osLegalContractPartyOneTitle.tr,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
+                    color: theme.primaryText,
+                  ),
+                ),
+              ),
+              Text(
+                AppLocaleKeys.osLegalContractPartyOneAuto.tr,
+                style: TextStyle(fontSize: 10, color: theme.mutedText),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(settings.agencyLegalName,
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12)),
+          Text(
+            '${settings.agencyAuthorizedSignatory} — ${settings.agencySignatoryTitle}',
+            style: TextStyle(fontSize: 11, color: theme.secondaryText),
+          ),
+          Text(
+            settings.agencyHeadquarters,
+            style: TextStyle(fontSize: 11, color: theme.mutedText),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _partyTwoForm(AppThemeExtension theme) {
+    final isEmployee = _targetType == OsLegalContractTargetType.employee;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        border: Border.all(color: theme.border),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            AppLocaleKeys.osLegalContractPartyTwoTitle.tr,
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 13,
+              color: theme.primaryText,
+            ),
+          ),
+          const SizedBox(height: 10),
+          if (isEmployee && _employees.isNotEmpty) ...[
+            _label(AppLocaleKeys.osLegalContractQuickSelectEmployee.tr),
             DropdownButtonFormField<String?>(
-              initialValue: _clientId,
+              initialValue: _partyTwoSourceId,
+              decoration: osDialogFieldDecoration(context),
+              items: [
+                DropdownMenuItem<String?>(
+                  value: null,
+                  child: Text(AppLocaleKeys.osCommonNa.tr),
+                ),
+                ..._employees.map(
+                  (e) => DropdownMenuItem<String?>(
+                    value: e.id,
+                    child: Text(e.name ?? '', overflow: TextOverflow.ellipsis),
+                  ),
+                ),
+              ],
+              onChanged: (v) {
+                setState(() {
+                  _partyTwoSourceId = v;
+                  _applyEmployee(v);
+                });
+              },
+            ),
+            const SizedBox(height: 10),
+          ] else if (!isEmployee && _clients.isNotEmpty) ...[
+            _label(AppLocaleKeys.osLegalContractQuickSelectClient.tr),
+            DropdownButtonFormField<String?>(
+              initialValue: _partyTwoSourceId,
               decoration: osDialogFieldDecoration(context),
               items: [
                 DropdownMenuItem<String?>(
@@ -480,96 +1180,106 @@ class _OsLegalContractFormDialogState extends State<_OsLegalContractFormDialog> 
               ],
               onChanged: (v) {
                 setState(() {
-                  _clientId = v;
+                  _partyTwoSourceId = v;
                   _applyClient(v);
                 });
               },
             ),
+            const SizedBox(height: 10),
           ],
-          const SizedBox(height: 14),
-          _label(AppLocaleKeys.osLegalContractPartyName.tr),
+          _label('${AppLocaleKeys.osLegalContractPartyName.tr} *'),
           TextField(
-            controller: _targetNameCtrl,
+            controller: _partyTwoNameCtrl,
             decoration: osDialogFieldDecoration(context),
           ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _label(AppLocaleKeys.osLegalContractStart.tr),
-                    InkWell(
-                      onTap: () => _pickDate(true),
-                      borderRadius: BorderRadius.circular(14),
-                      child: InputDecorator(
-                        decoration: osDialogFieldDecoration(
-                          context,
-                          prefixIcon: Icon(
-                            Icons.event_outlined,
-                            size: 20,
-                            color: theme.mutedText,
-                          ),
-                        ),
-                        child: Text(
-                          FirestoreOsFinanceApi.formatDate(_startDate),
-                          style: const TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _label(AppLocaleKeys.osLegalContractEnd.tr),
-                    InkWell(
-                      onTap: () => _pickDate(false),
-                      borderRadius: BorderRadius.circular(14),
-                      child: InputDecorator(
-                        decoration: osDialogFieldDecoration(
-                          context,
-                          prefixIcon: Icon(
-                            Icons.event_outlined,
-                            size: 20,
-                            color: theme.mutedText,
-                          ),
-                        ),
-                        child: Text(
-                          _endDate == null
-                              ? AppLocaleKeys.osCommonNa.tr
-                              : FirestoreOsFinanceApi.formatDate(_endDate!),
-                          style: const TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          const SizedBox(height: 10),
+          _label(AppLocaleKeys.osLegalContractPartyCompany.tr),
+          TextField(
+            controller: _partyTwoCompanyCtrl,
+            decoration: osDialogFieldDecoration(context),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
-                flex: 2,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _label(AppLocaleKeys.osLegalContractValue.tr),
+                    _label(AppLocaleKeys.osLegalContractPartyNationalId.tr),
                     TextField(
-                      controller: _valueCtrl,
-                      keyboardType: TextInputType.number,
+                      controller: _partyTwoNationalIdCtrl,
                       decoration: osDialogFieldDecoration(context),
                     ),
                   ],
                 ),
               ),
               const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _label(AppLocaleKeys.osLegalContractPartyPhone.tr),
+                    TextField(
+                      controller: _partyTwoPhoneCtrl,
+                      decoration: osDialogFieldDecoration(context),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          _label(AppLocaleKeys.osLegalContractPartyEmail.tr),
+          TextField(
+            controller: _partyTwoEmailCtrl,
+            decoration: osDialogFieldDecoration(context),
+          ),
+          const SizedBox(height: 10),
+          if (isEmployee) ...[
+            _label(AppLocaleKeys.osLegalContractPartyJobTitle.tr),
+            TextField(
+              controller: _partyTwoJobTitleCtrl,
+              decoration: osDialogFieldDecoration(context),
+            ),
+            const SizedBox(height: 10),
+          ],
+          _label(AppLocaleKeys.osLegalContractPartyAddress.tr),
+          TextField(
+            controller: _partyTwoAddressCtrl,
+            maxLines: 2,
+            decoration: osDialogFieldDecoration(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStep3(AppThemeExtension theme) {
+    final isEmployee = _targetType == OsLegalContractTargetType.employee;
+    final percentSum =
+        _paymentTerms.fold<double>(0, (s, p) => s + p.percentage);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        LayoutBuilder(
+          builder: (context, c) {
+            final wide = c.maxWidth >= 640;
+            final fields = <Widget>[
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _label(AppLocaleKeys.osLegalContractTotalValue.tr),
+                    TextField(
+                      controller: _valueCtrl,
+                      keyboardType: TextInputType.number,
+                      onChanged: _onTotalValueChanged,
+                      decoration: osDialogFieldDecoration(context),
+                    ),
+                  ],
+                ),
+              ),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -582,7 +1292,9 @@ class _OsLegalContractFormDialogState extends State<_OsLegalContractFormDialog> 
                           .map(
                             (c) => DropdownMenuItem(
                               value: c,
-                              child: Text(c),
+                              child: Text(c == OsLegalContractCurrency.iqd
+                                  ? AppLocaleKeys.osLegalContractCurrencyIqd.tr
+                                  : AppLocaleKeys.osLegalContractCurrencyUsd.tr),
                             ),
                           )
                           .toList(),
@@ -594,156 +1306,521 @@ class _OsLegalContractFormDialogState extends State<_OsLegalContractFormDialog> 
                   ],
                 ),
               ),
+              if (isEmployee)
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _label(AppLocaleKeys.osLegalContractSalaryMonthly.tr),
+                      TextField(
+                        controller: _salaryCtrl,
+                        keyboardType: TextInputType.number,
+                        decoration: osDialogFieldDecoration(context),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _label(AppLocaleKeys.osLegalContractPenaltyDaily.tr),
+                      TextField(
+                        controller: _penaltyCtrl,
+                        keyboardType: TextInputType.number,
+                        decoration: osDialogFieldDecoration(context),
+                      ),
+                    ],
+                  ),
+                ),
+            ];
+            return wide
+                ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (var i = 0; i < fields.length; i++) ...[
+                        if (i > 0) const SizedBox(width: 12),
+                        fields[i],
+                      ],
+                    ],
+                  )
+                : Column(
+                    children: [
+                      for (var i = 0; i < fields.length; i++) ...[
+                        if (i > 0) const SizedBox(height: 12),
+                        fields[i],
+                      ],
+                    ],
+                  );
+          },
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _dateField(
+                AppLocaleKeys.osLegalContractEffectiveDate.tr,
+                FirestoreOsFinanceApi.formatDate(_startDate),
+                () => _pickDate(true),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _dateField(
+                AppLocaleKeys.osLegalContractEnd.tr,
+                _endDate == null
+                    ? AppLocaleKeys.osCommonNa.tr
+                    : FirestoreOsFinanceApi.formatDate(_endDate!),
+                () => _pickDate(false),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            if (isEmployee)
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _label(AppLocaleKeys.osLegalContractProbationDays.tr),
+                    TextField(
+                      controller: _probationCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: osDialogFieldDecoration(context),
+                    ),
+                  ],
+                ),
+              ),
+            if (isEmployee) const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _label(AppLocaleKeys.osLegalContractNoticeDays.tr),
+                  TextField(
+                    controller: _noticeCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: osDialogFieldDecoration(context),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            border: Border.all(color: theme.border),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      AppLocaleKeys.osLegalContractPaymentSchedule.tr,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13,
+                        color: theme.primaryText,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    AppLocaleKeys.osLegalContractPaymentTotalPercent.trParams({
+                      'percent': percentSum.toStringAsFixed(0),
+                    }),
+                    style: TextStyle(fontSize: 11, color: theme.mutedText),
+                  ),
+                  const SizedBox(width: 8),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _paymentTerms = [
+                          ..._paymentTerms,
+                          OsContractPaymentTerm(
+                            milestone:
+                                '${AppLocaleKeys.osLegalContractAddPayment.tr} ${_paymentTerms.length + 1}',
+                            percentage: 10,
+                            amount: (_totalValue * 0.1).roundToDouble(),
+                            dueDateDescription: '',
+                          ),
+                        ];
+                      });
+                    },
+                    icon: const Icon(Icons.add, size: 16),
+                    label: Text(AppLocaleKeys.osLegalContractAddPayment.tr),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              for (var i = 0; i < _paymentTerms.length; i++)
+                _paymentRow(theme, i),
             ],
           ),
-          const SizedBox(height: 14),
-          _label(AppLocaleKeys.osLegalContractGoverningLaw.tr),
-          TextField(
-            controller: _governingLawCtrl,
-            maxLines: 2,
-            decoration: osDialogFieldDecoration(context),
-          ),
-          const SizedBox(height: 14),
-          _label(AppLocaleKeys.osLegalContractJurisdiction.tr),
-          TextField(
-            controller: _jurisdictionCtrl,
-            maxLines: 2,
-            decoration: osDialogFieldDecoration(context),
-          ),
-          if (_clauses.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            _label(AppLocaleKeys.osLegalContractClauses.tr),
-            for (var i = 0; i < _clauses.length; i++)
-              _ClauseTile(
-                clause: _clauses[i],
-                isGenerating: _loadingAiKey == 'clause-$i',
-                aiDisabled: _loadingAiKey != null,
-                onToggle: (enabled) {
-                  setState(() {
-                    _clauses[i] = _clauses[i].copyWith(isEnabled: enabled);
-                  });
-                },
-                onGenerate: () => _generateClause(i),
+        ),
+      ],
+    );
+  }
+
+  Widget _dateField(String label, String value, VoidCallback onTap) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _label(label),
+        InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: InputDecorator(
+            decoration: osDialogFieldDecoration(
+              context,
+              prefixIcon: Icon(
+                Icons.event_outlined,
+                size: 20,
+                color: context.appTheme.mutedText,
               ),
-          ],
-          const SizedBox(height: 14),
-          _label(AppLocaleKeys.osLegalContractNotes.tr),
-          const SizedBox(height: 8),
-          OsAiSuggestionBlock(
-            title: AppLocaleKeys.osAiContractScopeTitle.tr,
-            placeholder: AppLocaleKeys.osAiContractScopePlaceholder.tr,
-            description: _notesCtrl.text,
-            isLoading: _loadingAiKey == 'scope',
-            isDisabled: _loadingAiKey != null,
-            onGenerate: _generateContractScope,
+            ),
+            child: Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
           ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _notesCtrl,
-            maxLines: 4,
-            onChanged: (_) => setState(() {}),
-            decoration: osDialogFieldDecoration(context),
+        ),
+      ],
+    );
+  }
+
+  Widget _paymentRow(AppThemeExtension theme, int index) {
+    final term = _paymentTerms[index];
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          IconButton(
+            onPressed: _paymentTerms.length <= 1
+                ? null
+                : () => setState(() {
+                      _paymentTerms = List.of(_paymentTerms)..removeAt(index);
+                    }),
+            icon: Icon(Icons.delete_outline, color: theme.mutedText, size: 20),
           ),
-          const SizedBox(height: 20),
-          OsFormDialogActions(
-            saveLabel: AppLocaleKeys.osLegalContractSave.tr,
-            saving: _saving,
-            onSave: _save,
-            onCancel: () => Navigator.pop(context),
+          Expanded(
+            flex: 3,
+            child: TextFormField(
+              key: ValueKey('milestone-$index-${term.milestone.hashCode}'),
+              initialValue: term.milestone,
+              decoration: osDialogFieldDecoration(
+                context,
+                hint: AppLocaleKeys.osLegalContractPaymentMilestone.tr,
+              ),
+              onChanged: (v) {
+                _paymentTerms[index] = term.copyWith(milestone: v);
+              },
+            ),
+          ),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 72,
+            child: TextFormField(
+              key: ValueKey('pct-$index-${term.percentage}'),
+              initialValue: term.percentage.toStringAsFixed(0),
+              keyboardType: TextInputType.number,
+              decoration: osDialogFieldDecoration(
+                context,
+                suffixText: '%',
+              ),
+              onChanged: (v) {
+                final pct = double.tryParse(v) ?? 0;
+                setState(() {
+                  _paymentTerms[index] = term.copyWith(
+                    percentage: pct,
+                    amount: ((_totalValue * pct) / 100).roundToDouble(),
+                  );
+                });
+              },
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 2,
+            child: Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: Text(
+                osLegalContractMoneyLabel(term.amount, _currency),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.success,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 3,
+            child: TextFormField(
+              key: ValueKey('due-$index-${term.dueDateDescription.hashCode}'),
+              initialValue: term.dueDateDescription,
+              decoration: osDialogFieldDecoration(
+                context,
+                hint: AppLocaleKeys.osLegalContractPaymentDue.tr,
+              ),
+              onChanged: (v) {
+                _paymentTerms[index] = term.copyWith(dueDateDescription: v);
+              },
+            ),
           ),
         ],
       ),
     );
   }
 
-  String _targetTypeLabel(String t) {
-    switch (t) {
-      case OsLegalContractTargetType.client:
-        return AppLocaleKeys.osLegalContractTargetClient.tr;
-      case OsLegalContractTargetType.employee:
-        return AppLocaleKeys.osLegalContractTargetEmployee.tr;
-      default:
-        return AppLocaleKeys.osLegalContractTargetFreelancer.tr;
-    }
-  }
-
-  String _statusLabel(String s) {
-    switch (s) {
-      case OsLegalContractStatus.active:
-        return AppLocaleKeys.osLegalContractStatusActive.tr;
-      case OsLegalContractStatus.pendingSignature:
-        return AppLocaleKeys.osLegalContractStatusPending.tr;
-      case OsLegalContractStatus.draft:
-        return AppLocaleKeys.osLegalContractStatusDraft.tr;
-      case OsLegalContractStatus.expired:
-        return AppLocaleKeys.osLegalContractStatusExpired.tr;
-      default:
-        return AppLocaleKeys.osLegalContractStatusTerminated.tr;
-    }
-  }
-}
-
-class _ClauseTile extends StatelessWidget {
-  const _ClauseTile({
-    required this.clause,
-    required this.onToggle,
-    required this.onGenerate,
-    required this.isGenerating,
-    required this.aiDisabled,
-  });
-
-  final OsContractClause clause;
-  final ValueChanged<bool> onToggle;
-  final VoidCallback onGenerate;
-  final bool isGenerating;
-  final bool aiDisabled;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = context.appTheme;
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildStep4(AppThemeExtension theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    clause.title,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
-                      color: theme.primaryText,
-                    ),
-                  ),
-                ),
-                TextButton(
-                  onPressed: aiDisabled ? null : onGenerate,
-                  child: isGenerating
-                      ? const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(AppLocaleKeys.osAiGenerate.tr),
-                ),
-                Switch(
-                  value: clause.isEnabled,
-                  onChanged: clause.isMandatory ? null : onToggle,
-                ),
-              ],
+            Expanded(
+              child: _label(AppLocaleKeys.osLegalContractScopeOfWork.tr),
             ),
-            const SizedBox(height: 4),
-            Text(
-              clause.content,
-              style: TextStyle(fontSize: 12, color: theme.secondaryText),
+            TextButton.icon(
+              onPressed: _loadingAiKey != null ? null : _generateContractScope,
+              icon: _loadingAiKey == 'scope'
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.auto_awesome, size: 16),
+              label: Text(AppLocaleKeys.osAiGenerate.tr),
             ),
           ],
         ),
+        TextField(
+          controller: _scopeCtrl,
+          maxLines: 4,
+          decoration: osDialogFieldDecoration(context),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                AppLocaleKeys.osLegalContractLegalArticles.tr,
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                  color: theme.primaryText,
+                ),
+              ),
+            ),
+            OutlinedButton.icon(
+              onPressed: () {
+                setState(() {
+                  _clauses = [
+                    ..._clauses,
+                    OsContractClause(
+                      id: 'c-custom-${DateTime.now().millisecondsSinceEpoch}',
+                      title: AppLocaleKeys.osLegalContractAddClause.tr,
+                      content:
+                          'اتفق الطرفان على الالتزام بالشروط والضوابط المحددة في هذا البند التزاماً تاماً وبحسن نية.',
+                    ),
+                  ];
+                });
+              },
+              icon: const Icon(Icons.add, size: 16),
+              label: Text(AppLocaleKeys.osLegalContractAddClause.tr),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        for (var i = 0; i < _clauses.length; i++) _clauseEditor(theme, i),
+        const SizedBox(height: 14),
+        _label(AppLocaleKeys.osLegalContractCustomTerms.tr),
+        TextField(
+          controller: _customTermsCtrl,
+          maxLines: 3,
+          decoration: osDialogFieldDecoration(context),
+        ),
+        const SizedBox(height: 14),
+        _label(AppLocaleKeys.osLegalContractJurisdiction.tr),
+        TextField(
+          controller: _jurisdictionCtrl,
+          maxLines: 2,
+          decoration: osDialogFieldDecoration(context),
+        ),
+      ],
+    );
+  }
+
+  Widget _clauseEditor(AppThemeExtension theme, int index) {
+    final clause = _clauses[index];
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: theme.border),
+        borderRadius: BorderRadius.circular(12),
+        color: theme.elevatedSurface.withValues(alpha: 0.35),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              if (!clause.isMandatory)
+                IconButton(
+                  onPressed: () => setState(() {
+                    _clauses = List.of(_clauses)..removeAt(index);
+                  }),
+                  icon: Icon(Icons.delete_outline, color: theme.mutedText),
+                ),
+              Expanded(
+                child: TextFormField(
+                  key: ValueKey('clause-title-${clause.id}'),
+                  initialValue: clause.title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: theme.primaryText,
+                    fontSize: 12,
+                  ),
+                  decoration: osDialogFieldDecoration(context),
+                  onChanged: (v) {
+                    _clauses[index] = clause.copyWith(title: v);
+                  },
+                ),
+              ),
+              Checkbox(
+                value: clause.isEnabled,
+                onChanged: clause.isMandatory
+                    ? null
+                    : (v) => setState(() {
+                          _clauses[index] =
+                              clause.copyWith(isEnabled: v ?? false);
+                        }),
+              ),
+              TextButton(
+                onPressed: _loadingAiKey != null
+                    ? null
+                    : () => _generateClause(index),
+                child: _loadingAiKey == 'clause-$index'
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : Text(AppLocaleKeys.osAiGenerate.tr),
+              ),
+            ],
+          ),
+          TextFormField(
+            key: ValueKey('clause-body-${clause.id}-${clause.content.hashCode}'),
+            initialValue: clause.content,
+            maxLines: 5,
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.5,
+              color: theme.primaryText,
+            ),
+            decoration: osDialogFieldDecoration(context),
+            onChanged: (v) {
+              _clauses[index] = clause.copyWith(content: v);
+            },
+          ),
+        ],
       ),
     );
+  }
+
+  Widget _buildFooter(AppThemeExtension theme) {
+    final rtl = Directionality.of(context) == TextDirection.rtl;
+
+    IconData previousIcon() =>
+        rtl ? Icons.chevron_left : Icons.chevron_right;
+    IconData nextIcon() => rtl ? Icons.chevron_right : Icons.chevron_left;
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: theme.border)),
+        color: theme.cardSurface,
+      ),
+      child: Row(
+        children: [
+          if (_step == 1)
+            TextButton(
+              onPressed: _saving ? null : () => Navigator.pop(context),
+              child: Text('cancel'.tr),
+            )
+          else
+            OutlinedButton(
+              onPressed: _saving ? null : _goPrevious,
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(previousIcon(), size: 18),
+                  const SizedBox(width: 6),
+                  Text(AppLocaleKeys.osLegalContractPrevious.tr),
+                ],
+              ),
+            ),
+          const Spacer(),
+          if (_step < _totalSteps)
+            FilledButton(
+              onPressed: _saving ? null : _goNext,
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(_nextLabel()),
+                  const SizedBox(width: 6),
+                  Icon(nextIcon(), size: 18, color: Colors.white),
+                ],
+              ),
+            )
+          else
+            FilledButton.icon(
+              onPressed: _saving ? null : _save,
+              style: OsButtonStyles.primaryCompact(),
+              icon: _saving
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.check, size: 18),
+              label: Text(AppLocaleKeys.osLegalContractApproveSave.tr),
+            ),
+        ],
+      ),
+    );
+  }
+
+  String _nextLabel() {
+    switch (_step) {
+      case 1:
+        return AppLocaleKeys.osLegalContractNextParties.tr;
+      case 2:
+        return AppLocaleKeys.osLegalContractNextFinancials.tr;
+      case 3:
+        return AppLocaleKeys.osLegalContractNextClauses.tr;
+      default:
+        return AppLocaleKeys.osLegalContractSave.tr;
+    }
   }
 }

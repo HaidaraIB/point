@@ -9,33 +9,33 @@ class OsPrintAssets {
   OsPrintAssets._();
 
   static const headerBrandAsset = 'assets/print/brand.png';
-  static const headerInfoAsset = 'assets/print/info.png';
   static const headerSloganAsset = 'assets/print/slogan.png';
   static const watermarkAsset = 'assets/print/watermark.png';
   static const watermarkLogoAsset = 'assets/print/watermark_logo.png';
   static const sealAsset = 'assets/print/seal.png';
   static const voucherBrandAsset = 'assets/print/voucher_brand.png';
-  static const voucherInfoAsset = 'assets/print/voucher_info.png';
+  static const paymentCardAsset = 'assets/images/card.png';
+  static const paymentQiCardAsset = 'assets/images/qicard.png';
+  static const paymentZainCashAsset = 'assets/images/zaincash.png';
+  static const paymentFibAsset = 'assets/images/fib.png';
 
   static String? _headerBrandDataUri;
-  static String? _headerInfoDataUri;
   static String? _headerSloganDataUri;
   static String? _watermarkDataUri;
   static String? _watermarkLogoDataUri;
   static String? _sealDataUri;
   static String? _voucherBrandDataUri;
-  static String? _voucherInfoDataUri;
+  static List<String> _paymentMethodDataUris = const [];
   static Future<void>? _loading;
   static bool _ready = false;
 
   static String get headerBrandDataUri => _headerBrandDataUri ?? '';
-  static String get headerInfoDataUri => _headerInfoDataUri ?? '';
   static String get headerSloganDataUri => _headerSloganDataUri ?? '';
   static String get watermarkDataUri => _watermarkDataUri ?? '';
   static String get watermarkLogoDataUri => _watermarkLogoDataUri ?? '';
   static String get sealDataUri => _sealDataUri ?? '';
   static String get voucherBrandDataUri => _voucherBrandDataUri ?? '';
-  static String get voucherInfoDataUri => _voucherInfoDataUri ?? '';
+  static List<String> get paymentMethodDataUris => _paymentMethodDataUris;
 
   static bool get isLoaded => _ready;
 
@@ -59,12 +59,6 @@ class OsPrintAssets {
       _headerBrandDataUri = await _pngDataUri(headerBrandAsset);
     } catch (_) {
       _headerBrandDataUri = '';
-    }
-
-    try {
-      _headerInfoDataUri = await _pngDataUri(headerInfoAsset);
-    } catch (_) {
-      _headerInfoDataUri = '';
     }
 
     try {
@@ -92,8 +86,27 @@ class OsPrintAssets {
     }
 
     await _loadVoucherAssets();
+    await _loadPaymentMethodAssets();
 
     _ready = true;
+  }
+
+  static Future<void> _loadPaymentMethodAssets() async {
+    final assets = [
+      paymentCardAsset,
+      paymentQiCardAsset,
+      paymentZainCashAsset,
+      paymentFibAsset,
+    ];
+    final uris = <String>[];
+    for (final asset in assets) {
+      try {
+        uris.add(await _pngDataUri(asset));
+      } catch (_) {
+        // Skip missing payment icons; footer still prints.
+      }
+    }
+    _paymentMethodDataUris = uris;
   }
 
   static Future<void> _loadVoucherAssets() async {
@@ -101,12 +114,6 @@ class OsPrintAssets {
       _voucherBrandDataUri = await _pngDataUri(voucherBrandAsset);
     } catch (_) {
       _voucherBrandDataUri = '';
-    }
-
-    try {
-      _voucherInfoDataUri = await _pngDataUri(voucherInfoAsset);
-    } catch (_) {
-      _voucherInfoDataUri = '';
     }
   }
 }

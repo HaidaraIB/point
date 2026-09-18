@@ -131,6 +131,28 @@ class OsButtonStyles {
     );
   }
 
+  /// Soft accent CTA for card footers (preview / view — point_os tinted style).
+  static ButtonStyle inlineAccent(AppThemeExtension theme) {
+    return FilledButton.styleFrom(
+      backgroundColor: AppColors.primary.withValues(alpha: 0.14),
+      foregroundColor: theme.accentText,
+      disabledForegroundColor: theme.mutedText,
+      disabledBackgroundColor: theme.unselected,
+      side: BorderSide(color: AppColors.primary.withValues(alpha: 0.35)),
+      minimumSize: const Size(0, 36),
+      padding: inlinePadding,
+      textStyle: inlineTextStyle.copyWith(color: theme.accentText),
+      visualDensity: VisualDensity.standard,
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      iconSize: 16,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    );
+  }
+
+  /// Standard print action for OS preview / detail toolbars.
+  static ButtonStyle printCompact(AppThemeExtension theme) =>
+      secondaryCompact(theme);
+
   /// Compact filled CTA that matches [inline] height.
   static ButtonStyle inlinePrimary({Color? backgroundColor}) {
     final bg = backgroundColor ?? AppColors.primary;

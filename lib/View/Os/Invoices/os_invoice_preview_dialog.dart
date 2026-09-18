@@ -8,6 +8,7 @@ import 'package:point/View/Os/Invoices/os_invoice_print.dart';
 import 'package:point/View/Os/Invoices/os_invoice_share.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_finance_format.dart';
+import 'package:point/View/Os/os_finance_status_widgets.dart';
 import 'package:point/View/Os/os_invoice_stamp.dart';
 import 'package:point/View/Os/os_line_items_table.dart';
 
@@ -144,23 +145,27 @@ class _OsInvoicePreviewDialog extends StatelessWidget {
                           fg: theme.pageBackground,
                           onTap: () => sendOsInvoiceEmail(invoice),
                         ),
-                        const SizedBox(height: 8),
-                        _actionBtn(
-                          label: AppLocaleKeys.osInvoicesPaymentLink.tr,
-                          icon: Icons.link,
-                          color: AppColors.primary,
-                          fg: Colors.white,
-                          onTap: () =>
-                              showOsInvoicePaymentLinkDialog(context, invoice),
-                        ),
-                        const SizedBox(height: 8),
-                        _actionBtn(
-                          label: AppLocaleKeys.osInvoicesWhatsapp.tr,
-                          icon: Icons.send_outlined,
-                          color: const Color(0xFF059669),
-                          fg: Colors.white,
-                          onTap: () => shareOsInvoiceWhatsApp(invoice),
-                        ),
+                        if (!invoice.isPaid) ...[
+                          const SizedBox(height: 8),
+                          _actionBtn(
+                            label: AppLocaleKeys.osInvoicesPaymentLink.tr,
+                            icon: Icons.link,
+                            color: AppColors.primary,
+                            fg: Colors.white,
+                            onTap: () => showOsInvoicePaymentLinkDialog(
+                              context,
+                              invoice,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          _actionBtn(
+                            label: AppLocaleKeys.osInvoicesWhatsapp.tr,
+                            icon: Icons.send_outlined,
+                            color: const Color(0xFF059669),
+                            fg: Colors.white,
+                            onTap: () => shareOsInvoiceWhatsApp(invoice),
+                          ),
+                        ],
                       ],
                     )
                   : Row(
@@ -174,29 +179,31 @@ class _OsInvoicePreviewDialog extends StatelessWidget {
                             onTap: () => sendOsInvoiceEmail(invoice),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _actionBtn(
-                            label: AppLocaleKeys.osInvoicesPaymentLink.tr,
-                            icon: Icons.link,
-                            color: AppColors.primary,
-                            fg: Colors.white,
-                            onTap: () => showOsInvoicePaymentLinkDialog(
-                              context,
-                              invoice,
+                        if (!invoice.isPaid) ...[
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _actionBtn(
+                              label: AppLocaleKeys.osInvoicesPaymentLink.tr,
+                              icon: Icons.link,
+                              color: AppColors.primary,
+                              fg: Colors.white,
+                              onTap: () => showOsInvoicePaymentLinkDialog(
+                                context,
+                                invoice,
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _actionBtn(
-                            label: AppLocaleKeys.osInvoicesWhatsapp.tr,
-                            icon: Icons.send_outlined,
-                            color: const Color(0xFF059669),
-                            fg: Colors.white,
-                            onTap: () => shareOsInvoiceWhatsApp(invoice),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: _actionBtn(
+                              label: AppLocaleKeys.osInvoicesWhatsapp.tr,
+                              icon: Icons.send_outlined,
+                              color: const Color(0xFF059669),
+                              fg: Colors.white,
+                              onTap: () => shareOsInvoiceWhatsApp(invoice),
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
             ),
@@ -262,15 +269,10 @@ class _OsInvoicePreviewDialog extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 4),
-              Chip(
-                visualDensity: VisualDensity.compact,
-                label: Text(
-                  OsFinanceFormat.invoiceStatusLabel(invoice.status),
-                  style: const TextStyle(fontSize: 12),
-                ),
-                backgroundColor: OsFinanceFormat.invoiceStatusColor(
-                  invoice.status,
-                ).withValues(alpha: 0.15),
+              OsFinanceStatusBadge(
+                label: OsFinanceFormat.invoiceStatusLabel(invoice.status),
+                color: OsFinanceFormat.invoiceStatusColor(invoice.status),
+                fontSize: 12,
               ),
             ],
           ),

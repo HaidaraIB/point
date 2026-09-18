@@ -464,7 +464,7 @@ class OsEmailHubController extends GetxController {
     return AppLocaleKeys.osInvoicesEmailSubject.trParams({'ref': ref});
   }
 
-  String invoiceEmailBody() {
+  Future<String> invoiceEmailBody() async {
     final inv = selectedInvoice;
     if (inv == null) return '';
     final ref = OsFinanceFormat.invoiceRef(inv);
@@ -487,8 +487,13 @@ class OsEmailHubController extends GetxController {
             })}';
       }
     }
-    final link = osInvoicePaymentLink(inv);
-    body = '$body\n\n${AppLocaleKeys.osEmailHubPaymentLink.trParams({'link': link})}';
+    if (!inv.isPaid) {
+      final link = await resolveOsInvoicePaymentLink(inv);
+      if (link != null && link.isNotEmpty) {
+        body =
+            '$body\n\n${AppLocaleKeys.osEmailHubPaymentLink.trParams({'link': link})}';
+      }
+    }
     return body;
   }
 
@@ -599,7 +604,7 @@ class OsEmailHubController extends GetxController {
     try {
       final ref = OsFinanceFormat.invoiceRef(inv);
       final subject = invoiceEmailSubject();
-      final body = invoiceEmailBody();
+      final body = await invoiceEmailBody();
 
       return await OsEmailHubService.sendAndLog(
         type: OsEmailCategory.invoice,

@@ -357,6 +357,8 @@ String osEmailCategoryLabel(String type) {
       return AppLocaleKeys.osEmailHubCategoryAppreciation.tr;
     case OsEmailCategory.penalty:
       return AppLocaleKeys.osEmailHubCategoryPenalty.tr;
+    case OsEmailCategory.contract:
+      return AppLocaleKeys.osEmailHubCategoryContract.tr;
     default:
       return AppLocaleKeys.osEmailHubCategoryOther.tr;
   }

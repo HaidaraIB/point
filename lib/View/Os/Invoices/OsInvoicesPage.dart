@@ -14,6 +14,7 @@ import 'package:point/View/Os/Invoices/os_invoice_preview_dialog.dart';
 import 'package:point/View/Os/Invoices/os_invoice_share.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_finance_format.dart';
+import 'package:point/View/Os/os_finance_status_widgets.dart';
 import 'package:point/View/Os/os_list_filters.dart';
 import 'package:point/View/Os/os_page_header.dart';
 import 'package:point/View/Os/os_snackbar.dart';
@@ -336,6 +337,7 @@ class _DesktopInvoicesBodyState extends State<_DesktopInvoicesBody> {
                         OsFilterChipOption(
                           value: s,
                           label: OsFinanceFormat.invoiceStatusLabel(s),
+                          color: OsFinanceFormat.invoiceStatusColor(s),
                         ),
                     ],
                   ),
@@ -504,19 +506,9 @@ class _InvoicesTable extends StatelessWidget {
                       ? inv.status
                       : OsInvoiceStatus.sent,
                   underline: const SizedBox.shrink(),
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: theme.primaryText,
-                  ),
-                  items: [
-                    for (final s in OsInvoiceStatus.all)
-                      DropdownMenuItem(
-                        value: s,
-                        child: Text(
-                          OsFinanceFormat.invoiceStatusLabel(s),
-                        ),
-                      ),
-                  ],
+                  selectedItemBuilder: (context) =>
+                      osInvoiceStatusSelectedItems(),
+                  items: osInvoiceStatusDropdownItems(),
                   onChanged: (v) {
                     if (v != null) onStatusChange(inv, v);
                   },
@@ -540,16 +532,18 @@ class _InvoicesTable extends StatelessWidget {
                         icon: Icons.payments_outlined,
                         onPressed: () => onMarkPaid(inv),
                       ),
-                    _ActionIcon(
-                      tooltip: AppLocaleKeys.osInvoicesPaymentLink.tr,
-                      icon: Icons.link,
-                      onPressed: () => onPaymentLink(inv),
-                    ),
-                    _ActionIcon(
-                      tooltip: AppLocaleKeys.osInvoicesWhatsapp.tr,
-                      icon: Icons.send_outlined,
-                      onPressed: () => onWhatsApp(inv),
-                    ),
+                    if (!inv.isPaid)
+                      _ActionIcon(
+                        tooltip: AppLocaleKeys.osInvoicesPaymentLink.tr,
+                        icon: Icons.link,
+                        onPressed: () => onPaymentLink(inv),
+                      ),
+                    if (!inv.isPaid)
+                      _ActionIcon(
+                        tooltip: AppLocaleKeys.osInvoicesWhatsapp.tr,
+                        icon: Icons.send_outlined,
+                        onPressed: () => onWhatsApp(inv),
+                      ),
                     _ActionIcon(
                       tooltip: AppLocaleKeys.osInvoicesEmail.tr,
                       icon: Icons.mail_outline,

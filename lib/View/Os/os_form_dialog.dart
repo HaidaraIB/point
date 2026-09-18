@@ -308,6 +308,26 @@ InputDecoration osDialogFieldDecoration(
   );
 }
 
+/// Matches [OsButtonStyles.secondaryCompact] for toolbar dropdowns.
+InputDecoration osToolbarCompactFieldDecoration(BuildContext context) {
+  final theme = context.appTheme;
+  return InputDecoration(
+    filled: true,
+    fillColor: theme.elevatedSurface,
+    isDense: true,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: BorderSide(color: theme.border),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+      borderSide: const BorderSide(color: AppColors.primary, width: 1.2),
+    ),
+  );
+}
+
 class OsDialogFrame extends StatelessWidget {
   const OsDialogFrame({
     super.key,

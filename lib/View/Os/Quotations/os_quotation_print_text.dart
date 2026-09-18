@@ -153,12 +153,8 @@ $osPrintA4Css
 ${OsBrandPrint.brandCss()}
 @page { size: A4 portrait; margin: 10mm 12mm; }
 .quote-print.sheet { min-height: 277mm; }
-.quote-print .brand-header { margin-bottom: 12px; }
-.quote-print .brand-comp {
-  max-height: 32mm;
-  width: 100%;
-  height: auto;
-  object-fit: contain;
+.quote-print .brand-header {
+  margin-bottom: 12px;
 }
 .quote-print .quote-client-col .panel { min-height: 0; }
 .quote-print .items-wrap {

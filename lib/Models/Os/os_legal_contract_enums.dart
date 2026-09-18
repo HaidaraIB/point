@@ -25,6 +25,15 @@ class OsLegalContractStatus {
     expired,
     terminated,
   ];
+
+  /// Registry filter order (matches point_os Contracts.tsx status `<select>`).
+  static const filterOrdered = [
+    active,
+    pendingSignature,
+    draft,
+    expired,
+    terminated,
+  ];
 }
 
 class OsLegalContractCurrency {

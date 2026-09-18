@@ -13,6 +13,9 @@ class OsContractTemplatesSeed {
           description: '''عقد مهني متكامل لإدارة منصات التواصل الاجتماعي، صناعة ونشر المحتوى الإبداعي، وإطلاق الحملات الإعلانية الممولة مع تحديد مؤشرات الأداء والمسؤوليات القانونية وفق القانون المدني العراقي.''',
           targetType: OsLegalContractTargetType.client,
           suggestedTitle: '''عقد إدارة حملات تسويقية وتواصل اجتماعي (Social Media Retainer)''',
+          subType: '''تسويق رقمي وإدارة حسابات''',
+          governingLaw: '''القانون المدني العراقي رقم (40) لسنة 1951 (أحكام عقد المقاولة والخدمات الفنية)''',
+          tags: ['''تسويق''', '''سوشيال ميديا''', '''إعلانات ممولة''', '''عقود عملاء'''],
           defaultDurationMonths: 6,
           clauses: [
             OsContractClause(
@@ -82,6 +85,9 @@ class OsContractTemplatesSeed {
           description: '''عقد مخصص لتنفيذ الأفلام الإعلانية والوثائقية وجلسات التصوير السينمائي مع ضبط معايير حقوق المواد الخام RAW وحلقات المراجعة والدفعات المجزأة طبقاً لقانون حماية حق المؤلف العراقي.''',
           targetType: OsLegalContractTargetType.client,
           suggestedTitle: '''عقد إنتاج إعلاني وفني متكامل (Commercial Video & Media Production)''',
+          subType: '''إنتاج إعلاني وسينمائي''',
+          governingLaw: '''القانون المدني العراقي رقم (40) لسنة 1951 وقانون حماية حق المؤلف رقم (3) لسنة 1971''',
+          tags: ['''إنتاج فيديو''', '''تصوير إعلاني''', '''سينما''', '''مونتاج''', '''عقود عملاء'''],
           defaultDurationMonths: 2,
           clauses: [
             OsContractClause(
@@ -146,6 +152,9 @@ class OsContractTemplatesSeed {
           description: '''عقد ابتكار وتطوير الهوية البصرية، الشعار، ودليل استخدام العلامة التجارية مع بنود حماية الملكية الفكرية ونقل الحقوق الرسمية بعد السداد الكامل وفق القانون العراقي.''',
           targetType: OsLegalContractTargetType.client,
           suggestedTitle: '''عقد تصميم هوية بصرية وعلامة تجارية (Brand Identity & Guidelines)''',
+          subType: '''تصميم وهوية بصرية''',
+          governingLaw: '''قانون حماية حق المؤلف رقم (3) لسنة 1971 وقانون العلامات والبيانات التجارية رقم (21) لسنة 1957''',
+          tags: ['''هوية بصرية''', '''تصميم لوغو''', '''براندينغ''', '''ملكية فكرية''', '''عقود عملاء'''],
           defaultDurationMonths: 1,
           clauses: [
             OsContractClause(
@@ -185,6 +194,9 @@ class OsContractTemplatesSeed {
           description: '''عقد عمل وظيفي رسمي متوافق حرفياً مع قانون العمل العراقي رقم 37 لسنة 2015، يشمل فترة التجربة القانونية (المادة 36)، ساعات العمل (المادة 67)، الإجازات السنوية (المادة 73)، بنود سرية العمل وحماية معدات الوكالة والتنازل عن الملكية الفكرية للأعمال المنتجة.''',
           targetType: OsLegalContractTargetType.employee,
           suggestedTitle: '''عقد عمل إبداعي بدوام كامل (Full-Time Creative Employment Contract)''',
+          subType: '''عقد عمل وظيفي دائم''',
+          governingLaw: '''قانون العمل العراقي رقم (37) لسنة 2015 المنشور في الوقائع العراقية بالعدد 4386''',
+          tags: ['''موظفين''', '''عقد عمل''', '''قانون العمل العراقي''', '''رواتب''', '''إجازات'''],
           defaultDurationMonths: 12,
           clauses: [
             OsContractClause(
@@ -249,6 +261,9 @@ class OsContractTemplatesSeed {
           description: '''عقد تعاون فني مستقل للمصورين والمونتيرين وصناع المحتوى المتعاونين بنظام المشروع المستقل دون علاقة تبعية وظيفية دائمة، مع ضبط شروط تسليم المخرجات والملكية الفكرية وعدم منافسة عملاء الوكالة.''',
           targetType: OsLegalContractTargetType.freelancer,
           suggestedTitle: '''عقد إنتاج إبداعي بالقطعة / عمل حر (Freelance Creative Agreement)''',
+          subType: '''تعاقد مستقل لكل مشروع''',
+          governingLaw: '''القانون المدني العراقي رقم (40) لسنة 1951 (عقد المقاولة وإنجاز عمل فني محدد)''',
+          tags: ['''فريلانسر''', '''مصور خارجي''', '''مونتير''', '''صانع محتوى''', '''بالقطعة'''],
           defaultDurationMonths: 1,
           clauses: [
             OsContractClause(
@@ -289,6 +304,9 @@ class OsContractTemplatesSeed {
           description: '''اتفاقية قانونية مشددة لحماية الأسرار التجارية والتسويقية للوكالة وعملائها، تشمل حظر إفشاء البيانات، الخطط، وقواعد العملاء، ومنع العمل المباشر مع عملاء الوكالة لمدة سنتين بعد الانتهاء.''',
           targetType: OsLegalContractTargetType.employee,
           suggestedTitle: '''اتفاقية سرية وعدم إفشاء معلومات وحظر منافسة (Strict NDA & Non-Compete)''',
+          subType: '''اتفاقية حماية أسرار تجارية''',
+          governingLaw: '''القانون المدني العراقي وقانون العمل رقم (37) لسنة 2015''',
+          tags: ['''NDA''', '''سرية معلومات''', '''حظر منافسة''', '''حماية عملاء'''],
           defaultDurationMonths: 24,
           clauses: [
             OsContractClause(

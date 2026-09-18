@@ -3,6 +3,7 @@ part of 'package:point/View/Home/Home.dart';
 Widget contentScheduletoday(BuildContext context) {
   final isMobile = Responsive.isMobile(context);
   return GetBuilder<HomeController>(
+    id: HomeController.homeDashboardUpdateId,
     builder: (controller) {
       final today = DateTime.now();
       final contents =
@@ -219,6 +220,7 @@ Widget _buildEmptySection(
 Widget contentUnderPromotion(BuildContext context) {
   final isMobile = Responsive.isMobile(context);
   return GetBuilder<HomeController>(
+    id: HomeController.homeDashboardUpdateId,
     builder: (controller) {
       final contents =
           Get.find<HomeController>().contents.where((a) {
@@ -403,6 +405,7 @@ Widget contentUnderPromotion(BuildContext context) {
 Widget tasksUnderProcessing(BuildContext context) {
   final isMobile = Responsive.isMobile(context);
   return GetBuilder<HomeController>(
+    id: HomeController.homeDashboardUpdateId,
     builder: (controller) {
       final contents =
           Get.find<HomeController>().tasks.where((a) {

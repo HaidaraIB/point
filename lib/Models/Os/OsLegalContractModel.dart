@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:point/Models/Os/OsContractClause.dart';
+import 'package:point/Models/Os/OsContractPaymentTerm.dart';
 import 'package:point/Models/Os/os_legal_contract_enums.dart';
 
 class OsLegalContractModel {
@@ -18,6 +19,27 @@ class OsLegalContractModel {
     required this.governingLaw,
     required this.jurisdiction,
     required this.clauses,
+    this.templateId,
+    this.partyOneName = '',
+    this.partyOneRep = '',
+    this.partyOneTitle = '',
+    this.partyOneAddress = '',
+    this.partyOnePhone = '',
+    this.partyOneEmail = '',
+    this.partyOneRegistrationNo = '',
+    this.partyTwoCompany = '',
+    this.partyTwoNationalId = '',
+    this.partyTwoAddress = '',
+    this.partyTwoPhone = '',
+    this.partyTwoEmail = '',
+    this.partyTwoJobTitle = '',
+    this.probationPeriodDays,
+    this.noticePeriodDays,
+    this.salaryMonthly,
+    this.penaltyDailyRate,
+    this.paymentTerms = const [],
+    this.scopeOfWork = '',
+    this.customTerms = '',
     this.notes,
     this.signedAt,
     this.createdAt,
@@ -39,11 +61,41 @@ class OsLegalContractModel {
   final String governingLaw;
   final String jurisdiction;
   final List<OsContractClause> clauses;
+  final String? templateId;
+  final String partyOneName;
+  final String partyOneRep;
+  final String partyOneTitle;
+  final String partyOneAddress;
+  final String partyOnePhone;
+  final String partyOneEmail;
+  final String partyOneRegistrationNo;
+  final String partyTwoCompany;
+  final String partyTwoNationalId;
+  final String partyTwoAddress;
+  final String partyTwoPhone;
+  final String partyTwoEmail;
+  final String partyTwoJobTitle;
+  final int? probationPeriodDays;
+  final int? noticePeriodDays;
+  final double? salaryMonthly;
+  final double? penaltyDailyRate;
+  final List<OsContractPaymentTerm> paymentTerms;
+  final String scopeOfWork;
+  final String customTerms;
   final String? notes;
   final DateTime? signedAt;
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final String? createdBy;
+
+  /// Alias for [targetName] (Point OS naming).
+  String get partyTwoName => targetName;
+
+  /// Alias for [targetId] (Point OS naming).
+  String get partyTwoId => targetId;
+
+  List<OsContractClause> get enabledClauses =>
+      clauses.where((c) => c.isEnabled).toList(growable: false);
 
   factory OsLegalContractModel.fromDoc(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>? ?? {};
@@ -51,14 +103,20 @@ class OsLegalContractModel {
   }
 
   factory OsLegalContractModel.fromJson(String id, Map<String, dynamic> json) {
+    final scope = json['scopeOfWork'] as String? ?? '';
+    final notes = json['notes'] as String? ?? '';
     return OsLegalContractModel(
       id: id,
       contractNumber: json['contractNumber'] as String? ?? '',
       title: json['title'] as String? ?? '',
       targetType: json['targetType'] as String? ??
           OsLegalContractTargetType.client,
-      targetId: json['targetId'] as String? ?? '',
-      targetName: json['targetName'] as String? ?? '',
+      targetId: json['targetId'] as String? ??
+          json['partyTwoId'] as String? ??
+          '',
+      targetName: json['targetName'] as String? ??
+          json['partyTwoName'] as String? ??
+          '',
       status: json['status'] as String? ?? OsLegalContractStatus.draft,
       startDate: _parseDate(json['startDate']) ?? DateTime.now(),
       endDate: _parseDate(json['endDate']),
@@ -67,7 +125,28 @@ class OsLegalContractModel {
       governingLaw: json['governingLaw'] as String? ?? '',
       jurisdiction: json['jurisdiction'] as String? ?? '',
       clauses: OsContractClause.listFromJson(json['clauses']),
-      notes: json['notes'] as String?,
+      templateId: json['templateId'] as String?,
+      partyOneName: json['partyOneName'] as String? ?? '',
+      partyOneRep: json['partyOneRep'] as String? ?? '',
+      partyOneTitle: json['partyOneTitle'] as String? ?? '',
+      partyOneAddress: json['partyOneAddress'] as String? ?? '',
+      partyOnePhone: json['partyOnePhone'] as String? ?? '',
+      partyOneEmail: json['partyOneEmail'] as String? ?? '',
+      partyOneRegistrationNo: json['partyOneRegistrationNo'] as String? ?? '',
+      partyTwoCompany: json['partyTwoCompany'] as String? ?? '',
+      partyTwoNationalId: json['partyTwoNationalId'] as String? ?? '',
+      partyTwoAddress: json['partyTwoAddress'] as String? ?? '',
+      partyTwoPhone: json['partyTwoPhone'] as String? ?? '',
+      partyTwoEmail: json['partyTwoEmail'] as String? ?? '',
+      partyTwoJobTitle: json['partyTwoJobTitle'] as String? ?? '',
+      probationPeriodDays: (json['probationPeriodDays'] as num?)?.toInt(),
+      noticePeriodDays: (json['noticePeriodDays'] as num?)?.toInt(),
+      salaryMonthly: (json['salaryMonthly'] as num?)?.toDouble(),
+      penaltyDailyRate: (json['penaltyDailyRate'] as num?)?.toDouble(),
+      paymentTerms: OsContractPaymentTerm.listFromJson(json['paymentTerms']),
+      scopeOfWork: scope.isNotEmpty ? scope : notes,
+      customTerms: json['customTerms'] as String? ?? '',
+      notes: notes.isNotEmpty && scope.isNotEmpty ? notes : notes,
       signedAt: _parseDate(json['signedAt']),
       createdAt: _parseDate(json['createdAt']),
       updatedAt: _parseDate(json['updatedAt']),
@@ -81,6 +160,8 @@ class OsLegalContractModel {
         'targetType': targetType,
         'targetId': targetId,
         'targetName': targetName,
+        'partyTwoId': targetId,
+        'partyTwoName': targetName,
         'status': status,
         'startDate': Timestamp.fromDate(startDate),
         if (endDate != null) 'endDate': Timestamp.fromDate(endDate!),
@@ -89,6 +170,32 @@ class OsLegalContractModel {
         'governingLaw': governingLaw,
         'jurisdiction': jurisdiction,
         'clauses': clauses.map((c) => c.toJson()).toList(),
+        if (templateId != null && templateId!.isNotEmpty)
+          'templateId': templateId,
+        if (partyOneName.isNotEmpty) 'partyOneName': partyOneName,
+        if (partyOneRep.isNotEmpty) 'partyOneRep': partyOneRep,
+        if (partyOneTitle.isNotEmpty) 'partyOneTitle': partyOneTitle,
+        if (partyOneAddress.isNotEmpty) 'partyOneAddress': partyOneAddress,
+        if (partyOnePhone.isNotEmpty) 'partyOnePhone': partyOnePhone,
+        if (partyOneEmail.isNotEmpty) 'partyOneEmail': partyOneEmail,
+        if (partyOneRegistrationNo.isNotEmpty)
+          'partyOneRegistrationNo': partyOneRegistrationNo,
+        if (partyTwoCompany.isNotEmpty) 'partyTwoCompany': partyTwoCompany,
+        if (partyTwoNationalId.isNotEmpty)
+          'partyTwoNationalId': partyTwoNationalId,
+        if (partyTwoAddress.isNotEmpty) 'partyTwoAddress': partyTwoAddress,
+        if (partyTwoPhone.isNotEmpty) 'partyTwoPhone': partyTwoPhone,
+        if (partyTwoEmail.isNotEmpty) 'partyTwoEmail': partyTwoEmail,
+        if (partyTwoJobTitle.isNotEmpty) 'partyTwoJobTitle': partyTwoJobTitle,
+        if (probationPeriodDays != null)
+          'probationPeriodDays': probationPeriodDays,
+        if (noticePeriodDays != null) 'noticePeriodDays': noticePeriodDays,
+        if (salaryMonthly != null) 'salaryMonthly': salaryMonthly,
+        if (penaltyDailyRate != null) 'penaltyDailyRate': penaltyDailyRate,
+        if (paymentTerms.isNotEmpty)
+          'paymentTerms': paymentTerms.map((p) => p.toJson()).toList(),
+        if (scopeOfWork.isNotEmpty) 'scopeOfWork': scopeOfWork,
+        if (customTerms.isNotEmpty) 'customTerms': customTerms,
         if (notes != null && notes!.isNotEmpty) 'notes': notes,
         if (signedAt != null) 'signedAt': Timestamp.fromDate(signedAt!),
         if (createdAt != null) 'createdAt': Timestamp.fromDate(createdAt!),
@@ -111,6 +218,27 @@ class OsLegalContractModel {
     String? governingLaw,
     String? jurisdiction,
     List<OsContractClause>? clauses,
+    String? templateId,
+    String? partyOneName,
+    String? partyOneRep,
+    String? partyOneTitle,
+    String? partyOneAddress,
+    String? partyOnePhone,
+    String? partyOneEmail,
+    String? partyOneRegistrationNo,
+    String? partyTwoCompany,
+    String? partyTwoNationalId,
+    String? partyTwoAddress,
+    String? partyTwoPhone,
+    String? partyTwoEmail,
+    String? partyTwoJobTitle,
+    int? probationPeriodDays,
+    int? noticePeriodDays,
+    double? salaryMonthly,
+    double? penaltyDailyRate,
+    List<OsContractPaymentTerm>? paymentTerms,
+    String? scopeOfWork,
+    String? customTerms,
     String? notes,
     DateTime? signedAt,
     DateTime? createdAt,
@@ -132,6 +260,28 @@ class OsLegalContractModel {
       governingLaw: governingLaw ?? this.governingLaw,
       jurisdiction: jurisdiction ?? this.jurisdiction,
       clauses: clauses ?? this.clauses,
+      templateId: templateId ?? this.templateId,
+      partyOneName: partyOneName ?? this.partyOneName,
+      partyOneRep: partyOneRep ?? this.partyOneRep,
+      partyOneTitle: partyOneTitle ?? this.partyOneTitle,
+      partyOneAddress: partyOneAddress ?? this.partyOneAddress,
+      partyOnePhone: partyOnePhone ?? this.partyOnePhone,
+      partyOneEmail: partyOneEmail ?? this.partyOneEmail,
+      partyOneRegistrationNo:
+          partyOneRegistrationNo ?? this.partyOneRegistrationNo,
+      partyTwoCompany: partyTwoCompany ?? this.partyTwoCompany,
+      partyTwoNationalId: partyTwoNationalId ?? this.partyTwoNationalId,
+      partyTwoAddress: partyTwoAddress ?? this.partyTwoAddress,
+      partyTwoPhone: partyTwoPhone ?? this.partyTwoPhone,
+      partyTwoEmail: partyTwoEmail ?? this.partyTwoEmail,
+      partyTwoJobTitle: partyTwoJobTitle ?? this.partyTwoJobTitle,
+      probationPeriodDays: probationPeriodDays ?? this.probationPeriodDays,
+      noticePeriodDays: noticePeriodDays ?? this.noticePeriodDays,
+      salaryMonthly: salaryMonthly ?? this.salaryMonthly,
+      penaltyDailyRate: penaltyDailyRate ?? this.penaltyDailyRate,
+      paymentTerms: paymentTerms ?? this.paymentTerms,
+      scopeOfWork: scopeOfWork ?? this.scopeOfWork,
+      customTerms: customTerms ?? this.customTerms,
       notes: notes ?? this.notes,
       signedAt: signedAt ?? this.signedAt,
       createdAt: createdAt ?? this.createdAt,

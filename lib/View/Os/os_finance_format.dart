@@ -204,13 +204,13 @@ class OsFinanceFormat {
   static Color invoiceStatusColor(String status) {
     switch (status) {
       case OsInvoiceStatus.paid:
-        return Colors.green;
+        return const Color(0xFF34D399);
       case OsInvoiceStatus.overdue:
-        return Colors.red;
+        return const Color(0xFFFB7185);
       case OsInvoiceStatus.draft:
-        return Colors.grey;
+        return const Color(0xFF94A3B8);
       default:
-        return Colors.blue;
+        return const Color(0xFF60A5FA);
     }
   }
 

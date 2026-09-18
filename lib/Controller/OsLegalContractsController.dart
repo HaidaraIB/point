@@ -37,7 +37,8 @@ class OsLegalContractsController extends GetxController {
       if (q.isEmpty) return true;
       return c.title.toLowerCase().contains(q) ||
           c.contractNumber.toLowerCase().contains(q) ||
-          c.targetName.toLowerCase().contains(q);
+          c.targetName.toLowerCase().contains(q) ||
+          c.partyTwoCompany.toLowerCase().contains(q);
     }).toList();
   }
 

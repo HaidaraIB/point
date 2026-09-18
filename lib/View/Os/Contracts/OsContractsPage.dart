@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Controller/OsLegalContractsController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
+import 'package:point/Models/Os/os_legal_contract_enums.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/OsPermissions.dart';
 import 'package:point/Utils/app_theme_extension.dart';
@@ -10,6 +11,8 @@ import 'package:point/View/Os/Contracts/os_legal_contract_form_dialog.dart';
 import 'package:point/View/Os/Contracts/os_legal_contracts_registry_tab.dart';
 import 'package:point/View/Os/Contracts/os_legal_contracts_templates_tab.dart';
 import 'package:point/View/Os/os_button_styles.dart';
+import 'package:point/View/Os/os_finance_format.dart';
+import 'package:point/View/Os/os_kpi_card.dart';
 import 'package:point/View/Os/os_page_header.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 
@@ -45,6 +48,7 @@ class _OsContractsPageState extends State<OsContractsPage>
     }
 
     final theme = context.appTheme;
+    final ctrl = Get.find<OsLegalContractsController>();
 
     return ResponsiveScaffold(
       selectedTab: 14,
@@ -57,20 +61,63 @@ class _OsContractsPageState extends State<OsContractsPage>
             subtitle: AppLocaleKeys.osLegalContractSubtitle.tr,
             currentRoute: '/os/contracts',
             actions: [
-              ListenableBuilder(
-                listenable: _tabs,
-                builder: (context, _) {
-                  if (_tabs.index != 0) return const SizedBox.shrink();
-                  return FilledButton.icon(
-                    onPressed: () => showOsLegalContractFormDialog(context),
-                    style: OsButtonStyles.primaryCompact(),
-                    icon: const Icon(Icons.add, size: 18),
-                    label: Text(AppLocaleKeys.osLegalContractAdd.tr),
-                  );
-                },
+              FilledButton.icon(
+                onPressed: () => showOsLegalContractFormDialog(context),
+                style: OsButtonStyles.primaryCompact(),
+                icon: const Icon(Icons.add, size: 18),
+                label: Text(AppLocaleKeys.osLegalContractAdd.tr),
               ),
             ],
           ),
+          Obx(() {
+            final all = ctrl.contracts.toList();
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: LayoutBuilder(
+                builder: (context, c) {
+                  final wide = c.maxWidth >= 900;
+                  final cross = wide ? 4 : 2;
+                  return GridView.count(
+                    crossAxisCount: cross,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: wide ? 2.6 : 2.0,
+                    children: [
+                      OsKpiCard(
+                        title: AppLocaleKeys.osLegalContractKpiTotal.tr,
+                        value: '${all.length}',
+                        subtitle: AppLocaleKeys.osLegalContractKpiTotalHint.tr,
+                        color: theme.primaryText,
+                      ),
+                      OsKpiCard(
+                        title: AppLocaleKeys.osLegalContractKpiActive.tr,
+                        value:
+                            '${ctrl.countByStatus(OsLegalContractStatus.active)}',
+                        subtitle: AppLocaleKeys.osLegalContractKpiActiveHint.tr,
+                        color: AppColors.success,
+                      ),
+                      OsKpiCard(
+                        title: AppLocaleKeys.osLegalContractKpiPending.tr,
+                        value:
+                            '${ctrl.countByStatus(OsLegalContractStatus.pendingSignature)}',
+                        subtitle: AppLocaleKeys.osLegalContractKpiPendingHint.tr,
+                        color: AppColors.caution,
+                      ),
+                      OsKpiCard(
+                        title: AppLocaleKeys.osLegalContractKpiValue.tr,
+                        value: OsFinanceFormat.money(ctrl.activeValueIqd()),
+                        subtitle: AppLocaleKeys.osLegalContractKpiValueHint.tr,
+                        color: AppColors.primary,
+                      ),
+                    ],
+                  );
+                },
+              ),
+            );
+          }),
+          const SizedBox(height: 8),
           Material(
             color: theme.cardSurface,
             child: TabBar(
@@ -82,12 +129,18 @@ class _OsContractsPageState extends State<OsContractsPage>
               indicatorColor: AppColors.primary,
               labelPadding: const EdgeInsets.symmetric(horizontal: 18),
               labelStyle: const TextStyle(
-                fontSize: 15,
+                fontSize: 14,
                 fontWeight: FontWeight.w700,
               ),
               tabs: [
-                Tab(text: AppLocaleKeys.osLegalContractTabRegistry.tr),
-                Tab(text: AppLocaleKeys.osLegalContractTabTemplates.tr),
+                Tab(
+                  child: Obx(
+                    () => Text(
+                      '${AppLocaleKeys.osLegalContractTabRegistryFull.tr} (${Get.find<OsLegalContractsController>().contracts.length})',
+                    ),
+                  ),
+                ),
+                Tab(text: AppLocaleKeys.osLegalContractTabTemplatesFull.tr),
               ],
             ),
           ),

@@ -1328,6 +1328,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // PayTabs IPN idempotency events (Edge Function service account only)
+    match /os_paytabs_events/{eventId} {
+      allow read, write: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

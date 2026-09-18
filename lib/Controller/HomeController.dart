@@ -58,6 +58,9 @@ part 'home_controller_rebind.dart';
 enum UploadUiPhase { idle, uploading, finalizing, failed, cancelled }
 
 class HomeController extends GetxController {
+  /// [GetBuilder] id for the admin/supervisor home dashboard (stream-backed lists).
+  static const homeDashboardUpdateId = 'homeDashboard';
+
   final FirestoreServices _service = FirestoreServices();
   FirestoreServices get service => _service;
 
@@ -4349,11 +4352,16 @@ class HomeController extends GetxController {
     _rebindClientsAndTasksStreams();
     fetchProgrammingUpdates();
     fetchContents();
-    ever(contents, (_) => refreshFilteredContents());
+    ever(contents, (_) {
+      refreshFilteredContents();
+      update([homeDashboardUpdateId]);
+    });
     ever(tasks, (_) {
       filterTasks();
       filterTasksHistory();
+      update([homeDashboardUpdateId]);
     });
+    ever(clients, (_) => update([homeDashboardUpdateId]));
     _restoreEmployeeSessionIfNeeded();
     _startEmployeePresenceStream();
     super.onInit();

@@ -8,11 +8,13 @@ class OsKpiCard extends StatelessWidget {
     required this.title,
     required this.value,
     required this.color,
+    this.subtitle,
   });
 
   final String title;
   final String value;
   final Color color;
+  final String? subtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -49,6 +51,15 @@ class OsKpiCard extends StatelessWidget {
               color: color,
             ),
           ),
+          if (subtitle != null && subtitle!.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(
+              subtitle!,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 10, color: theme.mutedText),
+            ),
+          ],
         ],
       ),
     );

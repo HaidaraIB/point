@@ -8,6 +8,33 @@ import 'package:point/View/Os/Contracts/os_legal_contract_labels.dart';
 import 'package:point/View/Os/Print/os_brand_print.dart';
 import 'package:point/View/Os/os_print_a4.dart';
 
+String _partyOneName(OsLegalContractModel contract, OsContractSettings settings) {
+  return contract.partyOneName.isNotEmpty
+      ? contract.partyOneName
+      : settings.agencyLegalName;
+}
+
+String _partyOneRep(OsLegalContractModel contract, OsContractSettings settings) {
+  return contract.partyOneRep.isNotEmpty
+      ? contract.partyOneRep
+      : settings.agencyAuthorizedSignatory;
+}
+
+String _partyOneTitle(OsLegalContractModel contract, OsContractSettings settings) {
+  return contract.partyOneTitle.isNotEmpty
+      ? contract.partyOneTitle
+      : settings.agencySignatoryTitle;
+}
+
+String _partyOneAddress(
+  OsLegalContractModel contract,
+  OsContractSettings settings,
+) {
+  return contract.partyOneAddress.isNotEmpty
+      ? contract.partyOneAddress
+      : settings.agencyHeadquarters;
+}
+
 String buildOsLegalContractPlainText(
   OsLegalContractModel contract,
   OsContractSettings settings,
@@ -16,6 +43,7 @@ String buildOsLegalContractPlainText(
   final end = contract.endDate == null
       ? AppLocaleKeys.osCommonNa.tr
       : FirestoreOsFinanceApi.formatDate(contract.endDate!);
+  final enabled = contract.enabledClauses;
 
   final buf = StringBuffer()
     ..writeln(AppLocaleKeys.osPrintContractTitle.tr)
@@ -27,20 +55,55 @@ String buildOsLegalContractPlainText(
     )
     ..writeln('---')
     ..writeln('${AppLocaleKeys.osLegalContractPreviewPartyOne.tr}:')
-    ..writeln(settings.agencyLegalName)
+    ..writeln(_partyOneName(contract, settings))
     ..writeln(
-      '${settings.agencyAuthorizedSignatory} — ${settings.agencySignatoryTitle}',
+      '${_partyOneRep(contract, settings)} — ${_partyOneTitle(contract, settings)}',
     )
+    ..writeln(_partyOneAddress(contract, settings))
     ..writeln('---')
     ..writeln('${AppLocaleKeys.osLegalContractPreviewPartyTwo.tr}:')
-    ..writeln(contract.targetName)
+    ..writeln(contract.targetName);
+  if (contract.partyTwoCompany.isNotEmpty) {
+    buf.writeln(contract.partyTwoCompany);
+  }
+  if (contract.partyTwoJobTitle.isNotEmpty) {
+    buf.writeln(contract.partyTwoJobTitle);
+  }
+  if (contract.partyTwoAddress.isNotEmpty) {
+    buf.writeln(contract.partyTwoAddress);
+  }
+  if (contract.partyTwoPhone.isNotEmpty) {
+    buf.writeln(contract.partyTwoPhone);
+  }
+  if (contract.partyTwoEmail.isNotEmpty) {
+    buf.writeln(contract.partyTwoEmail);
+  }
+  buf
     ..writeln('---')
     ..writeln('${AppLocaleKeys.osLegalContractStart.tr}: $start')
     ..writeln('${AppLocaleKeys.osLegalContractEnd.tr}: $end')
     ..writeln(
       '${AppLocaleKeys.osLegalContractValue.tr}: '
       '${osLegalContractMoneyLabel(contract.totalValue, contract.currency)}',
-    )
+    );
+  if (contract.paymentTerms.isNotEmpty) {
+    buf.writeln('---');
+    buf.writeln('${AppLocaleKeys.osLegalContractPaymentSchedule.tr}:');
+    for (final p in contract.paymentTerms) {
+      buf.writeln(
+        '- ${p.milestone}: ${p.percentage.toStringAsFixed(0)}% — '
+        '${osLegalContractMoneyLabel(p.amount, contract.currency)} (${p.dueDateDescription})',
+      );
+    }
+  }
+  if (contract.scopeOfWork.isNotEmpty) {
+    buf
+      ..writeln('---')
+      ..writeln('${AppLocaleKeys.osLegalContractScopeOfWork.tr}:')
+      ..writeln(contract.scopeOfWork);
+  }
+  buf
+    ..writeln('---')
     ..writeln(
       '${AppLocaleKeys.osLegalContractGoverningLaw.tr}: ${contract.governingLaw}',
     )
@@ -49,11 +112,18 @@ String buildOsLegalContractPlainText(
     )
     ..writeln('---');
 
-  for (final clause in contract.clauses) {
+  for (final clause in enabled) {
     buf
       ..writeln(clause.title)
       ..writeln(clause.content)
       ..writeln('');
+  }
+
+  if (contract.customTerms.trim().isNotEmpty) {
+    buf
+      ..writeln('---')
+      ..writeln('${AppLocaleKeys.osLegalContractCustomTerms.tr}:')
+      ..writeln(contract.customTerms.trim());
   }
 
   final notes = contract.notes?.trim() ?? '';
@@ -78,8 +148,43 @@ String buildOsLegalContractPrintHtml(
     osLegalContractMoneyLabel(contract.totalValue, contract.currency),
   );
   final status = escapeHtml(osLegalContractStatusLabel(contract.status));
+  final enabled = contract.enabledClauses;
 
-  final clausesHtml = contract.clauses
+  final paymentRows = contract.paymentTerms
+      .map(
+        (p) => '''
+<tr>
+  <td>${escapeHtml(p.milestone)}</td>
+  <td>${p.percentage.toStringAsFixed(0)}%</td>
+  <td>${escapeHtml(osLegalContractMoneyLabel(p.amount, contract.currency))}</td>
+  <td>${escapeHtml(p.dueDateDescription)}</td>
+</tr>''',
+      )
+      .join('\n');
+
+  final paymentBlock = contract.paymentTerms.isEmpty
+      ? ''
+      : '''
+<h3 class="section-title">${escapeHtml(AppLocaleKeys.osLegalContractPaymentSchedule.tr)}</h3>
+<table class="payments no-split">
+  <tr>
+    <th>${escapeHtml(AppLocaleKeys.osLegalContractPaymentMilestone.tr)}</th>
+    <th>${escapeHtml(AppLocaleKeys.osLegalContractPaymentPercent.tr)}</th>
+    <th>${escapeHtml(AppLocaleKeys.osLegalContractPaymentAmount.tr)}</th>
+    <th>${escapeHtml(AppLocaleKeys.osLegalContractPaymentDue.tr)}</th>
+  </tr>
+  $paymentRows
+</table>''';
+
+  final scopeBlock = contract.scopeOfWork.trim().isEmpty
+      ? ''
+      : '''
+<div class="scope no-split">
+  <h3>${escapeHtml(AppLocaleKeys.osLegalContractScopeOfWork.tr)}</h3>
+  <p>${escapeHtml(contract.scopeOfWork.trim())}</p>
+</div>''';
+
+  final clausesHtml = enabled
       .map(
         (c) => '''
 <div class="clause no-split">
@@ -103,6 +208,14 @@ String buildOsLegalContractPrintHtml(
     }
   }
 
+  final customBlock = contract.customTerms.trim().isEmpty
+      ? ''
+      : '''
+<div class="notes no-split">
+  <strong>${escapeHtml(AppLocaleKeys.osLegalContractCustomTerms.tr)}</strong>
+  <p>${escapeHtml(contract.customTerms.trim())}</p>
+</div>''';
+
   final notes = contract.notes?.trim() ?? '';
   final notesBlock = notes.isEmpty
       ? ''
@@ -111,6 +224,17 @@ String buildOsLegalContractPrintHtml(
   <strong>${escapeHtml(AppLocaleKeys.osPrintNotes.tr)}</strong>
   <p>${escapeHtml(notes)}</p>
 </div>''';
+
+  final partyTwoExtra = [
+    if (contract.partyTwoCompany.isNotEmpty)
+      escapeHtml(contract.partyTwoCompany),
+    if (contract.partyTwoJobTitle.isNotEmpty)
+      escapeHtml(contract.partyTwoJobTitle),
+    if (contract.partyTwoAddress.isNotEmpty)
+      escapeHtml(contract.partyTwoAddress),
+    if (contract.partyTwoPhone.isNotEmpty) escapeHtml(contract.partyTwoPhone),
+    if (contract.partyTwoEmail.isNotEmpty) escapeHtml(contract.partyTwoEmail),
+  ].join('<br/>');
 
   final inner = '''
 ${OsBrandPrint.headerHtml()}
@@ -125,14 +249,15 @@ ${OsBrandPrint.watermarkHtml()}
 <div class="parties no-split">
   <div class="party">
     <div class="party-label">${escapeHtml(AppLocaleKeys.osLegalContractPreviewPartyOne.tr)}</div>
-    <div class="party-name">${escapeHtml(settings.agencyLegalName)}</div>
-    <div class="party-meta">${escapeHtml(settings.agencyAuthorizedSignatory)}</div>
-    <div class="party-meta">${escapeHtml(settings.agencySignatoryTitle)}</div>
-    <div class="party-meta">${escapeHtml(settings.agencyHeadquarters)}</div>
+    <div class="party-name">${escapeHtml(_partyOneName(contract, settings))}</div>
+    <div class="party-meta">${escapeHtml(_partyOneRep(contract, settings))}</div>
+    <div class="party-meta">${escapeHtml(_partyOneTitle(contract, settings))}</div>
+    <div class="party-meta">${escapeHtml(_partyOneAddress(contract, settings))}</div>
   </div>
   <div class="party">
     <div class="party-label">${escapeHtml(AppLocaleKeys.osLegalContractPreviewPartyTwo.tr)}</div>
     <div class="party-name">${escapeHtml(contract.targetName)}</div>
+    ${partyTwoExtra.isEmpty ? '' : '<div class="party-meta">$partyTwoExtra</div>'}
   </div>
 </div>
 <table class="meta no-split">
@@ -142,12 +267,15 @@ ${OsBrandPrint.watermarkHtml()}
   <tr><td>${escapeHtml(AppLocaleKeys.osLegalContractGoverningLaw.tr)}</td><td>${escapeHtml(contract.governingLaw)}</td></tr>
   <tr><td>${escapeHtml(AppLocaleKeys.osLegalContractJurisdiction.tr)}</td><td>${escapeHtml(contract.jurisdiction)}</td></tr>
 </table>
+$scopeBlock
+$paymentBlock
 <div class="clauses">$clausesHtml</div>
+$customBlock
 $notesBlock
 <div class="signatures no-split">
   <div class="sig">
     <div class="sig-line"></div>
-    <div>${escapeHtml(settings.agencyAuthorizedSignatory)}</div>
+    <div>${escapeHtml(_partyOneRep(contract, settings))}</div>
     <div class="sig-caption">${escapeHtml(AppLocaleKeys.osLegalContractPreviewPartyOne.tr)}</div>
   </div>
   <div class="sig">
@@ -196,11 +324,13 @@ ${OsBrandPrint.brandCss()}
 .party-label { font-size: 9px; font-weight: 800; color: var(--muted); margin-bottom: 4px; }
 .party-name { font-size: 12px; font-weight: 800; margin-bottom: 4px; }
 .party-meta { font-size: 10px; color: var(--muted); line-height: 1.45; }
-table.meta {
+table.meta, table.payments {
+  width: 100%;
   font-size: 10px;
   margin-bottom: 14px;
+  border-collapse: collapse;
 }
-table.meta td {
+table.meta td, table.payments td, table.payments th {
   border: 1px solid var(--border);
   padding: 6px 8px;
   vertical-align: top;
@@ -210,6 +340,10 @@ table.meta td:first-child {
   font-weight: 700;
   background: var(--lavender);
 }
+table.payments th { background: var(--lavender); font-weight: 800; }
+.scope { margin-bottom: 12px; }
+.scope h3, .section-title { font-size: 11px; margin: 0 0 6px; color: var(--navy); }
+.scope p { font-size: 10px; line-height: 1.55; text-align: justify; margin: 0; }
 .clause { margin-bottom: 12px; }
 .clause h3 { font-size: 11px; margin: 0 0 4px; color: var(--navy); }
 .clause p { font-size: 10px; margin: 0; line-height: 1.55; text-align: justify; }

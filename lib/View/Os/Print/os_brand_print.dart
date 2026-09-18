@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/View/Os/Print/os_print_assets.dart';
+import 'package:point/View/Os/Print/os_print_contact.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_print_a4.dart';
 
@@ -15,7 +16,7 @@ class OsBrandPrint {
   static const watermark = '#F4F3FA';
   static const muted = '#5B5878';
 
-  static const agencySiteUrl = 'https://www.point-iq.com';
+  static String get agencySiteUrl => OsPrintContact.websiteUrl;
 
   /// Brand CSS variables + layout helpers shared by all brand documents.
   static String brandCss() => '''
@@ -42,25 +43,40 @@ body {
 }
 .brand-header {
   direction: ltr;
-  display: grid;
-  grid-template-columns: 2.17fr 1.76fr;
+  display: flex;
   align-items: center;
-  column-gap: 0;
+  width: 100%;
   margin-bottom: 10px;
+  min-width: 0;
 }
 .brand-primary-col {
+  flex: 0 0 auto;
   min-width: 0;
 }
 .brand-lockup {
   min-width: 0;
   overflow: hidden;
 }
-.brand-header-end {
-  display: grid;
-  grid-template-columns: 1fr 0.76fr;
-  align-items: center;
-  min-width: 0;
+.brand-lockup .brand-comp {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 32mm;
+  object-fit: contain;
+  object-position: left center;
+}
+.brand-header-gap {
+  flex: 1 1 0;
+  display: flex;
+  justify-content: center;
   align-self: stretch;
+  min-width: 10px;
+}
+.brand-vsep {
+  width: 1px;
+  background: var(--navy);
+  flex-shrink: 0;
 }
 .brand-comp {
   display: block;
@@ -70,25 +86,31 @@ body {
   object-fit: contain;
   object-position: center;
 }
-.brand-comp-slogan {
-  width: 100%;
-  height: auto;
-}
 .brand-comp-info {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  align-self: stretch;
-  border-left: 1px solid var(--navy);
-  border-right: 1px solid var(--navy);
-  margin: 0 2px;
-  padding: 0 6px;
+  padding: 2px 4px;
   min-width: 0;
 }
-.brand-comp-info .brand-comp {
-  width: 100%;
-  height: auto;
+.brand-slogan-wrap {
+  flex: 0 0 auto;
+  min-width: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
 }
+.brand-comp-slogan {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 32mm;
+  object-fit: contain;
+  object-position: right center;
+}
+${OsPrintContact.css()}
 .watermark-logo {
   position: absolute;
   left: 50%;
@@ -422,11 +444,39 @@ table.items.quote col.col-total { width: 25%; }
   object-fit: contain;
   object-position: right center;
 }
+.payment-methods {
+  direction: ltr;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+.payment-methods img {
+  height: 22px;
+  width: auto;
+  max-width: 72px;
+  object-fit: contain;
+  display: block;
+}
+.footer-bar .payment-methods {
+  min-width: 0;
+}
+.footer-bar.invoice-bar {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 12px;
+}
+.footer-bar.invoice-bar .ar { justify-self: start; }
+.footer-bar.invoice-bar .en { grid-column: 2; justify-self: center; }
+.footer-bar.invoice-bar .payment-methods {
+  grid-column: 3;
+  justify-self: end;
+}
 ''';
 
   /// Three-column brand header from the print comps in `assets/print/`.
-  /// [belowBrand] sits under the lockup in the first column (invoice services).
-  static String headerHtml({String belowBrand = ''}) {
+  static String headerHtml() {
     String img(String src, String alt, [String extra = '']) => src.isEmpty
         ? ''
         : '<img class="brand-comp $extra" src="$src" alt="$alt"/>';
@@ -437,12 +487,13 @@ table.items.quote col.col-total { width: 25%; }
     <div class="brand-lockup">
       ${img(OsPrintAssets.headerBrandDataUri, 'POINT AGENCY')}
     </div>
-    $belowBrand
   </div>
-  <div class="brand-header-end">
-    <div class="brand-comp-info">
-      ${img(OsPrintAssets.headerInfoDataUri, '')}
-    </div>
+  <div class="brand-header-gap" aria-hidden="true"><span class="brand-vsep"></span></div>
+  <div class="brand-comp-info">
+    ${OsPrintContact.headerHtml()}
+  </div>
+  <div class="brand-header-gap" aria-hidden="true"><span class="brand-vsep"></span></div>
+  <div class="brand-slogan-wrap">
     ${img(OsPrintAssets.headerSloganDataUri, '', 'brand-comp-slogan')}
   </div>
 </div>''';
@@ -480,6 +531,26 @@ table.items.quote col.col-total { width: 25%; }
 </table>''';
   }
 
+  /// Shared navy footer bar: Arabic slogan, English tagline, payment logos.
+  static String brandFooterBarHtml() => '''
+  <div class="footer-bar invoice-bar">
+    <span class="ar">${escapeHtml(AppLocaleKeys.osPrintTogetherAr.tr)}</span>
+    <span class="en">TOGETHER WE CREATE IMPACT</span>
+    ${paymentMethodsHtml()}
+  </div>''';
+
+  /// Accepted payment method logos (Visa/Mastercard, Qi Card, Zain Cash, FIB).
+  static String paymentMethodsHtml() {
+    final imgs = OsPrintAssets.paymentMethodDataUris
+        .map(
+          (src) => src.isEmpty ? '' : '<img src="$src" alt=""/>',
+        )
+        .where((img) => img.isNotEmpty)
+        .join('');
+    if (imgs.isEmpty) return '';
+    return '<div class="payment-methods no-split">$imgs</div>';
+  }
+
   /// Invoice-style footer: QR + barcode + signature/seal + navy bar.
   static String invoiceFooterHtml({
     required String qrSvg,
@@ -512,10 +583,7 @@ table.items.quote col.col-total { width: 25%; }
       $sealImg
     </div>
   </div>
-  <div class="footer-bar invoice-bar">
-    <span class="ar">${escapeHtml(AppLocaleKeys.osPrintTogetherAr.tr)}</span>
-    <span class="en">TOGETHER WE CREATE IMPACT</span>
-  </div>
+  ${brandFooterBarHtml()}
 </div>''';
   }
 
@@ -545,10 +613,7 @@ table.items.quote col.col-total { width: 25%; }
       $markImg
     </div>
   </div>
-  <div class="footer-bar">
-    <span class="en">POINT AGENCY &nbsp;/&nbsp; DIGITAL MARKETING &amp; CREATIVE PRODUCTION</span>
-    <span class="ar">${escapeHtml(AppLocaleKeys.osPrintTogetherAr.tr)}</span>
-  </div>
+  ${brandFooterBarHtml()}
 </div>''';
   }
 

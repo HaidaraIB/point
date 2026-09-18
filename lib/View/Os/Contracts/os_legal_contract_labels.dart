@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/os_legal_contract_enums.dart';
+import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 
@@ -38,30 +39,29 @@ String osLegalContractTargetLabel(String type) {
 Color osLegalContractStatusColor(String status) {
   switch (status) {
     case OsLegalContractStatus.active:
-      return const Color(0xFF059669);
+      return AppColors.success;
     case OsLegalContractStatus.pendingSignature:
-      return const Color(0xFFD97706);
+      return AppColors.caution;
     case OsLegalContractStatus.draft:
-      return const Color(0xFF64748B);
+      return const Color(0xff9CA3AF);
     case OsLegalContractStatus.expired:
-      return const Color(0xFFE11D48);
     case OsLegalContractStatus.terminated:
-      return const Color(0xFFB91C1C);
+      return AppColors.destructive;
     default:
-      return const Color(0xFF64748B);
+      return AppColors.grey;
   }
 }
 
 Color osLegalContractTargetColor(String type) {
   switch (type) {
     case OsLegalContractTargetType.client:
-      return const Color(0xFF4F46E5);
+      return AppColors.primary;
     case OsLegalContractTargetType.employee:
-      return const Color(0xFF2563EB);
+      return AppColors.primaryDark;
     case OsLegalContractTargetType.freelancer:
-      return const Color(0xFF9333EA);
+      return AppColors.primary;
     default:
-      return const Color(0xFF64748B);
+      return AppColors.grey;
   }
 }
 

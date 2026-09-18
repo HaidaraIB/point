@@ -58,6 +58,7 @@ class OsEmailHubLogsTab extends StatelessWidget {
                         _filterItem(OsEmailCategory.payslip),
                         _filterItem(OsEmailCategory.appreciation),
                         _filterItem(OsEmailCategory.penalty),
+                        _filterItem(OsEmailCategory.contract),
                         PopupMenuItem(
                           value: 'ALL',
                           child: Text(AppLocaleKeys.osEmailHubLogsFilterAll.tr),

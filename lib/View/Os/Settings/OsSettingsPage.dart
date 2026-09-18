@@ -14,7 +14,9 @@ import 'package:point/View/Os/Contracts/os_legal_contracts_settings_tab.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_page_header.dart';
+import 'package:point/View/Os/os_print_contact_settings_panel.dart';
 import 'package:point/View/Os/os_snackbar.dart';
+import 'package:point/View/Os/os_paytabs_settings_panel.dart';
 import 'package:point/View/Os/os_stamp_settings_panel.dart';
 import 'package:point/View/Shared/ResponsiveScaffold.dart';
 
@@ -230,11 +232,14 @@ class _OsSettingsPageState extends State<OsSettingsPage> {
                               ),
                             ),
                             const SizedBox(height: 16),
-                            Wrap(
-                              spacing: 10,
-                              runSpacing: 10,
-                              children: [
-                                FilledButton.icon(
+                            Align(
+                              alignment: AlignmentDirectional.centerEnd,
+                              child: Wrap(
+                                spacing: 10,
+                                runSpacing: 10,
+                                alignment: WrapAlignment.end,
+                                children: [
+                                  FilledButton.icon(
                                   onPressed: _saving ? null : _save,
                                   style: OsButtonStyles.primaryCompact(),
                                   icon: _saving
@@ -260,13 +265,26 @@ class _OsSettingsPageState extends State<OsSettingsPage> {
                                       AppLocaleKeys.osSettingsAiClear.tr,
                                     ),
                                   ),
-                              ],
+                                ],
+                              ),
                             ),
                           ],
                         ),
                       ),
                       const SizedBox(height: 16),
                       const _OsFinanceSettingsSection(),
+                      const SizedBox(height: 16),
+                      _SettingsCard(
+                        icon: Icons.credit_card_outlined,
+                        title: AppLocaleKeys.osSettingsPaytabsSection.tr,
+                        child: const OsPaytabsSettingsPanel(embedded: true),
+                      ),
+                      const SizedBox(height: 16),
+                      _SettingsCard(
+                        icon: Icons.contact_phone_outlined,
+                        title: AppLocaleKeys.osSettingsPrintContactSection.tr,
+                        child: const OsPrintContactSettingsPanel(),
+                      ),
                       const SizedBox(height: 16),
                       _SettingsCard(
                         icon: Icons.verified_outlined,
@@ -431,7 +449,7 @@ class _OsFinanceSettingsSectionState extends State<_OsFinanceSettingsSection> {
           ),
           const SizedBox(height: 16),
           Align(
-            alignment: AlignmentDirectional.centerStart,
+            alignment: AlignmentDirectional.centerEnd,
             child: FilledButton.icon(
               onPressed: _saving ? null : _save,
               style: OsButtonStyles.primaryCompact(),

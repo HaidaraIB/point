@@ -9,6 +9,9 @@ class OsContractTemplate {
     required this.targetType,
     required this.clauses,
     this.suggestedTitle = '',
+    this.subType = '',
+    this.governingLaw = '',
+    this.tags = const [],
     this.defaultDurationMonths,
     this.isPreset = true,
   });
@@ -19,6 +22,9 @@ class OsContractTemplate {
   final String targetType;
   final List<OsContractClause> clauses;
   final String suggestedTitle;
+  final String subType;
+  final String governingLaw;
+  final List<String> tags;
   final int? defaultDurationMonths;
   final bool isPreset;
 
@@ -31,6 +37,12 @@ class OsContractTemplate {
           OsLegalContractTargetType.client,
       clauses: OsContractClause.listFromJson(json['clauses']),
       suggestedTitle: json['suggestedTitle'] as String? ?? '',
+      subType: json['subType'] as String? ?? '',
+      governingLaw: json['governingLaw'] as String? ?? '',
+      tags: (json['tags'] as List?)
+              ?.map((e) => e.toString())
+              .toList(growable: false) ??
+          const [],
       defaultDurationMonths: (json['defaultDurationMonths'] as num?)?.toInt(),
       isPreset: json['isPreset'] as bool? ?? true,
     );
@@ -43,6 +55,9 @@ class OsContractTemplate {
         'targetType': targetType,
         'clauses': clauses.map((c) => c.toJson()).toList(),
         'suggestedTitle': suggestedTitle,
+        'subType': subType,
+        'governingLaw': governingLaw,
+        'tags': tags,
         if (defaultDurationMonths != null)
           'defaultDurationMonths': defaultDurationMonths,
         'isPreset': isPreset,

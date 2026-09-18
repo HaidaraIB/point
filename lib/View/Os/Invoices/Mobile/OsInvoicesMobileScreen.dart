@@ -9,6 +9,7 @@ import 'package:point/View/Os/Invoices/Mobile/OsInvoiceFormMobilePage.dart';
 import 'package:point/View/Os/Invoices/os_invoice_share.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_finance_format.dart';
+import 'package:point/View/Os/os_finance_status_widgets.dart';
 import 'package:point/View/Os/os_page_header.dart';
 import 'package:point/View/Shared/responsive.dart';
 
@@ -136,15 +137,10 @@ class OsInvoicesMobileScreen extends StatelessWidget {
                             ],
                           ),
                         ),
-                        Chip(
-                          label: Text(
-                            OsFinanceFormat.invoiceStatusLabel(inv.status),
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                          backgroundColor: OsFinanceFormat.invoiceStatusColor(
-                            inv.status,
-                          ).withValues(alpha: 0.15),
-                          visualDensity: VisualDensity.compact,
+                        OsFinanceStatusBadge(
+                          label: OsFinanceFormat.invoiceStatusLabel(inv.status),
+                          color: OsFinanceFormat.invoiceStatusColor(inv.status),
+                          fontSize: 12,
                         ),
                       ],
                     ),
@@ -205,16 +201,18 @@ class OsInvoicesMobileScreen extends StatelessWidget {
                           onPressed: () => onPreview(inv),
                           icon: const Icon(Icons.visibility_outlined),
                         ),
-                        IconButton(
-                          tooltip: AppLocaleKeys.osInvoicesPaymentLink.tr,
-                          onPressed: () => onPaymentLink(inv),
-                          icon: const Icon(Icons.link),
-                        ),
-                        IconButton(
-                          tooltip: AppLocaleKeys.osInvoicesWhatsapp.tr,
-                          onPressed: () => onWhatsApp(inv),
-                          icon: const Icon(Icons.send_outlined),
-                        ),
+                        if (!inv.isPaid)
+                          IconButton(
+                            tooltip: AppLocaleKeys.osInvoicesPaymentLink.tr,
+                            onPressed: () => onPaymentLink(inv),
+                            icon: const Icon(Icons.link),
+                          ),
+                        if (!inv.isPaid)
+                          IconButton(
+                            tooltip: AppLocaleKeys.osInvoicesWhatsapp.tr,
+                            onPressed: () => onWhatsApp(inv),
+                            icon: const Icon(Icons.send_outlined),
+                          ),
                         IconButton(
                           tooltip: AppLocaleKeys.osInvoicesEmail.tr,
                           onPressed: () => onEmail(inv),
@@ -257,15 +255,9 @@ class OsInvoicesMobileScreen extends StatelessWidget {
                       value: OsInvoiceStatus.all.contains(inv.status)
                           ? inv.status
                           : OsInvoiceStatus.sent,
-                      items: [
-                        for (final s in OsInvoiceStatus.all)
-                          DropdownMenuItem(
-                            value: s,
-                            child: Text(
-                              OsFinanceFormat.invoiceStatusLabel(s),
-                            ),
-                          ),
-                      ],
+                      selectedItemBuilder: (context) =>
+                          osInvoiceStatusSelectedItems(),
+                      items: osInvoiceStatusDropdownItems(),
                       onChanged: (v) {
                         if (v != null) onStatusChange(inv, v);
                       },

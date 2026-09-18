@@ -1,0 +1,3 @@
+# PayTabs IPN/callback must be callable without a Supabase JWT.
+[functions.paytabs-ipn]
+verify_jwt = false

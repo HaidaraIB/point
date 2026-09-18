@@ -10,6 +10,7 @@ import 'package:point/Services/os_stamp_settings.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/os_finance_format.dart';
+import 'package:point/View/Os/os_finance_status_widgets.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_invoice_stamp.dart';
 import 'package:point/View/Os/os_line_items_editor.dart';
@@ -357,13 +358,7 @@ class _OsInvoiceFormMobilePageState extends State<OsInvoiceFormMobilePage> {
             decoration: osFinanceFieldDecoration(
               AppLocaleKeys.osInvoicesStatus.tr,
             ),
-            items: [
-              for (final s in OsInvoiceStatus.editable)
-                DropdownMenuItem(
-                  value: s,
-                  child: Text(OsFinanceFormat.invoiceStatusLabel(s)),
-                ),
-            ],
+            items: osInvoiceStatusDropdownItems(OsInvoiceStatus.editable),
             onChanged: (v) {
               if (v != null) setState(() => _status = v);
             },

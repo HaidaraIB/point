@@ -27,6 +27,11 @@ class OsInvoiceModel {
   final String? notes;
   /// Source quotation when created via quote → invoice.
   final String? quotationId;
+  /// PayTabs hosted-page session fields (server-written).
+  final String? paytabsCartId;
+  final String? paytabsTranRef;
+  final String? paytabsRedirectUrl;
+  final double? paytabsSessionAmount;
   final DateTime createdAt;
 
   const OsInvoiceModel({
@@ -50,6 +55,10 @@ class OsInvoiceModel {
     this.paymentMethod,
     this.notes,
     this.quotationId,
+    this.paytabsCartId,
+    this.paytabsTranRef,
+    this.paytabsRedirectUrl,
+    this.paytabsSessionAmount,
     required this.createdAt,
   });
 
@@ -94,6 +103,10 @@ class OsInvoiceModel {
       paymentMethod: json['paymentMethod'] as String?,
       notes: json['notes'] as String?,
       quotationId: json['quotationId'] as String?,
+      paytabsCartId: json['paytabsCartId'] as String?,
+      paytabsTranRef: json['paytabsTranRef'] as String?,
+      paytabsRedirectUrl: json['paytabsRedirectUrl'] as String?,
+      paytabsSessionAmount: (json['paytabsSessionAmount'] as num?)?.toDouble(),
       createdAt: _parseDateTime(json['createdAt']) ?? DateTime.now(),
     );
   }
@@ -120,6 +133,11 @@ class OsInvoiceModel {
         if (notes != null) 'notes': notes,
         if (quotationId != null && quotationId!.isNotEmpty)
           'quotationId': quotationId,
+        if (paytabsCartId != null) 'paytabsCartId': paytabsCartId,
+        if (paytabsTranRef != null) 'paytabsTranRef': paytabsTranRef,
+        if (paytabsRedirectUrl != null) 'paytabsRedirectUrl': paytabsRedirectUrl,
+        if (paytabsSessionAmount != null)
+          'paytabsSessionAmount': paytabsSessionAmount,
         'createdAt': Timestamp.fromDate(createdAt),
       };
 
@@ -146,6 +164,10 @@ class OsInvoiceModel {
     String? notes,
     String? quotationId,
     bool clearQuotationId = false,
+    String? paytabsCartId,
+    String? paytabsTranRef,
+    String? paytabsRedirectUrl,
+    double? paytabsSessionAmount,
     DateTime? createdAt,
   }) {
     return OsInvoiceModel(
@@ -171,6 +193,10 @@ class OsInvoiceModel {
       notes: notes ?? this.notes,
       quotationId:
           clearQuotationId ? null : (quotationId ?? this.quotationId),
+      paytabsCartId: paytabsCartId ?? this.paytabsCartId,
+      paytabsTranRef: paytabsTranRef ?? this.paytabsTranRef,
+      paytabsRedirectUrl: paytabsRedirectUrl ?? this.paytabsRedirectUrl,
+      paytabsSessionAmount: paytabsSessionAmount ?? this.paytabsSessionAmount,
       createdAt: createdAt ?? this.createdAt,
     );
   }

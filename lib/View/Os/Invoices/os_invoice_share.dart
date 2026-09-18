@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
@@ -9,6 +7,7 @@ import 'package:point/Models/ClientModel.dart';
 import 'package:point/Models/Os/OsInvoiceModel.dart';
 import 'package:point/Services/firestore/firestore_os_email_api.dart';
 import 'package:point/Services/os_email_hub_service.dart';
+import 'package:point/Services/os_paytabs_service.dart';
 import 'package:point/Models/Os/os_email_enums.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
@@ -16,13 +15,93 @@ import 'package:point/View/Os/os_finance_format.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-/// Builds the mock Nogta checkout URL (point_os generatePaymentLink).
-/// Uses human invoice ref (`INV-001`) like point_os, not the Firestore UUID.
-String osInvoicePaymentLink(OsInvoiceModel invoice) {
-  final id = OsFinanceFormat.invoiceRef(invoice);
-  // nextInt max must be in (0, 2^32]. On web, `1 << 32` is 0 — use 1<<31.
-  final ref = Random().nextInt(1 << 31).toRadixString(36);
-  return 'https://pay.nogta.agency/checkout/$id?ref=$ref';
+final Map<String, Future<String?>> _paymentLinkFutures = {};
+final Set<String> _paymentLinkDialogInFlight = {};
+
+/// Resolves a hosted PayTabs payment URL for [invoice].
+Future<String?> resolveOsInvoicePaymentLink(OsInvoiceModel invoice) async {
+  if (invoice.isPaid) return null;
+
+  final invoiceId = invoice.id?.trim() ?? '';
+  if (invoiceId.isEmpty) return null;
+
+  final existing = _paymentLinkFutures[invoiceId];
+  if (existing != null) return existing;
+
+  final future = OsPaytabsService.instance.resolveInvoicePaymentLink(invoice);
+  _paymentLinkFutures[invoiceId] = future;
+  try {
+    return await future;
+  } finally {
+    _paymentLinkFutures.remove(invoiceId);
+  }
+}
+
+Future<T?> _withPaymentLinkLoading<T>(
+  BuildContext context,
+  Future<T?> action,
+) async {
+  if (!context.mounted) return null;
+
+  showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    useRootNavigator: true,
+    builder: (ctx) {
+      final theme = ctx.appTheme;
+      return PopScope(
+        canPop: false,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 320),
+            child: Material(
+              color: theme.cardSurface,
+              borderRadius: BorderRadius.circular(16),
+              elevation: 8,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 20,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: theme.accentText,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Flexible(
+                      child: Text(
+                        AppLocaleKeys.osInvoicesPaymentLinkPreparing.tr,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: theme.primaryText,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    },
+  );
+
+  try {
+    return await action;
+  } finally {
+    if (context.mounted) {
+      Navigator.of(context, rootNavigator: true).pop();
+    }
+  }
 }
 
 ClientModel? osInvoiceClient(OsInvoiceModel invoice) {
@@ -49,7 +128,38 @@ Future<void> showOsInvoicePaymentLinkDialog(
   BuildContext context,
   OsInvoiceModel invoice,
 ) async {
-  final link = osInvoicePaymentLink(invoice);
+  if (invoice.isPaid) {
+    OsSnackbar.error(
+      AppLocaleKeys.osInvoicesTitle.tr,
+      AppLocaleKeys.osInvoicesErrorAlreadyPaid.tr,
+    );
+    return;
+  }
+
+  final invoiceId = invoice.id?.trim() ?? '';
+  if (invoiceId.isEmpty) return;
+  if (!_paymentLinkDialogInFlight.add(invoiceId)) return;
+
+  String? link;
+  try {
+    link = await _withPaymentLinkLoading(
+      context,
+      resolveOsInvoicePaymentLink(invoice),
+    );
+  } finally {
+    _paymentLinkDialogInFlight.remove(invoiceId);
+  }
+
+  if (!context.mounted) return;
+  if (link == null || link.isEmpty) {
+    OsSnackbar.error(
+      AppLocaleKeys.osInvoicesTitle.tr,
+      AppLocaleKeys.osInvoicesPaymentLinkUnavailable.tr,
+    );
+    return;
+  }
+
+  final paymentLink = link;
   final theme = context.appTheme;
   final narrow = MediaQuery.sizeOf(context).width < 600;
 
@@ -112,14 +222,13 @@ Future<void> showOsInvoicePaymentLinkDialog(
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: theme.border),
                     ),
-                    // LTR so the URL reads left→right and copy sits after it.
                     child: Directionality(
                       textDirection: TextDirection.ltr,
                       child: Row(
                         children: [
                           Expanded(
                             child: SelectableText(
-                              link,
+                              paymentLink,
                               style: TextStyle(
                                 fontSize: 12,
                                 color: theme.primaryText,
@@ -132,7 +241,7 @@ Future<void> showOsInvoicePaymentLinkDialog(
                                 AppLocaleKeys.osInvoicesPaymentLinkCopied.tr,
                             onPressed: () async {
                               await Clipboard.setData(
-                                ClipboardData(text: link),
+                                ClipboardData(text: paymentLink),
                               );
                               OsSnackbar.success(
                                 AppLocaleKeys.osInvoicesTitle.tr,
@@ -182,7 +291,23 @@ Future<void> showOsInvoicePaymentLinkDialog(
 }
 
 Future<void> shareOsInvoiceWhatsApp(OsInvoiceModel invoice) async {
-  final link = osInvoicePaymentLink(invoice);
+  if (invoice.isPaid) {
+    OsSnackbar.error(
+      AppLocaleKeys.osInvoicesTitle.tr,
+      AppLocaleKeys.osInvoicesErrorAlreadyPaid.tr,
+    );
+    return;
+  }
+
+  final link = await resolveOsInvoicePaymentLink(invoice);
+  if (link == null || link.isEmpty) {
+    OsSnackbar.error(
+      AppLocaleKeys.osInvoicesTitle.tr,
+      AppLocaleKeys.osInvoicesPaymentLinkUnavailable.tr,
+    );
+    return;
+  }
+
   final ref = OsFinanceFormat.invoiceRef(invoice);
   final body = AppLocaleKeys.osInvoicesWhatsappBody.trParams({
     'ref': ref,
@@ -216,12 +341,20 @@ Future<void> sendOsInvoiceEmail(OsInvoiceModel invoice) async {
 
   final ref = OsFinanceFormat.invoiceRef(invoice);
   final subject = AppLocaleKeys.osInvoicesEmailSubject.trParams({'ref': ref});
-  final body = AppLocaleKeys.osInvoicesEmailBody.trParams({
+  var body = AppLocaleKeys.osInvoicesEmailBody.trParams({
     'client': invoice.clientName,
     'ref': ref,
     'amount': OsFinanceFormat.money(invoice.total),
     'due': invoice.dueDate,
   });
+
+  if (!invoice.isPaid) {
+    final link = await resolveOsInvoicePaymentLink(invoice);
+    if (link != null && link.isNotEmpty) {
+      body =
+          '$body\n\n${AppLocaleKeys.osEmailHubPaymentLink.trParams({'link': link})}';
+    }
+  }
 
   try {
     final settings = await FirestoreOsEmailApi.loadSettings();

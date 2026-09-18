@@ -9,6 +9,7 @@ import 'package:point/Models/Os/os_finance_enums.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/os_finance_format.dart';
+import 'package:point/View/Os/os_finance_status_widgets.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_line_items_editor.dart';
 import 'package:point/View/Os/os_snackbar.dart';
@@ -342,17 +343,7 @@ class _OsQuotationFormDialogState extends State<_OsQuotationFormDialog> {
                     DropdownButtonFormField<String>(
                       initialValue: _status,
                       decoration: osDialogFieldDecoration(context),
-                      items: [
-                        for (final s in OsQuotationStatus.all)
-                          DropdownMenuItem(
-                            value: s,
-                            child: Text(
-                              OsFinanceFormat.quotationStatusLabel(s),
-                              style:
-                                  const TextStyle(fontWeight: FontWeight.w700),
-                            ),
-                          ),
-                      ],
+                      items: osQuotationStatusDropdownItems(),
                       onChanged: (v) {
                         if (v == null) return;
                         setState(() => _status = v);
