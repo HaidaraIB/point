@@ -12,17 +12,33 @@ class OsEmailHubTabPersistence {
   static const payslips = 'payslips';
   static const appreciation = 'appreciation';
   static const penalties = 'penalties';
+  static const contracts = 'contracts';
+  static const chat = 'chat';
+  static const employeeNotifications = 'employee_notifications';
+  static const managerNotifications = 'manager_notifications';
+  static const clientNotifications = 'client_notifications';
+  static const publishNotifications = 'publish_notifications';
+  static const adminNotifications = 'admin_notifications';
+  static const broadcast = 'broadcast';
   static const logs = 'logs';
-  static const settings = 'settings';
   static const names = [
     invoices,
     quotations,
     payslips,
     appreciation,
     penalties,
+    contracts,
+    chat,
+    employeeNotifications,
+    managerNotifications,
+    clientNotifications,
+    publishNotifications,
+    adminNotifications,
+    broadcast,
     logs,
-    settings,
   ];
+
+  static int logsIndex = names.indexOf(logs);
 
   static int indexFromName(String? raw) {
     if (raw == null || raw.trim().isEmpty) return -1;

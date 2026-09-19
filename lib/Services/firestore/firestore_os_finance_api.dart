@@ -551,7 +551,7 @@ class FirestoreOsFinanceApi {
         if (invoiceId.isEmpty) {
           throw OsFinanceException('os.vouchers.error.missing_id');
         }
-        return deleteInvoice(invoiceId);
+        return await deleteInvoice(invoiceId);
       }
 
       if (source == OsVoucherSource.expense ||
@@ -562,18 +562,18 @@ class FirestoreOsFinanceApi {
             .limit(1)
             .get();
         if (expenseSnap.docs.isNotEmpty) {
-          return deleteExpense(expenseSnap.docs.first.id);
+          return await deleteExpense(expenseSnap.docs.first.id);
         }
         // Orphan voucher — reverse balance only.
-        return _deleteVoucherReversingBalance(voucherId);
+        return await _deleteVoucherReversingBalance(voucherId);
       }
 
       if (source == OsVoucherSource.transfer) {
-        return _deleteTransferPair(voucher);
+        return await _deleteTransferPair(voucher);
       }
 
       // MANUAL / legacy empty source
-      return _deleteVoucherReversingBalance(voucherId);
+      return await _deleteVoucherReversingBalance(voucherId);
     } on OsFinanceException {
       rethrow;
     } catch (e, st) {

@@ -10,6 +10,7 @@ import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/firestore/firestore_os_finance_api.dart';
 import 'package:point/Services/firestore/firestore_os_payroll_api.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/OsPermissions.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Payroll/os_payslip_print.dart';
 import 'package:point/View/Os/Payroll/os_payslip_print_text.dart';
@@ -271,7 +272,8 @@ class _OsPayslipsTabState extends State<OsPayslipsTab> {
                         : AppLocaleKeys.osPayslipsCopy.tr,
                   ),
                 ),
-                if ((slip.id ?? '').trim().isNotEmpty)
+                if ((slip.id ?? '').trim().isNotEmpty &&
+                    OsPermissions.canDeleteCurrentOsRecords)
                   OutlinedButton.icon(
                     onPressed: () => _deletePayslip(slip),
                     style: OutlinedButton.styleFrom(

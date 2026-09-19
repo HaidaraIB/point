@@ -6,6 +6,7 @@ import 'package:point/Models/Os/OsEmployeeContractModel.dart';
 import 'package:point/Models/Os/os_payroll_enums.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/OsPermissions.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Payroll/os_contract_form_dialog.dart';
 import 'package:point/View/Os/os_button_styles.dart';
@@ -179,21 +180,24 @@ class _OsContractsTabState extends State<OsContractsTab> {
                                 ),
                               ),
                               appDataCell(
-                                IconButton(
-                                  tooltip: AppLocaleKeys.osCommonDelete.tr,
-                                  onPressed: c.id == null
-                                      ? null
-                                      : () => _delete(
-                                            context,
-                                            payroll,
-                                            c.id!,
-                                          ),
-                                  icon: Icon(
-                                    Icons.delete_outline,
-                                    color: theme.mutedText,
-                                    size: 20,
-                                  ),
-                                ),
+                                OsPermissions.canDeleteCurrentOsRecords
+                                    ? IconButton(
+                                        tooltip:
+                                            AppLocaleKeys.osCommonDelete.tr,
+                                        onPressed: c.id == null
+                                            ? null
+                                            : () => _delete(
+                                                  context,
+                                                  payroll,
+                                                  c.id!,
+                                                ),
+                                        icon: Icon(
+                                          Icons.delete_outline,
+                                          color: theme.mutedText,
+                                          size: 20,
+                                        ),
+                                      )
+                                    : const SizedBox.shrink(),
                               ),
                             ],
                           ),

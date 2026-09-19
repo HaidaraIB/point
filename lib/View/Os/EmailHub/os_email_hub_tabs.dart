@@ -8,6 +8,7 @@ import 'package:point/View/Os/EmailHub/os_email_hub_form_widgets.dart';
 import 'package:point/View/Os/EmailHub/os_email_hub_helpers.dart';
 import 'package:point/View/Os/EmailHub/os_email_payslip_options.dart';
 import 'package:point/Models/Os/OsInvoiceModel.dart';
+import 'package:point/Models/Os/OsLegalContractModel.dart';
 import 'package:point/Models/Os/OsQuotationModel.dart';
 import 'package:point/Models/Os/os_hr_letter_enums.dart';
 import 'package:point/View/Os/EmailHub/OsEmailHubPage.dart';
@@ -602,5 +603,75 @@ class OsEmailHubPenaltiesTab extends StatelessWidget {
   }
 }
 
-// Logs and settings tabs live in os_email_hub_logs_tab.dart and
-// os_email_hub_settings_tab.dart respectively.
+class OsEmailHubContractsTab extends StatelessWidget {
+  const OsEmailHubContractsTab({super.key, required this.hub});
+
+  final OsEmailHubController hub;
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final contracts = hub.contracts;
+      if (contracts.isEmpty) {
+        return OsEmailHubDispatchPanel(
+          icon: Icons.description_outlined,
+          title: AppLocaleKeys.osEmailHubTabContracts.tr,
+          subtitle: AppLocaleKeys.osEmailHubContractSubtitle.tr,
+          isSending: hub.isSending.value,
+          onSend: () async {},
+          emptyMessage: AppLocaleKeys.osEmailHubNoContracts.tr,
+          children: const [],
+        );
+      }
+
+      final contract = hub.selectedContract;
+      return OsEmailHubDispatchPanel(
+        icon: Icons.description_outlined,
+        title: AppLocaleKeys.osEmailHubTabContracts.tr,
+        subtitle: AppLocaleKeys.osEmailHubContractSubtitle.tr,
+        isSending: hub.isSending.value,
+        onSend: () => _send(context),
+        children: [
+          osEmailHubDocumentDropdown<OsLegalContractModel>(
+            context: context,
+            label: AppLocaleKeys.osEmailHubSelectContract.tr,
+            value: contract,
+            items: contracts,
+            itemLabel: hub.contractListLabel,
+            onChanged: (c) => hub.selectContract(c?.id),
+          ),
+          const SizedBox(height: 12),
+          osEmailHubTextField(
+            context,
+            label: AppLocaleKeys.osEmailHubRecipientEmail.tr,
+            value: hub.contractRecipientEmail.value,
+            onChanged: (v) => hub.contractRecipientEmail.value = v,
+            keyboardType: TextInputType.emailAddress,
+          ),
+        ],
+        preview: OsEmailHubContractPreview(hub: hub),
+      );
+    });
+  }
+
+  Future<void> _send(BuildContext context) async {
+    if (!validateHubRecipientEmail(hub.contractRecipientEmail.value)) return;
+    final email = hub.contractRecipientEmail.value.trim();
+    if (!await confirmSendEmail(recipientEmail: email)) return;
+    final ok = await hub.sendContractEmail();
+    if (ok) {
+      OsSnackbar.success(
+        AppLocaleKeys.osEmailHubTitle.tr,
+        AppLocaleKeys.osLegalContractEmailSent.trParams({'email': email}),
+      );
+    } else {
+      OsSnackbar.error(
+        AppLocaleKeys.osEmailHubTitle.tr,
+        AppLocaleKeys.osLegalContractErrorEmailFailed.tr,
+      );
+    }
+  }
+}
+
+// Logs tab lives in os_email_hub_logs_tab.dart.
+// Email sender settings live in OsSettingsPage (os_email_settings_panel.dart).

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:point/Controller/HomeController.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/OsPermissions.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/os_modules.dart';
 
@@ -74,9 +76,10 @@ class _OsModuleNavState extends State<OsModuleNav> {
   Widget build(BuildContext context) {
     final theme = context.appTheme;
     final active = _active;
+    final emp = Get.find<HomeController>().effectiveEmployee;
     final modules = <OsModule>[
-      osHubModule,
-      ...osModules.where((m) => m.isLive),
+      if (OsPermissions.canAccessOsSection(emp)) osHubModule,
+      ...OsPermissions.visibleModules(emp),
     ];
 
     return Padding(

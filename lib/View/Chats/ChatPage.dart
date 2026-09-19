@@ -40,6 +40,7 @@ import 'package:point/View/Chats/chat_private_typing.dart';
 import 'package:point/View/Chats/chat_reply_draft_banner.dart';
 import 'package:point/View/Chats/chat_ui_helpers.dart';
 import 'package:point/View/Shared/app_user_avatar.dart';
+import 'package:point/View/Shared/material_list_tile_scope.dart';
 import 'package:point/Utils/chat_attachment_upload.dart';
 import 'package:point/View/Chats/voice_recorder_scope.dart';
 
@@ -1655,7 +1656,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                     final joined = group['isJoined'] == true;
                                     final displayName =
                                         _localizedGroupTitleFromChat(group);
-                                    return ListTile(
+                                    return MaterialListTileScope(
+                                      child: ListTile(
                                       leading: chatLeadingAvatar(context,
                                         radius: 20,
                                         backgroundColor: chatGroupAvatarBackground(context),
@@ -1685,6 +1687,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                               .trim(),
                                         );
                                       },
+                                    ),
                                     );
                                   }),
                                 ],
@@ -1709,7 +1712,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                     final imageUrl = (emp['image'] ?? '')
                                         .toString()
                                         .trim();
-                                    return ListTile(
+                                    return MaterialListTileScope(
+                                      child: ListTile(
                                       leading: chatLeadingAvatar(context,
                                         radius: 20,
                                         backgroundColor:
@@ -1727,6 +1731,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                         Navigator.of(ctx).pop();
                                         await _openOrCreateChatWith(emp['id']);
                                       },
+                                    ),
                                     );
                                   }),
                                 ],
@@ -1988,7 +1993,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                           unreadIncoming: unreadIncoming,
                                         );
                                       },
-                                      child: ListTile(
+                                      child: MaterialListTileScope(
+                                        child: ListTile(
                                         dense: true,
                                         visualDensity: VisualDensity.compact,
                                         contentPadding:
@@ -2124,6 +2130,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                               (ch['unreadIncoming'] as int?) ??
                                               0,
                                         ),
+                                      ),
                                       ),
                                     );
                                   },

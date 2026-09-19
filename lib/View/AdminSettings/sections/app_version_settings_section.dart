@@ -66,7 +66,8 @@ class _AppVersionSettingsSectionState extends State<AppVersionSettingsSection> {
           settings?.iosMinBuild.toString() ?? (build?.toString() ?? '0');
       _androidStoreController.text = settings?.androidStoreUrl ?? '';
       _iosStoreController.text = settings?.iosStoreUrl ?? '';
-    } catch (_) {
+    } catch (e, s) {
+      appLog('App version settings load failed: $e', error: e, stackTrace: s);
       FunHelper.showSnackbar(
         'error'.tr,
         AppLocaleKeys.adminSettingsLoadFailed.tr,

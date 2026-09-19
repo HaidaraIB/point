@@ -1,5 +1,9 @@
 import 'package:get/get.dart';
+import 'package:point/Controller/HomeController.dart';
 import 'package:point/Data/os_contract_templates_seed.dart';
+import 'package:point/Utils/OsPermissions.dart';
+import 'package:point/Utils/os_module_ids.dart';
+import 'package:point/Utils/os_stream_binding.dart';
 import 'package:point/Models/Os/OsContractSettings.dart';
 import 'package:point/Models/Os/OsContractTemplate.dart';
 import 'package:point/Models/Os/OsLegalContractModel.dart';
@@ -20,9 +24,25 @@ class OsLegalContractsController extends GetxController {
     _bindStreams();
   }
 
+  void rebindStreamsForPermissions() => _bindStreams();
+
   void _bindStreams() {
-    contracts.bindStream(FirestoreOsLegalContractsApi.streamContracts());
-    settings.bindStream(FirestoreOsLegalContractsApi.streamSettings());
+    final emp = Get.isRegistered<HomeController>()
+        ? Get.find<HomeController>().effectiveEmployee
+        : null;
+    final allowed = OsPermissions.canAccessModule(emp, OsModuleIds.contracts);
+
+    bindOsListStream(
+      contracts,
+      allowed,
+      FirestoreOsLegalContractsApi.streamContracts(),
+    );
+    bindOsValueStream(
+      settings,
+      allowed,
+      FirestoreOsLegalContractsApi.streamSettings(),
+      OsContractSettings.defaults(),
+    );
   }
 
   List<OsLegalContractModel> filtered({

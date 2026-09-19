@@ -7,6 +7,7 @@ enum SettingsSection {
   appVersion,
   attendancePolicy,
   libraryPermissions,
+  osPermissions,
 }
 
 extension SettingsSectionX on SettingsSection {
@@ -18,6 +19,8 @@ extension SettingsSectionX on SettingsSection {
         return AppLocaleKeys.adminSettingsSectionAttendancePolicy;
       case SettingsSection.libraryPermissions:
         return AppLocaleKeys.adminSettingsSectionLibraryPermissions;
+      case SettingsSection.osPermissions:
+        return AppLocaleKeys.adminSettingsSectionOsPermissions;
     }
   }
 
@@ -31,6 +34,8 @@ extension SettingsSectionX on SettingsSection {
         return Icons.schedule_outlined;
       case SettingsSection.libraryPermissions:
         return Icons.folder_copy_outlined;
+      case SettingsSection.osPermissions:
+        return Icons.account_balance_outlined;
     }
   }
 }

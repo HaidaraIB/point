@@ -4,6 +4,7 @@ import {
   getServiceAccountForFirebaseProject,
   verifyFirebaseIdToken,
 } from "../_shared/firebase-edge.ts";
+import { assertOsAdmin, assertOsAccess } from "../_shared/os-admin.ts";
 
 const GEMINI_TIMEOUT_MS = 4000;
 const GEMINI_MODEL = "gemini-2.0-flash";
@@ -156,34 +157,6 @@ async function setFirestoreDoc(
   if (!res.ok) {
     const t = await res.text();
     throw new Error(`Firestore PATCH ${docPath} failed: ${res.status} ${t}`);
-  }
-}
-
-/** OS section is admin-only (matches Flutter OsPermissions). */
-async function assertOsAdmin(
-  saAccessToken: string,
-  projectId: string,
-  uid: string,
-): Promise<void> {
-  const authFields = await getFirestoreDoc(saAccessToken, projectId, `authRoles/${uid}`);
-  if (!authFields) throw new Error("Forbidden");
-
-  const authRole = firestoreString(authFields, "role").toLowerCase();
-  if (authRole === "admin") return;
-
-  const employeeId = firestoreString(authFields, "employeeId");
-  if (!employeeId) throw new Error("Forbidden");
-
-  const employeeFields = await getFirestoreDoc(
-    saAccessToken,
-    projectId,
-    `employees/${employeeId}`,
-  );
-  if (!employeeFields) throw new Error("Forbidden");
-
-  const employeeRole = firestoreString(employeeFields, "role").toLowerCase();
-  if (employeeRole !== "admin") {
-    throw new Error("Forbidden");
   }
 }
 
@@ -565,15 +538,16 @@ Deno.serve(async (req: Request) => {
     const caller = await verifyFirebaseIdToken(idToken);
     const sa = getServiceAccountForFirebaseProject(caller.firebaseProjectId);
     const saAccessToken = await getAccessToken(sa);
-    await assertOsAdmin(saAccessToken, caller.firebaseProjectId, caller.uid);
 
     const body = await req.json().catch(() => ({})) as OsAiBody;
     const action = (body.action ?? "").trim();
 
     if (action === "get-settings") {
+      await assertOsAdmin(saAccessToken, caller.firebaseProjectId, caller.uid);
       return await handleGetSettings(saAccessToken, caller.firebaseProjectId);
     }
     if (action === "save-settings") {
+      await assertOsAdmin(saAccessToken, caller.firebaseProjectId, caller.uid);
       return await handleSaveSettings(
         body,
         saAccessToken,
@@ -582,6 +556,12 @@ Deno.serve(async (req: Request) => {
       );
     }
     if (action === "service-description") {
+      await assertOsAccess(
+        saAccessToken,
+        caller.firebaseProjectId,
+        caller.uid,
+        "services",
+      );
       return await handleServiceDescription(
         body,
         saAccessToken,
@@ -589,6 +569,12 @@ Deno.serve(async (req: Request) => {
       );
     }
     if (action === "summarize") {
+      await assertOsAccess(
+        saAccessToken,
+        caller.firebaseProjectId,
+        caller.uid,
+        "finance",
+      );
       return await handleSummarize(
         body,
         saAccessToken,
@@ -596,6 +582,12 @@ Deno.serve(async (req: Request) => {
       );
     }
     if (action === "contract-field") {
+      await assertOsAccess(
+        saAccessToken,
+        caller.firebaseProjectId,
+        caller.uid,
+        "contracts",
+      );
       return await handleContractField(
         body,
         saAccessToken,

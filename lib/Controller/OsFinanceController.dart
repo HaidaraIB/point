@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsBankAccountModel.dart';
 import 'package:point/Models/Os/OsBranchModel.dart';
@@ -13,7 +14,10 @@ import 'package:point/Services/NotificationService.dart';
 import 'package:point/Services/firestore/firestore_os_branches_api.dart';
 import 'package:point/Services/firestore/firestore_os_finance_api.dart';
 import 'package:point/Services/firestore/firestore_os_services_api.dart';
+import 'package:point/Utils/OsPermissions.dart';
 import 'package:point/Utils/app_log.dart';
+import 'package:point/Utils/os_module_ids.dart';
+import 'package:point/Utils/os_stream_binding.dart';
 import 'package:point/View/Os/os_finance_format.dart';
 
 class OsFinanceController extends GetxController {
@@ -34,20 +38,57 @@ class OsFinanceController extends GetxController {
   }
 
   Future<void> _seedOsCatalog() async {
+    if (!Get.isRegistered<HomeController>()) return;
+    final emp = Get.find<HomeController>().effectiveEmployee;
+    if (!OsPermissions.canAccessOsSettings(emp)) return;
     await Future.wait([
       FirestoreOsBranchesApi.ensureSeeded(),
       FirestoreOsServicesApi.ensureSeeded(),
     ]);
   }
 
+  void rebindStreamsForPermissions() => _bindStreams();
+
   void _bindStreams() {
-    invoices.bindStream(FirestoreOsFinanceApi.streamInvoices());
-    quotations.bindStream(FirestoreOsFinanceApi.streamQuotations());
-    bankAccounts.bindStream(FirestoreOsFinanceApi.streamBankAccounts());
-    vouchers.bindStream(FirestoreOsFinanceApi.streamVouchers());
-    expenses.bindStream(FirestoreOsFinanceApi.streamExpenses());
-    branches.bindStream(FirestoreOsBranchesApi.streamBranches());
-    services.bindStream(FirestoreOsServicesApi.streamServices());
+    final emp = Get.isRegistered<HomeController>()
+        ? Get.find<HomeController>().effectiveEmployee
+        : null;
+
+    bindOsListStream(
+      invoices,
+      OsPermissions.canAccessModule(emp, OsModuleIds.invoices),
+      FirestoreOsFinanceApi.streamInvoices(),
+    );
+    bindOsListStream(
+      quotations,
+      OsPermissions.canAccessModule(emp, OsModuleIds.quotations),
+      FirestoreOsFinanceApi.streamQuotations(),
+    );
+    bindOsListStream(
+      bankAccounts,
+      OsPermissions.needsBankAccountsRead(emp),
+      FirestoreOsFinanceApi.streamBankAccounts(),
+    );
+    bindOsListStream(
+      vouchers,
+      OsPermissions.canAccessModule(emp, OsModuleIds.finance),
+      FirestoreOsFinanceApi.streamVouchers(),
+    );
+    bindOsListStream(
+      expenses,
+      OsPermissions.canAccessModule(emp, OsModuleIds.expenses),
+      FirestoreOsFinanceApi.streamExpenses(),
+    );
+    bindOsListStream(
+      branches,
+      OsPermissions.needsBranchesRead(emp),
+      FirestoreOsBranchesApi.streamBranches(),
+    );
+    bindOsListStream(
+      services,
+      OsPermissions.needsServicesRead(emp),
+      FirestoreOsServicesApi.streamServices(),
+    );
   }
 
   double get totalInvoiced =>

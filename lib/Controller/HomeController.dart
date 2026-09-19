@@ -20,6 +20,11 @@ import 'package:point/Models/LibraryFileModel.dart';
 import 'package:point/Models/NotificationModel.dart';
 import 'package:point/Models/ProgrammingUpdateModel.dart';
 import 'package:point/Models/TaskModel.dart';
+import 'package:point/Controller/OsEmailHubController.dart';
+import 'package:point/Controller/OsFinanceController.dart';
+import 'package:point/Controller/OsGeneralSettingsController.dart';
+import 'package:point/Controller/OsLegalContractsController.dart';
+import 'package:point/Controller/OsPayrollController.dart';
 import 'package:point/Services/AudioService.dart';
 import 'package:point/Services/audio_tab_visibility.dart';
 import 'package:point/Services/ChatAudioFocus.dart';
@@ -1301,6 +1306,38 @@ class HomeController extends GetxController {
       _rebindClientsAndTasksStreams();
     }
     return result;
+  }
+
+  Future<bool> setEmployeeOsModuleAccess({
+    required String employeeId,
+    required List<String> moduleIds,
+  }) async {
+    final result = await _service.setEmployeeOsModuleAccess(
+      employeeId: employeeId,
+      moduleIds: moduleIds,
+    );
+    if (result && effectiveEmployee?.id == employeeId) {
+      _rebindOsStreamsForCurrentEmployee();
+    }
+    return result;
+  }
+
+  void _rebindOsStreamsForCurrentEmployee() {
+    if (Get.isRegistered<OsFinanceController>()) {
+      Get.find<OsFinanceController>().rebindStreamsForPermissions();
+    }
+    if (Get.isRegistered<OsPayrollController>()) {
+      Get.find<OsPayrollController>().rebindStreamsForPermissions();
+    }
+    if (Get.isRegistered<OsLegalContractsController>()) {
+      Get.find<OsLegalContractsController>().rebindStreamsForPermissions();
+    }
+    if (Get.isRegistered<OsEmailHubController>()) {
+      Get.find<OsEmailHubController>().rebindStreamsForPermissions();
+    }
+    if (Get.isRegistered<OsGeneralSettingsController>()) {
+      Get.find<OsGeneralSettingsController>().rebindStreamsForPermissions();
+    }
   }
 
   /// Tasks stream for Library page and attachment picker (full archive when granted).
@@ -3809,8 +3846,13 @@ class HomeController extends GetxController {
                   previous.departments.asMap().entries.any(
                     (e) => employee.departments[e.key] != e.value,
                   );
+              final osAccessChanged = previous == null ||
+                  !_sameOsModuleAccess(previous.osModuleAccess, employee.osModuleAccess);
               if (roleOrDeptsChanged) {
                 await syncAuthRoleAndRefreshDataStreams(employee);
+              }
+              if (osAccessChanged) {
+                _rebindOsStreamsForCurrentEmployee();
               }
             }
           },
@@ -3860,6 +3902,14 @@ class HomeController extends GetxController {
   final RxMap<String, DateTime> employeePresenceById = <String, DateTime>{}.obs;
   bool _fcmSetupInProgress = false;
 
+  static bool _sameOsModuleAccess(List<String> a, List<String> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
   static bool _sameEmployeeProfileCore(EmployeeModel? a, EmployeeModel b) {
     if (a == null) return false;
     final sameDepartments =
@@ -3875,7 +3925,8 @@ class HomeController extends GetxController {
         a.image == b.image &&
         a.authUid == b.authUid &&
         a.authStatus == b.authStatus &&
-        sameDepartments;
+        sameDepartments &&
+        _sameOsModuleAccess(a.osModuleAccess, b.osModuleAccess);
   }
 
   void _startTotalUnreadStream(String userId) {

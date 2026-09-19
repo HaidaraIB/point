@@ -467,8 +467,8 @@ table.items.quote col.col-total { width: 25%; }
   grid-template-columns: 1fr auto 1fr;
   gap: 12px;
 }
-.footer-bar.invoice-bar .ar { justify-self: start; }
-.footer-bar.invoice-bar .en { grid-column: 2; justify-self: center; }
+.footer-bar.invoice-bar .en { justify-self: start; }
+.footer-bar.invoice-bar .ar { grid-column: 2; justify-self: center; }
 .footer-bar.invoice-bar .payment-methods {
   grid-column: 3;
   justify-self: end;
@@ -531,11 +531,11 @@ table.items.quote col.col-total { width: 25%; }
 </table>''';
   }
 
-  /// Shared navy footer bar: Arabic slogan, English tagline, payment logos.
+  /// Shared navy footer bar: English tagline (left), Arabic slogan (center), payment logos.
   static String brandFooterBarHtml() => '''
   <div class="footer-bar invoice-bar">
-    <span class="ar">${escapeHtml(AppLocaleKeys.osPrintTogetherAr.tr)}</span>
     <span class="en">TOGETHER WE CREATE IMPACT</span>
+    <span class="ar">${escapeHtml(AppLocaleKeys.osPrintTogetherAr.tr)}</span>
     ${paymentMethodsHtml()}
   </div>''';
 
@@ -591,7 +591,7 @@ table.items.quote col.col-total { width: 25%; }
   static String quotationFooterHtml({
     required String qrSvg,
   }) {
-    final mark = OsPrintAssets.watermarkDataUri;
+    final mark = OsPrintAssets.watermarkLogoDataUri;
     final markImg = mark.isEmpty
         ? ''
         : '<img class="quote-mark-img" src="$mark" alt=""/>';

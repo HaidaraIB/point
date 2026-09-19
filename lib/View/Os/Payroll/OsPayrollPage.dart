@@ -7,6 +7,7 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Services/os_payroll_tab_persistence.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/OsPermissions.dart';
+import 'package:point/Utils/os_module_ids.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Payroll/Mobile/OsPayrollMobileScreen.dart';
 import 'package:point/View/Os/Payroll/os_advances_tab.dart';
@@ -70,7 +71,7 @@ class _OsPayrollPageState extends State<OsPayrollPage>
   @override
   Widget build(BuildContext context) {
     final emp = Get.find<HomeController>().effectiveEmployee;
-    if (!OsPermissions.canAccessOsSection(emp)) {
+    if (!OsPermissions.canAccessModule(emp, OsModuleIds.payroll)) {
       return Scaffold(body: Center(child: Text('errors.forbidden'.tr)));
     }
 

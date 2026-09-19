@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Controller/OsEmailHubController.dart';
 import 'package:point/Controller/OsGeneralSettingsController.dart';
 import 'package:point/Controller/OsLegalContractsController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
@@ -14,6 +15,7 @@ import 'package:point/View/Os/Contracts/os_legal_contracts_settings_tab.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_page_header.dart';
+import 'package:point/View/Os/os_email_settings_panel.dart';
 import 'package:point/View/Os/os_print_contact_settings_panel.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 import 'package:point/View/Os/os_paytabs_settings_panel.dart';
@@ -38,6 +40,7 @@ class _OsSettingsPageState extends State<OsSettingsPage> {
   void initState() {
     super.initState();
     Get.find<OsGeneralSettingsController>();
+    Get.find<OsEmailHubController>();
     Get.find<OsLegalContractsController>();
     _load();
   }
@@ -124,7 +127,7 @@ class _OsSettingsPageState extends State<OsSettingsPage> {
   @override
   Widget build(BuildContext context) {
     final emp = Get.find<HomeController>().effectiveEmployee;
-    if (!OsPermissions.canAccessOsSection(emp)) {
+    if (!OsPermissions.canAccessOsSettings(emp)) {
       return Scaffold(body: Center(child: Text('errors.forbidden'.tr)));
     }
 
@@ -273,6 +276,12 @@ class _OsSettingsPageState extends State<OsSettingsPage> {
                       ),
                       const SizedBox(height: 16),
                       const _OsFinanceSettingsSection(),
+                      const SizedBox(height: 16),
+                      _SettingsCard(
+                        icon: Icons.mail_outline,
+                        title: AppLocaleKeys.osSettingsEmailSection.tr,
+                        child: const OsEmailSettingsPanel(),
+                      ),
                       const SizedBox(height: 16),
                       _SettingsCard(
                         icon: Icons.credit_card_outlined,
@@ -536,35 +545,38 @@ class _SettingsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: theme.cardSurface,
+    return Material(
+      color: theme.cardSurface,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.border),
+        side: BorderSide(color: theme.border),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 18, color: theme.accentText),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    color: theme.primaryText,
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 18, color: theme.accentText),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      color: theme.primaryText,
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          child,
-        ],
+              ],
+            ),
+            const SizedBox(height: 16),
+            child,
+          ],
+        ),
       ),
     );
   }

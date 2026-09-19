@@ -8,6 +8,8 @@ import 'package:point/Models/Os/os_crm_enums.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Crm/os_crm_labels.dart';
 import 'package:point/View/Os/os_finance_format.dart';
+import 'package:point/Utils/OsPermissions.dart';
+import 'package:point/Utils/os_module_ids.dart';
 import 'package:point/View/Os/os_ai_insight_panel.dart';
 import 'package:point/View/Os/os_modules.dart';
 import 'package:point/View/Os/os_settings_gear_button.dart';
@@ -24,6 +26,13 @@ class OsDashboardBody extends StatelessWidget {
     return GetBuilder<HomeController>(
       builder: (controller) {
         return Obx(() {
+          final emp = controller.effectiveEmployee;
+          final visibleModules = OsPermissions.visibleModules(emp);
+          final showCrm = OsPermissions.canAccessModule(emp, OsModuleIds.crm);
+          final showInvoices =
+              OsPermissions.canAccessModule(emp, OsModuleIds.invoices);
+          final showFinanceAi =
+              OsPermissions.canAccessModule(emp, OsModuleIds.finance);
           final clientsCount = controller.clients.length;
           final employeesCount = controller.employees.length;
           final invoiceTotal = finance.totalInvoiced;
@@ -78,85 +87,96 @@ class OsDashboardBody extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 20),
-                    GridView.count(
-                      crossAxisCount: kpiCrossAxisCount,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      childAspectRatio: wide ? 1.7 : 2.2,
-                      children: [
-                        _KpiCard(
-                          title: AppLocaleKeys.osKpiClients.tr,
-                          value: '$clientsCount',
-                          icon: Icons.groups_outlined,
-                          color: Colors.blue,
-                        ),
-                        _KpiCard(
-                          title: AppLocaleKeys.osKpiEmployees.tr,
-                          value: '$employeesCount',
-                          icon: Icons.badge_outlined,
-                          color: Colors.indigo,
-                        ),
-                        _KpiCard(
-                          title: AppLocaleKeys.osKpiInvoices.tr,
-                          value: OsFinanceFormat.money(invoiceTotal),
-                          icon: Icons.receipt_long_outlined,
-                          color: Colors.teal,
-                        ),
-                        _KpiCard(
-                          title: AppLocaleKeys.osKpiConversion.tr,
-                          value: clientsCount == 0
-                              ? AppLocaleKeys.osKpiConversionZero.tr
-                              : AppLocaleKeys.osKpiConversionRate.trParams({
-                                  'rate': '$conversionRate',
-                                }),
-                          subtitle: clientsCount == 0
-                              ? AppLocaleKeys.osKpiNotConnected.tr
-                              : null,
-                          icon: Icons.trending_up_outlined,
-                          color: Colors.orange,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    GridView.count(
-                      crossAxisCount: kpiCrossAxisCount,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      childAspectRatio: wide ? 1.7 : 2.2,
-                      children: [
-                        _KpiCard(
-                          title: AppLocaleKeys.osKpiPipeline.tr,
-                          value: '$pipelineActive',
-                          icon: Icons.view_kanban_outlined,
-                          color: Colors.deepPurple,
-                        ),
-                        _KpiCard(
-                          title: AppLocaleKeys.osKpiNewLeads.tr,
-                          value: '$newLeads',
-                          icon: Icons.person_add_alt_1_outlined,
-                          color: Colors.indigo,
-                        ),
-                        _KpiCard(
-                          title: AppLocaleKeys.osKpiWonClients.tr,
-                          value: '$wonClients',
-                          icon: Icons.emoji_events_outlined,
-                          color: Colors.green,
-                        ),
-                        _KpiCard(
-                          title: AppLocaleKeys.osCrmStageInProgress.tr,
-                          value: '${crm.countInStage(OsCrmStage.inProgress)}',
-                          icon: Icons.autorenew_rounded,
-                          color: Colors.blue,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    const OsAiInsightPanel(),
-                    const SizedBox(height: 20),
+                    if (showCrm || showInvoices) ...[
+                      GridView.count(
+                        crossAxisCount: kpiCrossAxisCount,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        mainAxisSpacing: 12,
+                        crossAxisSpacing: 12,
+                        childAspectRatio: wide ? 1.7 : 2.2,
+                        children: [
+                          if (showCrm)
+                            _KpiCard(
+                              title: AppLocaleKeys.osKpiClients.tr,
+                              value: '$clientsCount',
+                              icon: Icons.groups_outlined,
+                              color: Colors.blue,
+                            ),
+                          if (showCrm)
+                            _KpiCard(
+                              title: AppLocaleKeys.osKpiEmployees.tr,
+                              value: '$employeesCount',
+                              icon: Icons.badge_outlined,
+                              color: Colors.indigo,
+                            ),
+                          if (showInvoices)
+                            _KpiCard(
+                              title: AppLocaleKeys.osKpiInvoices.tr,
+                              value: OsFinanceFormat.money(invoiceTotal),
+                              icon: Icons.receipt_long_outlined,
+                              color: Colors.teal,
+                            ),
+                          if (showCrm)
+                            _KpiCard(
+                              title: AppLocaleKeys.osKpiConversion.tr,
+                              value: clientsCount == 0
+                                  ? AppLocaleKeys.osKpiConversionZero.tr
+                                  : AppLocaleKeys.osKpiConversionRate.trParams({
+                                      'rate': '$conversionRate',
+                                    }),
+                              subtitle: clientsCount == 0
+                                  ? AppLocaleKeys.osKpiNotConnected.tr
+                                  : null,
+                              icon: Icons.trending_up_outlined,
+                              color: Colors.orange,
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                    if (showCrm) ...[
+                      GridView.count(
+                        crossAxisCount: kpiCrossAxisCount,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        mainAxisSpacing: 12,
+                        crossAxisSpacing: 12,
+                        childAspectRatio: wide ? 1.7 : 2.2,
+                        children: [
+                          _KpiCard(
+                            title: AppLocaleKeys.osKpiPipeline.tr,
+                            value: '$pipelineActive',
+                            icon: Icons.view_kanban_outlined,
+                            color: Colors.deepPurple,
+                          ),
+                          _KpiCard(
+                            title: AppLocaleKeys.osKpiNewLeads.tr,
+                            value: '$newLeads',
+                            icon: Icons.person_add_alt_1_outlined,
+                            color: Colors.indigo,
+                          ),
+                          _KpiCard(
+                            title: AppLocaleKeys.osKpiWonClients.tr,
+                            value: '$wonClients',
+                            icon: Icons.emoji_events_outlined,
+                            color: Colors.green,
+                          ),
+                          _KpiCard(
+                            title: AppLocaleKeys.osCrmStageInProgress.tr,
+                            value: '${crm.countInStage(OsCrmStage.inProgress)}',
+                            icon: Icons.autorenew_rounded,
+                            color: Colors.blue,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                    if (showFinanceAi) ...[
+                      const OsAiInsightPanel(),
+                      const SizedBox(height: 20),
+                    ],
+                    if (showCrm) ...[
                     Text(
                       AppLocaleKeys.osDashboardPipelineTitle.tr,
                       style: TextStyle(
@@ -168,6 +188,7 @@ class OsDashboardBody extends StatelessWidget {
                     const SizedBox(height: 10),
                     _PipelineFunnel(stageCounts: stageCounts),
                     const SizedBox(height: 28),
+                    ],
                     Text(
                       AppLocaleKeys.osModulesTitle.tr,
                       style: TextStyle(
@@ -185,7 +206,7 @@ class OsDashboardBody extends StatelessWidget {
                       crossAxisSpacing: 12,
                       childAspectRatio: wide ? 1.35 : 2.4,
                       children: [
-                        for (final module in osModules)
+                        for (final module in visibleModules)
                           _ModuleCard(module: module),
                       ],
                     ),

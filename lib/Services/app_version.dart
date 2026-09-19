@@ -6,6 +6,12 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:point/Utils/AppConstants.dart';
 import 'package:point/config/app_config.dart';
 
+/// CI passes `--dart-define=APP_VERSION` / `APP_BUILD_NUMBER`; [bool.hasEnvironment]
+/// is const-only.
+const bool _hasCiVersionDefines =
+    bool.hasEnvironment('APP_VERSION') ||
+    bool.hasEnvironment('APP_BUILD_NUMBER');
+
 /// نتيجة قراءة إصدار التطبيق (للعرض في الواجهة).
 class AppVersionInfo {
   const AppVersionInfo({required this.version, required this.buildNumber});
@@ -19,8 +25,7 @@ class AppVersionInfo {
 /// Priority: CI dart-defines → [PackageInfo] (mobile) → `version.json` (web) →
 /// placeholder fallbacks (never meant to track releases).
 Future<AppVersionInfo> loadAppVersionInfo() async {
-  if (bool.hasEnvironment('APP_VERSION') ||
-      bool.hasEnvironment('APP_BUILD_NUMBER')) {
+  if (_hasCiVersionDefines) {
     final v = AppConfig.appVersion.trim();
     final b = AppConfig.appBuildNumber.trim();
     if (v.isNotEmpty && b.isNotEmpty) {

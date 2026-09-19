@@ -4,7 +4,7 @@ import {
   verifyFirebaseIdToken,
 } from "../_shared/firebase-edge.ts";
 import { getAccessToken } from "../_shared/firestore-rest.ts";
-import { assertOsAdmin } from "../_shared/os-admin.ts";
+import { assertOsAdmin, assertOsAccess } from "../_shared/os-admin.ts";
 import {
   createPaytabsSession,
   getPaytabsSettingsStatus,
@@ -57,12 +57,12 @@ Deno.serve(async (req: Request) => {
     const caller = await verifyFirebaseIdToken(idToken);
     const sa = getServiceAccountForFirebaseProject(caller.firebaseProjectId);
     const saAccessToken = await getAccessToken(sa);
-    await assertOsAdmin(saAccessToken, caller.firebaseProjectId, caller.uid);
 
     const body = await req.json().catch(() => ({})) as PaytabsBody;
     const action = (body.action ?? "").trim();
 
     if (action === "get-settings") {
+      await assertOsAdmin(saAccessToken, caller.firebaseProjectId, caller.uid);
       const status = await getPaytabsSettingsStatus(
         saAccessToken,
         caller.firebaseProjectId,
@@ -71,6 +71,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "save-settings") {
+      await assertOsAdmin(saAccessToken, caller.firebaseProjectId, caller.uid);
       try {
         const status = await savePaytabsSettings(
           {
@@ -97,6 +98,12 @@ Deno.serve(async (req: Request) => {
     }
 
     if (action === "create-session") {
+      await assertOsAccess(
+        saAccessToken,
+        caller.firebaseProjectId,
+        caller.uid,
+        "invoices",
+      );
       const invoiceId = (body.invoiceId ?? "").trim();
       if (!invoiceId) {
         return json({ success: false, errorCode: "ERR_INVOICE_ID_REQUIRED" }, 400);

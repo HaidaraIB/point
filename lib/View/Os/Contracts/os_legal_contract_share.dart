@@ -2,11 +2,27 @@ import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsLegalContractModel.dart';
 import 'package:point/Models/Os/os_email_enums.dart';
+import 'package:point/Services/email/os_email_html_composer.dart';
 import 'package:point/Services/firestore/firestore_os_email_api.dart';
 import 'package:point/Services/firestore/firestore_os_finance_api.dart';
 import 'package:point/Services/os_email_hub_service.dart';
 import 'package:point/View/Os/Contracts/os_legal_contract_labels.dart';
 import 'package:point/View/Os/os_snackbar.dart';
+
+Future<String> buildOsLegalContractEmailHtml(
+  OsLegalContractModel contract,
+) async {
+  final settings = await FirestoreOsEmailApi.loadSettings();
+  final start = FirestoreOsFinanceApi.formatDate(contract.startDate);
+  final amount =
+      osLegalContractMoneyLabel(contract.totalValue, contract.currency);
+  return OsEmailHtmlComposer.contract(
+    contract: contract,
+    settings: settings,
+    startDate: start,
+    amount: amount,
+  );
+}
 
 /// Sends the official contract copy to party two and logs it in the email hub.
 Future<bool> sendOsLegalContractEmail(OsLegalContractModel contract) async {
@@ -27,20 +43,21 @@ Future<bool> sendOsLegalContractEmail(OsLegalContractModel contract) async {
     'title': contract.title,
     'number': contract.contractNumber,
   });
-  final body = AppLocaleKeys.osLegalContractEmailBody.trParams({
-    'number': contract.contractNumber,
-    'start': start,
-    'amount': amount,
-  });
 
   try {
     final settings = await FirestoreOsEmailApi.loadSettings();
+    final html = OsEmailHtmlComposer.contract(
+      contract: contract,
+      settings: settings,
+      startDate: start,
+      amount: amount,
+    );
     final ok = await OsEmailHubService.sendAndLog(
       type: OsEmailCategory.contract,
       toEmail: email,
       recipientName: contract.targetName,
       subject: subject,
-      content: body,
+      content: html,
       settings: settings,
       referenceId: contract.contractNumber,
       attachmentsCount: 1,

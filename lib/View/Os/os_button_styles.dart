@@ -15,27 +15,27 @@ class OsButtonStyles {
       EdgeInsets.symmetric(horizontal: 18, vertical: 14);
   static const headerMinSize = Size(48, 48);
 
-  static TextStyle get headerTextStyle => Appfonts.text(
-        fontSize: 15,
-        fontWeight: FontWeight.w700,
-      );
+  static final TextStyle headerTextStyle = Appfonts.text(
+    fontSize: 15,
+    fontWeight: FontWeight.w700,
+  );
 
   static const compactPadding =
       EdgeInsets.symmetric(horizontal: 14, vertical: 10);
   static const compactMinSize = Size(0, 42);
 
-  static TextStyle get compactTextStyle => Appfonts.text(
-        fontSize: 13,
-        fontWeight: FontWeight.w700,
-      );
+  static final TextStyle compactTextStyle = Appfonts.text(
+    fontSize: 13,
+    fontWeight: FontWeight.w700,
+  );
 
   static const inlinePadding =
       EdgeInsets.symmetric(horizontal: 10, vertical: 6);
 
-  static TextStyle get inlineTextStyle => Appfonts.text(
-        fontSize: 12,
-        fontWeight: FontWeight.w700,
-      );
+  static final TextStyle inlineTextStyle = Appfonts.text(
+    fontSize: 12,
+    fontWeight: FontWeight.w700,
+  );
 
   /// Secondary / toggle actions — elevated fill + primary text (not dim outline).
   static ButtonStyle secondary(

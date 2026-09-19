@@ -14,6 +14,7 @@ import 'package:point/View/Os/Contracts/os_legal_contract_labels.dart';
 import 'package:point/View/Os/Contracts/os_legal_contract_print.dart';
 import 'package:point/View/Os/Contracts/os_legal_contract_print_text.dart';
 import 'package:point/View/Os/Contracts/os_legal_contract_share.dart';
+import 'package:point/View/Os/EmailHub/html_email_preview.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_finance_status_widgets.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
@@ -57,6 +58,44 @@ class _OsLegalContractPreviewDialogState
   }
 
   OsContractSettings get _settings => _ctrl.settings.value;
+
+  Future<void> _previewEmail(OsLegalContractModel contract) async {
+    final html = await buildOsLegalContractEmailHtml(contract);
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => Dialog(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 720, maxHeight: 640),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  AppLocaleKeys.osEmailHubPreviewTitle.tr,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: context.appTheme.primaryText,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Expanded(child: HtmlEmailPreview(html: html, minHeight: 480)),
+                Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: Text(AppLocaleKeys.osInvoicesOk.tr),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   Future<void> _sendEmail(OsLegalContractModel contract) async {
     if (_emailSending) return;
@@ -269,6 +308,11 @@ class _OsLegalContractPreviewDialogState
               _copied ? Icons.check : Icons.copy_outlined,
               color: _copied ? AppColors.success : theme.secondaryText,
             ),
+          ),
+          IconButton(
+            tooltip: AppLocaleKeys.osEmailHubPreviewTitle.tr,
+            onPressed: () => _previewEmail(contract),
+            icon: Icon(Icons.visibility_outlined, color: theme.secondaryText),
           ),
           const SizedBox(width: 4),
           FilledButton.icon(

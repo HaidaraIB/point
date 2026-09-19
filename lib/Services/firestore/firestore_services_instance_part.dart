@@ -4,10 +4,15 @@ const Set<String> _kGlobalRolesWithoutDepartment = {'admin', 'supervisor'};
 
 mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
   EmployeeModel _normalizeEmployeeDepartmentByRole(EmployeeModel employee) {
+    final role = employee.role.trim().toLowerCase();
     if (_kGlobalRolesWithoutDepartment.contains(employee.role)) {
-      return employee.copyWith(departments: const [], libraryAccess: false);
+      return employee.copyWith(
+        departments: const [],
+        libraryAccess: false,
+        osModuleAccess: role == 'supervisor' ? employee.osModuleAccess : const [],
+      );
     }
-    return employee;
+    return employee.copyWith(osModuleAccess: const []);
   }
 
   /// On web, Firebase often returns [invalid-credential] instead of [user-not-found].
@@ -261,7 +266,13 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
       json['attendanceRemote'] = FieldValue.delete();
       json['attendanceFlexibleHours'] = FieldValue.delete();
       json['libraryAccess'] = FieldValue.delete();
+      if (employee.role.trim().toLowerCase() != 'supervisor') {
+        json['osModuleAccess'] = FieldValue.delete();
+      } else if (employee.osModuleAccess.isEmpty) {
+        json['osModuleAccess'] = FieldValue.delete();
+      }
     } else {
+      json['osModuleAccess'] = FieldValue.delete();
       if (!employee.attendanceRemote) {
         json['attendanceFlexibleHours'] = FieldValue.delete();
       }
@@ -309,6 +320,34 @@ mixin FirestoreServicesInstanceMixin on FirestoreServicesBase {
     } catch (e, s) {
       appLog("❌ خطأ أثناء تحديث الموظف: $e");
       appLog("StackTrace: $s");
+      return false;
+    }
+  }
+
+  Future<bool> setEmployeeOsModuleAccess({
+    required String employeeId,
+    required List<String> moduleIds,
+  }) async {
+    final id = employeeId.trim();
+    if (id.isEmpty) return false;
+    try {
+      final normalized = OsModuleIds.normalize(moduleIds);
+      await _employeeCollection.doc(id).update({'osModuleAccess': normalized});
+      final snap = await _employeeCollection.doc(id).get();
+      if (!snap.exists) return false;
+      final employee = EmployeeModel.fromFirestoreMap(snap.data(), id: id);
+      try {
+        await FirestoreAuthApi.syncAuthRoleOsModuleAccessForEmployee(employee);
+      } catch (e, s) {
+        appLog('⚠️ setEmployeeOsModuleAccess authRoles sync failed: $e');
+        appLog('$s');
+        return false;
+      }
+      appLog('✅ setEmployeeOsModuleAccess: $id → $normalized');
+      return true;
+    } catch (e, s) {
+      appLog('❌ setEmployeeOsModuleAccess error: $e');
+      appLog('StackTrace: $s');
       return false;
     }
   }

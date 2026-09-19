@@ -39,6 +39,7 @@ import 'package:point/View/Chats/chat_message_list_panel.dart';
 import 'package:point/View/Chats/pending_chat_attachment.dart';
 import 'package:point/View/Chats/chat_ui_helpers.dart';
 import 'package:point/View/Shared/app_user_avatar.dart';
+import 'package:point/View/Shared/material_list_tile_scope.dart';
 import 'package:point/View/Chats/chat_list_tile_media_subtitle.dart';
 import 'package:point/View/Chats/chat_reply_draft_banner.dart';
 import 'package:point/View/Chats/chat_list_row_trailing.dart';
@@ -869,7 +870,8 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                     final joined = group['isJoined'] == true;
                                     final displayName =
                                         _localizedGroupTitleFromChat(group);
-                                    return ListTile(
+                                    return MaterialListTileScope(
+                                      child: ListTile(
                                       leading: chatLeadingAvatar(
                                         context,
                                         radius: 20,
@@ -905,6 +907,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                           await _openExistingChat(opened);
                                         }
                                       },
+                                    ),
                                     );
                                   }),
                                 ],
@@ -929,7 +932,8 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                     final imageUrl = (emp['image'] ?? '')
                                         .toString()
                                         .trim();
-                                    return ListTile(
+                                    return MaterialListTileScope(
+                                      child: ListTile(
                                       leading: chatLeadingAvatar(
                                         context,
                                         radius: 20,
@@ -949,6 +953,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                         Navigator.of(ctx).pop();
                                         await _openOrCreateChatWith(emp);
                                       },
+                                    ),
                                     );
                                   }),
                                 ],
@@ -1320,7 +1325,8 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                   unreadIncoming: unreadIncoming,
                                 );
                               },
-                              child: ListTile(
+                              child: MaterialListTileScope(
+                                child: ListTile(
                                 dense: true,
                                 visualDensity: VisualDensity.compact,
                                 contentPadding: const EdgeInsets.symmetric(
@@ -1380,6 +1386,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                                   unreadCount:
                                       (ch['unreadIncoming'] as int?) ?? 0,
                                 ),
+                              ),
                               ),
                             );
                           }, childCount: visibleChats.length),

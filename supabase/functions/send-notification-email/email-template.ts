@@ -2,11 +2,13 @@
 // ألوان من lib/Utils/AppColors.dart: primary #514091, primaryDark #1f1957, primaryfontColor #344054, greyBackground #F2F3F5
 
 const BRAND_COLOR = "#514091";
+const PRIMARY_DARK = "#1f1957";
 const TEXT_COLOR = "#344054";
 const BG_LIGHT = "#F2F3F5";
 const GREY = "#778087";
 const WHITE = "#ffffff";
 const BORDER_COLOR = "#E6E8EC";
+const SURFACE_MUTED = "#FAFAFC";
 
 export type EmailLocale = "ar" | "en";
 
@@ -34,6 +36,7 @@ function renderEmailShell(args: {
 }): string {
   const dir = args.locale === "ar" ? "rtl" : "ltr";
   const lang = args.locale;
+  const align = args.locale === "ar" ? "right" : "left";
   const currentYear = new Date().getFullYear();
   const safeTitle = escapeHtml(args.title);
   const safeSubtitle = escapeHtml(args.subtitle);
@@ -50,7 +53,6 @@ function renderEmailShell(args: {
   <title>${safeTitle}</title>
   <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&display=swap" rel="stylesheet">
 
-  <!-- Preheader (hidden preview text) -->
   <style>
     .preheader {
       display:none !important;
@@ -65,80 +67,60 @@ function renderEmailShell(args: {
   </style>
 </head>
 
-<body style="margin:0;padding:0;background-color:#F2F3F5;font-family:'Almarai';">
+<body style="margin:0;padding:0;background-color:${BG_LIGHT};font-family:'Almarai',Arial,sans-serif;">
 
-  <!-- Preheader -->
   <div class="preheader">
     ${safeMeta}
   </div>
 
-  <!-- Wrapper -->
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F2F3F5;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:${BG_LIGHT};">
     <tr>
       <td align="center" style="padding:24px 12px;">
 
-        <!-- Container -->
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
-               style="max-width:600px;background-color:#FFFFFF;border:1px solid #E6E8EC;">
+               style="max-width:600px;background-color:${WHITE};border:1px solid ${BORDER_COLOR};">
 
-          <!-- Header -->
           <tr>
-            <td align="center" dir="${dir}"
-                style="background:linear-gradient(135deg,#1f1957 0%,#514091 100%);
-                       padding:28px 24px;color:#FFFFFF;">
+            <td align="${align}" dir="${dir}"
+                style="background-color:${PRIMARY_DARK};padding:24px 24px 22px 24px;color:${WHITE};">
 
-              <div style="direction:${dir}; text-align:center;">
-                <p style="margin:0;font-size:20px;font-weight:700;">
-                  ${companyName}
-                </p>
-                <p style="margin:6px 0 0 0;font-size:13px;opacity:0.9;">
-                  ${safeSubtitle}
-                </p>
+              <p style="margin:0;font-size:20px;font-weight:700;line-height:1.3;">
+                ${companyName}
+              </p>
+              <p style="margin:6px 0 0 0;font-size:13px;line-height:1.5;opacity:0.92;">
+                ${safeSubtitle}
+              </p>
+
+            </td>
+          </tr>
+
+          <tr>
+            <td align="${align}" dir="${dir}" style="padding:28px 24px 24px 24px;">
+
+              <h1 style="margin:0 0 18px 0;font-size:22px;line-height:1.35;font-weight:800;color:#101828;text-align:${align};">
+                ${safeHeading}
+              </h1>
+
+              <div style="font-size:14px;line-height:1.7;color:#475467;text-align:${align};">
+                ${args.paragraphsHtml}
               </div>
 
             </td>
           </tr>
 
-          <!-- Body -->
           <tr>
-            <td align="center" dir="${dir}" style="padding:32px 24px;">
+            <td align="${align}" dir="${dir}"
+                style="padding:18px 24px;background-color:${SURFACE_MUTED};border-top:1px solid ${BORDER_COLOR};">
 
-              <div style="max-width:480px;margin:0 auto;direction:${dir};text-align:center;unicode-bidi:embed;">
-
-                <!-- Heading -->
-                <h1 style="margin:0 0 16px 0;font-size:22px;line-height:1.4;font-weight:700;color:#101828;">
-                  ${safeHeading}
-                </h1>
-
-                <!-- Content -->
-                <div style="font-size:14px;line-height:1.7;color:#475467;">
-                  ${args.paragraphsHtml}
-                </div>
-
-              </div>
-
-            </td>
-          </tr>
-
-          <!-- Footer -->
-          <tr>
-            <td align="center" dir="${dir}"
-                style="padding:20px;background-color:#FAFAFC;border-top:1px solid #E6E8EC;">
-
-              <div style="max-width:480px;margin:0 auto;direction:${dir};text-align:center;">
-
-                <p style="margin:0;font-size:12px;color:#98A2B3;">
-                  © ${currentYear} ${companyName}. ${escapeHtml(allRightsReservedText)}
-                </p>
-
-              </div>
+              <p style="margin:0;font-size:12px;color:#98A2B3;text-align:${align};">
+                © ${currentYear} ${companyName}. ${escapeHtml(allRightsReservedText)}
+              </p>
 
             </td>
           </tr>
 
         </table>
 
-        <!-- Bottom spacing -->
         <div style="height:24px;"></div>
 
       </td>
@@ -168,10 +150,10 @@ export function buildEmailHtml(bodyText: string, language?: EmailLocale): string
   return renderEmailShell({
     locale,
     title: "Point Agency",
-    subtitle: isArabic ? "تحديث من تطبيق Point" : "Update from Point app",
-    heading: isArabic ? "إشعار جديد" : "New Notification",
+    subtitle: isArabic ? "رسالة من Point Agency" : "Message from Point Agency",
+    heading: isArabic ? "تحديث من Point" : "Update from Point",
     paragraphsHtml: mergedParagraphsHtml,
-    metaText: isArabic ? "تم إرسال هذا الإشعار تلقائياً." : "This notification was sent automatically.",
+    metaText: isArabic ? "تم إرسال هذه الرسالة من Point Agency." : "This message was sent from Point Agency.",
   });
 }
 
@@ -205,6 +187,7 @@ export function buildChatUnreadDigestEmailHtml(args: {
 }): string {
   const locale = args.language ?? detectLocale(args.intro);
   const isArabic = locale === "ar";
+  const align = isArabic ? "right" : "left";
   const safeIntro = escapeHtml(args.intro);
   const rowHtml = args.rows
     .map((r) => {
@@ -217,12 +200,12 @@ export function buildChatUnreadDigestEmailHtml(args: {
       const cellPadding = isArabic ? "padding:12px 12px 12px 0;" : "padding:12px 0 12px 12px;";
       return `<tr>
   <td style="padding:12px 0;vertical-align:middle;width:48px;">${img}</td>
-  <td style="${cellPadding}vertical-align:middle;font-size:15px;line-height:1.6;color:${TEXT_COLOR};">${line}</td>
+  <td style="${cellPadding}vertical-align:middle;font-size:14px;line-height:1.6;color:${TEXT_COLOR};text-align:${align};"><span dir="auto">${escapeHtml(line)}</span></td>
 </tr>`;
     })
     .join("");
   const paragraphsHtml = `
-<p style="margin:0 0 12px 0;font-size:14px;line-height:1.7;color:#475467;"><span dir="auto">${safeIntro}</span></p>
+<p style="margin:0 0 12px 0;font-size:14px;line-height:1.7;color:#475467;text-align:${align};"><span dir="auto">${safeIntro}</span></p>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
   ${rowHtml}
 </table>
@@ -233,6 +216,6 @@ export function buildChatUnreadDigestEmailHtml(args: {
     subtitle: isArabic ? "ملخص الرسائل" : "Messages digest",
     heading: isArabic ? "ملخص الرسائل غير المقروءة" : "Unread messages summary",
     paragraphsHtml,
-    metaText: isArabic ? "Point Agency — إشعار من التطبيق" : "Point Agency — app notification",
+    metaText: isArabic ? "Point Agency — ملخص الرسائل" : "Point Agency — messages digest",
   });
 }

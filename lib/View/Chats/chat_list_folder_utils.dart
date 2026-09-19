@@ -5,6 +5,7 @@ import 'package:point/Utils/AppColors.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/View/Shared/material_list_tile_scope.dart';
 
 /// Chat list chips, add button, and loading indicators (matches composer accent).
 const Color kChatUiAccent = AppColors.primary;
@@ -194,20 +195,22 @@ Future<void> showChatListPinContextMenu({
     items: [
       PopupMenuItem<void>(
         padding: EdgeInsets.zero,
-        child: ListTile(
-          dense: true,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 14),
-          minVerticalPadding: 10,
-          leading: Icon(
-            isPinned ? Icons.push_pin_outlined : Icons.push_pin_rounded,
-            color: const Color(0xFFE8ECFF),
-            size: 22,
-          ),
-          title: Text(
-            isPinned
-                ? AppLocaleKeys.chatListUnpinChat.tr
-                : AppLocaleKeys.chatListPinChat.tr,
-            style: itemTextStyle,
+        child: MaterialListTileScope(
+          child: ListTile(
+            dense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+            minVerticalPadding: 10,
+            leading: Icon(
+              isPinned ? Icons.push_pin_outlined : Icons.push_pin_rounded,
+              color: const Color(0xFFE8ECFF),
+              size: 22,
+            ),
+            title: Text(
+              isPinned
+                  ? AppLocaleKeys.chatListUnpinChat.tr
+                  : AppLocaleKeys.chatListPinChat.tr,
+              style: itemTextStyle,
+            ),
           ),
         ),
         onTap: () {
@@ -217,18 +220,20 @@ Future<void> showChatListPinContextMenu({
       if (showMarkAsRead && onMarkAsRead != null)
         PopupMenuItem<void>(
           padding: EdgeInsets.zero,
-          child: ListTile(
-            dense: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14),
-            minVerticalPadding: 10,
-            leading: const Icon(
-              Icons.mark_chat_read_outlined,
-              color: Color(0xFFE8ECFF),
-              size: 22,
-            ),
-            title: Text(
-              AppLocaleKeys.chatListMarkAsRead.tr,
-              style: itemTextStyle,
+          child: MaterialListTileScope(
+            child: ListTile(
+              dense: true,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+              minVerticalPadding: 10,
+              leading: const Icon(
+                Icons.mark_chat_read_outlined,
+                color: Color(0xFFE8ECFF),
+                size: 22,
+              ),
+              title: Text(
+                AppLocaleKeys.chatListMarkAsRead.tr,
+                style: itemTextStyle,
+              ),
             ),
           ),
           onTap: () {

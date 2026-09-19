@@ -6,6 +6,7 @@ import 'package:firebase_core/firebase_core.dart'
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:point/Services/AudioService.dart';
 import 'package:point/Services/chat_voice_playback_service.dart';
@@ -28,8 +29,8 @@ import 'package:point/Utils/app_log.dart';
 import 'package:point/Utils/app_theme.dart';
 import 'package:point/config/app_config.dart';
 import 'package:intl/intl.dart' as intl;
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:point/firebase_app_options.dart';
 import 'package:point/fcm_background_handler.dart';
 import 'package:point/View/Shared/internet_offline_guard.dart';
@@ -83,7 +84,7 @@ void main(List<String> args) async {
   }
   await Supabase.initialize(
     url: supabaseUrl,
-    anonKey: supabaseKey,
+    publishableKey: supabaseKey,
     debug: kDebugMode,
   );
   if (Firebase.apps.isEmpty) {
@@ -122,6 +123,10 @@ void main(List<String> args) async {
   if (!kIsWeb) {
     await AudioService.instance.initialize();
   }
+
+  // Almarai loads async on web; layout vs paint with fresh GoogleFonts styles
+  // triggers TextPainter `debugSize == size` asserts on dense OS toolbars.
+  await GoogleFonts.pendingFonts([GoogleFonts.almarai()]);
 
   runApp(const App());
 }

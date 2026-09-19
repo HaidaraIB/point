@@ -4,6 +4,7 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsLegalContractModel.dart';
 import 'package:point/Services/firestore/firestore_os_finance_api.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/OsPermissions.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Contracts/os_legal_contract_labels.dart';
 import 'package:point/View/Os/Contracts/os_legal_contract_print.dart';
@@ -226,15 +227,16 @@ class OsLegalContractCard extends StatelessWidget {
                     onPressed: () => printOsLegalContract(contract),
                     icon: Icon(Icons.print_outlined, color: theme.secondaryText),
                   ),
-                  IconButton(
-                    tooltip: AppLocaleKeys.osCommonDelete.tr,
-                    onPressed: onDelete,
-                    icon: const Icon(
-                      Icons.delete_outline,
-                      color: AppColors.destructive,
-                      size: 20,
+                  if (OsPermissions.canDeleteCurrentOsRecords)
+                    IconButton(
+                      tooltip: AppLocaleKeys.osCommonDelete.tr,
+                      onPressed: onDelete,
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: AppColors.destructive,
+                        size: 20,
+                      ),
                     ),
-                  ),
                 ],
               ),
             ],

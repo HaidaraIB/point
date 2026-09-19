@@ -1,3 +1,4 @@
+import 'package:point/Services/email/app_email_html_composer.dart';
 import 'package:point/Utils/app_log.dart';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -40,8 +41,6 @@ class DetailedEmailBatchItem {
 class EmailNotificationService {
   EmailNotificationService._();
   static final EmailNotificationService instance = EmailNotificationService._();
-
-  static const String _systemName = 'Point Agency';
 
   /// لم يعد مستخدماً؛ المفتاح يُضبط في Supabase Secrets (RESEND_API_KEY).
   @Deprecated(
@@ -165,14 +164,14 @@ class EmailNotificationService {
         details: details,
       );
 
-      final html = _buildHtmlTemplate(
+      final html = AppEmailHtmlComposer.notification(
         title: title,
         body: body,
         recipientLabel: recipientLabel,
         actionText: actionText,
         details: safeDetails,
         sentAt: sentAt ?? DateTime.now(),
-        localeCode: locale,
+        languageCode: locale,
       );
 
       if (useSupabaseTemplateWrapper) {
@@ -240,14 +239,14 @@ class EmailNotificationService {
           body: item.body,
           details: item.details,
         );
-        final html = _buildHtmlTemplate(
+        final html = AppEmailHtmlComposer.notification(
           title: item.title,
           body: item.body,
           recipientLabel: item.recipientLabel,
           actionText: item.actionText,
           details: safeDetails,
           sentAt: item.sentAt ?? DateTime.now(),
-          localeCode: locale,
+          languageCode: locale,
         );
         final wrapperBody = _buildWrapperFriendlyBody(
           body: item.body,
@@ -385,165 +384,6 @@ class EmailNotificationService {
     );
   }
 
-  static String _buildHtmlTemplate({
-    required String title,
-    required String body,
-    required DateTime sentAt,
-    String? recipientLabel,
-    String? actionText,
-    Map<String, String>? details,
-    String? localeCode,
-  }) {
-    final locale =
-        localeCode ??
-        _resolveLocale(
-          '$title\n$body\n${(details ?? const <String, String>{}).keys.join(' ')}',
-        );
-    final isArabic = locale == 'ar';
-    final align = isArabic ? 'right' : 'left';
-    final dir = isArabic ? 'rtl' : 'ltr';
-    final safeTitle = _escapeHtml(title);
-    final safeRecipient = _escapeHtml(
-      recipientLabel == null || recipientLabel.trim().isEmpty
-          ? (isArabic ? 'مستخدم النظام' : 'System user')
-          : recipientLabel.trim(),
-    );
-    final safeAction = _escapeHtml(
-      actionText == null || actionText.trim().isEmpty
-          ? (isArabic
-                ? 'افتح التطبيق للاطلاع على التفاصيل الكاملة.'
-                : 'Open the app for full details.')
-          : actionText.trim(),
-    );
-    final sentAtText = _escapeHtml(_formatDateTime(sentAt));
-    final conciseSummary = _escapeHtml(
-      _composeConciseSummary(body: body, details: details, isArabic: isArabic),
-    );
-
-    final dedupedDetails = _dedupeDetails(
-      title: title,
-      body: body,
-      details: details,
-    );
-    final detailRows = dedupedDetails.entries
-        .where((e) => e.key.trim().isNotEmpty && e.value.trim().isNotEmpty)
-        .map(
-          (e) =>
-              '<tr><td style="padding:9px 12px;border:1px solid #E6E8EC;background:#FAFAFC;font-weight:600;color:#4b5563;">${_escapeHtml(e.key)}</td><td style="padding:9px 12px;border:1px solid #E6E8EC;color:#111827;">${_escapeHtml(e.value)}</td></tr>',
-        )
-        .join();
-
-    final detailsSection = detailRows.isEmpty
-        ? ''
-        : '''
-      <h3 style="margin:20px 0 10px;color:#111827;font-size:15px;">${isArabic ? 'تفاصيل سريعة' : 'Quick details'}</h3>
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;font-size:14px;color:#1f2937;">
-        $detailRows
-      </table>
-    ''';
-
-    return '''
-<!doctype html>
-<html lang="$locale" dir="$dir">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>$safeTitle</title>
-    <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&display=swap" rel="stylesheet">
-  </head>
-  <body style="margin:0;padding:0;background:#F2F3F5;font-family:'Almarai';color:#111827;">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:24px 12px;">
-      <tr>
-        <td align="center">
-          <table role="presentation" width="640" cellspacing="0" cellpadding="0" style="max-width:640px;background:#ffffff;border:1px solid #E6E8EC;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(16,24,40,0.06);">
-            <tr>
-              <td style="background:linear-gradient(135deg,#1f1957 0%,#514091 100%);color:#ffffff;padding:20px 22px;text-align:$align;">
-                <p style="margin:0;font-size:20px;font-weight:700;">Point Agency</p>
-                <p style="margin:6px 0 0;font-size:13px;opacity:0.92;">${isArabic ? 'إشعار من التطبيق' : 'App notification'}</p>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:22px;text-align:$align;">
-                <p style="margin:0 0 12px;font-size:14px;color:#4B5563;">${isArabic ? 'مرحباً' : 'Hello'} $safeRecipient،</p>
-                <h2 style="margin:0 0 10px;font-size:20px;line-height:1.35;color:#111827;">$safeTitle</h2>
-                <p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#111827;">$conciseSummary</p>
-
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #E6E8EC;border-radius:10px;background:#FAFAFC;">
-                  <tr>
-                    <td style="padding:12px 14px;font-size:13px;color:#4b5563;text-align:$align;">
-                      <strong>${isArabic ? 'وقت الإشعار' : 'Notification time'}:</strong> $sentAtText
-                    </td>
-                  </tr>
-                </table>
-
-                $detailsSection
-
-                <p style="margin:16px 0 0;padding:12px 14px;background:#F8F5FD;border-radius:10px;font-size:14px;color:#111827;line-height:1.7;">
-                  <strong>${isArabic ? 'الإجراء' : 'Action'}:</strong> $safeAction
-                </p>
-              </td>
-            </tr>
-            <tr>
-              <td style="padding:14px 20px;background:#FAFAFC;border-top:1px solid #E6E8EC;color:#6b7280;font-size:12px;text-align:$align;">
-                ${isArabic ? 'تم إرسال هذا الإشعار تلقائياً من نظام $_systemName.' : 'This notification was sent automatically from $_systemName.'}
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  </body>
-</html>
-''';
-  }
-
-  static String _composeConciseSummary({
-    required String body,
-    required Map<String, String>? details,
-    required bool isArabic,
-  }) {
-    final source = details ?? const <String, String>{};
-    final task = _findDetailValue(source, const [
-      'المهمة',
-      'عنوان المهمة',
-      'Task',
-      'Task title',
-    ]);
-    final status = _findDetailValue(source, const [
-      'الحالة الجديدة',
-      'الحالة',
-      'New status',
-      'Status',
-    ]);
-    final actor = _findDetailValue(source, const [
-      'تم التغيير بواسطة',
-      'الموظف',
-      'Changed by',
-      'Employee',
-    ]);
-
-    if (status != null) {
-      if (isArabic) {
-        final taskPart = task == null ? '' : ' للمهمة $task';
-        final actorPart = actor == null ? '' : ' من قبل $actor';
-        return 'تم تغيير الحالة$taskPart إلى $status$actorPart.';
-      }
-      final taskPart = task == null ? '' : ' for $task';
-      final actorPart = actor == null ? '' : ' by $actor';
-      return 'Status changed$taskPart to $status$actorPart.';
-    }
-
-    final cleanBody = body.trim();
-    if (cleanBody.isEmpty) {
-      return isArabic ? 'لديك تحديث جديد.' : 'You have a new update.';
-    }
-    // Avoid repeating the task title when body is only the title.
-    if (task != null && _normCompare(cleanBody, task)) {
-      return isArabic ? 'يرجى مراجعة التفاصيل أدناه.' : 'See details below.';
-    }
-    return cleanBody;
-  }
-
   /// Drops detail rows that duplicate title/body or each other.
   static Map<String, String> _dedupeDetails({
     required String title,
@@ -566,22 +406,6 @@ class EmailNotificationService {
   }
 
   static String _normCompareKey(String s) => s.trim().toLowerCase();
-
-  static bool _normCompare(String a, String b) =>
-      _normCompareKey(a) == _normCompareKey(b);
-
-  static String? _findDetailValue(
-    Map<String, String> details,
-    List<String> keys,
-  ) {
-    for (final key in keys) {
-      final value = details[key];
-      if (value != null && value.trim().isNotEmpty) {
-        return value.trim();
-      }
-    }
-    return null;
-  }
 
   static String _resolveLocale(String text, {String? preferredLanguageCode}) {
     final normalized = _normalizeLanguageCode(preferredLanguageCode);
@@ -646,12 +470,4 @@ class EmailNotificationService {
     return '$y-$m-$d $hh:$mm';
   }
 
-  static String _escapeHtml(String input) {
-    return input
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;');
-  }
 }

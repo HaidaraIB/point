@@ -11,6 +11,7 @@ import 'package:point/Services/firestore/firestore_os_finance_api.dart';
 import 'package:point/Services/os_finance_tab_persistence.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/OsPermissions.dart';
+import 'package:point/Utils/os_module_ids.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Finance/os_voucher_detail_panel.dart';
 import 'package:point/View/Os/os_button_styles.dart';
@@ -69,7 +70,7 @@ class _OsFinancePageState extends State<OsFinancePage>
   @override
   Widget build(BuildContext context) {
     final emp = Get.find<HomeController>().effectiveEmployee;
-    if (!OsPermissions.canAccessOsSection(emp)) {
+    if (!OsPermissions.canAccessModule(emp, OsModuleIds.finance)) {
       return Scaffold(body: Center(child: Text('errors.forbidden'.tr)));
     }
 
@@ -957,14 +958,15 @@ class _AccountCard extends StatelessWidget {
                 visualDensity: VisualDensity.compact,
                 icon: const Icon(Icons.edit_outlined),
               ),
-              IconButton(
-                onPressed: onDelete,
-                visualDensity: VisualDensity.compact,
-                icon: const Icon(
-                  Icons.delete_outline,
-                  color: Colors.redAccent,
+              if (OsPermissions.canDeleteCurrentOsRecords)
+                IconButton(
+                  onPressed: onDelete,
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    color: Colors.redAccent,
+                  ),
                 ),
-              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -1415,8 +1417,9 @@ class _VouchersTabState extends State<_VouchersTab> {
                                         .accountById(selected.bankAccountId)
                                         ?.name ??
                                     AppLocaleKeys.osFinanceUnknownAccount.tr,
-                                onDelete: () =>
-                                    _confirmDeleteVoucher(selected),
+                                onDelete: OsPermissions.canDeleteCurrentOsRecords
+                                    ? () => _confirmDeleteVoucher(selected)
+                                    : null,
                               ),
                             );
 

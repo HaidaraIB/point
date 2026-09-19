@@ -33,6 +33,49 @@ service cloud.firestore {
       return isAdmin() || isSupervisor();
     }
 
+    function myOsModuleAccessList() {
+      return authRoleData().keys().hasAny(['osModuleAccess'])
+        && authRoleData().osModuleAccess is list
+        ? authRoleData().osModuleAccess
+        : [];
+    }
+
+    function hasOsModule(moduleId) {
+      return isAdmin()
+        || (isSupervisor() && myOsModuleAccessList().hasAny([moduleId]));
+    }
+
+    function hasAnyOsModuleAccess() {
+      return isAdmin()
+        || (isSupervisor() && myOsModuleAccessList().size() > 0);
+    }
+
+    function canReadOsBankAccounts() {
+      return isAdmin()
+        || hasOsModule('finance')
+        || hasOsModule('invoices')
+        || hasOsModule('quotations')
+        || hasOsModule('payroll')
+        || hasOsModule('emailHub');
+    }
+
+    function canReadOsBranchesCatalog() {
+      return isAdmin()
+        || hasOsModule('branches')
+        || hasOsModule('expenses')
+        || hasOsModule('payroll')
+        || hasOsModule('invoices')
+        || hasOsModule('quotations')
+        || hasOsModule('emailHub');
+    }
+
+    function canReadOsServicesCatalog() {
+      return isAdmin()
+        || hasOsModule('services')
+        || hasOsModule('invoices')
+        || hasOsModule('quotations');
+    }
+
     function hasLibraryAccess() {
       return authRoleData().keys().hasAny(['libraryAccess'])
         && authRoleData().libraryAccess == true;
@@ -115,7 +158,8 @@ service cloud.firestore {
         && (!('workHoursTo' in data) || validWorkHoursTime(data.workHoursTo))
         && (!('attendanceRemote' in data) || data.attendanceRemote is bool)
         && (!('attendanceFlexibleHours' in data) || data.attendanceFlexibleHours is bool)
-        && (!('libraryAccess' in data) || data.libraryAccess is bool);
+        && (!('libraryAccess' in data) || data.libraryAccess is bool)
+        && (!('osModuleAccess' in data) || data.osModuleAccess is list);
     }
 
     function employeeLibraryAccessFromDoc(emp) {
@@ -126,6 +170,20 @@ service cloud.firestore {
       let empLib = employeeLibraryAccessFromDoc(emp);
       let authLib = d.keys().hasAny(['libraryAccess']) && d.libraryAccess == true;
       return empLib == authLib;
+    }
+
+    function employeeOsModuleAccessFromDoc(emp) {
+      return emp.keys().hasAny(['osModuleAccess']) && emp.osModuleAccess is list
+        ? emp.osModuleAccess
+        : [];
+    }
+
+    function authRoleOsModuleAccessMatchesEmployee(emp, d) {
+      let empModules = employeeOsModuleAccessFromDoc(emp);
+      let authModules = d.keys().hasAny(['osModuleAccess']) && d.osModuleAccess is list
+        ? d.osModuleAccess
+        : [];
+      return empModules == authModules;
     }
 
     function remoteAttendanceBypassRecord(data) {
@@ -283,7 +341,8 @@ service cloud.firestore {
           get(empPath).data,
           requestedAuthRoleDepartments(d),
         )
-        && authRoleLibraryAccessMatchesEmployee(get(empPath).data, d);
+        && authRoleLibraryAccessMatchesEmployee(get(empPath).data, d)
+        && authRoleOsModuleAccessMatchesEmployee(get(empPath).data, d);
     }
 
     function clientAuthUidLooksUnset(cl) {
@@ -318,8 +377,24 @@ service cloud.firestore {
         'departments',
         'department',
         'libraryAccess',
+        'osModuleAccess',
         'updatedAt',
       ]);
+    }
+
+    function authRolesOsModuleAccessMigrationByAdmin(uid) {
+      return exists(/databases/$(database)/documents/authRoles/$(uid))
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['osModuleAccess', 'updatedAt'])
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.employeeId == resource.data.employeeId
+        && request.resource.data.clientId == resource.data.clientId
+        && resource.data.employeeId is string
+        && exists(/databases/$(database)/documents/employees/$(resource.data.employeeId))
+        && authRoleOsModuleAccessMatchesEmployee(
+          get(/databases/$(database)/documents/employees/$(resource.data.employeeId)).data,
+          request.resource.data,
+        );
     }
 
     function authRolesLibraryAccessMigrationByAdmin(uid) {
@@ -793,8 +868,24 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.auth.uid == uid && validateAuthRoleWrite();
       allow update: if (isSignedIn() && request.auth.uid == uid && validateAuthRoleWrite())
         || (isSignedIn() && hasAuthRole() && isManager() && authRolesDepartmentsMigrationByAdmin(uid))
-        || (isSignedIn() && hasAuthRole() && isAdmin() && authRolesLibraryAccessMigrationByAdmin(uid));
+        || (isSignedIn() && hasAuthRole() && isAdmin() && authRolesLibraryAccessMigrationByAdmin(uid))
+        || (isSignedIn() && hasAuthRole() && isAdmin() && authRolesOsModuleAccessMigrationByAdmin(uid));
       allow delete: if false;
+    }
+
+    function managerEmployeeUpdateAllowed() {
+      return isSignedIn() && hasAuthRole() && isManager()
+        && validEmployeeAttendanceFields(request.resource.data)
+        && (
+          isAdmin()
+          || !request.resource.data.diff(resource.data).affectedKeys().hasAny(['osModuleAccess'])
+        );
+    }
+
+    function adminEmployeeOsModuleAccessUpdate() {
+      return isSignedIn() && hasAuthRole() && isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['osModuleAccess'])
+        && request.resource.data.osModuleAccess is list;
     }
 
     match /meta/{docId} {
@@ -817,8 +908,8 @@ service cloud.firestore {
         && employeeId != myEmployeeId();
 
       // موظف عادي: توكن/دردشة، أو تعديل name/image على مستنده فقط (لا role/departments/email).
-      allow update: if isSignedIn() && hasAuthRole() && isManager()
-        && validEmployeeAttendanceFields(request.resource.data)
+      allow update: if managerEmployeeUpdateAllowed()
+        || adminEmployeeOsModuleAccessUpdate()
         || employeeAuthBootstrapUpdate()
         || (isSignedIn() && hasAuthRole() && isEmployeeRole()
           && employeeId == myEmployeeId()
@@ -1240,87 +1331,112 @@ service cloud.firestore {
       allow update: if false;
     }
 
-    // Point OS finance (admin-only)
+    // Point OS finance (admin or supervisor with module access)
     match /os_invoices/{invoiceId} {
-      allow read, create, update, delete:
-        if isSignedIn() && hasAuthRole() && isAdmin();
+      allow read, create, update:
+        if isSignedIn() && hasAuthRole() && hasOsModule('invoices');
+      allow delete: if isSignedIn() && hasAuthRole() && isAdmin();
     }
 
     match /os_quotations/{quotationId} {
-      allow read, create, update, delete:
-        if isSignedIn() && hasAuthRole() && isAdmin();
+      allow read, create, update:
+        if isSignedIn() && hasAuthRole() && hasOsModule('quotations');
+      allow delete: if isSignedIn() && hasAuthRole() && isAdmin();
     }
 
     match /os_bank_accounts/{accountId} {
-      allow read, create, update, delete:
-        if isSignedIn() && hasAuthRole() && isAdmin();
+      allow read:
+        if isSignedIn() && hasAuthRole() && canReadOsBankAccounts();
+      allow create, update:
+        if isSignedIn() && hasAuthRole() && hasOsModule('finance');
+      allow delete: if isSignedIn() && hasAuthRole() && isAdmin();
     }
 
     match /os_vouchers/{voucherId} {
-      allow read, create, update, delete:
-        if isSignedIn() && hasAuthRole() && isAdmin();
+      allow read, create, update:
+        if isSignedIn() && hasAuthRole() && hasOsModule('finance');
+      allow delete: if isSignedIn() && hasAuthRole() && isAdmin();
     }
 
     match /os_expenses/{expenseId} {
-      allow read, create, update, delete:
-        if isSignedIn() && hasAuthRole() && isAdmin();
+      allow read, create, update:
+        if isSignedIn() && hasAuthRole() && hasOsModule('expenses');
+      allow delete: if isSignedIn() && hasAuthRole() && isAdmin();
     }
 
-    // Point OS payroll (admin-only)
+    // Point OS payroll
     match /os_payroll_runs/{runId} {
-      allow read, create, update, delete:
-        if isSignedIn() && hasAuthRole() && isAdmin();
+      allow read, create, update:
+        if isSignedIn() && hasAuthRole() && hasOsModule('payroll');
+      allow delete: if isSignedIn() && hasAuthRole() && isAdmin();
     }
 
     match /os_payslips/{payslipId} {
-      allow read, create, update, delete:
-        if isSignedIn() && hasAuthRole() && isAdmin();
+      allow read, create, update:
+        if isSignedIn() && hasAuthRole() && hasOsModule('payroll');
+      allow delete: if isSignedIn() && hasAuthRole() && isAdmin();
     }
 
     match /os_employee_contracts/{contractId} {
-      allow read, create, update, delete:
-        if isSignedIn() && hasAuthRole() && isAdmin();
+      allow read, create, update:
+        if isSignedIn() && hasAuthRole() && hasOsModule('payroll');
+      allow delete: if isSignedIn() && hasAuthRole() && isAdmin();
     }
 
     match /os_employee_advances/{advanceId} {
-      allow read, create, update, delete:
-        if isSignedIn() && hasAuthRole() && isAdmin();
+      allow read, create, update:
+        if isSignedIn() && hasAuthRole() && hasOsModule('payroll');
+      allow delete: if isSignedIn() && hasAuthRole() && isAdmin();
     }
 
     match /os_branches/{branchId} {
-      allow read, create, update, delete:
-        if isSignedIn() && hasAuthRole() && isAdmin();
+      allow read:
+        if isSignedIn() && hasAuthRole() && canReadOsBranchesCatalog();
+      allow create, update:
+        if isSignedIn() && hasAuthRole() && hasOsModule('branches');
+      allow delete: if isSignedIn() && hasAuthRole() && isAdmin();
     }
 
     match /os_services/{serviceId} {
-      allow read, create, update, delete:
-        if isSignedIn() && hasAuthRole() && isAdmin();
+      allow read:
+        if isSignedIn() && hasAuthRole() && canReadOsServicesCatalog();
+      allow create, update:
+        if isSignedIn() && hasAuthRole() && hasOsModule('services');
+      allow delete: if isSignedIn() && hasAuthRole() && isAdmin();
     }
 
-    // Point OS legal / client contracts (admin-only; distinct from os_employee_contracts)
+    // Point OS legal / client contracts (distinct from os_employee_contracts)
     match /os_legal_contracts/{contractId} {
-      allow read, create, update, delete:
-        if isSignedIn() && hasAuthRole() && isAdmin();
+      allow read, create, update:
+        if isSignedIn() && hasAuthRole() && hasOsModule('contracts');
+      allow delete: if isSignedIn() && hasAuthRole() && isAdmin();
     }
 
     match /os_legal_contract_settings/{settingsId} {
-      allow read, create, update, delete:
+      allow read:
+        if isSignedIn() && hasAuthRole() && hasOsModule('contracts');
+      allow create, update, delete:
         if isSignedIn() && hasAuthRole() && isAdmin();
     }
 
     match /os_general_settings/{settingsId} {
-      allow read, create, update, delete:
+      allow read:
+        if isSignedIn() && hasAuthRole() && hasAnyOsModuleAccess();
+      allow create, update, delete:
         if isSignedIn() && hasAuthRole() && isAdmin();
     }
 
     match /os_email_settings/{settingsId} {
-      allow read, create, update, delete:
+      allow read:
+        if isSignedIn() && hasAuthRole() && hasOsModule('emailHub');
+      allow create, update, delete:
         if isSignedIn() && hasAuthRole() && isAdmin();
     }
 
     match /os_email_logs/{logId} {
-      allow read, create, update, delete:
-        if isSignedIn() && hasAuthRole() && isAdmin();
+      allow read, create, update:
+        if isSignedIn() && hasAuthRole() && hasOsModule('emailHub');
+      allow delete: if isSignedIn() && hasAuthRole() && isAdmin();
     }
 
     // Server-only OS settings (Gemini API key via Edge Function service account)

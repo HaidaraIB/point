@@ -4,6 +4,7 @@ import 'package:point/Controller/OsEmailHubController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsEmailLogModel.dart';
 import 'package:point/Models/Os/os_email_enums.dart';
+import 'package:point/Utils/OsPermissions.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/EmailHub/OsEmailHubPage.dart';
 import 'package:point/View/Os/EmailHub/os_email_hub_form_widgets.dart';
@@ -189,12 +190,14 @@ class OsEmailHubLogsTab extends StatelessWidget {
     final failed = log.status == OsEmailLogStatus.failed;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
+      child: Material(
         color: theme.cardSurface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.border),
-      ),
-      child: ListTile(
+        child: ListTile(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: theme.border),
+        ),
         onTap: () => showEmailLogPreview(context, log, hub: hub),
         title: Text(
           log.subject,
@@ -227,15 +230,21 @@ class OsEmailHubLogsTab extends StatelessWidget {
               color: failed ? Colors.redAccent : Colors.green,
               size: 18,
             ),
-            IconButton(
-              icon: Icon(Icons.delete_outline, color: theme.mutedText, size: 20),
-              onPressed: () => confirmDeleteEmailLog(
-                context: context,
-                hub: hub,
-                log: log,
+            if (OsPermissions.canDeleteCurrentOsRecords)
+              IconButton(
+                icon: Icon(
+                  Icons.delete_outline,
+                  color: theme.mutedText,
+                  size: 20,
+                ),
+                onPressed: () => confirmDeleteEmailLog(
+                  context: context,
+                  hub: hub,
+                  log: log,
+                ),
               ),
-            ),
           ],
+        ),
         ),
       ),
     );
@@ -317,17 +326,21 @@ class OsEmailHubLogsTab extends StatelessWidget {
                 icon: Icon(Icons.visibility_outlined, color: theme.accentText),
                 onPressed: () => showEmailLogPreview(context, log, hub: hub),
               ),
-              IconButton(
-                tooltip: AppLocaleKeys.osCommonDelete.tr,
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                icon: Icon(Icons.delete_outline, color: theme.mutedText),
-                onPressed: () => confirmDeleteEmailLog(
-                context: context,
-                hub: hub,
-                log: log,
-              ),
-              ),
+              if (OsPermissions.canDeleteCurrentOsRecords)
+                IconButton(
+                  tooltip: AppLocaleKeys.osCommonDelete.tr,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(
+                    minWidth: 36,
+                    minHeight: 36,
+                  ),
+                  icon: Icon(Icons.delete_outline, color: theme.mutedText),
+                  onPressed: () => confirmDeleteEmailLog(
+                    context: context,
+                    hub: hub,
+                    log: log,
+                  ),
+                ),
             ],
           ),
         ),

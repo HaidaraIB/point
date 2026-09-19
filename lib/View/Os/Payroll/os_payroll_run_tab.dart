@@ -9,6 +9,7 @@ import 'package:point/Models/Os/OsPayslipModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/firestore/firestore_os_payroll_api.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/OsPermissions.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Payroll/os_payroll_adjust_dialog.dart';
 import 'package:point/View/Os/os_button_styles.dart';
@@ -340,7 +341,8 @@ class _OsPayrollRunTabState extends State<OsPayrollRunTab> {
               ],
             ),
             actions: [
-              if (payroll.runForPeriod(period)?.id != null)
+              if (payroll.runForPeriod(period)?.id != null &&
+                  OsPermissions.canDeleteCurrentOsRecords)
                 OutlinedButton.icon(
                   onPressed: () =>
                       _deleteCurrentRun(context, payroll, period),

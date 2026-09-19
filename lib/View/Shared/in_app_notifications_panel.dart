@@ -8,6 +8,7 @@ import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/AppNotificationInbox.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/Services/notification_navigation/notification_navigation_coordinator.dart';
+import 'package:point/View/Shared/material_list_tile_scope.dart';
 
 /// لوحة إشعارات صندوق التطبيق: تعليم الكل كمقروء عند أول فتح، واختيار متعدد للحذف.
 class InAppNotificationsPanel extends StatefulWidget {
@@ -231,7 +232,8 @@ class _InAppNotificationsPanelState extends State<InAppNotificationsPanel> {
                   );
                 }
 
-                return ListTile(
+                return MaterialListTileScope(
+                  child: ListTile(
                   titleAlignment: ListTileTitleAlignment.top,
                   contentPadding: EdgeInsets.zero,
                   leading: leading,
@@ -319,6 +321,7 @@ class _InAppNotificationsPanelState extends State<InAppNotificationsPanel> {
                             ),
                           ],
                         ),
+                ),
                 );
               },
             );

@@ -1,6 +1,10 @@
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Utils/OsPermissions.dart';
+import 'package:point/Utils/os_module_ids.dart';
+import 'package:point/Utils/os_stream_binding.dart';
 import 'package:point/Controller/OsFinanceController.dart';
+import 'package:point/Controller/OsLegalContractsController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/View/Os/EmailHub/os_email_payslip_options.dart';
 import 'package:point/Models/ClientModel.dart';
@@ -9,13 +13,17 @@ import 'package:point/Models/Os/OsBankAccountModel.dart';
 import 'package:point/Models/Os/OsEmailLogModel.dart';
 import 'package:point/Models/Os/OsEmailSettings.dart';
 import 'package:point/Models/Os/OsInvoiceModel.dart';
+import 'package:point/Models/Os/OsLegalContractModel.dart';
 import 'package:point/Models/Os/OsPayslipBatchResult.dart';
 import 'package:point/Models/Os/OsQuotationModel.dart';
 import 'package:point/Models/Os/os_email_enums.dart';
 import 'package:point/Models/Os/os_hr_letter_enums.dart';
 import 'package:point/Services/firestore/firestore_os_email_api.dart';
+import 'package:point/Services/firestore/firestore_os_finance_api.dart';
+import 'package:point/Services/email/os_email_html_composer.dart';
 import 'package:point/Services/os_email_hub_draft_persistence.dart';
 import 'package:point/Services/os_email_hub_service.dart';
+import 'package:point/View/Os/Contracts/os_legal_contract_labels.dart';
 import 'package:point/View/Os/Invoices/os_invoice_share.dart';
 import 'package:point/View/Os/Quotations/os_quotation_share.dart';
 import 'package:point/View/Os/os_finance_format.dart';
@@ -56,6 +64,9 @@ class OsEmailHubController extends GetxController {
   final penaltyDeductionAmount = 50000.0.obs;
   final penaltyGracePeriod = ''.obs;
   final penaltyRecipientEmail = ''.obs;
+
+  final selectedContractId = RxnString();
+  final contractRecipientEmail = ''.obs;
 
   final logsSearch = ''.obs;
   final logsCategoryFilter = 'ALL'.obs;
@@ -107,6 +118,8 @@ class OsEmailHubController extends GetxController {
         'penaltyDeductionAmount': penaltyDeductionAmount.value,
         'penaltyGracePeriod': penaltyGracePeriod.value,
         'penaltyRecipientEmail': penaltyRecipientEmail.value,
+        'selectedContractId': selectedContractId.value,
+        'contractRecipientEmail': contractRecipientEmail.value,
         'logsSearch': logsSearch.value,
         'logsCategoryFilter': logsCategoryFilter.value,
       };
@@ -162,6 +175,10 @@ class OsEmailHubController extends GetxController {
     penaltyRecipientEmail.value =
         map['penaltyRecipientEmail'] as String? ?? '';
 
+    selectedContractId.value = map['selectedContractId'] as String?;
+    contractRecipientEmail.value =
+        map['contractRecipientEmail'] as String? ?? '';
+
     logsSearch.value = map['logsSearch'] as String? ?? '';
     final logsFilter = map['logsCategoryFilter'] as String?;
     if (logsFilter != null && logsFilter.isNotEmpty) {
@@ -191,12 +208,31 @@ class OsEmailHubController extends GetxController {
         selectPenaltyEmployee(firstId);
       }
     }
+    if (contracts.isNotEmpty && selectedContractId.value == null) {
+      selectContract(contracts.first.id);
+    }
     ensurePayslipPaymentMethod();
   }
 
+  void rebindStreamsForPermissions() => _bindStreams();
+
   void _bindStreams() {
-    settings.bindStream(FirestoreOsEmailApi.streamSettings());
-    logs.bindStream(FirestoreOsEmailApi.streamLogs());
+    final emp = Get.isRegistered<HomeController>()
+        ? Get.find<HomeController>().effectiveEmployee
+        : null;
+    final emailHub = OsPermissions.canAccessModule(emp, OsModuleIds.emailHub);
+
+    bindOsListStream(
+      logs,
+      emailHub,
+      FirestoreOsEmailApi.streamLogs(),
+    );
+    bindOsValueStream(
+      settings,
+      emailHub,
+      FirestoreOsEmailApi.streamSettings(),
+      OsEmailSettings.defaults(),
+    );
     if (Get.isRegistered<OsFinanceController>()) {
       ever(Get.find<OsFinanceController>().bankAccounts, (_) {
         ensurePayslipPaymentMethod();
@@ -249,6 +285,38 @@ class OsEmailHubController extends GetxController {
   List<ClientModel> get clients {
     if (!Get.isRegistered<HomeController>()) return const [];
     return Get.find<HomeController>().clients.toList();
+  }
+
+  List<OsLegalContractModel> get contracts {
+    if (!Get.isRegistered<OsLegalContractsController>()) return const [];
+    return Get.find<OsLegalContractsController>().contracts.toList();
+  }
+
+  OsLegalContractModel? get selectedContract {
+    final id = selectedContractId.value;
+    if (id == null) return contracts.isNotEmpty ? contracts.first : null;
+    for (final c in contracts) {
+      if (c.id == id) return c;
+    }
+    return contracts.isNotEmpty ? contracts.first : null;
+  }
+
+  String contractListLabel(OsLegalContractModel contract) {
+    final number = contract.contractNumber.trim();
+    final title = contract.title.trim();
+    if (number.isEmpty) return title;
+    if (title.isEmpty) return number;
+    return '$number — $title';
+  }
+
+  void syncContractRecipient() {
+    final contract = selectedContract;
+    contractRecipientEmail.value = contract?.partyTwoEmail.trim() ?? '';
+  }
+
+  void selectContract(String? id) {
+    selectedContractId.value = id;
+    syncContractRecipient();
   }
 
   OsInvoiceModel? get selectedInvoice {
@@ -594,6 +662,24 @@ class OsEmailHubController extends GetxController {
     return body;
   }
 
+  Future<String> invoiceEmailHtml() async {
+    final inv = selectedInvoice;
+    if (inv == null) return '';
+    var paymentLink = '';
+    if (!inv.isPaid) {
+      final link = await resolveOsInvoicePaymentLink(inv);
+      if (link != null && link.isNotEmpty) paymentLink = link;
+    }
+    return OsEmailHtmlComposer.invoice(
+      invoice: inv,
+      settings: settings.value,
+      customNote: invoiceCustomNote.value.trim(),
+      includeBankDetails: invoiceIncludeBankDetails.value,
+      bank: selectedBank,
+      paymentLink: paymentLink,
+    );
+  }
+
   Future<bool> sendInvoiceEmail() async {
     final inv = selectedInvoice;
     if (inv == null) return false;
@@ -604,14 +690,14 @@ class OsEmailHubController extends GetxController {
     try {
       final ref = OsFinanceFormat.invoiceRef(inv);
       final subject = invoiceEmailSubject();
-      final body = await invoiceEmailBody();
+      final html = await invoiceEmailHtml();
 
       return await OsEmailHubService.sendAndLog(
         type: OsEmailCategory.invoice,
         toEmail: email,
         recipientName: inv.clientName,
         subject: subject,
-        content: body,
+        content: html,
         settings: settings.value,
         referenceId: ref,
         attachmentsCount: 1,
@@ -619,6 +705,17 @@ class OsEmailHubController extends GetxController {
     } finally {
       isSending.value = false;
     }
+  }
+
+  String quotationEmailHtml() {
+    final quote = selectedQuote;
+    if (quote == null) return '';
+    return OsEmailHtmlComposer.quotation(
+      quote: quote,
+      settings: settings.value,
+      introMessage: quoteIntroMessage.value.trim(),
+      acceptLink: osQuotationAcceptLink(quote),
+    );
   }
 
   Future<bool> sendQuotationEmail() async {
@@ -631,20 +728,40 @@ class OsEmailHubController extends GetxController {
     try {
       final ref = OsFinanceFormat.quotationRef(quote);
       final subject = quotationEmailSubject();
-      final body = quotationEmailBody();
+      final html = quotationEmailHtml();
 
       return await OsEmailHubService.sendAndLog(
         type: OsEmailCategory.quotation,
         toEmail: email,
         recipientName: quote.clientName,
         subject: subject,
-        content: body,
+        content: html,
         settings: settings.value,
         referenceId: ref,
       );
     } finally {
       isSending.value = false;
     }
+  }
+
+  String payslipEmailHtml(EmployeeModel emp) {
+    final allowancesLabel = payslipBonusNote.value.trim().isEmpty
+        ? AppLocaleKeys.osEmailHubPayslipAllowances.tr
+        : payslipBonusNote.value.trim();
+    return OsEmailHtmlComposer.payslip(
+      employee: emp,
+      settings: settings.value,
+      month: payslipMonth.value.trim(),
+      basic: payslipBasicSalary(emp),
+      allowances: payslipAllowances.value,
+      deductions: payslipDeductions.value,
+      allowancesLabel: allowancesLabel,
+      paymentMethod: payslipPaymentMethod.value.trim(),
+      positionLabel: employeePositionLabel(emp),
+      note: payslipBonusNote.value.trim().isEmpty
+          ? AppLocaleKeys.osEmailHubPayslipDefaultNote.tr
+          : payslipBonusNote.value.trim(),
+    );
   }
 
   String _payslipEmailBody(EmployeeModel emp) {
@@ -682,7 +799,7 @@ class OsEmailHubController extends GetxController {
         toEmail: email,
         recipientName: name,
         subject: subject,
-        content: payslipEmailBody(emp),
+        content: payslipEmailHtml(emp),
         settings: settings.value,
         referenceId: emp.id,
         attachmentsCount: 1,
@@ -721,7 +838,7 @@ class OsEmailHubController extends GetxController {
           toEmail: email,
           recipientName: name,
           subject: subject,
-          content: payslipEmailBody(emp),
+          content: payslipEmailHtml(emp),
           settings: settings.value,
           referenceId: emp.id,
           attachmentsCount: 1,
@@ -745,6 +862,9 @@ class OsEmailHubController extends GetxController {
   Future<bool> resendLog(OsEmailLogModel log) async {
     isSending.value = true;
     try {
+      final trimmed = log.content.trimLeft().toLowerCase();
+      final isHtml = trimmed.startsWith('<!doctype html') ||
+          trimmed.startsWith('<html');
       return await OsEmailHubService.sendAndLog(
         type: log.type,
         toEmail: log.recipientEmail,
@@ -755,10 +875,26 @@ class OsEmailHubController extends GetxController {
         referenceId: log.referenceId,
         attachmentsCount: log.attachmentsCount,
         includeSignature: false,
+        isHtml: isHtml,
       );
     } finally {
       isSending.value = false;
     }
+  }
+
+  String appreciationEmailHtml() {
+    final emp = selectedAppreciationEmployee;
+    if (emp == null) return '';
+    return OsEmailHtmlComposer.appreciation(
+      employee: emp,
+      settings: settings.value,
+      typeLabel: appreciationTypeLabel(appreciationType.value),
+      reason: appreciationReason.value.trim().isEmpty
+          ? AppLocaleKeys.osEmailHubAppreciationDefaultReason.tr
+          : appreciationReason.value.trim(),
+      positionLabel: employeePositionLabel(emp),
+      bonus: appreciationBonus.value,
+    );
   }
 
   Future<bool> sendAppreciationEmail() async {
@@ -771,20 +907,43 @@ class OsEmailHubController extends GetxController {
     try {
       final name = emp.name?.trim() ?? AppLocaleKeys.osCommonDash.tr;
       final subject = appreciationEmailSubject();
-      final body = appreciationEmailBody();
+      final html = appreciationEmailHtml();
 
       return await OsEmailHubService.sendAndLog(
         type: OsEmailCategory.appreciation,
         toEmail: email,
         recipientName: name,
         subject: subject,
-        content: body,
+        content: html,
         settings: settings.value,
         referenceId: emp.id,
       );
     } finally {
       isSending.value = false;
     }
+  }
+
+  String penaltyEmailHtml() {
+    final emp = selectedPenaltyEmployee;
+    if (emp == null) return '';
+    final severity = penaltySeverity.value;
+    return OsEmailHtmlComposer.penalty(
+      employee: emp,
+      settings: settings.value,
+      severityLabel: penaltySeverityLabel(severity),
+      severityBadge: OsEmailHtmlComposer.penaltySeverityBadge(
+        severity,
+        penaltyDeductionAmount.value,
+      ),
+      reason: penaltyReason.value.trim().isEmpty
+          ? AppLocaleKeys.osEmailHubPenaltiesDefaultReason.tr
+          : penaltyReason.value.trim(),
+      gracePeriod: penaltyGracePeriod.value.trim().isEmpty
+          ? AppLocaleKeys.osEmailHubPenaltiesDefaultGrace.tr
+          : penaltyGracePeriod.value.trim(),
+      deductionAmount: penaltyDeductionAmount.value,
+      showDeduction: severity == OsPenaltySeverity.salaryDeduction,
+    );
   }
 
   Future<bool> sendPenaltyEmail() async {
@@ -797,16 +956,63 @@ class OsEmailHubController extends GetxController {
     try {
       final name = emp.name?.trim() ?? AppLocaleKeys.osCommonDash.tr;
       final subject = penaltyEmailSubject();
-      final body = penaltyEmailBody();
+      final html = penaltyEmailHtml();
 
       return await OsEmailHubService.sendAndLog(
         type: OsEmailCategory.penalty,
         toEmail: email,
         recipientName: name,
         subject: subject,
-        content: body,
+        content: html,
         settings: settings.value,
         referenceId: emp.id,
+      );
+    } finally {
+      isSending.value = false;
+    }
+  }
+
+  String contractEmailSubject() {
+    final contract = selectedContract;
+    if (contract == null) return '';
+    return AppLocaleKeys.osLegalContractEmailSubject.trParams({
+      'title': contract.title,
+      'number': contract.contractNumber,
+    });
+  }
+
+  Future<String> contractEmailHtml() async {
+    final contract = selectedContract;
+    if (contract == null) return '';
+    final start = FirestoreOsFinanceApi.formatDate(contract.startDate);
+    final amount =
+        osLegalContractMoneyLabel(contract.totalValue, contract.currency);
+    return OsEmailHtmlComposer.contract(
+      contract: contract,
+      settings: settings.value,
+      startDate: start,
+      amount: amount,
+    );
+  }
+
+  Future<bool> sendContractEmail() async {
+    final contract = selectedContract;
+    if (contract == null) return false;
+    final email = contractRecipientEmail.value.trim();
+    if (email.isEmpty) return false;
+
+    isSending.value = true;
+    try {
+      final html = await contractEmailHtml();
+      return await OsEmailHubService.sendAndLog(
+        type: OsEmailCategory.contract,
+        toEmail: email,
+        recipientName: contract.targetName,
+        subject: contractEmailSubject(),
+        content: html,
+        settings: settings.value,
+        referenceId: contract.contractNumber,
+        attachmentsCount: 1,
       );
     } finally {
       isSending.value = false;

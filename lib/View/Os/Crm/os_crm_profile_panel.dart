@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
+import 'package:point/Controller/HomeController.dart';
 import 'package:point/Controller/OsCrmController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/ClientModel.dart';
 import 'package:point/Models/Os/os_crm_enums.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/OsPermissions.dart';
+import 'package:point/Utils/os_module_ids.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/Models/Os/os_crm_activity.dart';
 import 'package:point/View/Os/Crm/os_crm_client_form_dialog.dart';
@@ -330,33 +333,45 @@ class _OsCrmProfilePanelState extends State<OsCrmProfilePanel> {
                 icon: const Icon(Icons.edit_outlined, size: 16),
                 label: Text(AppLocaleKeys.osCrmEdit.tr),
               ),
-              FilledButton.icon(
-                onPressed: () => showOsQuotationFormDialog(
-                  context,
-                  initialClientId: client.id,
+              if (OsPermissions.canAccessModule(
+                Get.find<HomeController>().effectiveEmployee,
+                OsModuleIds.quotations,
+              ))
+                FilledButton.icon(
+                  onPressed: () => showOsQuotationFormDialog(
+                    context,
+                    initialClientId: client.id,
+                  ),
+                  style: OsButtonStyles.secondaryCompact(theme),
+                  icon: const Icon(Icons.add_rounded, size: 16),
+                  label: Text(AppLocaleKeys.osCrmCreateQuotation.tr),
                 ),
-                style: OsButtonStyles.secondaryCompact(theme),
-                icon: const Icon(Icons.add_rounded, size: 16),
-                label: Text(AppLocaleKeys.osCrmCreateQuotation.tr),
-              ),
-              FilledButton.icon(
-                onPressed: () => showOsInvoiceFormDialog(
-                  context,
-                  initialClientId: client.id,
+              if (OsPermissions.canAccessModule(
+                Get.find<HomeController>().effectiveEmployee,
+                OsModuleIds.invoices,
+              ))
+                FilledButton.icon(
+                  onPressed: () => showOsInvoiceFormDialog(
+                    context,
+                    initialClientId: client.id,
+                  ),
+                  style: OsButtonStyles.primaryCompact(),
+                  icon: const Icon(Icons.add_rounded, size: 16),
+                  label: Text(AppLocaleKeys.osCrmCreateInvoice.tr),
                 ),
-                style: OsButtonStyles.primaryCompact(),
-                icon: const Icon(Icons.add_rounded, size: 16),
-                label: Text(AppLocaleKeys.osCrmCreateInvoice.tr),
-              ),
-              FilledButton.icon(
-                onPressed: () => showOsLegalContractFormDialog(
-                  context,
-                  initialClientId: client.id,
+              if (OsPermissions.canAccessModule(
+                Get.find<HomeController>().effectiveEmployee,
+                OsModuleIds.contracts,
+              ))
+                FilledButton.icon(
+                  onPressed: () => showOsLegalContractFormDialog(
+                    context,
+                    initialClientId: client.id,
+                  ),
+                  style: OsButtonStyles.secondaryCompact(theme),
+                  icon: const Icon(Icons.description_outlined, size: 16),
+                  label: Text(AppLocaleKeys.osCrmCreateContract.tr),
                 ),
-                style: OsButtonStyles.secondaryCompact(theme),
-                icon: const Icon(Icons.description_outlined, size: 16),
-                label: Text(AppLocaleKeys.osCrmCreateContract.tr),
-              ),
             ],
           ),
           const SizedBox(height: 20),

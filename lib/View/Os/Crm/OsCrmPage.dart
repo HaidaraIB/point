@@ -6,6 +6,7 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/ClientModel.dart';
 import 'package:point/Services/os_crm_view_persistence.dart';
 import 'package:point/Utils/OsPermissions.dart';
+import 'package:point/Utils/os_module_ids.dart';
 import 'package:point/View/Os/Crm/os_crm_client_form_dialog.dart';
 import 'package:point/View/Os/Crm/os_crm_kanban.dart';
 import 'package:point/View/Os/Crm/os_crm_list_view.dart';
@@ -106,7 +107,7 @@ class _OsCrmPageState extends State<OsCrmPage> {
   @override
   Widget build(BuildContext context) {
     final emp = Get.find<HomeController>().effectiveEmployee;
-    if (!OsPermissions.canAccessOsSection(emp)) {
+    if (!OsPermissions.canAccessModule(emp, OsModuleIds.crm)) {
       return Scaffold(body: Center(child: Text('errors.forbidden'.tr)));
     }
 

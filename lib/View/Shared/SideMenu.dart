@@ -12,6 +12,7 @@ import 'package:point/Utils/AppConstants.dart';
 import 'package:point/Utils/AppImages.dart';
 import 'package:point/Utils/ContentPermissions.dart';
 import 'package:point/Utils/LibraryPermissions.dart';
+import 'package:point/Utils/OsPermissions.dart';
 import 'package:point/View/Shared/app_user_avatar.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 
@@ -679,6 +680,25 @@ class _CustomSidebarState extends State<CustomSidebar> {
                                   });
                                 },
                               ),
+                              if (OsPermissions.canAccessOsSection(
+                                controller.effectiveEmployee,
+                              ))
+                                _buildTile(
+                                  selectedTab: 14,
+                                  icon: 'assets/images/nav_statistics.png',
+                                  text: AppLocaleKeys.osSidebar.tr,
+                                  iconData: Icons.account_balance_outlined,
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedTab = 14;
+                                    });
+                                    WidgetsBinding.instance.addPostFrameCallback((
+                                      _,
+                                    ) {
+                                      Get.toNamed('/os');
+                                    });
+                                  },
+                                ),
                               _buildTile(
                                 selectedTab: 3,
                                 icon: 'assets/images/nav_content.png',
@@ -1000,18 +1020,14 @@ class _CustomSidebarState extends State<CustomSidebar> {
             ? Colors.white
             : Colors.white.withValues(alpha: 0.85));
     final selectedBg = Colors.white.withValues(alpha: 0.18);
-    final decoration =
-        selectedTab == _selectedTab
-            ? BoxDecoration(
-              color: selectedBg,
-              borderRadius: BorderRadius.circular(3),
-            )
-            : null;
+    final isSelected = selectedTab == _selectedTab;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 5),
-      decoration: decoration,
-      child: ListTile(
+      child: Material(
+        color: isSelected ? selectedBg : Colors.transparent,
+        borderRadius: BorderRadius.circular(3),
+        child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 8),
         minLeadingWidth: 28,
         horizontalTitleGap: 8,
@@ -1041,13 +1057,14 @@ class _CustomSidebarState extends State<CustomSidebar> {
         ),
         onTap: onTap,
         trailing:
-            selectedTab == _selectedTab
+            isSelected
                 ? Icon(
                   _selectedNavArrowIcon(context),
                   size: 18,
                   color: Colors.white,
                 )
                 : null,
+        ),
       ),
     );
   }
@@ -1117,18 +1134,15 @@ class _CustomSidebarState extends State<CustomSidebar> {
         selectedTab == _selectedTab
             ? Colors.white
             : Colors.white.withValues(alpha: 0.85);
-    final decoration =
-        selectedTab == _selectedTab
-            ? BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(3),
-            )
-            : null;
+    final selectedBg = Colors.white.withValues(alpha: 0.18);
+    final isSelected = selectedTab == _selectedTab;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 5),
-      decoration: decoration,
-      child: Theme(
+      child: Material(
+        color: isSelected ? selectedBg : Colors.transparent,
+        borderRadius: BorderRadius.circular(3),
+        child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
           tilePadding: const EdgeInsets.symmetric(horizontal: 8),
@@ -1169,6 +1183,7 @@ class _CustomSidebarState extends State<CustomSidebar> {
             setState(() => openMenus[id] = expanded);
           },
           children: children,
+        ),
         ),
       ),
     );

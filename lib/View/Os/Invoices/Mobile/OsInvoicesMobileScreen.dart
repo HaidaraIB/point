@@ -4,6 +4,7 @@ import 'package:point/Controller/OsFinanceController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/OsInvoiceModel.dart';
 import 'package:point/Models/Os/os_finance_enums.dart';
+import 'package:point/Utils/OsPermissions.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Invoices/Mobile/OsInvoiceFormMobilePage.dart';
 import 'package:point/View/Os/Invoices/os_invoice_share.dart';
@@ -240,16 +241,17 @@ class OsInvoicesMobileScreen extends StatelessWidget {
                         ],
                       ),
                     ],
-                    Align(
-                      alignment: AlignmentDirectional.centerEnd,
-                      child: IconButton(
-                        onPressed: () => onDelete(inv),
-                        icon: const Icon(
-                          Icons.delete_outline,
-                          color: Colors.redAccent,
+                    if (OsPermissions.canDeleteCurrentOsRecords)
+                      Align(
+                        alignment: AlignmentDirectional.centerEnd,
+                        child: IconButton(
+                          onPressed: () => onDelete(inv),
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.redAccent,
+                          ),
                         ),
                       ),
-                    ),
                     DropdownButton<String>(
                       isExpanded: true,
                       value: OsInvoiceStatus.all.contains(inv.status)

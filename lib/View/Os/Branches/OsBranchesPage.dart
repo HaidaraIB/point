@@ -8,6 +8,7 @@ import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/firestore/firestore_os_branches_api.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/OsPermissions.dart';
+import 'package:point/Utils/os_module_ids.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Branches/os_branch_form_dialog.dart';
 import 'package:point/View/Os/os_button_styles.dart';
@@ -147,7 +148,7 @@ class _OsBranchesPageState extends State<OsBranchesPage> {
   @override
   Widget build(BuildContext context) {
     final emp = Get.find<HomeController>().effectiveEmployee;
-    if (!OsPermissions.canAccessOsSection(emp)) {
+    if (!OsPermissions.canAccessModule(emp, OsModuleIds.branches)) {
       return Scaffold(body: Center(child: Text('errors.forbidden'.tr)));
     }
 
@@ -505,16 +506,17 @@ class _BranchCard extends StatelessWidget {
                                   color: theme.mutedText,
                                 ),
                               ),
-                              IconButton(
-                                onPressed: onDelete,
-                                tooltip: AppLocaleKeys.osCommonDelete.tr,
-                                visualDensity: VisualDensity.compact,
-                                iconSize: 16,
-                                icon: const Icon(
-                                  Icons.delete_outline,
-                                  color: Color(0xFFE11D48),
+                              if (OsPermissions.canDeleteCurrentOsRecords)
+                                IconButton(
+                                  onPressed: onDelete,
+                                  tooltip: AppLocaleKeys.osCommonDelete.tr,
+                                  visualDensity: VisualDensity.compact,
+                                  iconSize: 16,
+                                  icon: const Icon(
+                                    Icons.delete_outline,
+                                    color: Color(0xFFE11D48),
+                                  ),
                                 ),
-                              ),
                             ],
                           ),
                         ],

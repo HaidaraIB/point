@@ -7,6 +7,7 @@ import 'package:point/Models/Os/os_payroll_enums.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/firestore/firestore_os_payroll_api.dart';
 import 'package:point/Utils/AppColors.dart';
+import 'package:point/Utils/OsPermissions.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Payroll/os_advance_form_dialog.dart';
 import 'package:point/View/Os/Payroll/os_advance_repay_dialog.dart';
@@ -271,16 +272,17 @@ class _AdvanceCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    IconButton(
-                      tooltip: AppLocaleKeys.osCommonDelete.tr,
-                      visualDensity: VisualDensity.compact,
-                      onPressed: onDelete,
-                      icon: Icon(
-                        Icons.delete_outline,
-                        color: theme.mutedText,
-                        size: 20,
+                    if (OsPermissions.canDeleteCurrentOsRecords)
+                      IconButton(
+                        tooltip: AppLocaleKeys.osCommonDelete.tr,
+                        visualDensity: VisualDensity.compact,
+                        onPressed: onDelete,
+                        icon: Icon(
+                          Icons.delete_outline,
+                          color: theme.mutedText,
+                          size: 20,
+                        ),
                       ),
-                    ),
                   ],
                 ),
                 const SizedBox(height: 14),

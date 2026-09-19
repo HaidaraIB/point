@@ -9,6 +9,7 @@ import 'package:point/Models/Os/os_expense_constants.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/OsPermissions.dart';
+import 'package:point/Utils/os_module_ids.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Mobile/Shared/VideoCart.dart';
 import 'package:point/View/Os/Expenses/os_expense_form_dialog.dart';
@@ -161,7 +162,7 @@ class _OsExpensesPageState extends State<OsExpensesPage> {
   @override
   Widget build(BuildContext context) {
     final emp = Get.find<HomeController>().effectiveEmployee;
-    if (!OsPermissions.canAccessOsSection(emp)) {
+    if (!OsPermissions.canAccessModule(emp, OsModuleIds.expenses)) {
       return Scaffold(body: Center(child: Text('errors.forbidden'.tr)));
     }
 
@@ -1263,14 +1264,15 @@ class _ExpensesTable extends StatelessWidget {
                                     color: theme.secondaryText,
                                   ),
                                 ),
-                                IconButton(
-                                  onPressed: () => onDelete(e),
-                                  icon: const Icon(
-                                    Icons.delete_outline,
-                                    size: 18,
-                                    color: Color(0xFFF43F5E),
+                                if (OsPermissions.canDeleteCurrentOsRecords)
+                                  IconButton(
+                                    onPressed: () => onDelete(e),
+                                    icon: const Icon(
+                                      Icons.delete_outline,
+                                      size: 18,
+                                      color: Color(0xFFF43F5E),
+                                    ),
                                   ),
-                                ),
                               ],
                             ),
                           ),
@@ -1631,15 +1633,16 @@ class _ExpensesGrid extends StatelessWidget {
                           ),
                           visualDensity: VisualDensity.compact,
                         ),
-                        IconButton(
-                          onPressed: () => onDelete(e),
-                          icon: const Icon(
-                            Icons.delete_outline,
-                            size: 16,
-                            color: Color(0xFFF43F5E),
+                        if (OsPermissions.canDeleteCurrentOsRecords)
+                          IconButton(
+                            onPressed: () => onDelete(e),
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              size: 16,
+                              color: Color(0xFFF43F5E),
+                            ),
+                            visualDensity: VisualDensity.compact,
                           ),
-                          visualDensity: VisualDensity.compact,
-                        ),
                       ],
                     ),
                   ),

@@ -119,6 +119,18 @@ class AppTranslations extends Translations {
         'admin_settings.library_access_save_success': 'Library access updated',
         'admin_settings.library_access_save_failed':
             'Could not update library access',
+        'admin_settings.section_os_permissions': 'Point OS permissions',
+        'admin_settings.os_permissions_help':
+            'Grant supervisors access to Point OS modules. Deletes and secret settings (API keys, PayTabs, SMTP) remain admin-only.',
+        'admin_settings.os_permissions_search':
+            'Search supervisors by name or email',
+        'admin_settings.os_permissions_empty':
+            'No supervisors match your search.',
+        'admin_settings.os_permissions_granted_count': '@count modules',
+        'admin_settings.os_module_access_save_success':
+            'Point OS access updated',
+        'admin_settings.os_module_access_save_failed':
+            'Could not update Point OS access',
         'attendance.title': 'Attendance',
         'attendance.help':
             'Record when you arrive and leave. You must be within your branch location radius, take a photo each time, and wait for admin approval.',
@@ -951,7 +963,29 @@ class AppTranslations extends Translations {
         'os.email_hub.tab.payslips': 'Payslips',
         'os.email_hub.tab.appreciation': 'Appreciation',
         'os.email_hub.tab.penalties': 'Warnings',
+        'os.email_hub.tab.contracts': 'Contracts',
+        'os.email_hub.tab.chat': 'Chat digest',
+        'os.email_hub.tab.employee_notifications': 'Employee emails',
+        'os.email_hub.tab.manager_notifications': 'Manager emails',
+        'os.email_hub.tab.client_notifications': 'Client emails',
+        'os.email_hub.tab.publish_notifications': 'Publishing emails',
+        'os.email_hub.tab.admin_notifications': 'Admin emails',
+        'os.email_hub.tab.broadcast': 'Broadcast',
         'os.email_hub.tab.logs': 'Logs',
+        'os.email_hub.preview_only': 'Preview only',
+        'os.email_hub.preview_locale_ar': 'Arabic',
+        'os.email_hub.preview_locale_en': 'English',
+        'os.email_hub.app_notifications.select_type': 'Notification type',
+        'os.email_hub.app_notifications.push_only':
+            'This category has no email templates (push only).',
+        'os.email_hub.chat_digest_subtitle':
+            'Scheduled unread chat summary sent to employees and clients.',
+        'os.email_hub.broadcast_subtitle':
+            'Topic broadcast emails sent to employees or clients.',
+        'os.email_hub.contract_subtitle':
+            'Preview and email official contract copies to the second party.',
+        'os.email_hub.select_contract': 'Select contract',
+        'os.email_hub.no_contracts': 'No contracts yet. Create one first.',
         'os.email_hub.tab.settings': 'Settings',
         'os.email_hub.header.logs': 'Outgoing log (@count)',
         'os.email_hub.send': 'Send email',
@@ -1103,6 +1137,57 @@ class AppTranslations extends Translations {
         'os.email_hub.settings.sender_section': 'Sender identity',
         'os.email_hub.settings.sender_section_hint':
             'Name and email shown to recipients in all messages',
+        'email.template.greeting': 'Hello @name,',
+        'email.template.invoice.heading': 'Official invoice @ref',
+        'email.template.invoice.intro':
+            'Please find the official invoice @ref for @client.',
+        'email.template.invoice.col_item': 'Item / service',
+        'email.template.invoice.col_qty': 'Qty',
+        'email.template.invoice.col_total': 'Total',
+        'email.template.invoice.total_due': 'Total amount due',
+        'email.template.invoice.bank_title': 'Approved bank transfer details',
+        'email.template.invoice.pay_cta': 'Pay invoice online',
+        'email.template.quotation.heading': 'Quotation @ref',
+        'email.template.quotation.total': 'Total quotation value',
+        'email.template.quotation.accept_cta': 'Accept quotation',
+        'email.template.payslip.heading': 'Payslip for @period',
+        'email.template.payslip.position': 'Position',
+        'email.template.payslip.earnings': 'Earnings',
+        'email.template.payslip.deductions_section': 'Deductions',
+        'email.template.payslip.net_pay': 'Net pay',
+        'email.template.appreciation.heading': 'Official appreciation letter',
+        'email.template.appreciation.certificate_title':
+            'Certificate of appreciation',
+        'email.template.penalty.heading': 'Official administrative notice',
+        'email.template.penalty.grace_note':
+            'You may submit a written clarification within @grace.',
+        'email.template.contract.heading': 'Contract: @title',
+        'email.template.contract.number': 'Contract number',
+        'email.template.contract.start': 'Start date',
+        'email.template.contract.amount': 'Contract value',
+        'email.template.notification.time': 'Notification time',
+        'email.template.notification.action': 'Action',
+        'email.template.notification.auto_footer':
+            'This notification was sent automatically from Point Agency.',
+        'email.template.notification.quick_details': 'Quick details',
+        'email.template.notification.subtitle': 'App notification',
+        'email.template.notification.default_user': 'System user',
+        'email.template.notification.default_action':
+            'Open the app for full details.',
+        'email.template.notification.empty_summary': 'You have a new update.',
+        'email.template.chat_digest.subtitle': 'Messages digest',
+        'email.template.chat_digest.heading': 'Unread messages summary',
+        'email.template.chat_digest.intro':
+            'You have unread messages in the following chats:',
+        'email.template.plain.subtitle': 'Message from Point Agency',
+        'email.template.plain.heading': 'Update from Point',
+        'email.template.preview.mobile_hint':
+            'Preview shows the exact HTML sent to recipients.',
+        'os.email_hub.preview.sample_user': 'Sample user',
+        'os.email_hub.preview.chat_team_sample': 'Design team',
+        'os.email_hub.preview.chat_client_sample': 'Client',
+        'os.email_hub.preview.broadcast_body':
+            'Reminder: please review this week\'s content plan.\n\nAudience: Group notification\nTopic: employees',
         'os.back_to_hub': 'Back to Point OS',
         'os.nav.hub': 'OS Hub',
         'os.crm.title': 'Client relationship management',
@@ -1243,7 +1328,7 @@ class AppTranslations extends Translations {
         'os.module.settings': 'Settings',
         'os.settings.title': 'System settings',
         'os.settings.subtitle':
-            'Manage finance, stamp, legal agency info, and AI integrations for Point OS.',
+            'Manage finance, email delivery, stamp, legal agency info, and AI integrations for Point OS.',
         'os.settings.ai.section': 'Gemini AI',
         'os.settings.ai.description':
             'Connect your Google Gemini API key to enable smart descriptions, contract drafting, and dashboard insights.',
@@ -1277,6 +1362,11 @@ class AppTranslations extends Translations {
             'Enter a valid exchange rate greater than zero',
         'os.settings.finance.save': 'Save exchange rate',
         'os.settings.finance.saved': 'Exchange rate saved',
+        'os.settings.email.section': 'Email delivery',
+        'os.settings.email.description':
+            'Configure the sender identity used when dispatching invoices, quotations, payslips, and HR letters.',
+        'os.settings.email.save': 'Save email settings',
+        'os.settings.email.saved': 'Email settings saved',
         'os.settings.paytabs.section': 'PayTabs (Visa / Mastercard)',
         'os.settings.paytabs.description':
             'Accept card payments on invoices through PayTabs.',
@@ -3037,6 +3127,18 @@ class AppTranslations extends Translations {
         'admin_settings.library_access_save_success': 'تم تحديث صلاحية المكتبة',
         'admin_settings.library_access_save_failed':
             'تعذّر تحديث صلاحية المكتبة',
+        'admin_settings.section_os_permissions': 'صلاحيات Point OS',
+        'admin_settings.os_permissions_help':
+            'منح المشرفين الوصول إلى وحدات Point OS. الحذف والإعدادات السرية (مفاتيح API، PayTabs، SMTP) تبقى للمسؤول فقط.',
+        'admin_settings.os_permissions_search':
+            'ابحث عن المشرفين بالاسم أو البريد',
+        'admin_settings.os_permissions_empty':
+            'لا يوجد مشرفون يطابقون البحث.',
+        'admin_settings.os_permissions_granted_count': '@count وحدة',
+        'admin_settings.os_module_access_save_success':
+            'تم تحديث صلاحيات Point OS',
+        'admin_settings.os_module_access_save_failed':
+            'تعذّر تحديث صلاحيات Point OS',
         'attendance.title': 'الحضور',
         'attendance.help':
             'سجّل وقت حضورك وانصرافك. يجب أن تكون داخل نطاق فرعك، والتقاط صورة، وانتظار موافقة الإدارة.',
@@ -3836,7 +3938,29 @@ class AppTranslations extends Translations {
         "os.email_hub.tab.payslips": "قسائم الرواتب",
         "os.email_hub.tab.appreciation": "خطابات الشكر",
         "os.email_hub.tab.penalties": "لفت النظر",
+        "os.email_hub.tab.contracts": "العقود",
+        "os.email_hub.tab.chat": "ملخص الدردشة",
+        "os.email_hub.tab.employee_notifications": "بريد الموظف",
+        "os.email_hub.tab.manager_notifications": "بريد المشرف",
+        "os.email_hub.tab.client_notifications": "بريد العميل",
+        "os.email_hub.tab.publish_notifications": "بريد النشر",
+        "os.email_hub.tab.admin_notifications": "بريد الإدارة",
+        "os.email_hub.tab.broadcast": "البث الجماعي",
         "os.email_hub.tab.logs": "السجل",
+        "os.email_hub.preview_only": "معاينة فقط",
+        "os.email_hub.preview_locale_ar": "العربية",
+        "os.email_hub.preview_locale_en": "English",
+        "os.email_hub.app_notifications.select_type": "نوع الإشعار",
+        "os.email_hub.app_notifications.push_only":
+            "لا توجد قوالب بريد لهذه الفئة (إشعار دفع فقط).",
+        "os.email_hub.chat_digest_subtitle":
+            "ملخص مجدول للرسائل غير المقروءة يُرسل للموظفين والعملاء.",
+        "os.email_hub.broadcast_subtitle":
+            "رسائل البث الجماعي للموظفين أو العملاء حسب الموضوع.",
+        "os.email_hub.contract_subtitle":
+            "معاينة وإرسال نسخة العقد الرسمية للطرف الثاني.",
+        "os.email_hub.select_contract": "اختر العقد",
+        "os.email_hub.no_contracts": "لا توجد عقود بعد. أنشئ عقداً أولاً.",
         "os.email_hub.tab.settings": "الإعدادات",
         "os.email_hub.header.logs": "سجل البريد الصادر (@count)",
         "os.email_hub.send": "إرسال البريد",
@@ -3982,10 +4106,60 @@ class AppTranslations extends Translations {
         "os.email_hub.settings.sender_section": "هوية وبيانات المرسل المخصص",
         "os.email_hub.settings.sender_section_hint":
             "تحديد الاسم والبريد الرسمي الذي سيظهر للمستلمين في كافة المراسلات",
+        "email.template.greeting": "مرحباً @name،",
+        "email.template.invoice.heading": "فاتورة رسمية @ref",
+        "email.template.invoice.intro":
+            "نرفق لكم الفاتورة الرسمية @ref لصالح @client.",
+        "email.template.invoice.col_item": "البند / الخدمة",
+        "email.template.invoice.col_qty": "الكمية",
+        "email.template.invoice.col_total": "الإجمالي",
+        "email.template.invoice.total_due": "المبلغ الإجمالي المستحق",
+        "email.template.invoice.bank_title": "بيانات التحويل البنكي المعتمدة",
+        "email.template.invoice.pay_cta": "دفع الفاتورة إلكترونياً",
+        "email.template.quotation.heading": "عرض سعر @ref",
+        "email.template.quotation.total": "القيمة الإجمالية للعرض",
+        "email.template.quotation.accept_cta": "اعتماد العرض",
+        "email.template.payslip.heading": "قسيمة راتب @period",
+        "email.template.payslip.position": "المسمى الوظيفي",
+        "email.template.payslip.earnings": "الاستحقاقات والمكتسبات",
+        "email.template.payslip.deductions_section": "الاستقطاعات والخصومات",
+        "email.template.payslip.net_pay": "صافي الراتب المحول",
+        "email.template.appreciation.heading": "خطاب شكر وتقدير رسمي",
+        "email.template.appreciation.certificate_title": "شهادة شكر وتقدير",
+        "email.template.penalty.heading": "إشعار إداري رسمي",
+        "email.template.penalty.grace_note":
+            "يحق لكم تقديم توضيح كتابي خلال @grace.",
+        "email.template.contract.heading": "عقد: @title",
+        "email.template.contract.number": "رقم العقد",
+        "email.template.contract.start": "تاريخ البدء",
+        "email.template.contract.amount": "قيمة العقد",
+        "email.template.notification.time": "وقت الإشعار",
+        "email.template.notification.action": "الإجراء",
+        "email.template.notification.auto_footer":
+            "تم إرسال هذا الإشعار تلقائياً من نظام Point Agency.",
+        "email.template.notification.quick_details": "تفاصيل سريعة",
+        "email.template.notification.subtitle": "إشعار من التطبيق",
+        "email.template.notification.default_user": "مستخدم النظام",
+        "email.template.notification.default_action":
+            "افتح التطبيق للاطلاع على التفاصيل الكاملة.",
+        "email.template.notification.empty_summary": "لديك تحديث جديد.",
+        "email.template.chat_digest.subtitle": "ملخص الرسائل",
+        "email.template.chat_digest.heading": "ملخص الرسائل غير المقروءة",
+        "email.template.chat_digest.intro":
+            "لديك رسائل لم تُقرأ في المحادثات التالية:",
+        "email.template.plain.subtitle": "رسالة من Point Agency",
+        "email.template.plain.heading": "تحديث من Point",
+        "email.template.preview.mobile_hint":
+            "المعاينة تعرض نفس HTML المرسل للمستلمين.",
+        "os.email_hub.preview.sample_user": "مستخدم تجريبي",
+        "os.email_hub.preview.chat_team_sample": "فريق التصميم",
+        "os.email_hub.preview.chat_client_sample": "العميل",
+        "os.email_hub.preview.broadcast_body":
+            "تذكير: يرجى مراجعة خطة المحتوى لهذا الأسبوع.\n\nالوجهة: إشعار جماعي\nالموضوع: employees",
         "os.module.settings": "الإعدادات",
         "os.settings.title": "إعدادات النظام",
         "os.settings.subtitle":
-            "إدارة المالية والختم والبيانات القانونية للوكالة وتكاملات الذكاء الاصطناعي في نظام نقطة.",
+            "إدارة المالية والبريد والختم والبيانات القانونية للوكالة وتكاملات الذكاء الاصطناعي في نظام نقطة.",
         "os.settings.ai.section": "ذكاء Gemini",
         "os.settings.ai.description":
             "اربط مفتاح Google Gemini API لتفعيل الأوصاف الذكية وصياغة العقود وتحليلات لوحة التحكم.",
@@ -4019,6 +4193,11 @@ class AppTranslations extends Translations {
             "أدخل سعر صرف صالحاً أكبر من صفر",
         "os.settings.finance.save": "حفظ سعر الصرف",
         "os.settings.finance.saved": "تم حفظ سعر الصرف",
+        "os.settings.email.section": "إرسال البريد",
+        "os.settings.email.description":
+            "اضبط هوية المرسل المستخدمة عند إرسال الفواتير والعروض وكشوف الرواتب ورسائل الموارد البشرية.",
+        "os.settings.email.save": "حفظ إعدادات البريد",
+        "os.settings.email.saved": "تم حفظ إعدادات البريد",
         "os.settings.paytabs.section": "PayTabs (فيزا / ماستركارد)",
         "os.settings.paytabs.description":
             "قبول مدفوعات البطاقة على الفواتير عبر PayTabs.",

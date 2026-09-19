@@ -10,7 +10,6 @@ class OsPrintAssets {
 
   static const headerBrandAsset = 'assets/print/brand.png';
   static const headerSloganAsset = 'assets/print/slogan.png';
-  static const watermarkAsset = 'assets/print/watermark.png';
   static const watermarkLogoAsset = 'assets/print/watermark_logo.png';
   static const sealAsset = 'assets/print/seal.png';
   static const voucherBrandAsset = 'assets/print/voucher_brand.png';
@@ -21,7 +20,6 @@ class OsPrintAssets {
 
   static String? _headerBrandDataUri;
   static String? _headerSloganDataUri;
-  static String? _watermarkDataUri;
   static String? _watermarkLogoDataUri;
   static String? _sealDataUri;
   static String? _voucherBrandDataUri;
@@ -31,7 +29,6 @@ class OsPrintAssets {
 
   static String get headerBrandDataUri => _headerBrandDataUri ?? '';
   static String get headerSloganDataUri => _headerSloganDataUri ?? '';
-  static String get watermarkDataUri => _watermarkDataUri ?? '';
   static String get watermarkLogoDataUri => _watermarkLogoDataUri ?? '';
   static String get sealDataUri => _sealDataUri ?? '';
   static String get voucherBrandDataUri => _voucherBrandDataUri ?? '';
@@ -67,11 +64,6 @@ class OsPrintAssets {
       _headerSloganDataUri = '';
     }
 
-    try {
-      _watermarkDataUri = await _pngDataUri(watermarkAsset);
-    } catch (_) {
-      _watermarkDataUri = '';
-    }
 
     try {
       _watermarkLogoDataUri = await _pngDataUri(watermarkLogoAsset);

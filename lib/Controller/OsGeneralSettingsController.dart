@@ -1,7 +1,10 @@
 import 'package:get/get.dart';
+import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/Os/OsGeneralSettings.dart';
 import 'package:point/Services/firestore/firestore_os_general_settings_api.dart';
+import 'package:point/Utils/OsPermissions.dart';
 import 'package:point/Utils/os_currency.dart';
+import 'package:point/Utils/os_stream_binding.dart';
 
 class OsGeneralSettingsController extends GetxController {
   final settings = OsGeneralSettings.defaults().obs;
@@ -12,7 +15,19 @@ class OsGeneralSettingsController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    settings.bindStream(FirestoreOsGeneralSettingsApi.streamSettings());
+    rebindStreamsForPermissions();
+  }
+
+  void rebindStreamsForPermissions() {
+    final emp = Get.isRegistered<HomeController>()
+        ? Get.find<HomeController>().effectiveEmployee
+        : null;
+    bindOsValueStream(
+      settings,
+      OsPermissions.canAccessOsSection(emp),
+      FirestoreOsGeneralSettingsApi.streamSettings(),
+      OsGeneralSettings.defaults(),
+    );
   }
 
   Future<bool> saveUsdToIqdRate(double rate) async {

@@ -7,10 +7,12 @@ import 'package:point/Services/os_email_hub_tab_persistence.dart';
 import 'package:point/Models/Os/OsEmailLogModel.dart';
 import 'package:point/Models/Os/os_email_enums.dart';
 import 'package:point/Utils/OsPermissions.dart';
+import 'package:point/Utils/os_module_ids.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/EmailHub/os_email_hub_helpers.dart';
 import 'package:point/View/Os/EmailHub/os_email_hub_logs_tab.dart';
-import 'package:point/View/Os/EmailHub/os_email_hub_settings_tab.dart';
+import 'package:point/View/Os/EmailHub/html_email_preview.dart';
+import 'package:point/View/Os/EmailHub/os_email_hub_app_tabs.dart';
 import 'package:point/View/Os/EmailHub/os_email_hub_tabs.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_page_header.dart';
@@ -28,11 +30,21 @@ class _OsEmailHubPageState extends State<OsEmailHubPage> {
   late final OsEmailHubController _hub;
   var _panelIndex = 0;
   var _restoringPrefs = false;
+  var _logsCount = 0;
+  Worker? _logsCountWorker;
+  final ScrollController _tabBarScrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
     _hub = Get.find<OsEmailHubController>();
+    _logsCount = _hub.logs.length;
+    _logsCountWorker = ever(_hub.logs, (_) {
+      final next = _hub.logs.length;
+      if (next != _logsCount && mounted) {
+        setState(() => _logsCount = next);
+      }
+    });
     if (OsEmailHubTabPersistence.hasRouteTab()) {
       _panelIndex = OsEmailHubTabPersistence.indexFromRoute();
       OsEmailHubTabPersistence.saveIndex(_panelIndex);
@@ -60,14 +72,86 @@ class _OsEmailHubPageState extends State<OsEmailHubPage> {
 
   @override
   void dispose() {
+    _logsCountWorker?.dispose();
+    _tabBarScrollController.dispose();
     _hub.persistDraft();
     super.dispose();
+  }
+
+  String _activeTabName() {
+    final safe = _panelIndex.clamp(0, OsEmailHubTabPersistence.names.length - 1);
+    return OsEmailHubTabPersistence.names[safe];
+  }
+
+  Widget _buildPanelContent() {
+    switch (_activeTabName()) {
+      case OsEmailHubTabPersistence.invoices:
+        return OsEmailHubInvoicesTab(hub: _hub);
+      case OsEmailHubTabPersistence.quotations:
+        return OsEmailHubQuotationsTab(hub: _hub);
+      case OsEmailHubTabPersistence.payslips:
+        return OsEmailHubPayslipsTab(hub: _hub);
+      case OsEmailHubTabPersistence.appreciation:
+        return OsEmailHubAppreciationTab(hub: _hub);
+      case OsEmailHubTabPersistence.penalties:
+        return OsEmailHubPenaltiesTab(hub: _hub);
+      case OsEmailHubTabPersistence.contracts:
+        return OsEmailHubContractsTab(hub: _hub);
+      case OsEmailHubTabPersistence.chat:
+        return const OsEmailHubChatDigestTab();
+      case OsEmailHubTabPersistence.employeeNotifications:
+        return OsEmailHubNotificationCategoryTab(
+          key: const ValueKey(OsEmailHubTabPersistence.employeeNotifications),
+          categoryKey: AppLocaleKeys.pushTestCategoryEmployee,
+          title: AppLocaleKeys.osEmailHubTabEmployeeNotifications.tr,
+          subtitle: AppLocaleKeys.osEmailHubAppNotificationsSelectType.tr,
+          icon: Icons.assignment_outlined,
+        );
+      case OsEmailHubTabPersistence.managerNotifications:
+        return OsEmailHubNotificationCategoryTab(
+          key: const ValueKey(OsEmailHubTabPersistence.managerNotifications),
+          categoryKey: AppLocaleKeys.pushTestCategoryManager,
+          title: AppLocaleKeys.osEmailHubTabManagerNotifications.tr,
+          subtitle: AppLocaleKeys.osEmailHubAppNotificationsSelectType.tr,
+          icon: Icons.supervisor_account_outlined,
+        );
+      case OsEmailHubTabPersistence.clientNotifications:
+        return OsEmailHubNotificationCategoryTab(
+          key: const ValueKey(OsEmailHubTabPersistence.clientNotifications),
+          categoryKey: AppLocaleKeys.pushTestCategoryClient,
+          title: AppLocaleKeys.osEmailHubTabClientNotifications.tr,
+          subtitle: AppLocaleKeys.osEmailHubAppNotificationsSelectType.tr,
+          icon: Icons.person_outline,
+        );
+      case OsEmailHubTabPersistence.publishNotifications:
+        return OsEmailHubNotificationCategoryTab(
+          key: const ValueKey(OsEmailHubTabPersistence.publishNotifications),
+          categoryKey: AppLocaleKeys.pushTestCategoryPublish,
+          title: AppLocaleKeys.osEmailHubTabPublishNotifications.tr,
+          subtitle: AppLocaleKeys.osEmailHubAppNotificationsSelectType.tr,
+          icon: Icons.publish_outlined,
+        );
+      case OsEmailHubTabPersistence.adminNotifications:
+        return OsEmailHubNotificationCategoryTab(
+          key: const ValueKey(OsEmailHubTabPersistence.adminNotifications),
+          categoryKey: AppLocaleKeys.pushTestCategoryAdminMeta,
+          title: AppLocaleKeys.osEmailHubTabAdminNotifications.tr,
+          subtitle: AppLocaleKeys.osEmailHubAppNotificationsSelectType.tr,
+          icon: Icons.admin_panel_settings_outlined,
+        );
+      case OsEmailHubTabPersistence.broadcast:
+        return const OsEmailHubBroadcastTab();
+      case OsEmailHubTabPersistence.logs:
+        return OsEmailHubLogsTab(hub: _hub);
+      default:
+        return OsEmailHubInvoicesTab(hub: _hub);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final emp = Get.find<HomeController>().effectiveEmployee;
-    if (!OsPermissions.canAccessOsSection(emp)) {
+    if (!OsPermissions.canAccessModule(emp, OsModuleIds.emailHub)) {
       return Scaffold(body: Center(child: Text(AppLocaleKeys.errorsForbidden.tr)));
     }
 
@@ -85,56 +169,56 @@ class _OsEmailHubPageState extends State<OsEmailHubPage> {
             currentRoute: '/os/email-hub',
             actions: [
               FilledButton.icon(
-                onPressed: () => _selectPanel(6),
+                onPressed: () => _selectPanel(OsEmailHubTabPersistence.logsIndex),
                 style: OsButtonStyles.secondaryCompact(
                   theme,
-                  active: _panelIndex == 6,
+                  active: _activeTabName() == OsEmailHubTabPersistence.logs,
                 ),
-                icon: const Icon(Icons.settings_outlined, size: 16),
-                label: Text(AppLocaleKeys.osEmailHubTabSettings.tr),
-              ),
-              Obx(
-                () => FilledButton.icon(
-                  onPressed: () => _selectPanel(5),
-                  style: OsButtonStyles.secondaryCompact(
-                    theme,
-                    active: _panelIndex == 5,
-                  ),
-                  icon: const Icon(Icons.history_rounded, size: 16),
-                  label: Text(
-                    AppLocaleKeys.osEmailHubHeaderLogs.trParams({
-                      'count': '${_hub.logs.length}',
-                    }),
-                  ),
+                icon: const Icon(Icons.history_rounded, size: 16),
+                label: Text(
+                  AppLocaleKeys.osEmailHubHeaderLogs.trParams({
+                    'count': '$_logsCount',
+                  }),
+                  style: OsButtonStyles.compactTextStyle,
                 ),
               ),
             ],
           ),
           Material(
             color: theme.cardSurface,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-              child: Row(
-                children: [
-                  _dispatchTab(
-                    theme,
-                    index: 0,
-                    icon: Icons.receipt_long_outlined,
-                    label: AppLocaleKeys.osEmailHubTabInvoices.tr,
-                  ),
-                  _dispatchTab(
-                    theme,
-                    index: 1,
-                    icon: Icons.request_quote_outlined,
-                    label: AppLocaleKeys.osEmailHubTabQuotations.tr,
-                  ),
-                  _dispatchTab(
-                    theme,
-                    index: 2,
-                    icon: Icons.badge_outlined,
-                    label: AppLocaleKeys.osEmailHubTabPayslips.tr,
-                  ),
+            child: Scrollbar(
+              controller: _tabBarScrollController,
+              thumbVisibility: true,
+              trackVisibility: true,
+              child: SingleChildScrollView(
+                controller: _tabBarScrollController,
+                scrollDirection: Axis.horizontal,
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                  if (OsPermissions.canAccessModule(emp, OsModuleIds.invoices))
+                    _dispatchTab(
+                      theme,
+                      index: 0,
+                      icon: Icons.receipt_long_outlined,
+                      label: AppLocaleKeys.osEmailHubTabInvoices.tr,
+                    ),
+                  if (OsPermissions.canAccessModule(emp, OsModuleIds.quotations))
+                    _dispatchTab(
+                      theme,
+                      index: 1,
+                      icon: Icons.request_quote_outlined,
+                      label: AppLocaleKeys.osEmailHubTabQuotations.tr,
+                    ),
+                  if (OsPermissions.canAccessModule(emp, OsModuleIds.payroll))
+                    _dispatchTab(
+                      theme,
+                      index: 2,
+                      icon: Icons.badge_outlined,
+                      label: AppLocaleKeys.osEmailHubTabPayslips.tr,
+                    ),
                   _dispatchTab(
                     theme,
                     index: 3,
@@ -147,27 +231,74 @@ class _OsEmailHubPageState extends State<OsEmailHubPage> {
                     icon: Icons.warning_amber_rounded,
                     label: AppLocaleKeys.osEmailHubTabPenalties.tr,
                   ),
-                ],
+                  if (OsPermissions.canAccessModule(emp, OsModuleIds.contracts))
+                    _dispatchTab(
+                      theme,
+                      index: OsEmailHubTabPersistence.names
+                          .indexOf(OsEmailHubTabPersistence.contracts),
+                      icon: Icons.description_outlined,
+                      label: AppLocaleKeys.osEmailHubTabContracts.tr,
+                    ),
+                  _dispatchTab(
+                    theme,
+                    index: OsEmailHubTabPersistence.names
+                        .indexOf(OsEmailHubTabPersistence.chat),
+                    icon: Icons.forum_outlined,
+                    label: AppLocaleKeys.osEmailHubTabChat.tr,
+                  ),
+                  _dispatchTab(
+                    theme,
+                    index: OsEmailHubTabPersistence.names.indexOf(
+                      OsEmailHubTabPersistence.employeeNotifications,
+                    ),
+                    icon: Icons.assignment_outlined,
+                    label: AppLocaleKeys.osEmailHubTabEmployeeNotifications.tr,
+                  ),
+                  _dispatchTab(
+                    theme,
+                    index: OsEmailHubTabPersistence.names.indexOf(
+                      OsEmailHubTabPersistence.managerNotifications,
+                    ),
+                    icon: Icons.supervisor_account_outlined,
+                    label: AppLocaleKeys.osEmailHubTabManagerNotifications.tr,
+                  ),
+                  _dispatchTab(
+                    theme,
+                    index: OsEmailHubTabPersistence.names.indexOf(
+                      OsEmailHubTabPersistence.clientNotifications,
+                    ),
+                    icon: Icons.person_outline,
+                    label: AppLocaleKeys.osEmailHubTabClientNotifications.tr,
+                  ),
+                  _dispatchTab(
+                    theme,
+                    index: OsEmailHubTabPersistence.names.indexOf(
+                      OsEmailHubTabPersistence.publishNotifications,
+                    ),
+                    icon: Icons.publish_outlined,
+                    label: AppLocaleKeys.osEmailHubTabPublishNotifications.tr,
+                  ),
+                  _dispatchTab(
+                    theme,
+                    index: OsEmailHubTabPersistence.names.indexOf(
+                      OsEmailHubTabPersistence.adminNotifications,
+                    ),
+                    icon: Icons.admin_panel_settings_outlined,
+                    label: AppLocaleKeys.osEmailHubTabAdminNotifications.tr,
+                  ),
+                  _dispatchTab(
+                    theme,
+                    index: OsEmailHubTabPersistence.names
+                        .indexOf(OsEmailHubTabPersistence.broadcast),
+                    icon: Icons.campaign_outlined,
+                    label: AppLocaleKeys.osEmailHubTabBroadcast.tr,
+                  ),
+                  ],
+                ),
               ),
             ),
           ),
-          Expanded(
-            child: IndexedStack(
-              index: _panelIndex,
-              children: [
-                OsEmailHubInvoicesTab(hub: _hub),
-                OsEmailHubQuotationsTab(hub: _hub),
-                OsEmailHubPayslipsTab(hub: _hub),
-                OsEmailHubAppreciationTab(hub: _hub),
-                OsEmailHubPenaltiesTab(hub: _hub),
-                OsEmailHubLogsTab(hub: _hub),
-                OsEmailHubSettingsTab(
-                  hub: _hub,
-                  isVisible: _panelIndex == 6,
-                ),
-              ],
-            ),
-          ),
+          Expanded(child: _buildPanelContent()),
         ],
       ),
     );
@@ -188,7 +319,7 @@ class _OsEmailHubPageState extends State<OsEmailHubPage> {
             ? OsButtonStyles.primaryCompact()
             : OsButtonStyles.secondaryCompact(theme),
         icon: Icon(icon, size: 16),
-        label: Text(label),
+        label: Text(label, style: OsButtonStyles.compactTextStyle),
       ),
     );
   }
@@ -364,6 +495,11 @@ String osEmailCategoryLabel(String type) {
   }
 }
 
+bool _isHtmlEmailContent(String content) {
+  final trimmed = content.trimLeft().toLowerCase();
+  return trimmed.startsWith('<!doctype html') || trimmed.startsWith('<html');
+}
+
 void showEmailLogPreview(
   BuildContext context,
   OsEmailLogModel log, {
@@ -418,14 +554,19 @@ void showEmailLogPreview(
               const SizedBox(height: 12),
               Expanded(
                 child: SingleChildScrollView(
-                  child: Text(
-                    log.content,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: theme.primaryText,
-                      height: 1.5,
-                    ),
-                  ),
+                  child: _isHtmlEmailContent(log.content)
+                      ? HtmlEmailPreview(
+                          html: log.content,
+                          minHeight: 360,
+                        )
+                      : Text(
+                          log.content,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: theme.primaryText,
+                            height: 1.5,
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: 16),

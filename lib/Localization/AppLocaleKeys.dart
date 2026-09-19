@@ -78,6 +78,20 @@ class AppLocaleKeys {
       'admin_settings.library_access_save_success';
   static const adminSettingsLibraryAccessSaveFailed =
       'admin_settings.library_access_save_failed';
+  static const adminSettingsSectionOsPermissions =
+      'admin_settings.section_os_permissions';
+  static const adminSettingsOsPermissionsHelp =
+      'admin_settings.os_permissions_help';
+  static const adminSettingsOsPermissionsSearch =
+      'admin_settings.os_permissions_search';
+  static const adminSettingsOsPermissionsEmpty =
+      'admin_settings.os_permissions_empty';
+  static const adminSettingsOsPermissionsGrantedCount =
+      'admin_settings.os_permissions_granted_count';
+  static const adminSettingsOsModuleAccessSaveSuccess =
+      'admin_settings.os_module_access_save_success';
+  static const adminSettingsOsModuleAccessSaveFailed =
+      'admin_settings.os_module_access_save_failed';
 
   static const attendanceTitle = 'attendance.title';
   static const attendanceHelp = 'attendance.help';
@@ -473,6 +487,7 @@ class AppLocaleKeys {
   static const pushTestCategoryClient = 'push_test.category.client';
   static const pushTestCategoryPublish = 'push_test.category.publish';
   static const pushTestCategoryAdminMeta = 'push_test.category.admin_meta';
+  static const pushTestCategoryBroadcast = 'push_test.category.broadcast';
   static const employeesPresence = 'employees.presence';
   static const employeesOnlineNow = 'employees.online_now';
   static const employeesLastSeenAt = 'employees.last_seen_at';
@@ -553,7 +568,32 @@ class AppLocaleKeys {
   static const osEmailHubTabPayslips = 'os.email_hub.tab.payslips';
   static const osEmailHubTabAppreciation = 'os.email_hub.tab.appreciation';
   static const osEmailHubTabPenalties = 'os.email_hub.tab.penalties';
+  static const osEmailHubTabContracts = 'os.email_hub.tab.contracts';
+  static const osEmailHubTabChat = 'os.email_hub.tab.chat';
+  static const osEmailHubTabEmployeeNotifications =
+      'os.email_hub.tab.employee_notifications';
+  static const osEmailHubTabManagerNotifications =
+      'os.email_hub.tab.manager_notifications';
+  static const osEmailHubTabClientNotifications =
+      'os.email_hub.tab.client_notifications';
+  static const osEmailHubTabPublishNotifications =
+      'os.email_hub.tab.publish_notifications';
+  static const osEmailHubTabAdminNotifications =
+      'os.email_hub.tab.admin_notifications';
+  static const osEmailHubTabBroadcast = 'os.email_hub.tab.broadcast';
   static const osEmailHubTabLogs = 'os.email_hub.tab.logs';
+  static const osEmailHubPreviewOnly = 'os.email_hub.preview_only';
+  static const osEmailHubPreviewLocaleAr = 'os.email_hub.preview_locale_ar';
+  static const osEmailHubPreviewLocaleEn = 'os.email_hub.preview_locale_en';
+  static const osEmailHubAppNotificationsSelectType =
+      'os.email_hub.app_notifications.select_type';
+  static const osEmailHubAppNotificationsPushOnly =
+      'os.email_hub.app_notifications.push_only';
+  static const osEmailHubChatDigestSubtitle = 'os.email_hub.chat_digest_subtitle';
+  static const osEmailHubBroadcastSubtitle = 'os.email_hub.broadcast_subtitle';
+  static const osEmailHubContractSubtitle = 'os.email_hub.contract_subtitle';
+  static const osEmailHubSelectContract = 'os.email_hub.select_contract';
+  static const osEmailHubNoContracts = 'os.email_hub.no_contracts';
   static const osEmailHubTabSettings = 'os.email_hub.tab.settings';
   static const osEmailHubHeaderLogs = 'os.email_hub.header.logs';
   static const osEmailHubSend = 'os.email_hub.send';
@@ -685,6 +725,62 @@ class AppLocaleKeys {
   static const osEmailHubLogsColStatus = 'os.email_hub.logs.col_status';
   static const osEmailHubSettingsSenderSection = 'os.email_hub.settings.sender_section';
   static const osEmailHubSettingsSenderSectionHint = 'os.email_hub.settings.sender_section_hint';
+  static const emailTemplateGreeting = 'email.template.greeting';
+  static const emailTemplateInvoiceHeading = 'email.template.invoice.heading';
+  static const emailTemplateInvoiceIntro = 'email.template.invoice.intro';
+  static const emailTemplateInvoiceColItem = 'email.template.invoice.col_item';
+  static const emailTemplateInvoiceColQty = 'email.template.invoice.col_qty';
+  static const emailTemplateInvoiceColTotal = 'email.template.invoice.col_total';
+  static const emailTemplateInvoiceTotalDue = 'email.template.invoice.total_due';
+  static const emailTemplateInvoiceBankTitle = 'email.template.invoice.bank_title';
+  static const emailTemplateInvoicePayCta = 'email.template.invoice.pay_cta';
+  static const emailTemplateQuotationHeading = 'email.template.quotation.heading';
+  static const emailTemplateQuotationTotal = 'email.template.quotation.total';
+  static const emailTemplateQuotationAcceptCta = 'email.template.quotation.accept_cta';
+  static const emailTemplatePayslipHeading = 'email.template.payslip.heading';
+  static const emailTemplatePayslipPosition = 'email.template.payslip.position';
+  static const emailTemplatePayslipEarnings = 'email.template.payslip.earnings';
+  static const emailTemplatePayslipDeductionsSection =
+      'email.template.payslip.deductions_section';
+  static const emailTemplatePayslipNetPay = 'email.template.payslip.net_pay';
+  static const emailTemplateAppreciationHeading = 'email.template.appreciation.heading';
+  static const emailTemplateAppreciationCertificate =
+      'email.template.appreciation.certificate_title';
+  static const emailTemplatePenaltyHeading = 'email.template.penalty.heading';
+  static const emailTemplatePenaltyGraceNote = 'email.template.penalty.grace_note';
+  static const emailTemplateContractHeading = 'email.template.contract.heading';
+  static const emailTemplateContractNumber = 'email.template.contract.number';
+  static const emailTemplateContractStart = 'email.template.contract.start';
+  static const emailTemplateContractAmount = 'email.template.contract.amount';
+  static const emailTemplateNotificationTime = 'email.template.notification.time';
+  static const emailTemplateNotificationAction = 'email.template.notification.action';
+  static const emailTemplateNotificationAutoFooter =
+      'email.template.notification.auto_footer';
+  static const emailTemplateNotificationQuickDetails =
+      'email.template.notification.quick_details';
+  static const emailTemplateNotificationSubtitle =
+      'email.template.notification.subtitle';
+  static const emailTemplateNotificationDefaultUser =
+      'email.template.notification.default_user';
+  static const emailTemplateNotificationDefaultAction =
+      'email.template.notification.default_action';
+  static const emailTemplateNotificationEmptySummary =
+      'email.template.notification.empty_summary';
+  static const emailTemplateChatDigestSubtitle =
+      'email.template.chat_digest.subtitle';
+  static const emailTemplateChatDigestHeading =
+      'email.template.chat_digest.heading';
+  static const emailTemplateChatDigestIntro = 'email.template.chat_digest.intro';
+  static const emailTemplatePlainSubtitle = 'email.template.plain.subtitle';
+  static const emailTemplatePlainHeading = 'email.template.plain.heading';
+  static const emailTemplatePreviewMobileHint = 'email.template.preview.mobile_hint';
+  static const osEmailHubPreviewSampleUser = 'os.email_hub.preview.sample_user';
+  static const osEmailHubPreviewChatTeamSample =
+      'os.email_hub.preview.chat_team_sample';
+  static const osEmailHubPreviewChatClientSample =
+      'os.email_hub.preview.chat_client_sample';
+  static const osEmailHubPreviewBroadcastBody =
+      'os.email_hub.preview.broadcast_body';
   static const osSettingsTitle = 'os.settings.title';
   static const osSettingsSubtitle = 'os.settings.subtitle';
   static const osSettingsAiSection = 'os.settings.ai.section';
@@ -717,6 +813,10 @@ class AppLocaleKeys {
   static const osSettingsFinanceRateInvalid = 'os.settings.finance.rate_invalid';
   static const osSettingsFinanceSave = 'os.settings.finance.save';
   static const osSettingsFinanceSaved = 'os.settings.finance.saved';
+  static const osSettingsEmailSection = 'os.settings.email.section';
+  static const osSettingsEmailDescription = 'os.settings.email.description';
+  static const osSettingsEmailSave = 'os.settings.email.save';
+  static const osSettingsEmailSaved = 'os.settings.email.saved';
   static const osSettingsPaytabsSection = 'os.settings.paytabs.section';
   static const osSettingsPaytabsDescription = 'os.settings.paytabs.description';
   static const osSettingsPaytabsConfigured = 'os.settings.paytabs.configured';

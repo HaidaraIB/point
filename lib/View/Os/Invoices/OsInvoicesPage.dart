@@ -7,6 +7,7 @@ import 'package:point/Models/Os/OsInvoiceModel.dart';
 import 'package:point/Models/Os/os_finance_enums.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Utils/OsPermissions.dart';
+import 'package:point/Utils/os_module_ids.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Invoices/Mobile/OsInvoicesMobileScreen.dart';
 import 'package:point/View/Os/Invoices/os_invoice_form_dialog.dart';
@@ -30,7 +31,7 @@ class OsInvoicesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final emp = Get.find<HomeController>().effectiveEmployee;
-    if (!OsPermissions.canAccessOsSection(emp)) {
+    if (!OsPermissions.canAccessModule(emp, OsModuleIds.invoices)) {
       return Scaffold(body: Center(child: Text('errors.forbidden'.tr)));
     }
 
@@ -556,12 +557,13 @@ class _InvoicesTable extends StatelessWidget {
                         onPressed: () => onEdit(inv),
                       ),
                     ],
-                    _ActionIcon(
-                      tooltip: AppLocaleKeys.osCommonDelete.tr,
-                      icon: Icons.delete_outline,
-                      color: Colors.redAccent,
-                      onPressed: () => onDelete(inv),
-                    ),
+                    if (OsPermissions.canDeleteCurrentOsRecords)
+                      _ActionIcon(
+                        tooltip: AppLocaleKeys.osCommonDelete.tr,
+                        icon: Icons.delete_outline,
+                        color: Colors.redAccent,
+                        onPressed: () => onDelete(inv),
+                      ),
                   ],
                 ),
               ),

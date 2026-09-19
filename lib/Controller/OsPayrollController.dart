@@ -1,5 +1,8 @@
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
+import 'package:point/Utils/OsPermissions.dart';
+import 'package:point/Utils/os_module_ids.dart';
+import 'package:point/Utils/os_stream_binding.dart';
 import 'package:point/Controller/OsFinanceController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/EmployeeModel.dart';
@@ -35,11 +38,34 @@ class OsPayrollController extends GetxController {
     _bindStreams();
   }
 
+  void rebindStreamsForPermissions() => _bindStreams();
+
   void _bindStreams() {
-    runs.bindStream(FirestoreOsPayrollApi.streamPayrollRuns());
-    payslips.bindStream(FirestoreOsPayrollApi.streamPayslips());
-    contracts.bindStream(FirestoreOsPayrollApi.streamContracts());
-    advances.bindStream(FirestoreOsPayrollApi.streamAdvances());
+    final emp = Get.isRegistered<HomeController>()
+        ? Get.find<HomeController>().effectiveEmployee
+        : null;
+    final allowed = OsPermissions.canAccessModule(emp, OsModuleIds.payroll);
+
+    bindOsListStream(
+      runs,
+      allowed,
+      FirestoreOsPayrollApi.streamPayrollRuns(),
+    );
+    bindOsListStream(
+      payslips,
+      allowed,
+      FirestoreOsPayrollApi.streamPayslips(),
+    );
+    bindOsListStream(
+      contracts,
+      allowed,
+      FirestoreOsPayrollApi.streamContracts(),
+    );
+    bindOsListStream(
+      advances,
+      allowed,
+      FirestoreOsPayrollApi.streamAdvances(),
+    );
   }
 
   List<EmployeeModel> get employees {

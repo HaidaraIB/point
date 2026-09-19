@@ -1,5 +1,6 @@
 import 'package:point/Models/EmployeeAttendanceLocation.dart';
 import 'package:point/Services/StorageKeys.dart';
+import 'package:point/Utils/os_module_ids.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class EmployeeModel {
@@ -31,6 +32,9 @@ class EmployeeModel {
   final bool attendanceFlexibleHours;
   /// Admin-granted access to the Library (browse, direct upload, pick from library).
   final bool libraryAccess;
+
+  /// Admin-granted Point OS module slugs (supervisors only; see [OsModuleIds]).
+  final List<String> osModuleAccess;
 
   /// Monthly basic salary in IQD (Point OS payroll).
   final double? salary;
@@ -84,6 +88,7 @@ class EmployeeModel {
     this.attendanceRemote = false,
     this.attendanceFlexibleHours = false,
     this.libraryAccess = false,
+    this.osModuleAccess = const [],
     this.salary,
     this.jobTitle,
     this.branchId,
@@ -159,6 +164,7 @@ class EmployeeModel {
     bool? attendanceRemote,
     bool? attendanceFlexibleHours,
     bool? libraryAccess,
+    List<String>? osModuleAccess,
     double? salary,
     String? jobTitle,
     String? branchId,
@@ -210,6 +216,7 @@ class EmployeeModel {
       attendanceFlexibleHours:
           attendanceFlexibleHours ?? this.attendanceFlexibleHours,
       libraryAccess: libraryAccess ?? this.libraryAccess,
+      osModuleAccess: osModuleAccess ?? this.osModuleAccess,
       salary: clearSalary ? null : (salary ?? this.salary),
       jobTitle: clearJobTitle ? null : (jobTitle ?? this.jobTitle),
       branchId: clearBranchId ? null : (branchId ?? this.branchId),
@@ -303,6 +310,7 @@ class EmployeeModel {
       attendanceRemote: json['attendanceRemote'] == true,
       attendanceFlexibleHours: json['attendanceFlexibleHours'] == true,
       libraryAccess: json['libraryAccess'] == true,
+      osModuleAccess: OsModuleIds.normalize(json['osModuleAccess'] as List?),
       salary: (json['salary'] as num?)?.toDouble(),
       jobTitle: json['jobTitle']?.toString(),
       branchId: json['branchId']?.toString(),
@@ -358,6 +366,7 @@ class EmployeeModel {
       "attendanceRemote": attendanceRemote,
       "attendanceFlexibleHours": attendanceFlexibleHours,
       "libraryAccess": libraryAccess,
+      if (osModuleAccess.isNotEmpty) "osModuleAccess": osModuleAccess,
       if (salary != null) "salary": salary,
       if (jobTitle != null && jobTitle!.trim().isNotEmpty)
         "jobTitle": jobTitle!.trim(),

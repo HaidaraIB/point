@@ -5,6 +5,7 @@ import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/ClientModel.dart';
 import 'package:point/Models/Os/OsInvoiceModel.dart';
+import 'package:point/Services/email/os_email_html_composer.dart';
 import 'package:point/Services/firestore/firestore_os_email_api.dart';
 import 'package:point/Services/os_email_hub_service.dart';
 import 'package:point/Services/os_paytabs_service.dart';
@@ -341,29 +342,25 @@ Future<void> sendOsInvoiceEmail(OsInvoiceModel invoice) async {
 
   final ref = OsFinanceFormat.invoiceRef(invoice);
   final subject = AppLocaleKeys.osInvoicesEmailSubject.trParams({'ref': ref});
-  var body = AppLocaleKeys.osInvoicesEmailBody.trParams({
-    'client': invoice.clientName,
-    'ref': ref,
-    'amount': OsFinanceFormat.money(invoice.total),
-    'due': invoice.dueDate,
-  });
-
+  var paymentLink = '';
   if (!invoice.isPaid) {
     final link = await resolveOsInvoicePaymentLink(invoice);
-    if (link != null && link.isNotEmpty) {
-      body =
-          '$body\n\n${AppLocaleKeys.osEmailHubPaymentLink.trParams({'link': link})}';
-    }
+    if (link != null && link.isNotEmpty) paymentLink = link;
   }
 
   try {
     final settings = await FirestoreOsEmailApi.loadSettings();
+    final html = OsEmailHtmlComposer.invoice(
+      invoice: invoice,
+      settings: settings,
+      paymentLink: paymentLink,
+    );
     final ok = await OsEmailHubService.sendAndLog(
       type: OsEmailCategory.invoice,
       toEmail: email,
       recipientName: invoice.clientName,
       subject: subject,
-      content: body,
+      content: html,
       settings: settings,
       referenceId: ref,
       attachmentsCount: 1,

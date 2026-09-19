@@ -32,20 +32,26 @@ class OsEmailHubService {
     int attachmentsCount = 0,
     bool includeSignature = true,
     bool logToFirestore = true,
+    bool isHtml = true,
+    String? languageCode,
   }) async {
     final email = toEmail.trim();
     if (email.isEmpty) return false;
 
-    final body = composeBody(
-      message: content,
-      settings: settings,
-      includeSignature: includeSignature,
-    );
+    final body = isHtml
+        ? content
+        : composeBody(
+            message: content,
+            settings: settings,
+            includeSignature: includeSignature,
+          );
 
     final ok = await EmailNotificationService.sendWithResult(
       toEmail: email,
       subject: subject,
       body: body,
+      isHtml: isHtml,
+      languageCode: languageCode,
     );
 
     final log = OsEmailLogModel(

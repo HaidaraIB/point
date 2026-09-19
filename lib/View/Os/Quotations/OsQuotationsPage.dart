@@ -11,6 +11,7 @@ import 'package:point/Services/firestore/firestore_os_finance_api.dart';
 import 'package:point/Services/os_quote_template_settings.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/OsPermissions.dart';
+import 'package:point/Utils/os_module_ids.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Invoices/os_invoice_form_dialog.dart';
 import 'package:point/View/Os/Invoices/os_invoice_share.dart';
@@ -38,7 +39,7 @@ class _OsQuotationsPageState extends State<OsQuotationsPage> {
   @override
   Widget build(BuildContext context) {
     final emp = Get.find<HomeController>().effectiveEmployee;
-    if (!OsPermissions.canAccessOsSection(emp)) {
+    if (!OsPermissions.canAccessModule(emp, OsModuleIds.quotations)) {
       return Scaffold(body: Center(child: Text('errors.forbidden'.tr)));
     }
 
@@ -653,16 +654,17 @@ class _QuoteCard extends StatelessWidget {
           onPressed: onReopen,
           label: AppLocaleKeys.osQuotationsReopen.tr,
         ),
-      IconButton(
-        tooltip: AppLocaleKeys.osCommonDelete.tr,
-        onPressed: onDelete,
-        visualDensity: VisualDensity.compact,
-        icon: const Icon(
-          Icons.delete_outline,
-          color: AppColors.destructive,
-          size: 20,
+      if (OsPermissions.canDeleteCurrentOsRecords)
+        IconButton(
+          tooltip: AppLocaleKeys.osCommonDelete.tr,
+          onPressed: onDelete,
+          visualDensity: VisualDensity.compact,
+          icon: const Icon(
+            Icons.delete_outline,
+            color: AppColors.destructive,
+            size: 20,
+          ),
         ),
-      ),
     ];
 
     final actions = Container(

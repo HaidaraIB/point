@@ -6,6 +6,7 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Chats/chat_ui_helpers.dart';
+import 'package:point/View/Shared/material_list_tile_scope.dart';
 
 /// Telegram-style pinned messages bar: cycles through multiple pins, opens list sheet.
 class ChatPinnedMessagesBar extends StatefulWidget {
@@ -84,7 +85,8 @@ class _ChatPinnedMessagesBarState extends State<ChatPinnedMessagesBar> {
                     final subtitle = widget.isGroup && sender.isNotEmpty
                         ? '$sender: $preview'
                         : preview;
-                    return ListTile(
+                    return MaterialListTileScope(
+                      child: ListTile(
                       leading: Icon(
                         Icons.push_pin_rounded,
                         color: context.appTheme.accentText,
@@ -101,6 +103,7 @@ class _ChatPinnedMessagesBarState extends State<ChatPinnedMessagesBar> {
                         setState(() => _activeIndex = i);
                         widget.onTapMessage(doc.id);
                       },
+                    ),
                     );
                   },
                 ),

@@ -10,6 +10,7 @@ import 'package:point/Utils/AppColors.dart';
 import 'package:point/View/Shared/InputText.dart';
 import 'package:point/View/Shared/button.dart';
 import 'package:point/View/Shared/responsive.dart';
+import 'package:point/View/Shared/material_list_tile_scope.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 
 /// Helpers for employee attendance location + work hours form fields.
@@ -414,7 +415,8 @@ class _EmployeeAttendanceConfigFieldsState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SwitchListTile(
+        MaterialListTileScope(
+          child: SwitchListTile(
           contentPadding: EdgeInsets.zero,
           title: Text(
             AppLocaleKeys.attendanceRemoteEmployee.tr,
@@ -432,8 +434,10 @@ class _EmployeeAttendanceConfigFieldsState
           activeThumbColor: AppColors.primary,
           onChanged: widget.onAttendanceRemoteChanged,
         ),
+        ),
         if (widget.attendanceRemote) ...[
-          SwitchListTile(
+          MaterialListTileScope(
+            child: SwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: Text(
               AppLocaleKeys.attendanceFlexibleHoursEmployee.tr,
@@ -450,6 +454,7 @@ class _EmployeeAttendanceConfigFieldsState
             value: widget.attendanceFlexibleHours,
             activeThumbColor: AppColors.primary,
             onChanged: widget.onAttendanceFlexibleHoursChanged,
+          ),
           ),
         ],
         const SizedBox(height: 12),

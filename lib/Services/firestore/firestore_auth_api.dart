@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:point/Models/ClientModel.dart';
 import 'package:point/Models/EmployeeModel.dart';
 import 'package:point/Services/StorageKeys.dart';
+import 'package:point/Utils/os_module_ids.dart';
 
 /// مزامنة مستندات [authRoles] مع ملفات الموظف/العميل.
 class FirestoreAuthApi {
@@ -33,11 +34,13 @@ class FirestoreAuthApi {
       final normalizedDepartments = StorageKeys.normalizeDepartments(
         employee.departments,
       );
+      final normalizedOsModules = OsModuleIds.normalize(employee.osModuleAccess);
       final signature = [
         uid,
         eid,
         employee.role,
         employee.libraryAccess,
+        normalizedOsModules.join(','),
         normalizedDepartments.join(','),
       ].join('|');
       if (signature == _lastEmployeeSyncSignature) return true;
@@ -51,6 +54,7 @@ class FirestoreAuthApi {
           'department':
               normalizedDepartments.isEmpty ? '' : normalizedDepartments.first,
           'libraryAccess': employee.libraryAccess,
+          'osModuleAccess': normalizedOsModules,
           'updatedAt': FieldValue.serverTimestamp(),
         },
         SetOptions(merge: true),
@@ -105,6 +109,30 @@ class FirestoreAuthApi {
           );
     } catch (e, s) {
       appLog('⚠️ syncAuthRoleLibraryAccessForEmployee failed: $e');
+      appLog('$s');
+      rethrow;
+    }
+  }
+
+  /// Admin path: sync [osModuleAccess] on target supervisor's authRoles doc.
+  static Future<void> syncAuthRoleOsModuleAccessForEmployee(
+    EmployeeModel employee,
+  ) async {
+    final authUid = employee.authUid?.trim();
+    if (authUid == null || authUid.isEmpty) return;
+    try {
+      await FirebaseFirestore.instance
+          .collection(authRolesCollection)
+          .doc(authUid)
+          .set(
+            {
+              'osModuleAccess': OsModuleIds.normalize(employee.osModuleAccess),
+              'updatedAt': FieldValue.serverTimestamp(),
+            },
+            SetOptions(merge: true),
+          );
+    } catch (e, s) {
+      appLog('⚠️ syncAuthRoleOsModuleAccessForEmployee failed: $e');
       appLog('$s');
       rethrow;
     }

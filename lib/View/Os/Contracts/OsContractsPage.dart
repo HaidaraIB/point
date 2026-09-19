@@ -6,6 +6,7 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/Os/os_legal_contract_enums.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/OsPermissions.dart';
+import 'package:point/Utils/os_module_ids.dart';
 import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Contracts/os_legal_contract_form_dialog.dart';
 import 'package:point/View/Os/Contracts/os_legal_contracts_registry_tab.dart';
@@ -43,7 +44,7 @@ class _OsContractsPageState extends State<OsContractsPage>
   @override
   Widget build(BuildContext context) {
     final emp = Get.find<HomeController>().effectiveEmployee;
-    if (!OsPermissions.canAccessOsSection(emp)) {
+    if (!OsPermissions.canAccessModule(emp, OsModuleIds.contracts)) {
       return Scaffold(body: Center(child: Text('errors.forbidden'.tr)));
     }
 
