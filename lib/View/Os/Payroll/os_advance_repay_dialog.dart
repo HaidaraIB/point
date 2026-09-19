@@ -128,7 +128,7 @@ class _OsAdvanceRepayDialogState extends State<_OsAdvanceRepayDialog> {
           ),
           const SizedBox(height: 16),
           _label(AppLocaleKeys.osAdvancesRepayAmount.tr),
-          TextField(
+          osTypedTextField(
             controller: _amountCtrl,
             autofocus: true,
             keyboardType: TextInputType.number,

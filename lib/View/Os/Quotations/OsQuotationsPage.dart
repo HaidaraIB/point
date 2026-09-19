@@ -376,7 +376,7 @@ class _TemplatePanelState extends State<_TemplatePanel> {
     final theme = context.appTheme;
     final template = Get.find<OsQuoteTemplateController>();
 
-    Widget headerField() => TextField(
+    Widget headerField() => osTypedTextField(
           controller: _headerCtrl,
           decoration: osFinanceFieldDecoration(
             AppLocaleKeys.osQuotationsTemplateHeader.tr,
@@ -384,7 +384,7 @@ class _TemplatePanelState extends State<_TemplatePanel> {
           onChanged: template.setHeaderText,
         );
 
-    Widget footerField() => TextField(
+    Widget footerField() => osTypedTextField(
           controller: _footerCtrl,
           decoration: osFinanceFieldDecoration(
             AppLocaleKeys.osQuotationsTemplateFooter.tr,

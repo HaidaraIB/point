@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:point/Utils/text_input_bidi.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
@@ -101,7 +102,7 @@ Future<void> showRequestTaskModificationDialog({
                         ),
                       ),
                       const SizedBox(height: 12),
-                      TextFormField(
+                      typedDirectionTextFormField(
                         controller: messageController,
                         minLines: 4,
                         maxLines: 10,

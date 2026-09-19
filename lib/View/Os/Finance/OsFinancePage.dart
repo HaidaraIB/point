@@ -629,7 +629,7 @@ class _AccountsTabState extends State<_AccountsTab> {
               },
             ),
             const SizedBox(height: 14),
-            TextField(
+            osTypedTextField(
               controller: nameCtrl,
               style: const TextStyle(fontSize: 16),
               decoration: osFinanceFieldDecoration(
@@ -638,10 +638,9 @@ class _AccountsTabState extends State<_AccountsTab> {
               ),
             ),
             const SizedBox(height: 14),
-            TextField(
+            osTypedTextField(
               controller: numberCtrl,
               style: const TextStyle(fontSize: 16),
-              textDirection: TextDirection.ltr,
               decoration: osFinanceFieldDecoration(
                 AppLocaleKeys.osAccountsNumber.tr,
                 hint: AppLocaleKeys.osAccountsNumberHint.tr,
@@ -649,7 +648,7 @@ class _AccountsTabState extends State<_AccountsTab> {
             ),
             if (existing == null) ...[
               const SizedBox(height: 14),
-              TextField(
+              osTypedTextField(
                 controller: balanceCtrl,
                 style: const TextStyle(fontSize: 16),
                 keyboardType: TextInputType.number,
@@ -753,7 +752,7 @@ class _AccountsTabState extends State<_AccountsTab> {
               onChanged: (v) => setLocal(() => destId = v),
             ),
             const SizedBox(height: 14),
-            TextField(
+            osTypedTextField(
               controller: amountCtrl,
               style: const TextStyle(fontSize: 16),
               keyboardType: TextInputType.number,
@@ -1155,7 +1154,7 @@ class _VouchersTabState extends State<_VouchersTab> {
                     ],
                   ),
                 const SizedBox(height: 14),
-                TextField(
+                osTypedTextField(
                   controller: amountCtrl,
                   style: const TextStyle(fontSize: 16),
                   keyboardType: TextInputType.number,
@@ -1164,7 +1163,7 @@ class _VouchersTabState extends State<_VouchersTab> {
                   ),
                 ),
                 const SizedBox(height: 14),
-                TextField(
+                osTypedTextField(
                   controller: payeeCtrl,
                   style: const TextStyle(fontSize: 16),
                   decoration: osFinanceFieldDecoration(
@@ -1173,7 +1172,7 @@ class _VouchersTabState extends State<_VouchersTab> {
                   ),
                 ),
                 const SizedBox(height: 14),
-                TextField(
+                osTypedTextField(
                   controller: descCtrl,
                   style: const TextStyle(fontSize: 16),
                   maxLines: 2,
@@ -1351,7 +1350,7 @@ class _VouchersTabState extends State<_VouchersTab> {
                 const SizedBox(width: 10),
                 SizedBox(
                   width: 320,
-                  child: TextField(
+                  child: osTypedTextField(
                     controller: _searchCtrl,
                     onChanged: (_) => setState(() {}),
                     decoration: InputDecoration(

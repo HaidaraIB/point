@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/Utils/text_input_bidi.dart';
 
 InputDecoration osFinanceFieldDecoration(
   String label, {
@@ -327,6 +329,96 @@ InputDecoration osToolbarCompactFieldDecoration(BuildContext context) {
     ),
   );
 }
+
+/// [TextField] with paragraph direction from typed content, not UI locale.
+Widget osTypedTextField({
+  required TextEditingController controller,
+  required InputDecoration decoration,
+  ValueChanged<String>? onChanged,
+  TextInputType? keyboardType,
+  int? maxLines = 1,
+  int? minLines,
+  bool readOnly = false,
+  VoidCallback? onTap,
+  TextInputAction? textInputAction,
+  ValueChanged<String>? onSubmitted,
+  List<TextInputFormatter>? inputFormatters,
+  TextStyle? style,
+  TextAlignVertical? textAlignVertical,
+  String? hintText,
+  bool obscureText = false,
+  bool enabled = true,
+  FocusNode? focusNode,
+  TextAlign textAlign = TextAlign.start,
+  bool autofocus = false,
+}) =>
+    typedDirectionTextField(
+      controller: controller,
+      decoration: decoration,
+      onChanged: onChanged,
+      keyboardType: keyboardType,
+      maxLines: maxLines,
+      minLines: minLines,
+      readOnly: readOnly,
+      onTap: onTap,
+      textInputAction: textInputAction,
+      onSubmitted: onSubmitted,
+      inputFormatters: inputFormatters,
+      style: style,
+      textAlignVertical: textAlignVertical,
+      hintText: hintText,
+      obscureText: obscureText,
+      enabled: enabled,
+      focusNode: focusNode,
+      textAlign: textAlign,
+      autofocus: autofocus,
+    );
+
+/// [TextFormField] with paragraph direction from typed content, not UI locale.
+Widget osTypedTextFormField({
+  required TextEditingController controller,
+  required InputDecoration decoration,
+  ValueChanged<String>? onChanged,
+  String? Function(String?)? validator,
+  TextInputType? keyboardType,
+  int? maxLines = 1,
+  int? minLines,
+  bool readOnly = false,
+  VoidCallback? onTap,
+  TextInputAction? textInputAction,
+  ValueChanged<String>? onFieldSubmitted,
+  List<TextInputFormatter>? inputFormatters,
+  TextStyle? style,
+  TextAlignVertical? textAlignVertical,
+  String? hintText,
+  bool obscureText = false,
+  bool enabled = true,
+  FocusNode? focusNode,
+  TextAlign textAlign = TextAlign.start,
+  int? maxLength,
+}) =>
+    typedDirectionTextFormField(
+      controller: controller,
+      decoration: decoration,
+      onChanged: onChanged,
+      validator: validator,
+      keyboardType: keyboardType,
+      maxLines: maxLines,
+      minLines: minLines,
+      readOnly: readOnly,
+      onTap: onTap,
+      textInputAction: textInputAction,
+      onFieldSubmitted: onFieldSubmitted,
+      inputFormatters: inputFormatters,
+      style: style,
+      textAlignVertical: textAlignVertical,
+      hintText: hintText,
+      obscureText: obscureText,
+      enabled: enabled,
+      focusNode: focusNode,
+      textAlign: textAlign,
+      maxLength: maxLength,
+    );
 
 class OsDialogFrame extends StatelessWidget {
   const OsDialogFrame({

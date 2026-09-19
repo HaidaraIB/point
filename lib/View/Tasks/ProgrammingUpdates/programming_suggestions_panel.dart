@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:point/Utils/text_input_bidi.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/ProgrammingUpdateModel.dart';
@@ -355,7 +356,7 @@ class _ProgrammingSuggestionsCardState
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: theme.border),
       ),
-      child: TextField(
+      child: typedDirectionTextField(
         controller: controller,
         style: TextStyle(color: theme.primaryText, fontSize: 13),
         decoration: InputDecoration(

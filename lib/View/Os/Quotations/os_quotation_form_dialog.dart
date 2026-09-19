@@ -322,19 +322,19 @@ class _OsQuotationFormDialogState extends State<_OsQuotationFormDialog> {
                     ),
                     const SizedBox(height: 12),
                     _label(AppLocaleKeys.osInvoicesClientPhone.tr),
-                    TextFormField(
+                    osTypedTextFormField(
                       controller: _phoneCtrl,
                       decoration: osDialogFieldDecoration(context),
                     ),
                     const SizedBox(height: 12),
                     _label(AppLocaleKeys.osInvoicesClientEmail.tr),
-                    TextFormField(
+                    osTypedTextFormField(
                       controller: _emailCtrl,
                       decoration: osDialogFieldDecoration(context),
                     ),
                     const SizedBox(height: 12),
                     _label(AppLocaleKeys.osInvoicesClientAddress.tr),
-                    TextFormField(
+                    osTypedTextFormField(
                       controller: _addressCtrl,
                       decoration: osDialogFieldDecoration(context),
                     ),
@@ -380,14 +380,14 @@ class _OsQuotationFormDialogState extends State<_OsQuotationFormDialog> {
                     ),
                     const SizedBox(height: 12),
                     _label(AppLocaleKeys.osInvoicesDiscount.tr),
-                    TextFormField(
+                    osTypedTextFormField(
                       controller: _discountCtrl,
                       keyboardType: TextInputType.number,
                       decoration: osDialogFieldDecoration(context),
                     ),
                     const SizedBox(height: 12),
                     _label(AppLocaleKeys.osInvoicesNotes.tr),
-                    TextFormField(
+                    osTypedTextFormField(
                       controller: _notesCtrl,
                       maxLines: 3,
                       decoration: osDialogFieldDecoration(context),

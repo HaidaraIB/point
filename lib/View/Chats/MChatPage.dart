@@ -831,7 +831,7 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                       ),
                     ),
                     SizedBox(height: 12),
-                    TextField(
+                    typedDirectionTextField(
                       controller: _searchController,
                       decoration: InputDecoration(
                         hintText: AppLocaleKeys.chatSearchEmployee.tr,
@@ -1143,9 +1143,16 @@ class _ChatsListScreenState extends State<ChatsListScreen> {
                               children: [
                                 Expanded(
                                   child: TextField(
+                                    textDirection: typedInputTextDirection(
+                                      _chatListSearchQuery,
+                                    ),
                                     decoration: InputDecoration(
                                       hintText:
                                           AppLocaleKeys.chatSearchInChats.tr,
+                                      hintTextDirection:
+                                          typedInputHintTextDirection(
+                                            AppLocaleKeys.chatSearchInChats.tr,
+                                          ),
                                       prefixIcon: const Icon(Icons.search),
                                       filled: true,
                                       fillColor: chatSearchFieldFill(context),
@@ -2524,6 +2531,12 @@ class _MessageScreenState extends State<MessageScreen>
                                             hintText: AppLocaleKeys
                                                 .chatWriteMessage
                                                 .tr,
+                                            hintTextDirection:
+                                                typedInputHintTextDirection(
+                                                  AppLocaleKeys
+                                                      .chatWriteMessage
+                                                      .tr,
+                                                ),
                                             hintStyle: TextStyle(
                                               color: context.appTheme.mutedText,
                                               fontSize: 16,

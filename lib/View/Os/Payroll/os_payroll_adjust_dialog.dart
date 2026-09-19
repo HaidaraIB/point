@@ -87,7 +87,7 @@ class _OsPayrollAdjustDialogState extends State<_OsPayrollAdjustDialog> {
   }
 
   Widget _amountField(TextEditingController ctrl) {
-    return TextField(
+    return osTypedTextField(
       controller: ctrl,
       keyboardType: TextInputType.number,
       inputFormatters: [FilteringTextInputFormatter.digitsOnly],

@@ -3,9 +3,10 @@ import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/Utils/text_input_bidi.dart';
 
 /// Compact search field used by OS list filter bars.
-class OsSearchField extends StatelessWidget {
+class OsSearchField extends StatefulWidget {
   const OsSearchField({
     super.key,
     required this.controller,
@@ -20,23 +21,55 @@ class OsSearchField extends StatelessWidget {
   final ValueChanged<String>? onChanged;
 
   @override
+  State<OsSearchField> createState() => _OsSearchFieldState();
+}
+
+class _OsSearchFieldState extends State<OsSearchField> {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_rebuild);
+  }
+
+  @override
+  void didUpdateWidget(covariant OsSearchField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_rebuild);
+      widget.controller.addListener(_rebuild);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_rebuild);
+    super.dispose();
+  }
+
+  void _rebuild() => setState(() {});
+
+  @override
   Widget build(BuildContext context) {
     final theme = context.appTheme;
+    final textDirection = typedInputTextDirection(widget.controller.text);
+    final hintTextDirection = typedInputHintTextDirection(widget.hint);
     final field = TextField(
-      controller: controller,
-      onChanged: onChanged,
+      controller: widget.controller,
+      onChanged: widget.onChanged,
+      textDirection: textDirection,
       style: TextStyle(fontSize: 13, color: theme.primaryText),
       decoration: InputDecoration(
-        hintText: hint,
+        hintText: widget.hint,
+        hintTextDirection: hintTextDirection,
         hintMaxLines: 1,
         prefixIcon: Icon(Icons.search, size: 18, color: theme.mutedText),
-        suffixIcon: controller.text.isEmpty
+        suffixIcon: widget.controller.text.isEmpty
             ? null
             : IconButton(
                 icon: const Icon(Icons.close, size: 16),
                 onPressed: () {
-                  controller.clear();
-                  onChanged?.call('');
+                  widget.controller.clear();
+                  widget.onChanged?.call('');
                 },
               ),
         filled: true,
@@ -60,8 +93,8 @@ class OsSearchField extends StatelessWidget {
         isDense: true,
       ),
     );
-    if (!width.isFinite) return field;
-    return SizedBox(width: width, child: field);
+    if (!widget.width.isFinite) return field;
+    return SizedBox(width: widget.width, child: field);
   }
 }
 

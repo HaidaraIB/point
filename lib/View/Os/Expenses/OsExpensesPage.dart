@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:point/Controller/HomeController.dart';
@@ -629,7 +630,7 @@ class _OsExpensesPageState extends State<OsExpensesPage> {
                             alignment: AlignmentDirectional.centerStart,
                             child: ConstrainedBox(
                               constraints: const BoxConstraints(maxWidth: 420),
-                              child: TextField(
+                              child: osTypedTextField(
                                 controller: _search,
                                 onChanged: (_) => setState(() {}),
                                 style: TextStyle(

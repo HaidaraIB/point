@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:point/Models/Os/OsGeneralSettings.dart';
+import 'package:point/Services/firestore/firestore_stream_utils.dart';
 import 'package:point/Utils/app_log.dart';
 
 /// Firestore API for agency-wide Point OS general settings.
@@ -10,7 +11,7 @@ class FirestoreOsGeneralSettingsApi {
   static const settingsDocId = 'default';
 
   static Stream<OsGeneralSettings> streamSettings() {
-    return FirebaseFirestore.instance
+    final mapped = FirebaseFirestore.instance
         .collection(collection)
         .doc(settingsDocId)
         .snapshots()
@@ -18,6 +19,11 @@ class FirestoreOsGeneralSettingsApi {
       if (!doc.exists) return OsGeneralSettings.defaults();
       return OsGeneralSettings.fromJson(doc.data());
     });
+    return safeFirestoreValueStream(
+      mapped,
+      'os_general_settings',
+      OsGeneralSettings.defaults(),
+    );
   }
 
   static Future<OsGeneralSettings> loadSettings() async {

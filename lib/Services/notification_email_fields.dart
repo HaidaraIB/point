@@ -60,14 +60,16 @@ class TaskEmailContext {
     String? newDueDate,
     String? denialNote,
     String? department,
+    String? priority,
+    String? clientName,
   }) {
     return TaskEmailContext(
       taskTitle: taskTitle,
       department: department ?? this.department,
       dueDate: dueDate,
       startDate: startDate,
-      priority: priority,
-      clientName: clientName,
+      priority: priority ?? this.priority,
+      clientName: clientName ?? this.clientName,
       editMessage: editMessage,
       requestedBy: requestedBy ?? this.requestedBy,
       rejectionReason: rejectionReason,

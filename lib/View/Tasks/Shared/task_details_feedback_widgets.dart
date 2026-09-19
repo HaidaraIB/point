@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:point/Utils/text_input_bidi.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
@@ -285,7 +286,7 @@ class TaskDetailsFeedbackWidgets {
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('tasks.deadline_extension_deny'.tr),
-        content: TextField(
+        content: typedDirectionTextField(
           controller: noteController,
           maxLines: 3,
           decoration: InputDecoration(

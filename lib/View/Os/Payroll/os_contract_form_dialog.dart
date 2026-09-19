@@ -183,7 +183,7 @@ class _OsContractFormDialogState extends State<_OsContractFormDialog> {
           ),
           const SizedBox(height: 16),
           _label(AppLocaleKeys.osContractsType.tr),
-          TextField(
+          osTypedTextField(
             controller: _typeCtrl,
             decoration: osDialogFieldDecoration(
               context,

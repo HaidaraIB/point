@@ -5,6 +5,7 @@ import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/AdministrationTaskModel.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
+import 'package:point/Services/task_client_name_resolver.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Tasks/DetailsDialogs/GenericTaskDetailsDialog.dart';
 import 'package:point/View/Tasks/DetailsDialogs/TaskDetailsDialogHelpers.dart';
@@ -36,11 +37,8 @@ class AdministrationDetailsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final clientName =
-        Get.find<HomeController>().clients
-            .firstWhereOrNull((emp) => emp.id == task.clientName)
-            ?.name ??
-        task.clientName;
+    final hc = Get.find<HomeController>();
+    final clientName = taskClientDisplayLabelForUi(task.clientName, hc.clients);
 
     final extra = task.administrationModel?.extra ?? const {};
     final aboutRaw = extra[AdministrationTaskModel.kAboutTaskKey];

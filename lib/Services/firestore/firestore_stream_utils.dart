@@ -31,3 +31,31 @@ Stream<List<T>> safeFirestoreListStream<T>(
     ),
   );
 }
+
+/// Like [safeFirestoreListStream] for single-value document streams.
+Stream<T> safeFirestoreValueStream<T>(
+  Stream<T> source,
+  String label,
+  T fallbackOnLogout,
+) {
+  return source.transform(
+    StreamTransformer<T, T>.fromHandlers(
+      handleError: (Object error, StackTrace stackTrace, EventSink<T> sink) {
+        if (FirebaseAuth.instance.currentUser == null) {
+          sink.add(fallbackOnLogout);
+          return;
+        }
+        final msg = error.toString();
+        if (msg.contains('permission-denied')) {
+          appLog(
+            '⚠️ Firestore stream [$label]: permission-denied '
+            '(keeping last value until authRoles sync + rebind)',
+          );
+          return;
+        }
+        appLog('⚠️ Firestore stream [$label]: $error');
+        sink.add(fallbackOnLogout);
+      },
+    ),
+  );
+}

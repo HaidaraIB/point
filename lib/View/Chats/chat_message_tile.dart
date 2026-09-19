@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:point/Utils/text_input_bidi.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
@@ -556,11 +557,14 @@ class _ChatMessageTileState extends State<ChatMessageTile>
     final next = await Get.dialog<String?>(
       AlertDialog(
         title: Text(AppLocaleKeys.chatEditMessageTitle.tr),
-        content: TextField(
+        content: typedDirectionTextField(
           controller: controller,
           keyboardType: TextInputType.multiline,
           maxLines: 6,
           minLines: 2,
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+          ),
         ),
         actions: [
           TextButton(

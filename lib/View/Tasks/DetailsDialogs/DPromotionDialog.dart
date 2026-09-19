@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
+import 'package:point/Services/task_client_name_resolver.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/View/Shared/responsive.dart';
 import 'package:point/View/Tasks/DetailsDialogs/GenericTaskDetailsDialog.dart';
@@ -39,11 +40,8 @@ class PromotionDetailsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final promo = task.promotionModel!;
-    final clientName =
-        Get.find<HomeController>().clients
-            .firstWhereOrNull((emp) => emp.id == task.clientName)
-            ?.name ??
-        task.clientName;
+    final hc = Get.find<HomeController>();
+    final clientName = taskClientDisplayLabelForUi(task.clientName, hc.clients);
 
     String normalizeDepartmentId(String? value) {
       final v = value?.trim() ?? '';

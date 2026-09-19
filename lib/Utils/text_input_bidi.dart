@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart' show Bidi;
 
@@ -32,26 +33,194 @@ bool composerControlPressed() {
       HardwareKeyboard.instance.isControlPressed;
 }
 
-/// يحدد اتجاه حقل إدخال الرسالة من **محتوى النص** (أول حرف اتجاهي قوي)،
-/// وليس من اتجاه واجهة التطبيق.
+/// Paragraph direction for editable fields from **typed content** (first strong
+/// character), not from app UI locale.
 ///
-/// عند الفراغ يُرجع `null` ليستخدم [TextField] الاتجاه الموروث (لغة التطبيق للتلميح).
+/// Empty → `null` (inherit ambient direction for caret/hint placement).
+/// Arabic-first → RTL. Any other content (Latin, digits, `+`, URLs) → LTR.
+TextDirection? typedInputTextDirection(String text) {
+  if (text.trim().isEmpty) return null;
+  if (Bidi.startsWithRtl(text)) return TextDirection.rtl;
+  return TextDirection.ltr;
+}
+
+/// Hint placeholder direction (e.g. `+964 770 000 0000` stays LTR in Arabic UI).
+TextDirection? typedInputHintTextDirection(String? hintText) {
+  if (hintText == null || hintText.trim().isEmpty) return null;
+  return typedInputTextDirection(hintText);
+}
+
+/// Chat composer alias — same typed-content rules as [typedInputTextDirection].
 TextDirection? textDirectionForTypedChatMessage(
   String text,
   TextDirection ambientDirection,
 ) {
-  if (text.trim().isEmpty) return null;
-  if (Bidi.startsWithRtl(text)) return TextDirection.rtl;
-  if (Bidi.startsWithLtr(text)) return TextDirection.ltr;
-  return ambientDirection;
+  return typedInputTextDirection(text);
 }
 
 bool shouldUseRtlVisualCaretNavigation(
   String text,
   TextDirection ambientDirection,
 ) {
-  final resolved = textDirectionForTypedChatMessage(text, ambientDirection);
+  final resolved = typedInputTextDirection(text);
   return resolved == TextDirection.rtl;
+}
+
+/// Rebuilds when [controller] text changes and supplies resolved directions.
+class TypedTextDirection extends StatefulWidget {
+  const TypedTextDirection({
+    super.key,
+    required this.controller,
+    this.hintText,
+    required this.builder,
+  });
+
+  final TextEditingController controller;
+  final String? hintText;
+  final Widget Function(
+    BuildContext context,
+    TextDirection? textDirection,
+    TextDirection? hintTextDirection,
+  ) builder;
+
+  @override
+  State<TypedTextDirection> createState() => _TypedTextDirectionState();
+}
+
+class _TypedTextDirectionState extends State<TypedTextDirection> {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_rebuild);
+  }
+
+  @override
+  void didUpdateWidget(covariant TypedTextDirection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_rebuild);
+      widget.controller.addListener(_rebuild);
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_rebuild);
+    super.dispose();
+  }
+
+  void _rebuild() => setState(() {});
+
+  @override
+  Widget build(BuildContext context) {
+    return widget.builder(
+      context,
+      typedInputTextDirection(widget.controller.text),
+      typedInputHintTextDirection(widget.hintText),
+    );
+  }
+}
+
+/// [TextField] with paragraph direction from typed content, not UI locale.
+Widget typedDirectionTextField({
+  required TextEditingController controller,
+  required InputDecoration decoration,
+  ValueChanged<String>? onChanged,
+  TextInputType? keyboardType,
+  int? maxLines = 1,
+  int? minLines,
+  bool readOnly = false,
+  VoidCallback? onTap,
+  TextInputAction? textInputAction,
+  ValueChanged<String>? onSubmitted,
+  List<TextInputFormatter>? inputFormatters,
+  TextStyle? style,
+  TextAlignVertical? textAlignVertical,
+  String? hintText,
+  bool obscureText = false,
+  bool enabled = true,
+  FocusNode? focusNode,
+  TextAlign textAlign = TextAlign.start,
+  bool autofocus = false,
+}) {
+  final hint = hintText ?? decoration.hintText;
+  return TypedTextDirection(
+    controller: controller,
+    hintText: hint,
+    builder: (context, textDirection, hintTextDirection) => TextField(
+      controller: controller,
+      onChanged: onChanged,
+      keyboardType: keyboardType,
+      maxLines: maxLines,
+      minLines: minLines,
+      readOnly: readOnly,
+      onTap: onTap,
+      textInputAction: textInputAction,
+      onSubmitted: onSubmitted,
+      inputFormatters: inputFormatters,
+      style: style,
+      textAlignVertical: textAlignVertical,
+      textDirection: textDirection,
+      obscureText: obscureText,
+      enabled: enabled,
+      focusNode: focusNode,
+      textAlign: textAlign,
+      autofocus: autofocus,
+      decoration: decoration.copyWith(hintTextDirection: hintTextDirection),
+    ),
+  );
+}
+
+/// [TextFormField] with paragraph direction from typed content, not UI locale.
+Widget typedDirectionTextFormField({
+  required TextEditingController controller,
+  required InputDecoration decoration,
+  ValueChanged<String>? onChanged,
+  String? Function(String?)? validator,
+  TextInputType? keyboardType,
+  int? maxLines = 1,
+  int? minLines,
+  bool readOnly = false,
+  VoidCallback? onTap,
+  TextInputAction? textInputAction,
+  ValueChanged<String>? onFieldSubmitted,
+  List<TextInputFormatter>? inputFormatters,
+  TextStyle? style,
+  TextAlignVertical? textAlignVertical,
+  String? hintText,
+  bool obscureText = false,
+  bool enabled = true,
+  FocusNode? focusNode,
+  TextAlign textAlign = TextAlign.start,
+  int? maxLength,
+}) {
+  final hint = hintText ?? decoration.hintText;
+  return TypedTextDirection(
+    controller: controller,
+    hintText: hint,
+    builder: (context, textDirection, hintTextDirection) => TextFormField(
+      controller: controller,
+      onChanged: onChanged,
+      validator: validator,
+      keyboardType: keyboardType,
+      maxLines: maxLines,
+      minLines: minLines,
+      readOnly: readOnly,
+      onTap: onTap,
+      textInputAction: textInputAction,
+      onFieldSubmitted: onFieldSubmitted,
+      inputFormatters: inputFormatters,
+      style: style,
+      textAlignVertical: textAlignVertical,
+      textDirection: textDirection,
+      obscureText: obscureText,
+      enabled: enabled,
+      focusNode: focusNode,
+      textAlign: textAlign,
+      maxLength: maxLength,
+      decoration: decoration.copyWith(hintTextDirection: hintTextDirection),
+    ),
+  );
 }
 
 TextSelection? remapHorizontalArrowForRtlVisual({

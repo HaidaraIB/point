@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/Utils/text_input_bidi.dart';
 
-class InputText extends StatelessWidget {
+class InputText extends StatefulWidget {
   final String hintText;
   final String? labelText;
   final double? height;
@@ -83,9 +84,50 @@ class InputText extends StatelessWidget {
   }
 
   @override
+  State<InputText> createState() => _InputTextState();
+}
+
+class _InputTextState extends State<InputText> {
+  TextEditingController? _internalController;
+  TextEditingController get _effectiveController =>
+      widget.controller ?? _internalController!;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.controller == null) {
+      _internalController = TextEditingController();
+    }
+    _effectiveController.addListener(_onTextChanged);
+  }
+
+  @override
+  void didUpdateWidget(covariant InputText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      (oldWidget.controller ?? _internalController)?.removeListener(
+        _onTextChanged,
+      );
+      if (widget.controller == null && _internalController == null) {
+        _internalController = TextEditingController();
+      }
+      _effectiveController.addListener(_onTextChanged);
+    }
+  }
+
+  @override
+  void dispose() {
+    _effectiveController.removeListener(_onTextChanged);
+    _internalController?.dispose();
+    super.dispose();
+  }
+
+  void _onTextChanged() => setState(() {});
+
+  @override
   Widget build(BuildContext context) {
     final appTheme = context.appTheme;
-    final bool isCompactHeight = (height ?? 0) > 0 && (height ?? 0) <= 44;
+    final bool isCompactHeight = (widget.height ?? 0) > 0 && (widget.height ?? 0) <= 44;
     final double fieldVerticalPadding =
         isCompactHeight ? (kIsWeb ? 8.0 : 5.0) : 12.0;
 
@@ -93,36 +135,38 @@ class InputText extends StatelessWidget {
     // the outline (web multiline used min-only before, which left a tall I-beam zone
     // below the visible border).
     final BoxConstraints boxConstraints =
-        height != null
-            ? BoxConstraints(minHeight: height!, maxHeight: height!)
+        widget.height != null
+            ? BoxConstraints(minHeight: widget.height!, maxHeight: widget.height!)
             : const BoxConstraints();
 
     /// [TextFormField] path keeps the original web min-only behavior; custom
     /// [body] needs bounded height so inner [ScrollView]s get a finite viewport.
     final BoxConstraints bodyBoxConstraints =
-        height != null
-            ? BoxConstraints(minHeight: height!, maxHeight: height!)
+        widget.height != null
+            ? BoxConstraints(minHeight: widget.height!, maxHeight: widget.height!)
             : const BoxConstraints();
 
-    final borderRadiusValue = borderRadius ?? 15.0;
-    final resolvedFill = fillColor ?? appTheme.inputFill;
-    final outlineColor = borderColor ?? appTheme.border;
-    final fieldTextColor = textOnFill(resolvedFill, appTheme);
-    final fieldHintColor = hintOnFill(resolvedFill, appTheme);
+    final borderRadiusValue = widget.borderRadius ?? 15.0;
+    final resolvedFill = widget.fillColor ?? appTheme.inputFill;
+    final outlineColor = widget.borderColor ?? appTheme.border;
+    final fieldTextColor = InputText.textOnFill(resolvedFill, appTheme);
+    final fieldHintColor = InputText.hintOnFill(resolvedFill, appTheme);
+    final textDirection = typedInputTextDirection(_effectiveController.text);
+    final hintTextDirection = typedInputHintTextDirection(widget.hintText);
 
     /// Custom content (e.g. notes log, drag-drop zone). Must not use
     /// [InputDecoration.label], which would stack all children as one floating label.
-    if (body != null) {
+    if (widget.body != null) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (labelText != null) const SizedBox(height: 8),
-          if (labelText != null)
+          if (widget.labelText != null) const SizedBox(height: 8),
+          if (widget.labelText != null)
             Row(
               children: [
                 Flexible(
                   child: Text(
-                    labelText ?? '',
+                    widget.labelText ?? '',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
@@ -131,11 +175,11 @@ class InputText extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                if (require == true)
+                if (widget.require == true)
                   const Text(' * ', style: TextStyle(color: Colors.red)),
               ],
             ),
-          if (labelText != null) const SizedBox(height: 8),
+          if (widget.labelText != null) const SizedBox(height: 8),
           Container(
             constraints: bodyBoxConstraints,
             width: double.infinity,
@@ -145,7 +189,7 @@ class InputText extends StatelessWidget {
               border: Border.all(color: outlineColor, width: 1.2),
             ),
             clipBehavior: Clip.antiAlias,
-            child: body,
+            child: widget.body,
           ),
         ],
       );
@@ -154,13 +198,13 @@ class InputText extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (labelText != null) SizedBox(height: 8),
-        if (labelText != null)
+        if (widget.labelText != null) SizedBox(height: 8),
+        if (widget.labelText != null)
           Row(
             children: [
               Flexible(
                 child: Text(
-                  labelText ?? '',
+                  widget.labelText ?? '',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
@@ -169,14 +213,14 @@ class InputText extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              if (require == true)
+              if (widget.require == true)
                 Text(' * ', style: TextStyle(color: Colors.red)),
             ],
           ),
-        if (labelText != null) SizedBox(height: 8),
-        if (height != null && expanded != true)
+        if (widget.labelText != null) SizedBox(height: 8),
+        if (widget.height != null && widget.expanded != true)
           SizedBox(
-            height: height,
+            height: widget.height,
             width: double.infinity,
             child: _buildTextField(
               appTheme: appTheme,
@@ -187,6 +231,8 @@ class InputText extends StatelessWidget {
               fieldTextColor: fieldTextColor,
               fieldHintColor: fieldHintColor,
               borderRadiusValue: borderRadiusValue,
+              textDirection: textDirection,
+              hintTextDirection: hintTextDirection,
             ),
           )
         else
@@ -202,6 +248,8 @@ class InputText extends StatelessWidget {
               fieldTextColor: fieldTextColor,
               fieldHintColor: fieldHintColor,
               borderRadiusValue: borderRadiusValue,
+              textDirection: textDirection,
+              hintTextDirection: hintTextDirection,
             ),
           ),
       ],
@@ -217,37 +265,41 @@ class InputText extends StatelessWidget {
     required Color fieldTextColor,
     required Color fieldHintColor,
     required double borderRadiusValue,
+    required TextDirection? textDirection,
+    required TextDirection? hintTextDirection,
   }) {
     return TextFormField(
-            controller: controller,
-            focusNode: focusNode,
-            autofillHints: autofillHints,
-            validator: validator,
-            onChanged: onchange,
-            onFieldSubmitted: onFieldSubmitted,
-            textInputAction: textInputAction,
-            obscureText: obscureText,
-            enabled: enable,
-            readOnly: readOnly ?? false,
-            onTap: onTap,
-            keyboardType: textInputType,
-            maxLength: maxLength,
-            maxLines: expanded == true ? null : 1,
-            minLines: expanded == true && minLines != null ? minLines : null,
+            controller: _effectiveController,
+            focusNode: widget.focusNode,
+            autofillHints: widget.autofillHints,
+            validator: widget.validator,
+            onChanged: widget.onchange,
+            onFieldSubmitted: widget.onFieldSubmitted,
+            textInputAction: widget.textInputAction,
+            obscureText: widget.obscureText,
+            enabled: widget.enable,
+            readOnly: widget.readOnly ?? false,
+            onTap: widget.onTap,
+            keyboardType: widget.textInputType,
+            maxLength: widget.maxLength,
+            maxLines: widget.expanded == true ? null : 1,
+            minLines: widget.expanded == true && widget.minLines != null ? widget.minLines : null,
             textAlignVertical:
-                expanded == true ? TextAlignVertical.top : TextAlignVertical.center,
+                widget.expanded == true ? TextAlignVertical.top : TextAlignVertical.center,
+            textDirection: textDirection,
             style:
-                textStyle ??
+                widget.textStyle ??
                 TextStyle(fontSize: 13, color: fieldTextColor),
-            inputFormatters: inputFormatters,
+            inputFormatters: widget.inputFormatters,
 
             decoration: InputDecoration(
               filled: true,
               fillColor: resolvedFill,
               isDense: isCompactHeight,
-              hintText: hintText,
+              hintText: widget.hintText,
+              hintTextDirection: hintTextDirection,
               hintStyle:
-                  hintStyle ??
+                  widget.hintStyle ??
                   TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,
@@ -259,37 +311,37 @@ class InputText extends StatelessWidget {
               ),
 
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(borderRadius ?? 15),
+                borderRadius: BorderRadius.circular(widget.borderRadius ?? 15),
                 borderSide: BorderSide(
                   color: outlineColor,
                   width: 1.2,
                 ),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(borderRadius ?? 15),
+                borderRadius: BorderRadius.circular(widget.borderRadius ?? 15),
                 borderSide: BorderSide(
                   color: outlineColor,
                   width: 1.2,
                 ),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(borderRadius ?? 15),
+                borderRadius: BorderRadius.circular(widget.borderRadius ?? 15),
                 borderSide: BorderSide(
-                  color: borderColor ?? AppColors.primary,
+                  color: widget.borderColor ?? AppColors.primary,
                   width: 1.5,
                 ),
               ),
               errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(borderRadius ?? 15),
+                borderRadius: BorderRadius.circular(widget.borderRadius ?? 15),
                 borderSide: const BorderSide(color: Colors.red, width: 1.5),
               ),
               focusedErrorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(borderRadius ?? 15),
+                borderRadius: BorderRadius.circular(widget.borderRadius ?? 15),
                 borderSide: const BorderSide(color: Colors.red, width: 1.5),
               ),
 
-              suffixIcon: suffixIcon,
-              prefixIcon: prefixIcon,
+              suffixIcon: widget.suffixIcon,
+              prefixIcon: widget.prefixIcon,
               // Keep border style on validation failure without shrinking field height.
               errorStyle: TextStyle(fontSize: 0, height: 0),
             ),

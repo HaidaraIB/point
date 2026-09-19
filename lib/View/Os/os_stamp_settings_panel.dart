@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Services/os_stamp_settings.dart';
@@ -228,7 +229,7 @@ class _OsStampSettingsPanelState extends State<OsStampSettingsPanel> {
           LayoutBuilder(
               builder: (context, constraints) {
                 final wide = constraints.maxWidth >= 820;
-                final textField = TextField(
+                final textField = osTypedTextField(
                   controller: _textCtrl,
                   onChanged: stamp.setStampText,
                   decoration: InputDecoration(
@@ -287,7 +288,7 @@ class _OsStampSettingsPanelState extends State<OsStampSettingsPanel> {
                         ),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: TextField(
+                          child: osTypedTextField(
                             controller: _hexCtrl,
                             onChanged: (v) async {
                               await stamp.setStampColorHex(v);

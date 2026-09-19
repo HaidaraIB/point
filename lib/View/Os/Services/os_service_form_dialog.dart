@@ -32,7 +32,7 @@ Future<void> showOsServiceFormDialog(
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          TextField(
+          osTypedTextField(
             controller: nameCtrl,
             style: const TextStyle(fontSize: 16),
             decoration: osFinanceFieldDecoration(
@@ -66,11 +66,10 @@ Future<void> showOsServiceFormDialog(
           Row(
             children: [
               Expanded(
-                child: TextField(
+                child: osTypedTextField(
                   controller: priceCtrl,
                   style: const TextStyle(fontSize: 16),
                   keyboardType: TextInputType.number,
-                  textDirection: TextDirection.ltr,
                   decoration: osFinanceFieldDecoration(
                     AppLocaleKeys.osServicesBasePrice.tr,
                     hint: '1500000',

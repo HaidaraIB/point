@@ -5,6 +5,7 @@ import 'package:point/Controller/HomeController.dart';
 import 'package:point/Models/ProgrammingUpdateModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
+import 'package:point/Services/task_client_name_resolver.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/media_url_opener.dart';
 import 'package:point/View/Shared/attachment_thumbnail_tile.dart';
@@ -143,8 +144,7 @@ class ProgrammingUpdateDetailsBody extends StatelessWidget {
 
   String _clientName(ProgrammingUpdateModel u) {
     final hc = Get.find<HomeController>();
-    return hc.clients.firstWhereOrNull((c) => c.id == u.clientName)?.name ??
-        u.clientName;
+    return taskClientDisplayLabelForUi(u.clientName, hc.clients);
   }
 
   String _assigneeName(ProgrammingUpdateModel u) {

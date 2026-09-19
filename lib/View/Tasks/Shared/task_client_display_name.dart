@@ -1,105 +1,13 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
-import 'package:point/Utils/app_theme_extension.dart';
-import 'package:point/Models/ClientModel.dart';
 import 'package:point/Models/TaskModel.dart';
-
-/// In-memory cache: [TaskModel.clientName] raw ref → display string from Firestore.
-final Map<String, String> taskClientDocNameCache = {};
-
-final Set<String> _taskClientDocNameInflight = {};
-final Set<String> _taskClientDocNameMiss = {};
-
-bool _eqCi(String? a, String b) {
-  if (a == null) return false;
-  return a.trim().toLowerCase() == b.trim().toLowerCase();
-}
-
-bool _nonEmpty(String? s) => s != null && s.trim().isNotEmpty;
-
-String? _displayFromClient(ClientModel? c) {
-  if (c == null) return null;
-  if (_nonEmpty(c.name)) return c.name!.trim();
-  if (_nonEmpty(c.email)) return c.email!.trim();
-  if (_nonEmpty(c.phone)) return c.phone!.trim();
-  return null;
-}
-
-ClientModel? _findClientForTaskRef(HomeController controller, String raw) {
-  if (raw.isEmpty) return null;
-  for (final c in controller.clients) {
-    if (_eqCi(c.id, raw) || _eqCi(c.authUid, raw)) return c;
-  }
-  return null;
-}
+import 'package:point/Services/task_client_name_resolver.dart';
+import 'package:point/Utils/app_theme_extension.dart';
 
 /// [TaskModel.clientName] is usually a client document id (or auth uid); resolves to a human label.
 String resolvedTaskClientDisplayName(TaskModel task, HomeController controller) {
-  final raw = task.clientName.trim();
-  if (raw.isEmpty) return '';
-  final fromList = _displayFromClient(_findClientForTaskRef(controller, raw));
-  if (fromList != null) return fromList;
-  final cached = taskClientDocNameCache[raw];
-  if (cached != null && cached.isNotEmpty) return cached;
-  return raw;
-}
-
-final RegExp _uuidLike = RegExp(
-  r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
-);
-
-/// Firestore client doc id or auth uid — not arbitrary human-entered client names.
-bool taskClientRefLooksLikeTechnicalId(String raw) {
-  final s = raw.trim();
-  if (s.isEmpty) return false;
-  if (_uuidLike.hasMatch(s)) return true;
-  if (s.length >= 20 && RegExp(r'^[a-zA-Z0-9_-]+$').hasMatch(s)) return true;
-  return false;
-}
-
-Future<void> _loadClientLabelFromFirestore(String raw) async {
-  if (raw.isEmpty) return;
-  if (taskClientDocNameCache.containsKey(raw) && taskClientDocNameCache[raw]!.isNotEmpty) {
-    return;
-  }
-  if (_taskClientDocNameMiss.contains(raw)) return;
-  if (_taskClientDocNameInflight.contains(raw)) return;
-  _taskClientDocNameInflight.add(raw);
-  try {
-    final db = FirebaseFirestore.instance;
-    final docSnap = await db.collection('clients').doc(raw).get();
-    if (docSnap.exists && docSnap.data() != null) {
-      final c = ClientModel.fromJson(
-        Map<String, dynamic>.from(docSnap.data()! as Map),
-        docSnap.id,
-      );
-      final d = _displayFromClient(c);
-      if (d != null) {
-        taskClientDocNameCache[raw] = d;
-        return;
-      }
-    }
-    final byUid = await db.collection('clients').where('authUid', isEqualTo: raw).limit(1).get();
-    if (byUid.docs.isNotEmpty) {
-      final doc = byUid.docs.first;
-      final c = ClientModel.fromJson(
-        Map<String, dynamic>.from(doc.data() as Map),
-        doc.id,
-      );
-      final d = _displayFromClient(c);
-      if (d != null) {
-        taskClientDocNameCache[raw] = d;
-        return;
-      }
-    }
-    _taskClientDocNameMiss.add(raw);
-  } catch (_) {
-    // Permission or network — do not negative-cache.
-  } finally {
-    _taskClientDocNameInflight.remove(raw);
-  }
+  return resolveTaskClientRef(task.clientName, controller.clients);
 }
 
 /// Task card row: reactive client list + one-shot Firestore resolve when the task still holds a bare id.
@@ -131,14 +39,18 @@ class _TaskCardClientNameRowState extends State<TaskCardClientNameRow> {
     final raw = widget.task.clientName.trim();
     if (raw.isEmpty) return;
     final hc = Get.find<HomeController>();
-    if (_displayFromClient(_findClientForTaskRef(hc, raw)) != null) return;
-    if (!taskClientRefLooksLikeTechnicalId(raw)) return;
-    if (taskClientDocNameCache.containsKey(raw) && taskClientDocNameCache[raw]!.isNotEmpty) {
+    if (displayLabelFromClient(findClientForTaskRef(hc.clients, raw)) != null) {
       return;
     }
-    _loadClientLabelFromFirestore(raw).then((_) {
+    if (!taskClientRefLooksLikeTechnicalId(raw)) return;
+    if (taskClientDocNameCache.containsKey(raw) &&
+        taskClientDocNameCache[raw]!.isNotEmpty) {
+      return;
+    }
+    loadTaskClientLabelFromFirestore(raw).then((_) {
       if (!mounted) return;
-      if (taskClientDocNameCache.containsKey(raw) && taskClientDocNameCache[raw]!.isNotEmpty) {
+      if (taskClientDocNameCache.containsKey(raw) &&
+          taskClientDocNameCache[raw]!.isNotEmpty) {
         setState(() {});
       }
     });

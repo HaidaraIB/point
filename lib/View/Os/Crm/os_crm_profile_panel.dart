@@ -384,7 +384,7 @@ class _OsCrmProfilePanelState extends State<OsCrmProfilePanel> {
             ),
           ),
           const SizedBox(height: 8),
-          TextField(
+          osTypedTextField(
             controller: _noteCtrl,
             maxLines: 3,
             decoration: osFinanceFieldDecoration(

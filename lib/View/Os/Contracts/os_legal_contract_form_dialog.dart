@@ -19,6 +19,7 @@ import 'package:point/Utils/app_theme_extension.dart';
 import 'package:point/View/Os/Contracts/os_legal_contract_labels.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_finance_status_widgets.dart';
+import 'package:point/Utils/text_input_bidi.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 
@@ -997,7 +998,7 @@ class _OsLegalContractDrafterDialogState
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _label(AppLocaleKeys.osLegalContractOfficialTitle.tr),
-                  TextField(
+                  osTypedTextField(
                     controller: _titleCtrl,
                     decoration: osDialogFieldDecoration(context),
                   ),
@@ -1014,7 +1015,7 @@ class _OsLegalContractDrafterDialogState
         ),
         const SizedBox(height: 12),
         _label(AppLocaleKeys.osLegalContractContractualNumber.tr),
-        TextField(
+        osTypedTextField(
           controller: _numberCtrl,
           readOnly: _loadingNumber,
           decoration: osDialogFieldDecoration(
@@ -1034,7 +1035,7 @@ class _OsLegalContractDrafterDialogState
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _label(AppLocaleKeys.osLegalContractGoverningLaw.tr),
-                  TextField(
+                  osTypedTextField(
                     controller: _governingLawCtrl,
                     maxLines: 2,
                     decoration: osDialogFieldDecoration(context),
@@ -1188,13 +1189,13 @@ class _OsLegalContractDrafterDialogState
             const SizedBox(height: 10),
           ],
           _label('${AppLocaleKeys.osLegalContractPartyName.tr} *'),
-          TextField(
+          osTypedTextField(
             controller: _partyTwoNameCtrl,
             decoration: osDialogFieldDecoration(context),
           ),
           const SizedBox(height: 10),
           _label(AppLocaleKeys.osLegalContractPartyCompany.tr),
-          TextField(
+          osTypedTextField(
             controller: _partyTwoCompanyCtrl,
             decoration: osDialogFieldDecoration(context),
           ),
@@ -1206,7 +1207,7 @@ class _OsLegalContractDrafterDialogState
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _label(AppLocaleKeys.osLegalContractPartyNationalId.tr),
-                    TextField(
+                    osTypedTextField(
                       controller: _partyTwoNationalIdCtrl,
                       decoration: osDialogFieldDecoration(context),
                     ),
@@ -1219,7 +1220,7 @@ class _OsLegalContractDrafterDialogState
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _label(AppLocaleKeys.osLegalContractPartyPhone.tr),
-                    TextField(
+                    osTypedTextField(
                       controller: _partyTwoPhoneCtrl,
                       decoration: osDialogFieldDecoration(context),
                     ),
@@ -1230,21 +1231,21 @@ class _OsLegalContractDrafterDialogState
           ),
           const SizedBox(height: 10),
           _label(AppLocaleKeys.osLegalContractPartyEmail.tr),
-          TextField(
+          osTypedTextField(
             controller: _partyTwoEmailCtrl,
             decoration: osDialogFieldDecoration(context),
           ),
           const SizedBox(height: 10),
           if (isEmployee) ...[
             _label(AppLocaleKeys.osLegalContractPartyJobTitle.tr),
-            TextField(
+            osTypedTextField(
               controller: _partyTwoJobTitleCtrl,
               decoration: osDialogFieldDecoration(context),
             ),
             const SizedBox(height: 10),
           ],
           _label(AppLocaleKeys.osLegalContractPartyAddress.tr),
-          TextField(
+          osTypedTextField(
             controller: _partyTwoAddressCtrl,
             maxLines: 2,
             decoration: osDialogFieldDecoration(context),
@@ -1271,7 +1272,7 @@ class _OsLegalContractDrafterDialogState
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _label(AppLocaleKeys.osLegalContractTotalValue.tr),
-                    TextField(
+                    osTypedTextField(
                       controller: _valueCtrl,
                       keyboardType: TextInputType.number,
                       onChanged: _onTotalValueChanged,
@@ -1312,7 +1313,7 @@ class _OsLegalContractDrafterDialogState
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       _label(AppLocaleKeys.osLegalContractSalaryMonthly.tr),
-                      TextField(
+                      osTypedTextField(
                         controller: _salaryCtrl,
                         keyboardType: TextInputType.number,
                         decoration: osDialogFieldDecoration(context),
@@ -1326,7 +1327,7 @@ class _OsLegalContractDrafterDialogState
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       _label(AppLocaleKeys.osLegalContractPenaltyDaily.tr),
-                      TextField(
+                      osTypedTextField(
                         controller: _penaltyCtrl,
                         keyboardType: TextInputType.number,
                         decoration: osDialogFieldDecoration(context),
@@ -1386,7 +1387,7 @@ class _OsLegalContractDrafterDialogState
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _label(AppLocaleKeys.osLegalContractProbationDays.tr),
-                    TextField(
+                    osTypedTextField(
                       controller: _probationCtrl,
                       keyboardType: TextInputType.number,
                       decoration: osDialogFieldDecoration(context),
@@ -1400,7 +1401,7 @@ class _OsLegalContractDrafterDialogState
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _label(AppLocaleKeys.osLegalContractNoticeDays.tr),
-                  TextField(
+                  osTypedTextField(
                     controller: _noticeCtrl,
                     keyboardType: TextInputType.number,
                     decoration: osDialogFieldDecoration(context),
@@ -1513,12 +1514,19 @@ class _OsLegalContractDrafterDialogState
             child: TextFormField(
               key: ValueKey('milestone-$index-${term.milestone.hashCode}'),
               initialValue: term.milestone,
+              textDirection: typedInputTextDirection(term.milestone),
               decoration: osDialogFieldDecoration(
                 context,
                 hint: AppLocaleKeys.osLegalContractPaymentMilestone.tr,
+              ).copyWith(
+                hintTextDirection: typedInputHintTextDirection(
+                  AppLocaleKeys.osLegalContractPaymentMilestone.tr,
+                ),
               ),
               onChanged: (v) {
-                _paymentTerms[index] = term.copyWith(milestone: v);
+                setState(() {
+                  _paymentTerms[index] = term.copyWith(milestone: v);
+                });
               },
             ),
           ),
@@ -1529,6 +1537,9 @@ class _OsLegalContractDrafterDialogState
               key: ValueKey('pct-$index-${term.percentage}'),
               initialValue: term.percentage.toStringAsFixed(0),
               keyboardType: TextInputType.number,
+              textDirection: typedInputTextDirection(
+                term.percentage.toStringAsFixed(0),
+              ),
               decoration: osDialogFieldDecoration(
                 context,
                 suffixText: '%',
@@ -1565,12 +1576,19 @@ class _OsLegalContractDrafterDialogState
             child: TextFormField(
               key: ValueKey('due-$index-${term.dueDateDescription.hashCode}'),
               initialValue: term.dueDateDescription,
+              textDirection: typedInputTextDirection(term.dueDateDescription),
               decoration: osDialogFieldDecoration(
                 context,
                 hint: AppLocaleKeys.osLegalContractPaymentDue.tr,
+              ).copyWith(
+                hintTextDirection: typedInputHintTextDirection(
+                  AppLocaleKeys.osLegalContractPaymentDue.tr,
+                ),
               ),
               onChanged: (v) {
-                _paymentTerms[index] = term.copyWith(dueDateDescription: v);
+                setState(() {
+                  _paymentTerms[index] = term.copyWith(dueDateDescription: v);
+                });
               },
             ),
           ),
@@ -1601,7 +1619,7 @@ class _OsLegalContractDrafterDialogState
             ),
           ],
         ),
-        TextField(
+        osTypedTextField(
           controller: _scopeCtrl,
           maxLines: 4,
           decoration: osDialogFieldDecoration(context),
@@ -1642,14 +1660,14 @@ class _OsLegalContractDrafterDialogState
         for (var i = 0; i < _clauses.length; i++) _clauseEditor(theme, i),
         const SizedBox(height: 14),
         _label(AppLocaleKeys.osLegalContractCustomTerms.tr),
-        TextField(
+        osTypedTextField(
           controller: _customTermsCtrl,
           maxLines: 3,
           decoration: osDialogFieldDecoration(context),
         ),
         const SizedBox(height: 14),
         _label(AppLocaleKeys.osLegalContractJurisdiction.tr),
-        TextField(
+        osTypedTextField(
           controller: _jurisdictionCtrl,
           maxLines: 2,
           decoration: osDialogFieldDecoration(context),
@@ -1685,6 +1703,7 @@ class _OsLegalContractDrafterDialogState
                 child: TextFormField(
                   key: ValueKey('clause-title-${clause.id}'),
                   initialValue: clause.title,
+                  textDirection: typedInputTextDirection(clause.title),
                   style: TextStyle(
                     fontWeight: FontWeight.w800,
                     color: theme.primaryText,
@@ -1692,7 +1711,9 @@ class _OsLegalContractDrafterDialogState
                   ),
                   decoration: osDialogFieldDecoration(context),
                   onChanged: (v) {
-                    _clauses[index] = clause.copyWith(title: v);
+                    setState(() {
+                      _clauses[index] = clause.copyWith(title: v);
+                    });
                   },
                 ),
               ),
@@ -1723,6 +1744,7 @@ class _OsLegalContractDrafterDialogState
             key: ValueKey('clause-body-${clause.id}-${clause.content.hashCode}'),
             initialValue: clause.content,
             maxLines: 5,
+            textDirection: typedInputTextDirection(clause.content),
             style: TextStyle(
               fontSize: 13,
               height: 1.5,
@@ -1730,7 +1752,9 @@ class _OsLegalContractDrafterDialogState
             ),
             decoration: osDialogFieldDecoration(context),
             onChanged: (v) {
-              _clauses[index] = clause.copyWith(content: v);
+              setState(() {
+                _clauses[index] = clause.copyWith(content: v);
+              });
             },
           ),
         ],

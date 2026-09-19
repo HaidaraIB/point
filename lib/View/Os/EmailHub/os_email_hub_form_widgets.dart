@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/Utils/text_input_bidi.dart';
 
 Widget osEmailHubTextField(
   BuildContext context, {
@@ -24,12 +25,17 @@ Widget osEmailHubTextField(
       context: context,
       label: label,
       showLabel: showLabel,
-      child: TextField(
+      child: TypedTextDirection(
         controller: controller,
-        onChanged: onChanged,
-        keyboardType: keyboardType,
-        maxLines: maxLines,
-        decoration: decoration,
+        hintText: hintText,
+        builder: (context, textDirection, hintTextDirection) => TextField(
+          controller: controller,
+          onChanged: onChanged,
+          keyboardType: keyboardType,
+          maxLines: maxLines,
+          textDirection: textDirection,
+          decoration: decoration.copyWith(hintTextDirection: hintTextDirection),
+        ),
       ),
     );
   }
@@ -102,12 +108,19 @@ class _OsEmailHubBoundTextFieldState extends State<_OsEmailHubBoundTextField> {
       context: context,
       label: widget.label,
       showLabel: widget.showLabel,
-      child: TextField(
+      child: TypedTextDirection(
         controller: _controller,
-        onChanged: widget.onChanged,
-        keyboardType: widget.keyboardType,
-        maxLines: widget.maxLines,
-        decoration: widget.decoration,
+        hintText: widget.decoration.hintText,
+        builder: (context, textDirection, hintTextDirection) => TextField(
+          controller: _controller,
+          onChanged: widget.onChanged,
+          keyboardType: widget.keyboardType,
+          maxLines: widget.maxLines,
+          textDirection: textDirection,
+          decoration: widget.decoration.copyWith(
+            hintTextDirection: hintTextDirection,
+          ),
+        ),
       ),
     );
   }

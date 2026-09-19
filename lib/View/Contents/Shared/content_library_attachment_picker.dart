@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:point/Utils/text_input_bidi.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
@@ -292,7 +293,7 @@ class _LibraryAttachmentPickerDialogState
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(
+            typedDirectionTextField(
               controller: _search,
               enabled: _nav.level == 4,
               onChanged: (_) => setState(() {}),

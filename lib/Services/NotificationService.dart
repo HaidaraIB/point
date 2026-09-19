@@ -2,6 +2,7 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Localization/notify_locale.dart';
 import 'package:point/Models/AttendanceRecordModel.dart';
 import 'package:point/Services/FireStoreServices.dart';
+import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
 import 'package:point/Services/notification_email_fields.dart';
 
@@ -46,16 +47,37 @@ class NotificationService {
   static String statusLabelAr(String status, {String locale = 'ar'}) =>
       NotifyLocale.tr(locale, status);
 
-  /// Localizes [TaskEmailContext.department] when it holds a raw task type index.
+  /// Task priority storage key (or legacy label) → localized label.
+  static String priorityLabel(String priority, {String locale = 'ar'}) {
+    final raw = priority.trim();
+    if (raw.isEmpty) return raw;
+    final key = FunHelper.canonicalStoredPriority(raw);
+    if (StorageKeys.priority.contains(key)) {
+      final translated = NotifyLocale.tr(locale, key);
+      if (translated != key) return translated;
+    }
+    return raw;
+  }
+
+  /// Localizes [TaskEmailContext] fields stored as raw keys (department, priority).
   static TaskEmailContext localizeTaskEmailContext(
     String locale,
     TaskEmailContext ctx,
   ) {
-    final raw = ctx.department?.trim() ?? '';
-    if (raw.isEmpty || int.tryParse(raw) == null) return ctx;
-    return ctx.copyWith(
-      department: departmentNameFromTaskType(raw, locale: locale),
-    );
+    String? department = ctx.department;
+    final deptRaw = department?.trim() ?? '';
+    if (deptRaw.isNotEmpty && int.tryParse(deptRaw) != null) {
+      department = departmentNameFromTaskType(deptRaw, locale: locale);
+    }
+
+    String? priority = ctx.priority;
+    final priRaw = priority?.trim() ?? '';
+    if (priRaw.isNotEmpty) {
+      priority = priorityLabel(priRaw, locale: locale);
+    }
+
+    if (department == ctx.department && priority == ctx.priority) return ctx;
+    return ctx.copyWith(department: department, priority: priority);
   }
 
   // ─── Employee notifications ─────────────────────────────────────────────

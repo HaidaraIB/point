@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -417,7 +418,7 @@ class _OsExpenseFormDialogState extends State<_OsExpenseFormDialog> {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    TextField(
+                    osTypedTextField(
                       controller: _amountCtrl,
                       keyboardType: TextInputType.number,
                       style: TextStyle(
@@ -515,7 +516,7 @@ class _OsExpenseFormDialogState extends State<_OsExpenseFormDialog> {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    TextField(
+                    osTypedTextField(
                       controller: _titleCtrl,
                       decoration: _dec(
                         '',
@@ -545,7 +546,7 @@ class _OsExpenseFormDialogState extends State<_OsExpenseFormDialog> {
                             setState(() => _category = v);
                           },
                         ),
-                        TextField(
+                        osTypedTextField(
                           controller: _vendorCtrl,
                           decoration: _dec(
                             AppLocaleKeys.osExpensesVendor.tr,
@@ -558,7 +559,7 @@ class _OsExpenseFormDialogState extends State<_OsExpenseFormDialog> {
                     _responsiveRow(
                       narrow: narrow,
                       children: [
-                        TextField(
+                        osTypedTextField(
                           controller: _receiptNoCtrl,
                           decoration: _dec(
                             AppLocaleKeys.osExpensesReceiptNumber.tr,
@@ -870,7 +871,7 @@ class _OsExpenseFormDialogState extends State<_OsExpenseFormDialog> {
                         ],
                       ),
                     const SizedBox(height: 14),
-                    TextField(
+                    osTypedTextField(
                       controller: _notesCtrl,
                       maxLines: 3,
                       decoration: _dec(

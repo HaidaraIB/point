@@ -8,6 +8,7 @@ import 'package:point/Models/AdministrationTaskModel.dart';
 import 'package:point/Models/TaskModel.dart';
 import 'package:point/Services/FunHelper.dart';
 import 'package:point/Services/StorageKeys.dart';
+import 'package:point/Services/task_client_name_resolver.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/attachment_download.dart';
 import 'package:point/Utils/media_url_opener.dart';
@@ -415,10 +416,7 @@ class TaskDetailsMobilePage extends StatelessWidget {
 
   String _clientDisplayName(BuildContext context) {
     final controller = Get.find<HomeController>();
-    final client = controller.clients.firstWhereOrNull(
-      (c) => c.id == task.clientName,
-    );
-    return client?.name ?? task.clientName;
+    return taskClientDisplayLabelForUi(task.clientName, controller.clients);
   }
 
   void _appendTaskDateRows(BuildContext context, List<Widget> fields) {
@@ -1332,7 +1330,8 @@ class TaskDetailsMobilePage extends StatelessWidget {
     final emp = controller.employees.firstWhereOrNull(
       (e) => e.id == task.assignedTo,
     );
-    return emp?.name ?? task.clientName;
+    final id = task.assignedTo.trim();
+    return emp?.name ?? (id.isEmpty ? '-' : id);
   }
 
   String _stillTime(DateTime endDate) {

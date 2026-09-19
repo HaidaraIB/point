@@ -1617,7 +1617,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                       ),
                     ),
                     SizedBox(height: 12),
-                    TextField(
+                    typedDirectionTextField(
                       controller: _searchController,
                       decoration: InputDecoration(
                         hintText: AppLocaleKeys.chatSearchEmployee.tr,
@@ -1832,8 +1832,14 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                               children: [
                                 Expanded(
                                   child: TextField(
+                                    textDirection: typedInputTextDirection(
+                                      _chatListSearchQuery,
+                                    ),
                                     decoration: InputDecoration(
                                       hintText: AppLocaleKeys.chatSearch.tr,
+                                      hintTextDirection: typedInputHintTextDirection(
+                                        AppLocaleKeys.chatSearch.tr,
+                                      ),
                                       prefixIcon: Icon(Icons.search),
                                       filled: true,
                                       fillColor: chatSearchFieldFill(context),
@@ -2772,6 +2778,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                                         hintText: AppLocaleKeys
                                                             .chatWriteMessage
                                                             .tr,
+                                                        hintTextDirection:
+                                                            typedInputHintTextDirection(
+                                                              AppLocaleKeys
+                                                                  .chatWriteMessage
+                                                                  .tr,
+                                                            ),
                                                         filled: true,
                                                         fillColor:
                                                             chatSearchFieldFill(

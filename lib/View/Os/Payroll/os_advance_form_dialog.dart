@@ -164,7 +164,7 @@ class _OsAdvanceFormDialogState extends State<_OsAdvanceFormDialog> {
           ),
           const SizedBox(height: 16),
           _label(AppLocaleKeys.osAdvancesAmount.tr),
-          TextField(
+          osTypedTextField(
             controller: _amountCtrl,
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],

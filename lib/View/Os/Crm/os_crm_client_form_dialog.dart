@@ -43,7 +43,7 @@ Future<void> showOsCrmClientFormDialog(
           Row(
             children: [
               Expanded(
-                child: TextField(
+                child: osTypedTextField(
                   controller: companyCtrl,
                   style: const TextStyle(fontSize: 16),
                   decoration: osFinanceFieldDecoration(
@@ -53,7 +53,7 @@ Future<void> showOsCrmClientFormDialog(
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: TextField(
+                child: osTypedTextField(
                   controller: nameCtrl,
                   style: const TextStyle(fontSize: 16),
                   decoration: osFinanceFieldDecoration(
@@ -67,10 +67,9 @@ Future<void> showOsCrmClientFormDialog(
           Row(
             children: [
               Expanded(
-                child: TextField(
+                child: osTypedTextField(
                   controller: phoneCtrl,
                   style: const TextStyle(fontSize: 16),
-                  textDirection: TextDirection.ltr,
                   keyboardType: TextInputType.phone,
                   decoration: osFinanceFieldDecoration(
                     AppLocaleKeys.osCrmPhone.tr,
@@ -79,10 +78,9 @@ Future<void> showOsCrmClientFormDialog(
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: TextField(
+                child: osTypedTextField(
                   controller: emailCtrl,
                   style: const TextStyle(fontSize: 16),
-                  textDirection: TextDirection.ltr,
                   keyboardType: TextInputType.emailAddress,
                   decoration: osFinanceFieldDecoration(
                     AppLocaleKeys.osCrmEmail.tr,

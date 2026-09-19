@@ -1236,6 +1236,10 @@ class _ChatPopupState extends State<ChatPopup> with WidgetsBindingObserver {
                                     ),
                                     decoration: InputDecoration(
                                       hintText: 'chat.write_message'.tr,
+                                      hintTextDirection:
+                                          typedInputHintTextDirection(
+                                            'chat.write_message'.tr,
+                                          ),
                                       hintStyle: TextStyle(
                                         color: context.appTheme.mutedText,
                                         fontSize: 14,

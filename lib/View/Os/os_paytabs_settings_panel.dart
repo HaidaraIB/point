@@ -223,7 +223,7 @@ class _OsPaytabsSettingsPanelState extends State<OsPaytabsSettingsPanel>
         const SizedBox(height: 16),
         _fieldLabel(context, AppLocaleKeys.osSettingsPaytabsProfileId.tr),
         const SizedBox(height: 8),
-        TextField(
+        osTypedTextField(
           controller: _profileIdCtrl,
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -234,7 +234,7 @@ class _OsPaytabsSettingsPanelState extends State<OsPaytabsSettingsPanel>
         const SizedBox(height: 16),
         _fieldLabel(context, AppLocaleKeys.osSettingsPaytabsServerKey.tr),
         const SizedBox(height: 8),
-        TextField(
+        osTypedTextField(
           controller: _serverKeyCtrl,
           obscureText: _obscureServerKey,
           decoration: osDialogFieldDecoration(context).copyWith(
@@ -254,7 +254,7 @@ class _OsPaytabsSettingsPanelState extends State<OsPaytabsSettingsPanel>
         const SizedBox(height: 16),
         _fieldLabel(context, AppLocaleKeys.osSettingsPaytabsClientKey.tr),
         const SizedBox(height: 8),
-        TextField(
+        osTypedTextField(
           controller: _clientKeyCtrl,
           obscureText: _obscureClientKey,
           decoration: osDialogFieldDecoration(context).copyWith(

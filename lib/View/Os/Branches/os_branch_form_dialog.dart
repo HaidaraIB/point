@@ -32,7 +32,7 @@ Future<void> showOsBranchFormDialog(
           Row(
             children: [
               Expanded(
-                child: TextField(
+                child: osTypedTextField(
                   controller: nameCtrl,
                   style: const TextStyle(fontSize: 16),
                   decoration: osFinanceFieldDecoration(
@@ -43,7 +43,7 @@ Future<void> showOsBranchFormDialog(
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: TextField(
+                child: osTypedTextField(
                   controller: managerCtrl,
                   style: const TextStyle(fontSize: 16),
                   decoration: osFinanceFieldDecoration(
@@ -55,7 +55,7 @@ Future<void> showOsBranchFormDialog(
             ],
           ),
           const SizedBox(height: 14),
-          TextField(
+          osTypedTextField(
             controller: locationCtrl,
             style: const TextStyle(fontSize: 16),
             decoration: osFinanceFieldDecoration(
@@ -69,10 +69,9 @@ Future<void> showOsBranchFormDialog(
           Row(
             children: [
               Expanded(
-                child: TextField(
+                child: osTypedTextField(
                   controller: phoneCtrl,
                   style: const TextStyle(fontSize: 16),
-                  textDirection: TextDirection.ltr,
                   keyboardType: TextInputType.phone,
                   decoration: osFinanceFieldDecoration(
                     AppLocaleKeys.osBranchesPhone.tr,

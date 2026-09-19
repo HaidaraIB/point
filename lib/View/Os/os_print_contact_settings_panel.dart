@@ -170,7 +170,6 @@ class _OsPrintContactSettingsPanelState
           theme,
           AppLocaleKeys.osSettingsPrintContactAddressAr.tr,
           _addressArCtrl,
-          textDirection: TextDirection.rtl,
           hint: OsGeneralSettings.defaultPrintAddressAr,
         ),
         const SizedBox(height: 12),
@@ -212,7 +211,6 @@ class _OsPrintContactSettingsPanelState
     AppThemeExtension theme,
     String label,
     TextEditingController controller, {
-    TextDirection? textDirection,
     String? hint,
     TextInputType? keyboard,
   }) {
@@ -228,11 +226,11 @@ class _OsPrintContactSettingsPanelState
           ),
         ),
         const SizedBox(height: 8),
-        TextField(
+        osTypedTextField(
           controller: controller,
-          textDirection: textDirection,
           keyboardType: keyboard,
           onChanged: (_) => _onChanged(),
+          hintText: hint,
           decoration: osDialogFieldDecoration(context).copyWith(hintText: hint),
         ),
       ],

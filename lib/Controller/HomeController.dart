@@ -35,6 +35,7 @@ import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Services/fcm_token_cache.dart';
 import 'package:point/Services/NotificationService.dart';
 import 'package:point/Services/notification_email_fields.dart';
+import 'package:point/Services/task_client_name_resolver.dart';
 import 'package:point/Services/notification_navigation/notification_destination.dart';
 import 'package:point/Services/push_permissions_helper.dart';
 import 'package:point/Services/r2_storage_upload.dart';
@@ -2102,7 +2103,7 @@ class HomeController extends GetxController {
     }
     isLoading.value = false;
     if (result && task.assignedTo.trim().isNotEmpty) {
-      final ctx = _taskEmailContext(task);
+      final ctx = await _taskEmailContext(task);
       final extras = notificationTaskExtras(taskId: newId, taskType: task.type);
       unawaited(
         NotificationService.notifyEmployeeAssignedToTask(
@@ -2153,7 +2154,7 @@ class HomeController extends GetxController {
     return result;
   }
 
-  TaskEmailContext _taskEmailContext(
+  Future<TaskEmailContext> _taskEmailContext(
     TaskModel task, {
     String? actorName,
     String? commentPreview,
@@ -2161,9 +2162,12 @@ class HomeController extends GetxController {
     String? newDueDate,
     String? newStatus,
     String? commenterName,
-  }) {
+  }) async {
     final priority = task.priority.trim();
-    final client = task.clientName.trim();
+    final clientRef = task.clientName.trim();
+    final resolvedClient = clientRef.isEmpty
+        ? null
+        : await resolveTaskClientRefForEmail(clientRef, clients);
     return TaskEmailContext(
       taskTitle: task.title,
       // Raw task type index — localized per recipient in NotificationService.
@@ -2171,7 +2175,7 @@ class HomeController extends GetxController {
       dueDate: FunHelper.formatdate(task.toDate),
       startDate: FunHelper.formatdate(task.fromDate),
       priority: priority.isEmpty ? null : priority,
-      clientName: client.isEmpty ? null : client,
+      clientName: resolvedClient,
       editMessage: task.managementEditRequestMessage.trim().isEmpty
           ? null
           : task.managementEditRequestMessage,
@@ -2232,7 +2236,7 @@ class HomeController extends GetxController {
           taskTitle: newTask.title,
           newStatus: newTask.status,
           changedBy: actorName ?? '',
-          taskContext: _taskEmailContext(
+          taskContext: await _taskEmailContext(
             newTask,
             actorName: actorName,
             newStatus: newTask.status,
@@ -2246,7 +2250,7 @@ class HomeController extends GetxController {
           await NotificationService.notifyManagersTaskReceivedByEmployee(
             employeeName: assigneeName,
             taskTitle: newTask.title,
-            taskContext: _taskEmailContext(newTask, actorName: assigneeName),
+            taskContext: await _taskEmailContext(newTask, actorName: assigneeName),
             fcmDataExtras: extras,
           );
         } else if (newTask.status == StorageKeys.status_ready_to_publish ||
@@ -2256,7 +2260,7 @@ class HomeController extends GetxController {
           await NotificationService.notifyManagersTaskCompletedByEmployee(
             employeeName: assigneeName,
             taskTitle: newTask.title,
-            taskContext: _taskEmailContext(newTask, actorName: assigneeName),
+            taskContext: await _taskEmailContext(newTask, actorName: assigneeName),
             fcmDataExtras: extras,
           );
         }
@@ -2266,7 +2270,7 @@ class HomeController extends GetxController {
         await NotificationService.notifyEmployeeTaskRejected(
           employeeId: assigneeId,
           taskTitle: newTask.title,
-          taskContext: _taskEmailContext(newTask, actorName: actorName),
+          taskContext: await _taskEmailContext(newTask, actorName: actorName),
           fcmDataExtras: extras,
         );
       }
@@ -2280,7 +2284,7 @@ class HomeController extends GetxController {
         await NotificationService.notifyEmployeeEditRequestedByManagement(
           employeeId: assigneeId,
           taskTitle: newTask.title,
-          taskContext: _taskEmailContext(newTask, actorName: actorName),
+          taskContext: await _taskEmailContext(newTask, actorName: actorName),
           fcmDataExtras: extras,
         );
       }
@@ -2291,7 +2295,7 @@ class HomeController extends GetxController {
         await NotificationService.notifyAdminsSupervisorEscalatedTask(
           supervisorName: sn.isEmpty ? 'notify.unknown_actor'.tr : sn,
           taskTitle: newTask.title,
-          taskContext: _taskEmailContext(newTask),
+          taskContext: await _taskEmailContext(newTask),
           fcmDataExtras: extras,
         );
       }
@@ -2301,7 +2305,7 @@ class HomeController extends GetxController {
         await NotificationService.notifyEmployeeTaskReopened(
           employeeId: assigneeId,
           taskTitle: newTask.title,
-          taskContext: _taskEmailContext(newTask),
+          taskContext: await _taskEmailContext(newTask),
           fcmDataExtras: extras,
         );
       }
@@ -2311,7 +2315,7 @@ class HomeController extends GetxController {
       await NotificationService.notifyEmployeeNewAttachments(
         employeeId: assigneeId,
         taskTitle: newTask.title,
-        taskContext: _taskEmailContext(
+        taskContext: await _taskEmailContext(
           newTask,
           actorName: actorName,
           attachmentCount: newTask.files.length - oldTask.files.length,
@@ -2335,7 +2339,7 @@ class HomeController extends GetxController {
         employeeName: assigneeName,
         taskTitle: newTask.title,
         kind: editKind,
-        taskContext: _taskEmailContext(newTask, actorName: assigneeName),
+        taskContext: await _taskEmailContext(newTask, actorName: assigneeName),
         commentPreview: addedNotes ? _latestNoteText(newTask) : null,
         fcmDataExtras: extras,
       );
@@ -2353,7 +2357,7 @@ class HomeController extends GetxController {
         employeeId: assigneeId,
         commenterName: commenterName,
         taskTitle: newTask.title,
-        taskContext: _taskEmailContext(
+        taskContext: await _taskEmailContext(
           newTask,
           commenterName: commenterName,
           commentPreview: _latestNoteText(newTask),
@@ -2382,7 +2386,7 @@ class HomeController extends GetxController {
       await NotificationService.notifyManagersDeadlineExtensionRequested(
         employeeName: assigneeName,
         taskTitle: newTask.title,
-        taskContext: _taskEmailContext(newTask, actorName: assigneeName),
+        taskContext: await _taskEmailContext(newTask, actorName: assigneeName),
         fcmDataExtras: extras,
       );
     }
@@ -2395,7 +2399,7 @@ class HomeController extends GetxController {
         employeeId: assigneeId,
         taskTitle: newTask.title,
         newDueLabel: fmt ?? newTask.toDate.toIso8601String(),
-        taskContext: _taskEmailContext(newTask, newDueDate: fmt),
+        taskContext: await _taskEmailContext(newTask, newDueDate: fmt),
         fcmDataExtras: extras,
       );
     }
@@ -2405,7 +2409,7 @@ class HomeController extends GetxController {
       await NotificationService.notifyEmployeeDeadlineExtensionDenied(
         employeeId: assigneeId,
         taskTitle: newTask.title,
-        taskContext: _taskEmailContext(newTask),
+        taskContext: await _taskEmailContext(newTask),
         fcmDataExtras: extras,
       );
     }
@@ -3730,6 +3734,9 @@ class HomeController extends GetxController {
     // binding the data streams fills observables reactively, so keeping it off
     // the await chain lets the splash hand over as soon as the session is valid.
     await ensureAuthRoleSynced(employee);
+    if (Get.isRegistered<OsGeneralSettingsController>()) {
+      Get.find<OsGeneralSettingsController>().rebindStreamsForPermissions();
+    }
     unawaited(refreshDataStreamsForRole(employee));
     final role = employee.role.trim().toLowerCase();
     if (role == 'admin' || role == 'supervisor') {
@@ -4482,6 +4489,9 @@ class HomeController extends GetxController {
       Stream<List<ProgrammingUpdateModel>>.value(const []),
     );
     notifications.bindStream(Stream<List<NotificationModel>>.value([]));
+    if (Get.isRegistered<OsGeneralSettingsController>()) {
+      Get.find<OsGeneralSettingsController>().rebindStreamsForPermissions();
+    }
     searchedContents.clear();
     clearEmployeeWebContentFilters();
     openChats.clear();

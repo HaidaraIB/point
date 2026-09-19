@@ -136,7 +136,7 @@ class _OsLegalContractsSettingsTabState
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _label(label),
-          TextField(
+          osTypedTextField(
             controller: controller,
             maxLines: maxLines,
             keyboardType: keyboardType,

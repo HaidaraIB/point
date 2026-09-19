@@ -539,28 +539,28 @@ class _OsInvoiceFormDialogState extends State<_OsInvoiceFormDialog> {
                       },
                     ),
                     const SizedBox(height: 14),
-                    TextFormField(
+                    osTypedTextFormField(
                       controller: _phoneCtrl,
                       decoration: osFinanceFieldDecoration(
                         AppLocaleKeys.osInvoicesClientPhone.tr,
                       ),
                     ),
                     const SizedBox(height: 10),
-                    TextFormField(
+                    osTypedTextFormField(
                       controller: _emailCtrl,
                       decoration: osFinanceFieldDecoration(
                         AppLocaleKeys.osInvoicesClientEmail.tr,
                       ),
                     ),
                     const SizedBox(height: 10),
-                    TextFormField(
+                    osTypedTextFormField(
                       controller: _addressCtrl,
                       decoration: osFinanceFieldDecoration(
                         AppLocaleKeys.osInvoicesClientAddress.tr,
                       ),
                     ),
                     const SizedBox(height: 10),
-                    TextFormField(
+                    osTypedTextFormField(
                       controller: _taxCtrl,
                       decoration: osFinanceFieldDecoration(
                         AppLocaleKeys.osInvoicesClientTax.tr,
@@ -663,7 +663,7 @@ class _OsInvoiceFormDialogState extends State<_OsInvoiceFormDialog> {
                     const SizedBox(height: 16),
                     OsLineItemsEditor(controller: _lines),
                     const SizedBox(height: 12),
-                    TextFormField(
+                    osTypedTextFormField(
                       controller: _discountCtrl,
                       keyboardType: TextInputType.number,
                       decoration: osFinanceFieldDecoration(
@@ -672,7 +672,7 @@ class _OsInvoiceFormDialogState extends State<_OsInvoiceFormDialog> {
                       onChanged: (_) => setState(() {}),
                     ),
                     const SizedBox(height: 10),
-                    TextFormField(
+                    osTypedTextFormField(
                       controller: _notesCtrl,
                       maxLines: 3,
                       decoration: osFinanceFieldDecoration(

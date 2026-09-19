@@ -387,7 +387,7 @@ class _DesktopLineRow extends StatelessWidget {
       children: [
         Expanded(
           flex: 4,
-          child: TextField(
+          child: osTypedTextField(
             controller: line.description,
             decoration: osFinanceFieldDecoration(
               AppLocaleKeys.osInvoicesItemDesc.tr,
@@ -397,7 +397,7 @@ class _DesktopLineRow extends StatelessWidget {
         ),
         const SizedBox(width: 8),
         Expanded(
-          child: TextField(
+          child: osTypedTextField(
             controller: line.qtyCtrl,
             keyboardType: TextInputType.number,
             decoration:
@@ -408,7 +408,7 @@ class _DesktopLineRow extends StatelessWidget {
         const SizedBox(width: 8),
         Expanded(
           flex: 2,
-          child: TextField(
+          child: osTypedTextField(
             controller: line.priceCtrl,
             keyboardType: TextInputType.number,
             decoration: osFinanceFieldDecoration(
@@ -442,7 +442,7 @@ class _CompactLineRow extends StatelessWidget {
     final line = controller.lines[index];
     return Column(
       children: [
-        TextField(
+        osTypedTextField(
           controller: line.description,
           decoration: osFinanceFieldDecoration(
             AppLocaleKeys.osInvoicesItemDesc.tr,
@@ -453,7 +453,7 @@ class _CompactLineRow extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: TextField(
+              child: osTypedTextField(
                 controller: line.qtyCtrl,
                 keyboardType: TextInputType.number,
                 decoration:
@@ -463,7 +463,7 @@ class _CompactLineRow extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             Expanded(
-              child: TextField(
+              child: osTypedTextField(
                 controller: line.priceCtrl,
                 keyboardType: TextInputType.number,
                 decoration: osFinanceFieldDecoration(

@@ -215,7 +215,7 @@ class _OsSettingsPageState extends State<OsSettingsPage> {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            TextField(
+                            osTypedTextField(
                               controller: _apiKeyCtrl,
                               obscureText: _obscureKey,
                               decoration:
@@ -445,7 +445,7 @@ class _OsFinanceSettingsSectionState extends State<_OsFinanceSettingsSection> {
             ),
           ),
           const SizedBox(height: 8),
-          TextField(
+          osTypedTextField(
             controller: _rateCtrl,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [
