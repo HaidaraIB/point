@@ -80,113 +80,87 @@ class _OsLegalContractsRegistryTabState
         return _buildCompact(context, ctrl, all, list);
       }
 
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          OsListFilterBar(
-            leading: OsFilterChips(
-              value: _targetFilter,
-              onChanged: (v) => setState(() => _targetFilter = v),
-              options: [
-                OsFilterChipOption(
-                  value: 'ALL',
-                  label: AppLocaleKeys.osLegalContractFilterAllTypes.tr,
-                ),
-                for (final t in OsLegalContractTargetType.ordered)
-                  OsFilterChipOption(
-                    value: t,
-                    label: osLegalContractTargetLabel(t),
-                    color: osLegalContractTargetColor(t),
-                  ),
-              ],
+      return CustomScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        slivers: [
+          SliverToBoxAdapter(
+            child: OsListFilterBar(
+              leading: _targetChips(),
+              chips: _statusChips(),
+              search: OsSearchField(
+                controller: _search,
+                hint: AppLocaleKeys.osLegalContractSearch.tr,
+                onChanged: (_) => setState(() {}),
+              ),
+              matchCount: all.isEmpty ? null : list.length,
             ),
-            chips: OsFilterChips(
-              value: _statusFilter,
-              onChanged: (v) => setState(() => _statusFilter = v),
-              options: [
-                OsFilterChipOption(
-                  value: 'ALL',
-                  label: AppLocaleKeys.osLegalContractFilterAllStatus.tr,
-                ),
-                for (final s in OsLegalContractStatus.filterOrdered)
-                  OsFilterChipOption(
-                    value: s,
-                    label: osLegalContractStatusLabel(s),
-                    color: osLegalContractStatusColor(s),
-                  ),
-              ],
-            ),
-            search: OsSearchField(
-              controller: _search,
-              hint: AppLocaleKeys.osLegalContractSearch.tr,
-              onChanged: (_) => setState(() {}),
-            ),
-            matchCount: all.isEmpty ? null : list.length,
           ),
-          Expanded(
-            child: list.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
+          if (list.isEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  OsEmptyState(
+                    message: all.isEmpty
+                        ? AppLocaleKeys.osLegalContractEmpty.tr
+                        : AppLocaleKeys.osLegalContractEmptyNoMatch.tr,
+                  ),
+                  if (!_filtersActive) ...[
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      onPressed: () => showOsLegalContractFormDialog(context),
+                      style: OsButtonStyles.primaryCompact(),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: Text(AppLocaleKeys.osLegalContractAdd.tr),
+                    ),
+                  ],
+                ],
+              ),
+            )
+          else
+            SliverLayoutBuilder(
+              builder: (context, constraints) {
+                final cross = constraints.crossAxisExtent >= 1100
+                    ? 3
+                    : constraints.crossAxisExtent >= 720
+                        ? 2
+                        : 1;
+                const gap = 12.0;
+                final cardW = (constraints.crossAxisExtent -
+                        32 -
+                        gap * (cross - 1)) /
+                    cross;
+                return SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                  sliver: SliverToBoxAdapter(
+                    child: Wrap(
+                      spacing: gap,
+                      runSpacing: gap,
                       children: [
-                        OsEmptyState(
-                          message: all.isEmpty
-                              ? AppLocaleKeys.osLegalContractEmpty.tr
-                              : AppLocaleKeys.osLegalContractEmptyNoMatch.tr,
-                        ),
-                        if (!_filtersActive) ...[
-                          const SizedBox(height: 16),
-                          FilledButton.icon(
-                            onPressed: () =>
-                                showOsLegalContractFormDialog(context),
-                            style: OsButtonStyles.primaryCompact(),
-                            icon: const Icon(Icons.add, size: 18),
-                            label: Text(AppLocaleKeys.osLegalContractAdd.tr),
+                        for (final contract in list)
+                          SizedBox(
+                            width: cardW,
+                            child: OsLegalContractCard(
+                              contract: contract,
+                              onView: () => showOsLegalContractPreviewDialog(
+                                context,
+                                contract,
+                              ),
+                              onEdit: () => showOsLegalContractFormDialog(
+                                context,
+                                existing: contract,
+                              ),
+                              onDelete: () =>
+                                  _delete(context, ctrl, contract),
+                            ),
                           ),
-                        ],
                       ],
                     ),
-                  )
-                : LayoutBuilder(
-                    builder: (context, constraints) {
-                      final cross = constraints.maxWidth >= 1100
-                          ? 3
-                          : constraints.maxWidth >= 720
-                              ? 2
-                              : 1;
-                      const gap = 12.0;
-                      final cardW =
-                          (constraints.maxWidth - 32 - gap * (cross - 1)) /
-                              cross;
-                      return SingleChildScrollView(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                        child: Wrap(
-                          spacing: gap,
-                          runSpacing: gap,
-                          children: [
-                            for (final contract in list)
-                              SizedBox(
-                                width: cardW,
-                                child: OsLegalContractCard(
-                                  contract: contract,
-                                  onView: () => showOsLegalContractPreviewDialog(
-                                    context,
-                                    contract,
-                                  ),
-                                  onEdit: () => showOsLegalContractFormDialog(
-                                    context,
-                                    existing: contract,
-                                  ),
-                                  onDelete: () =>
-                                      _delete(context, ctrl, contract),
-                                ),
-                              ),
-                          ],
-                        ),
-                      );
-                    },
                   ),
-          ),
+                );
+              },
+            ),
         ],
       );
     });

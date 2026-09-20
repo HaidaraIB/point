@@ -550,6 +550,7 @@ class AppLocaleKeys {
   static const osAiContractClausePlaceholder = 'os.ai.contract_clause_placeholder';
   static const osAiContractPaymentScheduleTitle =
       'os.ai.contract_payment_schedule_title';
+  static const osAiContractClausesAllTitle = 'os.ai.contract_clauses_all_title';
   static const osModulesTitle = 'os.modules.title';
   static const osModuleComingSoon = 'os.module.coming_soon';
   static const osModuleCrm = 'os.module.crm';
@@ -1760,6 +1761,12 @@ class AppLocaleKeys {
   static const osLegalContractStepParties = 'os.legal_contract.wizard.step.parties';
   static const osLegalContractStepFinancials = 'os.legal_contract.wizard.step.financials';
   static const osLegalContractStepClauses = 'os.legal_contract.wizard.step.clauses';
+  static const osLegalContractStepTemplateContext =
+      'os.legal_contract.wizard.step.template_context';
+  static const osLegalContractStepTemplateClauses =
+      'os.legal_contract.wizard.step.template_clauses';
+  static const osLegalContractErrorTemplateNameRequired =
+      'os.legal_contract.error.template_name_required';
   static const osLegalContractNextParties = 'os.legal_contract.wizard.next.parties';
   static const osLegalContractNextFinancials = 'os.legal_contract.wizard.next.financials';
   static const osLegalContractNextClauses = 'os.legal_contract.wizard.next.clauses';
@@ -1797,6 +1804,10 @@ class AppLocaleKeys {
   static const osLegalContractCustomTerms = 'os.legal_contract.custom_terms';
   static const osLegalContractAddClause = 'os.legal_contract.add_clause';
   static const osLegalContractLegalArticles = 'os.legal_contract.legal_articles';
+  static const osLegalContractGenerateClausesConfirmTitle =
+      'os.legal_contract.generate_clauses_confirm.title';
+  static const osLegalContractGenerateClausesConfirmMessage =
+      'os.legal_contract.generate_clauses_confirm.message';
   static const osLegalContractLegalBasis = 'os.legal_contract.legal_basis';
   static const osLegalContractStartDraft = 'os.legal_contract.start_draft';
   static const osLegalContractPreviewPrint = 'os.legal_contract.preview_print';

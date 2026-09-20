@@ -1326,6 +1326,7 @@ class AppTranslations extends Translations {
         'os.ai.contract_clause_placeholder':
             'Click generate to tailor this legal clause to the contract context...',
         'os.ai.contract_payment_schedule_title': 'Suggest payment schedule',
+        'os.ai.contract_clauses_all_title': 'Generate all legal clauses',
         'os.module.settings': 'Settings',
         'os.settings.title': 'System settings',
         'os.settings.subtitle':
@@ -2182,6 +2183,10 @@ class AppTranslations extends Translations {
         'os.legal_contract.wizard.step.parties': 'Contract parties',
         'os.legal_contract.wizard.step.financials': 'Financials & term',
         'os.legal_contract.wizard.step.clauses': 'Clauses & drafting',
+        'os.legal_contract.wizard.step.template_context': 'Template context',
+        'os.legal_contract.wizard.step.template_clauses': 'Clauses & drafting',
+        'os.legal_contract.error.template_name_required':
+            'Template name is required',
         'os.legal_contract.wizard.next.parties': 'Next: Contract parties',
         'os.legal_contract.wizard.next.financials': 'Next: Financials & term',
         'os.legal_contract.wizard.next.clauses': 'Next: Clauses & drafting',
@@ -2221,6 +2226,10 @@ class AppTranslations extends Translations {
         'os.legal_contract.custom_terms': 'Additional special terms (optional)',
         'os.legal_contract.add_clause': 'Add legal clause',
         'os.legal_contract.legal_articles': 'Iraqi legal articles & clauses',
+        'os.legal_contract.generate_clauses_confirm.title':
+            'Replace all clauses?',
+        'os.legal_contract.generate_clauses_confirm.message':
+            'AI will generate a full set of legal clause titles and texts from your template details. All current clauses will be removed and replaced. Continue?',
         'os.legal_contract.legal_basis': 'Legal basis & coverage',
         'os.legal_contract.start_draft': 'Start drafting this contract',
         'os.legal_contract.preview_print': 'Preview & print',
@@ -4396,6 +4405,7 @@ class AppTranslations extends Translations {
         "os.ai.contract_clause_placeholder":
             "اضغط على توليد لتخصيص صياغة هذا البند القانوني وفق سياق العقد...",
         "os.ai.contract_payment_schedule_title": "اقتراح جدول الدفعات",
+        "os.ai.contract_clauses_all_title": "توليد جميع البنود القانونية",
         "os.services.add": "إضافة خدمة جديدة",
         "os.services.add_title": "إضافة خدمة إبداعية جديدة",
         "os.services.edit_title": "تعديل الخدمة المحددة",
@@ -5167,6 +5177,9 @@ class AppTranslations extends Translations {
         "os.legal_contract.wizard.step.parties": "أطراف العقد",
         "os.legal_contract.wizard.step.financials": "المالية والمدد",
         "os.legal_contract.wizard.step.clauses": "البنود والصياغة",
+        "os.legal_contract.wizard.step.template_context": "بيانات النموذج",
+        "os.legal_contract.wizard.step.template_clauses": "البنود والصياغة",
+        "os.legal_contract.error.template_name_required": "اسم النموذج مطلوب",
         "os.legal_contract.wizard.next.parties": "التالي: أطراف العقد",
         "os.legal_contract.wizard.next.financials": "التالي: المالية والمدد",
         "os.legal_contract.wizard.next.clauses": "التالي: البنود والصياغة",
@@ -5206,6 +5219,10 @@ class AppTranslations extends Translations {
         "os.legal_contract.custom_terms": "شروط خاصة إضافية (اختياري)",
         "os.legal_contract.add_clause": "إضافة بند قانوني",
         "os.legal_contract.legal_articles": "المواد والبنود القانونية العراقية",
+        "os.legal_contract.generate_clauses_confirm.title":
+            "استبدال جميع البنود؟",
+        "os.legal_contract.generate_clauses_confirm.message":
+            "سيُولّد الذكاء الاصطناعي مجموعة كاملة من عناوين ونصوص البنود القانونية بناءً على بيانات النموذج. سيتم حذف البنود الحالية واستبدالها. هل تريد المتابعة؟",
         "os.legal_contract.legal_basis": "السند والغطاء القانوني",
         "os.legal_contract.start_draft": "بدء صياغة هذا العقد",
         "os.legal_contract.preview_print": "معاينة وطباعة",

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/View/Os/os_ai_generate_button.dart';
 
 /// Indigo AI suggestion panel used on OS service cards (point_os parity).
 class OsAiSuggestionBlock extends StatelessWidget {
@@ -34,8 +35,7 @@ class OsAiSuggestionBlock extends StatelessWidget {
     final displayText = hasDescription
         ? description
         : (placeholder ?? AppLocaleKeys.osAiSuggestionPlaceholder.tr);
-    final aiAccent = isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4338CA);
-    final aiAction = isDark ? const Color(0xFFC7D2FE) : const Color(0xFF4F46E5);
+    final aiAccent = OsAiColors.accentForeground(context);
 
     final descriptionText = Text(
       displayText,
@@ -86,31 +86,10 @@ class OsAiSuggestionBlock extends StatelessWidget {
                   ),
                 ),
               ),
-              TextButton(
+              OsAiGenerateButton(
+                compact: true,
+                isLoading: isLoading,
                 onPressed: isDisabled ? null : onGenerate,
-                style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  foregroundColor: aiAction,
-                ),
-                child: isLoading
-                    ? SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: aiAction,
-                        ),
-                      )
-                    : Text(
-                        AppLocaleKeys.osAiGenerate.tr,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          color: aiAction,
-                        ),
-                      ),
               ),
             ],
           ),

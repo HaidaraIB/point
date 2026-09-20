@@ -20,6 +20,7 @@ import 'package:point/View/Os/Contracts/os_legal_contract_labels.dart';
 import 'package:point/View/Os/os_button_styles.dart';
 import 'package:point/View/Os/os_finance_status_widgets.dart';
 import 'package:point/Utils/text_input_bidi.dart';
+import 'package:point/View/Os/os_ai_generate_button.dart';
 import 'package:point/View/Os/os_form_dialog.dart';
 import 'package:point/View/Os/os_snackbar.dart';
 
@@ -367,6 +368,14 @@ class _OsLegalContractDrafterDialogState
 
   OsAiContractInput _contractAiInput({String? clauseTitle, String? clauseContent}) {
     final tpl = _ctrl.templateById(_selectedTemplateId);
+    final templateDescription = _scopeCtrl.text.trim().isNotEmpty
+        ? _scopeCtrl.text.trim()
+        : (tpl?.description ?? '');
+    var durationMonths = tpl?.defaultDurationMonths ?? 0;
+    if (_endDate != null) {
+      final months = ((_endDate!.difference(_startDate).inDays) / 30).round();
+      if (months > 0) durationMonths = months;
+    }
     return OsAiContractInput(
       contractTitle: _titleCtrl.text.trim(),
       targetType: _targetType,
@@ -382,24 +391,67 @@ class _OsLegalContractDrafterDialogState
       endDate: _endDate == null
           ? ''
           : FirestoreOsFinanceApi.formatDate(_endDate!),
+      templateDescription: templateDescription,
+      subType: tpl?.subType ?? '',
+      defaultDurationMonths: durationMonths,
       governingLaw: _governingLawCtrl.text.trim(),
       customTerms: _customTermsCtrl.text.trim(),
       jurisdiction: _jurisdictionCtrl.text.trim(),
     );
   }
 
-  Widget _aiGenerateButton(String loadingKey, VoidCallback onPressed) {
-    return TextButton.icon(
-      onPressed: _loadingAiKey != null ? null : onPressed,
-      icon: _loadingAiKey == loadingKey
-          ? const SizedBox(
-              width: 14,
-              height: 14,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          : const Icon(Icons.auto_awesome, size: 16),
-      label: Text(AppLocaleKeys.osAiGenerate.tr),
+  Future<bool> _confirmReplaceClauses() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(
+          AppLocaleKeys.osLegalContractGenerateClausesConfirmTitle.tr,
+        ),
+        content: Text(
+          AppLocaleKeys.osLegalContractGenerateClausesConfirmMessage.tr,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(AppLocaleKeys.commonCancel.tr),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(AppLocaleKeys.commonConfirm.tr),
+          ),
+        ],
+      ),
     );
+    return confirmed == true;
+  }
+
+  Future<void> _generateAllClauses() async {
+    if (_loadingAiKey != null) return;
+    if (!await _confirmReplaceClauses()) return;
+
+    setState(() => _loadingAiKey = 'clauses-all');
+    try {
+      final drafts = await OsAiService.instance.generateContractClauses(
+        input: _contractAiInput(),
+      );
+      if (!mounted) return;
+      final ts = DateTime.now().millisecondsSinceEpoch;
+      setState(() {
+        _clauses = drafts
+            .asMap()
+            .entries
+            .map(
+              (e) => OsContractClause(
+                id: 'c-ai-$ts-${e.key}',
+                title: e.value.title,
+                content: e.value.content,
+              ),
+            )
+            .toList();
+      });
+    } finally {
+      if (mounted) setState(() => _loadingAiKey = null);
+    }
   }
 
   Future<void> _generateContractTitle() async {
@@ -423,28 +475,6 @@ class _OsLegalContractDrafterDialogState
         input: _contractAiInput(),
       );
       if (mounted) _scopeCtrl.text = text;
-    } finally {
-      if (mounted) setState(() => _loadingAiKey = null);
-    }
-  }
-
-  Future<void> _generateClause(int index) async {
-    if (_loadingAiKey != null || index < 0 || index >= _clauses.length) return;
-    final key = 'clause-$index';
-    setState(() => _loadingAiKey = key);
-    try {
-      final clause = _clauses[index];
-      final text = await OsAiService.instance.generateContractClause(
-        input: _contractAiInput(
-          clauseTitle: clause.title,
-          clauseContent: clause.content,
-        ),
-      );
-      if (mounted) {
-        setState(() {
-          _clauses[index] = clause.copyWith(content: text);
-        });
-      }
     } finally {
       if (mounted) setState(() => _loadingAiKey = null);
     }
@@ -1195,7 +1225,11 @@ class _OsLegalContractDrafterDialogState
               ),
             ),
             const SizedBox(width: 8),
-            _aiGenerateButton('title', _generateContractTitle),
+            OsAiGenerateButton(
+              isLoading: _loadingAiKey == 'title',
+              onPressed:
+                  _loadingAiKey != null ? null : _generateContractTitle,
+            ),
           ],
         ),
         const SizedBox(height: 12),
@@ -1218,7 +1252,11 @@ class _OsLegalContractDrafterDialogState
             Expanded(
               child: _label(AppLocaleKeys.osLegalContractGoverningLaw.tr),
             ),
-            _aiGenerateButton('governing-law', _generateGoverningLaw),
+            OsAiGenerateButton(
+              isLoading: _loadingAiKey == 'governing-law',
+              onPressed:
+                  _loadingAiKey != null ? null : _generateGoverningLaw,
+            ),
           ],
         ),
         osTypedTextField(
@@ -1643,15 +1681,20 @@ class _OsLegalContractDrafterDialogState
       label: Text(AppLocaleKeys.osLegalContractAddPayment.tr),
     );
 
+    final aiActionColor = OsAiColors.actionForeground(context);
     final aiScheduleButton = OutlinedButton.icon(
       onPressed: _loadingAiKey != null ? null : _generatePaymentSchedule,
+      style: OutlinedButton.styleFrom(foregroundColor: aiActionColor),
       icon: _loadingAiKey == 'payment-schedule'
-          ? const SizedBox(
+          ? SizedBox(
               width: 14,
               height: 14,
-              child: CircularProgressIndicator(strokeWidth: 2),
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: aiActionColor,
+              ),
             )
-          : const Icon(Icons.auto_awesome, size: 16),
+          : Icon(Icons.auto_awesome, size: 16, color: aiActionColor),
       label: Text(AppLocaleKeys.osAiContractPaymentScheduleTitle.tr),
     );
 
@@ -1819,15 +1862,7 @@ class _OsLegalContractDrafterDialogState
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _label(AppLocaleKeys.osLegalContractPaymentMilestone.tr),
-                      milestoneField,
-                    ],
-                  ),
-                ),
+                Expanded(child: milestoneField),
                 deleteBtn,
               ],
             ),
@@ -1861,7 +1896,6 @@ class _OsLegalContractDrafterDialogState
               ],
             ),
             const SizedBox(height: 10),
-            _label(AppLocaleKeys.osLegalContractPaymentDue.tr),
             dueField,
           ],
         ),
@@ -1901,7 +1935,11 @@ class _OsLegalContractDrafterDialogState
             Expanded(
               child: _label(AppLocaleKeys.osLegalContractScopeOfWork.tr),
             ),
-            _aiGenerateButton('scope', _generateContractScope),
+            OsAiGenerateButton(
+              isLoading: _loadingAiKey == 'scope',
+              onPressed:
+                  _loadingAiKey != null ? null : _generateContractScope,
+            ),
           ],
         ),
         osTypedTextField(
@@ -1922,20 +1960,30 @@ class _OsLegalContractDrafterDialogState
                 ),
               ),
             ),
+            OsAiGenerateButton(
+              compact: true,
+              isLoading: _loadingAiKey == 'clauses-all',
+              onPressed:
+                  _loadingAiKey != null ? null : _generateAllClauses,
+            ),
+            const SizedBox(width: 8),
             OutlinedButton.icon(
-              onPressed: () {
-                setState(() {
-                  _clauses = [
-                    ..._clauses,
-                    OsContractClause(
-                      id: 'c-custom-${DateTime.now().millisecondsSinceEpoch}',
-                      title: AppLocaleKeys.osLegalContractAddClause.tr,
-                      content:
-                          'اتفق الطرفان على الالتزام بالشروط والضوابط المحددة في هذا البند التزاماً تاماً وبحسن نية.',
-                    ),
-                  ];
-                });
-              },
+              onPressed: _loadingAiKey != null
+                  ? null
+                  : () {
+                      setState(() {
+                        _clauses = [
+                          ..._clauses,
+                          OsContractClause(
+                            id:
+                                'c-custom-${DateTime.now().millisecondsSinceEpoch}',
+                            title: AppLocaleKeys.osLegalContractAddClause.tr,
+                            content:
+                                'اتفق الطرفان على الالتزام بالشروط والضوابط المحددة في هذا البند التزاماً تاماً وبحسن نية.',
+                          ),
+                        ];
+                      });
+                    },
               icon: const Icon(Icons.add, size: 16),
               label: Text(AppLocaleKeys.osLegalContractAddClause.tr),
             ),
@@ -1947,7 +1995,11 @@ class _OsLegalContractDrafterDialogState
         Row(
           children: [
             Expanded(child: _label(AppLocaleKeys.osLegalContractCustomTerms.tr)),
-            _aiGenerateButton('custom-terms', _generateCustomTerms),
+            OsAiGenerateButton(
+              isLoading: _loadingAiKey == 'custom-terms',
+              onPressed:
+                  _loadingAiKey != null ? null : _generateCustomTerms,
+            ),
           ],
         ),
         osTypedTextField(
@@ -1959,7 +2011,11 @@ class _OsLegalContractDrafterDialogState
         Row(
           children: [
             Expanded(child: _label(AppLocaleKeys.osLegalContractJurisdiction.tr)),
-            _aiGenerateButton('jurisdiction', _generateJurisdiction),
+            OsAiGenerateButton(
+              isLoading: _loadingAiKey == 'jurisdiction',
+              onPressed:
+                  _loadingAiKey != null ? null : _generateJurisdiction,
+            ),
           ],
         ),
         osTypedTextField(
@@ -2020,18 +2076,6 @@ class _OsLegalContractDrafterDialogState
                           _clauses[index] =
                               clause.copyWith(isEnabled: v ?? false);
                         }),
-              ),
-              TextButton(
-                onPressed: _loadingAiKey != null
-                    ? null
-                    : () => _generateClause(index),
-                child: _loadingAiKey == 'clause-$index'
-                    ? const SizedBox(
-                        width: 14,
-                        height: 14,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(AppLocaleKeys.osAiGenerate.tr),
               ),
             ],
           ),

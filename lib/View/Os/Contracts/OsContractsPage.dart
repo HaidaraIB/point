@@ -78,53 +78,63 @@ class _OsContractsPageState extends State<OsContractsPage>
           ),
           Obx(() {
             final all = ctrl.contracts.toList();
-            return Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: LayoutBuilder(
-                builder: (context, c) {
-                  final wide = c.maxWidth >= 900;
-                  final cross = wide ? 4 : 2;
-                  return GridView.count(
-                    crossAxisCount: cross,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    childAspectRatio: wide ? 2.6 : 2.0,
-                    children: [
-                      OsKpiCard(
-                        title: AppLocaleKeys.osLegalContractKpiTotal.tr,
-                        value: '${all.length}',
-                        subtitle: AppLocaleKeys.osLegalContractKpiTotalHint.tr,
-                        color: theme.primaryText,
-                      ),
-                      OsKpiCard(
-                        title: AppLocaleKeys.osLegalContractKpiActive.tr,
-                        value:
-                            '${ctrl.countByStatus(OsLegalContractStatus.active)}',
-                        subtitle: AppLocaleKeys.osLegalContractKpiActiveHint.tr,
-                        color: AppColors.success,
-                      ),
-                      OsKpiCard(
-                        title: AppLocaleKeys.osLegalContractKpiPending.tr,
-                        value:
-                            '${ctrl.countByStatus(OsLegalContractStatus.pendingSignature)}',
-                        subtitle: AppLocaleKeys.osLegalContractKpiPendingHint.tr,
-                        color: AppColors.caution,
-                      ),
-                      OsKpiCard(
-                        title: AppLocaleKeys.osLegalContractKpiValue.tr,
-                        value: OsFinanceFormat.money(ctrl.activeValueIqd()),
-                        subtitle: AppLocaleKeys.osLegalContractKpiValueHint.tr,
-                        color: AppColors.primary,
-                      ),
-                    ],
-                  );
-                },
+            return SizedBox(
+              height: 118,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                children: [
+                  SizedBox(
+                    width: 180,
+                    child: OsKpiCard(
+                      dense: true,
+                      title: AppLocaleKeys.osLegalContractKpiTotal.tr,
+                      value: '${all.length}',
+                      subtitle: AppLocaleKeys.osLegalContractKpiTotalHint.tr,
+                      color: theme.primaryText,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 180,
+                    child: OsKpiCard(
+                      dense: true,
+                      title: AppLocaleKeys.osLegalContractKpiActive.tr,
+                      value:
+                          '${ctrl.countByStatus(OsLegalContractStatus.active)}',
+                      subtitle: AppLocaleKeys.osLegalContractKpiActiveHint.tr,
+                      color: AppColors.success,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 180,
+                    child: OsKpiCard(
+                      dense: true,
+                      title: AppLocaleKeys.osLegalContractKpiPending.tr,
+                      value:
+                          '${ctrl.countByStatus(OsLegalContractStatus.pendingSignature)}',
+                      subtitle: AppLocaleKeys.osLegalContractKpiPendingHint.tr,
+                      color: AppColors.caution,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  SizedBox(
+                    width: 196,
+                    child: OsKpiCard(
+                      dense: true,
+                      title: AppLocaleKeys.osLegalContractKpiValue.tr,
+                      value: OsFinanceFormat.money(ctrl.activeValueIqd()),
+                      subtitle: AppLocaleKeys.osLegalContractKpiValueHint.tr,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                ],
               ),
             );
           }),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           Material(
             color: theme.cardSurface,
             child: TabBar(

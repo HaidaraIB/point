@@ -121,6 +121,36 @@ void main() {
       expect(text, contains('السرية'));
     });
 
+    test('contractClausesFallback returns multiple titled clauses', () {
+      const input = OsAiContractInput(
+        templateTitle: 'عقد تسويق',
+        subType: 'تسويق رقمي',
+        defaultDurationMonths: 12,
+      );
+      final clauses = OsAiService.contractClausesFallback(input);
+      expect(clauses.length, greaterThanOrEqualTo(6));
+      expect(clauses.first.title, contains('المادة'));
+      expect(clauses.first.content, isNotEmpty);
+    });
+
+    test('parseContractClausesText builds drafts from JSON', () {
+      const json =
+          '[{"title":"المادة الأولى: التمهيد","content":"نص البند."}]';
+      final drafts = OsAiService.parseContractClausesText(json);
+      expect(drafts, isNotNull);
+      expect(drafts!.length, 1);
+      expect(drafts.first.title, contains('التمهيد'));
+    });
+
+    test('parseContractClausesText strips markdown fences', () {
+      const json = '''```json
+[{"title":"بند","content":"محتوى"}]
+```''';
+      final drafts = OsAiService.parseContractClausesText(json);
+      expect(drafts, isNotNull);
+      expect(drafts!.single.content, 'محتوى');
+    });
+
     test('parsePaymentScheduleText builds terms from JSON', () {
       const json =
           '[{"milestone":"دفعة أولى","percentage":60,"dueDateDescription":"توقيع"}]';

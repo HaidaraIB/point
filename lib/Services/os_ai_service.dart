@@ -9,6 +9,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 const String _functionName = 'os-ai';
 
+/// Title + body pair from bulk clause generation.
+class OsAiClauseDraft {
+  const OsAiClauseDraft({required this.title, required this.content});
+
+  final String title;
+  final String content;
+}
+
 /// Context for contract AI field generation.
 class OsAiContractInput {
   const OsAiContractInput({
@@ -23,6 +31,8 @@ class OsAiContractInput {
     this.startDate = '',
     this.endDate = '',
     this.templateDescription = '',
+    this.subType = '',
+    this.defaultDurationMonths = 0,
     this.governingLaw = '',
     this.customTerms = '',
     this.jurisdiction = '',
@@ -39,6 +49,8 @@ class OsAiContractInput {
   final String startDate;
   final String endDate;
   final String templateDescription;
+  final String subType;
+  final int defaultDurationMonths;
   final String governingLaw;
   final String customTerms;
   final String jurisdiction;
@@ -56,6 +68,8 @@ class OsAiContractInput {
     if (endDate.trim().isNotEmpty) 'endDate': endDate.trim(),
     if (templateDescription.trim().isNotEmpty)
       'templateDescription': templateDescription.trim(),
+    if (subType.trim().isNotEmpty) 'subType': subType.trim(),
+    if (defaultDurationMonths > 0) 'defaultDurationMonths': defaultDurationMonths,
     if (governingLaw.trim().isNotEmpty) 'governingLaw': governingLaw.trim(),
     if (customTerms.trim().isNotEmpty) 'customTerms': customTerms.trim(),
     if (jurisdiction.trim().isNotEmpty) 'jurisdiction': jurisdiction.trim(),
@@ -162,6 +176,89 @@ class OsAiService {
             ? input.contractTitle.trim()
             : 'نموذج عقد');
     return 'نموذج قانوني جاهز لـ$name يغطي نطاق الخدمات، الالتزامات المالية، الملكية الفكرية، والسرية وفق المرجعيات العراقية المعتمدة لوكالة نقطة.';
+  }
+
+  static List<OsAiClauseDraft> contractClausesFallback(OsAiContractInput input) {
+    final name = input.templateTitle.trim().isNotEmpty
+        ? input.templateTitle.trim()
+        : (input.contractTitle.trim().isNotEmpty
+            ? input.contractTitle.trim()
+            : 'عقد خدمات إبداعية');
+    final subType = input.subType.trim().isNotEmpty
+        ? input.subType.trim()
+        : 'خدمات إبداعية وتسويق';
+    final months = input.defaultDurationMonths > 0
+        ? input.defaultDurationMonths
+        : 6;
+    final law = input.governingLaw.trim().isNotEmpty
+        ? input.governingLaw.trim()
+        : contractGoverningLawFallback(input);
+    final scopeHint = input.templateDescription.trim().isNotEmpty
+        ? input.templateDescription.trim()
+        : subType;
+
+    return [
+      OsAiClauseDraft(
+        title: 'المادة الأولى: التمهيد وأهلية التعاقد',
+        content:
+            'لما كان الطرف الأول (وكالة نقطة للإنتاج الإبداعي) متخصصاً في $subType، ولما كان الطرف الثاني يرغب بالاستفادة من خبراته لتنفيذ $name، فقد اتفق الطرفان بكامل أهليتهما القانونية وفق أحكام المادة (146) من القانون المدني العراقي على أن العقد شريعة المتعاقدين.',
+      ),
+      OsAiClauseDraft(
+        title: 'المادة الثانية: نطاق الخدمات والمخرجات',
+        content:
+            'يلتزم الطرف الأول بتنفيذ $name وفق المواصفات المعتمدة وملحق العمل، بما يشمل $scopeHint، والتنسيق والمتابعة حتى الاعتماد النهائي من الطرف الثاني.',
+      ),
+      OsAiClauseDraft(
+        title: 'المادة الثالثة: الأتعاب والالتزامات المالية',
+        content:
+            'يلتزم الطرف الثاني بسداد الأتعاب المتفق عليها وفق جدول الدفعات المرفق. وفي حال التأخر عن السداد لأكثر من المدة المتفق عليها، يحق للطرف الأول إيقاف الخدمات مؤقتاً دون مسؤولية عن أضرار ناتجة عن ذلك، مع احتفاظه بحق المطالبة بالمستحقات.',
+      ),
+      OsAiClauseDraft(
+        title: 'المادة الرابعة: الملكية الفكرية',
+        content:
+            'تؤول حقوق المخرجات المنفذة والمدفوعة بالكامل للطرف الثاني، مع احتفاظ الطرف الأول بحق إدراج نماذج من الأعمال في سابقة أعماله لأغراض الترويج غير التجاري للوكالة.',
+      ),
+      OsAiClauseDraft(
+        title: 'المادة الخامسة: السرية وحماية البيانات',
+        content:
+            'يلتزم الطرفان بالحفاظ على سرية المعلومات والبيانات التي يطلع عليها أي منهما بمناسبة تنفيذ هذا العقد، ولا يجوز إفشاؤها لطرف ثالث أثناء سريان العقد أو بعده لمدة ثلاث سنوات.',
+      ),
+      OsAiClauseDraft(
+        title: 'المادة السادسة: مدة العقد والإنهاء',
+        content:
+            'يسري هذا العقد لمدة $months أشهر من تاريخ التوقيع، ويجوز تجديده بموافقة خطية. ويجوز لأي طرف إنهاء العقد بإشعار خطي قبل (30) يوماً من تاريخ الإنهاء المرغوب، مع مراعاة المستحقات عن الأعمال المنفذة.',
+      ),
+      OsAiClauseDraft(
+        title: 'المادة السابعة: القانون الحاكم والاختصاص القضائي',
+        content:
+            'يخضع هذا العقد ويفسر وفقاً لـ$law. وتختص محاكم بغداد / الكرخ حصرياً بالنظر في أي نزاع يتعذر حله ودياً خلال (15) يوماً.',
+      ),
+    ];
+  }
+
+  /// Parses Gemini JSON array for contract clause drafts.
+  static List<OsAiClauseDraft>? parseContractClausesText(String text) {
+    try {
+      var raw = text.trim();
+      if (raw.startsWith('```')) {
+        raw = raw.replaceFirst(RegExp(r'^```(?:json)?\s*', multiLine: true), '');
+        raw = raw.replaceFirst(RegExp(r'\s*```$'), '');
+      }
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return null;
+      final drafts = <OsAiClauseDraft>[];
+      for (final item in decoded) {
+        if (item is! Map) continue;
+        final map = Map<String, dynamic>.from(item);
+        final title = map['title']?.toString().trim() ?? '';
+        final content = map['content']?.toString().trim() ?? '';
+        if (title.isEmpty || content.isEmpty) continue;
+        drafts.add(OsAiClauseDraft(title: title, content: content));
+      }
+      return drafts.isEmpty ? null : drafts;
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Parses Gemini JSON array for payment milestones.
@@ -284,6 +381,27 @@ class OsAiService {
     required OsAiContractInput input,
   }) {
     return _generateContractField(field: 'template-description', input: input);
+  }
+
+  Future<List<OsAiClauseDraft>> generateContractClauses({
+    required OsAiContractInput input,
+  }) async {
+    try {
+      final text = await _invoke(
+        body: {
+          'action': 'contract-field',
+          'field': 'template-clauses',
+          'context': input.toJson(),
+        },
+      );
+      if (text != null) {
+        final parsed = parseContractClausesText(text);
+        if (parsed != null) return parsed;
+      }
+    } catch (e, st) {
+      appLog('OsAiService.generateContractClauses failed: $e\n$st');
+    }
+    return contractClausesFallback(input);
   }
 
   Future<List<OsContractPaymentTerm>> generateContractPaymentSchedule({

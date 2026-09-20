@@ -124,6 +124,15 @@ class _InputTextState extends State<InputText> {
 
   void _onTextChanged() => setState(() {});
 
+  /// Avoid showing the same string as external [labelText] and in-field hint.
+  String _effectiveHintText() {
+    final label = widget.labelText;
+    if (label != null && widget.hintText.trim() == label.trim()) {
+      return '';
+    }
+    return widget.hintText;
+  }
+
   @override
   Widget build(BuildContext context) {
     final appTheme = context.appTheme;
@@ -152,7 +161,8 @@ class _InputTextState extends State<InputText> {
     final fieldTextColor = InputText.textOnFill(resolvedFill, appTheme);
     final fieldHintColor = InputText.hintOnFill(resolvedFill, appTheme);
     final textDirection = typedInputTextDirection(_effectiveController.text);
-    final hintTextDirection = typedInputHintTextDirection(widget.hintText);
+    final effectiveHint = _effectiveHintText();
+    final hintTextDirection = typedInputHintTextDirection(effectiveHint);
 
     /// Custom content (e.g. notes log, drag-drop zone). Must not use
     /// [InputDecoration.label], which would stack all children as one floating label.
@@ -268,6 +278,7 @@ class _InputTextState extends State<InputText> {
     required TextDirection? textDirection,
     required TextDirection? hintTextDirection,
   }) {
+    final hintText = _effectiveHintText();
     return TextFormField(
             controller: _effectiveController,
             focusNode: widget.focusNode,
@@ -296,7 +307,7 @@ class _InputTextState extends State<InputText> {
               filled: true,
               fillColor: resolvedFill,
               isDense: isCompactHeight,
-              hintText: widget.hintText,
+              hintText: hintText.isEmpty ? null : hintText,
               hintTextDirection: hintTextDirection,
               hintStyle:
                   widget.hintStyle ??
