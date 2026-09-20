@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:point/Models/Os/OsContractPaymentTerm.dart';
 import 'package:point/Models/Os/OsAiSettingsStatus.dart';
 import 'package:point/Utils/EdgeFunctionRateLimiter.dart';
 import 'package:point/Utils/app_log.dart';
@@ -19,6 +22,10 @@ class OsAiContractInput {
     this.clauseContent = '',
     this.startDate = '',
     this.endDate = '',
+    this.templateDescription = '',
+    this.governingLaw = '',
+    this.customTerms = '',
+    this.jurisdiction = '',
   });
 
   final String contractTitle;
@@ -31,6 +38,10 @@ class OsAiContractInput {
   final String clauseContent;
   final String startDate;
   final String endDate;
+  final String templateDescription;
+  final String governingLaw;
+  final String customTerms;
+  final String jurisdiction;
 
   Map<String, dynamic> toJson() => {
     if (contractTitle.trim().isNotEmpty) 'contractTitle': contractTitle.trim(),
@@ -43,6 +54,11 @@ class OsAiContractInput {
     if (clauseContent.trim().isNotEmpty) 'clauseContent': clauseContent.trim(),
     if (startDate.trim().isNotEmpty) 'startDate': startDate.trim(),
     if (endDate.trim().isNotEmpty) 'endDate': endDate.trim(),
+    if (templateDescription.trim().isNotEmpty)
+      'templateDescription': templateDescription.trim(),
+    if (governingLaw.trim().isNotEmpty) 'governingLaw': governingLaw.trim(),
+    if (customTerms.trim().isNotEmpty) 'customTerms': customTerms.trim(),
+    if (jurisdiction.trim().isNotEmpty) 'jurisdiction': jurisdiction.trim(),
   };
 }
 
@@ -118,6 +134,71 @@ class OsAiService {
     return 'اتفق الطرفان على $clauseTitle بما يتوافق مع القوانين العراقية النافذة وبنود هذا العقد، ويلتزمان بتنفيذه بحسن نية ودون إخلال بالحقوق والالتزامات المتبادلة.';
   }
 
+  static String contractGoverningLawFallback(OsAiContractInput input) {
+    if (input.governingLaw.trim().isNotEmpty) return input.governingLaw.trim();
+    return 'القانون المدني العراقي رقم (40) لسنة 1951 وأنظمة العقود النافذة في جمهورية العراق';
+  }
+
+  static String contractCustomTermsFallback(OsAiContractInput input) {
+    final title = input.contractTitle.trim().isNotEmpty
+        ? input.contractTitle.trim()
+        : 'هذا العقد';
+    return 'أي تعديل على $title يجب أن يكون مكتوباً وموقعاً من الطرفين. تُحل النزاعات ودياً أولاً خلال (15) يوماً، وإلا تُحال إلى المحكمة المختصة وفق الاختصاص القضائي المحدد في هذا العقد.';
+  }
+
+  static String contractJurisdictionFallback(OsAiContractInput input) {
+    if (input.jurisdiction.trim().isNotEmpty) return input.jurisdiction.trim();
+    final type = input.targetType.trim().toUpperCase();
+    if (type == 'EMPLOYEE') {
+      return 'محاكم العمل المختصة في بغداد / الكرخ';
+    }
+    return 'محاكم بغداد / الكرخ المختصة نزاعياً وفق القانون المدني العراقي';
+  }
+
+  static String contractTemplateDescriptionFallback(OsAiContractInput input) {
+    final name = input.templateTitle.trim().isNotEmpty
+        ? input.templateTitle.trim()
+        : (input.contractTitle.trim().isNotEmpty
+            ? input.contractTitle.trim()
+            : 'نموذج عقد');
+    return 'نموذج قانوني جاهز لـ$name يغطي نطاق الخدمات، الالتزامات المالية، الملكية الفكرية، والسرية وفق المرجعيات العراقية المعتمدة لوكالة نقطة.';
+  }
+
+  /// Parses Gemini JSON array for payment milestones.
+  static List<OsContractPaymentTerm>? parsePaymentScheduleText(
+    String text,
+    double totalValue,
+  ) {
+    try {
+      var raw = text.trim();
+      if (raw.startsWith('```')) {
+        raw = raw.replaceFirst(RegExp(r'^```(?:json)?\s*', multiLine: true), '');
+        raw = raw.replaceFirst(RegExp(r'\s*```$'), '');
+      }
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return null;
+      final terms = <OsContractPaymentTerm>[];
+      for (final item in decoded) {
+        if (item is! Map) continue;
+        final map = Map<String, dynamic>.from(item);
+        final pct = (map['percentage'] as num?)?.toDouble() ?? 0;
+        if (pct <= 0) continue;
+        terms.add(
+          OsContractPaymentTerm(
+            milestone: map['milestone']?.toString() ?? '',
+            percentage: pct,
+            amount: (totalValue * pct / 100).roundToDouble(),
+            dueDateDescription:
+                map['dueDateDescription']?.toString() ?? '',
+          ),
+        );
+      }
+      return terms.isEmpty ? null : terms;
+    } catch (_) {
+      return null;
+    }
+  }
+
   static String localFinancialInsight(OsAiFinancialSummaryInput data) {
     final rev = data.totalRevenue.toStringAsFixed(0);
     final conv = data.clientCount > 0
@@ -181,6 +262,54 @@ class OsAiService {
     return _generateContractField(field: 'clause', input: input);
   }
 
+  Future<String> generateContractGoverningLaw({
+    required OsAiContractInput input,
+  }) {
+    return _generateContractField(field: 'governing-law', input: input);
+  }
+
+  Future<String> generateContractCustomTerms({
+    required OsAiContractInput input,
+  }) {
+    return _generateContractField(field: 'custom-terms', input: input);
+  }
+
+  Future<String> generateContractJurisdiction({
+    required OsAiContractInput input,
+  }) {
+    return _generateContractField(field: 'jurisdiction', input: input);
+  }
+
+  Future<String> generateContractTemplateDescription({
+    required OsAiContractInput input,
+  }) {
+    return _generateContractField(field: 'template-description', input: input);
+  }
+
+  Future<List<OsContractPaymentTerm>> generateContractPaymentSchedule({
+    required OsAiContractInput input,
+    required double totalValue,
+  }) async {
+    try {
+      final text = await _invoke(
+        body: {
+          'action': 'contract-field',
+          'field': 'payment-schedule',
+          'context': input.toJson(),
+        },
+      );
+      if (text != null) {
+        final parsed = parsePaymentScheduleText(text, totalValue);
+        if (parsed != null) return parsed;
+      }
+    } catch (e, st) {
+      appLog(
+        'OsAiService.generateContractPaymentSchedule failed: $e\n$st',
+      );
+    }
+    return OsContractPaymentTerm.defaultClientSchedule(totalValue);
+  }
+
   Future<String> _generateContractField({
     required String field,
     required OsAiContractInput input,
@@ -204,6 +333,14 @@ class OsAiService {
         return contractScopeFallback(input);
       case 'clause':
         return contractClauseFallback(input);
+      case 'governing-law':
+        return contractGoverningLawFallback(input);
+      case 'custom-terms':
+        return contractCustomTermsFallback(input);
+      case 'jurisdiction':
+        return contractJurisdictionFallback(input);
+      case 'template-description':
+        return contractTemplateDescriptionFallback(input);
       default:
         return '';
     }

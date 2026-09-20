@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:point/Controller/HomeController.dart';
 import 'package:point/Controller/OsLegalContractsController.dart';
-import 'package:point/Data/os_contract_templates_seed.dart';
+import 'package:point/View/Os/Contracts/os_legal_contract_template_form_dialog.dart';
 import 'package:point/Localization/AppLocaleKeys.dart';
 import 'package:point/Models/ClientModel.dart';
 import 'package:point/Models/EmployeeModel.dart';
@@ -366,7 +366,7 @@ class _OsLegalContractDrafterDialogState
   }
 
   OsAiContractInput _contractAiInput({String? clauseTitle, String? clauseContent}) {
-    final tpl = OsContractTemplatesSeed.byId(_selectedTemplateId);
+    final tpl = _ctrl.templateById(_selectedTemplateId);
     return OsAiContractInput(
       contractTitle: _titleCtrl.text.trim(),
       targetType: _targetType,
@@ -382,6 +382,23 @@ class _OsLegalContractDrafterDialogState
       endDate: _endDate == null
           ? ''
           : FirestoreOsFinanceApi.formatDate(_endDate!),
+      governingLaw: _governingLawCtrl.text.trim(),
+      customTerms: _customTermsCtrl.text.trim(),
+      jurisdiction: _jurisdictionCtrl.text.trim(),
+    );
+  }
+
+  Widget _aiGenerateButton(String loadingKey, VoidCallback onPressed) {
+    return TextButton.icon(
+      onPressed: _loadingAiKey != null ? null : onPressed,
+      icon: _loadingAiKey == loadingKey
+          ? const SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.auto_awesome, size: 16),
+      label: Text(AppLocaleKeys.osAiGenerate.tr),
     );
   }
 
@@ -427,6 +444,61 @@ class _OsLegalContractDrafterDialogState
         setState(() {
           _clauses[index] = clause.copyWith(content: text);
         });
+      }
+    } finally {
+      if (mounted) setState(() => _loadingAiKey = null);
+    }
+  }
+
+  Future<void> _generateGoverningLaw() async {
+    if (_loadingAiKey != null) return;
+    setState(() => _loadingAiKey = 'governing-law');
+    try {
+      final text = await OsAiService.instance.generateContractGoverningLaw(
+        input: _contractAiInput(),
+      );
+      if (mounted) _governingLawCtrl.text = text;
+    } finally {
+      if (mounted) setState(() => _loadingAiKey = null);
+    }
+  }
+
+  Future<void> _generateCustomTerms() async {
+    if (_loadingAiKey != null) return;
+    setState(() => _loadingAiKey = 'custom-terms');
+    try {
+      final text = await OsAiService.instance.generateContractCustomTerms(
+        input: _contractAiInput(),
+      );
+      if (mounted) _customTermsCtrl.text = text;
+    } finally {
+      if (mounted) setState(() => _loadingAiKey = null);
+    }
+  }
+
+  Future<void> _generateJurisdiction() async {
+    if (_loadingAiKey != null) return;
+    setState(() => _loadingAiKey = 'jurisdiction');
+    try {
+      final text = await OsAiService.instance.generateContractJurisdiction(
+        input: _contractAiInput(),
+      );
+      if (mounted) _jurisdictionCtrl.text = text;
+    } finally {
+      if (mounted) setState(() => _loadingAiKey = null);
+    }
+  }
+
+  Future<void> _generatePaymentSchedule() async {
+    if (_loadingAiKey != null) return;
+    setState(() => _loadingAiKey = 'payment-schedule');
+    try {
+      final terms = await OsAiService.instance.generateContractPaymentSchedule(
+        input: _contractAiInput(),
+        totalValue: _totalValue,
+      );
+      if (mounted) {
+        setState(() => _paymentTerms = terms);
       }
     } finally {
       if (mounted) setState(() => _loadingAiKey = null);
@@ -806,18 +878,14 @@ class _OsLegalContractDrafterDialogState
   }
 
   Widget _buildStep1(AppThemeExtension theme) {
-    final templates = _ctrl.templates
-        .where((t) => t.targetType == _targetType)
-        .toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final stackHeader = constraints.maxWidth < 600;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
-              child: Column(
+            if (stackHeader) ...[
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
@@ -835,36 +903,131 @@ class _OsLegalContractDrafterDialogState
                   ),
                 ],
               ),
-            ),
-            const SizedBox(width: 12),
-            _categoryPills(theme),
-          ],
-        ),
-        const SizedBox(height: 16),
-        LayoutBuilder(
-          builder: (context, c) {
-            final twoCol = c.maxWidth >= 700;
-            const spacing = 12.0;
-            final itemWidth =
-                twoCol ? (c.maxWidth - spacing) / 2 : c.maxWidth;
-            return Wrap(
-              spacing: spacing,
-              runSpacing: spacing,
-              children: [
-                for (final tpl in templates)
-                  SizedBox(
-                    width: itemWidth,
-                    child: _templateCard(
-                      theme,
-                      tpl,
-                      _selectedTemplateId == tpl.id,
+              const SizedBox(height: 12),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: _categoryPills(theme),
+              ),
+            ] else
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          AppLocaleKeys.osLegalContractTemplateHelp.tr,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 14,
+                            color: theme.primaryText,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          AppLocaleKeys.osLegalContractTemplateLawNote.tr,
+                          style: TextStyle(fontSize: 12, color: theme.mutedText),
+                        ),
+                      ],
                     ),
                   ),
-              ],
-            );
-          },
+                  const SizedBox(width: 12),
+                  _categoryPills(theme),
+                ],
+              ),
+            const SizedBox(height: 16),
+            Obx(() {
+              final templates = _ctrl.templates
+                  .where((t) => t.targetType == _targetType)
+                  .toList();
+              return LayoutBuilder(
+                builder: (context, c) {
+                  final twoCol = c.maxWidth >= 700;
+                  const spacing = 12.0;
+                  final itemWidth =
+                      twoCol ? (c.maxWidth - spacing) / 2 : c.maxWidth;
+                  return Wrap(
+                    spacing: spacing,
+                    runSpacing: spacing,
+                    children: [
+                      for (final tpl in templates)
+                        SizedBox(
+                          width: itemWidth,
+                          child: _templateCard(
+                            theme,
+                            tpl,
+                            _selectedTemplateId == tpl.id,
+                          ),
+                        ),
+                      SizedBox(
+                        width: itemWidth,
+                        child: _addTemplateCard(theme),
+                      ),
+                    ],
+                  );
+                },
+              );
+            }),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _addTemplateCard(AppThemeExtension theme) {
+    return Material(
+      color: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(
+          color: theme.border,
+          width: 1,
+          style: BorderStyle.solid,
         ),
-      ],
+      ),
+      child: InkWell(
+        onTap: () async {
+          final saved = await showOsLegalContractTemplateFormDialog(
+            context,
+            initialTargetType: _targetType,
+          );
+          if (saved != null && mounted) {
+            _selectTemplate(saved);
+          }
+        },
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: AppColors.primary.withValues(alpha: 0.45),
+              width: 1.5,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.add_circle_outline,
+                size: 32,
+                color: AppColors.primary,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                AppLocaleKeys.osLegalContractAddTemplate.tr,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13,
+                  color: theme.primaryText,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -1032,11 +1195,7 @@ class _OsLegalContractDrafterDialogState
               ),
             ),
             const SizedBox(width: 8),
-            TextButton.icon(
-              onPressed: _loadingAiKey != null ? null : _generateContractTitle,
-              icon: const Icon(Icons.auto_awesome, size: 16),
-              label: Text(AppLocaleKeys.osAiGenerate.tr),
-            ),
+            _aiGenerateButton('title', _generateContractTitle),
           ],
         ),
         const SizedBox(height: 12),
@@ -1057,19 +1216,19 @@ class _OsLegalContractDrafterDialogState
         Row(
           children: [
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _label(AppLocaleKeys.osLegalContractGoverningLaw.tr),
-                  osTypedTextField(
-                    controller: _governingLawCtrl,
-                    maxLines: 2,
-                    decoration: osDialogFieldDecoration(context),
-                  ),
-                ],
-              ),
+              child: _label(AppLocaleKeys.osLegalContractGoverningLaw.tr),
             ),
-            const SizedBox(width: 12),
+            _aiGenerateButton('governing-law', _generateGoverningLaw),
+          ],
+        ),
+        osTypedTextField(
+          controller: _governingLawCtrl,
+          maxLines: 2,
+          decoration: osDialogFieldDecoration(context),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1484,6 +1643,18 @@ class _OsLegalContractDrafterDialogState
       label: Text(AppLocaleKeys.osLegalContractAddPayment.tr),
     );
 
+    final aiScheduleButton = OutlinedButton.icon(
+      onPressed: _loadingAiKey != null ? null : _generatePaymentSchedule,
+      icon: _loadingAiKey == 'payment-schedule'
+          ? const SizedBox(
+              width: 14,
+              height: 14,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : const Icon(Icons.auto_awesome, size: 16),
+      label: Text(AppLocaleKeys.osAiContractPaymentScheduleTitle.tr),
+    );
+
     final title = Text(
       AppLocaleKeys.osLegalContractPaymentSchedule.tr,
       style: TextStyle(
@@ -1501,6 +1672,8 @@ class _OsLegalContractDrafterDialogState
           const SizedBox(height: 10),
           percentLabel,
           const SizedBox(height: 10),
+          SizedBox(width: double.infinity, child: aiScheduleButton),
+          const SizedBox(height: 8),
           SizedBox(width: double.infinity, child: addButton),
         ],
       );
@@ -1510,6 +1683,8 @@ class _OsLegalContractDrafterDialogState
       children: [
         Expanded(child: title),
         percentLabel,
+        const SizedBox(width: 8),
+        aiScheduleButton,
         const SizedBox(width: 8),
         addButton,
       ],
@@ -1726,17 +1901,7 @@ class _OsLegalContractDrafterDialogState
             Expanded(
               child: _label(AppLocaleKeys.osLegalContractScopeOfWork.tr),
             ),
-            TextButton.icon(
-              onPressed: _loadingAiKey != null ? null : _generateContractScope,
-              icon: _loadingAiKey == 'scope'
-                  ? const SizedBox(
-                      width: 14,
-                      height: 14,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.auto_awesome, size: 16),
-              label: Text(AppLocaleKeys.osAiGenerate.tr),
-            ),
+            _aiGenerateButton('scope', _generateContractScope),
           ],
         ),
         osTypedTextField(
@@ -1779,14 +1944,24 @@ class _OsLegalContractDrafterDialogState
         const SizedBox(height: 10),
         for (var i = 0; i < _clauses.length; i++) _clauseEditor(theme, i),
         const SizedBox(height: 14),
-        _label(AppLocaleKeys.osLegalContractCustomTerms.tr),
+        Row(
+          children: [
+            Expanded(child: _label(AppLocaleKeys.osLegalContractCustomTerms.tr)),
+            _aiGenerateButton('custom-terms', _generateCustomTerms),
+          ],
+        ),
         osTypedTextField(
           controller: _customTermsCtrl,
           maxLines: 3,
           decoration: osDialogFieldDecoration(context),
         ),
         const SizedBox(height: 14),
-        _label(AppLocaleKeys.osLegalContractJurisdiction.tr),
+        Row(
+          children: [
+            Expanded(child: _label(AppLocaleKeys.osLegalContractJurisdiction.tr)),
+            _aiGenerateButton('jurisdiction', _generateJurisdiction),
+          ],
+        ),
         osTypedTextField(
           controller: _jurisdictionCtrl,
           maxLines: 2,

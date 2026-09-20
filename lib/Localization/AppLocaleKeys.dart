@@ -548,6 +548,8 @@ class AppLocaleKeys {
   static const osAiContractClauseTitle = 'os.ai.contract_clause_title';
   static const osAiContractScopePlaceholder = 'os.ai.contract_scope_placeholder';
   static const osAiContractClausePlaceholder = 'os.ai.contract_clause_placeholder';
+  static const osAiContractPaymentScheduleTitle =
+      'os.ai.contract_payment_schedule_title';
   static const osModulesTitle = 'os.modules.title';
   static const osModuleComingSoon = 'os.module.coming_soon';
   static const osModuleCrm = 'os.module.crm';
@@ -1833,6 +1835,30 @@ class AppLocaleKeys {
   static const osLegalContractDurationValidity = 'os.legal_contract.duration_validity';
   static const osLegalContractEmptyNoMatch = 'os.legal_contract.empty_no_match';
   static const osLegalContractTemplatesCount = 'os.legal_contract.templates_count';
+  static const osLegalContractAddTemplate = 'os.legal_contract.add_template';
+  static const osLegalContractAddTemplateTitle =
+      'os.legal_contract.add_template_title';
+  static const osLegalContractEditTemplate = 'os.legal_contract.edit_template';
+  static const osLegalContractSaveTemplate = 'os.legal_contract.save_template';
+  static const osLegalContractSavedTemplate =
+      'os.legal_contract.saved_template';
+  static const osLegalContractDeleteTemplateConfirm =
+      'os.legal_contract.delete_template_confirm';
+  static const osLegalContractDeletedTemplate =
+      'os.legal_contract.deleted_template';
+  static const osLegalContractDuplicateTemplate =
+      'os.legal_contract.duplicate_template';
+  static const osLegalContractErrorRequiredClause =
+      'os.legal_contract.error.required_clause';
+  static const osLegalContractTemplateName = 'os.legal_contract.template_name';
+  static const osLegalContractTemplateSubType =
+      'os.legal_contract.template_sub_type';
+  static const osLegalContractTemplateDurationMonths =
+      'os.legal_contract.template_duration_months';
+  static const errorsOsLegalContractsTemplateSave =
+      'errors.osLegalContracts.templateSave';
+  static const errorsOsLegalContractsTemplateDelete =
+      'errors.osLegalContracts.templateDelete';
   static const osLegalContractCategoryClients = 'os.legal_contract.category.clients';
   static const osLegalContractCategoryEmployees = 'os.legal_contract.category.employees';
   static const osLegalContractCategoryFreelancers = 'os.legal_contract.category.freelancers';

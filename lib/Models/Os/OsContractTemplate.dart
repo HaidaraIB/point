@@ -62,4 +62,36 @@ class OsContractTemplate {
           'defaultDurationMonths': defaultDurationMonths,
         'isPreset': isPreset,
       };
+
+  OsContractTemplate copyWith({
+    String? id,
+    String? name,
+    String? description,
+    String? targetType,
+    List<OsContractClause>? clauses,
+    String? suggestedTitle,
+    String? subType,
+    String? governingLaw,
+    List<String>? tags,
+    int? defaultDurationMonths,
+    bool? isPreset,
+  }) {
+    return OsContractTemplate(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      targetType: targetType ?? this.targetType,
+      clauses: clauses ?? this.clauses,
+      suggestedTitle: suggestedTitle ?? this.suggestedTitle,
+      subType: subType ?? this.subType,
+      governingLaw: governingLaw ?? this.governingLaw,
+      tags: tags ?? this.tags,
+      defaultDurationMonths:
+          defaultDurationMonths ?? this.defaultDurationMonths,
+      isPreset: isPreset ?? this.isPreset,
+    );
+  }
+
+  /// Custom templates saved in Firestore must not use preset ids.
+  static bool isPresetId(String id) => id.startsWith('TPL-');
 }

@@ -120,5 +120,21 @@ void main() {
       final text = OsAiService.contractClauseFallback(input);
       expect(text, contains('السرية'));
     });
+
+    test('parsePaymentScheduleText builds terms from JSON', () {
+      const json =
+          '[{"milestone":"دفعة أولى","percentage":60,"dueDateDescription":"توقيع"}]';
+      final terms = OsAiService.parsePaymentScheduleText(json, 1000000);
+      expect(terms, isNotNull);
+      expect(terms!.length, 1);
+      expect(terms.first.percentage, 60);
+      expect(terms.first.amount, 600000);
+    });
+
+    test('contractJurisdictionFallback uses employee courts for employees', () {
+      const input = OsAiContractInput(targetType: 'EMPLOYEE');
+      final text = OsAiService.contractJurisdictionFallback(input);
+      expect(text, contains('العمل'));
+    });
   });
 }

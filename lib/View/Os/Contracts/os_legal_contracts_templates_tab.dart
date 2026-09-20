@@ -6,8 +6,11 @@ import 'package:point/Models/Os/OsContractSettings.dart';
 import 'package:point/Models/Os/OsContractTemplate.dart';
 import 'package:point/Utils/AppColors.dart';
 import 'package:point/Utils/app_theme_extension.dart';
+import 'package:point/Services/FunHelper.dart';
 import 'package:point/View/Os/Contracts/os_legal_contract_form_dialog.dart';
+import 'package:point/View/Os/Contracts/os_legal_contract_template_form_dialog.dart';
 import 'package:point/View/Os/os_button_styles.dart';
+import 'package:point/View/Os/os_snackbar.dart';
 
 class OsLegalContractsTemplatesTab extends StatelessWidget {
   const OsLegalContractsTemplatesTab({super.key, this.compact = false});
@@ -19,7 +22,6 @@ class OsLegalContractsTemplatesTab extends StatelessWidget {
     final theme = context.appTheme;
     final ctrl = Get.find<OsLegalContractsController>();
     final settings = ctrl.settings.value;
-    final templates = ctrl.templates;
     final pad = compact ? 12.0 : 16.0;
 
     return ListView(
@@ -27,33 +29,70 @@ class OsLegalContractsTemplatesTab extends StatelessWidget {
       children: [
         _lawBanner(theme, settings, forceStacked: compact),
         const SizedBox(height: 20),
-        Text(
-          AppLocaleKeys.osLegalContractTemplateCatalog.tr,
-          style: TextStyle(
-            fontWeight: FontWeight.w900,
-            fontSize: 16,
-            color: theme.primaryText,
-          ),
-        ),
-        const SizedBox(height: 12),
         LayoutBuilder(
           builder: (context, c) {
-            final twoCol = c.maxWidth >= 900;
-            final itemWidth =
-                twoCol ? (c.maxWidth - 14) / 2 : c.maxWidth;
-            return Wrap(
-              spacing: 14,
-              runSpacing: 14,
-              children: [
-                for (final t in templates)
-                  SizedBox(
-                    width: itemWidth,
-                    child: _templateCatalogCard(context, theme, t),
+            final stackActions = compact || c.maxWidth < 520;
+            final addButton = FilledButton.icon(
+              onPressed: () => showOsLegalContractTemplateFormDialog(context),
+              style: OsButtonStyles.primaryCompact(),
+              icon: const Icon(Icons.add, size: 18),
+              label: Text(AppLocaleKeys.osLegalContractAddTemplate.tr),
+            );
+            if (stackActions) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    AppLocaleKeys.osLegalContractTemplateCatalog.tr,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16,
+                      color: theme.primaryText,
+                    ),
                   ),
+                  const SizedBox(height: 10),
+                  addButton,
+                ],
+              );
+            }
+            return Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    AppLocaleKeys.osLegalContractTemplateCatalog.tr,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16,
+                      color: theme.primaryText,
+                    ),
+                  ),
+                ),
+                addButton,
               ],
             );
           },
         ),
+        const SizedBox(height: 12),
+        Obx(() {
+          final templates = ctrl.templates;
+          return LayoutBuilder(
+            builder: (context, c) {
+              final twoCol = c.maxWidth >= 900;
+              final itemWidth = twoCol ? (c.maxWidth - 14) / 2 : c.maxWidth;
+              return Wrap(
+                spacing: 14,
+                runSpacing: 14,
+                children: [
+                  for (final t in templates)
+                    SizedBox(
+                      width: itemWidth,
+                      child: _templateCatalogCard(context, theme, ctrl, t),
+                    ),
+                ],
+              );
+            },
+          );
+        }),
       ],
     );
   }
@@ -156,6 +195,7 @@ class OsLegalContractsTemplatesTab extends StatelessWidget {
   Widget _templateCatalogCard(
     BuildContext context,
     AppThemeExtension theme,
+    OsLegalContractsController ctrl,
     OsContractTemplate t,
   ) {
     final clausePreview = t.clauses.take(4).toList();
@@ -282,18 +322,44 @@ class OsLegalContractsTemplatesTab extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               if (t.defaultDurationMonths != null)
-                Expanded(
-                  child: Text(
-                    AppLocaleKeys.osLegalContractTypicalDuration.trParams({
-                      'months': '${t.defaultDurationMonths}',
-                    }),
-                    style: TextStyle(fontSize: 11, color: theme.secondaryText),
+                Text(
+                  AppLocaleKeys.osLegalContractTypicalDuration.trParams({
+                    'months': '${t.defaultDurationMonths}',
+                  }),
+                  style: TextStyle(fontSize: 11, color: theme.secondaryText),
+                ),
+              if (t.isPreset)
+                TextButton.icon(
+                  onPressed: () => showOsLegalContractTemplateFormDialog(
+                    context,
+                    duplicateFrom: t,
+                  ),
+                  icon: const Icon(Icons.copy_outlined, size: 16),
+                  label: Text(
+                    AppLocaleKeys.osLegalContractDuplicateTemplate.tr,
                   ),
                 ),
+              if (!t.isPreset) ...[
+                IconButton(
+                  tooltip: AppLocaleKeys.osLegalContractEditTemplate.tr,
+                  onPressed: () => showOsLegalContractTemplateFormDialog(
+                    context,
+                    existing: t,
+                  ),
+                  icon: Icon(Icons.edit_outlined, color: theme.secondaryText),
+                ),
+                IconButton(
+                  tooltip: AppLocaleKeys.osCommonDelete.tr,
+                  onPressed: () => _confirmDeleteTemplate(context, ctrl, t),
+                  icon: Icon(Icons.delete_outline, color: theme.mutedText),
+                ),
+              ],
               FilledButton.icon(
                 onPressed: () => showOsLegalContractFormDialog(
                   context,
@@ -307,6 +373,32 @@ class OsLegalContractsTemplatesTab extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _confirmDeleteTemplate(
+    BuildContext context,
+    OsLegalContractsController ctrl,
+    OsContractTemplate t,
+  ) async {
+    await FunHelper.showDeleteConfirmDialog(
+      context,
+      title: AppLocaleKeys.osCommonDelete.tr,
+      message: AppLocaleKeys.osLegalContractDeleteTemplateConfirm.tr,
+      onTap: () async {
+        final ok = await ctrl.deleteTemplate(t.id);
+        if (ok) {
+          OsSnackbar.success(
+            AppLocaleKeys.osLegalContractDeletedTemplate.tr,
+            t.name,
+          );
+        } else {
+          OsSnackbar.error(
+            AppLocaleKeys.osCommonDeleteFailed.tr,
+            AppLocaleKeys.errorsOsLegalContractsTemplateDelete.tr,
+          );
+        }
+      },
     );
   }
 }

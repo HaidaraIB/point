@@ -1419,6 +1419,12 @@ service cloud.firestore {
         if isSignedIn() && hasAuthRole() && isAdmin();
     }
 
+    match /os_legal_contract_templates/{templateId} {
+      allow read, create, update:
+        if isSignedIn() && hasAuthRole() && hasOsModule('contracts');
+      allow delete: if isSignedIn() && hasAuthRole() && isAdmin();
+    }
+
     match /os_general_settings/{settingsId} {
       allow read:
         if isSignedIn() && hasAuthRole() && hasAnyOsModuleAccess();

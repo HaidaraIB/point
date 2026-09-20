@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:point/Models/Os/OsContractSettings.dart';
+import 'package:point/Models/Os/OsContractTemplate.dart';
 import 'package:point/Models/Os/OsLegalContractModel.dart';
 import 'package:point/Services/firestore/firestore_query_limits.dart';
 import 'package:point/Services/firestore/firestore_stream_utils.dart';
@@ -19,6 +20,7 @@ class FirestoreOsLegalContractsApi {
   FirestoreOsLegalContractsApi._();
 
   static const contractsCollection = 'os_legal_contracts';
+  static const templatesCollection = 'os_legal_contract_templates';
   static const settingsCollection = 'os_legal_contract_settings';
   static const settingsDocId = 'default';
   static const _uuid = Uuid();
@@ -125,6 +127,63 @@ class FirestoreOsLegalContractsApi {
       return true;
     } catch (e, st) {
       appLog('deleteLegalContract failed: $e\n$st');
+      return false;
+    }
+  }
+
+  static Stream<List<OsContractTemplate>> streamTemplates() {
+    final mapped = FirebaseFirestore.instance
+        .collection(templatesCollection)
+        .limit(FirestoreQueryLimits.osLegalContractTemplates)
+        .snapshots()
+        .map((snap) {
+      final list = snap.docs.map((doc) {
+        final data = Map<String, dynamic>.from(doc.data());
+        data['id'] = doc.id;
+        return OsContractTemplate.fromJson(data);
+      }).toList();
+      list.sort((a, b) => a.name.compareTo(b.name));
+      return list;
+    });
+    return safeFirestoreListStream(mapped, templatesCollection);
+  }
+
+  static Future<String?> saveTemplate(OsContractTemplate template) async {
+    try {
+      final id = template.id.trim().isNotEmpty &&
+              !OsContractTemplate.isPresetId(template.id)
+          ? template.id.trim()
+          : newId();
+      final now = DateTime.now();
+      final data = template
+          .copyWith(id: id, isPreset: false)
+          .toJson();
+      data['updatedAt'] = Timestamp.fromDate(now);
+      final docRef = FirebaseFirestore.instance
+          .collection(templatesCollection)
+          .doc(id);
+      final existing = await docRef.get();
+      if (!existing.exists) {
+        data['createdAt'] = Timestamp.fromDate(now);
+      }
+      await docRef.set(data, SetOptions(merge: true));
+      return id;
+    } catch (e, st) {
+      appLog('saveLegalContractTemplate failed: $e\n$st');
+      return null;
+    }
+  }
+
+  static Future<bool> deleteTemplate(String id) async {
+    if (id.isEmpty || OsContractTemplate.isPresetId(id)) return false;
+    try {
+      await FirebaseFirestore.instance
+          .collection(templatesCollection)
+          .doc(id)
+          .delete();
+      return true;
+    } catch (e, st) {
+      appLog('deleteLegalContractTemplate failed: $e\n$st');
       return false;
     }
   }

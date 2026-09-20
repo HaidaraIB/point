@@ -438,6 +438,51 @@ async function handleContractField(
     fallback = defaultContractClause(ctx);
     prompt =
       `صغ بنداً قانونياً عربياً رسمياً (فقرة إلى فقرتين) لعقد وكالة نقطة بعنوان "${String(ctx.clauseTitle ?? "")}" مع مراعاة السياق: ${JSON.stringify(ctx)}. أعد نص البند فقط.`;
+  } else if (field === "governing-law") {
+    fallback = String(
+      ctx.governingLaw ??
+        "القانون المدني العراقي رقم (40) لسنة 1951 وأنظمة العقود النافذة في جمهورية العراق",
+    );
+    prompt =
+      `اكتب سطراً أو سطرين عربياً رسمياً يحددان السند والغطاء القانوني (القانون الحاكم) لعقد وكالة نقطة بناءً على: ${JSON.stringify(ctx)}. أعد النص فقط مع ذكر القوانين العراقية المناسبة (مدني، عمل، مؤلف).`;
+  } else if (field === "custom-terms") {
+    fallback =
+      "أي تعديل على العقد يجب أن يكون مكتوباً وموقعاً من الطرفين. تُحل النزاعات ودياً أولاً خلال خمسة عشر يوماً.";
+    prompt =
+      `اكتب شروطاً خاصة إضافية عربية مختصرة (2-4 جمل) لعقد وكالة نقطة بناءً على: ${JSON.stringify(ctx)}. ركز على التعديلات، الإشعارات، وحل النزاعات. أعد النص فقط.`;
+  } else if (field === "jurisdiction") {
+    const targetType = String(ctx.targetType ?? "").toUpperCase();
+    fallback =
+      targetType === "EMPLOYEE"
+        ? "محاكم العمل المختصة في بغداد / الكرخ"
+        : "محاكم بغداد / الكرخ المختصة نزاعياً وفق القانون المدني العراقي";
+    prompt =
+      `اكتب جملة عربية رسمية واحدة تحدد الاختصاص القضائي المكاني لعقد وكالة نقطة بناءً على: ${JSON.stringify(ctx)}. أعد النص فقط.`;
+  } else if (field === "template-description") {
+    const name = String(ctx.templateTitle ?? ctx.contractTitle ?? "نموذج عقد");
+    fallback = `نموذج قانوني جاهز لـ${name} يغطي نطاق الخدمات والالتزامات وفق المرجعيات العراقية المعتمدة.`;
+    prompt =
+      `اكتب وصفاً عربياً تسويقياً-قانونياً مختصراً (2-3 جمل) لكتالوج نموذج عقد لوكالة نقطة باسم "${name}" مع السياق: ${JSON.stringify(ctx)}. أعد الوصف فقط.`;
+  } else if (field === "payment-schedule") {
+    fallback = JSON.stringify([
+      {
+        milestone: "الدفعة الأولى (مقدمة تعاقد)",
+        percentage: 50,
+        dueDateDescription: "فور توقيع العقد",
+      },
+      {
+        milestone: "الدفعة الثانية (مرحلية)",
+        percentage: 30,
+        dueDateDescription: "منتصف مدة التنفيذ",
+      },
+      {
+        milestone: "الدفعة الثالثة (تسليم نهائي)",
+        percentage: 20,
+        dueDateDescription: "عند التسليم النهائي المعتمد",
+      },
+    ]);
+    prompt =
+      `اقترح جدول دفعات عربياً لعقد وكالة نقطة بناءً على: ${JSON.stringify(ctx)}. أعد JSON فقط كمصفوفة من 2 إلى 4 عناصر بالشكل: [{"milestone":"...","percentage":50,"dueDateDescription":"..."}] حيث مجموع percentage = 100. لا تضف شرحاً.`;
   } else {
     return json({ errorCode: "ERR_INVALID_FIELD" }, 400);
   }

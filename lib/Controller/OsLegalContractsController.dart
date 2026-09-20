@@ -13,10 +13,22 @@ import 'package:point/Utils/os_currency.dart';
 
 class OsLegalContractsController extends GetxController {
   final contracts = <OsLegalContractModel>[].obs;
+  final customTemplates = <OsContractTemplate>[].obs;
   final settings = OsContractSettings.defaults().obs;
   final isLoading = false.obs;
 
-  List<OsContractTemplate> get templates => OsContractTemplatesSeed.presets();
+  List<OsContractTemplate> get templates => [
+        ...OsContractTemplatesSeed.presets(),
+        ...customTemplates,
+      ];
+
+  OsContractTemplate? templateById(String? id) {
+    if (id == null || id.isEmpty) return null;
+    for (final t in templates) {
+      if (t.id == id) return t;
+    }
+    return null;
+  }
 
   @override
   void onInit() {
@@ -42,6 +54,11 @@ class OsLegalContractsController extends GetxController {
       allowed,
       FirestoreOsLegalContractsApi.streamSettings(),
       OsContractSettings.defaults(),
+    );
+    bindOsListStream(
+      customTemplates,
+      allowed,
+      FirestoreOsLegalContractsApi.streamTemplates(),
     );
   }
 
@@ -120,6 +137,28 @@ class OsLegalContractsController extends GetxController {
     isLoading.value = true;
     try {
       return await FirestoreOsLegalContractsApi.saveSettings(value);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<OsContractTemplate?> saveTemplate(OsContractTemplate template) async {
+    isLoading.value = true;
+    try {
+      final id = await FirestoreOsLegalContractsApi.saveTemplate(template);
+      if (id == null) return null;
+      return templateById(id) ??
+          template.copyWith(id: id, isPreset: false);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<bool> deleteTemplate(String id) async {
+    if (OsContractTemplate.isPresetId(id)) return false;
+    isLoading.value = true;
+    try {
+      return await FirestoreOsLegalContractsApi.deleteTemplate(id);
     } finally {
       isLoading.value = false;
     }
